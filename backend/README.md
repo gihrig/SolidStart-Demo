@@ -102,16 +102,24 @@ cargo run -p web-server --example quick_dev
 ```sh
 cargo watch -q -c -x "test -- --nocapture"
 
+# Concise test output
+cargo watch -q -c -x "nextest run -j1"
+
 # Specific test with filter.
 cargo watch -q -c -x "test -p lib-core test_create -- --nocapture"
+
+cargo watch -q -c -x "test -p lib-core model::user::tests::test_create -- --nocapture"
+
 ```
 
 ## Unit Test
 
 ```sh
+# Concise test output
+cargo nextest run -j1
+
 cargo test -- --nocapture
 
-cargo watch -q -c -x "test -p lib-core model::task::tests::test_create -- --nocapture"
 ```
 
 ## Tools
