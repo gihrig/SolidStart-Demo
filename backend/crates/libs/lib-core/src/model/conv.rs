@@ -58,7 +58,7 @@ impl Nullable for ConvKind {
 ///       the `From<ConvState> for sea_query::Value` and the
 ///       `sea_query::value::Nullable for ConvState`
 ///       See the `ConvKind` for the manual implementation.
-///       
+///
 #[derive(
 	Debug,
 	Clone,
