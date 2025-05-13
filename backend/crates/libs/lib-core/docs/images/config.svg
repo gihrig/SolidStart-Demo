@@ -1,0 +1,50 @@
+<svg width="800" height="500" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="800" height="500" fill="#333333"/>
+    
+    <!-- Title -->
+    <text x="400" y="40" font-family="Arial" font-size="24" text-anchor="middle" fill="white">Config Module Flow</text>
+    
+    <!-- Boxes -->
+    <rect x="150" y="80" width="200" height="80" stroke="black" stroke-width="2" fill="#444444" rx="10"/>
+    <rect x="450" y="80" width="200" height="80" stroke="black" stroke-width="2" fill="#444444" rx="10"/>
+    <rect x="300" y="220" width="200" height="100" stroke="black" stroke-width="2" fill="#444444" rx="10"/>
+    <rect x="300" y="380" width="200" height="80" stroke="black" stroke-width="2" fill="#444444" rx="10"/>
+    
+    <!-- Box Text -->
+    <text x="250" y="115" font-family="Arial" font-size="16" text-anchor="middle" fill="white">core_config()</text>
+    <text x="250" y="135" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Public access function</text>
+    
+    <text x="550" y="115" font-family="Arial" font-size="16" text-anchor="middle" fill="white">OnceLock&lt;CoreConfig&gt;</text>
+    <text x="550" y="135" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Static instance</text>
+    
+    <text x="400" y="250" font-family="Arial" font-size="16" text-anchor="middle" fill="white">CoreConfig::load_from_env()</text>
+    <text x="400" y="270" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Reads environment variables</text>
+    <text x="400" y="290" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Returns CoreConfig struct</text>
+    
+    <text x="400" y="410" font-family="Arial" font-size="16" text-anchor="middle" fill="white">Environment</text>
+    <text x="400" y="430" font-family="Arial" font-size="14" text-anchor="middle" fill="white">DB_URL, WEB_FOLDER</text>
+    
+    <!-- Arrows -->
+    <path d="M350 120 L450 120" stroke="white" stroke-width="2" fill="none"/>
+    <polygon points="450,120 440,115 440,125" fill="white"/>
+    
+    <path d="M550 160 L550 200 L400 200 L400 220" stroke="white" stroke-width="2" fill="none"/>
+    <polygon points="400,220 395,210 405,210" fill="white"/>
+    
+    <path d="M400 320 L400 380" stroke="white" stroke-width="2" fill="none"/>
+    <polygon points="400,380 395,370 405,370" fill="white"/>
+    
+    <!-- Flow description -->
+    <text x="400" y="170" font-family="Arial" font-size="14" text-anchor="middle" fill="white">get_or_init()</text>
+    <text x="430" y="350" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Read environment</text>
+    <text x="320" y="110" font-family="Arial" font-size="14" text-anchor="middle" fill="white">access</text>
+    
+    <!-- Legend -->
+    <rect x="650" y="400" width="120" height="80" stroke="black" stroke-width="2" fill="#444444" rx="5"/>
+    <text x="710" y="420" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Legend</text>
+    <line x1="660" y1="435" x2="680" y2="435" stroke="white" stroke-width="2"/>
+    <text x="710" y="440" font-family="Arial" font-size="12" text-anchor="start" fill="white">Flow</text>
+    <rect x="660" y="450" width="20" height="20" stroke="black" stroke-width="2" fill="#444444"/>
+    <text x="710" y="465" font-family="Arial" font-size="12" text-anchor="start" fill="white">Component</text>
+</svg>
