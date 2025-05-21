@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#2F2F2F"/>
+  
+  <!-- Module Structure -->
+  <rect x="50" y="50" width="700" height="500" fill="none" stroke="black" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="30" fill="white" font-family="Arial" font-size="24" text-anchor="middle">dev_utils Module Flow</text>
+  
+  <!-- Main init functions -->
+  <rect x="150" y="80" width="150" height="70" fill="#3F3F3F" stroke="black" stroke-width="2" rx="5"/>
+  <text x="225" y="110" fill="white" font-family="Arial" font-size="16" text-anchor="middle">init_dev()</text>
+  <text x="225" y="130" fill="white" font-family="Arial" font-size="12" text-anchor="middle">Initialize dev environment</text>
+  
+  <rect x="500" y="80" width="150" height="70" fill="#3F3F3F" stroke="black" stroke-width="2" rx="5"/>
+  <text x="575" y="110" fill="white" font-family="Arial" font-size="16" text-anchor="middle">init_test()</text>
+  <text x="575" y="130" fill="white" font-family="Arial" font-size="12" text-anchor="middle">Initialize test environment</text>
+  
+  <rect x="325" y="180" width="150" height="70" fill="#3F3F3F" stroke="black" stroke-width="2" rx="5"/>
+  <text x="400" y="210" fill="white" font-family="Arial" font-size="16" text-anchor="middle">init_dev_db()</text>
+  <text x="400" y="230" fill="white" font-family="Arial" font-size="12" text-anchor="middle">Setup development DB</text>
+  
+  <!-- Flow arrows -->
+  <line x1="225" y1="150" x2="325" y2="200" stroke="white" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="575" y1="150" x2="475" y2="200" stroke="white" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <!-- Entity Operations -->
+  <rect x="100" y="300" width="150" height="50" fill="#3F3F3F" stroke="black" stroke-width="2" rx="5"/>
+  <text x="175" y="330" fill="white" font-family="Arial" font-size="14" text-anchor="middle">User Operations</text>
+  
+  <rect x="325" y="300" width="150" height="50" fill="#3F3F3F" stroke="black" stroke-width="2" rx="5"/>
+  <text x="400" y="330" fill="white" font-family="Arial" font-size="14" text-anchor="middle">Conv Operations</text>
+  
+  <rect x="550" y="300" width="150" height="50" fill="#3F3F3F" stroke="black" stroke-width="2" rx="5"/>
+  <text x="625" y="330" fill="white" font-family="Arial" font-size="14" text-anchor="middle">Agent Operations</text>
+  
+  <!-- User Functions -->
+  <rect x="75" y="380" width="90" height="40" fill="#4F4F4F" stroke="black" stroke-width="1" rx="5"/>
+  <text x="120" y="405" fill="white" font-family="Arial" font-size="12" text-anchor="middle">seed_users()</text>
+  
+  <rect x="75" y="430" width="90" height="40" fill="#4F4F4F" stroke="black" stroke-width="1" rx="5"/>
+  <text x="120" y="455" fill="white" font-family="Arial" font-size="12" text-anchor="middle">seed_user()</text>
+  
+  <rect x="75" y="480" width="90" height="40" fill="#4F4F4F" stroke="black" stroke-width="1" rx="5"/>
+  <text x="120" y="505" fill="white" font-family="Arial" font-size="12" text-anchor="middle">clean_users()</text>
+  
+  <!-- Conv Functions -->
+  <rect x="300" y="380" width="90" height="40" fill="#4F4F4F" stroke="black" stroke-width="1" rx="5"/>
+  <text x="345" y="405" fill="white" font-family="Arial" font-size="12" text-anchor="middle">seed_convs()</text>
+  
+  <rect x="300" y="430" width="90" height="40" fill="#4F4F4F" stroke="black" stroke-width="1" rx="5"/>
+  <text x="345" y="455" fill="white" font-family="Arial" font-size="12" text-anchor="middle">seed_conv()</text>
+  
+  <rect x="300" y="480" width="90" height="40" fill="#4F4F4F" stroke="black" stroke-width="1" rx="5"/>
+  <text x="345" y="505" fill="white" font-family="Arial" font-size="12" text-anchor="middle">clean_convs()</text>
+  
+  <!-- Agent Functions -->
+  <rect x="525" y="380" width="90" height="40" fill="#4F4F4F" stroke="black" stroke-width="1" rx="5"/>
+  <text x="570" y="405" fill="white" font-family="Arial" font-size="12" text-anchor="middle">seed_agents()</text>
+  
+  <rect x="525" y="430" width="90" height="40" fill="#4F4F4F" stroke="black" stroke-width="1" rx="5"/>
+  <text x="570" y="455" fill="white" font-family="Arial" font-size="12" text-anchor="middle">seed_agent()</text>
+  
+  <rect x="525" y="480" width="90" height="40" fill="#4F4F4F" stroke="black" stroke-width="1" rx="5"/>
+  <text x="570" y="505" fill="white" font-family="Arial" font-size="12" text-anchor="middle">clean_agents()</text>
+  
+  <!-- DB Operations -->
+  <rect x="200" y="380" width="70" height="140" fill="#4F4F4F" stroke="black" stroke-width="1" rx="5"/>
+  <text x="235" y="450" fill="white" font-family="Arial" font-size="12" text-anchor="middle" transform="rotate(-90 235,450)">Database Operations</text>
+  
+  <!-- Connection lines -->
+  <line x1="400" y1="250" x2="400" y2="300" stroke="white" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="175" y1="350" x2="175" y2="380" stroke="white" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="400" y1="350" x2="400" y2="380" stroke="white" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="625" y1="350" x2="625" y2="380" stroke="white" stroke-width="1" marker-end="url(#arrow)"/>
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="white"/>
+    </marker>
+  </defs>
+</svg>
