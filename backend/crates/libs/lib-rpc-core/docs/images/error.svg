@@ -1,0 +1,37 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="#333333"/>
+  
+  <!-- Title -->
+  <text x="400" y="40" font-family="Arial" font-size="24" fill="white" text-anchor="middle">Error Module Flow</text>
+  
+  <!-- Boxes -->
+  <rect x="100" y="100" width="200" height="80" stroke="black" stroke-width="2" fill="#444444" rx="10" ry="10"/>
+  <text x="200" y="145" font-family="Arial" font-size="16" fill="white" text-anchor="middle">Application Error</text>
+  
+  <rect x="500" y="100" width="200" height="80" stroke="black" stroke-width="2" fill="#444444" rx="10" ry="10"/>
+  <text x="600" y="145" font-family="Arial" font-size="16" fill="white" text-anchor="middle">External Error</text>
+  
+  <rect x="300" y="250" width="200" height="80" stroke="black" stroke-width="2" fill="#444444" rx="10" ry="10"/>
+  <text x="400" y="280" font-family="Arial" font-size="16" fill="white" text-anchor="middle">Error Enum</text>
+  <text x="400" y="305" font-family="Arial" font-size="14" fill="white" text-anchor="middle">(From trait converts)</text>
+  
+  <rect x="300" y="400" width="200" height="80" stroke="black" stroke-width="2" fill="#444444" rx="10" ry="10"/>
+  <text x="400" y="430" font-family="Arial" font-size="16" fill="white" text-anchor="middle">RPC Router</text>
+  <text x="400" y="455" font-family="Arial" font-size="14" fill="white" text-anchor="middle">(RpcHandlerError trait)</text>
+  
+  <rect x="300" y="550" width="200" height="80" stroke="black" stroke-width="2" fill="#444444" rx="10" ry="10"/>
+  <text x="400" y="595" font-family="Arial" font-size="16" fill="white" text-anchor="middle">JSON-RPC Error Response</text>
+  
+  <!-- Arrows -->
+  <line x1="200" y1="180" x2="350" y2="250" stroke="black" stroke-width="2"/>
+  <polygon points="350,250 335,240 345,235" fill="black"/>
+  
+  <line x1="600" y1="180" x2="450" y2="250" stroke="black" stroke-width="2"/>
+  <polygon points="450,250 465,240 455,235" fill="black"/>
+  
+  <line x1="400" y1="330" x2="400" y2="400" stroke="black" stroke-width="2"/>
+  <polygon points="400,400 395,385 405,385" fill="black"/>
+  
+  <line x1="400" y1="480" x2="400" y2="550" stroke="black" stroke-width="2"/>
+  <polygon points="400,550 395,535 405,535" fill="black"/>
+</svg>
