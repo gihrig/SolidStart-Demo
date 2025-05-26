@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="900" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="900" fill="#2f2f2f"/>
+  
+  <!-- Title -->
+  <text x="600" y="40" font-family="Arial, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="white">
+    lib-rpc-core/src/lib.rs - Module Structure &amp; Flow Diagram
+  </text>
+  
+  <!-- Main lib.rs Box -->
+  <rect x="450" y="80" width="300" height="160" fill="none" stroke="white" stroke-width="3"/>
+  <text x="600" y="105" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="white">
+    lib.rs (Root Module)
+  </text>
+  <text x="460" y="130" font-family="Arial, sans-serif" font-size="12" fill="white">Declares &amp; Re-exports:</text>
+  <text x="460" y="150" font-family="Arial, sans-serif" font-size="11" fill="white">• mod error → pub use Error, Result</text>
+  <text x="460" y="170" font-family="Arial, sans-serif" font-size="11" fill="white">• mod rpc_params → pub use *</text>
+  <text x="460" y="190" font-family="Arial, sans-serif" font-size="11" fill="white">• mod rpc_result (private)</text>
+  <text x="460" y="210" font-family="Arial, sans-serif" font-size="11" fill="white">• mod utils (private)</text>
+  <text x="460" y="230" font-family="Arial, sans-serif" font-size="11" fill="white">• pub mod prelude</text>
+  
+  <!-- Error Module -->
+  <rect x="50" y="300" width="250" height="140" fill="none" stroke="white" stroke-width="2"/>
+  <text x="175" y="325" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">
+    error.rs
+  </text>
+  <text x="60" y="350" font-family="Arial, sans-serif" font-size="11" fill="white">• Error enum with variants:</text>
+  <text x="70" y="370" font-family="Arial, sans-serif" font-size="10" fill="white">- Model(lib_core::model::Error)</text>
+  <text x="70" y="385" font-family="Arial, sans-serif" font-size="10" fill="white">- SerdeJson(serde_json::Error)</text>
+  <text x="60" y="405" font-family="Arial, sans-serif" font-size="11" fill="white">• Result&lt;T&gt; type alias</text>
+  <text x="60" y="425" font-family="Arial, sans-serif" font-size="11" fill="white">• RpcHandlerError derive</text>
+  
+  <!-- RPC Params Module -->
+  <rect x="330" y="300" width="280" height="200" fill="none" stroke="white" stroke-width="2"/>
+  <text x="470" y="325" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">
+    rpc_params.rs
+  </text>
+  <text x="340" y="350" font-family="Arial, sans-serif" font-size="11" fill="white">Generic RPC Parameter Types:</text>
+  <text x="340" y="375" font-family="Arial, sans-serif" font-size="10" fill="white">• ParamsForCreate&lt;D&gt; { data: D }</text>
+  <text x="340" y="395" font-family="Arial, sans-serif" font-size="10" fill="white">• ParamsForUpdate&lt;D&gt; { id: i64, data: D }</text>
+  <text x="340" y="415" font-family="Arial, sans-serif" font-size="10" fill="white">• ParamsIded { id: i64 }</text>
+  <text x="340" y="435" font-family="Arial, sans-serif" font-size="10" fill="white">• ParamsList&lt;F&gt; { filters, list_options }</text>
+  <text x="340" y="460" font-family="Arial, sans-serif" font-size="11" fill="white">Traits implemented:</text>
+  <text x="340" y="480" font-family="Arial, sans-serif" font-size="10" fill="white">• IntoParams / IntoDefaultRpcParams</text>
+  
+  <!-- RPC Result Module -->
+  <rect x="640" y="300" width="250" height="120" fill="none" stroke="white" stroke-width="2"/>
+  <text x="765" y="325" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">
+    rpc_result.rs
+  </text>
+  <text x="650" y="350" font-family="Arial, sans-serif" font-size="11" fill="white">• DataRpcResult&lt;T&gt; wrapper</text>
+  <text x="650" y="370" font-family="Arial, sans-serif" font-size="11" fill="white">• Contains: { data: T }</text>
+  <text x="650" y="390" font-family="Arial, sans-serif" font-size="11" fill="white">• From&lt;T&gt; trait implementation</text>
+  <text x="650" y="410" font-family="Arial, sans-serif" font-size="11" fill="white">• JSON-RPC result normalization</text>
+  
+  <!-- Utils Module -->
+  <rect x="920" y="300" width="250" height="140" fill="none" stroke="white" stroke-width="2"/>
+  <text x="1045" y="325" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">
+    utils/
+  </text>
+  <text x="930" y="350" font-family="Arial, sans-serif" font-size="11" fill="white">• mod.rs declares:</text>
+  <text x="940" y="370" font-family="Arial, sans-serif" font-size="10" fill="white">- macro_utils</text>
+  <text x="930" y="395" font-family="Arial, sans-serif" font-size="11" fill="white">• macro_utils.rs contains:</text>
+  <text x="940" y="415" font-family="Arial, sans-serif" font-size="10" fill="white">- generate_common_rpc_fns!</text>
+  <text x="940" y="430" font-family="Arial, sans-serif" font-size="10" fill="white">- CRUD function generator</text>
+  
+  <!-- Prelude Module -->
+  <rect x="400" y="550" width="400" height="180" fill="none" stroke="white" stroke-width="2"/>
+  <text x="600" y="575" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">
+    prelude.rs
+  </text>
+  <text x="410" y="600" font-family="Arial, sans-serif" font-size="12" fill="white">Re-exports for RPC modules convenience:</text>
+  <text x="410" y="625" font-family="Arial, sans-serif" font-size="10" fill="white">• generate_common_rpc_fns! (from utils)</text>
+  <text x="410" y="645" font-family="Arial, sans-serif" font-size="10" fill="white">• DataRpcResult (from rpc_result)</text>
+  <text x="410" y="665" font-family="Arial, sans-serif" font-size="10" fill="white">• Result (from error)</text>
+  <text x="410" y="685" font-family="Arial, sans-serif" font-size="10" fill="white">• All Params types (from rpc_params)</text>
+  <text x="410" y="705" font-family="Arial, sans-serif" font-size="10" fill="white">• External: Ctx, ModelManager, paste!, RouterBuilder</text>
+  
+  <!-- Arrows showing module relationships -->
+  <!-- lib.rs to modules -->
+  <path d="M 500 240 L 175 300" stroke="white" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 550 240 L 470 300" stroke="white" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 650 240 L 765 300" stroke="white" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 700 240 L 1045 300" stroke="white" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 600 240 L 600 550" stroke="white" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Prelude collecting from other modules -->
+  <path d="M 600 550 L 175 440" stroke="white" stroke-width="1" fill="none" stroke-dasharray="3,3" marker-end="url(#arrowhead-small)"/>
+  <path d="M 600 550 L 470 500" stroke="white" stroke-width="1" fill="none" stroke-dasharray="3,3" marker-end="url(#arrowhead-small)"/>
+  <path d="M 600 550 L 765 420" stroke="white" stroke-width="1" fill="none" stroke-dasharray="3,3" marker-end="url(#arrowhead-small)"/>
+  <path d="M 600 550 L 1045 440" stroke="white" stroke-width="1" fill="none" stroke-dasharray="3,3" marker-end="url(#arrowhead-small)"/>
+  
+  <!-- Public API Box -->
+  <rect x="50" y="770" width="1100" height="100" fill="none" stroke="white" stroke-width="2"/>
+  <text x="600" y="795" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">
+    Public API Surface
+  </text>
+  <text x="60" y="820" font-family="Arial, sans-serif" font-size="11" fill="white">Direct Exports: Error, Result, ParamsForCreate, ParamsForUpdate, ParamsIded, ParamsList</text>
+  <text x="60" y="840" font-family="Arial, sans-serif" font-size="11" fill="white">Via Prelude: All above + DataRpcResult + generate_common_rpc_fns! + external dependencies</text>
+  <text x="60" y="860" font-family="Arial, sans-serif" font-size="11" fill="white">Purpose: Provides complete foundation for JSON-RPC CRUD operations with type-safe parameter handling</text>
+  
+  <!-- Legend -->
+  <rect x="50" y="80" width="350" height="180" fill="none" stroke="white" stroke-width="1"/>
+  <text x="225" y="105" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">
+    Module Relationships
+  </text>
+  <line x1="60" y1="120" x2="90" y2="120" stroke="white" stroke-width="2"/>
+  <text x="100" y="125" font-family="Arial, sans-serif" font-size="10" fill="white">Direct module declaration</text>
+  
+  <line x1="60" y1="140" x2="90" y2="140" stroke="white" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="100" y="145" font-family="Arial, sans-serif" font-size="10" fill="white">Re-export relationship</text>
+  
+  <text x="60" y="170" font-family="Arial, sans-serif" font-size="10" fill="white">Module Visibility:</text>
+  <text x="60" y="190" font-family="Arial, sans-serif" font-size="10" fill="white">• error, rpc_params: Re-exported publicly</text>
+  <text x="60" y="210" font-family="Arial, sans-serif" font-size="10" fill="white">• rpc_result, utils: Private (internal)</text>
+  <text x="60" y="230" font-family="Arial, sans-serif" font-size="10" fill="white">• prelude: Public module for convenience</text>
+  
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+     refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="white"/>
+    </marker>
+    <marker id="arrowhead-small" markerWidth="8" markerHeight="5" 
+     refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0, 8 2.5, 0 5" fill="white"/>
+    </marker>
+  </defs>
+</svg>

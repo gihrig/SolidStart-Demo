@@ -111,4 +111,4 @@ The macro uses the `paste!` macro internally to create identifiers by concatenat
 - **Error Handling**: All operations are wrapped in a `Result` type, allowing errors to be properly propagated to the client.
 - **Entity Leakage**: The get-after-delete pattern ensures clients receive confirmation of what was deleted, but may reveal sensitive data if not properly filtered.
 
-![Macro Utils Flow](images/utils_macro_utils.svg)
+![Macro Utils Flow](images/macro_utils.svg)
