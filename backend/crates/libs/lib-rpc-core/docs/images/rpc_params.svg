@@ -98,5 +98,5 @@
 
   <!-- Trait Implementation Flow -->
   <rect x="150" y="580" width="500" height="50" rx="5" class="footer-note-box"/>
-  <text x="400" y="610" class="footer-text">All params implement appropriate RPC Router traits for type safety</text>
+  <text x="400" y="605" class="footer-text">All params implement appropriate RPC Router traits for type safety</text>
 </svg>
