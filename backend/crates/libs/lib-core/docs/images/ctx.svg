@@ -1,54 +1,71 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
-  <rect width="800" height="600" fill="#2D2D2D"/>
-  
-  <!-- API/Auth Layer -->
-  <rect x="100" y="50" width="600" height="80" stroke="black" stroke-width="2" fill="#3D3D3D" rx="5"/>
-  <text x="400" y="95" font-family="Arial" font-size="20" fill="white" text-anchor="middle">API/Authentication Layer</text>
-  
-  <!-- Business Logic Layer -->
-  <rect x="100" y="180" width="600" height="120" stroke="black" stroke-width="2" fill="#3D3D3D" rx="5"/>
-  <text x="400" y="205" font-family="Arial" font-size="20" fill="white" text-anchor="middle">Business Logic Layer</text>
-  
-  <!-- Context Object Inside Business Logic -->
-  <rect x="150" y="220" width="500" height="70" stroke="black" stroke-width="2" fill="#4D4D4D" rx="5"/>
-  <text x="400" y="250" font-family="Arial" font-size="16" fill="white" text-anchor="middle">Ctx { user_id: 123, conv_id: Some(456) }</text>
-  <text x="400" y="275" font-family="Arial" font-size="12" fill="white" text-anchor="middle">Immutable Security Context</text>
-  
-  <!-- Model Layer -->
-  <rect x="100" y="350" width="600" height="100" stroke="black" stroke-width="2" fill="#3D3D3D" rx="5"/>
-  <text x="400" y="375" font-family="Arial" font-size="20" fill="white" text-anchor="middle">Model Layer</text>
-  <text x="220" y="410" font-family="Arial" font-size="16" fill="white" text-anchor="middle">Access Control</text>
-  <text x="400" y="410" font-family="Arial" font-size="16" fill="white" text-anchor="middle">Audit Logging</text>
-  <text x="580" y="410" font-family="Arial" font-size="16" fill="white" text-anchor="middle">Owner Tracking</text>
-  
-  <!-- Database Layer -->
-  <rect x="100" y="500" width="600" height="70" stroke="black" stroke-width="2" fill="#3D3D3D" rx="5"/>
-  <text x="400" y="540" font-family="Arial" font-size="20" fill="white" text-anchor="middle">Database (cid, mid fields)</text>
-  
-  <!-- Context Creation Flow -->
-  <line x1="400" y1="130" x2="400" y2="180" stroke="white" stroke-width="2" marker-end="url(#arrowhead)"/>
-  <text x="420" y="155" font-family="Arial" font-size="14" fill="white">Ctx::new(user_id)</text>
-  
-  <!-- Context Validation Flow -->
-  <line x1="400" y1="290" x2="400" y2="350" stroke="white" stroke-width="2" marker-end="url(#arrowhead)"/>
-  <text x="430" y="320" font-family="Arial" font-size="14" fill="white">Pass ctx to BMC methods</text>
-  
-  <!-- Context Usage Flow -->
-  <line x1="400" y1="450" x2="400" y2="500" stroke="white" stroke-width="2" marker-end="url(#arrowhead)"/>
-  <text x="430" y="480" font-family="Arial" font-size="14" fill="white">ctx.user_id() → cid/mid</text>
-  
-  <!-- Root Context Flow (Left Side) -->
-  <path d="M100,95 L50,95 L50,540 L100,540" stroke="white" stroke-width="1.5" fill="none" stroke-dasharray="5,5"/>
-  <text x="35" y="320" font-family="Arial" font-size="14" fill="white" transform="rotate(270, 35, 320)">Root Context (System Operations)</text>
-  
-  <!-- Context Enrichment (Right Side) -->
-  <path d="M700,250 L750,250 L750,410 L700,410" stroke="white" stroke-width="1.5" fill="none" stroke-dasharray="5,5"/>
-  <text x="765" y="320" font-family="Arial" font-size="14" fill="white" transform="rotate(90, 765, 320)">ctx.add_conv_id()</text>
-  
-  <!-- Define arrowhead marker -->
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="white"/>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: #3D3D3D; }
+      .stroke-secondary { stroke: #AAA; stroke-width: 2; fill: #4D4D4D; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1.5; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-feature-title { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 16px; fill: white; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 12px; fill: white; text-anchor: middle; }
+      .text-note { font-family: Arial, sans-serif; font-size: 14px; fill: white; text-anchor: middle; }
+      .text-note-sm { font-family: Arial, sans-serif; font-size: 14px; fill: white; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7"
+     refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
     </marker>
   </defs>
+
+  <rect width="800" height="600" class="bg"/>
+
+  <!-- API/Auth Layer -->
+  <rect x="100" y="50" width="600" height="80" rx="5" class="stroke-primary"/>
+  <text x="400" y="95" class="text-box-title">API/Authentication Layer</text>
+
+  <!-- Business Logic Layer -->
+  <rect x="100" y="180" width="600" height="120" rx="5" class="stroke-primary"/>
+  <text x="400" y="205" class="text-box-title">Business Logic Layer</text>
+
+  <!-- Context Object Inside Business Logic -->
+  <rect x="150" y="220" width="500" height="70" rx="5" class="stroke-secondary"/>
+  <text x="400" y="250" class="text-code">Ctx { user_id: 123, conv_id: Some(456) }</text>
+  <text x="400" y="275" class="text-small">Immutable Security Context</text>
+
+  <!-- Model Layer -->
+  <rect x="100" y="350" width="600" height="100" rx="5" class="stroke-primary"/>
+  <text x="400" y="375" class="text-box-title">Model Layer</text>
+  <text x="220" y="410" class="text-code">Access Control</text>
+  <text x="400" y="410" class="text-code">Audit Logging</text>
+  <text x="580" y="410" class="text-code">Owner Tracking</text>
+
+  <!-- Database Layer -->
+  <rect x="100" y="500" width="600" height="70" rx="5" class="stroke-primary"/>
+  <text x="400" y="540" class="text-box-title">Database (cid, mid fields)</text>
+
+  <!-- Context Creation Flow -->
+  <line x1="400" y1="130" x2="400" y2="180" class="line-primary" marker-end="url(#arrowhead)"/>
+  <text x="480" y="155" class="text-note">Ctx::new(user_id)</text>
+
+  <!-- Context Validation Flow -->
+  <line x1="400" y1="290" x2="400" y2="350" class="line-primary" marker-end="url(#arrowhead)"/>
+  <text x="500" y="325" class="text-note">Pass ctx to BMC methods</text>
+
+  <!-- Context Usage Flow -->
+  <line x1="400" y1="450" x2="400" y2="500" class="line-primary" marker-end="url(#arrowhead)"/>
+  <text x="500" y="480" class="text-note">ctx.user_id() → cid/mid</text>
+
+  <!-- Root Context Flow (Left Side) -->
+  <path d="M100,95 L50,95 L50,540 L100,540" class="stroke-dashed"/>
+  <text x="35" y="320" class="text-note" transform="rotate(270, 35, 320)">Root Context (System Operations)</text>
+
+  <!-- Context Enrichment (Right Side) -->
+  <path d="M700,250 L750,250 L750,410 L700,410" class="stroke-dashed"/>
+  <text x="765" y="320" class="text-note" transform="rotate(90, 765, 320)">ctx.add_conv_id()</text>
 </svg>
