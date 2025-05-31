@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+<svg width="800" height="650" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <style>
       .bg { fill: #2f2f2f; }
@@ -21,10 +21,7 @@
       <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
     </marker>
   </defs>
-  <rect width="800" height="600" class="bg"/>
-
-  <!-- Module Structure -->
-  <!-- <rect x="50" y="50" width="700" height="500" class="stroke-primary"/> -->
+  <rect width="800" height="650" class="bg"/>
 
   <!-- Title -->
   <text x="400" y="30" class="text-title">dev_utils Module Flow</text>
@@ -42,10 +39,6 @@
   <text x="400" y="210" class="text-section">init_dev_db()</text>
   <text x="400" y="230" class="text-small">Setup development DB</text>
 
-  <!-- Flow arrows -->
-  <line x1="225" y1="150" x2="325" y2="200" class="line-primary" marker-end="url(#arrowhead)"/>
-  <line x1="575" y1="150" x2="475" y2="200" class="line-primary" marker-end="url(#arrowhead)"/>
-
   <!-- Entity Operations -->
   <rect x="100" y="300" width="150" height="50" rx="5" class="fill-primary stroke-primary"/>
   <text x="175" y="330" class="text-box-title">User Operations</text>
@@ -57,43 +50,54 @@
   <text x="625" y="330" class="text-box-title">Agent Operations</text>
 
   <!-- User Functions -->
-  <rect x="75" y="380" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
-  <text x="120" y="405" class="text-small">seed_users()</text>
+  <rect x="130" y="380" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
+  <text x="175" y="405" class="text-small">seed_users()</text>
 
-  <rect x="75" y="430" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
-  <text x="120" y="455" class="text-small">seed_user()</text>
+  <rect x="130" y="430" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
+  <text x="175" y="455" class="text-small">seed_user()</text>
 
-  <rect x="75" y="480" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
-  <text x="120" y="505" class="text-small">clean_users()</text>
+  <rect x="130" y="480" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
+  <text x="175" y="505" class="text-small">clean_users()</text>
 
   <!-- Conv Functions -->
-  <rect x="300" y="380" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
-  <text x="345" y="405" class="text-small">seed_convs()</text>
+  <rect x="355" y="380" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
+  <text x="400" y="405" class="text-small">seed_convs()</text>
 
-  <rect x="300" y="430" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
-  <text x="345" y="455" class="text-small">seed_conv()</text>
+  <rect x="355" y="430" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
+  <text x="400" y="455" class="text-small">seed_conv()</text>
 
-  <rect x="300" y="480" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
-  <text x="345" y="505" class="text-small">clean_convs()</text>
+  <rect x="355" y="480" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
+  <text x="400" y="505" class="text-small">clean_convs()</text>
 
   <!-- Agent Functions -->
-  <rect x="525" y="380" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
-  <text x="570" y="405" class="text-small">seed_agents()</text>
+  <rect x="580" y="380" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
+  <text x="625" y="405" class="text-small">seed_agents()</text>
 
-  <rect x="525" y="430" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
-  <text x="570" y="455" class="text-small">seed_agent()</text>
+  <rect x="580" y="430" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
+  <text x="625" y="455" class="text-small">seed_agent()</text>
 
-  <rect x="525" y="480" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
-  <text x="570" y="505" class="text-small">clean_agents()</text>
+  <rect x="580" y="480" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
+  <text x="625" y="505" class="text-small">clean_agents()</text>
 
   <!-- DB Operations -->
-  <rect x="200" y="380" width="70" height="140" rx="5" class="fill-secondary stroke-secondary"/>
-  <text x="235" y="450" class="text-small" transform="rotate(-90 235,450)">Database Operations</text>
+  <rect x="75" y="550" width="650" height="70" rx="5" class="fill-secondary stroke-secondary"/>
+  <text x="400" y="580" class="text-section" >ModelManager</text>
+  <text x="400" y="600" class="text-small" >Database Operations</text>
 
-  <!-- Connection lines -->
+  <!-- Flow arrows -->
+  <line x1="225" y1="150" x2="325" y2="200" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="575" y1="150" x2="475" y2="200" class="line-primary" marker-end="url(#arrowhead)"/>
+
   <line x1="400" y1="250" x2="400" y2="300" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="360" y1="250" x2="200" y2="300" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="440" y1="250" x2="600" y2="300" class="line-primary" marker-end="url(#arrowhead)"/>
+
   <line x1="175" y1="350" x2="175" y2="380" class="line-secondary" marker-end="url(#arrowhead)"/>
   <line x1="400" y1="350" x2="400" y2="380" class="line-secondary" marker-end="url(#arrowhead)"/>
   <line x1="625" y1="350" x2="625" y2="380" class="line-secondary" marker-end="url(#arrowhead)"/>
+
+  <line x1="175" y1="520" x2="175" y2="550" class="line-secondary" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="520" x2="400" y2="550" class="line-secondary" marker-end="url(#arrowhead)"/>
+  <line x1="625" y1="520" x2="625" y2="550" class="line-secondary" marker-end="url(#arrowhead)"/>
 
 </svg>
