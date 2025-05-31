@@ -1,61 +1,76 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
-  <rect width="800" height="600" fill="#2D2D2D"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1.5; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 12px; fill: white; text-anchor: middle; }
+      .rect-layer { fill: #3D3D3D; }
+      .rect-sublayer { fill: #4D4D4D; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7"
+     refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>
+
+  <rect width="800" height="600" class="bg"/>
   
   <!-- Application Layer -->
-  <rect x="50" y="50" width="700" height="80" stroke="black" stroke-width="2" fill="#3D3D3D" rx="5"/>
-  <text x="400" y="95" font-family="Arial" font-size="20" fill="white" text-anchor="middle">Application Code</text>
+  <rect x="50" y="70" width="700" height="80" rx="5" class="stroke-primary rect-layer"/>
+  <text x="400" y="115" class="text-title">Application Code</text>
   
   <!-- Model Layer -->
-  <rect x="50" y="180" width="700" height="300" stroke="black" stroke-width="2" fill="#3D3D3D" rx="5"/>
-  <text x="400" y="205" font-family="Arial" font-size="20" fill="white" text-anchor="middle">Model Layer</text>
+  <rect x="50" y="200" width="700" height="300" rx="5" class="stroke-primary rect-layer"/>
+  <text x="400" y="225" class="text-title">Model Layer</text>
   
   <!-- BMC Layer -->
-  <rect x="70" y="220" width="660" height="80" stroke="black" stroke-width="2" fill="#4D4D4D" rx="5"/>
-  <text x="400" y="265" font-family="Arial" font-size="18" fill="white" text-anchor="middle">Backend Model Controllers (BMCs)</text>
-  <text x="180" y="290" font-family="Arial" font-size="14" fill="white" text-anchor="middle">UserBmc</text>
-  <text x="320" y="290" font-family="Arial" font-size="14" fill="white" text-anchor="middle">AgentBmc</text>
-  <text x="460" y="290" font-family="Arial" font-size="14" fill="white" text-anchor="middle">ConvBmc</text>
-  <text x="600" y="290" font-family="Arial" font-size="14" fill="white" text-anchor="middle">ConvMsgBmc</text>
+  <rect x="70" y="240" width="660" height="80" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="400" y="275" class="text-section">Backend Model Controllers (BMCs)</text>
+  <text x="180" y="295" class="text-box-title">UserBmc</text>
+  <text x="320" y="295" class="text-box-title">AgentBmc</text>
+  <text x="460" y="295" class="text-box-title">ConvBmc</text>
+  <text x="600" y="295" class="text-box-title">ConvMsgBmc</text>
   
   <!-- Base Layer -->
-  <rect x="70" y="320" width="660" height="70" stroke="black" stroke-width="2" fill="#4D4D4D" rx="5"/>
-  <text x="400" y="355" font-family="Arial" font-size="18" fill="white" text-anchor="middle">Base CRUD Functions</text>
+  <rect x="70" y="340" width="660" height="70" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="400" y="380" class="text-section">Base CRUD Functions</text>
   
   <!-- ModelManager Layer -->
-  <rect x="70" y="410" width="660" height="60" stroke="black" stroke-width="2" fill="#4D4D4D" rx="5"/>
-  <text x="400" y="445" font-family="Arial" font-size="18" fill="white" text-anchor="middle">ModelManager (Resource Manager)</text>
+  <rect x="70" y="430" width="660" height="60" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="400" y="465" class="text-section">ModelManager (Resource Manager)</text>
   
   <!-- Database Layer -->
-  <rect x="50" y="530" width="700" height="50" stroke="black" stroke-width="2" fill="#3D3D3D" rx="5"/>
-  <text x="400" y="560" font-family="Arial" font-size="20" fill="white" text-anchor="middle">Database (PostgreSQL)</text>
+  <rect x="50" y="550" width="700" height="50" rx="5" class="stroke-primary rect-layer"/>
+  <text x="400" y="580" class="text-title">Database (PostgreSQL)</text>
   
   <!-- Flow Arrows -->
   <!-- App to BMC -->
-  <line x1="400" y1="130" x2="400" y2="220" stroke="white" stroke-width="2" marker-end="url(#arrowhead)"/>
-  <text x="420" y="165" font-family="Arial" font-size="12" fill="white">Context + Request</text>
+  <line x1="400" y1="150" x2="400" y2="240" class="line-primary" marker-end="url(#arrowhead)"/>
+  <text x="440" y="185" class="text-code">Context + Request</text>
   
   <!-- BMC to Base -->
-  <line x1="400" y1="300" x2="400" y2="320" stroke="white" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="320" x2="400" y2="340" class="line-primary" marker-end="url(#arrowhead)"/>
   
   <!-- Base to ModelManager -->
-  <line x1="400" y1="390" x2="400" y2="410" stroke="white" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="410" x2="400" y2="430" class="line-primary" marker-end="url(#arrowhead)"/>
   
   <!-- ModelManager to DB -->
-  <line x1="400" y1="470" x2="400" y2="530" stroke="white" stroke-width="2" marker-end="url(#arrowhead)"/>
-  <text x="420" y="505" font-family="Arial" font-size="12" fill="white">SQL Queries</text>
+  <line x1="400" y1="490" x2="400" y2="550" class="line-primary" marker-end="url(#arrowhead)"/>
+  <text x="440" y="525" class="text-code">SQL Queries</text>
   
   <!-- Response Flow -->
-  <line x1="320" y1="530" x2="320" y2="130" stroke="white" stroke-width="1.5" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
-  <text x="280" y="330" font-family="Arial" font-size="12" fill="white">Response</text>
+  <line x1="320" y1="550" x2="320" y2="150" class="stroke-dashed" marker-end="url(#arrowhead)"/>
+  <text x="300" y="350" class="text-code">Response</text>
   
   <!-- Context Flow -->
-  <path d="M100,130 C50,200 50,400 100,530" stroke="white" stroke-width="1.5" fill="none" stroke-dasharray="5,5"/>
-  <text x="75" y="330" font-family="Arial" font-size="12" fill="white" transform="rotate(-90, 75, 330)">Context (Ctx)</text>
-  
-  <!-- Define arrowhead marker -->
-  <defs>
-    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="white"/>
-    </marker>
-  </defs>
+  <path d="M100,150 C50,220 50,420 100,550" class="stroke-dashed"/>
+  <text x="75" y="350" class="text-code" transform="rotate(-90, 75, 350)">Context (Ctx)</text>
+
 </svg>
