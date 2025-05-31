@@ -21,56 +21,57 @@
   </defs>
 
   <rect width="800" height="600" class="bg"/>
-  
+
   <!-- Application Layer -->
-  <rect x="50" y="70" width="700" height="80" rx="5" class="stroke-primary rect-layer"/>
-  <text x="400" y="115" class="text-title">Application Code</text>
-  
+  <rect x="50" y="30" width="700" height="80" rx="5" class="stroke-primary rect-layer"/>
+  <text x="400" y="75" class="text-title">Application Code</text>
+
   <!-- Model Layer -->
-  <rect x="50" y="200" width="700" height="300" rx="5" class="stroke-primary rect-layer"/>
-  <text x="400" y="225" class="text-title">Model Layer</text>
-  
+  <rect x="50" y="160" width="700" height="300" rx="5" class="stroke-primary rect-layer"/>
+  <text x="398" y="185" class="text-title">Model .. Layer</text>
+
   <!-- BMC Layer -->
-  <rect x="70" y="240" width="660" height="80" rx="5" class="stroke-primary rect-sublayer"/>
-  <text x="400" y="275" class="text-section">Backend Model Controllers (BMCs)</text>
-  <text x="180" y="295" class="text-box-title">UserBmc</text>
-  <text x="320" y="295" class="text-box-title">AgentBmc</text>
-  <text x="460" y="295" class="text-box-title">ConvBmc</text>
-  <text x="600" y="295" class="text-box-title">ConvMsgBmc</text>
-  
+  <rect x="70" y="200" width="660" height="80" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="400" y="230" class="text-section">Backend Model Controllers (BMCs)</text>
+  <text x="180" y="255" class="text-box-title">UserBmc</text>
+  <text x="320" y="255" class="text-box-title">AgentBmc</text>
+  <text x="460" y="255" class="text-box-title">ConvBmc</text>
+  <text x="600" y="255" class="text-box-title">ConvMsgBmc</text>
+
   <!-- Base Layer -->
-  <rect x="70" y="340" width="660" height="70" rx="5" class="stroke-primary rect-sublayer"/>
-  <text x="400" y="380" class="text-section">Base CRUD Functions</text>
-  
+  <rect x="70" y="300" width="660" height="70" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="400" y="340" class="text-section">Base CRUD Functions</text>
+
   <!-- ModelManager Layer -->
-  <rect x="70" y="430" width="660" height="60" rx="5" class="stroke-primary rect-sublayer"/>
-  <text x="400" y="465" class="text-section">ModelManager (Resource Manager)</text>
-  
+  <rect x="70" y="390" width="660" height="60" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="400" y="425" class="text-section">ModelManager (Resource Manager)</text>
+
   <!-- Database Layer -->
-  <rect x="50" y="550" width="700" height="50" rx="5" class="stroke-primary rect-layer"/>
-  <text x="400" y="580" class="text-title">Database (PostgreSQL)</text>
-  
+  <rect x="50" y="510" width="700" height="50" rx="5" class="stroke-primary rect-layer"/>
+  <text x="400" y="540" class="text-title">Database (PostgreSQL)</text>
+
   <!-- Flow Arrows -->
   <!-- App to BMC -->
-  <line x1="400" y1="150" x2="400" y2="240" class="line-primary" marker-end="url(#arrowhead)"/>
-  <text x="440" y="185" class="text-code">Context + Request</text>
-  
+  <line x1="400" y1="110" x2="400" y2="200" class="line-primary" marker-end="url(#arrowhead)"/>
+  <text x="460" y="140" class="text-code">Context + Request</text>
+
   <!-- BMC to Base -->
-  <line x1="400" y1="320" x2="400" y2="340" class="line-primary" marker-end="url(#arrowhead)"/>
-  
+  <line x1="400" y1="280" x2="400" y2="300" class="line-primary" marker-end="url(#arrowhead)"/>
+
   <!-- Base to ModelManager -->
-  <line x1="400" y1="410" x2="400" y2="430" class="line-primary" marker-end="url(#arrowhead)"/>
-  
+  <line x1="400" y1="370" x2="400" y2="390" class="line-primary" marker-end="url(#arrowhead)"/>
+
   <!-- ModelManager to DB -->
-  <line x1="400" y1="490" x2="400" y2="550" class="line-primary" marker-end="url(#arrowhead)"/>
-  <text x="440" y="525" class="text-code">SQL Queries</text>
-  
+  <line x1="400" y1="450" x2="400" y2="510" class="line-primary" marker-end="url(#arrowhead)"/>
+  <text x="450" y="485" class="text-code">SQL Queries</text>
+
   <!-- Response Flow -->
-  <line x1="320" y1="550" x2="320" y2="150" class="stroke-dashed" marker-end="url(#arrowhead)"/>
-  <text x="300" y="350" class="text-code">Response</text>
-  
+  <line x1="700" y1="510" x2="700" y2="110" class="stroke-dashed" marker-end="url(#arrowhead)"/>
+  <text x="660" y="485" class="text-code">Response</text>
+  <text x="660" y="140" class="text-code">Response</text>
+
   <!-- Context Flow -->
-  <path d="M100,150 C50,220 50,420 100,550" class="stroke-dashed"/>
-  <text x="75" y="350" class="text-code" transform="rotate(-90, 75, 350)">Context (Ctx)</text>
+  <path d="M50,110 C10,220 10,420 50,510" class="stroke-dashed"/>
+  <text x="95" y="310" class="text-code" transform="rotate(-90, 75, 350)">Context (Ctx)</text>
 
 </svg>
