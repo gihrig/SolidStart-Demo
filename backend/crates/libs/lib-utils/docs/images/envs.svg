@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1.5; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 13px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 11px; fill: white; text-anchor: middle; }
+      .text-error { font-family: Arial, sans-serif; font-size: 11px; fill: #ff6b6b; text-anchor: middle; }
+      .rect-layer { fill: #3D3D3D; }
+      .rect-sublayer { fill: #4D4D4D; }
+      .rect-error { fill: #5D2D2D; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7"
+     refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>
+
+  <rect width="800" height="600" class="bg"/>
+
+  <!-- Application Layer -->
+  <rect x="30" y="30" width="740" height="60" rx="5" class="stroke-primary rect-layer"/>
+  <text x="400" y="65" class="text-title">Application Code</text>
+
+  <!-- Environment Module -->
+  <rect x="30" y="120" width="740" height="260" rx="5" class="stroke-primary rect-layer"/>
+  <text x="400" y="145" class="text-title">Environment Module (envs)</text>
+
+  <!-- Function Layer -->
+  <rect x="50" y="160" width="700" height="80" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="400" y="185" class="text-section">Environment Functions</text>
+  <text x="150" y="210" class="text-box-title">get_env()</text>
+  <text x="400" y="210" class="text-box-title">get_env_parse&lt;T&gt;()</text>
+  <text x="650" y="210" class="text-box-title">get_env_b64u_as_u8s()</text>
+
+  <!-- Processing Layer -->
+  <rect x="50" y="260" width="700" height="60" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="400" y="295" class="text-section">Processing &amp; Conversion</text>
+
+  <!-- Error Handling -->
+  <rect x="50" y="340" width="320" height="40" rx="5" class="stroke-primary rect-error"/>
+  <text x="210" y="365" class="text-error">Error Handling</text>
+
+  <rect x="430" y="340" width="320" height="40" rx="5" class="stroke-primary rect-error"/>
+  <text x="590" y="365" class="text-error">Result&lt;T, Error&gt;</text>
+
+  <!-- System Environment -->
+  <rect x="30" y="420" width="740" height="50" rx="5" class="stroke-primary rect-layer"/>
+  <text x="400" y="450" class="text-title">System Environment Variables</text>
+
+  <!-- Flow Arrows -->
+  <!-- App to Functions -->
+  <line x1="150" y1="90" x2="150" y2="160" class="line-primary" marker-end="url(#arrowhead)"/>
+  <text x="90" y="130" class="text-code">get_env("VAR")</text>
+
+  <line x1="400" y1="90" x2="400" y2="160" class="line-primary" marker-end="url(#arrowhead)"/>
+  <text x="340" y="130" class="text-code">get_env_parse::&lt;T&gt;("VAR")</text>
+
+  <line x1="650" y1="90" x2="650" y2="160" class="line-primary" marker-end="url(#arrowhead)"/>
+  <text x="720" y="130" class="text-code">get_env_b64u_as_u8s("VAR")</text>
+
+  <!-- Functions to Processing -->
+  <line x1="400" y1="240" x2="400" y2="260" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Processing to System -->
+  <line x1="400" y1="320" x2="400" y2="420" class="line-primary" marker-end="url(#arrowhead)"/>
+  <text x="460" y="380" class="text-code">std::env::var()</text>
+
+  <!-- Success Response -->
+  <line x1="650" y1="420" x2="650" y2="90" class="stroke-dashed" marker-end="url(#arrowhead)"/>
+  <text x="680" y="380" class="text-code">Success</text>
+  <text x="690" y="250" class="text-code">Ok(T)</text>
+
+  <!-- Error Flow -->
+  <line x1="210" y1="340" x2="150" y2="90" class="stroke-dashed" marker-end="url(#arrowhead)"/>
+  <text x="120" y="300" class="text-error">MissingEnv</text>
+  <text x="100" y="200" class="text-error">WrongFormat</text>
+
+</svg>
