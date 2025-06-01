@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1.5; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 12px; fill: white; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .rect-layer { fill: #3D3D3D; }
+      .rect-sublayer { fill: #4D4D4D; }
+      .rect-function { fill: #5D5D5D; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7"
+     refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>
+
+  <rect width="800" height="600" class="bg"/>
+
+  <!-- Title -->
+  <text x="400" y="30" class="text-title">Time Module Flow Diagram</text>
+
+  <!-- Application Layer -->
+  <rect x="50" y="60" width="700" height="60" rx="5" class="stroke-primary rect-layer"/>
+  <text x="400" y="95" class="text-section">Application Code</text>
+
+  <!-- Time Module Layer -->
+  <rect x="50" y="160" width="700" height="320" rx="5" class="stroke-primary rect-layer"/>
+  <text x="400" y="185" class="text-title">Time Module</text>
+
+  <!-- Core Functions Row -->
+  <rect x="70" y="210" width="150" height="80" rx="5" class="stroke-primary rect-function"/>
+  <text x="145" y="235" class="text-box-title">now_utc()</text>
+  <text x="145" y="255" class="text-small">System Time</text>
+  <text x="145" y="270" class="text-small">→ OffsetDateTime</text>
+
+  <rect x="240" y="210" width="150" height="80" rx="5" class="stroke-primary rect-function"/>
+  <text x="315" y="235" class="text-box-title">format_time()</text>
+  <text x="315" y="255" class="text-small">OffsetDateTime</text>
+  <text x="315" y="270" class="text-small">→ RFC3339 String</text>
+
+  <rect x="410" y="210" width="150" height="80" rx="5" class="stroke-primary rect-function"/>
+  <text x="485" y="235" class="text-box-title">parse_utc()</text>
+  <text x="485" y="255" class="text-small">RFC3339 String</text>
+  <text x="485" y="270" class="text-small">→ OffsetDateTime</text>
+
+  <rect x="580" y="210" width="150" height="80" rx="5" class="stroke-primary rect-function"/>
+  <text x="655" y="235" class="text-box-title">now_utc_plus_sec_str()</text>
+  <text x="655" y="255" class="text-small">Seconds Offset</text>
+  <text x="655" y="270" class="text-small">→ RFC3339 String</text>
+
+  <!-- Utility Layer -->
+  <rect x="70" y="320" width="660" height="60" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="400" y="345" class="text-section">Utility Compositions</text>
+  <text x="400" y="365" class="text-small">now_utc_plus_sec_str() = now_utc() + Duration + format_time()</text>
+
+  <!-- Error Handling -->
+  <rect x="70" y="400" width="660" height="60" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="400" y="425" class="text-section">Error Handling</text>
+  <text x="400" y="445" class="text-small">FailToDateParse(String) - Custom error wrapping</text>
+
+  <!-- External Dependencies -->
+  <rect x="50" y="520" width="700" height="60" rx="5" class="stroke-primary rect-layer"/>
+  <text x="400" y="555" class="text-title">External Dependencies (time crate)</text>
+
+  <!-- Flow Arrows -->
+  <!-- App to Time Module -->
+  <line x1="400" y1="120" x2="400" y2="160" class="line-primary" marker-end="url(#arrowhead)"/>
+  <text x="450" y="145" class="text-code">Time Operations</text>
+
+  <!-- Internal Composition Flow -->
+  <line x1="145" y1="290" x2="145" y2="320" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="315" y1="290" x2="315" y2="320" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="655" y1="290" x2="580" y2="320" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Error path -->
+  <line x1="485" y1="290" x2="485" y2="400" class="stroke-dashed" marker-end="url(#arrowhead)"/>
+  <text x="520" y="345" class="text-small">Parse Errors</text>
+
+  <!-- Dependencies -->
+  <line x1="400" y1="480" x2="400" y2="520" class="line-primary" marker-end="url(#arrowhead)"/>
+  <text x="450" y="505" class="text-code">time::OffsetDateTime</text>
+  <text x="450" y="515" class="text-code">time::Duration</text>
+
+  <!-- Response Flow -->
+  <line x1="700" y1="520" x2="700" y2="120" class="stroke-dashed" marker-end="url(#arrowhead)"/>
+  <text x="720" y="320" class="text-code" transform="rotate(90, 720, 320)">Results</text>
+
+  <!-- Data Types Labels -->
+  <text x="100" y="570" class="text-small">OffsetDateTime</text>
+  <text x="250" y="570" class="text-small">RFC3339 Strings</text>
+  <text x="400" y="570" class="text-small">Duration</text>
+  <text x="550" y="570" class="text-small">Result&lt;T, Error&gt;</text>
+
+</svg>
