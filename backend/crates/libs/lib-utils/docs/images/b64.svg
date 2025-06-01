@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1.5; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 12px; fill: white; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .rect-layer { fill: #3D3D3D; }
+      .rect-sublayer { fill: #4D4D4D; }
+      .rect-function { fill: #5D5D5D; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7"
+     refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>
+
+  <rect width="800" height="500" class="bg"/>
+
+  <!-- Title -->
+  <text x="400" y="30" class="text-title">B64 Module Data Flow</text>
+
+  <!-- Input Layer -->
+  <rect x="50" y="60" width="700" height="60" rx="5" class="stroke-primary rect-layer"/>
+  <text x="400" y="95" class="text-section">Input Data</text>
+  <text x="150" y="110" class="text-code">impl AsRef&lt;[u8]&gt;</text>
+  <text x="400" y="110" class="text-code">&amp;str (base64)</text>
+  <text x="650" y="110" class="text-code">&amp;str (base64)</text>
+
+  <!-- Function Layer -->
+  <rect x="50" y="150" width="200" height="80" rx="5" class="stroke-primary rect-function"/>
+  <text x="150" y="175" class="text-box-title">b64u_encode</text>
+  <text x="150" y="195" class="text-small">URL_SAFE_NO_PAD</text>
+  <text x="150" y="210" class="text-small">.encode()</text>
+
+  <rect x="300" y="150" width="200" height="80" rx="5" class="stroke-primary rect-function"/>
+  <text x="400" y="175" class="text-box-title">b64u_decode</text>
+  <text x="400" y="195" class="text-small">URL_SAFE_NO_PAD</text>
+  <text x="400" y="210" class="text-small">.decode()</text>
+
+  <rect x="550" y="150" width="200" height="80" rx="5" class="stroke-primary rect-function"/>
+  <text x="650" y="175" class="text-box-title">b64u_decode_to_string</text>
+  <text x="650" y="195" class="text-small">b64u_decode() +</text>
+  <text x="650" y="210" class="text-small">String::from_utf8()</text>
+
+  <!-- Engine Layer -->
+  <rect x="200" y="260" width="400" height="60" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="400" y="295" class="text-section">base64::engine::URL_SAFE_NO_PAD</text>
+
+  <!-- Output Layer -->
+  <rect x="50" y="350" width="200" height="60" rx="5" class="stroke-primary rect-layer"/>
+  <text x="150" y="375" class="text-section">String</text>
+  <text x="150" y="395" class="text-small">(URL-safe base64)</text>
+
+  <rect x="300" y="350" width="200" height="60" rx="5" class="stroke-primary rect-layer"/>
+  <text x="400" y="375" class="text-section">Result&lt;Vec&lt;u8&gt;&gt;</text>
+  <text x="400" y="395" class="text-small">(Binary data)</text>
+
+  <rect x="550" y="350" width="200" height="60" rx="5" class="stroke-primary rect-layer"/>
+  <text x="650" y="375" class="text-section">Result&lt;String&gt;</text>
+  <text x="650" y="395" class="text-small">(UTF-8 string)</text>
+
+  <!-- Flow Arrows -->
+  <!-- Input to Functions -->
+  <line x1="150" y1="120" x2="150" y2="150" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="120" x2="400" y2="150" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="650" y1="120" x2="650" y2="150" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Functions to Engine -->
+  <line x1="150" y1="230" x2="300" y2="260" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="230" x2="400" y2="260" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="650" y1="230" x2="500" y2="260" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Engine to Output -->
+  <line x1="300" y1="320" x2="150" y2="350" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="320" x2="400" y2="350" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="500" y1="320" x2="650" y2="350" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Error Flow -->
+  <rect x="600" y="260" width="150" height="40" rx="5" class="stroke-dashed rect-sublayer"/>
+  <text x="675" y="285" class="text-code">Error Handling</text>
+  <line x1="550" y1="280" x2="600" y2="280" class="stroke-dashed"/>
+  <line x1="675" y1="300" x2="675" y2="350" class="stroke-dashed" marker-end="url(#arrowhead)"/>
+
+  <!-- Legend -->
+  <rect x="50" y="440" width="700" height="40" rx="5" class="stroke-primary" fill="none"/>
+  <text x="80" y="460" class="text-small">Legend:</text>
+  <line x1="130" y1="455" x2="160" y2="455" class="line-primary"/>
+  <text x="170" y="460" class="text-small">Data Flow</text>
+  <line x1="230" y1="455" x2="260" y2="455" class="stroke-dashed"/>
+  <text x="270" y="460" class="text-small">Error Path</text>
+  <text x="350" y="460" class="text-small">URL_SAFE_NO_PAD: RFC 4648 Section 5 (no padding)</text>
+
+</svg>
