@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="900" height="700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1.5; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 11px; fill: white; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .rect-layer { fill: #3D3D3D; }
+      .rect-sublayer { fill: #4D4D4D; }
+      .rect-process { fill: #5D5D5D; }
+      .rect-decision { fill: #6D4D3D; }
+      .rect-error { fill: #6D3D3D; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7"
+     refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>
+
+  <rect width="900" height="700" class="bg"/>
+
+  <!-- Title -->
+  <text x="450" y="30" class="text-title">Login Handlers Flow Diagram</text>
+
+  <!-- Client Request -->
+  <rect x="50" y="60" width="800" height="50" rx="5" class="stroke-primary rect-layer"/>
+  <text x="450" y="90" class="text-section">Client HTTP Request</text>
+
+  <!-- Login Handler Box -->
+  <rect x="70" y="140" width="360" height="500" rx="5" class="stroke-primary rect-layer"/>
+  <text x="250" y="165" class="text-section">api_login_handler</text>
+
+  <!-- Logoff Handler Box -->
+  <rect x="470" y="140" width="360" height="280" rx="5" class="stroke-primary rect-layer"/>
+  <text x="650" y="165" class="text-section">api_logoff_handler</text>
+
+  <!-- Login Flow Steps -->
+  <rect x="90" y="190" width="320" height="40" rx="5" class="stroke-primary rect-process"/>
+  <text x="250" y="215" class="text-box-title">1. Extract LoginPayload</text>
+
+  <rect x="90" y="250" width="320" height="40" rx="5" class="stroke-primary rect-process"/>
+  <text x="250" y="275" class="text-box-title">2. UserBmc::first_by_username</text>
+
+  <rect x="90" y="310" width="320" height="40" rx="5" class="stroke-primary rect-decision"/>
+  <text x="250" y="335" class="text-box-title">3. User Exists?</text>
+
+  <rect x="90" y="370" width="320" height="40" rx="5" class="stroke-primary rect-process"/>
+  <text x="250" y="395" class="text-box-title">4. pwd::validate_pwd</text>
+
+  <rect x="90" y="430" width="150" height="40" rx="5" class="stroke-primary rect-decision"/>
+  <text x="165" y="455" class="text-box-title">5a. Scheme Check</text>
+
+  <rect x="260" y="430" width="150" height="40" rx="5" class="stroke-primary rect-process"/>
+  <text x="335" y="455" class="text-box-title">5b. Update Scheme</text>
+
+  <rect x="90" y="490" width="320" height="40" rx="5" class="stroke-primary rect-process"/>
+  <text x="250" y="515" class="text-box-title">6. Set Token Cookie</text>
+
+  <rect x="90" y="550" width="320" height="40" rx="5" class="stroke-primary rect-process"/>
+  <text x="250" y="575" class="text-box-title">7. Return Success JSON</text>
+
+
+  <!-- Logoff Flow Steps -->
+  <rect x="490" y="190" width="320" height="40" rx="5" class="stroke-primary rect-process"/>
+  <text x="650" y="215" class="text-box-title">1. Extract LogoffPayload</text>
+
+  <rect x="490" y="250" width="320" height="40" rx="5" class="stroke-primary rect-decision"/>
+  <text x="650" y="275" class="text-box-title">2. Should Logoff?</text>
+
+  <rect x="490" y="310" width="320" height="40" rx="5" class="stroke-primary rect-process"/>
+  <text x="650" y="335" class="text-box-title">3. Remove Token Cookie</text>
+
+  <rect x="490" y="370" width="320" height="40" rx="5" class="stroke-primary rect-process"/>
+  <text x="650" y="395" class="text-box-title">4. Return Status JSON</text>
+
+  <!-- Error Handling -->
+  <rect x="450" y="460" width="200" height="40" rx="5" class="stroke-primary rect-error"/>
+  <text x="550" y="485" class="text-box-title">Error: User Not Found</text>
+
+  <rect x="670" y="460" width="200" height="40" rx="5" class="stroke-primary rect-error"/>
+  <text x="770" y="485" class="text-box-title">Error: Password Invalid</text>
+
+  <!-- Flow Arrows for Login -->
+  <line x1="250" y1="230" x2="250" y2="250" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="250" y1="290" x2="250" y2="310" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="250" y1="350" x2="250" y2="370" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="250" y1="410" x2="250" y2="430" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="250" y1="470" x2="250" y2="490" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="250" y1="530" x2="250" y2="550" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Flow Arrows for Logoff -->
+  <line x1="650" y1="230" x2="650" y2="250" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="650" y1="290" x2="650" y2="310" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="650" y1="350" x2="650" y2="370" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Conditional Flows -->
+  <line x1="340" y1="330" x2="450" y2="480" class="stroke-dashed" marker-end="url(#arrowhead)"/>
+  <text x="395" y="405" class="text-small">No</text>
+
+  <line x1="340" y1="390" x2="670" y2="480" class="stroke-dashed" marker-end="url(#arrowhead)"/>
+  <text x="505" y="435" class="text-small">Invalid</text>
+
+  <line x1="240" y1="450" x2="260" y2="450" class="line-primary" marker-end="url(#arrowhead)"/>
+  <text x="250" y="445" class="text-small">Outdated</text>
+
+  <!-- Request arrows -->
+  <line x1="250" y1="110" x2="250" y2="140" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="650" y1="110" x2="650" y2="140" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Response arrows -->
+  <line x1="250" y1="590" x2="250" y2="620" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="650" y1="410" x2="650" y2="620" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Response Box -->
+  <rect x="50" y="620" width="800" height="50" rx="5" class="stroke-primary rect-layer"/>
+  <text x="450" y="650" class="text-section">JSON Response to Client</text>
+
+</svg>
