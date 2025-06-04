@@ -81,11 +81,11 @@
   <text x="650" y="395" class="text-box-title">4. Return Status JSON</text>
 
   <!-- Error Handling -->
-  <rect x="450" y="460" width="200" height="40" rx="5" class="stroke-primary rect-error"/>
-  <text x="550" y="485" class="text-box-title">Error: User Not Found</text>
+  <rect x="450" y="440" width="180" height="40" rx="5" class="stroke-primary rect-error"/>
+  <text x="540" y="465" class="text-box-title">Error: User Not Found</text>
 
-  <rect x="670" y="460" width="200" height="40" rx="5" class="stroke-primary rect-error"/>
-  <text x="770" y="485" class="text-box-title">Error: Password Invalid</text>
+  <rect x="450" y="500" width="180" height="40" rx="5" class="stroke-primary rect-error"/>
+  <text x="540" y="525" class="text-box-title">Error: Password Invalid</text>
 
   <!-- Flow Arrows for Login -->
   <line x1="250" y1="230" x2="250" y2="250" class="line-primary" marker-end="url(#arrowhead)"/>
@@ -101,11 +101,11 @@
   <line x1="650" y1="350" x2="650" y2="370" class="line-primary" marker-end="url(#arrowhead)"/>
 
   <!-- Conditional Flows -->
-  <line x1="340" y1="330" x2="450" y2="480" class="stroke-dashed" marker-end="url(#arrowhead)"/>
-  <text x="395" y="405" class="text-small">No</text>
+  <line x1="350" y1="335" x2="450" y2="460" class="stroke-dashed" marker-end="url(#arrowhead)"/>
+  <text x="350" y="330" class="text-small">No</text>
 
-  <line x1="340" y1="390" x2="670" y2="480" class="stroke-dashed" marker-end="url(#arrowhead)"/>
-  <text x="505" y="435" class="text-small">Invalid</text>
+  <line x1="350" y1="385" x2="450" y2="510" class="stroke-dashed" marker-end="url(#arrowhead)"/>
+  <text x="350" y="390" class="text-small">Invalid</text>
 
   <line x1="240" y1="450" x2="260" y2="450" class="line-primary" marker-end="url(#arrowhead)"/>
   <text x="250" y="445" class="text-small">Outdated</text>
