@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="920" height="900" xmlns="http://www.w3.org/2000/svg">
+<svg width="900" height="920" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <style>
       .bg { fill: #2f2f2f; }
@@ -15,8 +15,8 @@
       .rect-layer { fill: #3D3D3D; }
       .rect-sublayer { fill: #4D4D4D; }
       .rect-process { fill: #5D5D5D; }
-      .rect-data { fill: #4D6D4D; }
-      .rect-timing { fill: #6D4D6D; }
+      .rect-error { fill: #6D3D3D; }
+      .rect-output { fill: #3D6D3D; }
     </style>
     <marker id="arrowhead" markerWidth="10" markerHeight="7"
      refX="10" refY="3.5" orient="auto">
@@ -24,89 +24,127 @@
     </marker>
   </defs>
 
-  <rect width="920" height="900" class="bg"/>
+  <rect width="900" height="920" class="bg"/>
 
   <!-- Function Entry -->
-  <rect x="20" y="30" width="880" height="50" rx="5" class="stroke-primary rect-layer"/>
-  <text x="460" y="60" class="text-title">log_request Function Entry</text>
+  <rect x="20" y="30" width="860" height="50" rx="5" class="stroke-primary rect-layer"/>
+  <text x="450" y="60" class="text-title">log_request Function Entry Point</text>
 
-  <!-- Input Parameters Section -->
-  <rect x="20" y="100" width="880" height="80" rx="5" class="stroke-primary rect-layer"/>
-  <text x="460" y="125" class="text-section">Input Parameters Collection</text>
-  <text x="130" y="145" class="text-code">http_method: Method</text>
-  <text x="300" y="145" class="text-code">uri: Uri</text>
-  <text x="450" y="145" class="text-code">req_stamp: ReqStamp</text>
-  <text x="130" y="165" class="text-code">rpc_info: Option&lt;&amp;RpcInfo&gt;</text>
-  <text x="300" y="165" class="text-code">ctx: Option&lt;Ctx&gt;</text>
-  <text x="600" y="145" class="text-code">web_error: Option&lt;&amp;Error&gt;</text>
-  <text x="750" y="145" class="text-code">client_error: Option&lt;ClientError&gt;</text>
+  <!-- Parameter Collection -->
+  <rect x="20" y="120" width="860" height="60" rx="5" class="stroke-primary rect-layer"/>
+  <text x="450" y="145" class="text-section">Parameter Collection &amp; Validation</text>
+  <text x="150" y="165" class="text-code">HTTP Method &amp; URI</text>
+  <text x="350" y="165" class="text-code">ReqStamp</text>
+  <text x="550" y="165" class="text-code">RPC Info</text>
+  <text x="750" y="165" class="text-code">Context &amp; Errors</text>
 
-  <!-- Error Processing Section -->
-  <rect x="50" y="220" width="400" height="80" rx="5" class="stroke-primary rect-sublayer"/>
-  <text x="250" y="245" class="text-box-title">Error Information Processing</text>
-  <text x="150" y="265" class="text-code">Extract error_type</text>
-  <text x="350" y="265" class="text-code">Serialize error_data</text>
-  <text x="250" y="285" class="text-small">Safe JSON extraction from Error.data field</text>
+  <!-- Error Processing Phase -->
+  <rect x="50" y="220" width="350" height="80" rx="5" class="stroke-primary rect-process"/>
+  <text x="225" y="245" class="text-box-title">Error Data Processing</text>
+  <text x="125" y="265" class="text-code">Extract error_type</text>
+  <text x="325" y="265" class="text-code">Extract error_data</text>
+  <text x="225" y="285" class="text-small">JSON serialize &amp; extract data field</text>
 
-  <!-- Request Timing Section -->
-  <rect x="470" y="220" width="400" height="80" rx="5" class="stroke-primary rect-timing"/>
-  <text x="670" y="245" class="text-box-title">Request Timing Calculation</text>
-  <text x="570" y="265" class="text-code">Extract UUID &amp; time_in</text>
-  <text x="770" y="265" class="text-code">Calculate duration_ms</text>
-  <text x="670" y="285" class="text-small">Microsecond precision: (seconds * 1M).floor() / 1K</text>
+  <!-- Timing Calculations -->
+  <rect x="500" y="220" width="350" height="80" rx="5" class="stroke-primary rect-process"/>
+  <text x="675" y="245" class="text-box-title">Timing Calculations</text>
+  <text x="575" y="265" class="text-code">Extract ReqStamp data</text>
+  <text x="775" y="265" class="text-code">Calculate duration</text>
+  <text x="675" y="285" class="text-small">Microsecond precision in milliseconds</text>
 
-  <!-- RequestLogLine Construction -->
-  <rect x="20" y="340" width="880" height="120" rx="5" class="stroke-primary rect-process"/>
-  <text x="460" y="365" class="text-section">RequestLogLine Structure Assembly</text>
-  <text x="130" y="385" class="text-code">uuid: String</text>
-  <text x="280" y="385" class="text-code">timestamp: String</text>
-  <text x="430" y="385" class="text-code">time_in: String</text>
-  <text x="580" y="385" class="text-code">duration_ms: f64</text>
-  <text x="730" y="385" class="text-code">user_id: Option&lt;i64&gt;</text>
-  <text x="130" y="405" class="text-code">http_path: String</text>
-  <text x="280" y="405" class="text-code">http_method: String</text>
-  <text x="430" y="405" class="text-code">rpc_id: Option&lt;String&gt;</text>
-  <text x="580" y="405" class="text-code">rpc_method: Option&lt;String&gt;</text>
-  <text x="130" y="425" class="text-code">client_error_type: Option&lt;String&gt;</text>
-  <text x="350" y="425" class="text-code">error_type: Option&lt;String&gt;</text>
-  <text x="580" y="425" class="text-code">error_data: Option&lt;Value&gt;</text>
-  <text x="460" y="445" class="text-small">All fields with #[skip_serializing_none] for clean JSON</text>
+  <!-- Request Info Extraction -->
+  <rect x="50" y="340" width="200" height="60" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="150" y="365" class="text-box-title">Request Info</text>
+  <text x="150" y="385" class="text-code">UUID &amp; timestamps</text>
 
-  <!-- Context Data Extraction -->
-  <rect x="50" y="500" width="200" height="60" rx="5" class="stroke-primary rect-data"/>
-  <text x="150" y="525" class="text-box-title">Context Processing</text>
-  <text x="150" y="545" class="text-code">ctx.map(|c| c.user_id())</text>
+  <!-- HTTP Info Extraction -->
+  <rect x="280" y="340" width="200" height="60" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="380" y="365" class="text-box-title">HTTP Info</text>
+  <text x="380" y="385" class="text-code">Path &amp; method</text>
 
-  <!-- RPC Data Extraction -->
-  <rect x="270" y="500" width="200" height="60" rx="5" class="stroke-primary rect-data"/>
-  <text x="370" y="520" class="text-box-title">RPC Info Processing</text>
-  <text x="370" y="535" class="text-code">rpc_info.id.to_string()</text>
-  <text x="370" y="550" class="text-code">rpc_info.method.to_string()</text>
+  <!-- RPC Info Extraction -->
+  <rect x="510" y="340" width="200" height="60" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="610" y="365" class="text-box-title">RPC Info</text>
+  <text x="610" y="385" class="text-code">ID &amp; method</text>
 
-  <!-- HTTP Data Processing -->
-  <rect x="490" y="500" width="200" height="60" rx="5" class="stroke-primary rect-data"/>
-  <text x="590" y="520" class="text-box-title">HTTP Data Processing</text>
-  <text x="590" y="535" class="text-code">uri.to_string()</text>
-  <text x="590" y="550" class="text-code">http_method.to_string()</text>
+  <!-- Context Extraction -->
+  <rect x="740" y="340" width="140" height="60" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="810" y="365" class="text-box-title">User Context</text>
+  <text x="810" y="385" class="text-code">User ID</text>
 
-  <!-- Time Formatting -->
-  <rect x="710" y="500" width="160" height="60" rx="5" class="stroke-primary rect-timing"/>
-  <text x="790" y="520" class="text-box-title">Time Formatting</text>
-  <text x="790" y="535" class="text-code">format_time(now)</text>
-  <text x="790" y="550" class="text-code">format_time(time_in)</text>
+  <!-- RequestLogLine Assembly -->
+  <rect x="20" y="440" width="860" height="60" rx="5" class="stroke-primary rect-layer"/>
+  <text x="450" y="465" class="text-section">RequestLogLine Assembly</text>
+  <text x="200" y="485" class="text-code">Combine all extracted data</text>
+  <text x="600" y="485" class="text-code">Apply skip_serializing_none</text>
 
   <!-- JSON Serialization -->
-  <rect x="20" y="600" width="880" height="60" rx="5" class="stroke-primary rect-process"/>
-  <text x="460" y="625" class="text-section">JSON Serialization</text>
-  <text x="460" y="645" class="text-code">json!(log_line) - Convert RequestLogLine to serde_json::Value</text>
+  <rect x="20" y="540" width="860" height="50" rx="5" class="stroke-primary rect-process"/>
+  <text x="450" y="570" class="text-section">JSON Serialization &amp; Formatting</text>
+
+  <!-- Structured Log Data -->
+  <rect x="50" y="630" width="800" height="120" rx="5" class="stroke-primary rect-output"/>
+  <text x="450" y="655" class="text-box-title">Structured Log Data Output</text>
+  <text x="160" y="675" class="text-code">uuid, timestamp, time_in</text>
+  <text x="500" y="675" class="text-code">duration_ms</text>
+  <text x="740" y="675" class="text-code">user_id</text>
+  <text x="200" y="695" class="text-code">http_path, http_method</text>
+  <text x="600" y="695" class="text-code">rpc_id, rpc_method</text>
+  <text x="280" y="715" class="text-code">client_error_type</text>
+  <text x="600" y="715" class="text-code">error_type, error_data</text>
+  <text x="450" y="735" class="text-small">JSON format with optional fields omitted</text>
 
   <!-- Debug Output -->
-  <rect x="20" y="700" width="880" height="60" rx="5" class="stroke-primary rect-layer"/>
-  <text x="460" y="725" class="text-section">Debug Logging Output</text>
-  <text x="460" y="745" class="text-code">debug!("REQUEST LOG LINE:\n{}", json!(log_line))</text>
+  <rect x="50" y="790" width="350" height="60" rx="5" class="stroke-primary rect-output"/>
+  <text x="225" y="815" class="text-box-title">Debug Log Output</text>
+  <text x="225" y="835" class="text-code">tracing::debug!</text>
 
-  <!-- Future Cloud Integration -->
-  <rect x="20" y="800" width="880" height="60" rx="5" class="stroke-dashed rect-sublayer"/>
-  <text x="460" y="825" class="text-section">Future: Cloud Service Integration</text>
-  <text x="460" y="845" class="text-small">TODO: CloudWatch delivery, batch processing, Parquet format</text>
+  <!-- Future Integration -->
+  <rect x="500" y="790" width="350" height="60" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="675" y="815" class="text-box-title">Future Integration</text>
+  <text x="675" y="835" class="text-code">CloudWatch / External Systems</text>
+
+  <!-- Success Return -->
+  <rect x="20" y="880" width="860" height="40" rx="5" class="stroke-primary rect-layer"/>
+  <text x="450" y="905" class="text-title">Return Ok(())</text>
+
+  <!-- Flow Arrows -->
+  <!-- Main vertical flow -->
+  <line x1="450" y1="80" x2="450" y2="120" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="450" y1="180" x2="450" y2="220" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Parallel processing arrows -->
+  <line x1="300" y1="220" x2="150" y2="340" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="350" y1="220" x2="380" y2="340" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="220" x2="610" y2="340" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="700" y1="220" x2="810" y2="340" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Convergence to assembly -->
+  <line x1="150" y1="400" x2="300" y2="440" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="380" y1="400" x2="420" y2="440" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="610" y1="400" x2="520" y2="440" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="810" y1="400" x2="600" y2="440" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Assembly to serialization -->
+  <line x1="450" y1="500" x2="450" y2="540" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Serialization to output -->
+  <line x1="450" y1="590" x2="450" y2="630" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Output branching -->
+  <line x1="350" y1="750" x2="225" y2="790" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="550" y1="750" x2="675" y2="790" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Final return -->
+  <line x1="225" y1="850" x2="350" y2="880" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="675" y1="850" x2="550" y2="880" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Processing flow labels -->
+  <text x="125" y="265" class="text-small">Error Processing</text>
+  <text x="775" y="265" class="text-small">Timing Processing</text>
+  <text x="200" y="415" class="text-small">Data Extraction</text>
+  <text x="700" y="415" class="text-small">Context Extraction</text>
+  <text x="350" y="770" class="text-small">Current Output</text>
+  <text x="550" y="770" class="text-small">Planned Output</text>
+
 </svg>
