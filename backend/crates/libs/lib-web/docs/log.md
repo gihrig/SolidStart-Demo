@@ -24,19 +24,19 @@ struct RequestLogLine {
     timestamp: String,     // Request completion time (RFC3339)
     time_in: String,       // Request start time (RFC3339)
     duration_ms: f64,      // Request duration in milliseconds
-    
+
     // User and context attributes
     user_id: Option<i64>,
-    
+
     // HTTP request attributes
     http_path: String,
     http_method: String,
-    
+
     // RPC information
     rpc_id: Option<String>,
     rpc_method: Option<String>,
-    
-    // Error attributes  
+
+    // Error attributes
     client_error_type: Option<String>,
     error_type: Option<String>,
     error_data: Option<Value>,
@@ -171,7 +171,7 @@ The `RequestLogLine` structure is designed for comprehensive observability:
 // Core request identification and timing
 uuid: String,          // Unique request identifier for correlation
 timestamp: String,     // Request completion timestamp
-time_in: String,       // Request initiation timestamp  
+time_in: String,       // Request initiation timestamp
 duration_ms: f64,      // Precise duration measurement
 
 // Request context
@@ -204,7 +204,7 @@ Example log output:
 {
   "uuid": "550e8400-e29b-41d4-a716-446655440000",
   "timestamp": "2024-01-01T12:00:00.123456Z",
-  "time_in": "2024-01-01T12:00:00.100000Z", 
+  "time_in": "2024-01-01T12:00:00.100000Z",
   "duration_ms": 23.456,
   "user_id": 123,
   "http_path": "/rpc",
@@ -216,7 +216,7 @@ Example log output:
 
 ## Flow Diagram
 
-![Log Module Flow Diagram](images/mod.svg)
+![Log Module Flow Diagram](images/log.svg)
 
 ## Implementation Notes
 
