@@ -20,20 +20,21 @@ pub async fn log_request(
 	web_error: Option<&Error>,
 	client_error: Option<ClientError>,
 ) -> Result<()> {
-	// -- Prep error
+	// -- Error Preparation
 	let error_type = web_error.map(|se| se.as_ref().to_string());
 	let error_data = serde_json::to_value(web_error)
 		.ok()
 		.and_then(|mut v| v.get_mut("data").map(|v| v.take()));
 
-	// -- Prep Req Information
+	// -- Request Info Extraction
 	let ReqStamp { uuid, time_in } = req_stamp;
 	let now = now_utc();
 	let duration: Duration = now - time_in;
-	// duration_ms in milliseconds with microseconds precision.
+
+	// -- Duration Calculation ms with us precision.
 	let duration_ms = (duration.as_seconds_f64() * 1_000_000.).floor() / 1_000.;
 
-	// Create the RequestLogLine
+	// -- Fill RequestLogLine Struct
 	let log_line = RequestLogLine {
 		uuid: uuid.to_string(),
 		timestamp: format_time(now), // LogLine timestamp ("time_out")
@@ -49,11 +50,10 @@ pub async fn log_request(
 		user_id: ctx.map(|c| c.user_id()),
 
 		client_error_type: client_error.map(|e| e.as_ref().to_string()),
-
 		error_type,
 		error_data,
 	};
-
+	// -- JSON Debug Logging
 	debug!("REQUEST LOG LINE:\n{}", json!(log_line));
 
 	// TODO - Send to cloud-watch and/or have a `pack_and_send` logic as well (newline json and/or parquet file)

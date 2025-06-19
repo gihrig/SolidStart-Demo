@@ -33,10 +33,7 @@
   <!-- Input Parameters -->
   <rect x="20" y="120" width="860" height="60" rx="5" class="stroke-primary rect-layer"/>
   <text x="450" y="145" class="text-section">Input Parameters</text>
-  <text x="150" y="165" class="text-code">http_method, uri</text>
-  <text x="350" y="165" class="text-code">req_stamp</text>
-  <text x="550" y="165" class="text-code">rpc_info, ctx</text>
-  <text x="750" y="165" class="text-code">web_error, client_error</text>
+  <text x="450" y="165" class="text-code">http_method, uri, req_stamp, rpc_info, ctx, web_error, client_error</text>
 
   <!-- Error Preparation -->
   <rect x="50" y="220" width="250" height="60" rx="5" class="stroke-primary rect-process"/>
@@ -44,26 +41,26 @@
   <text x="175" y="265" class="text-code">Extract error_type &amp; error_data</text>
 
   <!-- Request Info Extraction -->
-  <rect x="350" y="220" width="250" height="60" rx="5" class="stroke-primary rect-process"/>
-  <text x="475" y="245" class="text-box-title">Request Info Extraction</text>
-  <text x="475" y="265" class="text-code">uuid, time_in from req_stamp</text>
+  <rect x="330" y="220" width="250" height="60" rx="5" class="stroke-primary rect-process"/>
+  <text x="450" y="245" class="text-box-title">Request Info Extraction</text>
+  <text x="450" y="265" class="text-code">ReqStamp, now, duration</text>
 
   <!-- Duration Calculation -->
-  <rect x="650" y="220" width="200" height="60" rx="5" class="stroke-primary rect-process"/>
-  <text x="750" y="245" class="text-box-title">Duration Calculation</text>
-  <text x="750" y="265" class="text-code">microsecond precision</text>
+  <rect x="610" y="220" width="250" height="60" rx="5" class="stroke-primary rect-process"/>
+  <text x="730" y="245" class="text-box-title">Duration Calculation</text>
+  <text x="730" y="265" class="text-code">duration_ms in us precision</text>
 
-  <!-- RequestLogLine Creation -->
+  <!-- Fill RequestLogLine -->
   <rect x="20" y="320" width="860" height="80" rx="5" class="stroke-primary rect-data"/>
-  <text x="450" y="345" class="text-section">RequestLogLine Struct Creation</text>
-  <text x="150" y="365" class="text-code">uuid, timestamp, duration_ms</text>
-  <text x="450" y="365" class="text-code">http_path, http_method</text>
-  <text x="750" y="365" class="text-code">user_id, rpc_info</text>
-  <text x="450" y="385" class="text-code">client_error_type, error_type, error_data</text>
+  <text x="450" y="345" class="text-section">Fill RequestLogLine Struct</text>
+  <text x="450" y="365" class="text-section">log_line</text>
+  <text x="450" y="385" class="text-code">uuid, timestamp, time_in, http_path, http_method, user_id, rpc_info</text>
+  <text x="150" y="385" class="text-code">client_error_type, error_type, error_data</text>
+  <text x="730" y="385" class="text-code">duration_ms</text>
 
   <!-- Debug Logging -->
   <rect x="20" y="440" width="860" height="50" rx="5" class="stroke-primary rect-layer"/>
-  <text x="450" y="470" class="text-section">Debug JSON Logging</text>
+  <text x="450" y="470" class="text-section">JSON Debug Logging</text>
 
   <!-- Future Enhancement -->
   <rect x="20" y="530" width="860" height="60" rx="5" class="stroke-primary rect-sublayer"/>
@@ -72,35 +69,29 @@
 
   <!-- Success Return -->
   <rect x="20" y="630" width="860" height="50" rx="5" class="stroke-primary rect-layer"/>
-  <text x="450" y="660" class="text-title">Return Ok(())</text>
+  <text x="450" y="660" class="text-title">Return Result&lt;()&gt;</text>
 
   <!-- Flow Arrows -->
   <!-- Main entry flow -->
   <line x1="450" y1="80" x2="450" y2="120" class="line-primary" marker-end="url(#arrowhead)"/>
-  
+
   <!-- Parameter processing -->
   <line x1="175" y1="180" x2="175" y2="220" class="line-primary" marker-end="url(#arrowhead)"/>
-  <line x1="475" y1="180" x2="475" y2="220" class="line-primary" marker-end="url(#arrowhead)"/>
-  <line x1="750" y1="180" x2="750" y2="220" class="line-primary" marker-end="url(#arrowhead)"/>
-  
+  <line x1="450" y1="180" x2="450" y2="220" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="730" y1="180" x2="730" y2="220" class="line-primary" marker-end="url(#arrowhead)"/>
+
   <!-- Processing to struct creation -->
   <line x1="175" y1="280" x2="175" y2="320" class="line-primary" marker-end="url(#arrowhead)"/>
-  <line x1="475" y1="280" x2="475" y2="320" class="line-primary" marker-end="url(#arrowhead)"/>
-  <line x1="750" y1="280" x2="750" y2="320" class="line-primary" marker-end="url(#arrowhead)"/>
-  
+  <line x1="450" y1="280" x2="450" y2="320" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="730" y1="280" x2="730" y2="320" class="line-primary" marker-end="url(#arrowhead)"/>
+
   <!-- Struct to debug logging -->
   <line x1="450" y1="400" x2="450" y2="440" class="line-primary" marker-end="url(#arrowhead)"/>
-  
+
   <!-- Debug to future enhancement -->
   <line x1="450" y1="490" x2="450" y2="530" class="line-primary" marker-end="url(#arrowhead)"/>
-  
+
   <!-- Future enhancement to success -->
   <line x1="450" y1="590" x2="450" y2="630" class="line-primary" marker-end="url(#arrowhead)"/>
-
-  <!-- Side annotations -->
-  <text x="120" y="310" class="text-small">Optional fields</text>
-  <text x="800" y="310" class="text-small">Timing precision</text>
-  <text x="120" y="520" class="text-small">Structured output</text>
-  <text x="800" y="520" class="text-small">Cloud integration</text>
 
 </svg>
