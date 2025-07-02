@@ -45,8 +45,9 @@
   <text x="810" y="165" class="text-code">FromRequestParts trait</text>
 
   <!-- Core Authentication Logic -->
-  <rect x="20" y="220" width="960" height="50" rx="5" class="stroke-primary rect-layer"/>
-  <text x="500" y="250" class="text-section">ctx_resolve() - Core Authentication Logic</text>
+  <rect x="20" y="240" width="960" height="60" rx="5" class="stroke-primary rect-layer"/>
+  <text x="505" y="270" class="text-section">ctx_resolve() - Core Authentication Logic </text>
+  <text x="440" y="290" class="text-code">mm, &amp;cookies </text>
 
   <!-- Token Extraction -->
   <rect x="50" y="350" width="200" height="80" rx="5" class="stroke-primary rect-process"/>
@@ -118,13 +119,13 @@
   <line x1="810" y1="80" x2="810" y2="120" class="line-primary" marker-end="url(#arrowhead)"/>
 
   <!-- mw_ctx_resolver to ctx_resolve -->
-  <line x1="190" y1="180" x2="190" y2="220" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="190" y1="180" x2="190" y2="240" class="line-primary" marker-end="url(#arrowhead)"/>
 
   <!-- ctx_resolve process flow -->
-  <line x1="150" y1="270" x2="150" y2="350" class="line-primary" marker-end="url(#arrowhead)"/>
-  <line x1="380" y1="270" x2="380" y2="350" class="line-primary" marker-end="url(#arrowhead)"/>
-  <line x1="610" y1="270" x2="610" y2="350" class="line-primary" marker-end="url(#arrowhead)"/>
-  <line x1="840" y1="270" x2="840" y2="350" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="150" y1="300" x2="150" y2="350" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="380" y1="300" x2="380" y2="350" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="610" y1="300" x2="610" y2="350" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="840" y1="300" x2="840" y2="350" class="line-primary" marker-end="url(#arrowhead)"/>
 
   <!-- Sequential process flow -->
   <line x1="250" y1="390" x2="280" y2="390" class="line-primary" marker-end="url(#arrowhead)"/>
