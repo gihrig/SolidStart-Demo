@@ -26,9 +26,9 @@ pub async fn mw_ctx_require(
 	Ok(next.run(req).await)
 }
 
-// IMPORTANT: This resolver must never fail, but rather capture the potential Auth error and put in in the
+// IMPORTANT: This resolver must never fail, but rather capture the potential Auth error and put it in the
 //            request extension as CtxExtResult.
-//            This way it won't prevent downstream middleware to be executed, and will still capture the error
+//            This way it won't prevent downstream middleware from being executed, and will still capture the error
 //            for the appropriate middleware (.e.g., mw_ctx_require which forces successful auth) or handler
 //            to get the appropriate information.
 pub async fn mw_ctx_resolver(
