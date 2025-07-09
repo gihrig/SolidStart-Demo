@@ -22,10 +22,10 @@
      showguides="true"
      inkscape:zoom="1"
      inkscape:cx="500"
-     inkscape:cy="280"
+     inkscape:cy="237"
      inkscape:window-width="1280"
      inkscape:window-height="747"
-     inkscape:window-x="-2"
+     inkscape:window-x="0"
      inkscape:window-y="25"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg59"
@@ -105,62 +105,66 @@
   <!-- Request Entry Points -->
   <rect
      x="60"
-     y="81"
-     width="280"
+     y="80"
+     width="200"
      height="60"
-     rx="5"
+     rx="3"
      class="stroke-primary rect-sublayer"
      id="rect3" />
   <text
-     x="189.94531"
-     y="110"
+     x="160"
+     y="108"
      class="text-section"
      id="text3">mw_ctx_resolver</text>
   <text
-     x="192.01271"
-     y="128.77118"
+     x="160"
+     y="126"
      class="text-code"
      id="text4">State(mm), cookies, req, next</text>
   <rect
-     x="361"
-     y="81"
-     width="280"
+     x="290"
+     y="80"
+     width="200"
      height="60"
-     rx="5"
+     rx="4"
      class="stroke-primary rect-sublayer"
      id="rect4" />
   <text
-     x="502.01273"
-     y="108.77119"
+     x="392"
+     y="106"
      class="text-section"
      id="text5">mw_ctx_require</text>
   <text
-     x="502.01273"
-     y="128.77118"
+     x="392"
+     y="128"
      class="text-code"
      id="text6">ctx: Result&lt;CtxW&gt;, req, next</text>
   <rect
-     x="670"
-     y="81"
-     width="280"
+     x="512"
+     y="80"
+     width="200"
      height="60"
-     rx="5"
+     rx="4"
      class="stroke-primary rect-sublayer"
      id="rect6" />
   <text
-     x="812.0127"
-     y="108.77119"
+     x="614"
+     y="108"
      class="text-section"
      id="text7">CtxW Extractor</text>
   <text
-     x="812.0127"
-     y="128.77118"
+     x="612"
+     y="130"
      class="text-code"
-     id="text8">FromRequestParts trait</text>
+     id="text8"><tspan
+       sodipodi:role="line"
+       id="tspan2"
+       x="612"
+       y="130">lib-core::ctx::Ctx</tspan></text>
   <!-- Core Authentication Logic -->
   <rect
      x="20"
-     y="240"
+     y="210"
      width="960"
      height="60"
      rx="5"
@@ -168,14 +172,14 @@
      id="rect8" />
   <text
      x="505"
-     y="270"
+     y="240"
      class="text-section"
-     id="text9">ctx_resolve() - Core Authentication Logic </text>
+     id="text9">ctx_resolve() - Core Authentication Logic</text>
   <text
      x="440"
-     y="290"
+     y="260"
      class="text-code"
-     id="text10">mm, &amp;cookies </text>
+     id="text10">mm, &amp;cookies</text>
   <!-- Token Extraction -->
   <rect
      x="50"
@@ -443,33 +447,33 @@
   <!-- ctx_resolve process flow -->
   <line
      x1="150"
-     y1="300"
+     y1="270"
      x2="150"
-     y2="350"
+     y2="320"
      class="line-primary"
      marker-end="url(#arrowhead)"
      id="line45" />
   <line
      x1="380"
-     y1="300"
+     y1="270"
      x2="380"
-     y2="350"
+     y2="320"
      class="line-primary"
      marker-end="url(#arrowhead)"
      id="line46" />
   <line
      x1="610"
-     y1="300"
+     y1="270"
      x2="610"
-     y2="350"
+     y2="320"
      class="line-primary"
      marker-end="url(#arrowhead)"
      id="line47" />
   <line
      x1="840"
-     y1="300"
+     y1="270"
      x2="840"
-     y2="350"
+     y2="320"
      class="line-primary"
      marker-end="url(#arrowhead)"
      id="line48" />
@@ -567,4 +571,26 @@
      class="line-primary"
      marker-end="url(#arrowhead)"
      id="line59" />
+  <rect
+     x="737"
+     y="79"
+     width="200"
+     height="60"
+     rx="4"
+     class="stroke-primary rect-sublayer"
+     id="rect5" />
+  <text
+     x="839"
+     y="107"
+     class="text-section"
+     id="text42">CtxExtError</text>
+  <text
+     x="837"
+     y="129"
+     class="text-code"
+     id="text43"><tspan
+       sodipodi:role="line"
+       x="837"
+       y="129"
+       id="tspan43">enum</tspan></text>
 </svg>
