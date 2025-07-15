@@ -202,7 +202,8 @@ The `mw_ctx_require` middleware provides strict authentication enforcement:
 The authentication data flows through several key components:
 
 1. **HTTP Request**: Contains authentication cookies from client browser
-2. **Cookie Extraction**: Middleware extracts token from cookie jar3. **Token Processing**: Token parsing and validation using lib-auth components
+2. **Cookie Extraction**: Middleware extracts token from the Axum CookieJar
+3. **Token Processing**: Token parsing and validation using lib-auth components
 4. **Database Access**: User data retrieval through UserBmc and ModelManager
 5. **Context Creation**: Authenticated context object creation with user ID
 6. **Request Extensions**: Storage of authentication results in request extension map
@@ -219,7 +220,7 @@ The module implements sophisticated error handling with different strategies for
 - **Extension Storage**: Errors are stored in request extensions for later processing
 - **Cookie Cleanup**: Invalid cookies are removed when specific error types occur
 
-#### Requirement Layer Error Handling  
+#### Requirement Layer Error Handling
 - **Error Propagation**: Authentication errors are converted to HTTP errors
 - **Fast Failure**: Immediate error response for authentication failures
 - **Error Conversion**: `CtxExtError` is converted to application `Error` type
@@ -254,7 +255,7 @@ async fn protected_handler(ctx: CtxW) -> Result<Json<Response>> {
 // Manual extraction from request parts
 impl<S: Send + Sync> FromRequestParts<S> for CtxW {
     type Rejection = Error;
-    
+
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self> {
         parts.extensions
             .get::<CtxExtResult>()
@@ -347,7 +348,7 @@ let app = Router::new()
     .route("/api/profile", get(get_profile))
     .layer(middleware::from_fn_with_state(mm.clone(), mw_ctx_resolver));
 
-// Apply requirement only to protected routes  
+// Apply requirement only to protected routes
 let protected = Router::new()
     .route("/admin", get(admin_panel))
     .layer(middleware::from_fn(mw_ctx_require));
