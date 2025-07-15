@@ -26,11 +26,13 @@ pub async fn mw_ctx_require(
 	Ok(next.run(req).await)
 }
 
-// IMPORTANT: This resolver must never fail, but rather capture the potential Auth error and put it in the
-//            request extension as CtxExtResult.
-//            This way it won't prevent downstream middleware from being executed, and will still capture the error
-//            for the appropriate middleware (.e.g., mw_ctx_require which forces successful auth) or handler
-//            to get the appropriate information.
+// IMPORTANT:
+// This resolver must never fail, but rather capture the potential
+// Auth error and put it in the request extension as CtxExtResult.
+// This way it won't prevent downstream middleware from being executed,
+// and will still capture the error for the appropriate middleware
+// (.e.g., mw_ctx_require which forces successful auth) or handler
+// to get the appropriate information.
 pub async fn mw_ctx_resolver(
 	State(mm): State<ModelManager>,
 	cookies: Cookies,
@@ -55,37 +57,39 @@ pub async fn mw_ctx_resolver(
 }
 
 async fn ctx_resolve(mm: ModelManager, cookies: &Cookies) -> CtxExtResult {
-	// -- Get Token String
+	// -- Token Extraction
 	let token = cookies
 		.get(AUTH_TOKEN)
 		.map(|c| c.value().to_string())
 		.ok_or(CtxExtError::TokenNotInCookie)?;
 
-	// -- Parse Token
+	// -- Token Parsing
 	let token: Token = token.parse().map_err(|_| CtxExtError::TokenWrongFormat)?;
 
-	// -- Get UserForAuth
+	// -- User Lookup
 	let user: UserForAuth =
 		UserBmc::first_by_username(&Ctx::root_ctx(), &mm, &token.ident)
 			.await
 			.map_err(|ex| CtxExtError::ModelAccessError(ex.to_string()))?
 			.ok_or(CtxExtError::UserNotFound)?;
 
-	// -- Validate Token
+	// -- Token Validation
 	validate_web_token(&token, user.token_salt)
 		.map_err(|_| CtxExtError::FailValidate)?;
 
-	// -- Update Token
+	// -- Token Update
 	set_token_cookie(cookies, &user.username, user.token_salt)
 		.map_err(|_| CtxExtError::CannotSetTokenCookie)?;
 
-	// -- Create CtxExtResult
+	// -- Context Creation
 	Ctx::new(user.id)
 		.map(CtxW)
 		.map_err(|ex| CtxExtError::CtxCreateFail(ex.to_string()))
 }
 
 // region:    --- Ctx Extractor
+// Used by Axum in route handlers to extract data from the request
+// before handler processes it
 #[derive(Debug, Clone)]
 pub struct CtxW(pub Ctx);
 
