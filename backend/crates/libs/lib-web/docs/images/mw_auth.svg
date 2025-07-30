@@ -1,56 +1,7 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg
-   width="1000"
-   height="950"
-   version="1.1"
-   id="svg59"
-   sodipodi:docname="mw_auth.svg"
-   inkscape:version="1.4.2 (ebf0e940, 2025-05-08)"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
-  <sodipodi:namedview
-     id="namedview59"
-     pagecolor="#ffffff"
-     bordercolor="#000000"
-     borderopacity="0.25"
-     inkscape:showpageshadow="2"
-     inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="0"
-     inkscape:deskcolor="#d1d1d1"
-     showguides="true"
-     inkscape:zoom="1"
-     inkscape:cx="524"
-     inkscape:cy="307.5"
-     inkscape:window-width="1280"
-     inkscape:window-height="745"
-     inkscape:window-x="0"
-     inkscape:window-y="25"
-     inkscape:window-maximized="0"
-     inkscape:current-layer="svg59"
-     showgrid="true">
-    <inkscape:grid
-       id="grid61"
-       units="px"
-       originx="0"
-       originy="0"
-       spacingx="5"
-       spacingy="5"
-       empcolor="#0099e5"
-       empopacity="0.30196078"
-       color="#0099e5"
-       opacity="0.14902"
-       empspacing="1"
-       dotted="false"
-       gridanglex="30"
-       gridanglez="30"
-       visible="true" />
-  </sodipodi:namedview>
-  <defs
-     id="defs1">
-    <style
-       id="style1">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1000" height="950" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
       .bg { fill: #2f2f2f; }
       .arrow-fill { fill: #AAA; }
       .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
@@ -68,676 +19,103 @@
       .rect-data { fill: #3D5D3D; }
       .rect-extractor { fill: #3D3D5D; }
     </style>
-    <marker
-       id="arrowhead"
-       markerWidth="10"
-       markerHeight="7"
-       refX="10"
-       refY="3.5"
-       orient="auto">
-      <polygon
-         points="0 0, 10 3.5, 0 7"
-         class="arrow-fill"
-         id="polygon1" />
-    </marker>
-    <marker
-       id="arrowhead-1"
-       markerWidth="10"
-       markerHeight="7"
-       refX="10"
-       refY="3.5"
-       orient="auto">
-      <polygon
-         points="10,3.5 0,7 0,0 "
-         class="arrow-fill"
-         id="polygon1-7" />
-    </marker>
-    <marker
-       id="arrowhead-1-8"
-       markerWidth="10"
-       markerHeight="7"
-       refX="10"
-       refY="3.5"
-       orient="auto">
-      <polygon
-         points="0,7 0,0 10,3.5 "
-         class="arrow-fill"
-         id="polygon1-7-6" />
-    </marker>
-    <marker
-       id="arrowhead-1-8-8"
-       markerWidth="10"
-       markerHeight="7"
-       refX="10"
-       refY="3.5"
-       orient="auto">
-      <polygon
-         points="0,0 10,3.5 0,7 "
-         class="arrow-fill"
-         id="polygon1-7-6-8" />
-    </marker>
-    <marker
-       id="arrowhead-1-8-8-1"
-       markerWidth="10"
-       markerHeight="7"
-       refX="10"
-       refY="3.5"
-       orient="auto">
-      <polygon
-         points="10,3.5 0,7 0,0 "
-         class="arrow-fill"
-         id="polygon1-7-6-8-5" />
-    </marker>
-    <marker
-       id="arrowhead-3"
-       markerWidth="10"
-       markerHeight="7"
-       refX="10"
-       refY="3.5"
-       orient="auto">
-      <polygon
-         points="10,3.5 0,7 0,0 "
-         class="arrow-fill"
-         id="polygon1-1" />
-    </marker>
-    <marker
-       id="arrowhead-47"
-       markerWidth="10"
-       markerHeight="7"
-       refX="10"
-       refY="3.5"
-       orient="auto">
-      <polygon
-         points="10,3.5 0,7 0,0 "
-         class="arrow-fill"
-         id="polygon1-8" />
-    </marker>
-    <marker
-       id="arrowhead-5"
-       markerWidth="10"
-       markerHeight="7"
-       refX="10"
-       refY="3.5"
-       orient="auto">
-      <polygon
-         points="10,3.5 0,7 0,0 "
-         class="arrow-fill"
-         id="polygon1-6" />
-    </marker>
-    <marker
-       id="arrowhead-37"
-       markerWidth="10"
-       markerHeight="7"
-       refX="10"
-       refY="3.5"
-       orient="auto">
-      <polygon
-         points="10,3.5 0,7 0,0 "
-         class="arrow-fill"
-         id="polygon1-68" />
-    </marker>
-    <marker
-       id="arrowhead-57"
-       markerWidth="10"
-       markerHeight="7"
-       refX="10"
-       refY="3.5"
-       orient="auto">
-      <polygon
-         points="10,3.5 0,7 0,0 "
-         class="arrow-fill"
-         id="polygon1-0" />
-    </marker>
-    <marker
-       id="arrowhead-32"
-       markerWidth="10"
-       markerHeight="7"
-       refX="10"
-       refY="3.5"
-       orient="auto">
-      <polygon
-         points="10,3.5 0,7 0,0 "
-         class="arrow-fill"
-         id="polygon1-73" />
-    </marker>
-    <marker
-       id="arrowhead-38"
-       markerWidth="10"
-       markerHeight="7"
-       refX="10"
-       refY="3.5"
-       orient="auto">
-      <polygon
-         points="10,3.5 0,7 0,0 "
-         class="arrow-fill"
-         id="polygon1-3" />
-    </marker>
-    <marker
-       id="arrowhead-8"
-       markerWidth="10"
-       markerHeight="7"
-       refX="10"
-       refY="3.5"
-       orient="auto">
-      <polygon
-         points="10,3.5 0,7 0,0 "
-         class="arrow-fill"
-         id="polygon1-20" />
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
     </marker>
   </defs>
-  <rect
-     width="1000"
-     height="950"
-     class="bg"
-     id="rect1"
-     x="1.7573624"
-     y="1.0710678" />
+  <rect width="1000" height="950" class="bg" x="2" y="1" />
   <!-- Module Entry Point -->
-  <rect
-     x="30.196793"
-     y="30.196789"
-     width="939.60645"
-     height="200.60643"
-     rx="4.9979067"
-     class="stroke-primary rect-layer"
-     id="rect2" />
-  <text
-     x="500"
-     y="60"
-     class="text-title"
-     id="text2">mw_auth Module - Authentication Middleware Public Interface</text>
+  <rect x="30" y="30" width="940" height="201" rx="5" class="stroke-primary rect-layer" />
+  <text x="500" y="60" class="text-title">mw_auth Module - Authentication Middleware Public Interface</text>
+
   <!-- Request Entry Points -->
-  <rect
-     x="60.580143"
-     y="90.580139"
-     width="277.83972"
-     height="107.83971"
-     rx="4.1675959"
-     class="stroke-primary rect-data"
-     id="rect3" />
-  <text
-     x="196"
-     y="118"
-     class="text-section"
-     id="text3">mw_ctx_resolver</text>
-  <text
-     x="196"
-     y="136"
-     class="text-code"
-     id="text4">State(mm), cookies, req, next</text>
-  <rect
-     x="378.34738"
-     y="90.347382"
-     width="199.30524"
-     height="109.30524"
-     rx="3.9861047"
-     class="stroke-primary rect-sublayer"
-     id="rect4" />
-  <text
-     x="480"
-     y="116"
-     class="text-section"
-     id="text5">mw_ctx_require</text>
-  <text
-     x="480"
-     y="138"
-     class="text-code"
-     id="text6"><tspan
-       sodipodi:role="line"
-       id="tspan41"
-       x="480"
-       y="138">ctx: Result&lt;CtxW&gt;, req, next</tspan><tspan
-       sodipodi:role="line"
-       id="tspan42"
-       x="480"
-       y="153">-&gt; Result&lt;Response&gt;</tspan></text>
-  <rect
-     x="610.34125"
-     y="90.341309"
-     width="199.31738"
-     height="108.31736"
-     rx="3.9863474"
-     class="stroke-primary rect-sublayer"
-     id="rect6" />
-  <text
-     x="712"
-     y="118"
-     class="text-section"
-     id="text7">CtxW</text>
-  <text
-     x="710"
-     y="136"
-     class="text-code"
-     id="text8"><tspan
-       sodipodi:role="line"
-       id="tspan2"
-       x="710"
-       y="136">lib-core::ctx::Ctx</tspan></text>
-  <!-- Core Authentication Logic -->
-  <rect
-     x="32.206509"
-     y="260.20654"
-     width="217.26465"
-     height="669.99969"
-     rx="3.2589695"
-     class="stroke-primary rect-layer"
-     id="rect8" />
-  <line
-     x1="139.76469"
-     y1="808.29962"
-     x2="139.53476"
-     y2="827.68182"
-     class="line-primary"
-     marker-end="url(#arrowhead-1-8-8-1)"
-     id="line49-5-5-4-1"
-     inkscape:transform-center-x="-0.0133805"
-     inkscape:transform-center-y="-0.4080247"
-     style="stroke:#aaaaaa;stroke-width:1.13206;marker-end:url(#arrowhead-1-8-8-1)" />
-  <line
-     x1="139.71443"
-     y1="648.88544"
-     x2="139.4845"
-     y2="668.26764"
-     class="line-primary"
-     marker-end="url(#arrowhead-1-8-8)"
-     id="line49-5-5-4"
-     inkscape:transform-center-x="-0.0133805"
-     inkscape:transform-center-y="-0.4080247"
-     style="stroke:#aaaaaa;stroke-width:1.13206;marker-end:url(#arrowhead-1-8-8)" />
-  <text
-     x="140"
-     y="290"
-     class="text-section"
-     id="text9"
-     style="font-weight:bold;font-size:16px;font-family:Arial, sans-serif;text-anchor:middle;fill:#ffffff">ctx_resolve() - auth logic</text>
-  <text
-     x="138"
-     y="308"
-     class="text-code"
-     id="text10"
-     style="font-size:12px;font-family:Arial, sans-serif;text-anchor:middle;fill:#ffffff">mm, &amp;cookies -&gt; CtxExtResult</text>
-  <!-- Token Extraction -->
-  <rect
-     x="50.460712"
-     y="329.92517"
-     width="178.75626"
-     height="76.614105"
-     rx="2.6813436"
-     class="stroke-primary rect-process"
-     id="rect10" />
-  <text
-     x="134.44867"
-     y="361.98355"
-     class="text-box-title"
-     id="text11"
-     transform="scale(1.0312532,0.96969396)"
-     style="stroke-width:1.03053">Token Extraction</text>
-  <text
-     x="134.44867"
-     y="382.59418"
-     class="text-code"
-     id="text12"
-     transform="scale(1.0312532,0.96969396)"
-     style="stroke-width:1.03053">Get AUTH_TOKEN cookie</text>
-  <text
-     x="134.44867"
-     y="403.20483"
-     class="text-small"
-     id="text13"
-     transform="scale(1.0312532,0.96969396)"
-     style="stroke-width:1.03053">Error: TokenNotInCookie</text>
-  <!-- Token Parsing -->
-  <rect
-     x="50.840118"
-     y="427.94269"
-     width="177.48717"
-     height="80.114571"
-     rx="4.4371791"
-     class="stroke-primary rect-process"
-     id="rect13" />
-  <text
-     x="138.8974"
-     y="452.17157"
-     class="text-box-title"
-     id="text14">Token Parsing</text>
-  <text
-     x="138.8974"
-     y="472.17157"
-     class="text-code"
-     id="text15">Parse token string</text>
-  <text
-     x="138.8974"
-     y="492.17157"
-     class="text-small"
-     id="text16">Error: TokenWrongFormat</text>
-  <!-- User Lookup -->
-  <rect
-     x="49.923836"
-     y="530.0451"
-     width="178.23203"
-     height="76.616791"
-     rx="4.4558005"
-     class="stroke-primary rect-process"
-     id="rect16" />
-  <text
-     x="136"
-     y="555.12128"
-     class="text-box-title"
-     id="text17">User Lookup</text>
-  <text
-     x="138"
-     y="575.12128"
-     class="text-code"
-     id="text18">UserBmc::first_by_username</text>
-  <text
-     x="138"
-     y="595.12128"
-     class="text-small"
-     id="text19">Error: UserNotFound</text>
-  <!-- Token Validation -->
-  <rect
-     x="49.948235"
-     y="627.94824"
-     width="179.59743"
-     height="80.103531"
-     rx="4.4899359"
-     class="stroke-primary rect-process"
-     id="rect19" />
-  <text
-     x="140"
-     y="653"
-     class="text-box-title"
-     id="text20">Token Validation</text>
-  <text
-     x="140"
-     y="673"
-     class="text-code"
-     id="text21">validate_web_token</text>
-  <text
-     x="140"
-     y="693"
-     class="text-small"
-     id="text22">Error: FailValidate</text>
-  <!-- Token Update and Context Creation -->
-  <rect
-     x="50.510208"
-     y="730.04279"
-     width="178.21298"
-     height="77.509453"
-     rx="3.5642598"
-     class="stroke-primary rect-data"
-     id="rect22" />
-  <text
-     x="139.67915"
-     y="753.21173"
-     class="text-box-title"
-     id="text23">Token Update</text>
-  <text
-     x="139.67915"
-     y="773.21173"
-     class="text-code"
-     id="text24">set_token_cookie</text>
-  <text
-     x="139.67915"
-     y="793.21173"
-     class="text-small"
-     id="text25">Error: CannotSetTokenCookie</text>
-  <rect
-     x="49.22113"
-     y="829.35736"
-     width="179.591"
-     height="80.301682"
-     rx="3.59182"
-     class="stroke-primary rect-data"
-     id="rect25" />
-  <text
-     x="138.37196"
-     y="854.50818"
-     class="text-box-title"
-     id="text26">Context Creation</text>
-  <text
-     x="138.37196"
-     y="874.50818"
-     class="text-code"
-     id="text27">Ctx::new(user.id).map(CtxW)</text>
-  <text
-     x="138.37196"
-     y="894.50818"
-     class="text-small"
-     id="text28">Error: CtxCreateFail</text>
-  <!-- Error Handling -->
-  <rect
-     x="303.67499"
-     y="333.67499"
-     width="456.64999"
-     height="576.65002"
-     rx="4.9635868"
-     class="stroke-primary rect-error"
-     id="rect28" />
-  <text
-     x="532"
-     y="377"
-     class="text-section"
-     id="text29">Error Handling in mw_ctx_resolver</text>
-  <text
-     x="532"
-     y="397"
-     class="text-code"
-     id="text30">Remove AUTH_TOKEN cookie on error</text>
-  <text
-     x="532"
-     y="417"
-     class="text-code"
-     id="text31">(unless Error: TokenNotInCookie)</text>
   <!-- Request Extension Storage -->
-  <text
-     x="190"
-     y="173"
-     class="text-code"
-     id="text32">Request Extension Storage</text>
-  <text
-     x="190"
-     y="153"
-     class="text-code"
-     id="text33">req.extensions_mut().insert(ctx_ext_result)</text>
-  <text
-     x="190"
-     y="189"
-     class="text-small"
-     id="text34">Store result for downstream use</text>
-  <!-- Context Requirement Check -->
-  <text
-     x="476"
-     y="169"
-     class="text-code"
-     id="text36">ctx? - Force successful auth</text>
-  <text
-     x="476"
-     y="185"
-     class="text-small"
-     id="text37">Propagates auth errors</text>
-  <!-- Extractor Logic -->
-  <text
-     x="710"
-     y="169"
-     class="text-code"
-     id="text39">Extract from request extensions</text>
-  <text
-     x="710"
-     y="185"
-     class="text-small"
-     id="text40"><tspan
-       sodipodi:role="line"
-       id="tspan8"
-       x="710"
-       y="185">Error: CtxNotInRequestExt</tspan></text>
-  <!-- Success Path -->
-  <!-- Flow Arrows -->
-  <!-- Entry to middleware functions -->
-  <!-- mw_ctx_resolver to ctx_resolve -->
-  <line
-     x1="100"
-     y1="201.29289"
-     x2="100"
-     y2="257.97919"
-     class="line-primary"
-     marker-end="url(#arrowhead)"
-     id="line44" />
-  <line
-     x1="209.39064"
-     y1="258.3934"
-     x2="209.39177"
-     y2="201.70711"
-     class="line-primary"
-     marker-end="url(#arrowhead-3)"
-     id="line44-8"
-     style="stroke:#aaaaaa;stroke-width:1.82606;marker-end:url(#arrowhead-3)" />
-  <!-- ctx_resolve process flow -->
-  <!-- Sequential process flow -->
-  <line
-     x1="139.71126"
-     y1="406.74893"
-     x2="139.48132"
-     y2="426.13116"
-     class="line-primary"
-     marker-end="url(#arrowhead)"
-     id="line49"
-     inkscape:transform-center-x="-0.0133805"
-     inkscape:transform-center-y="-0.4080247" />
-  <!-- Token validation to token update -->
-  <!-- Context creation to storage -->
+  <rect x="61" y="91" width="278" height="108" rx="4" class="stroke-primary rect-data" />
+  <text x="196" y="118" class="text-section">mw_ctx_resolver</text>
+  <text x="196" y="136" class="text-code">State(mm), cookies, req, next</text>
+  <text x="190" y="156" class="text-code">Request Extension Storage</text>
+  <text x="190" y="171" class="text-small">Store result for downstream use</text>
+  <text x="190" y="187" class="text-code">req.extensions_mut().insert(ctx_ext_result)</text>
+
   <!-- mw_ctx_require flow -->
-  <!-- Extractor flow -->
-  <!-- Success path -->
-  <rect
-     x="838.05499"
-     y="89.055031"
-     width="110.88997"
-     height="109.88995"
-     rx="2.2177992"
-     class="stroke-primary rect-sublayer"
-     id="rect5" />
-  <text
-     x="896.5249"
-     y="116.40656"
-     class="text-section"
-     id="text42"
-     transform="scale(0.99493073,1.0050951)"
-     style="stroke-width:0.995093">CtxExtError</text>
-  <text
-     x="898.55511"
-     y="138.29866"
-     class="text-code"
-     id="text43"
-     transform="scale(0.99493073,1.0050951)"
-     style="stroke-width:0.995093"><tspan
-       sodipodi:role="line"
-       x="898.55511"
-       y="138.29866"
-       id="tspan43"
-       style="stroke-width:0.995093">error enum</tspan></text>
-  <line
-     x1="139.05757"
-     y1="509.00671"
-     x2="138.82764"
-     y2="528.38892"
-     class="line-primary"
-     marker-end="url(#arrowhead-1)"
-     id="line49-5"
-     inkscape:transform-center-x="-0.0133805"
-     inkscape:transform-center-y="-0.4080247"
-     style="stroke:#aaaaaa;stroke-width:1.13206;marker-end:url(#arrowhead-1)" />
-  <line
-     x1="139.05759"
-     y1="607.00671"
-     x2="138.82765"
-     y2="626.38892"
-     class="line-primary"
-     marker-end="url(#arrowhead-1-8)"
-     id="line49-5-5"
-     inkscape:transform-center-x="-0.0133805"
-     inkscape:transform-center-y="-0.4080247"
-     style="stroke:#aaaaaa;stroke-width:1.13206;marker-end:url(#arrowhead-1-8)" />
-  <text
-     xml:space="preserve"
-     style="text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#000000"
-     x="231.93102"
-     y="103.9447"
-     id="text1"><tspan
-       sodipodi:role="line"
-       id="tspan1" /></text>
-  <text
-     xml:space="preserve"
-     class="text-section"
-     style="text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#f9f9f9"
-     x="642"
-     y="153"
-     id="text41"><tspan
-       sodipodi:role="line"
-       id="tspan9"
-       x="642"
-       y="153">Axum Extractor struct</tspan></text>
-  <line
-     x1="219.00491"
-     y1="489.79126"
-     x2="303.99268"
-     y2="490.34818"
-     class="stroke-dashed"
-     marker-end="url(#arrowhead-47)"
-     id="line55-0"
-     style="fill:none;stroke:#aaaaaa;stroke-width:1.5;stroke-dasharray:5, 5;marker-end:url(#arrowhead-47)" />
-  <line
-     x1="218.00491"
-     y1="590.79126"
-     x2="302.99268"
-     y2="591.34821"
-     class="stroke-dashed"
-     marker-end="url(#arrowhead-5)"
-     id="line55-4"
-     style="fill:none;stroke:#aaaaaa;stroke-width:1.5;stroke-dasharray:5, 5;marker-end:url(#arrowhead-5)" />
-  <line
-     x1="219.00491"
-     y1="690.79126"
-     x2="303.99268"
-     y2="691.34821"
-     class="stroke-dashed"
-     marker-end="url(#arrowhead-37)"
-     id="line55-7"
-     style="fill:none;stroke:#aaaaaa;stroke-width:1.5;stroke-dasharray:5, 5;marker-end:url(#arrowhead-37)" />
-  <line
-     x1="219.00491"
-     y1="790.79126"
-     x2="303.99268"
-     y2="791.34821"
-     class="stroke-dashed"
-     marker-end="url(#arrowhead-57)"
-     id="line55-5"
-     style="fill:none;stroke:#aaaaaa;stroke-width:1.5;stroke-dasharray:5, 5;marker-end:url(#arrowhead-57)" />
-  <line
-     x1="219.00491"
-     y1="890.79126"
-     x2="303.99268"
-     y2="891.34821"
-     class="stroke-dashed"
-     marker-end="url(#arrowhead-32)"
-     id="line55-77"
-     style="fill:none;stroke:#aaaaaa;stroke-width:1.5;stroke-dasharray:5, 5;marker-end:url(#arrowhead-32)" />
-  <line
-     x1="219.00491"
-     y1="390.79126"
-     x2="303.99268"
-     y2="391.34818"
-     class="stroke-dashed"
-     marker-end="url(#arrowhead-38)"
-     id="line55"
-     style="fill:none;stroke:#aaaaaa;stroke-width:1.5;stroke-dasharray:5, 5;marker-end:url(#arrowhead-38)" />
-  <line
-     x1="322"
-     y1="197"
-     x2="322"
-     y2="333.68631"
-     class="line-primary"
-     marker-end="url(#arrowhead-8)"
-     id="line44-0"
-     style="stroke:#aaaaaa;stroke-width:3.10566;marker-end:url(#arrowhead-8)" />
+  <rect x="378" y="90" width="199" height="109" rx="4" class="stroke-primary rect-sublayer" />
+  <text x="480" y="116" class="text-section">mw_ctx_require</text>
+  <text x="480" y="138" class="text-code">ctx: Result&lt;CtxW&gt;, req, next</text>
+  <text x="480" y="153" class="text-code">-&gt; Result&lt;Response&gt;</text>
+  <text x="476" y="169" class="text-code">ctx? - Force successful auth</text>
+  <text x="476" y="185" class="text-small">Propagates auth errors</text>
+
+  <!-- Extractor Logic -->
+  <rect x="610" y="90" width="199" height="108" rx="4" class="stroke-primary rect-sublayer" />
+  <text x="712" y="118" class="text-section">CtxW</text>
+  <text x="710" y="136" class="text-code">lib-core::ctx::Ctx</text>
+  <text x="710" y="153" class="text-code">Extract from request extensions</text>
+  <text x="710" y="169" class="text-small">Axum Extractor struct</text>
+  <text x="710" y="185" class="text-small">Error: CtxNotInRequestExt</text>
+
+  <!-- CtxExtError -->
+  <rect x="838" y="89" width="111" height="110" rx="2" class="stroke-primary rect-sublayer" />
+  <text x="895" y="116" class="text-section">CtxExtError</text>
+  <text x="895" y="138" class="text-code">error enum</text>
+
+  <!-- Core Authentication Logic -->
+  <rect x="32" y="260" width="217" height="670" rx="3" class="stroke-primary rect-layer" />
+  <line x1="140" y1="649" x2="140" y2="668" class="line-primary" marker-end="url(#arrowhead)" />
+  <text x="140" y="290" class="text-section">ctx_resolve() - auth logic</text>
+  <text x="138" y="308" class="text-code">mm, &amp;cookies -&gt; CtxExtResult</text>
+
+  <!-- Token Extraction -->
+  <rect x="50" y="330" width="179" height="77" rx="3" class="stroke-primary rect-process" />
+  <text x="134" y="357" class="text-box-title">Token Extraction</text>
+  <text x="134" y="378" class="text-code">Get AUTH_TOKEN cookie</text>
+  <text x="134" y="396" class="text-small">Error: TokenNotInCookie</text>
+  <!-- Token Parsing -->
+  <rect x="51" y="428" width="177" height="80" rx="4" class="stroke-primary rect-process" />
+  <text x="139" y="452" class="text-box-title">Token Parsing</text>
+  <text x="139" y="472" class="text-code">Parse token string</text>
+  <text x="139" y="492" class="text-small">Error: TokenWrongFormat</text>
+  <!-- User Lookup -->
+  <rect x="50" y="530" width="178" height="77" rx="4" class="stroke-primary rect-process" />
+  <text x="136" y="555" class="text-box-title">User Lookup</text>
+  <text x="138" y="575" class="text-code">UserBmc::first_by_username</text>
+  <text x="138" y="595" class="text-small">Error: UserNotFound</text>
+  <!-- Token Validation -->
+  <rect x="50" y="628" width="180" height="80" rx="4" class="stroke-primary rect-process" />
+  <text x="140" y="653" class="text-box-title">Token Validation</text>
+  <text x="140" y="673" class="text-code">validate_web_token</text>
+  <text x="140" y="693" class="text-small">Error: FailValidate</text>
+  <!-- Token Update -->
+  <rect x="51" y="730" width="178" height="78" rx="4" class="stroke-primary rect-data" />
+  <text x="140" y="753" class="text-box-title">Token Update</text>
+  <text x="140" y="773" class="text-code">set_token_cookie</text>
+  <text x="140" y="793" class="text-small">Error: CannotSetTokenCookie</text>
+  <!-- Context Creation -->
+  <rect x="49" y="829" width="180" height="80" rx="4" class="stroke-primary rect-data" />
+  <text x="138" y="855" class="text-box-title">Context Creation</text>
+  <text x="138" y="875" class="text-code">Ctx::new(user.id).map(CtxW)</text>
+  <text x="138" y="895" class="text-small">Error: CtxCreateFail</text>
+  <!-- Error Handling -->
+  <rect x="304" y="334" width="457" height="577" rx="5" class="stroke-primary rect-error" />
+  <text x="532" y="377" class="text-section">Error Handling in mw_ctx_resolver</text>
+  <text x="532" y="397" class="text-code">Remove AUTH_TOKEN cookie on error</text>
+  <text x="532" y="417" class="text-code">(unless Error: TokenNotInCookie)</text>
+
+  <!-- Flow Arrows -->
+  <!-- mw_ctx_resolver to/from ctx_resolve -->
+  <line x1="100" y1="201" x2="100" y2="258" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="209" y1="258" x2="209" y2="202" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="322" y1="197" x2="322" y2="334" class="line-primary" marker-end="url(#arrowhead)" />
+  <!-- Sequential process flow -->
+  <line x1="140" y1="407" x2="140" y2="426" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="140" y1="509" x2="140" y2="528" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="140" y1="607" x2="140" y2="626" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="140" y1="709" x2="140" y2="728" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="140" y1="808" x2="140" y2="828" class="line-primary" marker-end="url(#arrowhead)" />
+  <!-- Error flows -->
+  <line x1="219" y1="391" x2="304" y2="391" class="stroke-dashed" marker-end="url(#arrowhead)" />
+  <line x1="219" y1="490" x2="304" y2="490" class="stroke-dashed" marker-end="url(#arrowhead)" />
+  <line x1="218" y1="591" x2="303" y2="591" class="stroke-dashed" marker-end="url(#arrowhead)" />
+  <line x1="219" y1="691" x2="304" y2="691" class="stroke-dashed" marker-end="url(#arrowhead)" />
+  <line x1="219" y1="791" x2="304" y2="791" class="stroke-dashed" marker-end="url(#arrowhead)" />
+  <line x1="219" y1="891" x2="304" y2="891" class="stroke-dashed" marker-end="url(#arrowhead)" />
 </svg>
