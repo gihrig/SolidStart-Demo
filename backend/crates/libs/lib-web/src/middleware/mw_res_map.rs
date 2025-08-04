@@ -12,7 +12,7 @@ use std::sync::Arc;
 use tracing::debug;
 use uuid::Uuid;
 
-pub async fn mw_reponse_map(
+pub async fn mw_response_map(
 	ctx: Result<CtxW>, // Axum 0.8 does not seem to support Option anymore
 	uri: Uri,
 	req_method: Method,
@@ -23,7 +23,8 @@ pub async fn mw_reponse_map(
 	let ctx = ctx.map(|ctx| ctx.0).ok();
 	let uuid = Uuid::new_v4();
 
-	debug!("{:<12} - mw_reponse_map", "RES_MAPPER");
+	debug!("{:<12} - mw_response_map", "RES_MAPPER");
+	let uuid = Uuid::new_v4();
 
 	// Extract Response Data
 	let rpc_info = res.extensions().get::<Arc<RpcInfo>>().map(Arc::as_ref);
@@ -63,8 +64,7 @@ pub async fn mw_reponse_map(
 	// -- Build and log the server log line.
 	let client_error = client_status_error.unzip().1;
 
-	// TODO: Need to hander if log_request fail (but should not fail request)
-
+	// TODO: Need to handle if log_request fails (but should not fail request)
 	let _ = log_request(
 		req_method,
 		uri,
