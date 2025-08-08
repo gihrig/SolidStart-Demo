@@ -37,8 +37,13 @@
   <text x="275" y="215" class="text-code">#[derive(Debug, Serialize, From, strum_macros::AsRefStr)]</text>
   <text x="275" y="235" class="text-code">#[serde(tag = "type", content = "data")]</text>
   <text x="275" y="253" class="text-small">Implements: Display, std::error::Error, IntoResponse</text>
+
+  <!-- Other public types -->
   <rect x="500" y="175" width="425" height="90" rx="5" class="stroke-primary rect-layer" />
-  <text x="710" y="220" class="text-section">pub type Result&lt;T&gt; = core::result::Result&lt;T, Error&gt;</text>
+  <text x="710" y="195" class="text-section">pub type Result&lt;T&gt; = core::result::Result&lt;T, Error&gt;</text>
+  <text x="710" y="215" class="text-section">pub client_status_and_error(&amp;self)</text>
+  <text x="710" y="235" class="text-section"> → (StatusCode, ClientError)</text>
+  <text x="710" y="255" class="text-section">pub enum ClientError</text>
 
   <!-- Error Enum Variants (Error Categories) -->
   <rect x="50" y="310" width="330" height="800" rx="4" class="stroke-primary rect-process" />
