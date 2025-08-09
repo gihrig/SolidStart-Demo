@@ -11,7 +11,7 @@ async fn main() -> Result<()> {
 
 	// hc.do_get("/index.html").await?.print().await?;
 
-	// -- Login
+	// 1. Login
 	let req_login = hc.do_post(
 		"/api/login",
 		json!({
@@ -21,7 +21,7 @@ async fn main() -> Result<()> {
 	);
 	req_login.await?.print().await?;
 
-	// -- Create Agent
+	// 2. Create Agent
 	let req_create_agent = hc.do_post(
 		"/api/rpc",
 		json!({
@@ -37,9 +37,10 @@ async fn main() -> Result<()> {
 	);
 	let result = req_create_agent.await?;
 	result.print().await?;
+	// Extract agent_id
 	let agent_id = result.json_value::<i64>("/result/data/id")?;
 
-	// -- Get Agent
+	// 3. Get Agent
 	let req_get_agent = hc.do_post(
 		"/api/rpc",
 		json!({
@@ -54,7 +55,7 @@ async fn main() -> Result<()> {
 	let result = req_get_agent.await?;
 	result.print().await?;
 
-	// -- Create Conv
+	// 4. Create Conversation
 	let req_create_conv = hc.do_post(
 		"/api/rpc",
 		json!({
@@ -71,9 +72,10 @@ async fn main() -> Result<()> {
 	);
 	let result = req_create_conv.await?;
 	result.print().await?;
+	// Extract conv_id
 	let conv_id = result.json_value::<i64>("/result/data/id")?;
 
-	// -- Create ConvMsg
+	// 5. Add Conv Message
 	let req_create_conv = hc.do_post(
 		"/api/rpc",
 		json!({
@@ -90,9 +92,10 @@ async fn main() -> Result<()> {
 	);
 	let result = req_create_conv.await?;
 	result.print().await?;
+	// Extract conv_msg_id
 	let conv_msg_id = result.json_value::<i64>("/result/data/id")?;
 
-	// -- Logoff
+	// 6. Logoff
 	let req_logoff = hc.do_post(
 		"/api/logoff",
 		json!({
