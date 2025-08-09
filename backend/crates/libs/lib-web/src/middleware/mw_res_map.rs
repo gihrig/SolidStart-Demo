@@ -19,18 +19,20 @@ pub async fn mw_response_map(
 	req_stamp: ReqStamp,
 	res: Response,
 ) -> Response {
+	// Extract Context
 	let ctx = ctx.map(|ctx| ctx.0).ok();
-
-	debug!("{:<12} - mw_response_map", "RES_MAPPER");
 	let uuid = Uuid::new_v4();
 
+	debug!("{:<12} - mw_response_map", "RES_MAPPER");
+
+	// Extract Response Data
 	let rpc_info = res.extensions().get::<Arc<RpcInfo>>().map(Arc::as_ref);
 
-	// -- Get the eventual response error.
+	// Error Processing
 	let web_error = res.extensions().get::<Arc<Error>>().map(Arc::as_ref);
 	let client_status_error = web_error.map(|se| se.client_status_and_error());
 
-	// -- If client error, build the new response.
+	// Build Error Response
 	let error_response =
 		client_status_error
 			.as_ref()
@@ -39,6 +41,7 @@ pub async fn mw_response_map(
 				let message = client_error.as_ref().and_then(|v| v.get("message"));
 				let detail = client_error.as_ref().and_then(|v| v.get("detail"));
 
+				// Error Response JSON Structure
 				let client_error_body = json!({
 					"id": rpc_info.as_ref().map(|rpc| rpc.id.clone()),
 					"error": {
@@ -54,12 +57,13 @@ pub async fn mw_response_map(
 
 				// Build the new response from the client_error_body
 				(*status_code, Json(client_error_body)).into_response()
-			});
+			}); // -- end Build Error Response
 
+	// Request Logging
 	// -- Build and log the server log line.
 	let client_error = client_status_error.unzip().1;
 
-	// TODO: Need to handel if log_request fails (but should not fail request)
+	// TODO: Need to handle if log_request fails (but should not fail request)
 	let _ = log_request(
 		req_method,
 		uri,
@@ -73,5 +77,6 @@ pub async fn mw_response_map(
 
 	debug!("\n");
 
+	// Response Selection
 	error_response.unwrap_or(res)
 }
