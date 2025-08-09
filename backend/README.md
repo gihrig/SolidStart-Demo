@@ -5,7 +5,7 @@ Discord: https://discord.gg/XuKWrNGKpC
 
 # Note last commit with `modql 0.4.0-rc.4`
 
-- There is a small change in the `SeaField::new(iden, value)` where the value is now `impl Into<SimpleExpr>`. 
+- There is a small change in the `SeaField::new(iden, value)` where the value is now `impl Into<SimpleExpr>`.
 	- `so change:` `SeaField::new(UserIden::Pwd, pwd.into())`
 	- `       to:` `SeaField::new(UserIden::Pwd, pwd)`
 
@@ -23,7 +23,7 @@ This update ([GitHub tag: E06](https://github.com/rust10x/rust-web-app/releases/
 
 - **2) ModelManager DB Transaction Support**
 	- There's a significant enhancement to the `ModelManager`, which now contains a `lib_core::model::store::Dbx` implementing an on-demand **database transaction** support.
-	- By default, the ModelManager operates non-transactionally; each query executes as its own DB command. However, Bmc functions can transform a ModelManager into a transactional one and initiate/commit a transaction 
+	- By default, the ModelManager operates non-transactionally; each query executes as its own DB command. However, Bmc functions can transform a ModelManager into a transactional one and initiate/commit a transaction
 		- Search for `mm.dbx().begin_txn()` for an example in `UserBmc::create`.
 
 - **3) Declarative Macros**
@@ -54,7 +54,7 @@ This update ([GitHub tag: E06](https://github.com/rust10x/rust-web-app/releases/
 
 - **Episode 06 coming upon request on [discord](https://discord.gg/XuKWrNGKpC)**
 
-- Other Related videos: 
+- Other Related videos:
 	- [Rust Axum Full Course](https://youtube.com/watch?v=XZtlD_m59sM&list=PL7r-PXl6ZPcCIOFaL7nVHXZvBmHNhrh_Q)
 
 
@@ -66,7 +66,7 @@ docker run --rm --name pg -p 5432:5432 \
    -e POSTGRES_PASSWORD=welcome \
    postgres:17
 
-# (optional) To have a psql terminal on pg. 
+# (optional) To have a psql terminal on pg.
 # In another terminal (tab) run psql:
 docker exec -it -u postgres pg psql
 
@@ -102,16 +102,24 @@ cargo run -p web-server --example quick_dev
 ```sh
 cargo watch -q -c -x "test -- --nocapture"
 
+# Concise test output
+cargo watch -q -c -x "nextest run -j1"
+
 # Specific test with filter.
 cargo watch -q -c -x "test -p lib-core test_create -- --nocapture"
+
+cargo watch -q -c -x "test -p lib-core model::user::tests::test_create -- --nocapture"
+
 ```
 
 ## Unit Test
 
 ```sh
+# Concise test output
+cargo nextest run -j1
+
 cargo test -- --nocapture
 
-cargo watch -q -c -x "test -p lib-core model::task::tests::test_create -- --nocapture"
 ```
 
 ## Tools
@@ -119,6 +127,29 @@ cargo watch -q -c -x "test -p lib-core model::task::tests::test_create -- --noca
 ```sh
 cargo run -p gen-key
 ```
+
+## Production
+
+Optimize WASM bundle size for Leptos front end <br /><br />
+`cargo.toml`
+
+```toml
+# Defines a size-optimized profile for the WASM bundle in release mode
+[profile.wasm-release]
+inherits = "release"
+opt-level = 'z'
+lto = true
+codegen-units = 1
+panic = "abort"
+```
+
+Consider using these rust crates to enhance production security
+
+- [cargo-deny](https://crates.io/crates/cargo-deny)
+- [cargo-udeps](https://crates.io/crates/cargo-udeps)
+- [cargo-auditable](https://crates.io/crates/cargo-auditable)
+- [cargo-audit](https://crates.io/crates/cargo-audit)
+- [cargo-geiger](https://crates.io/crates/cargo-geiger)
 
 <br />
 
