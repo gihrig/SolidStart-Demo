@@ -25,7 +25,7 @@ generate_common_rpc_fns!(
 	Suffix: conv
 );
 
-/// Returns conv_msg
+/// Add conv_msg
 pub async fn add_conv_msg(
 	ctx: Ctx,
 	mm: ModelManager,
@@ -39,7 +39,7 @@ pub async fn add_conv_msg(
 	Ok(msg.into())
 }
 
-/// Returns conv_msg
+/// Return conv_msg
 #[allow(unused)]
 pub async fn get_conv_msg(
 	ctx: Ctx,
