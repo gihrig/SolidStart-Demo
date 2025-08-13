@@ -26,21 +26,28 @@ use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+	// region: --- Initialization Pase
+
+	// Initialize Tracing
 	tracing_subscriber::fmt()
-		.without_time() // For early local development.
+		.without_time() // TODO: For early local development.
 		.with_target(false)
 		.with_env_filter(EnvFilter::from_default_env())
 		.init();
 
-	// -- FOR DEV ONLY
+	// -- TODO: Development setup
 	_dev_utils::init_dev().await;
 
+	// ModelManager initialization
 	let mm = ModelManager::new().await?;
 
-	// -- Define Routes
+	// endregion: -- Initialization Phase
+
+	// Route Definition - Protected API endpoints
 	let routes_rpc = web::routes_rpc::routes(mm.clone())
 		.route_layer(middleware::from_fn(mw_ctx_require));
 
+	// Router Assembly - Middleware nested under /api prefix
 	let routes_all = Router::new()
 		.merge(routes_login::routes(mm.clone()))
 		.nest("/api", routes_rpc)
@@ -50,14 +57,14 @@ async fn main() -> Result<()> {
 		.layer(middleware::from_fn(mw_req_stamp_resolver))
 		.fallback_service(routes_static::serve_dir(&web_config().WEB_FOLDER));
 
-	// region:    --- Start Server
-	// Note: For this block, ok to unwrap.
+	// region: --- Start Server
+	// Note: For this block, ok to unwrap
 	let listener = TcpListener::bind("127.0.0.1:8080").await.unwrap();
 	info!("{:<12} - {:?}\n", "LISTENING", listener.local_addr());
 	axum::serve(listener, routes_all.into_make_service())
 		.await
 		.unwrap();
-	// endregion: --- Start Server
+	// endregion: --- Start Server >  panic on error
 
 	Ok(())
 }
