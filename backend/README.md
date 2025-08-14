@@ -74,6 +74,7 @@ docker exec -it -u postgres pg psql
 # In psql command line started above.
 ALTER DATABASE postgres SET log_statement = 'all';
 ```
+> See `psql_commands.md`
 
 ## Dev (watch)
 
