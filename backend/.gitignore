@@ -1,3 +1,7 @@
+# Note: Entries containing comments anywhere on the line are
+# not recognized by git.
+# Comments must be on their own lines.
+
 # -- Base
 .*
 !.gitignore
@@ -12,7 +16,7 @@ _*
 
 # -- Rust
 target/
-# !Cargo.lock # commented by default
+!Cargo.lock
 !.cargo/
 
 # -- Devai
@@ -21,7 +25,7 @@ target/
 
 # Uncomment beow to allow commiting .devai/custom .devai
 # Only allow .devai/custom and .devai/Config.toml
-# Note: Here the starting `/` will just include the top .devai. 
+# Note: Here the starting `/` will just include the top .devai.
 #       Remove the starting `/` to include all .devai/custom even if their in a sub dir
 # !/.devai/
 # .devai/*
@@ -79,7 +83,7 @@ __pycache__/
 
 
 # -- others
-# Allows .env (make sure only dev info) 
+# Allows .env (make sure only dev info)
 # !.env # Commented by default
 
 # Allow vscode
