@@ -1,16 +1,20 @@
-# Cargo config file. 
+# Cargo config file.
 # See: https://doc.rust-lang.org/cargo/reference/config.html
 
 # Environments variables set for all `cargo ...` commands.
 [env]
 
+[alias]
+docs-update = "doc --all-features --workspace --examples"
+docs = "doc --open"
+
 # Scope down tracing, to filter out external lib tracing.
 RUST_LOG="web_server=debug,lib_core=debug,lib_web=debug,lib_auth=debug,lib_utils=debug"
 
 # -- Service Environment Variables
-# IMPORTANT: 
+# IMPORTANT:
 #   For cargo commands only.
-#   For deployed env, should be managed by container 
+#   For deployed env, should be managed by container
 #   (e.g., Kubernetes).
 
 ## -- Secrets
