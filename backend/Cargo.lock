@@ -226,6 +226,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bs58"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf88ba1141d185c399bee5288d850d63b8369520c1eafc32a0430b5b6c287bf4"
+dependencies = [
+ "tinyvec",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -422,6 +431,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "data-encoding"
+version = "2.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a2330da5de22e8a3cb63252ce2abb30116bf5265e89c0e01bc17015ce30a476"
+
+[[package]]
 name = "der"
 version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -448,7 +463,16 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a9b99b9cbbe49445b21764dc0625032a89b145a2642e67603e1c936f5458d05"
 dependencies = [
- "derive_more-impl",
+ "derive_more-impl 1.0.0",
+]
+
+[[package]]
+name = "derive_more"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "093242cf7570c207c83073cf82f79706fe7b8317e98620a47d5be7c3d8497678"
+dependencies = [
+ "derive_more-impl 2.0.1",
 ]
 
 [[package]]
@@ -456,6 +480,18 @@ name = "derive_more-impl"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+ "unicode-xid",
+]
+
+[[package]]
+name = "derive_more-impl"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bda628edc44c4bb645fbe0f758797143e4e07926f7ebf4e9bdfbd3d2ce621df3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1262,7 +1298,7 @@ version = "0.1.0"
 dependencies = [
  "argon2",
  "blake3",
- "derive_more",
+ "derive_more 1.0.0",
  "enum_dispatch",
  "hmac",
  "lazy-regex",
@@ -1277,7 +1313,7 @@ dependencies = [
 name = "lib-core"
 version = "0.1.0"
 dependencies = [
- "derive_more",
+ "derive_more 1.0.0",
  "lib-auth",
  "lib-utils",
  "modql",
@@ -1299,7 +1335,7 @@ dependencies = [
 name = "lib-rpc-core"
 version = "0.1.0"
 dependencies = [
- "derive_more",
+ "derive_more 1.0.0",
  "futures",
  "lib-core",
  "modql",
@@ -1324,7 +1360,7 @@ name = "lib-web"
 version = "0.1.0"
 dependencies = [
  "axum",
- "derive_more",
+ "derive_more 1.0.0",
  "lib-auth",
  "lib-core",
  "lib-rpc-core",
@@ -2012,22 +2048,27 @@ dependencies = [
 
 [[package]]
 name = "rpc-router"
-version = "0.1.3"
+version = "0.2.0-alpha.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e812cfab5cb3403a10bc4ae854579abd381359e3de4032edc3040350fbe06c3"
+checksum = "cc07d23216dfaf96d5dedcca0ced9f106d7e65dca7ca421ba0291bec5ec22720"
 dependencies = [
+ "bitflags",
+ "bs58",
+ "data-encoding",
+ "derive_more 2.0.1",
  "futures",
  "rpc-router-macros",
  "serde",
  "serde_json",
  "serde_with",
+ "uuid",
 ]
 
 [[package]]
 name = "rpc-router-macros"
-version = "0.1.0"
+version = "0.2.0-alpha.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2222c322dfdca61c57a0d6ab1999a4785db4ba9dd8fc5db6f0339e6ec2028c0"
+checksum = "d47791785bc192d6fa54a40286ca927d928d9690a10470d1a29784beb031c948"
 dependencies = [
  "quote",
  "syn",
@@ -3270,7 +3311,7 @@ name = "web-server"
 version = "0.1.0"
 dependencies = [
  "axum",
- "derive_more",
+ "derive_more 1.0.0",
  "httpc-test",
  "lib-auth",
  "lib-core",
