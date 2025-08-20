@@ -364,8 +364,8 @@ CREATE TABLE discount_code (
 ```
 components/
 ├── layout/
-│   ├── Header.rs           # Site header with responsive menu
-│   ├── Navigation.rs       # Main navigation component
+│   ├── Header.rs          # Site header with responsive menu
+│   ├── Navigation.rs      # Main navigation component
 │   ├── Footer.rs          # Site footer
 │   └── Layout.rs          # Main layout wrapper
 ├── catalog/
@@ -750,7 +750,7 @@ describe('Responsive Design', () => {
 
 ### 14.1 API Endpoint Reference
 ```
-GET    /api/catalog                    # List all categories
+GET    /api/catalog                   # List all categories
 GET    /api/catalog/{id}              # Get category with items
 GET    /api/catalog/{id}/items        # Get category items
 GET    /api/products                  # List all products
@@ -801,10 +801,6 @@ SMTP_PASS=xxx
 ---
 
 *End of Product Requirements Document*
- res.json().await.unwrap();
-    assert_eq!(cart.items.len(), 0);
-}
-```
 
 ---
 
