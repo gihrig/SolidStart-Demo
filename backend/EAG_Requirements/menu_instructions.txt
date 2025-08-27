@@ -1,0 +1,185 @@
+Generating the menu
+-------------------
+After making changes to the menu information, the menu must be re-generated before those changes are
+visible in the web site.
+
+To regenerate the menu, open this page:
+
+	build_menu.php
+
+The menu is generated from the content of $menuEntry variables in the top level *.php files and is
+immediately visible to web site visitors.
+
+To see the changes in your browser, you may need to perform a hard refresh
+	- Ctrl-F5 in Internet Explorer.
+	- Ctrl-R or Shift-Ctrl-R in other browsers.
+
+Defining the menu
+-----------------
+The menu is defined in each top level *.php file. The contents of these files collectively
+determine the menu categories and links.
+
+The page URL is determined by the name of the top level *.php file which contains the menu definition.
+
+Recommended  best practice: use a fully spelled out filename that reflects the desired page title
+separated by dashes:
+
+	File name: display-geodes.php
+	URL: display-geodes.php
+
+	$htmlTitle = "Display Geodes";
+	$menuEntry = "display specimens > by specialty > geodes";
+
+Menu:
+
+	DISPLAY SPECIMENS
+		BY SPECIALTY
+			Geodes 		= display-geodes.php
+
+			Menu text	= URL
+
+The link text that appears on the menu is the last item in the $menuEntry string (geodes).
+The link text only appears on the menu and can be anything.
+
+While $htmlTitle text can be anything, it is recommended that URL (file name), $htmlTitle and top
+level page header (<h1>) text all match.
+
+Menu entry levels are separated by '>' characters. Space surrounding these characters ' > ' is optional.
+
+Leave $menuEntry empty ('') to exclude this page from the menu.
+
+
+Sorting menu categories and links:
+----------------------------------
+The default sort order for menu categories and links is alphabetical.
+
+A four character sort value, followed by a plus sign 0001+ at the beginning of any $menuEntry item
+is used for sorting menu entries, then removed for display.
+
+Sort values need not be sequential.
+
+Three classes of sort value are possible, their values and sort order are:
+
+	Numbers 0-9					0000+ through 9999+
+	No sort value entered		alphabetical
+	Lower case letters a-z		aaaa+ through zzzz+
+
+If no sort value is provided, the entry will be sorted between 9999+ and aaaa+, in alphabetical order
+among other entries having no sort value applied.
+
+A recommended best practice is to assign sort values in large blocks of 50 or greater, between entries,
+leaving plenty of 'space' in the sequence for later additions or changes without having to revise
+the sort values of existing items or categories.
+
+Keep in mind that the menu system is sorted separately for each level. This means that sort value
+sequences apply only to the level they are used on. Put another way, each level of the
+menu has it's own unique sort system.
+
+If the same sort value is used more than once, those items will appear in alphabetical order.
+For example:
+
+	In page one:
+		$menuEntry = 'amazonite';
+
+	In page two
+		$menuEntry = '0001+new items';
+
+	In page three
+		$menuEntry = '0001+hot items';
+
+	In page four
+		$menuEntry = 'aaaa+alabaster';
+
+
+The menu order would be:
+
+	hot items - 0001+h...
+	new items - 0001+n...
+	amazonite - amaz...
+	alabaster - aaaa+a...
+
+
+Moving categories or items on an existing menu
+----------------------------------------------
+
+Given the following menu structure:
+
+DISPLAY SPECIMENS
+	BY SPECIALTY
+		Crystals
+		Geodes
+		Minerals
+CABOCHONS
+	By Specialty
+		Hearts
+		Oversized
+		Pairs
+
+The definition of this menu structure would be contained in all six files, with special notation
+required in at least three files to place DISPLAY SPECIMENS above CABOCHONS in the menu.
+
+The three files under DISPLAY SPECIMENS are 'numeric-sorted', their $menuEntry variables might be as follows:
+$menuEntry = ...
+	'0100+display specimens>by specialty>crystals' in display-crystals.php
+	'0100+display specimens>by specialty>geodes' in display-geodes.php
+	'0100+display specimens>by specialty>minerals' in display-minerals.php
+
+The three files under CABOCHONS are 'alpha-sorted' (they have no sort values), their $menuEntry
+variables might be as follows:
+$menuEntry = ...
+	'cabochons>by specialty>hearts' in cabs-hearts.php
+	'cabochons>by specialty>oversized' in cabs-oversized.php
+	'cabochons>by specialty>pairs' in cabs-pairs.php
+
+To change CABOCHONS to the top menu position, several approaches could be taken, All amount to
+placing DISPLAY SPECIMENS after CABOCHONS in the sort order:
+
+	a) Edit three files to change '0100+display specimens' to just 'display specimens'. This would
+	cause the 'natural' alphabetical sort order to place CABOCHONS first on the menu.
+
+	b) Edit three files to change 'cabochons' to '0050+cabochons'. This would cause the
+	numeric sort order to place CABOCHONS before DISPLAY SPECIMENS on the menu.
+
+	c) Edit three files to change '0100+display specimens' to 'aaaa+display specimens'. This would
+	cause the alphabetical sort value to place DISPLAY SPECIMENS last on the menu.
+
+To make changes to existing category names, use the cross-file search and replace feature of a
+programming editor, such as WEB Storm: Edit > Find In Path.
+
+Finally, when there are hundreds of files involved, planning, careful execution (and easily
+accessible backups) are advised!
+
+
+Multiple menu entries referencing the same URL
+----------------------------------------------
+
+To create more than one menu entry that refers to a specific URL, create multiple complete
+$menuEntry lines.
+
+Important!
+	All $menuEntry lines must be consecutive, there must be no blank lines between entries.
+	All $menuEntry lines must occur within the first 25 lines of their *.php file.
+
+For example:
+
+	$menuEntry = '0100+display specimens>by specialty>crystals';
+	$menuEntry = '0100+display specimens>by specialty>geodes';
+	$menuEntry = '0100+display specimens>by specialty>minerals';
+
+The above would create the following menu structure, with all entries referencing the same URL.
+
+DISPLAY SPECIMENS
+	BY SPECIALTY
+		Crystals
+		Geodes
+		Minerals
+
+
+Styling menu category and link text
+-----------------------------------
+Category and link case are set by CSS class.
+see framework.config.php:
+	MENU_CATEGORY_LIST_ID
+	MENU_CATEGORY_LIST_STYLE
+
+The values contained in framework.config.php and related CSS rules provide styling for the menu.

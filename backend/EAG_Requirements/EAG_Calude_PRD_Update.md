@@ -3,9 +3,9 @@
 ## Backend updates
 
 1. Manual updates to PRD.md
-- Rename /web-folder as /static-files See /.cargo/config.toml
-- Remove nginx application is served by axum
-- Create site_images catalog_images structure under /static-files
+- Rename /web-folder as /static See /.cargo/config.toml
+- Remove nginx, application is served by axum
+- Create site_images catalog_images structure under /static
 
 2. Configure Turso database
 - Configure Turso database: https://crates.io/crates/turso
@@ -20,6 +20,8 @@
 4. Application evironment
 - Review and integrate /EAG_Requirements/framework.config.php
 - Review and integrate /EAG_Requirements/_menu_instructions.txt
+- Implement Infisical secrets management
+- Clean up exposed secrets
 
 5. URL migration
 - Create system of URL mapping for old .php to new slug style URLs
