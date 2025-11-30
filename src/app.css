@@ -1,18 +1,20 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
-  --background-rgb: 214, 219, 220;
-  --foreground-rgb: 0, 0, 0;
+  --theme-background: var(--color-zinc-200);
+  --theme-foreground: var(--color-zinc-800);
+  --theme-accent: var(--color-sky-700);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background-rgb: 0, 0, 0;
-    --foreground-rgb: 255, 255, 255;
+    --theme-background: var(--color-stone-800);
+    --theme-foreground: var(--color-stone-300);
+    --theme-accent: var(--color-sky-400);
   }
 }
 
 body {
-  background: rgb(var(--background-rgb));
-  color: rgb(var(--foreground-rgb));
+  background: var(--theme-background);
+  color: var(--theme-foreground);
 }
