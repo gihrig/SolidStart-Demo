@@ -5,7 +5,7 @@ export default function Counter() {
   return (
     <button
       type="button"
-      class="w-[200px] rounded-full bg-gray-100 border-2 border-gray-300 focus:border-gray-400 active:border-gray-400 px-[2rem] py-[1rem]" 
+      class="w-[200px] rounded-full bg-gray-100 border-2 border-gray-300 focus:border-gray-400 active:border-gray-400 px-8 py-4"
       onClick={() => setCount(count() + 1)}
     >
       Clicks: {count()}
