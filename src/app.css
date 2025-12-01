@@ -18,3 +18,11 @@ body {
   background: var(--theme-background);
   color: var(--theme-foreground);
 }
+
+main {
+  @apply mx-auto p-4 text-center text-xl text-(--theme-foreground);
+}
+
+h1 {
+  @apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase;
+}

@@ -3,10 +3,8 @@ import Counter from '~/components/Counter'
 
 export default function About() {
   return (
-    <main class="text-1xl mx-auto p-4 text-center text-(--theme-foreground)">
-      <h1 class="max-6-xs my-16 text-6xl font-thin text-(--theme-accent) uppercase">
-        About Page
-      </h1>
+    <main>
+      <h1>About Page</h1>
       <p class="mx-8 mb-4 text-justify">
         Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus
         ex sapien vitae pellentesque sem placerat. In id cursus mi pretium
