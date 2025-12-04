@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import Counter from './Counter'
 
 // Comments describe changes from Solid Start Vitest per Claude
+// Post test cleanup required - see /vitest-setup.ts
 describe('<Counter />', () => {
   // Separate initial render test from interaction test
   it('renders with initial count of 0', () => {

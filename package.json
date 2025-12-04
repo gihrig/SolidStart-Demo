@@ -5,6 +5,7 @@
     "build": "vinxi build",
     "start": "vinxi start",
     "test": "vitest run",
+    "test:bun": "bun test",
     "test-watch": "vitest",
     "test-ui": "vitest --ui"
   },
@@ -16,15 +17,15 @@
     "@solidjs/meta": "0.29.4",
     "@solidjs/router": "0.15.4",
     "@solidjs/start": "1.2.0",
-    "@solidjs/testing-library": "^0.8.10",
+    "@solidjs/testing-library": "0.8.10",
     "@tailwindcss/postcss": "4.1.17",
     "@tailwindcss/vite": "^4.0.7",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/user-event": "14.6.1",
-    "@vitest/ui": "4.0.14",
+    "@vitest/ui": "4.0.15",
     "jsdom": "27.2.0",
     "postcss": "8.5.6",
-    "prettier": "3.7.3",
+    "prettier": "3.7.4",
     "prettier-plugin-tailwindcss": "0.7.2",
     "solid-js": "1.9.10",
     "tailwindcss": "4.1.17",
@@ -32,6 +33,6 @@
     "vinxi": "0.5.8",
     "vite": "7.2.6",
     "vite-plugin-solid": "^2.11.6",
-    "vitest": "4.0.14"
+    "vitest": "4.0.15"
   }
 }
