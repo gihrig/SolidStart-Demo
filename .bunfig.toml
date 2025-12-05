@@ -1,0 +1,7 @@
+[install]
+# Use Bun for package management
+auto-install = true
+
+[run]
+# Force Bun runtime for all scripts
+bun = true
