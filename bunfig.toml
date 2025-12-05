@@ -3,6 +3,3 @@ auto-install = true
 
 [run]
 bun = true
-
-[test]
-preload = ["./test-setup.ts"]
