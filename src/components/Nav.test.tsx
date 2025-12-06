@@ -1,38 +1,44 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@solidjs/testing-library'
-import { Router } from '@solidjs/router'
+import { MemoryRouter, Route, createMemoryHistory } from '@solidjs/router'
 import Nav from './Nav'
 
-// Nav requires Router context for useLocation()
-// Wrap component in Router with explicit current path
+// createMemoryHistory() - Creates an in-memory navigation history for testing
+// history.set() - Sets the initial path before the router mounts
+// MemoryRouter with custom history - Provides the router context
+// Route with component={Nav} - Establishes the Route context that useLocation() requires
+
 const renderWithRouter = (path: string = '/') => {
+  const history = createMemoryHistory()
+  history.set({ value: path, scroll: false, replace: true })
+
   return render(() => (
-    <Router url={path}>
-      <Nav />
-    </Router>
+    <MemoryRouter history={history}>
+      <Route path="*" component={Nav} />
+    </MemoryRouter>
   ))
 }
 
 describe('<Nav />', () => {
   it('renders navigation with Home and About links', () => {
     renderWithRouter()
-    
+
     const nav = screen.getByRole('navigation')
     expect(nav).toBeInTheDocument()
-    
+
     const homeLink = screen.getByRole('link', { name: 'Home' })
     const aboutLink = screen.getByRole('link', { name: 'About' })
-    
+
     expect(homeLink).toHaveAttribute('href', '/')
     expect(aboutLink).toHaveAttribute('href', '/about')
   })
 
   it('applies active styling to Home link when on home path', () => {
     renderWithRouter('/')
-    
+
     const homeLink = screen.getByRole('link', { name: 'Home' })
     const aboutLink = screen.getByRole('link', { name: 'About' })
-    
+
     // Active link has sky-600 border, inactive has transparent
     expect(homeLink.parentElement).toHaveClass('border-sky-600')
     expect(aboutLink.parentElement).toHaveClass('border-transparent')
@@ -40,20 +46,20 @@ describe('<Nav />', () => {
 
   it('applies active styling to About link when on about path', () => {
     renderWithRouter('/about')
-    
+
     const homeLink = screen.getByRole('link', { name: 'Home' })
     const aboutLink = screen.getByRole('link', { name: 'About' })
-    
+
     expect(homeLink.parentElement).toHaveClass('border-transparent')
     expect(aboutLink.parentElement).toHaveClass('border-sky-600')
   })
 
   it('renders all links as inactive on unknown path', () => {
     renderWithRouter('/unknown')
-    
+
     const homeLink = screen.getByRole('link', { name: 'Home' })
     const aboutLink = screen.getByRole('link', { name: 'About' })
-    
+
     expect(homeLink.parentElement).toHaveClass('border-transparent')
     expect(aboutLink.parentElement).toHaveClass('border-transparent')
   })
