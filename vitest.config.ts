@@ -22,6 +22,12 @@ export default defineConfig({
         singleFork: true,
       },
     },
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/.{idea,git,cache,output,temp}/**',
+      '**/{e2e,utilities,tests-e2e}/**',
+    ],
     deps: {
       inline: [/solid-js/, /@solidjs\/router/],
     },
