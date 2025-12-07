@@ -21,7 +21,7 @@
     "@solidjs/start": "1.2.0",
     "@solidjs/testing-library": "0.8.10",
     "@tailwindcss/postcss": "4.1.17",
-    "@tailwindcss/vite": "4.0.7",
+    "@tailwindcss/vite": "4.1.17",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/user-event": "14.6.1",
     "@types/node": "24.10.1",
@@ -36,7 +36,7 @@
     "typescript": "5.9.3",
     "vinxi": "0.5.8",
     "vite": "7.2.6",
-    "vite-plugin-solid": "2.11.6",
+    "vite-plugin-solid": "2.11.9",
     "vitest": "4.0.15"
   },
   "trustedDependencies": [
