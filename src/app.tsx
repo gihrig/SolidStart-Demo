@@ -11,7 +11,7 @@ export default function App() {
       root={(props) => (
         <>
           <MetaProvider>
-            <Title>SolidStart - with Tailwind and Vitest</Title>
+            <Title>SolidStart+</Title>
             <Nav />
             <Suspense>{props.children}</Suspense>
           </MetaProvider>
