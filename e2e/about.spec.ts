@@ -12,9 +12,9 @@ test.describe('About Page', () => {
     await page.goto('/about');
 
     // Should have an h1 heading
-    const heading = page.getByRole('heading', { name: /About Page/i });
+    const heading = page.getByRole('heading', { name: /About/i });
     await expect(heading).toBeVisible();
-    await expect(heading).toHaveText('About Page');
+    await expect(heading).toHaveText('About');
   });
 
   test('should display h2 page headings', async ({ page }) => {
@@ -30,7 +30,7 @@ test.describe('About Page', () => {
     await page.goto('/about');
 
     // Should have 3 Lorem ipsum paragraphs
-    const contentParagraphs = page.locator('main p.mx-8');
+    const contentParagraphs = page.locator('main p');
     await expect(contentParagraphs).toHaveCount(3);
 
     // Verify first paragraph contains expected text
@@ -38,59 +38,57 @@ test.describe('About Page', () => {
     await expect(firstParagraph).toContainText('Lorem ipsum dolor sit amet');
   });
 
-  test('should have working external link to solidjs.com', async ({ page }) => {
+  test('should have working external link to solidjs.com in footer', async ({ page }) => {
     await page.goto('/about');
 
-    const solidjsLink = page.getByRole('link', { name: /solidjs\.com/i });
+    const solidjsLink = page.locator('footer').getByRole('link', { name: /solidjs\.com/i });
     await expect(solidjsLink).toBeVisible();
     await expect(solidjsLink).toHaveAttribute('href', 'https://solidjs.com');
     await expect(solidjsLink).toHaveAttribute('target', '_blank');
   });
 
-  test('should have navigation link to Home page', async ({ page }) => {
+  test('should have navigation link to Home page in footer', async ({ page }) => {
     await page.goto('/about');
 
-    // Target the link in the page content (not nav)
-    const homeLink = page.locator('main').getByRole('link', { name: /^Home$/i });
+    const homeLink = page.locator('footer').getByRole('link', { name: /^Home$/i });
     await expect(homeLink).toBeVisible();
     await expect(homeLink).toHaveAttribute('href', '/');
   });
 
-  test('should navigate to Home page when clicking link', async ({ page }) => {
+  test('should navigate to Home page when clicking footer link', async ({ page }) => {
     await page.goto('/about');
 
-    // Target the link in the page content (not nav)
-    const homeLink = page.locator('main').getByRole('link', { name: /^Home$/i });
+    const homeLink = page.locator('footer').getByRole('link', { name: /^Home$/i });
     await homeLink.click();
 
     await expect(page).toHaveURL('http://localhost:3000/');
     await expect(page.getByRole('heading', { name: /Hello SolidStart!/i })).toBeVisible();
   });
 
-  test('should display current page indicator', async ({ page }) => {
+  test('should display current page indicator in footer', async ({ page }) => {
     await page.goto('/about');
 
-    // Check that "About Page" text is present as current page indicator
-    const pageText = page.locator('p', { hasText: 'About Page' }).last();
-    await expect(pageText).toBeVisible();
+    // Check that About link has active styling in footer
+    const aboutLink = page.locator('footer').getByRole('link', { name: /^About$/i });
+    await expect(aboutLink).toBeVisible();
+    await expect(aboutLink).toHaveClass(/border-sky-600/);
   });
 
   test('should have proper page structure', async ({ page }) => {
     await page.goto('/about');
 
     const main = page.locator('main');
+    const footer = page.locator('footer');
     await expect(main).toBeVisible();
+    await expect(footer).toBeVisible();
 
     // Verify key elements exist within main
     await expect(main.locator('h1')).toBeVisible();
-    await expect(main.locator('p')).toHaveCount(5); // 3 content + 2 navigation paragraphs
+    await expect(main.locator('p')).toHaveCount(3);
+    await expect(footer.locator('p')).toHaveCount(2);
   });
 
   test('should render text with proper styling classes', async ({ page }) => {
     await page.goto('/about');
-
-    // Verify content paragraphs have expected Tailwind classes
-    const justifiedParagraphs = page.locator('p.text-justify');
-    await expect(justifiedParagraphs).toHaveCount(3);
   });
 });

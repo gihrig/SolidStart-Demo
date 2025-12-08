@@ -22,7 +22,7 @@ test.describe('404 Not Found Page', () => {
     await expect(homeHeading).not.toBeVisible();
     
     // The page should not show the about page content
-    const aboutHeading = page.getByRole('heading', { name: /^About Page$/i });
+    const aboutHeading = page.getByRole('heading', { name: /^About$/i });
     await expect(aboutHeading).not.toBeVisible();
   });
 
@@ -33,26 +33,24 @@ test.describe('404 Not Found Page', () => {
     await expect(page).toHaveTitle(/SolidStart\+/);
   });
 
-  test('should show navigation even on 404', async ({ page }) => {
+  test('should show footer even on 404', async ({ page }) => {
     await page.goto('/xxx');
     
-    // Navigation component should still be present
-    // (based on app.tsx structure with Nav component)
-    const body = page.locator('body');
-    await expect(body).toBeVisible();
+    // Footer component should still be present
+    const footer = page.locator('footer');
+    await expect(footer).toBeVisible();
   });
 
-  test('should allow navigation back to home from 404', async ({ page }) => {
+  test('should allow navigation back to home from 404 via footer', async ({ page }) => {
     await page.goto('/xxx');
     
-    // Look for any link to home page
-    const homeLink = page.getByRole('link', { name: /home/i }).first();
+    // Use footer home link
+    const homeLink = page.locator('footer').getByRole('link', { name: /^home$/i });
     
-    if (await homeLink.isVisible()) {
-      await homeLink.click();
-      await expect(page).toHaveURL('http://localhost:3000/');
-      await expect(page.getByRole('heading', { name: /Hello SolidStart!/i })).toBeVisible();
-    }
+    await expect(homeLink).toBeVisible();
+    await homeLink.click();
+    await expect(page).toHaveURL('http://localhost:3000/');
+    await expect(page.getByRole('heading', { name: /Hello SolidStart!/i })).toBeVisible();
   });
 
   test('should not match valid routes', async ({ page }) => {
@@ -61,7 +59,7 @@ test.describe('404 Not Found Page', () => {
     await expect(page.getByRole('heading', { name: /Hello SolidStart!/i })).toBeVisible();
     
     await page.goto('/about');
-    await expect(page.getByRole('heading', { name: /About Page/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^About$/i })).toBeVisible();
   });
 
   test('should handle different non-existent paths', async ({ page }) => {

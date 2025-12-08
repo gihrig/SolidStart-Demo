@@ -7,13 +7,13 @@ test.describe('Navigation Integration', () => {
     await expect(page).toHaveURL('http://localhost:3000/');
     await expect(page.getByRole('heading', { name: /Hello SolidStart!/i })).toBeVisible();
     
-    // Navigate to About using page content link (not nav)
-    await page.locator('main').getByRole('link', { name: /About Page/i }).click();
+    // Navigate to About using footer link
+    await page.locator('footer').getByRole('link', { name: /^About$/i }).click();
     await expect(page).toHaveURL('http://localhost:3000/about');
-    await expect(page.getByRole('heading', { name: /About Page/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^About$/i })).toBeVisible();
     
-    // Navigate back to Home using page content link (not nav)
-    await page.locator('main').getByRole('link', { name: /^Home$/i }).click();
+    // Navigate back to Home using footer link
+    await page.locator('footer').getByRole('link', { name: /^Home$/i }).click();
     await expect(page).toHaveURL('http://localhost:3000/');
     await expect(page.getByRole('heading', { name: /Hello SolidStart!/i })).toBeVisible();
   });
@@ -21,32 +21,32 @@ test.describe('Navigation Integration', () => {
   test('should maintain correct page state during navigation', async ({ page }) => {
     await page.goto('/');
     
-    // Verify home state
-    const homeIndicator = page.locator('p', { hasText: 'Home' }).first();
-    await expect(homeIndicator).toBeVisible();
+    // Verify home state - Home link should have active styling
+    const homeLink = page.locator('footer').getByRole('link', { name: /^Home$/i });
+    await expect(homeLink).toHaveClass(/border-b-2 border-sky-600/);
     
-    // Navigate to about using page content link (not nav)
-    await page.locator('main').getByRole('link', { name: /About Page/i }).click();
+    // Navigate to about using footer link
+    await page.locator('footer').getByRole('link', { name: /^About$/i }).click();
     
-    // Verify about state
-    const aboutIndicator = page.locator('p', { hasText: 'About Page' }).last();
-    await expect(aboutIndicator).toBeVisible();
+    // Verify about state - About link should have active styling
+    const aboutLink = page.locator('footer').getByRole('link', { name: /^About$/i });
+    await expect(aboutLink).toHaveClass(/border-b-2 border-sky-600/);
     
-    // Verify home indicator is not visible on about page
-    const homeIndicatorOnAbout = page.locator('p', { hasText: 'Home' }).first();
-    await expect(homeIndicatorOnAbout).toContainText('Home');
+    // Verify home link now has inactive styling
+    const homeOnAbout = page.locator('footer').getByRole('link', { name: /^Home$/i });
+    await expect(homeOnAbout).toHaveClass(/border-b-2 border-transparent/);
   });
 
   test('should preserve title across navigation', async ({ page }) => {
     await page.goto('/');
     await expect(page).toHaveTitle(/SolidStart\+/);
     
-    // Use page content link (not nav)
-    await page.locator('main').getByRole('link', { name: /About Page/i }).click();
+    // Use footer link
+    await page.locator('footer').getByRole('link', { name: /^About$/i }).click();
     await expect(page).toHaveTitle(/SolidStart\+/);
     
-    // Use page content link (not nav)
-    await page.locator('main').getByRole('link', { name: /^Home$/i }).click();
+    // Use footer link
+    await page.locator('footer').getByRole('link', { name: /^Home$/i }).click();
     await expect(page).toHaveTitle(/SolidStart\+/);
   });
 
@@ -57,7 +57,7 @@ test.describe('Navigation Integration', () => {
     
     // Test direct access to about
     await page.goto('http://localhost:3000/about');
-    await expect(page.getByRole('heading', { name: /About Page/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^About$/i })).toBeVisible();
     
     // Test direct access to 404
     await page.goto('http://localhost:3000/xxx');
@@ -67,8 +67,8 @@ test.describe('Navigation Integration', () => {
   test('should handle browser back/forward navigation', async ({ page }) => {
     await page.goto('/');
     
-    // Navigate forward using page content link (not nav)
-    await page.locator('main').getByRole('link', { name: /About Page/i }).click();
+    // Navigate forward using footer link
+    await page.locator('footer').getByRole('link', { name: /^About$/i }).click();
     await expect(page).toHaveURL('http://localhost:3000/about');
     
     // Navigate back
@@ -79,19 +79,18 @@ test.describe('Navigation Integration', () => {
     // Navigate forward again
     await page.goForward();
     await expect(page).toHaveURL('http://localhost:3000/about');
-    await expect(page.getByRole('heading', { name: /About Page/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^About$/i })).toBeVisible();
   });
 
-  test('should maintain nav component across all pages', async ({ page }) => {
-    // Assuming Nav component is present (based on app.tsx)
+  test('should maintain footer component across all pages', async ({ page }) => {
     await page.goto('/');
-    const body = page.locator('body');
-    await expect(body).toBeVisible();
+    const footer = page.locator('footer');
+    await expect(footer).toBeVisible();
     
     await page.goto('/about');
-    await expect(body).toBeVisible();
+    await expect(footer).toBeVisible();
     
     await page.goto('/xxx');
-    await expect(body).toBeVisible();
+    await expect(footer).toBeVisible();
   });
 });
