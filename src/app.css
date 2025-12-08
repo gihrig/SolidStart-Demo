@@ -32,5 +32,5 @@ h2 {
 }
 
 p {
-  @apply mx-8 text-justify;
+  @apply mx-8 mb-6 text-justify;
 }

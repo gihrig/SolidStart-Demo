@@ -1,10 +1,7 @@
-import { A } from '@solidjs/router'
-import Counter from '~/components/Counter'
-
 export default function About() {
   return (
     <main>
-      <h1>About Page</h1>
+      <h1>About</h1>
       <h2>Lorem One</h2>
       <p>
         Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus
@@ -34,25 +31,6 @@ export default function About() {
         massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper
         vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra
         inceptos himenaeos.
-      </p>
-
-      <p class="mt-8 text-center!">
-        Visit{' '}
-        <a
-          href="https://solidjs.com"
-          target="_blank"
-          class="text-(--theme-accent) hover:underline"
-        >
-          solidjs.com
-        </a>{' '}
-        to learn how to build Solid apps.
-      </p>
-      <p class="my-4 text-center!">
-        <A href="/" class="text-(--theme-accent) hover:underline">
-          Home
-        </A>
-        {' - '}
-        <span>About Page</span>
       </p>
     </main>
   )
