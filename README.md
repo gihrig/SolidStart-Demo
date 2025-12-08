@@ -60,11 +60,9 @@ End to end tests are run with Playwright
 Run them with:
 
 ```sh
-bun dev
-in a new terminal
-bun test:e2e
+npm run test:e2e # If run with bun it will hang
 then
-bun test:show
+bun test:show    # To open browser for detailed test results
 ```
 
 ### 4 test files with full coverage:
