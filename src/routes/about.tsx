@@ -5,6 +5,7 @@ export default function About() {
   return (
     <main>
       <h1>About Page</h1>
+      <h2>Lorem One</h2>
       <p class="mx-8 mb-4 text-justify">
         Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus
         ex sapien vitae pellentesque sem placerat. In id cursus mi pretium
@@ -14,6 +15,7 @@ export default function About() {
         vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra
         inceptos himenaeos.
       </p>
+      <h2>Lorem Two</h2>
       <p class="mx-8 mb-4 text-justify">
         Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus
         ex sapien vitae pellentesque sem placerat. In id cursus mi pretium
@@ -23,6 +25,7 @@ export default function About() {
         vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra
         inceptos himenaeos.
       </p>
+      <h2>Lorem Three</h2>
       <p class="mx-8 text-justify">
         Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus
         ex sapien vitae pellentesque sem placerat. In id cursus mi pretium

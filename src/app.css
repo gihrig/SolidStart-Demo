@@ -26,3 +26,7 @@ main {
 h1 {
   @apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase;
 }
+
+h2 {
+  @apply ml-8 text-left text-2xl font-thin text-(--theme-accent) uppercase;
+}
