@@ -6,7 +6,7 @@ export default function Home() {
     <main>
       <h1>Hello SolidStart!</h1>
       <Counter />
-      <p class="mt-8">
+      <p class="mt-8 text-center!">
         Visit{' '}
         <a
           href="https://solidjs.com"
@@ -17,7 +17,7 @@ export default function Home() {
         </a>{' '}
         to learn how to build Solid apps.
       </p>
-      <p class="my-4">
+      <p class="my-4 text-center!">
         <span>Home</span>
         {' - '}
         <A href="/about" class="text-(--theme-accent) hover:underline">

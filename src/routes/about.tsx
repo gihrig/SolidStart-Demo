@@ -6,7 +6,7 @@ export default function About() {
     <main>
       <h1>About Page</h1>
       <h2>Lorem One</h2>
-      <p class="mx-8 mb-4 text-justify">
+      <p>
         Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus
         ex sapien vitae pellentesque sem placerat. In id cursus mi pretium
         tellus duis convallis. Tempus leo eu aenean sed diam urna tempor.
@@ -16,7 +16,7 @@ export default function About() {
         inceptos himenaeos.
       </p>
       <h2>Lorem Two</h2>
-      <p class="mx-8 mb-4 text-justify">
+      <p>
         Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus
         ex sapien vitae pellentesque sem placerat. In id cursus mi pretium
         tellus duis convallis. Tempus leo eu aenean sed diam urna tempor.
@@ -26,7 +26,7 @@ export default function About() {
         inceptos himenaeos.
       </p>
       <h2>Lorem Three</h2>
-      <p class="mx-8 text-justify">
+      <p>
         Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus
         ex sapien vitae pellentesque sem placerat. In id cursus mi pretium
         tellus duis convallis. Tempus leo eu aenean sed diam urna tempor.
@@ -36,7 +36,7 @@ export default function About() {
         inceptos himenaeos.
       </p>
 
-      <p class="mt-8">
+      <p class="mt-8 text-center!">
         Visit{' '}
         <a
           href="https://solidjs.com"
@@ -47,7 +47,7 @@ export default function About() {
         </a>{' '}
         to learn how to build Solid apps.
       </p>
-      <p class="my-4">
+      <p class="my-4 text-center!">
         <A href="/" class="text-(--theme-accent) hover:underline">
           Home
         </A>

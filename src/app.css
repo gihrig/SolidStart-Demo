@@ -30,3 +30,7 @@ h1 {
 h2 {
   @apply ml-8 text-left text-2xl font-thin text-(--theme-accent) uppercase;
 }
+
+p {
+  @apply mx-8 text-justify;
+}
