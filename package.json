@@ -5,8 +5,9 @@
     "build": "bunx --bun vinxi build",
     "start": "bunx --bun vinxi start",
     "test:comp": "bunx --bun vitest run",
-    "test:watch": "bunx --bun vitest watch",
+    "test:comp:watch": "bunx --bun vitest watch",
     "test:unit": "bun test src/**/*.unit.test.ts",
+    "test:unit:watch": "bun test --watch src/**/*.unit.test.ts",
     "test:e2e": "./src/utilities/test-e2e.sh",
     "test:show": "bunx playwright show-report"
   },

@@ -34,12 +34,12 @@ By default, `bun run build` will generate an app that you can run with `bun star
 
 Tests for src/components/** are written with `vitest`, `@solidjs/testing-library` and `@testing-library/jest-dom` to extend expect with some helpful custom matchers.
 
-Run them with:
+Run component tests with:
 
 ```sh
 bun test:comp
 or
-bun test:watch
+bun test:comp:watch
 ```
 
 ## Unit tests
@@ -47,22 +47,38 @@ bun test:watch
 Unit tests for /utilities/** are run using bun test as this is the expected deployment
 environment.
 
-Run them with:
+Run unit tests with:
 
 ```sh
 bun test:unit
+or
+bun test:unit:watch
 ```
 
 ## End to End tests
 
 End to end tests are run with Playwright
 
-Run them with:
+Run end-to-end test with:
 
 ```sh
-npm run test:e2e # If run with bun it will hang
+# If run with bun it will hang (runs in sub-terminal)
+npm run test:e2e
 then
-bun test:show    # To open browser for detailed test results
+# Open browser for detailed test results
+bun test:show
+
+# Run a single test file
+bun dev
+then
+# In a separate terminal
+bunx playwright test ./e2e/home.spec.ts
+or
+# Run a single test
+bunx playwright test ./e2e/home.spec.ts -g 'should display main heading'
+or
+# Run Playwright in UI mode
+bunx playwright test --ui ./e2e/home.spec.ts
 ```
 
 ### 4 test files with full coverage:
