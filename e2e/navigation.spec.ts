@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-// 1. Nav bar structure verification
-test('should render nav bar with correct structure', async ({ page }) => {
+// 1. Nav bar visibility and structure verification
+test('should render nav bar with correct visibility and structure', async ({ page }) => {
+  // Start at the Home page
   await page.goto('/');
 
   const nav = page.getByRole('navigation', { name: 'Main' });
@@ -24,8 +25,10 @@ test('should render nav bar with correct structure', async ({ page }) => {
 
 // 2. Nav bar link navigation
 test('should navigate via nav bar links to expected pages', async ({ page }) => {
+  // Start at Home page
   await page.goto('/');
   const nav = page.getByRole('navigation', { name: 'Main' });
+  await expect(nav).toBeVisible();
 
   // Navigate to About via nav
   await nav.getByRole('link', { name: 'About' }).click();
@@ -35,6 +38,7 @@ test('should navigate via nav bar links to expected pages', async ({ page }) => 
   // Navigate to Readme via nav
   await nav.getByRole('link', { name: 'Readme' }).click();
   await expect(page).toHaveURL('http://localhost:3000/readme');
+  await expect(page.getByRole('heading', { name: /^Readme$/i })).toBeVisible();
 
   // Navigate back to Home via nav
   await nav.getByRole('link', { name: 'Home' }).click();
@@ -44,78 +48,154 @@ test('should navigate via nav bar links to expected pages', async ({ page }) => 
 
 // 3. Nav bar persistence
 test('should maintain nav bar across all pages', async ({ page }) => {
-  const nav = page.getByRole('navigation', { name: 'Main' });
-
-  // Check on home page
+  // Start at Home page
   await page.goto('/');
+  const nav = page.getByRole('navigation', { name: 'Main' });
   await expect(nav).toBeVisible();
 
-  // Check on about page
+  // Check nav bar on home page
+  await expect(nav).toBeVisible();
+
+  // Check nav bar on about page
   await page.goto('/about');
   await expect(nav).toBeVisible();
 
-  // Check on readme page
+  // Check nav bar on readme page
   await page.goto('/readme');
   await expect(nav).toBeVisible();
 
-  // Check on 404 page
+  // Check nav bar on 404 page
   await page.goto('/nonexistent');
   await expect(nav).toBeVisible();
 });
 
-// 4. Active link state indication
-test('should show correct active state for current page', async ({ page }) => {
+// 4. Active nav bar link state for direct URL
+test('should show active state for direct URL navigation', async ({ page }) => {
+  // Start at Home page
+  await page.goto('/');
   const nav = page.getByRole('navigation', { name: 'Main' });
+  await expect(nav).toBeVisible();
+
+  const homeLink = nav.getByRole('link', { name: 'Home' });
+  const aboutLink = nav.getByRole('link', { name: 'About' });
+  const readmeLink = nav.getByRole('link', { name: 'Readme' });
+
 
   // Home page - Home link should be active
-  await page.goto('/');
-  const homeLink = nav.getByRole('link', { name: 'Home' });
-  await expect(homeLink).toHaveClass(/border-sky-600/);
+  await expect(homeLink).toHaveClass(/border-b-2 border-sky-600/);
+  await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
+  await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
 
-  // About page - About link should be active, others inactive
+  // About page - About link should be active
   await page.goto('/about');
-  const aboutLink = nav.getByRole('link', { name: 'About' });
-  await expect(aboutLink).toHaveClass(/border-sky-600/);
-  await expect(homeLink).toHaveClass(/border-transparent/);
+  await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
+  await expect(aboutLink).toHaveClass(/border-b-2 border-sky-600/);
+  await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
 
   // Readme page - Readme link should be active
   await page.goto('/readme');
-  const readmeLink = nav.getByRole('link', { name: 'Readme' });
-  await expect(readmeLink).toHaveClass(/border-sky-600/);
-  await expect(homeLink).toHaveClass(/border-transparent/);
-  await expect(aboutLink).toHaveClass(/border-transparent/);
+  await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
+  await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
+  await expect(readmeLink).toHaveClass(/border-b-2 border-sky-600/);
+
+  await page.goto('/nonexistent');
+  await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
+  await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
+  await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
 });
 
-// 5. Active state during navigation
-test('should update active state during nav bar navigation', async ({ page }) => {
+// 5. Active nav bar state for navigation
+test('should update active state for nav bar navigation', async ({ page }) => {
+  // Start at Home page
   await page.goto('/');
   const nav = page.getByRole('navigation', { name: 'Main' });
+  await expect(nav).toBeVisible();
 
   const homeLink = nav.getByRole('link', { name: 'Home' });
   const aboutLink = nav.getByRole('link', { name: 'About' });
   const readmeLink = nav.getByRole('link', { name: 'Readme' });
 
-  // Initial state
-  await expect(homeLink).toHaveClass(/border-sky-600/);
+  // Initial state Home active
+  await expect(homeLink).toHaveClass(/border-b-2 border-sky-600/);
+  await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
+  await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
 
-  // Navigate and verify state change
+  // Navigate to About and verify state change
   await aboutLink.click();
-  await expect(aboutLink).toHaveClass(/border-sky-600/);
-  await expect(homeLink).toHaveClass(/border-transparent/);
+  await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
+  await expect(aboutLink).toHaveClass(/border-b-2 border-sky-600/);
+  await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
 
-  // Navigate again
+  // Navigate to Readme and verify state change
   await readmeLink.click();
+  await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
+  await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
   await expect(readmeLink).toHaveClass(/border-sky-600/);
-  await expect(aboutLink).toHaveClass(/border-transparent/);
 
-  // Navigate back
+  // Navigate back to Home and verify state change
   await homeLink.click();
-  await expect(homeLink).toHaveClass(/border-sky-600/);
-  await expect(readmeLink).toHaveClass(/border-transparent/);
+  await expect(homeLink).toHaveClass(/border-b-2 border-sky-600/);
+  await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
+  await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
 });
 
-test.describe('Navigation Integration', () => {
-  test('should navigate between all valid pages', async ({ page }) => {
+// 6. Confirm direct URL route access
+test('should handle direct URL access to each route', async ({ page }) => {
+  // Test direct access to home
+  await page.goto('http://localhost:3000/');
+  await expect(page.getByRole('heading', { name: /Hello SolidStart!/i })).toBeVisible();
+
+  // Test direct access to about
+  await page.goto('http://localhost:3000/about');
+  await expect(page.getByRole('heading', { name: /^About$/i })).toBeVisible();
+
+  // Test direct access to readme
+  await page.goto('http://localhost:3000/readme');
+  await expect(page.getByRole('heading', { name: /^Readme$/i })).toBeVisible();
+
+  // Test direct access to 404
+  await page.goto('http://localhost:3000/xxx');
+  await expect(page.getByRole('heading', { name: /^404 - Page Not Found$/i })).toBeVisible();
+});
+
+// 7. Browser back and forward navigation
+test('should handle browser back/forward navigation', async ({ page }) => {
+  await page.goto('/');
+
+  // Navigate forward using footer link
+  await page.locator('footer').getByRole('link', { name: /^About$/i }).click();
+  await expect(page).toHaveURL('http://localhost:3000/about');
+
+  // Navigate back
+  await page.goBack();
+  await expect(page).toHaveURL('http://localhost:3000/');
+  await expect(page.getByRole('heading', { name: /Hello SolidStart!/i })).toBeVisible();
+
+  // Navigate forward again
+  await page.goForward();
+  await expect(page).toHaveURL('http://localhost:3000/about');
+  await expect(page.getByRole('heading', { name: /^About$/i })).toBeVisible();
+});
+
+// 8. Footer component
+test('should maintain footer component across all pages', async ({ page }) => {
+  await page.goto('/');
+  const footer = page.locator('footer');
+  await expect(footer).toBeVisible();
+
+  await page.goto('/about');
+  await expect(footer).toBeVisible();
+
+  await page.goto('/readme');
+  await expect(footer).toBeVisible();
+
+  await page.goto('/xxx');
+  await expect(footer).toBeVisible();
+});
+
+// 9. Footer link navigation
+test.describe('Footer Navigation Integration', () => {
+  test('should navigate via footer links to expected pages', async ({ page }) => {
     // Start at home
     await page.goto('/');
     await expect(page).toHaveURL('http://localhost:3000/');
@@ -126,85 +206,74 @@ test.describe('Navigation Integration', () => {
     await expect(page).toHaveURL('http://localhost:3000/about');
     await expect(page.getByRole('heading', { name: /^About$/i })).toBeVisible();
 
+    // Navigate to Readme using footer link
+    await page.locator('footer').getByRole('link', { name: /^Readme$/i }).click();
+    await expect(page).toHaveURL('http://localhost:3000/readme');
+    await expect(page.getByRole('heading', { name: /^Readme$/i })).toBeVisible();
+
     // Navigate back to Home using footer link
     await page.locator('footer').getByRole('link', { name: /^Home$/i }).click();
     await expect(page).toHaveURL('http://localhost:3000/');
     await expect(page.getByRole('heading', { name: /Hello SolidStart!/i })).toBeVisible();
   });
 
-  test('should maintain correct page state during navigation', async ({ page }) => {
+  // 10. Footer link state
+  test('should maintain correct footer link state during navigation', async ({ page }) => {
+    // Start at Home page
     await page.goto('/');
-
-    // Verify home state - Home link should have active styling
     const homeLink = page.locator('footer').getByRole('link', { name: /^Home$/i });
-    await expect(homeLink).toHaveClass(/border-b-2 border-sky-600/);
+    const aboutLink = page.locator('footer').getByRole('link', { name: /^About$/i });
+    const readmeLink = page.locator('footer').getByRole('link', { name: /^Readme$/i });
 
-    // Navigate to about using footer link
+    // Verify footer Home page link active/inactive styling
+    await expect(homeLink).toHaveClass(/border-b-2 border-sky-600/);
+    await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
+
+    // Navigate to About page using footer link
     await page.locator('footer').getByRole('link', { name: /^About$/i }).click();
 
-    // Verify about state - About link should have active styling
-    const aboutLink = page.locator('footer').getByRole('link', { name: /^About$/i });
+    // Verify footer About page link active/inactive styling
+    await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
     await expect(aboutLink).toHaveClass(/border-b-2 border-sky-600/);
+    await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
 
-    // Verify home link now has inactive styling
-    const homeOnAbout = page.locator('footer').getByRole('link', { name: /^Home$/i });
-    await expect(homeOnAbout).toHaveClass(/border-b-2 border-transparent/);
+    // Navigate to Readme page using footer link
+    await page.locator('footer').getByRole('link', { name: /^Readme$/i }).click();
+
+    // Verify footer About page link active/inactive styling
+    await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(readmeLink).toHaveClass(/border-b-2 border-sky-600/);
+
+    // Navigate to 404 page
+    await page.goto('notfound');
+
+    // Verify footer 404 page link active/inactive styling
+    await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
   });
 
-  test('should preserve title across navigation', async ({ page }) => {
+  // 11. Consistent Page title across footer link navigation
+  test('should preserve page title across footer link navigation', async ({ page }) => {
     await page.goto('/');
     await expect(page).toHaveTitle(/SolidStart\+/);
 
-    // Use footer link
-    await page.locator('footer').getByRole('link', { name: /^About$/i }).click();
-    await expect(page).toHaveTitle(/SolidStart\+/);
-
-    // Use footer link
+    // Use footer Home link
     await page.locator('footer').getByRole('link', { name: /^Home$/i }).click();
     await expect(page).toHaveTitle(/SolidStart\+/);
-  });
 
-  test('should handle direct URL access to each route', async ({ page }) => {
-    // Test direct access to home
-    await page.goto('http://localhost:3000/');
-    await expect(page.getByRole('heading', { name: /Hello SolidStart!/i })).toBeVisible();
-
-    // Test direct access to about
-    await page.goto('http://localhost:3000/about');
-    await expect(page.getByRole('heading', { name: /^About$/i })).toBeVisible();
-
-    // Test direct access to 404
-    await page.goto('http://localhost:3000/xxx');
-    await expect(page.getByRole('heading', { name: /Hello SolidStart!/i })).not.toBeVisible();
-  });
-
-  test('should handle browser back/forward navigation', async ({ page }) => {
-    await page.goto('/');
-
-    // Navigate forward using footer link
+    // Use footer About link
     await page.locator('footer').getByRole('link', { name: /^About$/i }).click();
-    await expect(page).toHaveURL('http://localhost:3000/about');
+    await expect(page).toHaveTitle(/SolidStart About/);
 
-    // Navigate back
-    await page.goBack();
-    await expect(page).toHaveURL('http://localhost:3000/');
-    await expect(page.getByRole('heading', { name: /Hello SolidStart!/i })).toBeVisible();
+    // Use footer Readme link
+    await page.locator('footer').getByRole('link', { name: /^Readme$/i }).click();
+    await expect(page).toHaveTitle(/SolidStart Readme/);
 
-    // Navigate forward again
-    await page.goForward();
-    await expect(page).toHaveURL('http://localhost:3000/about');
-    await expect(page.getByRole('heading', { name: /^About$/i })).toBeVisible();
-  });
-
-  test('should maintain footer component across all pages', async ({ page }) => {
-    await page.goto('/');
-    const footer = page.locator('footer');
-    await expect(footer).toBeVisible();
-
-    await page.goto('/about');
-    await expect(footer).toBeVisible();
-
-    await page.goto('/xxx');
-    await expect(footer).toBeVisible();
+    // Use direct link to 404 page
+    await page.goto('/notfound');
+    await expect(page).toHaveTitle(/SolidStart 404/);
   });
 });
