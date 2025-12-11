@@ -73,70 +73,69 @@ test('should maintain nav bar across all pages', async ({ page }) => {
 test('should show active state for direct URL navigation', async ({ page }) => {
   // Start at Home page
   await page.goto('/');
-  const nav = page.getByRole('navigation', { name: 'Main' });
-  await expect(nav).toBeVisible();
+  const homeLink = page.locator('nav').getByRole('link', { name: /^Home$/i });
+  await expect(homeLink).toBeVisible;
+  const aboutLink = page.locator('nav').getByRole('link', { name: /^About$/i });
+  await expect(aboutLink).toBeVisible;
+  const readmeLink = page.locator('nav').getByRole('link', { name: /^Readme$/i });
+  await expect(readmeLink).toBeVisible;
 
-  const homeLink = nav.getByRole('link', { name: 'Home' });
-  const aboutLink = nav.getByRole('link', { name: 'About' });
-  const readmeLink = nav.getByRole('link', { name: 'Readme' });
-
-
-  // Home page - Home link should be active
-  await expect(homeLink).toHaveClass(/border-b-2 border-sky-600/);
-  await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
-  await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
+  // Initial state Home active
+  await expect(homeLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(aboutLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(readmeLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
 
   // About page - About link should be active
   await page.goto('/about');
-  await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
-  await expect(aboutLink).toHaveClass(/border-b-2 border-sky-600/);
-  await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
+  await expect(homeLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(aboutLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(readmeLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
 
   // Readme page - Readme link should be active
   await page.goto('/readme');
-  await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
-  await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
-  await expect(readmeLink).toHaveClass(/border-b-2 border-sky-600/);
-
+  await expect(homeLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(aboutLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(readmeLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
+  //
   await page.goto('/nonexistent');
-  await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
-  await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
-  await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
+  await expect(homeLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(readmeLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(aboutLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
 });
 
 // 5. Active nav bar state for navigation
 test('should update active state for nav bar navigation', async ({ page }) => {
   // Start at Home page
   await page.goto('/');
-  const nav = page.getByRole('navigation', { name: 'Main' });
-  await expect(nav).toBeVisible();
-
-  const homeLink = nav.getByRole('link', { name: 'Home' });
-  const aboutLink = nav.getByRole('link', { name: 'About' });
-  const readmeLink = nav.getByRole('link', { name: 'Readme' });
+  const homeLink = page.locator('nav').getByRole('link', { name: /^Home$/i });
+  await expect(homeLink).toBeVisible;
+  const aboutLink = page.locator('nav').getByRole('link', { name: /^About$/i });
+  await expect(aboutLink).toBeVisible;
+  const readmeLink = page.locator('nav').getByRole('link', { name: /^Readme$/i });
+  await expect(readmeLink).toBeVisible;
 
   // Initial state Home active
-  await expect(homeLink).toHaveClass(/border-b-2 border-sky-600/);
-  await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
-  await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
+  await expect(homeLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(aboutLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(readmeLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
 
   // Navigate to About and verify state change
   await aboutLink.click();
-  await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
-  await expect(aboutLink).toHaveClass(/border-b-2 border-sky-600/);
-  await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
+  await expect(homeLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(aboutLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(homeLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
 
   // Navigate to Readme and verify state change
   await readmeLink.click();
-  await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
-  await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
-  await expect(readmeLink).toHaveClass(/border-sky-600/);
+  await expect(homeLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(aboutLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(readmeLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
 
   // Navigate back to Home and verify state change
   await homeLink.click();
-  await expect(homeLink).toHaveClass(/border-b-2 border-sky-600/);
-  await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
-  await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
+  await expect(homeLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(aboutLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(readmeLink).toHaveClass(/border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/);
 });
 
 // 6. Confirm direct URL route access
@@ -222,8 +221,11 @@ test.describe('Footer Navigation Integration', () => {
     // Start at Home page
     await page.goto('/');
     const homeLink = page.locator('footer').getByRole('link', { name: /^Home$/i });
+    await expect(homeLink).toBeVisible;
     const aboutLink = page.locator('footer').getByRole('link', { name: /^About$/i });
+    await expect(aboutLink).toBeVisible;
     const readmeLink = page.locator('footer').getByRole('link', { name: /^Readme$/i });
+    await expect(readmeLink).toBeVisible;
 
     // Verify footer Home page link active/inactive styling
     await expect(homeLink).toHaveClass(/border-b-2 border-sky-600/);
