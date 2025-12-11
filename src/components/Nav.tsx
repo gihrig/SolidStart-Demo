@@ -9,14 +9,26 @@ export default function Nav() {
   return (
     <nav role="navigation" aria-label="Main" class="bg-sky-800">
       <ul class="container flex items-center p-3 text-gray-200">
-        <li class={`border-b-2 ${active('/')} mx-1.5 sm:mx-6`}>
-          <a href="/">Home</a>
+        <li>
+          <a class={`border-b-4 ${active('/')} mx-1.5 sm:mx-6`} href="/">
+            Home
+          </a>
         </li>
-        <li class={`border-b-2 ${active('/about')} mx-1.5 sm:mx-6`}>
-          <a href="/about">About</a>
+        <li>
+          <a
+            class={`border-b-4 ${active('/about')} mx-1.5 sm:mx-6`}
+            href="/about"
+          >
+            About
+          </a>
         </li>
-        <li class={`border-b-2 ${active('/readme')} mx-1.5 sm:mx-6`}>
-          <a href="/readme">Readme</a>
+        <li>
+          <a
+            class={`border-b-4 ${active('/readme')} mx-1.5 sm:mx-6`}
+            href="/readme"
+          >
+            Readme
+          </a>
         </li>
       </ul>
     </nav>
