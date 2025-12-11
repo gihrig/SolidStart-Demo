@@ -79,6 +79,16 @@ bunx playwright test ./e2e/home.spec.ts -g 'should display main heading'
 or
 # Run Playwright in UI mode
 bunx playwright test --ui ./e2e/home.spec.ts
+
+# Snapshot testing
+
+# Screen shots can be used in testing. E.g. Add this code to test file:
+await expect(page).toHaveScreenshot('landing.png');
+
+# Update snapshots
+npx playwright test --update-snapshots
+
+# See https://playwright.dev/docs/test-snapshots
 ```
 
 ### 4 test files with full coverage:
