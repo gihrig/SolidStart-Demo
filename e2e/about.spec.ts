@@ -4,7 +4,7 @@ test.describe('About Page', () => {
   test('should load successfully and display correct title', async ({ page }) => {
     await page.goto('/about');
 
-    await expect(page).toHaveTitle(/SolidStart\+/);
+    await expect(page).toHaveTitle(/SolidStart About/);
     await expect(page).toHaveURL('http://localhost:3000/about');
   });
 
