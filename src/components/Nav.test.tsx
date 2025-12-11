@@ -28,6 +28,7 @@ describe('<Nav />', () => {
 
     const homeLink = screen.getByRole('link', { name: 'Home' })
     const aboutLink = screen.getByRole('link', { name: 'About' })
+    const readmeLink = screen.getByRole('link', { name: 'Readme' })
 
     expect(homeLink).toHaveAttribute('href', '/')
     expect(aboutLink).toHaveAttribute('href', '/about')
@@ -38,10 +39,12 @@ describe('<Nav />', () => {
 
     const homeLink = screen.getByRole('link', { name: 'Home' })
     const aboutLink = screen.getByRole('link', { name: 'About' })
+    const readmeLink = screen.getByRole('link', { name: 'Readme' })
 
     // Active link has sky-600 border, inactive has transparent
-    expect(homeLink.parentElement).toHaveClass('border-sky-600')
-    expect(aboutLink.parentElement).toHaveClass('border-transparent')
+    expect(homeLink).toHaveClass('border-sky-600')
+    expect(aboutLink).toHaveClass('border-transparent')
+    expect(readmeLink).toHaveClass('border-transparent')
   })
 
   it('applies active styling to About link when on about path', () => {
@@ -49,9 +52,23 @@ describe('<Nav />', () => {
 
     const homeLink = screen.getByRole('link', { name: 'Home' })
     const aboutLink = screen.getByRole('link', { name: 'About' })
+    const readmeLink = screen.getByRole('link', { name: 'Readme' })
 
-    expect(homeLink.parentElement).toHaveClass('border-transparent')
-    expect(aboutLink.parentElement).toHaveClass('border-sky-600')
+    expect(homeLink).toHaveClass('border-transparent')
+    expect(aboutLink).toHaveClass('border-sky-600')
+    expect(readmeLink).toHaveClass('border-transparent')
+  })
+
+  it('applies active styling to Readme link when on about path', () => {
+    renderWithRouter('/readme')
+
+    const homeLink = screen.getByRole('link', { name: 'Home' })
+    const aboutLink = screen.getByRole('link', { name: 'About' })
+    const readmeLink = screen.getByRole('link', { name: 'Readme' })
+
+    expect(homeLink).toHaveClass('border-transparent')
+    expect(aboutLink).toHaveClass('border-transparent')
+    expect(readmeLink).toHaveClass('border-sky-600')
   })
 
   it('renders all links as inactive on unknown path', () => {
@@ -59,8 +76,10 @@ describe('<Nav />', () => {
 
     const homeLink = screen.getByRole('link', { name: 'Home' })
     const aboutLink = screen.getByRole('link', { name: 'About' })
+    const readmeLink = screen.getByRole('link', { name: 'Readme' })
 
-    expect(homeLink.parentElement).toHaveClass('border-transparent')
-    expect(aboutLink.parentElement).toHaveClass('border-transparent')
+    expect(homeLink).toHaveClass('border-transparent')
+    expect(aboutLink).toHaveClass('border-transparent')
+    expect(readmeLink).toHaveClass('border-transparent')
   })
 })
