@@ -40,7 +40,7 @@ Convert `/frontend-tutorial-v3/index.html` (Alpine.js + TailwindCSS v3.2.7) to `
 ```css
 :root {
   /* Existing theme variables... */
-  
+
   /* Jedi page custom properties */
   --font-lobster: 'Lobster', sans-serif;
   --primary: rgb(88, 40, 244);
@@ -53,17 +53,22 @@ Convert `/frontend-tutorial-v3/index.html` (Alpine.js + TailwindCSS v3.2.7) to `
 ---
 
 #### Step 1.2: Add Lobster Font to Root Layout
-**File**: `src/root.tsx` (or wherever `<head>` is defined)
 
-**Action**: Add Google Fonts preconnect and stylesheet links
+**File**: `package.json`
+
+**Action** install @fontsource/lobster
+
+```zsh
+bun i @fontsource/lobster
+```
+
+ **File** `src/app.tsx`
+
+**Action**:  Import @fontsource/lobster
 
 ```tsx
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link 
-  href="https://fonts.googleapis.com/css2?family=Lobster&display=swap" 
-  rel="stylesheet" 
-/>
+import '@fontsource/lobster';
+import './app.css'
 ```
 
 **Verification**: Check browser DevTools that Lobster font loads successfully
@@ -101,7 +106,7 @@ interface HeroProps {
 ```tsx
 export default function Hero(props: HeroProps) {
   return (
-    <section 
+    <section
       class="grid bg-gray-700 text-white text-center bg-cover relative"
       style={{ "background-image": `url('${props.backgroundImage}')` }}
     >
@@ -111,9 +116,9 @@ export default function Hero(props: HeroProps) {
           {props.title}
         </h1>
         <p class="text-lg font-bold mb-5">{props.subtitle}</p>
-        <a 
-          class="inline-flex items-center justify-center px-4 min-h-[3.3rem] font-semibold rounded-lg text-white transition-transform active:scale-95" 
-          style={{ 
+        <a
+          class="inline-flex items-center justify-center px-4 min-h-[3.3rem] font-semibold rounded-lg text-white transition-transform active:scale-95"
+          style={{
             "background-color": "var(--primary)",
             "box-shadow": "0 4px 3px rgba(0, 0, 0, 0.1)"
           }}
@@ -127,7 +132,7 @@ export default function Hero(props: HeroProps) {
 }
 ```
 
-**CSS Addition to app.css** (if not using inline animation):
+**CSS Addition to app.css**
 ```css
 @keyframes fadeIn {
   0%, 10% { opacity: 0; }
@@ -150,7 +155,7 @@ export default function Hero(props: HeroProps) {
 #### Step 2.2: Create Image Component
 **File**: `src/components/image.tsx`
 
-**Source HTML**: `<article><figure>` section
+**Source HTML**: `<article><figure>` section from index.html
 
 **Implementation Details**:
 - Display figure with image
@@ -192,7 +197,7 @@ export default function Image(props: ImageProps) {
 - Test: Applies custom class
 
 ---
-
+<<<<<<<<<<Working>>>>>>>>>>
 #### Step 2.3: Create Author Component
 **File**: `src/components/author.tsx`
 
@@ -311,8 +316,8 @@ export default function Jedi() {
     <>
       <Title>Little Jedi - Awesome</Title>
       <Nav />
-      
-      <Hero 
+
+      <Hero
         title="Awesome Photos & Captions"
         subtitle="Share your favorite Photos from Flickr and add a great caption"
         ctaText="Get Started"
@@ -323,12 +328,12 @@ export default function Jedi() {
       <div class="grid grid-cols-3 max-w-7xl mx-auto mt-6">
         {/* Mobile sidebar toggle button */}
         <div class="md:hidden col-span-full mx-auto mb-6 relative z-10">
-          <button 
+          <button
             onClick={() => setMobileSidebarOpen(!mobileSidebarOpen())}
             class="flex items-center font-bold hover:bg-gray-200 rounded-lg p-3"
           >
             <span>Categories</span>
-            <img 
+            <img
               class={`w-4 ml-1.5 transition-transform ${mobileSidebarOpen() ? 'rotate-180' : ''}`}
               src="https://img.icons8.com/small/32/000000/expand-arrow.png"
               alt="Toggle"
@@ -346,26 +351,26 @@ export default function Jedi() {
                 flickr @ <a href="#" class="hover:underline">John Doe</a>
               </div>
             </div>
-            
+
             {/* Image */}
-            <Image 
+            <Image
               src="https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg"
               alt="Little Jedi"
               href="#"
             />
-            
+
             {/* Content body */}
             <div class="p-4 pb-2">
-              <Author 
+              <Author
                 avatarSrc="https://img.icons8.com/small/96/A9A9A9/happy.png"
                 name="Lisa"
                 href="#"
               />
-              
+
               <p class="text-5xl mb-10 px-4" style={{ "font-family": "var(--font-lobster)" }}>
                 Jedi Kitty protects the street
               </p>
-              
+
               {/* Tags */}
               <div class="flex items-center gap-2 text-sm mb-5">
                 <a href="#" class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white">
@@ -375,7 +380,7 @@ export default function Jedi() {
                   Cute
                 </a>
               </div>
-              
+
               {/* Actions */}
               <div class="flex items-center justify-between text-sm px-2">
                 <a href="#" class="font-bold hover:underline">
@@ -383,8 +388,8 @@ export default function Jedi() {
                 </a>
                 <div class="flex items-center gap-4 [&>a]:hover:underline">
                   <div class="flex items-center gap-1">
-                    <img 
-                      class="w-5 -mt-1" 
+                    <img
+                      class="w-5 -mt-1"
                       src="https://img.icons8.com/small/24/000000/fire-heart.png"
                       alt="Likes"
                     />
@@ -523,10 +528,10 @@ describe('<Hero />', () => {
         backgroundImage="test.jpg"
       />
     ))
-    
+
     expect(screen.getByRole('heading')).toHaveTextContent('Test Title')
     expect(screen.getByText('Test Subtitle')).toBeInTheDocument()
-    
+
     const ctaButton = screen.getByRole('link', { name: /click me/i })
     expect(ctaButton).toHaveAttribute('href', '/test')
   })
@@ -541,7 +546,7 @@ describe('<Hero />', () => {
         backgroundImage="test-bg.jpg"
       />
     ))
-    
+
     const section = container.querySelector('section')
     expect(section).toHaveStyle({ backgroundImage: "url('test-bg.jpg')" })
   })
@@ -557,7 +562,7 @@ import Image from './image'
 describe('<Image />', () => {
   it('renders image with src and alt', () => {
     render(() => <Image src="test.jpg" alt="Test Image" />)
-    
+
     const img = screen.getByRole('img')
     expect(img).toHaveAttribute('src', 'test.jpg')
     expect(img).toHaveAttribute('alt', 'Test Image')
@@ -565,14 +570,14 @@ describe('<Image />', () => {
 
   it('wraps in link when href provided', () => {
     render(() => <Image src="test.jpg" alt="Test" href="/test" />)
-    
+
     const link = screen.getByRole('link')
     expect(link).toHaveAttribute('href', '/test')
   })
 
   it('does not wrap in link when href omitted', () => {
     const { container } = render(() => <Image src="test.jpg" alt="Test" />)
-    
+
     expect(container.querySelector('a')).toBeNull()
   })
 })
@@ -587,7 +592,7 @@ import Author from './author'
 describe('<Author />', () => {
   it('renders avatar and name', () => {
     render(() => <Author avatarSrc="avatar.jpg" name="Test Author" />)
-    
+
     const img = screen.getByRole('img')
     expect(img).toHaveAttribute('src', 'avatar.jpg')
     expect(screen.getByText('Test Author')).toBeInTheDocument()
@@ -595,14 +600,14 @@ describe('<Author />', () => {
 
   it('uses custom href when provided', () => {
     render(() => <Author avatarSrc="avatar.jpg" name="Test" href="/author" />)
-    
+
     const link = screen.getByRole('link')
     expect(link).toHaveAttribute('href', '/author')
   })
 
   it('defaults to # when href not provided', () => {
     render(() => <Author avatarSrc="avatar.jpg" name="Test" />)
-    
+
     const link = screen.getByRole('link')
     expect(link).toHaveAttribute('href', '#')
   })
@@ -622,7 +627,7 @@ describe('<Card />', () => {
         <div>Test Content</div>
       </Card>
     ))
-    
+
     expect(screen.getByText('Test Content')).toBeInTheDocument()
   })
 
@@ -632,7 +637,7 @@ describe('<Card />', () => {
         <div>Content</div>
       </Card>
     ))
-    
+
     expect(screen.getByRole('heading', { name: 'Test Title' })).toBeInTheDocument()
   })
 
@@ -642,7 +647,7 @@ describe('<Card />', () => {
         <div>Content</div>
       </Card>
     ))
-    
+
     expect(container.querySelector('h2')).toBeNull()
   })
 
@@ -652,7 +657,7 @@ describe('<Card />', () => {
         <div>Content</div>
       </Card>
     ))
-    
+
     const section = container.querySelector('section')
     expect(section).toHaveClass('custom-class')
   })
@@ -671,52 +676,52 @@ import { test, expect } from '@playwright/test'
 test.describe('Jedi Page', () => {
   test('should load successfully and display correct title', async ({ page }) => {
     await page.goto('/jedi')
-    
+
     await expect(page).toHaveTitle(/Little Jedi - Awesome/)
     await expect(page).toHaveURL('http://localhost:3000/jedi')
   })
 
   test('should display hero section with title and CTA', async ({ page }) => {
     await page.goto('/jedi')
-    
+
     const hero = page.locator('section').first()
     await expect(hero).toBeVisible()
-    
+
     const heroTitle = hero.getByRole('heading', { name: /awesome photos/i })
     await expect(heroTitle).toBeVisible()
-    
+
     const ctaButton = hero.getByRole('link', { name: /get started/i })
     await expect(ctaButton).toBeVisible()
   })
 
   test('should display main article with image and caption', async ({ page }) => {
     await page.goto('/jedi')
-    
+
     const article = page.locator('article').first()
     await expect(article).toBeVisible()
-    
+
     // Check article title
     const articleTitle = article.getByRole('heading', { name: /little jedi/i })
     await expect(articleTitle).toBeVisible()
-    
+
     // Check main image
     const mainImage = article.getByRole('img').first()
     await expect(mainImage).toBeVisible()
-    
+
     // Check caption text
     await expect(article.getByText(/jedi kitty protects/i)).toBeVisible()
   })
 
   test('should display sidebar with categories on desktop', async ({ page }) => {
     await page.goto('/jedi')
-    
+
     const aside = page.locator('aside')
     await expect(aside).toBeVisible()
-    
+
     // Check categories card
     const categoriesHeading = aside.getByRole('heading', { name: /categories/i })
     await expect(categoriesHeading).toBeVisible()
-    
+
     // Check category items
     await expect(aside.getByText('Landscape')).toBeVisible()
     await expect(aside.getByText('Animals')).toBeVisible()
@@ -725,19 +730,19 @@ test.describe('Jedi Page', () => {
   test('should toggle mobile sidebar when button clicked', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 }) // Mobile size
     await page.goto('/jedi')
-    
+
     // Mobile toggle button should be visible
     const toggleButton = page.getByRole('button', { name: /categories/i })
     await expect(toggleButton).toBeVisible()
-    
+
     // Sidebar should be hidden initially on mobile
     const aside = page.locator('aside')
     const isVisible = await aside.isVisible()
-    
+
     // Click toggle
     await toggleButton.click()
     await page.waitForTimeout(300) // Wait for transition
-    
+
     // Verify sidebar visibility changed
     const newVisibility = await aside.isVisible()
     expect(newVisibility).not.toBe(isVisible)
@@ -745,9 +750,9 @@ test.describe('Jedi Page', () => {
 
   test('should display all three sidebar cards', async ({ page }) => {
     await page.goto('/jedi')
-    
+
     const aside = page.locator('aside')
-    
+
     // Check for three card sections
     await expect(aside.getByRole('heading', { name: /categories/i })).toBeVisible()
     await expect(aside.getByRole('heading', { name: /top photos/i })).toBeVisible()
@@ -756,10 +761,10 @@ test.describe('Jedi Page', () => {
 
   test('should have working navigation in header', async ({ page }) => {
     await page.goto('/jedi')
-    
+
     const nav = page.locator('nav[role="navigation"]')
     await expect(nav).toBeVisible()
-    
+
     // Check nav links exist
     await expect(nav.getByRole('link', { name: /home/i })).toBeVisible()
     await expect(nav.getByRole('link', { name: /about/i })).toBeVisible()
@@ -767,22 +772,22 @@ test.describe('Jedi Page', () => {
 
   test('should display author information', async ({ page }) => {
     await page.goto('/jedi')
-    
+
     const article = page.locator('article').first()
-    
+
     // Check author avatar and name
     const authorLink = article.getByRole('link').filter({ hasText: 'Lisa' })
     await expect(authorLink).toBeVisible()
-    
+
     const avatar = authorLink.getByRole('img')
     await expect(avatar).toBeVisible()
   })
 
   test('should display tags for the post', async ({ page }) => {
     await page.goto('/jedi')
-    
+
     const article = page.locator('article').first()
-    
+
     // Check for tag links
     await expect(article.getByRole('link', { name: /animals/i })).toBeVisible()
     await expect(article.getByRole('link', { name: /cute/i })).toBeVisible()
@@ -790,9 +795,9 @@ test.describe('Jedi Page', () => {
 
   test('should display post actions (like, edit, delete)', async ({ page }) => {
     await page.goto('/jedi')
-    
+
     const article = page.locator('article').first()
-    
+
     // Check action links
     await expect(article.getByRole('link', { name: /comments/i })).toBeVisible()
     await expect(article.getByRole('link', { name: /^like$/i })).toBeVisible()
@@ -804,16 +809,16 @@ test.describe('Jedi Page', () => {
     // Test desktop layout
     await page.setViewportSize({ width: 1280, height: 800 })
     await page.goto('/jedi')
-    
+
     const main = page.locator('main')
     const aside = page.locator('aside')
-    
+
     await expect(main).toBeVisible()
     await expect(aside).toBeVisible()
-    
+
     // Test mobile layout
     await page.setViewportSize({ width: 375, height: 667 })
-    
+
     await expect(main).toBeVisible()
     // Aside visibility depends on mobile toggle state
   })
@@ -960,7 +965,7 @@ grep -r "!" src/routes/jedi.tsx src/components/hero.tsx src/components/image.tsx
 // BAD - creates new array every render
 export default function Jedi() {
   const categories = [...]
-  
+
 // GOOD - defined outside component
 const CATEGORIES = [...]
 export default function Jedi() {
@@ -992,7 +997,7 @@ export default function Jedi() {
 <a onClick={() => setMobileSidebarOpen(!mobileSidebarOpen())} ...>
 
 // AFTER
-<button 
+<button
   type="button"
   aria-label="Toggle sidebar"
   aria-expanded={mobileSidebarOpen()}
@@ -1036,14 +1041,14 @@ bunx tsc --noEmit
 ```tsx
 /**
  * Hero component for page headers
- * 
+ *
  * Displays a full-width hero section with:
  * - Background image with dark overlay
  * - Centered title and subtitle
  * - Call-to-action button
- * 
+ *
  * @example
- * <Hero 
+ * <Hero
  *   title="Welcome"
  *   subtitle="Get started today"
  *   ctaText="Sign Up"
@@ -1105,7 +1110,7 @@ Full-width hero section with background image and CTA.
 
 **Usage**:
 ```tsx
-<Hero 
+<Hero
   title="Welcome"
   subtitle="Discover amazing content"
   ctaText="Get Started"
@@ -1333,7 +1338,7 @@ This plan is designed to be executed sequentially by Claude AI with the followin
 3. **Code output**: Provide complete code for each file, no truncation
 4. **Testing feedback**: After each component, run tests and report results
 5. **Issue resolution**: If tests fail, analyze and fix issues before proceeding
-6. **User review points**: 
+6. **User review points**:
    - After Phase 2 (all components created)
    - After Phase 3 (main page complete)
    - After Phase 4 (all tests written)
