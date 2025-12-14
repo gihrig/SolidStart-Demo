@@ -197,7 +197,7 @@ export default function Image(props: ImageProps) {
 - Test: Applies custom class
 
 ---
-<<<<<<<<<<Working>>>>>>>>>>
+
 #### Step 2.3: Create Author Component
 **File**: `src/components/author.tsx`
 
@@ -244,7 +244,7 @@ export default function Author(props: AuthorProps) {
 
 **Implementation Details**:
 - Reusable card container
-- White background with shadow
+- Theme colors via class attribute with shadow
 - Rounded corners
 - Padding and margin-bottom
 - Support for heading and list children
@@ -264,7 +264,9 @@ import { JSX } from 'solid-js'
 
 export default function Card(props: { title?: string; children: JSX.Element; class?: string }) {
   return (
-    <section class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 bg-white pb-4 ${props.class || ''}`}>
+    <section class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4
+      ${props.class || ''}`}
+    >
       {props.title && <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{props.title}</h2>}
       <div class="p-4 pt-0">{props.children}</div>
     </section>
@@ -280,7 +282,7 @@ export default function Card(props: { title?: string; children: JSX.Element; cla
 - Test: Has correct styling classes
 
 ---
-
+<<<<<<<<<<<<Working>>>>>>>>>>>>
 ### Phase 3: Main Page Construction
 
 #### Step 3.1: Create Jedi Route Page
