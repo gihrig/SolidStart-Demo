@@ -78,7 +78,7 @@ import './app.css'
 ### Phase 2: Component Development
 
 #### Step 2.1: Create Hero Component
-**File**: `src/components/hero.tsx`
+**File**: `src/components/Hero.tsx`
 
 **Source HTML**: `<hero>` section from index.html
 
@@ -144,7 +144,7 @@ export default function Hero(props: HeroProps) {
 }
 ```
 
-**Test File**: `src/components/hero.test.tsx`
+**Test File**: `src/components/Hero.test.tsx`
 - Test: Renders with provided props
 - Test: Background image style applied
 - Test: CTA button has correct href
@@ -153,7 +153,7 @@ export default function Hero(props: HeroProps) {
 ---
 
 #### Step 2.2: Create Image Component
-**File**: `src/components/image.tsx`
+**File**: `src/components/Image.tsx`
 
 **Source HTML**: `<article><figure>` section from index.html
 
@@ -190,7 +190,7 @@ export default function Image(props: ImageProps) {
 }
 ```
 
-**Test File**: `src/components/image.test.tsx`
+**Test File**: `src/components/Image.test.tsx`
 - Test: Renders image with src and alt
 - Test: Wraps in link when href provided
 - Test: No link when href not provided
@@ -199,7 +199,7 @@ export default function Image(props: ImageProps) {
 ---
 
 #### Step 2.3: Create Author Component
-**File**: `src/components/author.tsx`
+**File**: `src/components/Author.tsx`
 
 **Source HTML**: `<article><div>` with author avatar/name
 
@@ -229,7 +229,7 @@ export default function Author(props: AuthorProps) {
 }
 ```
 
-**Test File**: `src/components/author.test.tsx`
+**Test File**: `src/components/Author.test.tsx`
 - Test: Renders avatar and name
 - Test: Default href when not provided
 - Test: Custom href when provided
@@ -238,7 +238,7 @@ export default function Author(props: AuthorProps) {
 ---
 
 #### Step 2.4: Create Card Component
-**File**: `src/components/card.tsx`
+**File**: `src/components/Card.tsx`
 
 **Source HTML**: `<section class="card">` sections in sidebar
 
@@ -274,7 +274,7 @@ export default function Card(props: { title?: string; children: JSX.Element; cla
 }
 ```
 
-**Test File**: `src/components/card.test.tsx`
+**Test File**: `src/components/Card.test.tsx`
 - Test: Renders children
 - Test: Shows title when provided
 - Test: No title element when not provided
@@ -282,7 +282,7 @@ export default function Card(props: { title?: string; children: JSX.Element; cla
 - Test: Has correct styling classes
 
 ---
-<<<<<<<<<<<<Working>>>>>>>>>>>>
+
 ### Phase 3: Main Page Construction
 
 #### Step 3.1: Create Jedi Route Page
@@ -300,11 +300,11 @@ export default function Card(props: { title?: string; children: JSX.Element; cla
 ```tsx
 import { Title } from '@solidjs/meta'
 import { createSignal, Show, For } from 'solid-js'
-import Nav from '~/components/nav'
-import Hero from '~/components/hero'
-import Image from '~/components/image'
-import Author from '~/components/author'
-import Card from '~/components/card'
+import Nav from '~/components/Nav'
+import Hero from '~/components/Hero'
+import Image from '~/components/Image'
+import Author from '~/components/Author.'
+import Card from '~/components/Card'
 
 export default function Jedi() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = createSignal(false)
@@ -513,11 +513,11 @@ const topCaptions = [
 
 #### Step 4.1: Component Tests
 
-**File**: `src/components/hero.test.tsx`
+**File**: `src/components/Hero.test.tsx`
 ```typescript
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@solidjs/testing-library'
-import Hero from './hero'
+import Hero from './Hero'
 
 describe('<Hero />', () => {
   it('renders with all props', () => {
@@ -555,11 +555,11 @@ describe('<Hero />', () => {
 })
 ```
 
-**File**: `src/components/image.test.tsx`
+**File**: `src/components/Image.test.tsx`
 ```typescript
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@solidjs/testing-library'
-import Image from './image'
+import Image from './Image'
 
 describe('<Image />', () => {
   it('renders image with src and alt', () => {
@@ -585,11 +585,11 @@ describe('<Image />', () => {
 })
 ```
 
-**File**: `src/components/author.test.tsx`
+**File**: `src/components/Author.test.tsx`
 ```typescript
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@solidjs/testing-library'
-import Author from './author'
+import Author from './Author.'
 
 describe('<Author />', () => {
   it('renders avatar and name', () => {
@@ -616,11 +616,11 @@ describe('<Author />', () => {
 })
 ```
 
-**File**: `src/components/card.test.tsx`
+**File**: `src/components/Card.test.tsx`
 ```typescript
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@solidjs/testing-library'
-import Card from './card'
+import Card from './Card'
 
 describe('<Card />', () => {
   it('renders children', () => {
@@ -740,6 +740,7 @@ test.describe('Jedi Page', () => {
     // Sidebar should be hidden initially on mobile
     const aside = page.locator('aside')
     const isVisible = await aside.isVisible()
+    expect isVisible.toBe(false)
 
     // Click toggle
     await toggleButton.click()
@@ -747,7 +748,7 @@ test.describe('Jedi Page', () => {
 
     // Verify sidebar visibility changed
     const newVisibility = await aside.isVisible()
-    expect(newVisibility).not.toBe(isVisible)
+    expect(newVisibility)toBe(isVisible)
   })
 
   test('should display all three sidebar cards', async ({ page }) => {
@@ -770,6 +771,8 @@ test.describe('Jedi Page', () => {
     // Check nav links exist
     await expect(nav.getByRole('link', { name: /home/i })).toBeVisible()
     await expect(nav.getByRole('link', { name: /about/i })).toBeVisible()
+    await expect(nav.getByRole('link', { name: /readme/i })).toBeVisible()
+    await expect(nav.getByRole('link', { name: /jedi/i })).toBeVisible()
   })
 
   test('should display author information', async ({ page }) => {
@@ -801,10 +804,10 @@ test.describe('Jedi Page', () => {
     const article = page.locator('article').first()
 
     // Check action links
-    await expect(article.getByRole('link', { name: /comments/i })).toBeVisible()
-    await expect(article.getByRole('link', { name: /^like$/i })).toBeVisible()
-    await expect(article.getByRole('link', { name: /edit/i })).toBeVisible()
-    await expect(article.getByRole('link', { name: /delete/i })).toBeVisible()
+    await expect(article.getByRole('link', { name: /Comments/i })).toBeVisible()
+    await expect(article.getByRole('link', { name: /Like/i })).toBeVisible()
+    await expect(article.getByRole('link', { name: /Edit/i })).toBeVisible()
+    await expect(article.getByRole('link', { name: /Delete/i })).toBeVisible()
   })
 
   test('should have responsive layout', async ({ page }) => {
@@ -822,7 +825,7 @@ test.describe('Jedi Page', () => {
     await page.setViewportSize({ width: 375, height: 667 })
 
     await expect(main).toBeVisible()
-    // Aside visibility depends on mobile toggle state
+    await expect(side).not.toBeVisible()
   })
 })
 ```
@@ -846,7 +849,7 @@ bun run dev
 - [ ] Hero title uses Lobster font
 - [ ] Hero overlay has 40% opacity (bg-gray-800/40)
 - [ ] "Get Started" button has correct purple color (--primary)
-- [ ] Navigation bar is visible with existing Nav component
+- [ ] Navigation bar Nav component is visible
 - [ ] Main article displays in center column (2/3 width)
 - [ ] Article image is full-width within card
 - [ ] Caption uses Lobster font at text-5xl
@@ -913,7 +916,7 @@ bun run test:comp
 #### Step 5.3: Run E2E Tests
 
 ```bash
-bun run test:e2e
+npm run test:e2e
 ```
 
 **Or run specific test**:
@@ -942,7 +945,7 @@ bunx playwright test e2e/jedi.spec.ts
 **Check for v3 Syntax**:
 ```bash
 cd /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo
-grep -r "!" src/routes/jedi.tsx src/components/hero.tsx src/components/image.tsx src/components/author.tsx src/components/card.tsx
+grep -r "!" src/routes/jedi.tsx src/components/Hero.tsx src/components/Image.tsx src/components/Author.tsx src/components/Card.tsx
 ```
 
 **Common v3 → v4 Issues**:
@@ -1013,7 +1016,7 @@ export default function Jedi() {
 
 **Run prettier**:
 ```bash
-bunx prettier --write src/routes/jedi.tsx src/components/hero.tsx src/components/image.tsx src/components/author.tsx src/components/card.tsx
+bunx prettier --write src/routes/jedi.tsx src/components/Hero.tsx src/components/Image.tsx src/components/Author.tsx src/components/Card.tsx
 ```
 
 **TypeScript type checking**:
@@ -1161,7 +1164,7 @@ Reusable card container with optional title.
 - Custom `[&>*]` selectors → Standard utilities (space-y, etc.)
 
 ### Custom Fonts
-Lobster font integrated via Google Fonts in root layout.
+Lobster font integrated via @fontsource/lobster
 
 ### Mobile Responsiveness
 - Mobile-first approach with `md:` breakpoint at 768px
@@ -1178,7 +1181,7 @@ Lobster font integrated via Google Fonts in root layout.
 ```bash
 # Run all tests
 bun run test:comp
-bun run test:e2e
+npm run test:e2e
 
 # Expected: All passing
 ```
@@ -1203,6 +1206,7 @@ bun run start
 
 **Test in production mode**:
 - Navigate to http://localhost:3000/jedi
+- Run e2e tests
 - Verify all functionality works
 - Check browser console for errors
 - Test mobile viewport
@@ -1231,7 +1235,7 @@ bun run start
 
 #### Step 9.1: Add Jedi Link to Navigation
 
-**File**: `src/components/nav.tsx`
+**File**: `src/components/Nav.tsx`
 
 **Add new nav item**:
 ```tsx
@@ -1284,12 +1288,11 @@ import { Title, Meta } from '@solidjs/meta'
 ```bash
 git checkout -b feature/jedi-page
 git add src/routes/jedi.tsx
-git add src/components/hero.tsx src/components/image.tsx src/components/author.tsx src/components/card.tsx
+git add src/components/Hero.tsx src/components/Image.tsx src/components/Author.tsx src/components/Card.tsx
 git add src/components/*.test.tsx
 git add e2e/jedi.spec.ts
 git add src/app.css
-git add src/root.tsx  # If font links added
-git add src/components/nav.tsx  # If nav updated
+git add src/components/Nav.tsx
 git commit -m "feat: Add Jedi page with responsive layout
 
 - Convert Alpine.js to SolidJS reactive primitives
@@ -1330,7 +1333,7 @@ git commit -m "feat: Add Jedi page with responsive layout
 4. **Alt text**: Meaningful descriptions for content images, empty for decorative
 
 ---
-
+<<<<<<<<<<<<working>>>>>>>>>>>>
 ## Execution Notes for Claude AI
 
 This plan is designed to be executed sequentially by Claude AI with the following workflow:
