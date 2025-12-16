@@ -1333,7 +1333,7 @@ git commit -m "feat: Add Jedi page with responsive layout
 4. **Alt text**: Meaningful descriptions for content images, empty for decorative
 
 ---
-<<<<<<<<<<<<working>>>>>>>>>>>>
+
 ## Execution Notes for Claude AI
 
 This plan is designed to be executed sequentially by Claude AI with the following workflow:
@@ -1360,7 +1360,7 @@ desktop-commander:edit_block (for modifications)
 **Run tests**:
 ```bash
 desktop-commander:start_process("bun run test:comp")
-desktop-commander:start_process("bun run test:e2e")
+desktop-commander:start_process("npm run test:e2e")
 ```
 
 **Check syntax**:
