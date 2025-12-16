@@ -10,10 +10,22 @@
     "allowJs": true,
     "strict": true,
     "noEmit": true,
-    "types": ["vinxi/types/client", "vitest/globals", "@testing-library/jest-dom"],
+    "skipLibCheck": true,
+    "types": [
+      "@types/bun",
+      "vinxi/types/client",
+      "vitest/globals",
+      "@testing-library/jest-dom"
+    ],
     "isolatedModules": true,
     "paths": {
-      "~/*": ["./src/*"]
+      "~/*": [
+        "./src/*"
+      ]
     }
-  }
+  },
+  "include": [
+    "src/**/*",
+    "src/types/**/*"
+  ]
 }
