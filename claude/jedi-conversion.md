@@ -1360,6 +1360,7 @@ desktop-commander:edit_block (for modifications)
 **Run tests**:
 ```bash
 desktop-commander:start_process("bun run test:comp")
+desktop-commander:start_process("bun run test:unit")
 desktop-commander:start_process("npm run test:e2e")
 ```
 
