@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1000" height="1500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1.5; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 12px; fill: white; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .rect-layer { fill: #3D3D3D; }
+      .rect-sublayer { fill: #4D4D4D; }
+      .rect-process { fill: #5D5D5D; }
+      .rect-error { fill: #6D3D3D; }
+      .rect-data { fill: #3D5D3D; }
+      .rect-extractor { fill: #3D3D5D; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>
+  <rect width="1000" height="1500" class="bg" x="2" y="1" />
+
+  <!-- Module Title -->
+  <rect x="30" y="30" width="940" height="70" rx="5" class="stroke-primary rect-layer" />
+  <text x="500" y="70" class="text-title">lib-web Error Module - Centralized Error Handling</text>
+
+  <!-- Main Error Enum -->
+  <rect x="50" y="130" width="900" height="150" rx="5" class="stroke-primary rect-layer" />
+  <text x="500" y="160" class="text-section">Error Enum - Main Application Public Error Types</text>
+  <rect x="70" y="175" width="400" height="90" rx="5" class="stroke-primary rect-layer" />
+  <text x="275" y="195" class="text-section">pub enum Error { ... }</text>
+  <text x="275" y="215" class="text-code">#[derive(Debug, Serialize, From, strum_macros::AsRefStr)]</text>
+  <text x="275" y="235" class="text-code">#[serde(tag = "type", content = "data")]</text>
+  <text x="275" y="253" class="text-small">Implements: Display, std::error::Error, IntoResponse</text>
+
+  <!-- Other public types -->
+  <rect x="500" y="175" width="425" height="90" rx="5" class="stroke-primary rect-layer" />
+  <text x="710" y="195" class="text-section">pub type Result&lt;T&gt; = core::result::Result&lt;T, Error&gt;</text>
+  <text x="710" y="215" class="text-section">pub client_status_and_error(&amp;self)</text>
+  <text x="710" y="235" class="text-section"> → (StatusCode, ClientError)</text>
+  <text x="710" y="255" class="text-section">pub enum ClientError</text>
+
+  <!-- Error Enum Variants (Error Categories) -->
+  <rect x="50" y="310" width="330" height="800" rx="4" class="stroke-primary rect-process" />
+  <text x="215" y="340" class="text-section">Error Enum Variants</text>
+
+  <!-- Login Errors -->
+  <rect x="75" y="360" width="280" height="120" rx="4" class="stroke-primary rect-error" />
+  <text x="215" y="390" class="text-section">Login Errors</text>
+  <text x="215" y="410" class="text-code">LoginFailUsernameNotFound</text>
+  <text x="215" y="430" class="text-code">LoginFailUserHasNoPwd</text>
+  <text x="215" y="450" class="text-code">LoginFailPwdNotMatching</text>
+  <text x="215" y="470" class="text-small">→ FORBIDDEN + LOGIN_FAIL</text>
+
+  <!-- Auth &amp; Context Errors -->
+  <rect x="75" y="510" width="280" height="120" rx="4" class="stroke-primary rect-error" />
+  <text x="215" y="540" class="text-section">Auth &amp; Context</text>
+  <text x="215" y="560" class="text-code">CtxExt(CtxExtError)</text>
+  <text x="215" y="580" class="text-code">ReqStampNotInReqExt</text>
+  <text x="215" y="600" class="text-small">From: middleware::mw_auth::CtxExtError</text>
+  <text x="215" y="620" class="text-small">→ FORBIDDEN + NO_AUTH</text>
+
+  <!-- Module Errors -->
+  <rect x="75" y="650" width="280" height="120" rx="4" class="stroke-primary rect-process" />
+  <text x="215" y="680" class="text-section">Module Errors</text>
+  <text x="215" y="697" class="text-code">Model(model::Error)</text>
+  <text x="215" y="715" class="text-code">Pwd(pwd::Error)</text>
+  <text x="215" y="735" class="text-code">Token(token::Error)</text>
+  <text x="215" y="750" class="text-small">Auto-conversion via #[from]</text>
+
+  <!-- External & Serialization -->
+  <rect x="75" y="790" width="280" height="120" rx="4" class="stroke-primary rect-data" />
+  <text x="215" y="820" class="text-section">External &amp; Serialization</text>
+  <text x="215" y="840" class="text-code">SerdeJson(serde_json::Error)</text>
+  <text x="215" y="860" class="text-small">#[serde_as(as = "DisplayFromStr")]</text>
+  <text x="215" y="880" class="text-small">→ INTERNAL_SERVER_ERROR + SERVICE_ERROR</text>
+
+  <!-- RPC Error Handling -->
+  <rect x="75"  y="930" width="280" height="150" rx="4" class="stroke-primary rect-extractor" />
+  <text x="215" y="960" class="text-section">RPC Error Handling</text>
+  <text x="215" y="980" class="text-code">Rpc(lib_rpc_core::Error)</text>
+  <text x="215" y="1000" class="text-code">RpcRequestParsing(RequestParsingError)</text>
+  <text x="215" y="1020" class="text-code">RpcRouter { id, method, error }</text>
+  <text x="215" y="1040" class="text-code">RpcHandlerErrorUnhandled(&amp;'static str)</text>
+  <text x="215" y="1060" class="text-small">→ BAD_REQUEST + various RPC_* client errors</text>
+
+  <!-- Utility Functions -->
+  <rect x="450" y="310" width="500" height="500" rx="4" class="stroke-primary rect-process" />
+  <text x="700" y="340" class="text-section">Utility Functions</text>
+  <!-- Error Processing -->
+  <rect x="470" y="360" width="460" height="140" rx="4" class="stroke-primary rect-process" />
+  <text x="700" y="390" class="text-section">Error Processing</text>
+  <text x="700" y="410" class="text-code">impl IntoResponse for Error</text>
+  <text x="700" y="430" class="text-code">response.extensions_mut().insert(Arc::new(self))</text>
+  <text x="700" y="450" class="text-code">StatusCode::INTERNAL_SERVER_ERROR</text>
+  <text x="700" y="470" class="text-small">Stores error in response for middleware</text>
+
+  <!-- Client Error Mapping -->
+  <rect x="470" y="520" width="460" height="140" rx="4" class="stroke-primary rect-data" />
+  <text x="700" y="550" class="text-section">Client Error Mapping</text>
+  <text x="700" y="570" class="text-code">pub client_status_and_error() → (StatusCode, ClientError)</text>
+  <text x="700" y="590" class="text-code">ClientError: LOGIN_FAIL, NO_AUTH, ENTITY_NOT_FOUND</text>
+  <text x="700" y="610" class="text-code">RPC_REQUEST_INVALID, RPC_PARAMS_INVALID, SERVICE_ERROR</text>
+  <text x="700" y="630" class="text-small">Safe external error representation</text>
+
+  <!-- RPC Handler Error Processing -->
+  <rect x="470" y="680" width="460" height="110" rx="4" class="stroke-primary rect-extractor" />
+  <text x="700" y="710" class="text-section">RPC Handler Error Deconstructing</text>
+  <text x="700" y="730" class="text-code">impl From&lt;rpc_router::CallError&gt; for Error</text>
+  <text x="700" y="750" class="text-code">Extract lib_rpc_core::Error from RpcHandlerError or fallback to RpcRouter variant</text>
+  <text x="700" y="770" class="text-small">Unpack dynamic error types into concrete enum variants</text>
+
+  </svg>

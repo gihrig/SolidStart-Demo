@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="900" height="840" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1.5; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 12px; fill: white; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .rect-layer { fill: #3D3D3D; }
+      .rect-sublayer { fill: #4D4D4D; }
+      .rect-process { fill: #5D5D5D; }
+      .rect-error { fill: #6D3D3D; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7"
+     refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>
+
+  <rect width="900" height="840" class="bg"/>
+
+  <!-- Client Request -->
+  <rect x="20" y="30" width="860" height="50" rx="5" class="stroke-primary rect-layer"/>
+  <text x="450" y="60" class="text-title">HTTP POST /rpc (JSON-RPC 2.0 Request)</text>
+
+  <!-- Axum HTTP Layer -->
+  <rect x="20" y="120" width="860" height="60" rx="5" class="stroke-primary rect-layer"/>
+  <text x="450" y="145" class="text-section">Axum HTTP Layer</text>
+  <text x="200" y="165" class="text-code">State(rpc_router)</text>
+  <text x="450" y="165" class="text-code">CtxW (Auth Context)</text>
+  <text x="700" y="165" class="text-code">Json(rpc_req)</text>
+
+  <!-- RPC Handler Entry -->
+  <rect x="20" y="220" width="860" height="50" rx="5" class="stroke-primary rect-process"/>
+  <text x="450" y="250" class="text-title">rpc_axum_handler Entry Point</text>
+
+  <!-- Context Extraction -->
+  <rect x="50" y="310" width="200" height="40" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="150" y="335" class="text-box-title">Extract Context</text>
+
+  <!-- Request Parsing -->
+  <rect x="350" y="310" width="200" height="40" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="450" y="335" class="text-box-title">Parse JSON-RPC Request</text>
+
+  <!-- Error Path for Parsing -->
+  <rect x="650" y="310" width="200" height="40" rx="5" class="stroke-primary rect-error"/>
+  <text x="750" y="335" class="text-box-title">Parsing Error Handler</text>
+
+  <!-- RPC Info Creation -->
+  <rect x="50" y="390" width="200" height="40" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="150" y="415" class="text-box-title">Create RpcInfo</text>
+
+  <!-- Resource Preparation -->
+  <rect x="350" y="390" width="200" height="40" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="450" y="415" class="text-box-title">Prepare Resources</text>
+
+  <!-- RPC Router Call -->
+  <rect x="20" y="470" width="860" height="50" rx="5" class="stroke-primary rect-layer"/>
+  <text x="450" y="500" class="text-section">RPC Router Execution</text>
+
+  <!-- Success Response Path -->
+  <rect x="50" y="560" width="350" height="80" rx="5" class="stroke-primary rect-sublayer"/>
+  <text x="225" y="585" class="text-box-title">Success Response Generation</text>
+  <text x="225" y="605" class="text-code">JSON-RPC 2.0 Format</text>
+  <text x="155" y="255" class="text-small">{"jsonrpc": "2.0", "result": {...}, "id": ...}</text>
+
+  <!-- Error Response Path -->
+  <rect x="500" y="560" width="350" height="80" rx="5" class="stroke-primary rect-error"/>
+  <text x="675" y="585" class="text-box-title">Error Response Handling</text>
+  <text x="675" y="605" class="text-code">Delegate to mw_res_map</text>
+  <text x="600" y="540" class="text-small">Error serialization &amp; logging</text>
+
+  <!-- Response Extension Injection -->
+  <rect x="20" y="680" width="860" height="50" rx="5" class="stroke-primary rect-process"/>
+  <text x="450" y="710" class="text-section">Inject RpcInfo into Response Extensions</text>
+
+  <!-- Response Return -->
+  <rect x="20" y="770" width="860" height="50" rx="5" class="stroke-primary rect-layer"/>
+  <text x="450" y="800" class="text-title">Return Axum Response</text>
+
+  <!-- Flow Arrows -->
+  <!-- Main flow -->
+  <line x1="450" y1="80" x2="450" y2="120" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="450" y1="180" x2="450" y2="220" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Processing steps -->
+  <line x1="150" y1="270" x2="150" y2="310" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="450" y1="270" x2="450" y2="310" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Error path -->
+  <line x1="550" y1="330" x2="650" y2="330" class="line-primary" marker-end="url(#arrowhead)"/>
+  <text x="595" y="315" class="text-small">Parse Error</text>
+
+  <!-- Success path -->
+  <line x1="150" y1="350" x2="150" y2="390" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="450" y1="350" x2="450" y2="390" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Router execution -->
+  <line x1="450" y1="430" x2="450" y2="470" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="150" y1="430" x2="150" y2="470" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="225" y1="520" x2="225" y2="560" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="675" y1="520" x2="675" y2="560" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Final response -->
+  <line x1="225" y1="640" x2="225" y2="680" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="675" y1="640" x2="675" y2="680" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="450" y1="730" x2="450" y2="770" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Error return path -->
+  <line x1="780" y1="350" x2="780" y2="770" class="stroke-dashed" marker-end="url(#arrowhead)"/>
+  <text x="740" y="370" class="text-small">Early Return</text>
+
+</svg>

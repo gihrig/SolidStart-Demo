@@ -23,7 +23,7 @@ target/
 # By default ignore all devai
 *.devai
 
-# Uncomment beow to allow commiting .devai/custom .devai
+# Uncomment below to allow committing .devai/custom .devai
 # Only allow .devai/custom and .devai/Config.toml
 # Note: Here the starting `/` will just include the top .devai.
 #       Remove the starting `/` to include all .devai/custom even if their in a sub dir
@@ -88,3 +88,6 @@ __pycache__/
 
 # Allow vscode
 # !.vscode # Commented by default
+
+# Snyk Security Extension - AI Rules (auto-generated)
+.github/instructions/snyk_rules.instructions.md
