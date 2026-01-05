@@ -12,6 +12,19 @@ bun init solid@latest
 bun init solid@latest my-app
 ```
 
+# JSON-RPC Client Example with SolidStart
+
+RPC communication services are provided by the json-client-rpc library
+See [json-client-rpc](https://github.com/pkoretic/json_rpc)
+
+## Key Points:
+
+1. Type Safety: The RpcMethods interface maps method names to their signatures, providing full type checking
+2. Centralized Client: Single client instance with configuration
+3. Wrapper Functions: Optional organized API surface that's easier to discover and use
+4. Error Handling: RPC calls can throw; handle with try-catch or Solid's error boundaries
+5. SolidStart Integration: Use createResource for reactive data fetching
+
 ## Developing
 
 Once you've created a project and installed dependencies with `bun install`.
@@ -32,7 +45,7 @@ By default, `bun run build` will generate an app that you can run with `bun star
 
 ## Component tests
 
-Tests for src/components/** are written with `vitest`, `@solidjs/testing-library` and `@testing-library/jest-dom` to extend expect with some helpful custom matchers.
+Tests for src/components/** are written with `vitest`, `@solidjs/testing-library` and `@testing-library/jest-dom` to extend `expect` with some helpful custom matchers.
 
 Run component tests with:
 
@@ -44,7 +57,7 @@ bun test:comp:watch
 
 ## Unit tests
 
-Unit tests for /utilities/** are run using bun test as this is the expected deployment
+Unit tests for /lib/** are run using bun test as this is the expected deployment
 environment.
 
 Run unit tests with:

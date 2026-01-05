@@ -26,7 +26,7 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       '**/.{idea,git,cache,output,temp}/**',
-      '**/{e2e,utilities,tests-e2e}/**',
+      '**/{e2e,lib,tests-e2e}/**',
     ],
     deps: {
       inline: [/solid-js/, /@solidjs\/router/],

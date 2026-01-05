@@ -14,7 +14,7 @@ Context:
     - Vanilla css in src/app.css
     - TailwindCSS v4.1.18
     - Component tests in src/components/*.test.tsx run with vitest v4.0.15
-    - Unit tests in src/utilities/*.unit.test.ts run with bun test
+    - Unit tests in src/lib/*.unit.test.ts run with bun test
     - End to end tests in e2e/*.spec.ts with Playwright/test v1.57.0
 - The target project page file should be written to src/routes/jedi.tsx
 - The target project components should be written to src/components:
@@ -26,7 +26,7 @@ Context:
     - Reuse the existing target project src/components/nav.tsx in place of the source project <body><header>
 - Task: Create a step by step plan to convert the source project index.html to the target project src/routes/jedi.tsx with components written to src/components/ directory
     - Review target project src/routes/index.tsx for layout, style and component examples
-    - Convert source project appearance and functionality provided by alpine JS to TailwindCSS, Solid.js or Typescript utilities as appropriate.
+    - Convert source project appearance and functionality provided by alpine JS to TailwindCSS, Solid.js or Typescript as appropriate.
     - Convert source project TailwindCSS v3.x to target project TailwindCSS v4.x. Reference https://tailwindcss.com/docs/upgrade-guide
     - Prefer TailwindCSS functionality over Solid.js or Typescript whenever possible
     - Maintain appearance of source project in target project file

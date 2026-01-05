@@ -8,7 +8,7 @@
     "test:comp:watch": "bunx --bun vitest watch",
     "test:unit": "bun test src/**/*.unit.test.ts",
     "test:unit:watch": "bun test --watch src/**/*.unit.test.ts",
-    "test:e2e": "./src/utilities/test-e2e.sh",
+    "test:e2e": "./src/lib/test-e2e.sh",
     "test:show": "bunx playwright show-report"
   },
   "type": "module",
@@ -32,6 +32,7 @@
     "@vitest/ui": "4.0.15",
     "happy-dom": "20.0.11",
     "jsdom": "27.3.0",
+    "json-rpc-client": "0.2.2",
     "postcss": "8.5.6",
     "prettier": "3.7.4",
     "prettier-plugin-tailwindcss": "0.7.2",

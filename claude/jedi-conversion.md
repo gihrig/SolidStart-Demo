@@ -12,7 +12,7 @@ Convert `/frontend-tutorial-v3/index.html` (Alpine.js + TailwindCSS v3.2.7) to `
 4. **Alpine.js transitions**: `x-transition:enter` animations for smooth reveals
 
 ### TailwindCSS v3 → v4 Key Changes:
-1. **Arbitrary values**: `[&>*]:px-8` → use standard utilities or custom classes
+1. **Arbitrary values**: `[&>*]:px-8` → use standard TailwindCSS v4 utilities or custom classes
 2. **Important modifiers**: `md:!block` → `md:block!` (v4 syntax)
 3. **Color opacity**: `bg-opacity-40` → `bg-gray-800/40` (v4 syntax)
 4. **Custom properties**: `text-(--theme-accent)` pattern already used in target
@@ -504,7 +504,7 @@ const topCaptions = [
 3. **Alpine.js `x-cloak`** → Not needed (SolidJS handles hydration)
 4. **Alpine.js `@click`** → SolidJS `onClick={...}`
 5. **Alpine.js `x-bind:class`** → Template literal in `class` attribute
-6. **Alpine.js `x-transition`** → TailwindCSS transition utilities + conditional classes
+6. **Alpine.js `x-transition`** → TailwindCSS v4 transition utilities + conditional classes
 7. **Custom `[&>*]` selectors** → Use `space-y` utilities or component-scoped styles
 
 ---
