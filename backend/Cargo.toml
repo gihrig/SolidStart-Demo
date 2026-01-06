@@ -41,7 +41,7 @@ uninlined_format_args = "allow"
 #       are handled in workspace.dependencies. Other strategies may also be valid.
 [workspace.dependencies]
 # -- Serde
-serde_with = {version = "3", features = ["time_0_3"] }
+serde_with = {version = "3.16.1", features = ["time_0_3"] }
 # -- Data
 # Note: we lock modql version during rcs
 modql = { version = "0.4.1", features = ["with-sea-query"]}
@@ -52,9 +52,9 @@ sea-query-binder = { version = "0.7", features = ["sqlx-postgres", "with-uuid", 
 # Lock to specific version during 0.1.x
 rpc-router = { version = "=0.2.0-alpha.1" }
 # -- Web
-axum = {version = "0.8", features = ["macros"]}
-tower-http = { version = "0.6", features = ["fs"] }
+axum = {version = "0.8.8", features = ["macros"]}
+tower-http = { version = "0.6.8", features = ["fs"] }
 tower-cookies = "0.11"
 # -- Others
-time = {version = "0.3", features = ["formatting", "parsing", "serde"]}
-derive_more = {version = "1.0.0-beta", features = ["from", "display"] }
+time = {version = "0.3.44", features = ["formatting", "parsing", "serde"]}
+derive_more = {version = "2.1.1", features = ["from", "display"] }
