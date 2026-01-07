@@ -94,7 +94,7 @@ cargo watch -q -c -w crates/services/web-server/examples/ -x "run -p web-server 
 # Terminal 1 - To run the server.
 cargo run -p web-server
 
-# Terminal 2 - To run the tests.
+# Terminal 2 - To run the Quick Dev framework (login, CRUD, logout).
 cargo run -p web-server --example quick_dev
 ```
 
@@ -123,6 +123,16 @@ cargo test -- --nocapture
 
 ```
 
+## Build for production
+
+Note that codegen-units = 1 and lto = true increase compilation time but often yield the best size and performance results.
+
+```sh
+# build for minimal binary size
+cargo build --release
+
+```
+
 ## Tools
 
 ```sh
@@ -131,8 +141,24 @@ cargo run -p gen-key
 
 ## Production
 
+These settings:
+- Apply uniformly to all crates built in the workspace (including binaries and libraries).
+- Member crates cannot use their own [profile.release] sections for these keys.
+
+Optimize binary size for back end <br /><br />
+Project root `cargo.toml`
+
+```toml
+[profile.release]
+opt-level = "z"       # Optimize binary "z" = size "s" = balance "3" = speed)
+lto = true            # "true" Link Time Optimization "fat" = more aggressive LTO)
+codegen-units = 1     # Better cross-crate optimizations (increases compile time)
+panic = "abort"       # Abort on panic (removes unwinding code, reducing binary size)
+strip = "symbols"     # Strip debug symbols (available since Rust 1.59+)
+```
+
 Optimize WASM bundle size for Leptos front end <br /><br />
-`cargo.toml`
+Project root `cargo.toml`
 
 ```toml
 # Defines a size-optimized profile for the WASM bundle in release mode
