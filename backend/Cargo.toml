@@ -40,14 +40,23 @@ uninlined_format_args = "allow"
 # NOTE: Declaring all dependencies here does not increase release binary size
 # Member crates depend on this file so do not require dependency updates
 [workspace.dependencies]
-axum = {version = "0.8.8", features = ["macros"]}
-derive_more = {version = "2.1.1", features = ["from", "display"] }
-modql = { version = "0.4.1", features = ["with-sea-query"]}
+argon2 = { version="0.5", features=["std"] }
+axum = { version = "0.8.8", features = ["macros"] }
+blake3 = "1.5.5"
+derive_more = { version = "2.1.1", features = ["from", "display"] }
+enum_dispatch = "0.3"
+hmac = "0.12"
+lazy-regex = "3"
+modql = { version = "0.4.1", features = ["with-sea-query"] }
 rpc-router = { version = "=0.2.0-alpha.1" }
 sea-query = "0.32"
 sea-query-binder = { version = "0.7", features = ["sqlx-postgres", "with-uuid", "with-time" ] }
-serde_with = {version = "3.16.1", features = ["time_0_3"] }
+serde = { version = "1", features = ["derive"] }
+serde_with = { version = "3.16.1", features = ["time_0_3"] }
+sha2 = "0.10"
 sqlx = { version = "0.8", features = [ "macros", "runtime-tokio", "postgres", "uuid" ] }
-time = {version = "0.3.44", features = ["formatting", "parsing", "serde"]}
+time = { version = "0.3.44", features = ["formatting", "parsing", "serde"] }
+tokio = { version = "1", features = ["full"] }
 tower-cookies = "0.11"
 tower-http = { version = "0.6.8", features = ["fs"] }
+uuid = { version = "1", features = ["v4","fast-rng",] }

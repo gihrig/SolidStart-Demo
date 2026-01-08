@@ -11,15 +11,15 @@ workspace = true
 
 [dependencies]
 # -- App Libs
-lib-utils = { path = "../../libs/lib-utils"}
+lib-utils = { path = "../../libs/lib-utils" }
 
-argon2 = {version="0.5", features=["std"]}
-blake3 = "1.5.5"
+argon2 = { workspace = true, features=["std"] }
+blake3 = { workspace = true }
 derive_more = { workspace = true }
-enum_dispatch = "0.3"
-hmac = "0.12"
-lazy-regex = "3"
-serde = { version = "1", features = ["derive"] }
-sha2 = "0.10"
-tokio = { version = "1", features = ["full"] }
-uuid = {version = "1", features = ["v4","fast-rng",]}
+enum_dispatch = { workspace = true }
+hmac = { workspace = true }
+lazy-regex = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+sha2 = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+uuid = { workspace = true, features = ["v4","fast-rng",] }
