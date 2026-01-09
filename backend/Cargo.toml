@@ -52,6 +52,7 @@ hmac = "0.12.1"
 lazy-regex = "3.5.1"
 modql = { version = "0.4.1", features = ["with-sea-query"] }
 paste = "1.0.15"
+rand = "0.9.2"
 rpc-router = { version = "=0.2.0-alpha.1" }
 sea-query = "0.32.7"
 sea-query-binder = { version = "0.7.0", features = ["sqlx-postgres", "with-uuid", "with-time" ] }
