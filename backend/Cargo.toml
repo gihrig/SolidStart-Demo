@@ -21,7 +21,7 @@ members = [
 
 [workspace.lints.clippy]
 # priority = -1 # Lower priority allows overrides
-all = { level = "warn", priority = -1 }         # Enable `all` lint group at warning level
+all = { level = "warn", priority = -1 }           # Enable `all` lint group at warning level
 # pedantic = { level = "warn", priority = -1 }    # Enable `pedantic` lint group at warning level
 # nursery = { level = "warn", priority = -1 }     # Enable `experimental` lint group at warning level
 # cargo = { level = "warn", priority = -1 }       # Enable `cargo` lint group at warning level
@@ -37,24 +37,35 @@ uninlined_format_args = "allow"
 # cargo clippy --workspace --all-targets --all-features
 # Add -- -D warnings to enforce warnings as errors
 
-# NOTE: Only the crates that are utilized in two or more sub-crates and benefit from global management
-#       are handled in workspace.dependencies. Other strategies may also be valid.
+# NOTE: Declaring all dependencies here does not increase release binary size
+# Member crates depend on this file so do not require dependency updates
+# Features are additive, increasing binary size, only declare here if universal
 [workspace.dependencies]
-# -- Serde
-serde_with = {version = "3.16.1", features = ["time_0_3"] }
-# -- Data
-# Note: we lock modql version during rcs
-modql = { version = "0.4.1", features = ["with-sea-query"]}
-sqlx = { version = "0.8", features = [ "macros", "runtime-tokio", "postgres", "uuid" ] }
-sea-query = "0.32"
-sea-query-binder = { version = "0.7", features = ["sqlx-postgres", "with-uuid", "with-time" ] }
-# -- JSON-RPC
-# Lock to specific version during 0.1.x
-rpc-router = { version = "=0.2.0-alpha.1" }
-# -- Web
-axum = {version = "0.8.8", features = ["macros"]}
+argon2 = "0.5.3"
+axum = { version = "0.8.8", features = ["macros"] }
+base64 = "0.22.1"
+blake3 = "1.8.3"
+derive_more = { version = "2.1.1", features = ["display", "from"] }
+enum_dispatch = "0.3.13"
+futures = "0.3.31"
+hmac = "0.12.1"
+lazy-regex = "3.5.1"
+modql = { version = "0.4.1", features = ["with-sea-query"] }
+pastey = "0.2.1"
+rand = "0.9.2"
+rpc-router = "=0.2.0-alpha.1"
+sea-query = "0.32.7"
+sea-query-binder = { version = "0.7.0", features = ["sqlx-postgres", "with-time", "with-uuid"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+serde_with = { version = "3.16.1", features = ["time_0_3"] }
+sha2 = "0.10.9"
+sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio", "uuid"] }
+strum_macros = "0.27.2"
+time = { version = "0.3.44", features = ["formatting", "parsing", "serde"] }
+tokio = { version = "1.49.0", features = ["full"] }
+tower-cookies = "0.11.0"
 tower-http = { version = "0.6.8", features = ["fs"] }
-tower-cookies = "0.11"
-# -- Others
-time = {version = "0.3.44", features = ["formatting", "parsing", "serde"]}
-derive_more = {version = "2.1.1", features = ["from", "display"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+uuid = { version = "1.19.0", features = ["fast-rng", "v4"] }
