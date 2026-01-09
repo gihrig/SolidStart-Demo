@@ -39,10 +39,11 @@ uninlined_format_args = "allow"
 
 # NOTE: Declaring all dependencies here does not increase release binary size
 # Member crates depend on this file so do not require dependency updates
-# Feature are additive, increasing binary size, so will only be declared here if universal
+# Features are additive, increasing binary size, only declare here if universal
 [workspace.dependencies]
 argon2 = { version="0.5.3", features=["std"] }
 axum = { version = "0.8.8", features = ["macros"] }
+base64 = "0.22.1"
 blake3 = "1.8.3"
 derive_more = { version = "2.1.1", features = ["from", "display"] }
 enum_dispatch = "0.3.13"
