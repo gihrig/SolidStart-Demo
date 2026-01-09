@@ -41,25 +41,27 @@ uninlined_format_args = "allow"
 # Member crates depend on this file so do not require dependency updates
 # Feature are additive, increasing binary size, so will only be declared here if universal
 [workspace.dependencies]
-argon2 = { version="0.5", features=["std"] }
+argon2 = { version="0.5.3", features=["std"] }
 axum = { version = "0.8.8", features = ["macros"] }
-blake3 = "1.5.5"
+blake3 = "1.8.3"
 derive_more = { version = "2.1.1", features = ["from", "display"] }
-enum_dispatch = "0.3"
-hmac = "0.12"
+enum_dispatch = "0.3.13"
+futures = "0.3.31"
+hmac = "0.12.1"
 lazy-regex = "3.5.1"
 modql = { version = "0.4.1", features = ["with-sea-query"] }
+paste = "1.0.15"
 rpc-router = { version = "=0.2.0-alpha.1" }
-sea-query = "0.32"
-sea-query-binder = { version = "0.7", features = ["sqlx-postgres", "with-uuid", "with-time" ] }
-serde = { version = "1", features = ["derive"] }
+sea-query = "0.32.7"
+sea-query-binder = { version = "0.7.0", features = ["sqlx-postgres", "with-uuid", "with-time" ] }
+serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 serde_with = { version = "3.16.1", features = ["time_0_3"] }
-sha2 = "0.10"
-sqlx = { version = "0.8", features = [ "macros", "runtime-tokio", "postgres", "uuid" ] }
+sha2 = "0.10.9"
+sqlx = { version = "0.8.6", features = [ "macros", "runtime-tokio", "postgres", "uuid" ] }
 time = { version = "0.3.44", features = ["formatting", "parsing", "serde"] }
 tokio = { version = "1.49.0", features = ["full"] }
-tower-cookies = "0.11"
+tower-cookies = "0.11.0"
 tower-http = { version = "0.6.8", features = ["fs"] }
 tracing = "0.1.44"
 uuid = { version = "1.19.0", features = ["v4","fast-rng",] }

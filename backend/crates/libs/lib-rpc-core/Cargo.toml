@@ -14,11 +14,11 @@ workspace = true
 lib-core = { path = "../../libs/lib-core", features = ["with-rpc"] }
 
 derive_more = { workspace = true }
-futures = "0.3"
+futures = { workspace = true }
 modql = { workspace = true }
-paste = "1"
+paste = { workspace = true }
 rpc-router = { workspace = true }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 serde_with = { workspace = true }
-tokio = { version = "1", features = ["full"] }
+tokio = { workspace = true, features = ["full"] }
