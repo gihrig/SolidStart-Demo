@@ -1345,7 +1345,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "strum_macros 0.27.2",
+ "strum_macros",
  "time",
  "tokio",
  "tower-cookies",
@@ -2661,19 +2661,6 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "strum_macros"
-version = "0.26.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c6bee85a5a24955dc440386795aa378cd9cf82acd5f764469152d2270e581be"
-dependencies = [
- "heck 0.5.0",
- "proc-macro2",
- "quote",
- "rustversion",
- "syn",
-]
-
-[[package]]
-name = "strum_macros"
 version = "0.27.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7695ce3845ea4b33927c055a39dc438a45b059f7c1b3d91d38d10355fb8cbca7"
@@ -3293,7 +3280,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "strum_macros 0.26.4",
+ "strum_macros",
  "time",
  "tokio",
  "tower-cookies",
