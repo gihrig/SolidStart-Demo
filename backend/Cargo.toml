@@ -41,7 +41,7 @@ uninlined_format_args = "allow"
 # Member crates depend on this file so do not require dependency updates
 # Features are additive, increasing binary size, only declare here if universal
 [workspace.dependencies]
-argon2 = { version="0.5.3", features=["std"] }
+argon2 = { version="0.5.3" }
 axum = { version = "0.8.8", features = ["macros"] }
 base64 = "0.22.1"
 blake3 = "1.8.3"
