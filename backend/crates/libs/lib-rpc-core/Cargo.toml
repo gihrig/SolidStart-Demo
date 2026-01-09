@@ -16,7 +16,7 @@ lib-core = { path = "../../libs/lib-core", features = ["with-rpc"] }
 derive_more = { workspace = true }
 futures = { workspace = true }
 modql = { workspace = true }
-paste = { workspace = true }
+pastey = { workspace = true }
 rpc-router = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

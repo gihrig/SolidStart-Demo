@@ -27,7 +27,7 @@ use crate::Result;
 use crate::{ParamsForCreate, ParamsForUpdate, ParamsIded, ParamsList};
 use lib_core::ctx::Ctx;
 use lib_core::model::ModelManager;
-use paste::paste;
+use pastey::paste;
 use rpc_router::{router_builder, RouterBuilder};
 
 // With prelude, simply:
