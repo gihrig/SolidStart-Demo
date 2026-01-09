@@ -11,7 +11,7 @@ workspace = true
 
 [dependencies]
 # -- App Libs
-lib-core = { path = "../../libs/lib-core", features = ["with-rpc"] }
+lib-core = { path = "../../libs/lib-core", features = ["with-rpc"], version = "*" }
 
 derive_more = { workspace = true }
 futures = { workspace = true }
