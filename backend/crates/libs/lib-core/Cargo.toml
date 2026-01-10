@@ -19,6 +19,7 @@ lib-auth = { path = "../../libs/lib-auth" }
 
 derive_more = { workspace = true }
 modql = { workspace = true }
+rpc-router = { workspace = true, optional = true }
 sea-query = { workspace = true }
 sea-query-binder = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
@@ -28,7 +29,7 @@ sqlx = { workspace = true }
 time = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 tracing = { workspace = true }
-rpc-router = { workspace = true, optional = true }
+ts-rs = { workspace = true }
 uuid = { workspace = true, features = ["v4","fast-rng",] }
 
 [dev-dependencies]
