@@ -12,11 +12,13 @@ use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use sqlx::types::time::OffsetDateTime;
 use sqlx::FromRow;
+use ts_rs::TS;
 
 // region:    --- Agent Types
 
 #[serde_as]
-#[derive(Debug, Clone, Fields, FromRow, Serialize)]
+#[derive(Debug, Clone, Fields, FromRow, Serialize, TS)]
+#[ts(export, export_to = "Agent.d.ts")]
 pub struct Agent {
 	pub id: i64,
 
@@ -32,9 +34,11 @@ pub struct Agent {
 	//    (creator and last modified user_id/time)
 	pub cid: i64,
 	#[serde_as(as = "Rfc3339")]
-	pub ctime: OffsetDateTime,
+	#[ts(type = "string")]
+  pub ctime: OffsetDateTime,
 	pub mid: i64,
 	#[serde_as(as = "Rfc3339")]
+  #[ts(type = "string")]
 	pub mtime: OffsetDateTime,
 }
 
