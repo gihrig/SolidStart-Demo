@@ -22,4 +22,5 @@ lazy-regex = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 sha2 = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
+ts-rs = { workspace = true }
 uuid = { workspace = true, features = ["v4","fast-rng",] }

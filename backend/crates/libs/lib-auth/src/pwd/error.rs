@@ -1,10 +1,12 @@
 use crate::pwd::scheme;
 use derive_more::From;
 use serde::Serialize;
+use ts_rs::TS;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Debug, Serialize, From)]
+#[derive(Debug, From, Serialize, TS)]
+#[ts(export, export_to = "lib_auth_Error.d.ts")]
 pub enum Error {
 	PwdWithSchemeFailedParse,
 

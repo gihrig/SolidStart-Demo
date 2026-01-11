@@ -5,11 +5,13 @@ use serde::Serialize;
 use serde_with::{serde_as, DisplayFromStr};
 use sqlx::error::DatabaseError;
 use std::borrow::Cow;
+use ts_rs::TS;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[serde_as]
-#[derive(Debug, Serialize, From)]
+#[derive(Debug, From, Serialize, TS)]
+#[ts(export, export_to = "lib_core_Error.d.ts")]
 pub enum Error {
 	EntityNotFound {
 		entity: &'static str,
@@ -42,10 +44,16 @@ pub enum Error {
 
 	// -- Externals
 	#[from]
-	SeaQuery(#[serde_as(as = "DisplayFromStr")] sea_query::error::Error),
+	SeaQuery(
+    #[serde_as(as = "DisplayFromStr")]
+    #[ts(type = "string")]
+    sea_query::error::Error),
 
 	#[from]
-	ModqlIntoSea(#[serde_as(as = "DisplayFromStr")] modql::filter::IntoSeaError),
+	ModqlIntoSea(
+    #[serde_as(as = "DisplayFromStr")]
+    #[ts(type = "string")]
+    modql::filter::IntoSeaError),
 }
 
 impl Error {

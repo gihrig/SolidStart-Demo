@@ -1,11 +1,13 @@
 use derive_more::From;
 use serde::Serialize;
 use serde_with::{serde_as, DisplayFromStr};
+use ts_rs::TS;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[serde_as]
-#[derive(Debug, Serialize, From)]
+#[derive(Debug, From, Serialize, TS)]
+#[ts(export, export_to = "lib_core_dbx_Error.d.ts")]
 pub enum Error {
 	TxnCantCommitNoOpenTxn,
 	CannotBeginTxnWithTxnFalse,
@@ -14,7 +16,10 @@ pub enum Error {
 
 	// -- Externals
 	#[from]
-	Sqlx(#[serde_as(as = "DisplayFromStr")] sqlx::Error),
+	Sqlx(
+    #[serde_as(as = "DisplayFromStr")]
+    #[ts(type = "string")]
+    sqlx::Error),
 }
 
 // region:    --- Error Boilerplate
