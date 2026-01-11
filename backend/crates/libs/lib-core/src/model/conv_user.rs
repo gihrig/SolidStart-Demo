@@ -5,11 +5,13 @@ use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use sqlx::FromRow;
 use time::OffsetDateTime;
+use ts_rs::TS;
 
 // region:    --- Types
 
 #[serde_as]
-#[derive(Debug, Clone, Fields, FromRow, Serialize)]
+#[derive(Debug, Clone, Fields, FromRow, Serialize, TS)]
+#[ts(export, export_to = "ConvUser.d.ts")]
 pub struct ConvUser {
 	pub id: i64,
 
@@ -21,10 +23,12 @@ pub struct ConvUser {
 	// creator user_id and time
 	pub cid: i64,
 	#[serde_as(as = "Rfc3339")]
+  #[ts(type = "string")]
 	pub ctime: OffsetDateTime,
 	// last modifier user_id and time
 	pub mid: i64,
 	#[serde_as(as = "Rfc3339")]
+  #[ts(type = "string")]
 	pub mtime: OffsetDateTime,
 }
 
