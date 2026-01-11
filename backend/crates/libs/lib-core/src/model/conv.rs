@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use sqlx::types::time::OffsetDateTime;
 use sqlx::FromRow;
+use ts_rs::TS;
 
 // region:    --- Conv Types
 
@@ -27,7 +28,8 @@ pub trait ConvScoped {
 	fn conv_id(&self) -> i64;
 }
 
-#[derive(Debug, Clone, sqlx::Type, derive_more::Display, Deserialize, Serialize)]
+#[derive(Debug, Clone, sqlx::Type, derive_more::Display, Deserialize, Serialize, TS)]
+#[ts(export, export_to = "ConvKind.d.ts")]
 #[sqlx(type_name = "conv_kind")]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum ConvKind {
@@ -67,7 +69,9 @@ impl Nullable for ConvKind {
 	derive_more::Display,
 	Deserialize,
 	Serialize,
+  TS,
 )]
+#[ts(export, export_to = "ConvState.d.ts")]
 #[sqlx(type_name = "conv_state")]
 pub enum ConvState {
 	Active,
@@ -75,7 +79,8 @@ pub enum ConvState {
 }
 
 #[serde_as]
-#[derive(Debug, Clone, Fields, FromRow, Serialize)]
+#[derive(Debug, Clone, Fields, FromRow, Serialize, TS)]
+#[ts(export, export_to = "Conv.d.ts")]
 pub struct Conv {
 	pub id: i64,
 
@@ -92,10 +97,12 @@ pub struct Conv {
 	// creator user_id and time
 	pub cid: i64,
 	#[serde_as(as = "Rfc3339")]
+  #[ts(type = "string")]
 	pub ctime: OffsetDateTime,
 	// last modifier user_id and time
 	pub mid: i64,
 	#[serde_as(as = "Rfc3339")]
+  #[ts(type = "string")]
 	pub mtime: OffsetDateTime,
 }
 
