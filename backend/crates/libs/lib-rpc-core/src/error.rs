@@ -18,11 +18,13 @@ use derive_more::From;
 use rpc_router::RpcHandlerError;
 use serde::Serialize;
 use serde_with::{serde_as, DisplayFromStr};
+use ts_rs::TS;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[serde_as]
-#[derive(Debug, From, Serialize, RpcHandlerError)]
+#[derive(Debug, From, RpcHandlerError, Serialize, TS)]
+#[ts(export, export_to = "lib_rpc_core_Error.d.ts")]
 pub enum Error {
 	// -- App Libs
 	#[from]
@@ -30,7 +32,10 @@ pub enum Error {
 
 	// -- External Modules
 	#[from]
-	SerdeJson(#[serde_as(as = "DisplayFromStr")] serde_json::Error),
+	SerdeJson(
+    #[serde_as(as = "DisplayFromStr")]
+    #[ts(type = "string")]
+    serde_json::Error),
 }
 
 // region:    --- Error Boilerplate
