@@ -53,7 +53,7 @@ lazy-regex = "3.5.1"
 modql = { version = "0.4.1", features = ["with-sea-query"] }
 pastey = "0.2.1"
 rand = "0.9.2"
-rpc-router = "=0.2.0-alpha.1"
+rpc-router = "0.2.0"
 sea-query = "0.32.7"
 sea-query-binder = { version = "0.7.0", features = ["sqlx-postgres", "with-time", "with-uuid"] }
 serde = { version = "1.0.228", features = ["derive"] }
@@ -62,7 +62,7 @@ serde_with = { version = "3.16.1", features = ["time_0_3"] }
 sha2 = "0.10.9"
 sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio", "uuid"] }
 strum_macros = "0.27.2"
-time = { version = "0.3.44", features = ["formatting", "parsing", "serde"] }
+time = { version = "0.3.45", features = ["formatting", "parsing", "serde"] }
 tokio = { version = "1.49.0", features = ["full"] }
 tower-cookies = "0.11.0"
 tower-http = { version = "0.6.8", features = ["fs"] }
