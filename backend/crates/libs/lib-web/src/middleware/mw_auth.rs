@@ -13,6 +13,7 @@ use lib_core::model::ModelManager;
 use serde::Serialize;
 use tower_cookies::{Cookie, Cookies};
 use tracing::debug;
+use ts_rs::TS;
 
 pub async fn mw_ctx_require(
 	ctx: Result<CtxW>,
@@ -112,7 +113,8 @@ impl<S: Send + Sync> FromRequestParts<S> for CtxW {
 // region:    --- Ctx Extractor Result/Error
 type CtxExtResult = core::result::Result<CtxW, CtxExtError>;
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Serialize, Debug, TS)]
+#[ts(export, export_to = "lib_web_middleware_Error.d.ts")]
 pub enum CtxExtError {
 	TokenNotInCookie,
 	TokenWrongFormat,

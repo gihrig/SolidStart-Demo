@@ -26,4 +26,5 @@ tower-cookies = { workspace = true }
 tower-http = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
+ts-rs = { workspace = true }
 uuid = { workspace = true, features = ["v4","fast-rng",]}

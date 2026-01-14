@@ -9,12 +9,14 @@ use serde_json::Value;
 use serde_with::{serde_as, DisplayFromStr};
 use std::sync::Arc;
 use tracing::{debug, warn};
+use ts_rs::TS;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[serde_as]
-#[derive(Debug, Serialize, From, strum_macros::AsRefStr)]
+#[derive(Debug, From, Serialize, strum_macros::AsRefStr, TS)]
 #[serde(tag = "type", content = "data")]
+#[ts(export, export_to = "lib_web_Error.d.ts")]
 pub enum Error {
 	// -- Login
 	LoginFailUsernameNotFound,
@@ -45,6 +47,7 @@ pub enum Error {
 	// -- RpcError (deconstructed from rpc_router::Error)
 	// Simple mapping for the RpcRequestParsingError. It will have the eventual id, method context.
 	#[from]
+  #[ts(skip)]
 	RpcRequestParsing(rpc_router::RpcRequestParsingError),
 
 	// When encountering `rpc_router::Error::Handler`, we deconstruct it into the appropriate concrete application error types.
@@ -57,14 +60,19 @@ pub enum Error {
 	// When the `rpc_router::Error` is not a `Handler`, we can pass through the rpc_router::Error
 	// as all variants contain concrete types.
 	RpcRouter {
+    #[ts(skip)]
 		id: Value,
 		method: String,
+    #[ts(skip)]
 		error: rpc_router::Error,
 	},
 
 	// -- External Modules
 	#[from]
-	SerdeJson(#[serde_as(as = "DisplayFromStr")] serde_json::Error),
+	SerdeJson(
+    #[serde_as(as = "DisplayFromStr")]
+    #[ts(type = "string")]
+    serde_json::Error),
 }
 
 // region:    --- From rpc-router::Error
