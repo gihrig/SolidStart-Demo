@@ -12,6 +12,7 @@ use rpc_router::{IntoDefaultRpcParams, IntoParams};
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_with::{serde_as, OneOrMany};
+use ts_rs::TS;
 
 /// Params structure for any RPC Create call.
 #[derive(Deserialize)]
@@ -22,7 +23,8 @@ pub struct ParamsForCreate<D> {
 impl<D> IntoParams for ParamsForCreate<D> where D: DeserializeOwned + Send {}
 
 /// Params structure for any RPC Update call.
-#[derive(Deserialize)]
+#[derive(Deserialize, TS)]
+#[ts(export, export_to = "ParamsForUpdate.d.ts")]
 pub struct ParamsForUpdate<D> {
 	pub id: i64,
 	pub data: D,
@@ -31,7 +33,8 @@ pub struct ParamsForUpdate<D> {
 impl<D> IntoParams for ParamsForUpdate<D> where D: DeserializeOwned + Send {}
 
 /// Params structure for any RPC Update call.
-#[derive(Deserialize)]
+#[derive(Deserialize, TS)]
+#[ts(export, export_to = "ParamsIded.d.ts")]
 pub struct ParamsIded {
 	pub id: i64,
 }
