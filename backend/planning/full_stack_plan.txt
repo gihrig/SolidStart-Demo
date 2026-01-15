@@ -1,0 +1,58 @@
+# Goal: Create a step by step plan to integrate a TypeScript/SolidStart front-end with a Rust/Axum back-end
+# Context:
+ - The fornt-end project is here: /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo
+ - The back-end project is here: /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app
+ - Both projects have preliminary jsonRPC implementation
+ - Both projects will be deployed in a single Docker container
+ - The projects will communicate with each other over http://localhost:8080/
+ - Front-end project will listen on http://localhost:3000/
+ - Back-end TypeScript bindings are here: /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/crates/services/web-server/bindings
+ - The back-end project has an example program here: /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/crates/services/web-server/examples/quick_dev.rs
+# Tasks
+ - Review the above projects and files
+ - Consider how the projects will be configured for jsonRPC communication
+ - The goal of the plan should be to recreate the Rust example program as a SolidStart example page that comunicates with the back-end over jsonRPC
+ - The SolidStart example page should be located here: /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo/src/routes/fullstack.tsx
+ - The SolidStart example page should be component based 
+ - The SolidStart example page should have a user interface similar to the existing SolidStart page here: /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo/src/routes/index.tsx
+ - The SolidStart example page should have a test file similar in scope to /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo/e2e/home.spec.ts
+ - Any components created for the SolidStart example page should have corresponding tests siilar to this: /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo/src/components/Counter.test.tsx
+ - Consider alternatives to architectural or other technical choices an assumptons
+ - Recomend ways the front-end to back-end communication can be simplified or made more reliable
+ - Create a step by step plan that Claude can execute 
+ - Write the step by step plan here: /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/planning/full_stack_integration.md
+ 
+ 
+ ---
+ 
+ ⏺ Claude created a comprehensive step-by-step plan at /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/planning/full_stack_integration.md.
+
+  Summary
+
+  The plan covers:
+
+  Architecture Analysis:
+  - Identified key integration challenges (cookie auth, CORS, BigInt serialization)
+  - Recommended using custom fetch-based RPC client with CORS on backend
+
+  Implementation Phases:
+
+  1. Phase 1: Types & RPC Client - Copy TypeScript bindings, create extended types, build custom RPC client
+  2. Phase 2: CORS Configuration - Add tower-http CORS middleware to Rust backend
+  3. Phase 3: Components - Create 5 components (AuthContext, LoginForm, AgentManager, ConversationManager, MessagePanel)
+  4. Phase 4: Fullstack Page - Wire up components at /fullstack route
+  5. Phase 5: Testing - Component tests with vitest, E2E tests with Playwright
+
+  Files to Create:
+  - 8 component/library files
+  - 3 test files
+  - TypeScript type definitions
+
+  Alternatives Evaluated:
+  - Server function proxy (no CORS but added complexity)
+  - WebSocket for real-time (better UX but more backend work)
+  - OpenAPI code generation (automatic sync but more tooling)
+  - tRPC-style sharing (single source of truth but requires monorepo)
+
+  The plan maps each step from quick_dev.rs to corresponding SolidStart components and provides ready-to-implement code for all files.
+ 
