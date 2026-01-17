@@ -55,3 +55,41 @@
   - tRPC-style sharing (single source of truth but requires monorepo)
 
   The plan maps each step from quick_dev.rs to corresponding SolidStart components and provides ready-to-implement code for all files.
+
+---
+
+# Goal: Update the plan document to reflect the choice of alternatives listed here
+
+# Context:
+
+- The plan document is here: /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/planning/full_stack_integration.md
+- The front-end project is here: /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo
+- The back-end project is here: /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app
+- Both projects will be deployed together in a single Docker container
+
+## Plan Document Section:
+### Recommendations for Simplification & Reliability @line 45
+
+Lists alternative approaches
+#### Option A: Direct Fetch with Custom RPC Client (Recommended) @line 47
+#### Option C: Configure CORS on Rust Back-end (Current Assumption) @line 57
+
+### Recommendation @line 79
+
+** Option A (Direct Fetch) combined with Option C (CORS)** @line 81
+
+## Plan Document Section:
+### Part 5: Alternative Approaches @line 1189
+
+#### Alternative 1: WebSocket for Real-time Updates
+
+Instead of polling or manual refresh, use WebSocket for real-time message updates.
+
+# Tasks:
+1. Review the Plan Document here: /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/planning/full_stack_integration.md
+2. Refer to the back-end Rust project as needed here: /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app
+3. Refer to the front-end SolidStart project as needed here: /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo
+4. Update the Plan Document to reflect "Option A (Direct Fetch) combined with Option C (CORS)" @line 81 in the existing Plan Document
+5. Update the Plan Document to reflect "Alternative 1: WebSocket for Real-time Updates" @line 1191 in the existing Plan Document
+6. Add "Completed" checkboxes to each phase/step in the Plan Document allowing Claude execute the plan in sequence and keep track of what has already been done
+7. Write change back to the Plan Document here: /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/planning/full_stack_integration2.md
