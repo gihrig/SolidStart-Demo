@@ -13,7 +13,24 @@ This plan details integrating a SolidStart TypeScript front-end with a Rust/Axum
 - Back-end: `http://localhost:8080`
 - Front-end: `http://localhost:3000`
 - RPC Endpoint: `POST http://localhost:8080/api/rpc`
+- WebSocket Endpoint: `ws://localhost:8080/ws` (for real-time updates)
 - Auth Endpoints: `POST /api/login`, `POST /api/logoff`
+
+**Deployment:**
+- Both projects will be deployed together in a single Docker container
+
+---
+
+## Selected Approach Summary
+
+> **SELECTED:** Option A (Direct Fetch with Custom RPC Client) + Option C (CORS Configuration) + Alternative 1 (WebSocket for Real-time Updates)
+
+This combination provides:
+- Clear separation of concerns
+- Direct use of generated TypeScript types
+- Standard browser-based authentication flow with HTTP-only cookies
+- Simpler debugging and development
+- Real-time message updates without polling
 
 ---
 
@@ -42,9 +59,11 @@ This plan details integrating a SolidStart TypeScript front-end with a Rust/Axum
 
 4. **RPC Method Naming**: Back-end uses `method_name` format (e.g., `create_agent`), not dotted notation.
 
-### Recommendations for Simplification & Reliability
+5. **Real-time Updates**: Need mechanism for live message updates in conversations.
 
-#### Option A: Direct Fetch with Custom RPC Client (Recommended)
+### Approach Options Considered
+
+#### Option A: Direct Fetch with Custom RPC Client **[SELECTED]**
 
 Replace `json-rpc-client` with a custom client that:
 - Handles cookie credentials properly
@@ -54,35 +73,18 @@ Replace `json-rpc-client` with a custom client that:
 **Pros:** Full control, no external dependencies, exact type matching
 **Cons:** More initial code to write
 
-#### Option B: Proxy Through SolidStart Server Functions
+#### Option B: Proxy Through SolidStart Server Functions **[NOT SELECTED]**
 
-Use SolidStart server functions as a proxy layer:
-```typescript
-// Server-side RPC call (no CORS, server-to-server)
-"use server"
-export async function callRpc(method: string, params: unknown) {
-  const res = await fetch('http://localhost:8080/api/rpc', {...})
-  return res.json()
-}
-```
+Use SolidStart server functions as a proxy layer.
 
-**Pros:** No CORS issues, better security (credentials stay server-side)
-**Cons:** Extra hop, more complex session management
+**Reason not selected:** Extra hop adds latency, more complex session management
 
-#### Option C: Configure CORS on Rust Back-end (Current Assumption)
+#### Option C: Configure CORS on Rust Back-end **[SELECTED]**
 
 Add CORS middleware to Axum to allow cross-origin requests with credentials.
 
 **Pros:** Simple, standard web approach
 **Cons:** Requires back-end changes, potential security considerations
-
-### Recommendation
-
-**Use Option A (Direct Fetch) combined with Option C (CORS)**. This provides:
-- Clear separation of concerns
-- Direct use of generated TypeScript types
-- Standard browser-based authentication flow
-- Simpler debugging and development
 
 ---
 
@@ -91,6 +93,7 @@ Add CORS middleware to Axum to allow cross-origin requests with credentials.
 ### Phase 1: Setup TypeScript Types & RPC Client
 
 #### Step 1.1: Copy TypeScript Bindings to Front-end
+- [ ] Completed
 
 ```bash
 # Create types directory in SolidStart project
@@ -111,6 +114,7 @@ cp /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/crates/ser
 - `ParamsForUpdate.d.ts`
 
 #### Step 1.2: Create Extended Types for Create/Input Operations
+- [ ] Completed
 
 Create file: `src/types/backend/index.ts`
 
@@ -191,9 +195,27 @@ export type JsonRpcResponse<T = unknown> = JsonRpcSuccessResponse<T> | JsonRpcEr
 export function isRpcError(response: JsonRpcResponse): response is JsonRpcErrorResponse {
   return 'error' in response
 }
+
+// WebSocket message types
+export interface WsMessage {
+  type: 'conv_msg' | 'conv_update' | 'agent_update' | 'error'
+  payload: unknown
+}
+
+export interface WsConvMsgPayload {
+  conv_id: bigint | number
+  msg: ConvMsg
+}
+
+export interface WsSubscription {
+  action: 'subscribe' | 'unsubscribe'
+  channel: 'conv' | 'agent'
+  id?: bigint | number
+}
 ```
 
 #### Step 1.3: Create Custom RPC Client
+- [ ] Completed
 
 Create file: `src/lib/backend-rpc.ts`
 
@@ -315,6 +337,7 @@ export const backendRpc = { auth, agent, conv, convMsg }
 ### Phase 2: CORS Configuration (Back-end)
 
 #### Step 2.1: Add CORS Middleware to Rust Back-end
+- [ ] Completed
 
 In `crates/services/web-server/src/main.rs` or routes configuration, add:
 
@@ -337,9 +360,260 @@ let app = Router::new()
 
 **Note:** For production, replace with specific allowed origins.
 
-### Phase 3: Create SolidStart Components
+### Phase 3: WebSocket Support for Real-time Updates **[SELECTED: Alternative 1]**
 
-#### Step 3.1: Create Auth Context Component
+#### Step 3.1: Add WebSocket Handler to Rust Back-end
+- [ ] Completed
+
+Add to `Cargo.toml`:
+```toml
+[dependencies]
+tokio-tungstenite = "0.21"
+futures-util = "0.3"
+```
+
+Create WebSocket handler in `crates/services/web-server/src/web/routes_ws.rs`:
+
+```rust
+use axum::{
+    extract::{
+        ws::{Message, WebSocket, WebSocketUpgrade},
+        State,
+    },
+    response::IntoResponse,
+};
+use futures_util::{SinkExt, StreamExt};
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use tokio::sync::broadcast;
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct WsEvent {
+    pub event_type: String,
+    pub channel: String,
+    pub payload: serde_json::Value,
+}
+
+#[derive(Clone)]
+pub struct WsState {
+    pub tx: broadcast::Sender<WsEvent>,
+}
+
+impl WsState {
+    pub fn new() -> Self {
+        let (tx, _) = broadcast::channel(100);
+        Self { tx }
+    }
+
+    pub fn broadcast(&self, event: WsEvent) {
+        let _ = self.tx.send(event);
+    }
+}
+
+pub async fn ws_handler(
+    ws: WebSocketUpgrade,
+    State(state): State<Arc<WsState>>,
+) -> impl IntoResponse {
+    ws.on_upgrade(move |socket| handle_socket(socket, state))
+}
+
+async fn handle_socket(socket: WebSocket, state: Arc<WsState>) {
+    let (mut sender, mut receiver) = socket.split();
+    let mut rx = state.tx.subscribe();
+
+    // Task to forward broadcast messages to this client
+    let send_task = tokio::spawn(async move {
+        while let Ok(event) = rx.recv().await {
+            let msg = serde_json::to_string(&event).unwrap();
+            if sender.send(Message::Text(msg)).await.is_err() {
+                break;
+            }
+        }
+    });
+
+    // Task to receive messages from client (subscriptions, pings, etc.)
+    let recv_task = tokio::spawn(async move {
+        while let Some(Ok(msg)) = receiver.next().await {
+            match msg {
+                Message::Text(text) => {
+                    // Handle subscription requests
+                    if let Ok(sub) = serde_json::from_str::<SubscriptionRequest>(&text) {
+                        // Process subscription (implementation depends on your needs)
+                        tracing::info!("Subscription request: {:?}", sub);
+                    }
+                }
+                Message::Close(_) => break,
+                _ => {}
+            }
+        }
+    });
+
+    // Wait for either task to finish
+    tokio::select! {
+        _ = send_task => {},
+        _ = recv_task => {},
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct SubscriptionRequest {
+    action: String, // "subscribe" | "unsubscribe"
+    channel: String, // "conv" | "agent"
+    id: Option<i64>,
+}
+```
+
+#### Step 3.2: Register WebSocket Route
+- [ ] Completed
+
+In your main router configuration:
+
+```rust
+use std::sync::Arc;
+use crate::web::routes_ws::{ws_handler, WsState};
+
+// Create WebSocket state
+let ws_state = Arc::new(WsState::new());
+
+// Add WebSocket route
+let app = Router::new()
+    // ... existing routes
+    .route("/ws", get(ws_handler))
+    .with_state(ws_state.clone());
+```
+
+#### Step 3.3: Broadcast Events on Data Changes
+- [ ] Completed
+
+Modify RPC handlers to broadcast WebSocket events when data changes:
+
+```rust
+// In add_conv_msg handler (example)
+pub async fn add_conv_msg(
+    ctx: Ctx,
+    mm: ModelManager,
+    ws_state: Arc<WsState>,
+    params: ParamsForCreate<ConvMsgForCreate>,
+) -> Result<ConvMsg> {
+    let msg = ConvMsgBmc::create(&ctx, &mm, params.data).await?;
+
+    // Broadcast to WebSocket clients
+    ws_state.broadcast(WsEvent {
+        event_type: "conv_msg".to_string(),
+        channel: format!("conv:{}", msg.conv_id),
+        payload: serde_json::to_value(&msg).unwrap(),
+    });
+
+    Ok(msg)
+}
+```
+
+### Phase 4: Create SolidStart Components
+
+#### Step 4.1: Create WebSocket Client Hook
+- [ ] Completed
+
+Create file: `src/lib/websocket.ts`
+
+```typescript
+import { createSignal, onCleanup, onMount } from 'solid-js'
+import type { WsMessage, ConvMsg } from '~/types/backend'
+
+const WS_URL = 'ws://localhost:8080/ws'
+
+interface UseWebSocketOptions {
+  onConvMsg?: (convId: number, msg: ConvMsg) => void
+  onError?: (error: string) => void
+  autoReconnect?: boolean
+}
+
+export function useWebSocket(options: UseWebSocketOptions = {}) {
+  const [connected, setConnected] = createSignal(false)
+  const [error, setError] = createSignal<string | null>(null)
+  let ws: WebSocket | null = null
+  let reconnectTimeout: number | null = null
+
+  const connect = () => {
+    try {
+      ws = new WebSocket(WS_URL)
+
+      ws.onopen = () => {
+        setConnected(true)
+        setError(null)
+      }
+
+      ws.onclose = () => {
+        setConnected(false)
+        if (options.autoReconnect !== false) {
+          reconnectTimeout = window.setTimeout(connect, 3000)
+        }
+      }
+
+      ws.onerror = () => {
+        setError('WebSocket connection error')
+        options.onError?.('WebSocket connection error')
+      }
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as WsMessage
+          if (data.type === 'conv_msg' && options.onConvMsg) {
+            const payload = data.payload as { conv_id: number; msg: ConvMsg }
+            options.onConvMsg(payload.conv_id, payload.msg)
+          }
+        } catch (e) {
+          console.error('Failed to parse WebSocket message:', e)
+        }
+      }
+    } catch (e) {
+      setError('Failed to connect to WebSocket')
+    }
+  }
+
+  const subscribe = (channel: string, id?: number | bigint) => {
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        action: 'subscribe',
+        channel,
+        id: id ? Number(id) : undefined,
+      }))
+    }
+  }
+
+  const unsubscribe = (channel: string, id?: number | bigint) => {
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        action: 'unsubscribe',
+        channel,
+        id: id ? Number(id) : undefined,
+      }))
+    }
+  }
+
+  const disconnect = () => {
+    if (reconnectTimeout) {
+      clearTimeout(reconnectTimeout)
+    }
+    ws?.close()
+    ws = null
+  }
+
+  onMount(connect)
+  onCleanup(disconnect)
+
+  return {
+    connected,
+    error,
+    subscribe,
+    unsubscribe,
+    disconnect,
+    reconnect: connect,
+  }
+}
+```
+
+#### Step 4.2: Create Auth Context Component
+- [ ] Completed
 
 Create file: `src/components/AuthContext.tsx`
 
@@ -399,7 +673,8 @@ export function useAuth() {
 }
 ```
 
-#### Step 3.2: Create Login Form Component
+#### Step 4.3: Create Login Form Component
+- [ ] Completed
 
 Create file: `src/components/LoginForm.tsx`
 
@@ -468,7 +743,8 @@ export default function LoginForm() {
 }
 ```
 
-#### Step 3.3: Create Agent Manager Component
+#### Step 4.4: Create Agent Manager Component
+- [ ] Completed
 
 Create file: `src/components/AgentManager.tsx`
 
@@ -572,7 +848,8 @@ export default function AgentManager(props: Props) {
 }
 ```
 
-#### Step 3.4: Create Conversation Manager Component
+#### Step 4.5: Create Conversation Manager Component
+- [ ] Completed
 
 Create file: `src/components/ConversationManager.tsx`
 
@@ -697,13 +974,15 @@ export default function ConversationManager(props: Props) {
 }
 ```
 
-#### Step 3.5: Create Message Panel Component
+#### Step 4.6: Create Message Panel Component with WebSocket Support
+- [ ] Completed
 
 Create file: `src/components/MessagePanel.tsx`
 
 ```typescript
-import { createSignal, Show } from 'solid-js'
+import { createSignal, createEffect, Show, For, onCleanup } from 'solid-js'
 import { backendRpc } from '~/lib/backend-rpc'
+import { useWebSocket } from '~/lib/websocket'
 import type { Conv, ConvMsg } from '~/types/backend'
 
 interface Props {
@@ -714,6 +993,42 @@ export default function MessagePanel(props: Props) {
   const [messages, setMessages] = createSignal<ConvMsg[]>([])
   const [sending, setSending] = createSignal(false)
   const [error, setError] = createSignal<string | null>(null)
+
+  // WebSocket for real-time updates
+  const { connected, subscribe, unsubscribe } = useWebSocket({
+    onConvMsg: (convId, msg) => {
+      // Only add message if it's for the current conversation
+      if (props.conv && Number(props.conv.id) === convId) {
+        setMessages((prev) => {
+          // Avoid duplicates (in case we just sent this message)
+          if (prev.some((m) => m.id === msg.id)) {
+            return prev
+          }
+          return [...prev, msg]
+        })
+      }
+    },
+    onError: (err) => setError(err),
+  })
+
+  // Subscribe to conversation updates when conv changes
+  createEffect(() => {
+    const conv = props.conv
+    if (conv) {
+      subscribe('conv', conv.id)
+      // Reset messages when conversation changes
+      setMessages([])
+    }
+  })
+
+  // Unsubscribe when conversation changes or component unmounts
+  createEffect((prevConvId: bigint | number | null) => {
+    const currentConvId = props.conv?.id ?? null
+    if (prevConvId && prevConvId !== currentConvId) {
+      unsubscribe('conv', prevConvId)
+    }
+    return currentConvId
+  }, null)
 
   const handleSend = async (e: Event) => {
     e.preventDefault()
@@ -729,6 +1044,7 @@ export default function MessagePanel(props: Props) {
         conv_id: props.conv.id,
         content: formData.get('content') as string,
       })
+      // Add message immediately (WebSocket will dedupe if needed)
       setMessages((prev) => [...prev, msg])
       form.reset()
     } catch (e) {
@@ -740,7 +1056,14 @@ export default function MessagePanel(props: Props) {
 
   return (
     <div class="space-y-4">
-      <h3 class="text-lg font-semibold">Messages</h3>
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-semibold">Messages</h3>
+        <Show when={props.conv}>
+          <span class={`text-xs ${connected() ? 'text-green-600' : 'text-red-600'}`}>
+            {connected() ? 'Live' : 'Offline'}
+          </span>
+        </Show>
+      </div>
 
       <Show when={!props.conv}>
         <p class="text-gray-500">Select a conversation first</p>
@@ -756,12 +1079,14 @@ export default function MessagePanel(props: Props) {
           <Show when={messages().length === 0}>
             <p class="text-gray-500">No messages yet</p>
           </Show>
-          {messages().map((msg) => (
-            <div class="rounded bg-gray-100 p-2">
-              <p>{msg.content}</p>
-              <span class="text-xs text-gray-500">ID: {String(msg.id)}</span>
-            </div>
-          ))}
+          <For each={messages()}>
+            {(msg) => (
+              <div class="rounded bg-gray-100 p-2">
+                <p>{msg.content}</p>
+                <span class="text-xs text-gray-500">ID: {String(msg.id)}</span>
+              </div>
+            )}
+          </For>
         </div>
 
         {/* Send Message Form */}
@@ -786,9 +1111,10 @@ export default function MessagePanel(props: Props) {
 }
 ```
 
-### Phase 4: Create the Fullstack Page
+### Phase 5: Create the Fullstack Page
 
-#### Step 4.1: Create the Main Page
+#### Step 5.1: Create the Main Page
+- [ ] Completed
 
 Create file: `src/routes/fullstack.tsx`
 
@@ -817,7 +1143,7 @@ function FullstackContent() {
     <main class="container mx-auto p-4">
       <h1 class="mb-6 text-2xl font-bold">Full-Stack Integration Demo</h1>
       <p class="mb-4 text-gray-600">
-        SolidStart + Rust/Axum JSON-RPC Example
+        SolidStart + Rust/Axum JSON-RPC Example (with WebSocket real-time updates)
       </p>
 
       <Show when={!isAuthenticated()}>
@@ -868,9 +1194,10 @@ export default function Fullstack() {
 }
 ```
 
-### Phase 5: Testing
+### Phase 6: Testing
 
-#### Step 5.1: Component Tests
+#### Step 6.1: Component Tests
+- [ ] Completed
 
 Create file: `src/components/LoginForm.test.tsx`
 
@@ -1023,7 +1350,67 @@ describe('<AgentManager />', () => {
 })
 ```
 
-#### Step 5.2: E2E Tests
+#### Step 6.2: WebSocket Tests
+- [ ] Completed
+
+Create file: `src/lib/websocket.test.ts`
+
+```typescript
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+// Mock WebSocket
+class MockWebSocket {
+  static instances: MockWebSocket[] = []
+  url: string
+  readyState = 0
+  onopen: (() => void) | null = null
+  onclose: (() => void) | null = null
+  onerror: (() => void) | null = null
+  onmessage: ((event: { data: string }) => void) | null = null
+
+  constructor(url: string) {
+    this.url = url
+    MockWebSocket.instances.push(this)
+    setTimeout(() => {
+      this.readyState = 1
+      this.onopen?.()
+    }, 0)
+  }
+
+  send = vi.fn()
+  close = vi.fn(() => {
+    this.readyState = 3
+    this.onclose?.()
+  })
+
+  simulateMessage(data: unknown) {
+    this.onmessage?.({ data: JSON.stringify(data) })
+  }
+}
+
+describe('useWebSocket', () => {
+  beforeEach(() => {
+    MockWebSocket.instances = []
+    vi.stubGlobal('WebSocket', MockWebSocket)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('connects to WebSocket server', async () => {
+    // Import after mocking
+    const { useWebSocket } = await import('./websocket')
+
+    // Would need SolidJS testing utilities to properly test
+    // This is a placeholder for the test structure
+    expect(MockWebSocket).toBeDefined()
+  })
+})
+```
+
+#### Step 6.3: E2E Tests
+- [ ] Completed
 
 Create file: `e2e/fullstack.spec.ts`
 
@@ -1074,6 +1461,23 @@ test.describe('Fullstack Integration Page', () => {
       await expect(page.getByPlaceholderText(/agent name/i)).toBeVisible()
     })
 
+    test('should show real-time indicator', async ({ page }) => {
+      await page.getByRole('button', { name: /login/i }).click()
+      await expect(page.getByText(/logged in as/i)).toBeVisible({ timeout: 5000 })
+
+      // Create agent and conversation to see message panel
+      await page.getByPlaceholderText(/agent name/i).fill('E2E Test Agent')
+      await page.getByRole('button', { name: /create agent/i }).click()
+      await expect(page.getByText('E2E Test Agent')).toBeVisible({ timeout: 5000 })
+
+      await page.getByPlaceholderText(/conversation title/i).fill('E2E Test Conv')
+      await page.getByRole('button', { name: /create conv/i }).click()
+      await expect(page.getByText('E2E Test Conv')).toBeVisible({ timeout: 5000 })
+
+      // Should show Live/Offline indicator
+      await expect(page.getByText(/live|offline/i)).toBeVisible()
+    })
+
     test('should create agent, conversation, and send message', async ({ page }) => {
       // Login
       await page.getByRole('button', { name: /login/i }).click()
@@ -1113,32 +1517,42 @@ test.describe('Fullstack Integration Page', () => {
 
 ### New Files to Create
 
-| File | Purpose |
-|------|---------|
-| `src/types/backend/index.ts` | Type re-exports and additional types |
-| `src/lib/backend-rpc.ts` | Custom RPC client for backend |
-| `src/components/AuthContext.tsx` | Auth state management |
-| `src/components/LoginForm.tsx` | Login UI component |
-| `src/components/AgentManager.tsx` | Agent CRUD UI |
-| `src/components/ConversationManager.tsx` | Conversation CRUD UI |
-| `src/components/MessagePanel.tsx` | Message display and send UI |
-| `src/routes/fullstack.tsx` | Main fullstack demo page |
-| `src/components/LoginForm.test.tsx` | LoginForm unit tests |
-| `src/components/AgentManager.test.tsx` | AgentManager unit tests |
-| `e2e/fullstack.spec.ts` | E2E tests |
+| File | Purpose | Status |
+|------|---------|--------|
+| `src/types/backend/index.ts` | Type re-exports and additional types | [ ] |
+| `src/lib/backend-rpc.ts` | Custom RPC client for backend | [ ] |
+| `src/lib/websocket.ts` | WebSocket client hook for real-time updates | [ ] |
+| `src/components/AuthContext.tsx` | Auth state management | [ ] |
+| `src/components/LoginForm.tsx` | Login UI component | [ ] |
+| `src/components/AgentManager.tsx` | Agent CRUD UI | [ ] |
+| `src/components/ConversationManager.tsx` | Conversation CRUD UI | [ ] |
+| `src/components/MessagePanel.tsx` | Message display and send UI (with WebSocket) | [ ] |
+| `src/routes/fullstack.tsx` | Main fullstack demo page | [ ] |
+| `src/components/LoginForm.test.tsx` | LoginForm unit tests | [ ] |
+| `src/components/AgentManager.test.tsx` | AgentManager unit tests | [ ] |
+| `src/lib/websocket.test.ts` | WebSocket hook tests | [ ] |
+| `e2e/fullstack.spec.ts` | E2E tests | [ ] |
+
+### Backend Files to Create/Modify
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `crates/services/web-server/src/web/routes_ws.rs` | WebSocket handler | [ ] |
+| `crates/services/web-server/src/main.rs` | Add CORS + WebSocket routes | [ ] |
 
 ### Files to Copy
 
-| Source | Destination |
-|--------|-------------|
-| `rust-web-app/.../bindings/*.d.ts` | `SolidStart-Demo/src/types/backend/` |
+| Source | Destination | Status |
+|--------|-------------|--------|
+| `rust-web-app/.../bindings/*.d.ts` | `SolidStart-Demo/src/types/backend/` | [ ] |
 
 ### Files to Modify (Potentially)
 
-| File | Change |
-|------|--------|
-| `rust-web-app/.../main.rs` or routes | Add CORS middleware |
-| `SolidStart-Demo/src/lib/rpc-client.ts` | Can be removed or kept for reference |
+| File | Change | Status |
+|------|--------|--------|
+| `rust-web-app/.../main.rs` or routes | Add CORS middleware | [ ] |
+| `rust-web-app/Cargo.toml` | Add tokio-tungstenite, futures-util | [ ] |
+| `SolidStart-Demo/src/lib/rpc-client.ts` | Can be removed or kept for reference | [ ] |
 
 ---
 
@@ -1146,57 +1560,72 @@ test.describe('Fullstack Integration Page', () => {
 
 ### Step-by-Step Execution Plan
 
-1. **[Backend] Add CORS support to Rust server**
-   - Add `tower-http` dependency with `cors` feature
-   - Configure CORS middleware for `localhost:3000`
+#### Backend Setup
+- [ ] 1. **[Backend] Add WebSocket dependencies to Cargo.toml**
+  - Add `tokio-tungstenite` and `futures-util`
 
-2. **[Frontend] Setup types directory**
-   - Create `src/types/backend/` directory
-   - Copy TypeScript bindings from Rust project
-   - Create `index.ts` with additional types
+- [ ] 2. **[Backend] Create WebSocket handler module**
+  - Create `routes_ws.rs` with WebSocket state and handler
 
-3. **[Frontend] Create RPC client**
-   - Create `src/lib/backend-rpc.ts`
-   - Test connection manually
+- [ ] 3. **[Backend] Add CORS support to Rust server**
+  - Add `tower-http` dependency with `cors` feature
+  - Configure CORS middleware for `localhost:3000`
 
-4. **[Frontend] Create components (in order)**
-   - `AuthContext.tsx` (foundation)
-   - `LoginForm.tsx` (depends on AuthContext)
-   - `AgentManager.tsx` (depends on RPC client)
-   - `ConversationManager.tsx` (depends on RPC client)
-   - `MessagePanel.tsx` (depends on RPC client)
+- [ ] 4. **[Backend] Register WebSocket route**
+  - Add `/ws` route to main router
+  - Initialize WebSocket state
 
-5. **[Frontend] Create fullstack page**
-   - Create `src/routes/fullstack.tsx`
-   - Wire up all components
+- [ ] 5. **[Backend] Modify RPC handlers to broadcast events**
+  - Update `add_conv_msg` to broadcast WebSocket events
+  - Update other relevant handlers as needed
 
-6. **[Frontend] Create component tests**
-   - `LoginForm.test.tsx`
-   - `AgentManager.test.tsx`
-   - Additional tests as needed
+#### Frontend Setup
+- [ ] 6. **[Frontend] Setup types directory**
+  - Create `src/types/backend/` directory
+  - Copy TypeScript bindings from Rust project
+  - Create `index.ts` with additional types (including WebSocket types)
 
-7. **[Frontend] Create E2E tests**
-   - Create `e2e/fullstack.spec.ts`
-   - Run with backend running
+- [ ] 7. **[Frontend] Create RPC client**
+  - Create `src/lib/backend-rpc.ts`
+  - Test connection manually
 
-8. **[Both] Integration testing**
-   - Start Rust backend
-   - Start SolidStart frontend
-   - Run E2E tests
+- [ ] 8. **[Frontend] Create WebSocket client hook**
+  - Create `src/lib/websocket.ts`
+  - Implement connection, subscription, and message handling
+
+- [ ] 9. **[Frontend] Create components (in order)**
+  - `AuthContext.tsx` (foundation)
+  - `LoginForm.tsx` (depends on AuthContext)
+  - `AgentManager.tsx` (depends on RPC client)
+  - `ConversationManager.tsx` (depends on RPC client)
+  - `MessagePanel.tsx` (depends on RPC client + WebSocket)
+
+- [ ] 10. **[Frontend] Create fullstack page**
+  - Create `src/routes/fullstack.tsx`
+  - Wire up all components
+
+#### Testing
+- [ ] 11. **[Frontend] Create component tests**
+  - `LoginForm.test.tsx`
+  - `AgentManager.test.tsx`
+  - `websocket.test.ts`
+  - Additional tests as needed
+
+- [ ] 12. **[Frontend] Create E2E tests**
+  - Create `e2e/fullstack.spec.ts`
+  - Include WebSocket connectivity tests
+
+- [ ] 13. **[Both] Integration testing**
+  - Start Rust backend
+  - Start SolidStart frontend
+  - Run E2E tests
+  - Verify WebSocket real-time updates work
 
 ---
 
-## Part 5: Alternative Approaches
+## Part 5: Alternative Approaches (Not Selected)
 
-### Alternative 1: WebSocket for Real-time Updates
-
-Instead of polling or manual refresh, use WebSocket for real-time message updates.
-
-**Trade-offs:**
-- Pro: Real-time updates without polling
-- Con: More complex, requires backend WebSocket support
-
-### Alternative 2: SolidStart Server Functions Proxy
+### Alternative 2: SolidStart Server Functions Proxy **[NOT SELECTED]**
 
 Route all RPC calls through SolidStart server functions.
 
@@ -1223,25 +1652,19 @@ export async function serverRpc(method: string, params: unknown) {
 }
 ```
 
-**Trade-offs:**
-- Pro: No CORS issues, better security
-- Con: Added latency, session management complexity
+**Reason not selected:** Added latency from extra hop, more complex session management, doesn't support WebSocket easily
 
-### Alternative 3: OpenAPI/Swagger Code Generation
+### Alternative 3: OpenAPI/Swagger Code Generation **[NOT SELECTED]**
 
 Generate TypeScript client from OpenAPI spec instead of custom types.
 
-**Trade-offs:**
-- Pro: Automatic, always in sync
-- Con: Requires OpenAPI spec generation from Rust (additional tooling)
+**Reason not selected:** Requires OpenAPI spec generation from Rust (additional tooling), adds complexity
 
-### Alternative 4: tRPC-style Type Sharing
+### Alternative 4: tRPC-style Type Sharing **[NOT SELECTED]**
 
 Use a shared types package or monorepo setup for type synchronization.
 
-**Trade-offs:**
-- Pro: Single source of truth for types
-- Con: Requires monorepo setup, build complexity
+**Reason not selected:** Requires monorepo setup, adds build complexity
 
 ---
 
@@ -1288,11 +1711,26 @@ Add to `package.json`:
 
 ## Appendix: quick_dev.rs Workflow Mapping
 
-| quick_dev.rs Step | SolidStart Component | RPC Method |
-|-------------------|---------------------|------------|
-| Login | `LoginForm` | `POST /api/login` |
-| Create Agent | `AgentManager` | `create_agent` |
-| Get Agent | `AgentManager` (auto-select) | `get_agent` |
-| Create Conversation | `ConversationManager` | `create_conv` |
-| Add Message | `MessagePanel` | `add_conv_msg` |
-| Logoff | Logout button | `POST /api/logoff` |
+| quick_dev.rs Step | SolidStart Component | RPC Method | Real-time |
+|-------------------|---------------------|------------|-----------|
+| Login | `LoginForm` | `POST /api/login` | - |
+| Create Agent | `AgentManager` | `create_agent` | WebSocket broadcast |
+| Get Agent | `AgentManager` (auto-select) | `get_agent` | - |
+| Create Conversation | `ConversationManager` | `create_conv` | WebSocket broadcast |
+| Add Message | `MessagePanel` | `add_conv_msg` | WebSocket broadcast |
+| Logoff | Logout button | `POST /api/logoff` | - |
+
+---
+
+## Progress Tracking
+
+Use this checklist to track overall progress:
+
+### Phase Completion
+- [ ] Phase 1: TypeScript Types & RPC Client
+- [ ] Phase 2: CORS Configuration
+- [ ] Phase 3: WebSocket Support
+- [ ] Phase 4: SolidStart Components
+- [ ] Phase 5: Fullstack Page
+- [ ] Phase 6: Testing
+- [ ] Integration Complete
