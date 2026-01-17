@@ -1,6 +1,6 @@
 # Goal: Create a step by step plan to integrate a TypeScript/SolidStart front-end with a Rust/Axum back-end
 # Context:
- - The fornt-end project is here: /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo
+ - The front-end project is here: /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo
  - The back-end project is here: /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app
  - Both projects have preliminary jsonRPC implementation
  - Both projects will be deployed in a single Docker container
@@ -11,20 +11,20 @@
 # Tasks
  - Review the above projects and files
  - Consider how the projects will be configured for jsonRPC communication
- - The goal of the plan should be to recreate the Rust example program as a SolidStart example page that comunicates with the back-end over jsonRPC
+ - The goal of the plan should be to recreate the Rust example program as a SolidStart example page that communicates with the back-end over jsonRPC
  - The SolidStart example page should be located here: /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo/src/routes/fullstack.tsx
- - The SolidStart example page should be component based 
+ - The SolidStart example page should be component based
  - The SolidStart example page should have a user interface similar to the existing SolidStart page here: /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo/src/routes/index.tsx
  - The SolidStart example page should have a test file similar in scope to /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo/e2e/home.spec.ts
- - Any components created for the SolidStart example page should have corresponding tests siilar to this: /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo/src/components/Counter.test.tsx
+ - Any components created for the SolidStart example page should have corresponding tests similar to this: /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo/src/components/Counter.test.tsx
  - Consider alternatives to architectural or other technical choices an assumptons
- - Recomend ways the front-end to back-end communication can be simplified or made more reliable
- - Create a step by step plan that Claude can execute 
+ - Recommend ways the front-end to back-end communication can be simplified or made more reliable
+ - Create a step by step plan that Claude can execute
  - Write the step by step plan here: /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/planning/full_stack_integration.md
- 
- 
+
+
  ---
- 
+
  ⏺ Claude created a comprehensive step-by-step plan at /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/planning/full_stack_integration.md.
 
   Summary
@@ -55,4 +55,3 @@
   - tRPC-style sharing (single source of truth but requires monorepo)
 
   The plan maps each step from quick_dev.rs to corresponding SolidStart components and provides ready-to-implement code for all files.
- 
