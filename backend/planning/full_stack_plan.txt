@@ -93,3 +93,39 @@ Instead of polling or manual refresh, use WebSocket for real-time message update
 5. Update the Plan Document to reflect "Alternative 1: WebSocket for Real-time Updates" @line 1191 in the existing Plan Document
 6. Add "Completed" checkboxes to each phase/step in the Plan Document allowing Claude execute the plan in sequence and keep track of what has already been done
 7. Write change back to the Plan Document here: /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/planning/full_stack_integration2.md
+
+---
+
+⏺ Claude created the updated plan document at
+  /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/planning/full_stack_integration2.md.
+
+  Summary of Changes
+
+  1. Selected Approach Clearly Marked:
+  - Added a "Selected Approach Summary" section at the top highlighting: Option A (Direct Fetch) + Option C (CORS) +
+  Alternative 1 (WebSocket)
+  - Marked each option with [SELECTED] or [NOT SELECTED] tags
+  - Added explanations for why alternatives were not selected
+
+  2. WebSocket Integration Added (Alternative 1):
+  - Added new Phase 3: WebSocket Support for Real-time Updates with:
+    - Step 3.1: Add WebSocket Handler to Rust Back-end
+    - Step 3.2: Register WebSocket Route
+    - Step 3.3: Broadcast Events on Data Changes
+  - Added new Step 4.1: Create WebSocket Client Hook (src/lib/websocket.ts)
+  - Updated MessagePanel component to use WebSocket for real-time message updates
+  - Added WebSocket types to the TypeScript types file
+  - Added WebSocket tests
+  - Updated E2E tests to verify real-time connectivity
+
+  3. Completion Checkboxes Added:
+  - [ ] checkboxes added to every step in Part 2 (Implementation Steps)
+  - Status column with [ ] added to File Summary tables in Part 3
+  - [ ] checkboxes added to all 13 steps in Part 4 (Execution Order)
+  - Added "Phase Completion" tracking section at the end
+
+  4. Additional Updates:
+  - Added WebSocket endpoint to Communication section
+  - Added deployment note about single Docker container
+  - Updated Appendix table with "Real-time" column
+  - Renumbered phases (now 6 phases instead of 5)
