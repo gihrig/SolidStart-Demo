@@ -1,17 +1,21 @@
+use crate::web::routes_ws::WsState;
 use crate::web::rpcs::all_rpc_router_builder;
 use axum::routing::post;
 use axum::Router;
 use lib_core::model::ModelManager;
 use lib_web::handlers::handlers_rpc;
+use std::sync::Arc;
 
 ///  Build the Axum router for '/api/rpc'
 /// Note: This will build the `rpc-router::Router` that will be used by the
 ///       rpc_axum_handler
-pub fn routes(mm: ModelManager) -> Router {
+pub fn routes(mm: ModelManager, ws_state: Arc<WsState>) -> Router {
 	// Build the combined Rpc Router (from `rpc-router` crate)
+	// Note: WsState is cloned from Arc, broadcast::Sender clones share the same channel
 	let rpc_router = all_rpc_router_builder()
 		// Add the common resources for all rpc calls
 		.append_resource(mm)
+		.append_resource((*ws_state).clone())
 		.build();
 
 	// Build the Axum Router for '/rpc'

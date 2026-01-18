@@ -50,7 +50,7 @@ async fn main() -> Result<()> {
 	// endregion: -- Initialization Phase
 
 	// Route Definition - Protected API endpoints
-	let routes_rpc = web::routes_rpc::routes(mm.clone())
+	let routes_rpc = web::routes_rpc::routes(mm.clone(), ws_state.clone())
 		.route_layer(middleware::from_fn(mw_ctx_require));
 
 	// WebSocket routes (no auth required for upgrade, auth handled in WS handler if needed)

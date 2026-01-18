@@ -33,7 +33,7 @@ struct SubscriptionRequest {
 
 // region:    --- WebSocket State
 
-#[derive(Clone)]
+#[derive(Clone, rpc_router::RpcResource)]
 pub struct WsState {
 	pub tx: broadcast::Sender<WsEvent>,
 }

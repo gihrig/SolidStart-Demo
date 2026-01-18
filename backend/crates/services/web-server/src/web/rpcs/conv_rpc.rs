@@ -1,3 +1,4 @@
+use crate::web::routes_ws::WsState;
 use lib_core::model::conv::{
 	Conv, ConvBmc, ConvFilter, ConvForCreate, ConvForUpdate,
 };
@@ -25,16 +26,25 @@ generate_common_rpc_fns!(
 	Suffix: conv
 );
 
-/// Add conv_msg
+/// Add conv_msg with WebSocket broadcast
 pub async fn add_conv_msg(
 	ctx: Ctx,
 	mm: ModelManager,
+	ws_state: WsState,
 	params: ParamsForCreate<ConvMsgForCreate>,
 ) -> Result<DataRpcResult<ConvMsg>> {
 	let ParamsForCreate { data: msg_c } = params;
 
+	// Get conv_id before creating message (for broadcast)
+	let conv_id = msg_c.conv_id;
+
 	let msg_id = ConvBmc::add_msg(&ctx, &mm, msg_c).await?;
 	let msg = ConvBmc::get_msg(&ctx, &mm, msg_id).await?;
+
+	// Broadcast WebSocket event for new message
+	if let Ok(payload) = serde_json::to_value(&msg) {
+		ws_state.broadcast_conv_msg(conv_id, &payload);
+	}
 
 	Ok(msg.into())
 }

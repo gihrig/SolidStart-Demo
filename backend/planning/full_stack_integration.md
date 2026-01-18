@@ -363,7 +363,7 @@ let app = Router::new()
 ### Phase 3: WebSocket Support for Real-time Updates **[SELECTED: Alternative 1]**
 
 #### Step 3.1: Add WebSocket Handler to Rust Back-end
-- [ ] Completed
+- [x] Completed
 
 Add to `Cargo.toml`:
 ```toml
@@ -464,7 +464,7 @@ struct SubscriptionRequest {
 ```
 
 #### Step 3.2: Register WebSocket Route
-- [ ] Completed
+- [x] Completed
 
 In your main router configuration:
 
@@ -483,7 +483,7 @@ let app = Router::new()
 ```
 
 #### Step 3.3: Broadcast Events on Data Changes
-- [ ] Completed
+- [x] Completed
 
 Modify RPC handlers to broadcast WebSocket events when data changes:
 
@@ -1537,7 +1537,7 @@ test.describe('Fullstack Integration Page', () => {
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `crates/services/web-server/src/web/routes_ws.rs` | WebSocket handler | [ ] |
+| `crates/services/web-server/src/web/routes_ws.rs` | WebSocket handler | [x] |
 | `crates/services/web-server/src/main.rs` | Add CORS + WebSocket routes | [ ] |
 
 ### Files to Copy
@@ -1551,7 +1551,7 @@ test.describe('Fullstack Integration Page', () => {
 | File | Change | Status |
 |------|--------|--------|
 | `rust-web-app/.../main.rs` or routes | Add CORS middleware | [x] |
-| `rust-web-app/Cargo.toml` | Add tokio-tungstenite, futures-util | [ ] |
+| `rust-web-app/Cargo.toml` | Add axum ws feature, futures | [x] |
 | `SolidStart-Demo/src/lib/rpc-client.ts` | Can be removed or kept for reference | [ ] |
 
 ---
@@ -1729,7 +1729,7 @@ Use this checklist to track overall progress:
 ### Phase Completion
 - [x] Phase 1: TypeScript Types & RPC Client
 - [x] Phase 2: CORS Configuration
-- [ ] Phase 3: WebSocket Support
+- [x] Phase 3: WebSocket Support
 - [ ] Phase 4: SolidStart Components
 - [ ] Phase 5: Fullstack Page
 - [ ] Phase 6: Testing
