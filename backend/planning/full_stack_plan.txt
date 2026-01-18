@@ -165,3 +165,43 @@ Instead of polling or manual refresh, use WebSocket for real-time message update
   bindings and may be useful for the integration.
 
 --> /cost 0.63
+
+⏺ Now do Step 1.2 create extended types
+
+---
+
+Yes
+
+---
+
+⏺ Step 1.2 Complete.
+
+  Created SolidStart-Demo/src/types/backend/index.ts with:
+
+  Re-exports (10 types):
+  - Agent, Conv, ConvKind, ConvState, ConvMsg, ConvUser, User, UserTyp, ParamsIded, ParamsForUpdate
+
+  Input types for create/update operations:
+  - AgentForCreate - name field
+  - AgentForUpdate - optional name
+  - ConvForCreate - agent_id, optional title/kind
+  - ConvForUpdate - optional owner_id, title, state
+  - ConvMsgForCreate - conv_id, content
+
+  Auth payloads:
+  - LoginPayload - username, pwd
+  - LogoffPayload - logoff boolean
+
+  JSON-RPC types:
+  - JsonRpcRequest<P> - standard JSON-RPC 2.0 request
+  - JsonRpcSuccessResponse<T> - success response with result.data
+  - JsonRpcErrorResponse - error response with message and optional details
+  - JsonRpcResponse<T> - union type
+  - isRpcError() - type guard function
+
+  WebSocket types:
+  - WsMessage - message envelope with type and payload
+  - WsConvMsgPayload - conversation message payload
+  - WsSubscription - subscribe/unsubscribe request
+
+  --> /cost 0.46

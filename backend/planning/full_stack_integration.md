@@ -114,7 +114,7 @@ cp /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/crates/ser
 - `ParamsForUpdate.d.ts`
 
 #### Step 1.2: Create Extended Types for Create/Input Operations
-- [ ] Completed
+- [x] Completed
 
 Create file: `src/types/backend/index.ts`
 
