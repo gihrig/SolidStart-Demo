@@ -13,6 +13,7 @@ lib-web = { path = "../../libs/lib-web"}
 
 axum = { workspace = true }
 derive_more = { workspace = true }
+futures = { workspace = true }
 rpc-router = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

@@ -42,7 +42,7 @@ uninlined_format_args = "allow"
 # Features are additive, increasing binary size, only declare here if universal
 [workspace.dependencies]
 argon2 = "0.5.3"
-axum = { version = "0.8.8", features = ["macros"] }
+axum = { version = "0.8.8", features = ["macros", "ws"] }
 base64 = "0.22.1"
 blake3 = "1.8.3"
 derive_more = { version = "2.1.1", features = ["display", "from"] }
