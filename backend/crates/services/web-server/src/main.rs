@@ -14,11 +14,12 @@ use lib_web::routes::routes_static;
 
 use crate::web::routes_login;
 
-use axum::{middleware, Router};
+use axum::{http::Method, middleware, Router};
 use lib_core::_dev_utils;
 use lib_core::model::ModelManager;
 use tokio::net::TcpListener;
 use tower_cookies::CookieManagerLayer;
+use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
@@ -47,6 +48,14 @@ async fn main() -> Result<()> {
 	let routes_rpc = web::routes_rpc::routes(mm.clone())
 		.route_layer(middleware::from_fn(mw_ctx_require));
 
+	// CORS Configuration for SolidStart front-end
+	// Note: For production, replace with specific allowed origins
+	let cors = CorsLayer::new()
+		.allow_origin("http://localhost:3000".parse::<axum::http::HeaderValue>().unwrap())
+		.allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+		.allow_headers(Any)
+		.allow_credentials(true);
+
 	// Router Assembly - Middleware nested under /api prefix
 	let routes_all = Router::new()
 		.merge(routes_login::routes(mm.clone()))
@@ -54,6 +63,7 @@ async fn main() -> Result<()> {
 		.layer(middleware::map_response(mw_response_map))
 		.layer(middleware::from_fn_with_state(mm.clone(), mw_ctx_resolver))
 		.layer(CookieManagerLayer::new())
+		.layer(cors)
 		.layer(middleware::from_fn(mw_req_stamp_resolver))
 		.fallback_service(routes_static::serve_dir(&web_config().WEB_FOLDER));
 

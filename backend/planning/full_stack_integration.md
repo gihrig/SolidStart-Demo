@@ -337,7 +337,7 @@ export const backendRpc = { auth, agent, conv, convMsg }
 ### Phase 2: CORS Configuration (Back-end)
 
 #### Step 2.1: Add CORS Middleware to Rust Back-end
-- [ ] Completed
+- [x] Completed
 
 In `crates/services/web-server/src/main.rs` or routes configuration, add:
 
@@ -1550,7 +1550,7 @@ test.describe('Fullstack Integration Page', () => {
 
 | File | Change | Status |
 |------|--------|--------|
-| `rust-web-app/.../main.rs` or routes | Add CORS middleware | [ ] |
+| `rust-web-app/.../main.rs` or routes | Add CORS middleware | [x] |
 | `rust-web-app/Cargo.toml` | Add tokio-tungstenite, futures-util | [ ] |
 | `SolidStart-Demo/src/lib/rpc-client.ts` | Can be removed or kept for reference | [ ] |
 
@@ -1728,7 +1728,7 @@ Use this checklist to track overall progress:
 
 ### Phase Completion
 - [x] Phase 1: TypeScript Types & RPC Client
-- [ ] Phase 2: CORS Configuration
+- [x] Phase 2: CORS Configuration
 - [ ] Phase 3: WebSocket Support
 - [ ] Phase 4: SolidStart Components
 - [ ] Phase 5: Fullstack Page
