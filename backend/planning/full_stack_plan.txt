@@ -129,3 +129,39 @@ Instead of polling or manual refresh, use WebSocket for real-time message update
   - Added deployment note about single Docker container
   - Updated Appendix table with "Real-time" column
   - Renumbered phases (now 6 phases instead of 5)
+
+--> /cost 0.42
+---
+
+# Goal:
+- Begin ### Phase 1: Setup TypeScript Types & RPC Client @line 93 in /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/planning/full_stack_integration.md
+# Context:
+- Complete #### Step 1.1: Copy TypeScript Bindings to Front-end @line 95
+- Mark Step 1.1 as Complete
+- Do not move beyond this step
+
+---
+
+⏺ Step 1.1 Complete.
+
+  I copied the following TypeScript bindings from the Rust back-end to the SolidStart front-end:
+
+  Source: rust-web-app/crates/services/web-server/bindings/
+  Destination: SolidStart-Demo/src/types/backend/
+
+  Files copied (10 total):
+  - Agent.d.ts - Agent entity type
+  - Conv.d.ts - Conversation entity type
+  - ConvKind.d.ts - Conversation kind enum ("OwnerOnly" | "MultiUsers")
+  - ConvState.d.ts - Conversation state enum ("Active" | "Archived")
+  - ConvMsg.d.ts - Conversation message type
+  - ConvUser.d.ts - Conversation user relationship type
+  - User.d.ts - User entity type
+  - UserTyp.d.ts - User type enum ("Sys" | "User")
+  - ParamsIded.d.ts - RPC params with ID
+  - ParamsForUpdate.d.ts - RPC params for update operations
+
+  Note: I included User.d.ts, UserTyp.d.ts, and ConvUser.d.ts which were not in the original plan but exist in the
+  bindings and may be useful for the integration.
+
+--> /cost 0.63

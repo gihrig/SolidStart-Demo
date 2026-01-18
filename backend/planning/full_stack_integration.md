@@ -93,7 +93,7 @@ Add CORS middleware to Axum to allow cross-origin requests with credentials.
 ### Phase 1: Setup TypeScript Types & RPC Client
 
 #### Step 1.1: Copy TypeScript Bindings to Front-end
-- [ ] Completed
+- [x] Completed
 
 ```bash
 # Create types directory in SolidStart project
