@@ -215,7 +215,7 @@ export interface WsSubscription {
 ```
 
 #### Step 1.3: Create Custom RPC Client
-- [ ] Completed
+- [x] Completed
 
 Create file: `src/lib/backend-rpc.ts`
 
@@ -1519,8 +1519,8 @@ test.describe('Fullstack Integration Page', () => {
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `src/types/backend/index.ts` | Type re-exports and additional types | [ ] |
-| `src/lib/backend-rpc.ts` | Custom RPC client for backend | [ ] |
+| `src/types/backend/index.ts` | Type re-exports and additional types | [x] |
+| `src/lib/backend-rpc.ts` | Custom RPC client for backend | [x] |
 | `src/lib/websocket.ts` | WebSocket client hook for real-time updates | [ ] |
 | `src/components/AuthContext.tsx` | Auth state management | [ ] |
 | `src/components/LoginForm.tsx` | Login UI component | [ ] |
@@ -1544,7 +1544,7 @@ test.describe('Fullstack Integration Page', () => {
 
 | Source | Destination | Status |
 |--------|-------------|--------|
-| `rust-web-app/.../bindings/*.d.ts` | `SolidStart-Demo/src/types/backend/` | [ ] |
+| `rust-web-app/.../bindings/*.d.ts` | `SolidStart-Demo/src/types/backend/` | [x] |
 
 ### Files to Modify (Potentially)
 
@@ -1727,7 +1727,7 @@ Add to `package.json`:
 Use this checklist to track overall progress:
 
 ### Phase Completion
-- [ ] Phase 1: TypeScript Types & RPC Client
+- [x] Phase 1: TypeScript Types & RPC Client
 - [ ] Phase 2: CORS Configuration
 - [ ] Phase 3: WebSocket Support
 - [ ] Phase 4: SolidStart Components
