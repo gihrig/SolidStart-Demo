@@ -5,6 +5,7 @@
 # -- Base
 .*
 !.gitignore
+!.claude
 
 _*
 # '_' in src dir, ok.
