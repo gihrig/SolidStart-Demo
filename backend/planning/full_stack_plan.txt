@@ -403,3 +403,14 @@ Instead of polling or manual refresh, use WebSocket for real-time message update
   Ready for your review — say the word to proceed to Step 4.5: Create Conversation Manager Component.
 
 ❯ Now do Phase 4 SolidStart Components: Step 4.5: Create Conversation Manager Component. Pause for review before going on to the next step.
+
+⏺ Step 4.5 complete. Created src/components/ConversationManager.tsx with:
+
+  - createResource keyed on props.agent — auto-refetches when agent changes
+  - createEffect that resets selectedConv whenever the agent prop changes
+  - handleCreate — creates a conversation under the current agent, auto-selects it, fires onConvSelect
+  - Guard: create form only renders when an agent is selected (via <Show when={props.agent}>)
+  - Optional title field (maps to null if empty)
+  - Same list/selection/loading/error pattern as AgentManager
+
+  Ready for your review — say the word to proceed to Step 4.6: Create Message Panel Component.

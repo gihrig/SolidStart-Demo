@@ -849,7 +849,7 @@ export default function AgentManager(props: Props) {
 ```
 
 #### Step 4.5: Create Conversation Manager Component
-- [ ] Completed
+- [x] Completed
 
 Create file: `src/components/ConversationManager.tsx`
 
