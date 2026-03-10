@@ -388,3 +388,15 @@ Instead of polling or manual refresh, use WebSocket for real-time message update
   Ready for your review — say the word to proceed to Step 4.3: Create Login Form Component.
 
 ❯ Now do Phase 4 SolidStart Components: Step 4.3: Create Login Form Component. Pause for review before going on to the next step.
+
+⏺ Step 4.3 complete. Created src/components/LoginForm.tsx with:
+
+  - Uses useAuth() to get login and error
+  - loading signal to disable the button and show feedback during submission
+  - Form with pre-filled demo1 / welcome defaults (matching the back-end demo credentials)
+  - Error display via <Show when={error()}>
+  - Tailwind-styled inputs and submit button
+
+  Ready for your review — say the word to proceed to Step 4.4: Create Agent Manager Component.
+
+❯ Now do Phase 4 SolidStart Components: Step 4.4: Create Agent Manager Component. Pause for review before going on to the next step.
