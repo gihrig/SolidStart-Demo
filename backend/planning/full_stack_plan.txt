@@ -350,5 +350,29 @@ Instead of polling or manual refresh, use WebSocket for real-time message update
 
 ---
 
+--> Convert to Claude Pro plan - API costs seem to be excessive
+
 /model Sonnet 4.6
 ❯ Now do Phase 4 SolidStart Components: Step 4.1: Create WebSocket Client Hook. Pause for review before going on to the next step.
+
+⏺ Step 4.1 complete. Created src/lib/websocket.ts with:
+
+  - useWebSocket(options) — a SolidJS composable hook that:
+    - Connects to ws://localhost:8080/ws on mount via onMount
+    - Cleans up on unmount via onCleanup
+    - Exposes reactive connected and error signals
+    - Auto-reconnects after 3s on close (opt-out with autoReconnect: false)
+    - Dispatches onConvMsg(convId, msg) callback for incoming conv_msg events
+    - Provides subscribe(channel, id?) / unsubscribe(channel, id?) for channel management
+    - Returns { connected, error, subscribe, unsubscribe, disconnect, reconnect }
+
+  Ready for your review — say the word to proceed to Step 4.2: Create Auth Context Component.
+
+❯ /Status > Usage
+  Current session
+  ██                                                 4% used
+  Resets 11pm (America/Los_Angeles)
+
+  Current week (all models)
+  █                                                  2% used
+  Resets 9pm (America/Los_Angeles)
