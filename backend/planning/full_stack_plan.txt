@@ -414,3 +414,16 @@ Instead of polling or manual refresh, use WebSocket for real-time message update
   - Same list/selection/loading/error pattern as AgentManager
 
   Ready for your review — say the word to proceed to Step 4.6: Create Message Panel Component.
+
+❯ Now do Phase 4 SolidStart Components: Step 4.6: Create Message Panel Component. Pause for review before going on to the next step.
+
+⏺ Step 4.6 complete. Phase 4 is now fully done. Created src/components/MessagePanel.tsx with:
+
+  - WebSocket integration via useWebSocket — filters incoming conv_msg events to the active conversation, deduplicates
+  against optimistically-added messages
+  - Two createEffects for subscription lifecycle:
+    - Subscribe + reset messages when props.conv changes
+    - Unsubscribe from the previous conv when switching conversations
+  - Optimistic send — message appended immediately on RPC success; WebSocket broadcast dedupes via msg.id
+  - Live/Offline indicator in the header driven by the connected() signal
+  - Guard: form and message list only render when a conversation is selected
