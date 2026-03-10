@@ -467,3 +467,20 @@ Instead of polling or manual refresh, use WebSocket for real-time message update
     - Column 2: <ConversationManager> keyed to selectedAgent → sets selectedConv
     - Column 3: <MessagePanel> keyed to selectedConv (with live WebSocket)
   - handleLogoff clears both selections on logout so the grid resets cleanly
+
+
+❯ Now do Phase 6: Testing: Step 6.1: Component Tests. Pause for review before going on to the next step.
+
+⏺ Step 6.1 complete. Created two component test files:
+
+  LoginForm.test.tsx (3 tests):
+  - Renders heading, username/password fields, and submit button
+  - Pre-filled demo1 / welcome default values are present
+  - Form submission calls backendRpc.auth.login with entered credentials
+
+  AgentManager.test.tsx (5 tests):
+  - Renders the "Agents" heading
+  - Shows loading state initially
+  - Displays the mocked agent list after load
+  - Clicking an agent fires onAgentSelect with the correct agent object
+  - Submitting the create form calls backendRpc.agent.create with { name }
