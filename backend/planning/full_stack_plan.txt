@@ -484,3 +484,28 @@ Instead of polling or manual refresh, use WebSocket for real-time message update
   - Displays the mocked agent list after load
   - Clicking an agent fires onAgentSelect with the correct agent object
   - Submitting the create form calls backendRpc.agent.create with { name }
+
+❯ Now do Phase 6: Testing: Step 6.2: WebSocket Tests. Pause for review before going on to the next step.
+
+⏺ Step 6.2 complete. Created src/lib/websocket.test.ts — expanded significantly beyond the plan's single placeholder
+  into 8 meaningful tests:
+
+  ┌────────────────────────────────┬───────────────────────────────────────┐
+  │              Test              │            What it covers             │
+  ├────────────────────────────────┼───────────────────────────────────────┤
+  │ Connects to correct URL        │ ws://localhost:8080/ws is used        │
+  ├────────────────────────────────┼───────────────────────────────────────┤
+  │ connected → true on open       │ onopen sets the signal                │
+  ├────────────────────────────────┼───────────────────────────────────────┤
+  │ connected → false on close     │ onclose clears the signal             │
+  ├────────────────────────────────┼───────────────────────────────────────┤
+  │ onConvMsg fires correctly      │ Correct conv_id and msg forwarded     │
+  ├────────────────────────────────┼───────────────────────────────────────┤
+  │ Ignores non-conv_msg types     │ agent_update doesn't trigger callback │
+  ├────────────────────────────────┼───────────────────────────────────────┤
+  │ subscribe sends correct JSON   │ action/channel/id payload             │
+  ├────────────────────────────────┼───────────────────────────────────────┤
+  │ unsubscribe sends correct JSON │ Same shape with unsubscribe action    │
+  ├────────────────────────────────┼───────────────────────────────────────┤
+  │ No send when not open          │ Guards against premature subscribe    │
+  └────────────────────────────────┴───────────────────────────────────────┘

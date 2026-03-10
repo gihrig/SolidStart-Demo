@@ -1351,7 +1351,7 @@ describe('<AgentManager />', () => {
 ```
 
 #### Step 6.2: WebSocket Tests
-- [ ] Completed
+- [x] Completed
 
 Create file: `src/lib/websocket.test.ts`
 
