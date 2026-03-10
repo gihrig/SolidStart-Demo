@@ -427,3 +427,43 @@ Instead of polling or manual refresh, use WebSocket for real-time message update
   - Optimistic send — message appended immediately on RPC success; WebSocket broadcast dedupes via msg.id
   - Live/Offline indicator in the header driven by the connected() signal
   - Guard: form and message list only render when a conversation is selected
+
+    Phase 4 summary — all 6 steps complete:
+
+  ┌──────┬────────────────────────────────────────┐
+  │ Step │                  File                  │
+  ├──────┼────────────────────────────────────────┤
+  │ 4.1  │ src/lib/websocket.ts                   │
+  ├──────┼────────────────────────────────────────┤
+  │ 4.2  │ src/components/AuthContext.tsx         │
+  ├──────┼────────────────────────────────────────┤
+  │ 4.3  │ src/components/LoginForm.tsx           │
+  ├──────┼────────────────────────────────────────┤
+  │ 4.4  │ src/components/AgentManager.tsx        │
+  ├──────┼────────────────────────────────────────┤
+  │ 4.5  │ src/components/ConversationManager.tsx │
+  ├──────┼────────────────────────────────────────┤
+  │ 4.6  │ src/components/MessagePanel.tsx        │
+  └──────┴────────────────────────────────────────┘
+
+    Current session
+  ████                                               8% used
+  Resets 11pm (America/Los_Angeles)
+
+  Current week (all models)
+  █▌                                                 3% used
+  Resets 9pm (America/Los_Angeles)
+
+❯ Now do Phase 5: Create the Fullstack: Step 5.1: Create the Main Page. Pause for review before going on to the next step.
+
+⏺ Step 5.1 complete. Phase 5 done. Created src/routes/fullstack.tsx with:
+
+  - Fullstack (default export) — root component that wraps everything in <AuthProvider> and sets the page <Title>
+  - FullstackContent — inner component that consumes useAuth() and holds the two selection signals (selectedAgent,
+  selectedConv)
+  - Unauthenticated state — shows <LoginForm> centred in a max-width container
+  - Authenticated state — shows a logged-in header with a Logout button, then a responsive 3-column grid:
+    - Column 1: <AgentManager> → sets selectedAgent
+    - Column 2: <ConversationManager> keyed to selectedAgent → sets selectedConv
+    - Column 3: <MessagePanel> keyed to selectedConv (with live WebSocket)
+  - handleLogoff clears both selections on logout so the grid resets cleanly

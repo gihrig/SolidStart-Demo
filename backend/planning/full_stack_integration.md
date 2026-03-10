@@ -1114,7 +1114,7 @@ export default function MessagePanel(props: Props) {
 ### Phase 5: Create the Fullstack Page
 
 #### Step 5.1: Create the Main Page
-- [ ] Completed
+- [x] Completed
 
 Create file: `src/routes/fullstack.tsx`
 
