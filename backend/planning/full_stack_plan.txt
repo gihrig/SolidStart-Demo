@@ -509,3 +509,59 @@ Instead of polling or manual refresh, use WebSocket for real-time message update
   ├────────────────────────────────┼───────────────────────────────────────┤
   │ No send when not open          │ Guards against premature subscribe    │
   └────────────────────────────────┴───────────────────────────────────────┘
+
+❯ Now do Phase 6: Testing: Step 6.3: E2E Tests. Pause for review before going on to the next step.
+
+⏺ Step 6.3 complete. Phase 6 and the full plan are now done.
+
+  Created e2e/fullstack.spec.ts with two tiers of tests:
+
+  Static tests (no backend required — always run):
+
+  ┌─────────────────────────────────────────┬───────────────────────────────────┐
+  │                  Test                   │         What it verifies          │
+  ├─────────────────────────────────────────┼───────────────────────────────────┤
+  │ Page title & heading                    │ <Title> and <h1> render correctly │
+  ├─────────────────────────────────────────┼───────────────────────────────────┤
+  │ Login form visible when unauthenticated │ <LoginForm> is shown by default   │
+  ├─────────────────────────────────────────┼───────────────────────────────────┤
+  │ Demo credentials pre-filled             │ demo1 / welcome default values    │
+  └─────────────────────────────────────────┴───────────────────────────────────┘
+
+  Integration tests (Chromium + running backend):
+
+  ┌─────────────────────────────┬───────────────────────────────────────────────────┐
+  │            Test             │                 What it verifies                  │
+  ├─────────────────────────────┼───────────────────────────────────────────────────┤
+  │ Login with demo credentials │ Auth flow, "Logged in as: demo1" appears          │
+  ├─────────────────────────────┼───────────────────────────────────────────────────┤
+  │ Agents panel post-login     │ 3-column grid, agent input visible                │
+  ├─────────────────────────────┼───────────────────────────────────────────────────┤
+  │ Real-time indicator         │ Create agent → conv → check Live/Offline label    │
+  ├─────────────────────────────┼───────────────────────────────────────────────────┤
+  │ Full happy path             │ Login → create agent → create conv → send message │
+  ├─────────────────────────────┼───────────────────────────────────────────────────┤
+  │ Logout                      │ Returns to login form                             │
+  └─────────────────────────────┴───────────────────────────────────────────────────┘
+
+  Backend tests are gated with test.skip to Chromium only, matching the pattern used in the rest of the project. The
+  beforeEach navigates to /fullstack before each test.
+
+  ---
+  All phases complete:
+
+  ┌────────────────────────────────────┬────────┐
+  │               Phase                │ Status │
+  ├────────────────────────────────────┼────────┤
+  │ 1: TypeScript Types & RPC Client   │ ✅     │
+  ├────────────────────────────────────┼────────┤
+  │ 2: CORS Configuration              │ ✅     │
+  ├────────────────────────────────────┼────────┤
+  │ 3: WebSocket Support (Rust)        │ ✅     │
+  ├────────────────────────────────────┼────────┤
+  │ 4: SolidStart Components (6 steps) │ ✅     │
+  ├────────────────────────────────────┼────────┤
+  │ 5: Fullstack Page                  │ ✅     │
+  ├────────────────────────────────────┼────────┤
+  │ 6: Testing (3 steps)               │ ✅     │
+  └────────────────────────────────────┴────────┘

@@ -1410,7 +1410,7 @@ describe('useWebSocket', () => {
 ```
 
 #### Step 6.3: E2E Tests
-- [ ] Completed
+- [x] Completed
 
 Create file: `e2e/fullstack.spec.ts`
 
