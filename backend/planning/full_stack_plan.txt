@@ -368,15 +368,6 @@ Instead of polling or manual refresh, use WebSocket for real-time message update
 
   Ready for your review — say the word to proceed to Step 4.2: Create Auth Context Component.
 
-❯ /Status > Usage
-  Current session
-  ██                                                 4% used
-  Resets 11pm (America/Los_Angeles)
-
-  Current week (all models)
-  █                                                  2% used
-  Resets 9pm (America/Los_Angeles)
-
 ❯ Now do Phase 4 SolidStart Components: Step 4.2: Create Auth Context Component. Pause for review before going on to the next step.
 
 ⏺ Step 4.2 complete. Created src/components/AuthContext.tsx with:
@@ -400,3 +391,15 @@ Instead of polling or manual refresh, use WebSocket for real-time message update
   Ready for your review — say the word to proceed to Step 4.4: Create Agent Manager Component.
 
 ❯ Now do Phase 4 SolidStart Components: Step 4.4: Create Agent Manager Component. Pause for review before going on to the next step.
+
+⏺ Step 4.4 complete. Created src/components/AgentManager.tsx with:
+
+  - createResource to fetch the agent list on mount, with refetch after create
+  - handleCreate — submits the form, calls backendRpc.agent.create, resets form, auto-selects new agent
+  - selectAgent — sets local selection and fires onAgentSelect callback to parent
+  - List with highlight on selected agent, fallback for empty state, loading/error states
+  - creating signal gates the submit button
+
+  Ready for your review — say the word to proceed to Step 4.5: Create Conversation Manager Component.
+
+❯ Now do Phase 4 SolidStart Components: Step 4.5: Create Conversation Manager Component. Pause for review before going on to the next step.
