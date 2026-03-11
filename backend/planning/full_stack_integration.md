@@ -1517,42 +1517,42 @@ test.describe('Fullstack Integration Page', () => {
 
 ### New Files to Create
 
-| File | Purpose | Status |
-|------|---------|--------|
-| `src/types/backend/index.ts` | Type re-exports and additional types | [x] |
-| `src/lib/backend-rpc.ts` | Custom RPC client for backend | [x] |
-| `src/lib/websocket.ts` | WebSocket client hook for real-time updates | [ ] |
-| `src/components/AuthContext.tsx` | Auth state management | [ ] |
-| `src/components/LoginForm.tsx` | Login UI component | [ ] |
-| `src/components/AgentManager.tsx` | Agent CRUD UI | [ ] |
-| `src/components/ConversationManager.tsx` | Conversation CRUD UI | [ ] |
-| `src/components/MessagePanel.tsx` | Message display and send UI (with WebSocket) | [ ] |
-| `src/routes/fullstack.tsx` | Main fullstack demo page | [ ] |
-| `src/components/LoginForm.test.tsx` | LoginForm unit tests | [ ] |
-| `src/components/AgentManager.test.tsx` | AgentManager unit tests | [ ] |
-| `src/lib/websocket.test.ts` | WebSocket hook tests | [ ] |
-| `e2e/fullstack.spec.ts` | E2E tests | [ ] |
+| File                                     | Purpose                                      | Status |
+| ---------------------------------------- | -------------------------------------------- | ------ |
+| `src/types/backend/index.ts`             | Type re-exports and additional types         | [x]    |
+| `src/lib/backend-rpc.ts`                 | Custom RPC client for backend                | [x]    |
+| `src/lib/websocket.ts`                   | WebSocket client hook for real-time updates  | [x]    |
+| `src/components/AuthContext.tsx`         | Auth state management                        | [x]    |
+| `src/components/LoginForm.tsx`           | Login UI component                           | [x]    |
+| `src/components/AgentManager.tsx`        | Agent CRUD UI                                | [x]    |
+| `src/components/ConversationManager.tsx` | Conversation CRUD UI                         | [x]    |
+| `src/components/MessagePanel.tsx`        | Message display and send UI (with WebSocket) | [x]    |
+| `src/routes/fullstack.tsx`               | Main fullstack demo page                     | [x]    |
+| `src/components/LoginForm.test.tsx`      | LoginForm unit tests                         | [x]    |
+| `src/components/AgentManager.test.tsx`   | AgentManager unit tests                      | [x]    |
+| `src/lib/websocket.test.ts`              | WebSocket hook tests                         | [x]    |
+| `e2e/fullstack.spec.ts`                  | E2E tests                                    | [x]    |
 
 ### Backend Files to Create/Modify
 
-| File | Purpose | Status |
-|------|---------|--------|
-| `crates/services/web-server/src/web/routes_ws.rs` | WebSocket handler | [x] |
-| `crates/services/web-server/src/main.rs` | Add CORS + WebSocket routes | [ ] |
+| File                                              | Purpose                     | Status |
+| ------------------------------------------------- | --------------------------- | ------ |
+| `crates/services/web-server/src/web/routes_ws.rs` | WebSocket handler           | [x]    |
+| `crates/services/web-server/src/main.rs`          | Add CORS + WebSocket routes | [x]    |
 
 ### Files to Copy
 
-| Source | Destination | Status |
-|--------|-------------|--------|
-| `rust-web-app/.../bindings/*.d.ts` | `SolidStart-Demo/src/types/backend/` | [x] |
+| Source                             | Destination                          | Status |
+| ---------------------------------- | ------------------------------------ | ------ |
+| `rust-web-app/.../bindings/*.d.ts` | `SolidStart-Demo/src/types/backend/` | [x]    |
 
 ### Files to Modify (Potentially)
 
-| File | Change | Status |
-|------|--------|--------|
-| `rust-web-app/.../main.rs` or routes | Add CORS middleware | [x] |
-| `rust-web-app/Cargo.toml` | Add axum ws feature, futures | [x] |
-| `SolidStart-Demo/src/lib/rpc-client.ts` | Can be removed or kept for reference | [ ] |
+| File                                    | Change                               | Status |
+| --------------------------------------- | ------------------------------------ | ------ |
+| `rust-web-app/.../main.rs` or routes    | Add CORS middleware                  | [x]    |
+| `rust-web-app/Cargo.toml`               | Add axum ws feature, futures         | [x]    |
+| `SolidStart-Demo/src/lib/rpc-client.ts` | Can be removed or kept for reference | [x]    |
 
 ---
 
@@ -1711,14 +1711,14 @@ Add to `package.json`:
 
 ## Appendix: quick_dev.rs Workflow Mapping
 
-| quick_dev.rs Step | SolidStart Component | RPC Method | Real-time |
-|-------------------|---------------------|------------|-----------|
-| Login | `LoginForm` | `POST /api/login` | - |
-| Create Agent | `AgentManager` | `create_agent` | WebSocket broadcast |
-| Get Agent | `AgentManager` (auto-select) | `get_agent` | - |
-| Create Conversation | `ConversationManager` | `create_conv` | WebSocket broadcast |
-| Add Message | `MessagePanel` | `add_conv_msg` | WebSocket broadcast |
-| Logoff | Logout button | `POST /api/logoff` | - |
+| quick_dev.rs Step   | SolidStart Component         | RPC Method         | Real-time           |
+| ------------------- | ---------------------------- | ------------------ | ------------------- |
+| Login               | `LoginForm`                  | `POST /api/login`  | -                   |
+| Create Agent        | `AgentManager`               | `create_agent`     | WebSocket broadcast |
+| Get Agent           | `AgentManager` (auto-select) | `get_agent`        | -                   |
+| Create Conversation | `ConversationManager`        | `create_conv`      | WebSocket broadcast |
+| Add Message         | `MessagePanel`               | `add_conv_msg`     | WebSocket broadcast |
+| Logoff              | Logout button                | `POST /api/logoff` | -                   |
 
 ---
 
@@ -1730,7 +1730,7 @@ Use this checklist to track overall progress:
 - [x] Phase 1: TypeScript Types & RPC Client
 - [x] Phase 2: CORS Configuration
 - [x] Phase 3: WebSocket Support
-- [ ] Phase 4: SolidStart Components
-- [ ] Phase 5: Fullstack Page
-- [ ] Phase 6: Testing
+- [x] Phase 4: SolidStart Components
+- [x] Phase 5: Fullstack Page
+- [x] Phase 6: Testing
 - [ ] Integration Complete

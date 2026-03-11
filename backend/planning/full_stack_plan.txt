@@ -609,3 +609,27 @@ Instead of polling or manual refresh, use WebSocket for real-time message update
   ├────────────────────────────────────────┼────────────┼───────┼────────────────────────────┤
   │ Total                                  │            │ 1,068 │ 11 created, 1 modified     │
   └────────────────────────────────────────┴────────────┴───────┴────────────────────────────┘
+
+❯ Check boxes in Part 3: File Summary: New Files to Create. seem to be incomplete.
+Review this section against exiting files and correct or update as needed.
+Ultrathink on this to ensure all previous steps are fully complete.
+Pause for review before going on to Part 4.
+
+Reference: /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/planning/full_stack_integration.md @line 1516
+Project locations are at **Project Locations:** @line 7
+
+⏺ All Part 3 checkboxes are now corrected. Here's a summary of what was verified and updated:
+
+  All 13 New Frontend Files — all exist in SolidStart-Demo/:
+  - websocket.ts, AuthContext.tsx, LoginForm.tsx, AgentManager.tsx, ConversationManager.tsx, MessagePanel.tsx,
+  fullstack.tsx, LoginForm.test.tsx, AgentManager.test.tsx, websocket.test.ts, e2e/fullstack.spec.ts → all marked [x]
+
+  Backend Files:
+  - routes_ws.rs — already [x] ✓
+  - main.rs — WebSocket state initialized, routes_ws::routes() registered, CORS in place → marked [x]
+
+  Files to Modify:
+  - Cargo.toml — axum has "ws" feature, futures = "0.3.31" present → already [x] ✓
+  - rpc-client.ts — file exists (kept for reference) → marked [x]
+
+  Part 3 is fully complete. Ready for your review before proceeding to Part 4.
