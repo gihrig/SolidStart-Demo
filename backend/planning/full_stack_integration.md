@@ -1539,32 +1539,360 @@ test.describe('Fullstack Integration Page', () => {
 ### Phase 7: Integration Testing
 - [ ] Completed
 
-- Review `"$FRONT_END/src/lib"`, `"$FRONT_END/src/components"` create any missing tests
 - Perform each step in sequence.
 - Analyze and correct any errors.
 - Repeat until the step succeeds.
 - Commands are found in Part 3: `Development Commands` below
 
+#### Step 7.0: Create Missing Tests
+- [ ] Completed
+
+The following component test files are not yet created and must be added before running the full test suite:
+
+- `src/components/ConversationManager.test.tsx`
+- `src/components/MessagePanel.test.tsx`
+- `src/components/AuthContext.test.tsx`
+
+**`src/components/ConversationManager.test.tsx`**
+
+```tsx
+import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library'
+import { createSignal } from 'solid-js'
+import ConversationManager from './ConversationManager'
+import { backendRpc } from '../lib/backend-rpc'
+import type { Agent, Conv } from '../types/backend'
+
+vi.mock('../lib/backend-rpc', () => ({
+  backendRpc: {
+    conv: {
+      create: vi.fn(),
+      list: vi.fn(),
+      delete: vi.fn(),
+    },
+  },
+}))
+
+const mockAgent: Agent = { id: 1n, name: 'Test Agent', model: null }
+const mockConvs: Conv[] = [
+  { id: 10n, agent_id: 1n, title: 'Conv Alpha', kind: 'MultiMessages', state: 'Active' },
+  { id: 11n, agent_id: 1n, title: 'Conv Beta',  kind: 'MultiMessages', state: 'Active' },
+]
+
+describe('ConversationManager', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(backendRpc.conv.list as ReturnType<typeof vi.fn>).mockResolvedValue(mockConvs)
+  })
+
+  it('renders heading and placeholder when no agent is provided', () => {
+    render(() => <ConversationManager agent={null} onConvSelect={() => {}} />)
+    expect(screen.getByText(/conversations/i)).toBeInTheDocument()
+    expect(screen.getByText(/select an agent/i)).toBeInTheDocument()
+  })
+
+  it('displays conversations after agent is selected', async () => {
+    render(() => <ConversationManager agent={mockAgent} onConvSelect={() => {}} />)
+    await waitFor(() => {
+      expect(screen.getByText('Conv Alpha')).toBeInTheDocument()
+      expect(screen.getByText('Conv Beta')).toBeInTheDocument()
+    })
+  })
+
+  it('create form calls backendRpc.conv.create with correct params', async () => {
+    ;(backendRpc.conv.create as ReturnType<typeof vi.fn>).mockResolvedValue(
+      { id: 12n, agent_id: 1n, title: 'New Conv', kind: 'MultiMessages', state: 'Active' }
+    )
+    render(() => <ConversationManager agent={mockAgent} onConvSelect={() => {}} />)
+    await waitFor(() => screen.getByText('Conv Alpha'))
+
+    fireEvent.input(screen.getByPlaceholderText(/conversation title/i), {
+      target: { value: 'New Conv' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /create conv/i }))
+
+    await waitFor(() => {
+      expect(backendRpc.conv.create).toHaveBeenCalledWith({
+        agent_id: 1n,
+        title: 'New Conv',
+      })
+    })
+  })
+
+  it('fires onConvSelect callback when a conversation is clicked', async () => {
+    const onSelect = vi.fn()
+    render(() => <ConversationManager agent={mockAgent} onConvSelect={onSelect} />)
+    await waitFor(() => screen.getByText('Conv Alpha'))
+
+    fireEvent.click(screen.getByText('Conv Alpha'))
+    expect(onSelect).toHaveBeenCalledWith(mockConvs[0])
+  })
+
+  it('resets conversation list when agent changes', async () => {
+    const [agent, setAgent] = createSignal<Agent | null>(mockAgent)
+    render(() => <ConversationManager agent={agent()} onConvSelect={() => {}} />)
+    await waitFor(() => screen.getByText('Conv Alpha'))
+
+    ;(backendRpc.conv.list as ReturnType<typeof vi.fn>).mockResolvedValue([])
+    setAgent({ id: 2n, name: 'Other Agent', model: null })
+
+    await waitFor(() => {
+      expect(screen.queryByText('Conv Alpha')).not.toBeInTheDocument()
+    })
+  })
+})
+```
+
+**`src/components/MessagePanel.test.tsx`**
+
+```tsx
+import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library'
+import { createSignal } from 'solid-js'
+import MessagePanel from './MessagePanel'
+import { backendRpc } from '../lib/backend-rpc'
+import type { Conv, ConvMsg } from '../types/backend'
+
+vi.mock('../lib/backend-rpc', () => ({
+  backendRpc: {
+    convMsg: {
+      add: vi.fn(),
+    },
+    conv: {
+      list: vi.fn().mockResolvedValue([]),
+    },
+  },
+}))
+
+const mockConv: Conv = {
+  id: 10n,
+  agent_id: 1n,
+  title: 'Test Conversation',
+  kind: 'MultiMessages',
+  state: 'Active',
+}
+
+const mockMessages: ConvMsg[] = [
+  { id: 100n, conv_id: 10n, role: 'user', content: 'Hello' },
+  { id: 101n, conv_id: 10n, role: 'assistant', content: 'Hi there' },
+]
+
+describe('MessagePanel', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('shows "select a conversation" placeholder when conv is null', () => {
+    render(() => <MessagePanel conv={null} messages={[]} connected={() => false} />)
+    expect(screen.getByText(/select a conversation/i)).toBeInTheDocument()
+  })
+
+  it('shows Live indicator when WebSocket is connected', () => {
+    render(() => <MessagePanel conv={mockConv} messages={mockMessages} connected={() => true} />)
+    expect(screen.getByText(/live/i)).toBeInTheDocument()
+  })
+
+  it('shows Offline indicator when WebSocket is disconnected', () => {
+    render(() => <MessagePanel conv={mockConv} messages={mockMessages} connected={() => false} />)
+    expect(screen.getByText(/offline/i)).toBeInTheDocument()
+  })
+
+  it('send form calls backendRpc.convMsg.add with correct params', async () => {
+    ;(backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(
+      { id: 102n, conv_id: 10n, role: 'user', content: 'New message' }
+    )
+    render(() => <MessagePanel conv={mockConv} messages={[]} connected={() => true} />)
+
+    fireEvent.input(screen.getByPlaceholderText(/type a message/i), {
+      target: { value: 'New message' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /send/i }))
+
+    await waitFor(() => {
+      expect(backendRpc.convMsg.add).toHaveBeenCalledWith({
+        conv_id: 10n,
+        content: 'New message',
+      })
+    })
+  })
+
+  it('shows sent message in list after successful send', async () => {
+    const newMsg: ConvMsg = { id: 102n, conv_id: 10n, role: 'user', content: 'New message' }
+    ;(backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(newMsg)
+
+    const [messages, setMessages] = createSignal<ConvMsg[]>([])
+    render(() => (
+      <MessagePanel
+        conv={mockConv}
+        messages={messages()}
+        connected={() => true}
+        onMessageSent={(msg) => setMessages((prev) => [...prev, msg])}
+      />
+    ))
+
+    fireEvent.input(screen.getByPlaceholderText(/type a message/i), {
+      target: { value: 'New message' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /send/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('New message')).toBeInTheDocument()
+    })
+  })
+})
+```
+
+**`src/components/AuthContext.test.tsx`**
+
+```tsx
+import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library'
+import { AuthProvider, useAuth } from './AuthContext'
+import { backendRpc } from '../lib/backend-rpc'
+
+vi.mock('../lib/backend-rpc', () => ({
+  backendRpc: {
+    auth: {
+      login: vi.fn(),
+      logoff: vi.fn(),
+    },
+  },
+}))
+
+function AuthTestConsumer() {
+  const auth = useAuth()
+  return (
+    <div>
+      <span data-testid="status">{auth.isAuthenticated() ? 'logged-in' : 'logged-out'}</span>
+      <span data-testid="username">{auth.username() ?? 'none'}</span>
+      <button onClick={() => auth.login('demo1', 'welcome')}>Login</button>
+      <button onClick={() => auth.logoff()}>Logoff</button>
+    </div>
+  )
+}
+
+describe('AuthContext', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(backendRpc.auth.login as ReturnType<typeof vi.fn>).mockResolvedValue({ result: 'ok' })
+    ;(backendRpc.auth.logoff as ReturnType<typeof vi.fn>).mockResolvedValue({ result: 'ok' })
+  })
+
+  it('isAuthenticated starts as false', () => {
+    render(() => <AuthProvider><AuthTestConsumer /></AuthProvider>)
+    expect(screen.getByTestId('status').textContent).toBe('logged-out')
+  })
+
+  it('login() sets isAuthenticated to true and stores username', async () => {
+    render(() => <AuthProvider><AuthTestConsumer /></AuthProvider>)
+    fireEvent.click(screen.getByRole('button', { name: /login/i }))
+    await waitFor(() => {
+      expect(screen.getByTestId('status').textContent).toBe('logged-in')
+      expect(screen.getByTestId('username').textContent).toBe('demo1')
+    })
+  })
+
+  it('logoff() clears auth state', async () => {
+    render(() => <AuthProvider><AuthTestConsumer /></AuthProvider>)
+    fireEvent.click(screen.getByRole('button', { name: /login/i }))
+    await waitFor(() => expect(screen.getByTestId('status').textContent).toBe('logged-in'))
+
+    fireEvent.click(screen.getByRole('button', { name: /logoff/i }))
+    await waitFor(() => {
+      expect(screen.getByTestId('status').textContent).toBe('logged-out')
+      expect(screen.getByTestId('username').textContent).toBe('none')
+    })
+  })
+})
+```
+
 #### Step 7.1 Start Servers
 - [ ] Completed
 
-  - Start Database
-  - Start Rust backend
-  - Start SolidStart frontend
+Start each server in its own terminal. Commands reference Part 3 section numbers.
+
+1. **Terminal A — Database** (§3.1):
+   ```sh
+   docker run --rm --name pg -p 5432:5432 -e POSTGRES_PASSWORD=welcome postgres:17
+   ```
+   Expected: `database system is ready to accept connections`
+
+2. **Terminal B — Rust backend** (§3.2):
+   ```sh
+   cd "$BACK_END" && cargo run -p web-server
+   ```
+   Expected: `Listening on 0.0.0.0:8080`
+
+3. **Terminal C — SolidStart frontend** (§3.3):
+   ```sh
+   cd "$FRONT_END" && bun dev
+   ```
+   Expected: `Local: http://localhost:3000/`
+
+4. **Smoke-test the API** — confirm the RPC endpoint returns `401` (unauthenticated):
+   ```sh
+   curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8080/api/rpc
+   # Expected: 401
+   ```
 
 #### Step 7.2 Run Back-End Tests
 - [ ] Completed
 
-  - Run Back-End unit tests
-  - Run Back-end quick_dev example
+1. **Unit tests** (§3.4):
+   ```sh
+   cd "$BACK_END" && cargo nextest run -j1
+   ```
+   - `-j1` is required because tests share database state and must run sequentially.
+   - Expected output: `X tests, 0 failures` (all green).
+   - Common error: `connection refused` → Docker container is not running; start it first (§3.1).
+
+2. **`quick_dev` integration example** (§3.5):
+   ```sh
+   cd "$BACK_END" && cargo run -p web-server --example quick_dev
+   ```
+   Expected output summary (in order):
+   ```
+   -- login demo1
+   -- create_agent
+   -- get_agent
+   -- create_conv
+   -- add_conv_msg
+   -- logoff
+   ```
+   All steps should succeed without errors.
 
 #### Step 7.3 Run Front-End Tests
 - [ ] Completed
 
-  - Run Front-End unit tests
-  - Run Front-End component tests
-  - Run Front-End E2E tests
-  - Verify WebSocket real-time updates work
+##### 7.3.1 Unit Tests
+```sh
+cd "$FRONT_END" && bun test:unit
+```
+Expected: all tests pass, including the three new files added in Step 7.0.
+
+##### 7.3.2 Component Tests
+```sh
+cd "$FRONT_END" && bun test:comp
+```
+Requires `@solidjs/testing-library` to be installed. Expected: all component tests pass.
+
+##### 7.3.3 E2E Tests
+```sh
+cd "$FRONT_END" && npm run test:e2e
+```
+- Requires **both** the Rust backend (§3.2) and SolidStart frontend (§3.3) to be running.
+- Static/offline tests (e.g., login form rendering) will pass regardless.
+- Network-dependent tests (create agent, send message) require live servers.
+
+##### 7.3.4 Manual WebSocket Verification (Two-Tab Test)
+
+1. Open `http://localhost:3000/fullstack` in **Tab 1**.
+2. Login with username `demo1` / password `welcome`.
+3. Create an agent (e.g., `WS Test Agent`).
+4. Create a conversation under that agent (e.g., `WS Test Conv`).
+5. Open `http://localhost:3000/fullstack` in **Tab 2**.
+6. Login with the same credentials in Tab 2.
+7. In both tabs, select the same agent and the same conversation.
+8. In **Tab 1**, type a message and click **Send**.
+9. Observe: the message appears in **Tab 2** without any page refresh.
+10. Confirm the **"Live"** indicator is green in the MessagePanel header in both tabs.
 
 ---
 
@@ -1665,10 +1993,13 @@ Use this checklist to track overall progress:
 | `src/components/ConversationManager.tsx` | Conversation CRUD UI                         | [x]    |
 | `src/components/MessagePanel.tsx`        | Message display and send UI (with WebSocket) | [x]    |
 | `src/routes/fullstack.tsx`               | Main fullstack demo page                     | [x]    |
-| `src/components/LoginForm.test.tsx`      | LoginForm unit tests                         | [x]    |
-| `src/components/AgentManager.test.tsx`   | AgentManager unit tests                      | [x]    |
-| `src/lib/websocket.test.ts`              | WebSocket hook tests                         | [x]    |
-| `e2e/fullstack.spec.ts`                  | E2E tests                                    | [x]    |
+| `src/components/LoginForm.test.tsx`              | LoginForm unit tests                         | [x]    |
+| `src/components/AgentManager.test.tsx`           | AgentManager unit tests                      | [x]    |
+| `src/lib/websocket.test.ts`                      | WebSocket hook tests                         | [x]    |
+| `e2e/fullstack.spec.ts`                          | E2E tests                                    | [x]    |
+| `src/components/ConversationManager.test.tsx`    | ConversationManager unit tests               | [ ]    |
+| `src/components/MessagePanel.test.tsx`           | MessagePanel unit tests                      | [ ]    |
+| `src/components/AuthContext.test.tsx`            | AuthContext unit tests                       | [ ]    |
 
 ### Backend Files to Create/Modify
 
