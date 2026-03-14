@@ -48,6 +48,7 @@ blake3 = "1.8.3"
 derive_more = { version = "2.1.1", features = ["display", "from"] }
 enum_dispatch = "0.3.13"
 futures = "0.3.31"
+futures-util = "0.3"
 hmac = "0.12.1"
 lazy-regex = "3.5.1"
 modql = { version = "0.4.1", features = ["with-sea-query"] }
@@ -64,6 +65,7 @@ sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio", "uuid"] }
 strum_macros = "0.27.2"
 time = { version = "0.3.45", features = ["formatting", "parsing", "serde"] }
 tokio = { version = "1.49.0", features = ["full"] }
+tokio-tungstenite = "0.21"
 tower-cookies = "0.11.0"
 tower-http = { version = "0.6.8", features = ["fs", "cors"] }
 tracing = "0.1.44"

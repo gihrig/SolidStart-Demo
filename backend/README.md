@@ -61,13 +61,11 @@ This update ([GitHub tag: E06](https://github.com/rust10x/rust-web-app/releases/
 ## Starting the DB
 
 ```sh
-# Start postgresql server docker image:
-docker run --rm --name pg -p 5432:5432 \
-   -e POSTGRES_PASSWORD=welcome \
-   postgres:17
+# Start postgresql server docker image.
+docker run --rm --name pg -p 5432:5432 -e POSTGRES_PASSWORD=welcome postgres:17
 
 # (optional) To have a psql terminal on pg.
-# In another terminal (tab) run psql:
+# In another terminal (tab) run psql.
 docker exec -it -u postgres pg psql
 
 # (optional) For pg to print all sql statements.

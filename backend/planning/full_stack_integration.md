@@ -5,9 +5,20 @@
 This plan details integrating a SolidStart TypeScript front-end with a Rust/Axum back-end via JSON-RPC. The goal is to recreate the `quick_dev.rs` example functionality as an interactive SolidStart page at `/fullstack`.
 
 **Project Locations:**
-- Front-end: `/Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo`
-- Back-end: `/Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app`
-- TypeScript bindings: `rust-web-app/crates/services/web-server/bindings`
+- Front-End
+```sh
+FRONT_END='/Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo'
+```
+
+- Back-End
+```sh
+BACK_END='/Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app'
+```
+
+- TS-Bindings
+```sh
+TS_BIND_SRC='$BACK_END/crates/services/web-server/bindings'
+```
 
 **Communication:**
 - Back-end: `http://localhost:8080`
@@ -92,16 +103,27 @@ Add CORS middleware to Axum to allow cross-origin requests with credentials.
 
 ### Phase 1: Setup TypeScript Types & RPC Client
 
+
 #### Step 1.1: Copy TypeScript Bindings to Front-end
 - [x] Completed
 
+ - Add to `""$FRONT_END/package.json"`:
+
+```json
+{
+  "scripts": {
+    "sync-types": "cp ../../../Rust/Rust_10X/rust-web-app/crates/services/web-server/bindings/*.d.ts ./src/types/backend/"
+  }
+}
+```
+
 ```bash
 # Create types directory in SolidStart project
-mkdir -p /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo/src/types/backend
+mkdir -p "$FRONT_END/src/types/backend"
 
 # Copy bindings (can be automated in build script)
-cp /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/crates/services/web-server/bindings/*.d.ts \
-   /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo/src/types/backend/
+cp "$BACK_END/crates/services/web-server/bindings/*.d.ts \
+   $FRONT_END/src/types/backend/"
 ```
 
 **Files to copy:**
@@ -339,7 +361,7 @@ export const backendRpc = { auth, agent, conv, convMsg }
 #### Step 2.1: Add CORS Middleware to Rust Back-end
 - [x] Completed
 
-In `crates/services/web-server/src/main.rs` or routes configuration, add:
+In `"$BACK_END/crates/services/web-server/src/main.rs"` or routes configuration, add:
 
 ```rust
 use tower_http::cors::{CorsLayer, Any};
@@ -368,11 +390,12 @@ let app = Router::new()
 Add to `Cargo.toml`:
 ```toml
 [dependencies]
-tokio-tungstenite = "0.21"
 futures-util = "0.3"
+tower-http = { version = "0.6.8", features = ["fs", "cors"] }
+tokio-tungstenite = "0.21"
 ```
 
-Create WebSocket handler in `crates/services/web-server/src/web/routes_ws.rs`:
+Create WebSocket handler in `"$BACK_END/crates/services/web-server/src/web/routes_ws.rs"`:
 
 ```rust
 use axum::{
@@ -1412,7 +1435,7 @@ describe('useWebSocket', () => {
 #### Step 6.3: E2E Tests
 - [x] Completed
 
-Create file: `e2e/fullstack.spec.ts`
+Create file: `"$FRONT_END/e2e/fullstack.spec.ts"`
 
 ```typescript
 import { test, expect } from '@playwright/test'
@@ -1513,7 +1536,121 @@ test.describe('Fullstack Integration Page', () => {
 
 ---
 
-## Part 3: File Summary
+### Phase 7: Integration Testing
+- [ ] Completed
+
+- Review `"$FRONT_END/src/lib"`, `"$FRONT_END/src/components"` create any missing tests
+- Perform each step in sequence.
+- Analyze and correct any errors.
+- Repeat until the step succeeds.
+- Commands are found in Part 3: `Development Commands` below
+
+#### Step 7.1 Start Servers
+- [ ] Completed
+
+  - Start Database
+  - Start Rust backend
+  - Start SolidStart frontend
+
+#### Step 7.2 Run Back-End Tests
+- [ ] Completed
+
+  - Run Back-End unit tests
+  - Run Back-end quick_dev example
+
+#### Step 7.3 Run Front-End Tests
+- [ ] Completed
+
+  - Run Front-End unit tests
+  - Run Front-End component tests
+  - Run Front-End E2E tests
+  - Verify WebSocket real-time updates work
+
+---
+
+## Part 3: Development Commands
+
+### Start Development Servers
+
+#### 3.1 Start Database
+```sh
+# Terminal 3: Start postgresql server docker image
+cd "$BACK_END"
+docker run --rm --name pg -p 5432:5432 -e POSTGRES_PASSWORD=welcome postgres:17
+```
+
+#### 3.2 Start Rust backend
+```sh
+# Terminal 2: Start Rust backend
+cd "$BACK_END"
+cargo run -p web-server
+```
+
+#### 3.3 Start SolidStart frontend
+```sh
+# Terminal 1: Start SolidStart frontend
+cd "$FRONT_END"
+bun dev
+```
+
+### Back-End Tests
+
+#### 3.4 Run Back-End unit tests
+``` sh
+# Back-End Unit Tests
+cd "$BACK_END"
+cargo nextest run -j1
+```
+
+#### 3.5 Run Back-End quick_dev example.
+```sh
+# Terminal 4 - Run the Back-End quick_dev example.
+cd "$BACK_END"
+cargo run -p web-server --example quick_dev
+```
+
+### Front-End Tests
+
+#### 3.6 Run Front-End unit tests
+```sh
+# Front-End Unit tests
+cd "$FRONT_END"
+bun test:unit
+```
+
+#### 3.7 Run Front-End component tests
+```sh
+# Front-End Component tests
+cd "$FRONT_END"
+bun test:comp
+```
+
+#### 3.8 Run Front-End E2E tests
+```sh
+# Front-End E2E
+cd "$FRONT_END"
+npm run test:e2e
+```
+
+---
+
+## Progress Tracking
+
+Use this checklist to track overall progress:
+
+### Phase Completion
+- [x] Phase 1: TypeScript Types & RPC Client
+- [x] Phase 2: CORS Configuration
+- [x] Phase 3: WebSocket Support
+- [x] Phase 4: SolidStart Components
+- [x] Phase 5: Fullstack Page
+- [x] Phase 6: Testing
+- [ ] Phase 7: Integration Testing
+- [ ] Integration Complete
+
+---
+
+## Appendix I: File Summary
 
 ### New Files to Create
 
@@ -1556,74 +1693,20 @@ test.describe('Fullstack Integration Page', () => {
 
 ---
 
-## Part 4: Execution Order
+## Appendix II: quick_dev.rs Workflow Mapping
 
-### Step-by-Step Execution Plan
-
-#### Backend Setup
-- [ ] 1. **[Backend] Add WebSocket dependencies to Cargo.toml**
-  - Add `tokio-tungstenite` and `futures-util`
-
-- [ ] 2. **[Backend] Create WebSocket handler module**
-  - Create `routes_ws.rs` with WebSocket state and handler
-
-- [ ] 3. **[Backend] Add CORS support to Rust server**
-  - Add `tower-http` dependency with `cors` feature
-  - Configure CORS middleware for `localhost:3000`
-
-- [ ] 4. **[Backend] Register WebSocket route**
-  - Add `/ws` route to main router
-  - Initialize WebSocket state
-
-- [ ] 5. **[Backend] Modify RPC handlers to broadcast events**
-  - Update `add_conv_msg` to broadcast WebSocket events
-  - Update other relevant handlers as needed
-
-#### Frontend Setup
-- [ ] 6. **[Frontend] Setup types directory**
-  - Create `src/types/backend/` directory
-  - Copy TypeScript bindings from Rust project
-  - Create `index.ts` with additional types (including WebSocket types)
-
-- [ ] 7. **[Frontend] Create RPC client**
-  - Create `src/lib/backend-rpc.ts`
-  - Test connection manually
-
-- [ ] 8. **[Frontend] Create WebSocket client hook**
-  - Create `src/lib/websocket.ts`
-  - Implement connection, subscription, and message handling
-
-- [ ] 9. **[Frontend] Create components (in order)**
-  - `AuthContext.tsx` (foundation)
-  - `LoginForm.tsx` (depends on AuthContext)
-  - `AgentManager.tsx` (depends on RPC client)
-  - `ConversationManager.tsx` (depends on RPC client)
-  - `MessagePanel.tsx` (depends on RPC client + WebSocket)
-
-- [ ] 10. **[Frontend] Create fullstack page**
-  - Create `src/routes/fullstack.tsx`
-  - Wire up all components
-
-#### Testing
-- [ ] 11. **[Frontend] Create component tests**
-  - `LoginForm.test.tsx`
-  - `AgentManager.test.tsx`
-  - `websocket.test.ts`
-  - Additional tests as needed
-
-- [ ] 12. **[Frontend] Create E2E tests**
-  - Create `e2e/fullstack.spec.ts`
-  - Include WebSocket connectivity tests
-
-- [ ] 13. **[Both] Integration testing**
-  - Start Rust backend
-  - Start SolidStart frontend
-  - Run E2E tests
-  - Verify WebSocket real-time updates work
+| quick_dev.rs Step   | SolidStart Component         | RPC Method         | Real-time           |
+| ------------------- | ---------------------------- | ------------------ | ------------------- |
+| Login               | `LoginForm`                  | `POST /api/login`  | -                   |
+| Create Agent        | `AgentManager`               | `create_agent`     | WebSocket broadcast |
+| Get Agent           | `AgentManager` (auto-select) | `get_agent`        | -                   |
+| Create Conversation | `ConversationManager`        | `create_conv`      | WebSocket broadcast |
+| Add Message         | `MessagePanel`               | `add_conv_msg`     | WebSocket broadcast |
+| Logoff              | Logout button                | `POST /api/logoff` | -                   |
 
 ---
 
-## Part 5: Alternative Approaches (Not Selected)
+## Appendix III: Alternative Approaches (Not Selected)
 
 ### Alternative 2: SolidStart Server Functions Proxy **[NOT SELECTED]**
 
@@ -1667,70 +1750,3 @@ Use a shared types package or monorepo setup for type synchronization.
 **Reason not selected:** Requires monorepo setup, adds build complexity
 
 ---
-
-## Part 6: Development Commands
-
-### Start Development Servers
-
-```bash
-# Terminal 1: Start Rust backend
-cd /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app
-cargo run -p web-server
-
-# Terminal 2: Start SolidStart frontend
-cd /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo
-bun dev
-```
-
-### Run Tests
-
-```bash
-# Component tests
-bun test:comp
-
-# Unit tests
-bun test:unit
-
-# E2E tests (requires both servers running)
-npm run test:e2e
-```
-
-### Copy Types Script
-
-Add to `package.json`:
-
-```json
-{
-  "scripts": {
-    "sync-types": "cp ../../../Rust/Rust_10X/rust-web-app/crates/services/web-server/bindings/*.d.ts ./src/types/backend/"
-  }
-}
-```
-
----
-
-## Appendix: quick_dev.rs Workflow Mapping
-
-| quick_dev.rs Step   | SolidStart Component         | RPC Method         | Real-time           |
-| ------------------- | ---------------------------- | ------------------ | ------------------- |
-| Login               | `LoginForm`                  | `POST /api/login`  | -                   |
-| Create Agent        | `AgentManager`               | `create_agent`     | WebSocket broadcast |
-| Get Agent           | `AgentManager` (auto-select) | `get_agent`        | -                   |
-| Create Conversation | `ConversationManager`        | `create_conv`      | WebSocket broadcast |
-| Add Message         | `MessagePanel`               | `add_conv_msg`     | WebSocket broadcast |
-| Logoff              | Logout button                | `POST /api/logoff` | -                   |
-
----
-
-## Progress Tracking
-
-Use this checklist to track overall progress:
-
-### Phase Completion
-- [x] Phase 1: TypeScript Types & RPC Client
-- [x] Phase 2: CORS Configuration
-- [x] Phase 3: WebSocket Support
-- [x] Phase 4: SolidStart Components
-- [x] Phase 5: Fullstack Page
-- [x] Phase 6: Testing
-- [ ] Integration Complete
