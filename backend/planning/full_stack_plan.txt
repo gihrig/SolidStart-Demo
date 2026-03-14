@@ -633,3 +633,37 @@ Project locations are at **Project Locations:** @line 7
   - rpc-client.ts — file exists (kept for reference) → marked [x]
 
   Part 3 is fully complete. Ready for your review before proceeding to Part 4.
+
+❯ /plan
+Goal: Review the `full_stack_integration` document and suggest additions or corrections.
+Context: The `full_stack_integration` document has been extensively revised.
+- Part 3 and part 4 have been cleaned up and merged into Part 2.
+- Part 2 phase 7 is incomplete.
+- A new Part 3 contains commands to run and test parts of the project.
+Task: Ultrathink about the format and detail of the `full_stack_integration` document.
+- Ensure all steps through part 2: Phase 6 are fully complete.
+- Review Part 2: Phase 7 for completeness and recommend additional steps and code to be adjusted or created.
+- Update the `full_stack_integration` document as needed.
+- Update memory as appropriate.
+- Do not change any other documents.
+
+⏺ Here's a summary of what the plan covers:
+
+  Key findings:
+
+  1. Phases 1–6 are all complete and confirmed — no corrections needed.
+  2. Phase 7 is the gap: only 3 sparse steps with no code or detail.
+  3. 3 missing test files are undocumented and unimplemented:
+    - ConversationManager.test.tsx
+    - MessagePanel.test.tsx
+    - AuthContext.test.tsx
+
+  Planned changes to full_stack_integration.md:
+
+  1. New Step 7.0 — "Create Missing Tests" with full test code for all 3 missing files
+  2. Step 7.1 — Expand with expected startup indicators for DB, backend, and frontend
+  3. Step 7.2 — Add expected output format, note on -j1 flag, common error for Docker
+  4. Step 7.3 — Break into 4 sub-steps (unit, component, E2E, manual WebSocket verification), including a two-tab
+  browser test procedure to verify real-time updates
+  5. Appendix I — Add the 3 missing test files to the tracking table
+  6. Memory — Create MEMORY.md noting the document location and Phase 7 status
