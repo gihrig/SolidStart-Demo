@@ -783,8 +783,8 @@ Task: Ultrathink about the format and detail of the `full_stack_integration` doc
   - Page loads, heading visible
   - Form fields present (name, email, submit button)
   - required and type=email attributes
-  - Graceful handling of backend fetch (loading / error / list — any is acceptable since the legacy rpc-client.ts isn't
-  backed by a real endpoint)
+  - Graceful handling of backend fetch (loading / error / list — any is acceptable since the
+  legacy rpc-client.ts isn't backed by a real endpoint)
   - Page structure (main, footer, h1)
   - Footer active indicator for Users link
   - Footer navigation to Home and About
@@ -813,3 +813,24 @@ Task: Ultrathink about the format and detail of the `full_stack_integration` doc
 
   If rpc-client.ts and users.tsx are ever properly integrated or removed, the test coverage question
   becomes relevant again. For now, it falls into the same category as not writing tests for node_modules.
+
+❯ Now do Step 7.3.1 Unit Tests. Pause for review before proceeding to Step 7.3.2.
+
+⏺ Step 7.3.1 complete — 41/41 tests pass across 3 files:
+
+  ┌──────────────────────────┬───────┐
+  │           File           │ Tests │
+  ├──────────────────────────┼───────┤
+  │ accumulator.unit.test.ts │ 9     │
+  ├──────────────────────────┼───────┤
+  │ websocket.unit.test.ts   │ 8     │
+  ├──────────────────────────┼───────┤
+  │ backend-rpc.unit.test.ts │ 24    │
+  └──────────────────────────┴───────┘
+
+  Fix applied to both test files: vi.stubGlobal / vi.unstubAllGlobals / vi.useFakeTimers are vitest-only
+  APIs that Bun's test runner doesn't implement. Converted both files to bun:test style — direct
+  globalThis assignment for mocking globals, and mock(() => {}) replacing vi.fn(). The vi.resetModules()
+  approach was also dropped in favour of a top-level import with per-test fetch mocks.
+
+  Ready to proceed to Step 7.3.2 (component tests) on your go-ahead.
