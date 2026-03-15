@@ -788,3 +788,28 @@ Task: Ultrathink about the format and detail of the `full_stack_integration` doc
   - Page structure (main, footer, h1)
   - Footer active indicator for Users link
   - Footer navigation to Home and About
+
+❯ Explain the rational for omitting a test for
+/Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo/src/lib/rpc-client.ts
+
+⏺ rpc-client.ts is a template/scaffold file — it was never wired into the actual backend. The evidence:
+
+  1. It uses a third-party package (json-rpc-client) rather than the custom backend-rpc.ts that was
+  purpose-built for this Rust/Axum backend.
+  2. The method signatures are placeholders — user.get, user.create, user.list, task.complete — none
+  of which correspond to any RPC method registered in the Rust backend (create_agent, list_convs,
+  add_conv_msg, etc.).
+  3. The only consumer is src/routes/users.tsx, which is itself a template page that was never
+  integrated into the full-stack workflow (it has no component tests and was absent from e2e
+  coverage entirely).
+  4. backend-rpc.ts supersedes it — the actual integration work in fullstack.tsx uses backend-rpc.ts
+  exclusively. rpc-client.ts is dead code from the project scaffold.
+
+  Testing it would provide no value because:
+  - There is no real behavior to verify (the methods delegate entirely to the json-rpc-client
+    library's internal logic)
+  - The endpoints it calls don't exist on the backend
+  - Any tests would effectively be testing the json-rpc-client npm package, not application code
+
+  If rpc-client.ts and users.tsx are ever properly integrated or removed, the test coverage question
+  becomes relevant again. For now, it falls into the same category as not writing tests for node_modules.
