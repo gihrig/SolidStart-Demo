@@ -1804,7 +1804,7 @@ describe('AuthContext', () => {
 ```
 
 #### Step 7.1 Start Servers
-- [ ] Completed
+- [x] Completed
 
 Start each server in its own terminal. Commands reference Part 3 section numbers.
 
@@ -1826,12 +1826,12 @@ Start each server in its own terminal. Commands reference Part 3 section numbers
    ```
    Expected: `Local: http://localhost:3000/`
 
-4. **Smoke-test the API** — confirm the RPC endpoint returns `403` with `NO_AUTH` error (unauthenticated):
+4. **Smoke-test the API** — confirm the RPC endpoint returns `401` with `NO_AUTH` error (unauthenticated):
    ```sh
    curl -s -w "\nHTTP: %{http_code}\n" -X POST http://localhost:8080/api/rpc \
      -H "Content-Type: application/json" \
      -d '{"jsonrpc":"2.0","id":1,"method":"test","params":{}}'
-   # Expected: HTTP 403, body contains "NO_AUTH"
+   # Expected: HTTP 401, body contains "NO_AUTH"
    ```
 
 #### Step 7.2 Run Back-End Tests

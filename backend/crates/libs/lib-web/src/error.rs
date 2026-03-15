@@ -156,11 +156,11 @@ impl Error {
 			LoginFailUsernameNotFound
 			| LoginFailUserHasNoPwd { .. }
 			| LoginFailPwdNotMatching { .. } => {
-				(StatusCode::FORBIDDEN, ClientError::LOGIN_FAIL)
+				(StatusCode::UNAUTHORIZED, ClientError::LOGIN_FAIL)
 			}
 
 			// -- Auth
-			CtxExt(_) => (StatusCode::FORBIDDEN, ClientError::NO_AUTH),
+			CtxExt(_) => (StatusCode::UNAUTHORIZED, ClientError::NO_AUTH),
 
 			// -- Model
 			Model(model::Error::EntityNotFound { entity, id }) => (

@@ -55,7 +55,7 @@
   <text x="215" y="410" class="text-code">LoginFailUsernameNotFound</text>
   <text x="215" y="430" class="text-code">LoginFailUserHasNoPwd</text>
   <text x="215" y="450" class="text-code">LoginFailPwdNotMatching</text>
-  <text x="215" y="470" class="text-small">→ FORBIDDEN + LOGIN_FAIL</text>
+  <text x="215" y="470" class="text-small">→ UNAUTHORIZED + LOGIN_FAIL</text>
 
   <!-- Auth &amp; Context Errors -->
   <rect x="75" y="510" width="280" height="120" rx="4" class="stroke-primary rect-error" />
@@ -63,7 +63,7 @@
   <text x="215" y="560" class="text-code">CtxExt(CtxExtError)</text>
   <text x="215" y="580" class="text-code">ReqStampNotInReqExt</text>
   <text x="215" y="600" class="text-small">From: middleware::mw_auth::CtxExtError</text>
-  <text x="215" y="620" class="text-small">→ FORBIDDEN + NO_AUTH</text>
+  <text x="215" y="620" class="text-small">→ UNAUTHORIZED + NO_AUTH</text>
 
   <!-- Module Errors -->
   <rect x="75" y="650" width="280" height="120" rx="4" class="stroke-primary rect-process" />

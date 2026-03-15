@@ -25,23 +25,23 @@ pub enum Error {
     LoginFailUsernameNotFound,
     LoginFailUserHasNoPwd { user_id: i64 },
     LoginFailPwdNotMatching { user_id: i64 },
-    
+
     // Context extraction errors
     CtxExt(middleware::mw_auth::CtxExtError),
     ReqStampNotInReqExt,
-    
+
     // Module-specific errors (auto-converted)
     Model(model::Error),
     Pwd(pwd::Error),
     Token(token::Error),
     Rpc(lib_rpc_core::Error),
-    
+
     // RPC processing errors
     RpcRequestParsing(rpc_router::RequestParsingError),
     RpcLibRpc(lib_rpc_core::Error),
     RpcHandlerErrorUnhandled(&'static str),
     RpcRouter { id: Value, method: String, error: rpc_router::Error },
-    
+
     // External library errors
     SerdeJson(serde_json::Error),
 }
@@ -96,15 +96,15 @@ impl Error {
 
 **Mapping Examples:**
 ```rust
-// Login errors → FORBIDDEN + LOGIN_FAIL
-LoginFailUsernameNotFound | LoginFailUserHasNoPwd { .. } | LoginFailPwdNotMatching { .. } 
-    => (StatusCode::FORBIDDEN, ClientError::LOGIN_FAIL)
+// Login errors → UNAUTHORIZED + LOGIN_FAIL
+LoginFailUsernameNotFound | LoginFailUserHasNoPwd { .. } | LoginFailPwdNotMatching { .. }
+    => (StatusCode::UNAUTHORIZED, ClientError::LOGIN_FAIL)
 
-// Authentication errors → FORBIDDEN + NO_AUTH  
-CtxExt(_) => (StatusCode::FORBIDDEN, ClientError::NO_AUTH)
+// Authentication errors → UNAUTHORIZED + NO_AUTH
+CtxExt(_) => (StatusCode::UNAUTHORIZED, ClientError::NO_AUTH)
 
 // Entity not found → BAD_REQUEST + ENTITY_NOT_FOUND
-Model(model::Error::EntityNotFound { entity, id }) 
+Model(model::Error::EntityNotFound { entity, id })
     => (StatusCode::BAD_REQUEST, ClientError::ENTITY_NOT_FOUND { entity, id })
 
 // RPC parsing errors → BAD_REQUEST + RPC_REQUEST_INVALID
@@ -157,9 +157,9 @@ The module organizes errors into logical categories for systematic handling:
 #### Authentication and Authorization Errors
 - **Login Failures**: Username not found, missing password, password mismatch
 - **Context Extraction**: Authentication middleware failures, missing request context
-- **Status Mapping**: All authentication errors map to `FORBIDDEN` status with `LOGIN_FAIL` or `NO_AUTH` client errors
+- **Status Mapping**: All authentication errors map to `UNAUTHORIZED` status with `LOGIN_FAIL` or `NO_AUTH` client errors
 
-#### Module Integration Errors  
+#### Module Integration Errors
 - **Model Layer**: Database and entity-related errors from the model module
 - **Authentication**: Password and token-related errors from lib-auth components
 - **RPC Core**: Core RPC functionality errors from lib-rpc-core
@@ -181,7 +181,7 @@ The error handling process follows a structured flow for comprehensive error man
 
 1. **Error Origin**: Errors originate from various application layers (handlers, middleware, external libraries)
 2. **Automatic Conversion**: External errors are automatically converted using `From` implementations
-3. **RPC Error Processing**: RPC errors undergo specialized deconstructing to extract concrete error types  
+3. **RPC Error Processing**: RPC errors undergo specialized deconstructing to extract concrete error types
 4. **Error Propagation**: Errors propagate up the call stack using the `Result<T>` type alias
 5. **HTTP Integration**: Errors are converted to HTTP responses via `IntoResponse` implementation
 6. **Status Code Mapping**: Internal errors are mapped to appropriate HTTP status codes
@@ -200,7 +200,7 @@ The module implements sophisticated RPC error handling for dynamic error type ma
 if let Some(lib_rpc_error) = rpc_handler_error.remove::<lib_rpc_core::Error>() {
     Error::RpcLibRpc(lib_rpc_error)
 }
-// Handle unknown error types  
+// Handle unknown error types
 else {
     let type_name = rpc_handler_error.type_name();
     warn!("Unhandled RpcHandlerError type: {type_name}");
@@ -226,8 +226,8 @@ The module provides comprehensive HTTP integration through the `IntoResponse` im
 
 #### Client Error Mapping
 The `client_status_and_error` method provides systematic error mapping:
-- **Authentication Errors**: Map to `FORBIDDEN` with safe client error messages
-- **Validation Errors**: Map to `BAD_REQUEST` with descriptive client feedback  
+- **Authentication Errors**: Map to `UNAUTHORIZED` with safe client error messages
+- **Validation Errors**: Map to `BAD_REQUEST` with descriptive client feedback
 - **Entity Errors**: Provide specific entity and ID information in safe format
 - **RPC Errors**: Map various RPC error conditions to appropriate client representations
 - **Unknown Errors**: Fallback to `INTERNAL_SERVER_ERROR` with generic `SERVICE_ERROR`
