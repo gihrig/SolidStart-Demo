@@ -1545,7 +1545,7 @@ test.describe('Fullstack Integration Page', () => {
 - Commands are found in Part 3: `Development Commands` below
 
 #### Step 7.0: Create Missing Tests
-- [ ] Completed
+- [x] Completed
 
 The following component test files are not yet created and must be added before running the full test suite:
 
@@ -1826,10 +1826,12 @@ Start each server in its own terminal. Commands reference Part 3 section numbers
    ```
    Expected: `Local: http://localhost:3000/`
 
-4. **Smoke-test the API** — confirm the RPC endpoint returns `401` (unauthenticated):
+4. **Smoke-test the API** — confirm the RPC endpoint returns `403` with `NO_AUTH` error (unauthenticated):
    ```sh
-   curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8080/api/rpc
-   # Expected: 401
+   curl -s -w "\nHTTP: %{http_code}\n" -X POST http://localhost:8080/api/rpc \
+     -H "Content-Type: application/json" \
+     -d '{"jsonrpc":"2.0","id":1,"method":"test","params":{}}'
+   # Expected: HTTP 403, body contains "NO_AUTH"
    ```
 
 #### Step 7.2 Run Back-End Tests
@@ -1982,24 +1984,24 @@ Use this checklist to track overall progress:
 
 ### New Files to Create
 
-| File                                     | Purpose                                      | Status |
-| ---------------------------------------- | -------------------------------------------- | ------ |
-| `src/types/backend/index.ts`             | Type re-exports and additional types         | [x]    |
-| `src/lib/backend-rpc.ts`                 | Custom RPC client for backend                | [x]    |
-| `src/lib/websocket.ts`                   | WebSocket client hook for real-time updates  | [x]    |
-| `src/components/AuthContext.tsx`         | Auth state management                        | [x]    |
-| `src/components/LoginForm.tsx`           | Login UI component                           | [x]    |
-| `src/components/AgentManager.tsx`        | Agent CRUD UI                                | [x]    |
-| `src/components/ConversationManager.tsx` | Conversation CRUD UI                         | [x]    |
-| `src/components/MessagePanel.tsx`        | Message display and send UI (with WebSocket) | [x]    |
-| `src/routes/fullstack.tsx`               | Main fullstack demo page                     | [x]    |
-| `src/components/LoginForm.test.tsx`              | LoginForm unit tests                         | [x]    |
-| `src/components/AgentManager.test.tsx`           | AgentManager unit tests                      | [x]    |
-| `src/lib/websocket.test.ts`                      | WebSocket hook tests                         | [x]    |
-| `e2e/fullstack.spec.ts`                          | E2E tests                                    | [x]    |
-| `src/components/ConversationManager.test.tsx`    | ConversationManager unit tests               | [ ]    |
-| `src/components/MessagePanel.test.tsx`           | MessagePanel unit tests                      | [ ]    |
-| `src/components/AuthContext.test.tsx`            | AuthContext unit tests                       | [ ]    |
+| File                                          | Purpose                                      | Status |
+| --------------------------------------------- | -------------------------------------------- | ------ |
+| `src/types/backend/index.ts`                  | Type re-exports and additional types         | [x]    |
+| `src/lib/backend-rpc.ts`                      | Custom RPC client for backend                | [x]    |
+| `src/lib/websocket.ts`                        | WebSocket client hook for real-time updates  | [x]    |
+| `src/components/AuthContext.tsx`              | Auth state management                        | [x]    |
+| `src/components/LoginForm.tsx`                | Login UI component                           | [x]    |
+| `src/components/AgentManager.tsx`             | Agent CRUD UI                                | [x]    |
+| `src/components/ConversationManager.tsx`      | Conversation CRUD UI                         | [x]    |
+| `src/components/MessagePanel.tsx`             | Message display and send UI (with WebSocket) | [x]    |
+| `src/routes/fullstack.tsx`                    | Main fullstack demo page                     | [x]    |
+| `src/components/LoginForm.test.tsx`           | LoginForm unit tests                         | [x]    |
+| `src/components/AgentManager.test.tsx`        | AgentManager unit tests                      | [x]    |
+| `src/lib/websocket.test.ts`                   | WebSocket hook tests                         | [x]    |
+| `e2e/fullstack.spec.ts`                       | E2E tests                                    | [x]    |
+| `src/components/ConversationManager.test.tsx` | ConversationManager unit tests               | [ ]    |
+| `src/components/MessagePanel.test.tsx`        | MessagePanel unit tests                      | [ ]    |
+| `src/components/AuthContext.test.tsx`         | AuthContext unit tests                       | [ ]    |
 
 ### Backend Files to Create/Modify
 
