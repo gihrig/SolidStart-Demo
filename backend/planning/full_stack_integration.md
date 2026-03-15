@@ -1863,6 +1863,13 @@ Start each server in its own terminal. Commands reference Part 3 section numbers
 #### Step 7.3 Run Front-End Tests
 - [ ] Completed
 
+##### 7.3.0 Create Missing Tests
+- [x] Completed
+- Review `"$FRONT_END/src/lib"` and create missing unit tests.
+- Review `"$FRONT_END/src/routes"` and create missing e2e tests in `"$FRONT_END/e2e"` folder.
+- Created `src/lib/backend-rpc.unit.test.ts` (27 tests covering all rpcCall, auth, agent, conv, convMsg behaviours)
+- Created `e2e/users.spec.ts` (9 tests covering heading, form fields, page structure, footer navigation)
+
 ##### 7.3.1 Unit Tests
 ```sh
 cd "$FRONT_END" && bun test:unit

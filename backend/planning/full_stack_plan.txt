@@ -747,3 +747,44 @@ Task: Ultrathink about the format and detail of the `full_stack_integration` doc
 
   The web-server is still running in the background (PID 17758). Ready to proceed to Step 7.3 when you give the
   go-ahead.
+
+❯ Now do Step 7.3 Run Front-End Tests: Step 7.3.0 Create Missing Tests. Pause for review before proceeding to the remaining 7.3.x steps.
+
+⏺ Step 7.3.0 complete — two test files created:
+
+  ---
+  src/lib/backend-rpc.unit.test.ts (27 tests, vitest)
+
+  Covers every layer of backend-rpc.ts:
+
+  ┌─────────────┬───────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │    Group    │                                               Tests                                               │
+  ├─────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ auth.login  │ POST shape, success response, HTTP error with message, HTTP error without JSON                    │
+  ├─────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ auth.logoff │ POST shape, resolves void                                                                         │
+  ├─────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ rpcCall     │ JSON-RPC envelope shape, returns result.data, HTTP error, RPC error with detail, RPC error        │
+  │ core        │ without detail, BigInt→Number serialization, incrementing id counter                              │
+  ├─────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ agent       │ create_agent, get_agent, list_agents, update_agent, delete_agent                                  │
+  ├─────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ conv        │ create_conv, list_convs, update_conv, delete_conv                                                 │
+  ├─────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ convMsg     │ add_conv_msg                                                                                      │
+  ├─────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ backendRpc  │ unified export has all four keys                                                                  │
+  └─────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  ---
+  e2e/users.spec.ts (9 tests, Playwright)
+
+  Covers the /users route:
+  - Page loads, heading visible
+  - Form fields present (name, email, submit button)
+  - required and type=email attributes
+  - Graceful handling of backend fetch (loading / error / list — any is acceptable since the legacy rpc-client.ts isn't
+  backed by a real endpoint)
+  - Page structure (main, footer, h1)
+  - Footer active indicator for Users link
+  - Footer navigation to Home and About
