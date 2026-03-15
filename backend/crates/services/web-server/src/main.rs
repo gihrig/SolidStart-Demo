@@ -21,7 +21,7 @@ use lib_core::model::ModelManager;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tower_cookies::CookieManagerLayer;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
@@ -61,7 +61,10 @@ async fn main() -> Result<()> {
 	let cors = CorsLayer::new()
 		.allow_origin("http://localhost:3000".parse::<axum::http::HeaderValue>().unwrap())
 		.allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-		.allow_headers(Any)
+		.allow_headers([
+			axum::http::header::CONTENT_TYPE,
+			axum::http::header::AUTHORIZATION,
+		])
 		.allow_credentials(true);
 
 	// Router Assembly - Middleware nested under /api prefix
