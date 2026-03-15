@@ -5,15 +5,14 @@ import { createSignal } from 'solid-js'
 import ConversationManager from './ConversationManager'
 import type { Agent, Conv } from '~/types/backend'
 
-const mockConvs: Conv[] = [
-  { id: BigInt(10), agent_id: BigInt(1), title: 'Conv Alpha', kind: 'MultiMessages', state: 'Active' },
-  { id: BigInt(11), agent_id: BigInt(1), title: 'Conv Beta',  kind: 'MultiMessages', state: 'Active' },
-]
-
+// Note: vi.mock is hoisted — factory must not reference outer variables
 vi.mock('~/lib/backend-rpc', () => ({
   backendRpc: {
     conv: {
-      list: vi.fn().mockResolvedValue(mockConvs),
+      list: vi.fn().mockResolvedValue([
+        { id: BigInt(10), agent_id: BigInt(1), title: 'Conv Alpha', kind: 'MultiMessages', state: 'Active' },
+        { id: BigInt(11), agent_id: BigInt(1), title: 'Conv Beta',  kind: 'MultiMessages', state: 'Active' },
+      ]),
       create: vi.fn().mockResolvedValue(
         { id: BigInt(12), agent_id: BigInt(1), title: 'New Conv', kind: 'MultiMessages', state: 'Active' }
       ),
@@ -36,7 +35,10 @@ describe('<ConversationManager />', () => {
 
   it('displays conversations after agent is provided', async () => {
     const { backendRpc } = await import('~/lib/backend-rpc')
-    ;(backendRpc.conv.list as ReturnType<typeof vi.fn>).mockResolvedValue(mockConvs)
+    ;(backendRpc.conv.list as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: BigInt(10), agent_id: BigInt(1), title: 'Conv Alpha', kind: 'MultiMessages', state: 'Active' },
+      { id: BigInt(11), agent_id: BigInt(1), title: 'Conv Beta',  kind: 'MultiMessages', state: 'Active' },
+    ])
 
     render(() => <ConversationManager agent={mockAgent} />)
 
@@ -63,7 +65,9 @@ describe('<ConversationManager />', () => {
 
   it('fires onConvSelect callback when a conversation is clicked', async () => {
     const { backendRpc } = await import('~/lib/backend-rpc')
-    ;(backendRpc.conv.list as ReturnType<typeof vi.fn>).mockResolvedValue(mockConvs)
+    ;(backendRpc.conv.list as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: BigInt(10), agent_id: BigInt(1), title: 'Conv Alpha', kind: 'MultiMessages', state: 'Active' },
+    ])
     const onSelect = vi.fn()
     const user = userEvent.setup()
 
@@ -77,7 +81,9 @@ describe('<ConversationManager />', () => {
 
   it('resets conversation list when agent changes', async () => {
     const { backendRpc } = await import('~/lib/backend-rpc')
-    ;(backendRpc.conv.list as ReturnType<typeof vi.fn>).mockResolvedValue(mockConvs)
+    ;(backendRpc.conv.list as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: BigInt(10), agent_id: BigInt(1), title: 'Conv Alpha', kind: 'MultiMessages', state: 'Active' },
+    ])
 
     const [agent, setAgent] = createSignal<Agent | null>(mockAgent)
     render(() => <ConversationManager agent={agent()} />)

@@ -12,13 +12,11 @@ const mockConv: Conv = {
   state: 'Active',
 }
 
-// Controls for the connected signal across tests
-let mockConnected = vi.fn().mockReturnValue(false)
-
+// Default: disconnected
 vi.mock('~/lib/websocket', () => ({
   useWebSocket: vi.fn(() => ({
-    connected: mockConnected,
-    error: vi.fn().mockReturnValue(null),
+    connected: () => false,
+    error: () => null,
     subscribe: vi.fn(),
     unsubscribe: vi.fn(),
     disconnect: vi.fn(),
@@ -37,16 +35,6 @@ vi.mock('~/lib/backend-rpc', () => ({
 describe('<MessagePanel />', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockConnected = vi.fn().mockReturnValue(false)
-    const { useWebSocket } = require('~/lib/websocket')
-    ;(useWebSocket as ReturnType<typeof vi.fn>).mockReturnValue({
-      connected: mockConnected,
-      error: vi.fn().mockReturnValue(null),
-      subscribe: vi.fn(),
-      unsubscribe: vi.fn(),
-      disconnect: vi.fn(),
-      reconnect: vi.fn(),
-    })
   })
 
   it('shows "Select a conversation first" when conv is null', () => {
@@ -54,11 +42,11 @@ describe('<MessagePanel />', () => {
     expect(screen.getByText(/select a conversation first/i)).toBeInTheDocument()
   })
 
-  it('shows Live indicator when WebSocket is connected', () => {
-    const { useWebSocket } = require('~/lib/websocket')
-    ;(useWebSocket as ReturnType<typeof vi.fn>).mockReturnValue({
-      connected: vi.fn().mockReturnValue(true),
-      error: vi.fn().mockReturnValue(null),
+  it('shows Live indicator when WebSocket is connected', async () => {
+    const { useWebSocket } = await import('~/lib/websocket')
+    ;(useWebSocket as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+      connected: () => true,
+      error: () => null,
       subscribe: vi.fn(),
       unsubscribe: vi.fn(),
       disconnect: vi.fn(),

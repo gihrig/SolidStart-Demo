@@ -29,8 +29,9 @@ export default function LoginForm() {
       </Show>
 
       <div>
-        <label class="block text-sm font-medium">Username</label>
+        <label for="username" class="block text-sm font-medium">Username</label>
         <input
+          id="username"
           name="username"
           type="text"
           required
@@ -40,8 +41,9 @@ export default function LoginForm() {
       </div>
 
       <div>
-        <label class="block text-sm font-medium">Password</label>
+        <label for="password" class="block text-sm font-medium">Password</label>
         <input
+          id="password"
           name="password"
           type="password"
           required
