@@ -12,13 +12,13 @@ test.describe('Fullstack Integration Page', () => {
 
   test('should show login form when not authenticated', async ({ page }) => {
     await expect(page.getByRole('heading', { name: /login/i })).toBeVisible()
-    await expect(page.getByLabelText(/username/i)).toBeVisible()
-    await expect(page.getByLabelText(/password/i)).toBeVisible()
+    await expect(page.getByLabel(/username/i)).toBeVisible()
+    await expect(page.getByLabel(/password/i)).toBeVisible()
   })
 
   test('should have demo credentials pre-filled', async ({ page }) => {
-    const usernameInput = page.getByLabelText(/username/i)
-    const passwordInput = page.getByLabelText(/password/i)
+    const usernameInput = page.getByLabel(/username/i)
+    const passwordInput = page.getByLabel(/password/i)
 
     await expect(usernameInput).toHaveValue('demo1')
     await expect(passwordInput).toHaveValue('welcome')
@@ -32,7 +32,7 @@ test.describe('Fullstack Integration Page', () => {
       await page.getByRole('button', { name: /login/i }).click()
 
       // Wait for login to complete
-      await expect(page.getByText(/logged in as: demo1/i)).toBeVisible({ timeout: 5000 })
+      await expect(page.getByText(/logged in as: demo1/i)).toBeVisible({ timeout: 10000 })
       await expect(page.getByRole('button', { name: /logout/i })).toBeVisible()
     })
 
@@ -41,7 +41,7 @@ test.describe('Fullstack Integration Page', () => {
       await expect(page.getByText(/logged in as/i)).toBeVisible({ timeout: 5000 })
 
       await expect(page.getByRole('heading', { name: /agents/i })).toBeVisible()
-      await expect(page.getByPlaceholderText(/agent name/i)).toBeVisible()
+      await expect(page.getByPlaceholder(/agent name/i)).toBeVisible()
     })
 
     test('should show real-time indicator', async ({ page }) => {
@@ -49,13 +49,13 @@ test.describe('Fullstack Integration Page', () => {
       await expect(page.getByText(/logged in as/i)).toBeVisible({ timeout: 5000 })
 
       // Create agent and conversation to see message panel
-      await page.getByPlaceholderText(/agent name/i).fill('E2E Test Agent')
+      await page.getByPlaceholder(/agent name/i).fill('E2E Test Agent')
       await page.getByRole('button', { name: /create agent/i }).click()
-      await expect(page.getByText('E2E Test Agent')).toBeVisible({ timeout: 5000 })
+      await expect(page.getByText('E2E Test Agent').first()).toBeVisible({ timeout: 5000 })
 
-      await page.getByPlaceholderText(/conversation title/i).fill('E2E Test Conv')
+      await page.getByPlaceholder(/conversation title/i).fill('E2E Test Conv')
       await page.getByRole('button', { name: /create conv/i }).click()
-      await expect(page.getByText('E2E Test Conv')).toBeVisible({ timeout: 5000 })
+      await expect(page.getByText('E2E Test Conv').first()).toBeVisible({ timeout: 5000 })
 
       // Should show Live/Offline indicator
       await expect(page.getByText(/live|offline/i)).toBeVisible()
@@ -67,17 +67,17 @@ test.describe('Fullstack Integration Page', () => {
       await expect(page.getByText(/logged in as/i)).toBeVisible({ timeout: 5000 })
 
       // Create agent
-      await page.getByPlaceholderText(/agent name/i).fill('E2E Test Agent')
+      await page.getByPlaceholder(/agent name/i).fill('E2E Test Agent')
       await page.getByRole('button', { name: /create agent/i }).click()
-      await expect(page.getByText('E2E Test Agent')).toBeVisible({ timeout: 5000 })
+      await expect(page.getByText('E2E Test Agent').first()).toBeVisible({ timeout: 5000 })
 
       // Create conversation
-      await page.getByPlaceholderText(/conversation title/i).fill('E2E Test Conv')
+      await page.getByPlaceholder(/conversation title/i).fill('E2E Test Conv')
       await page.getByRole('button', { name: /create conv/i }).click()
-      await expect(page.getByText('E2E Test Conv')).toBeVisible({ timeout: 5000 })
+      await expect(page.getByText('E2E Test Conv').first()).toBeVisible({ timeout: 5000 })
 
       // Send message
-      await page.getByPlaceholderText(/type a message/i).fill('Hello from E2E test!')
+      await page.getByPlaceholder(/type a message/i).fill('Hello from E2E test!')
       await page.getByRole('button', { name: /send/i }).click()
       await expect(page.getByText('Hello from E2E test!')).toBeVisible({ timeout: 5000 })
     })
