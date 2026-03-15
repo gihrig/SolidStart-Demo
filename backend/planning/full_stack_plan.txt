@@ -728,3 +728,22 @@ Task: Ultrathink about the format and detail of the `full_stack_integration` doc
   Full suite result: 34 passed (8 files) — all green.
 
 ❯ Now do Step 7.2 Run Back-End Tests. Pause for review before proceeding to step 7.3.
+
+⏺ Step 7.2 Complete — Results:
+
+  Unit Tests (cargo nextest run -j1): 37/37 passed, 0 failures
+
+  quick_dev Integration Example: All 6 steps succeeded in order:
+  - login demo1 → 200 OK, auth-token cookie set
+  - create_agent → 200 OK, agent id=1000 created
+  - get_agent → 200 OK, agent returned
+  - create_conv → 200 OK, conv id=1000 created
+  - add_conv_msg → 200 OK, message stored
+  - logoff → 200 OK, auth-token cleared
+
+  One minor warning (dead code, non-blocking):
+  - broadcast_conv_update and broadcast_agent_update in routes_ws.rs are defined but not yet called — they're stubs for
+  future use and can remain as-is.
+
+  The web-server is still running in the background (PID 17758). Ready to proceed to Step 7.3 when you give the
+  go-ahead.

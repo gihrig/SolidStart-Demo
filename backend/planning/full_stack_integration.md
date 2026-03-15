@@ -1835,7 +1835,7 @@ Start each server in its own terminal. Commands reference Part 3 section numbers
    ```
 
 #### Step 7.2 Run Back-End Tests
-- [ ] Completed
+- [x] Completed
 
 1. **Unit tests** (§3.4):
    ```sh
