@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test'
 import { createRoot } from 'solid-js'
 
 // Mock WebSocket
@@ -17,8 +17,8 @@ class MockWebSocket {
     MockWebSocket.instances.push(this)
   }
 
-  send = vi.fn()
-  close = vi.fn(() => {
+  send = mock(() => {})
+  close = mock(() => {
     this.readyState = 3
     this.onclose?.()
   })
@@ -38,16 +38,17 @@ class MockWebSocket {
   }
 }
 
+let originalWebSocket: unknown
+
 describe('useWebSocket', () => {
   beforeEach(() => {
     MockWebSocket.instances = []
-    vi.stubGlobal('WebSocket', MockWebSocket)
-    vi.useFakeTimers()
+    originalWebSocket = (globalThis as any).WebSocket
+    ;(globalThis as any).WebSocket = MockWebSocket
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
-    vi.useRealTimers()
+    ;(globalThis as any).WebSocket = originalWebSocket
   })
 
   it('connects to the correct WebSocket URL', () => {
@@ -96,7 +97,7 @@ describe('useWebSocket', () => {
   it('calls onConvMsg with correct conv_id and msg for conv_msg events', () => {
     createRoot((dispose) => {
       const { useWebSocket } = require('./websocket')
-      const onConvMsg = vi.fn()
+      const onConvMsg = mock(() => {})
       const { reconnect } = useWebSocket({ onConvMsg, autoReconnect: false })
 
       reconnect()
@@ -114,7 +115,7 @@ describe('useWebSocket', () => {
   it('does not call onConvMsg for non-conv_msg event types', () => {
     createRoot((dispose) => {
       const { useWebSocket } = require('./websocket')
-      const onConvMsg = vi.fn()
+      const onConvMsg = mock(() => {})
       const { reconnect } = useWebSocket({ onConvMsg, autoReconnect: false })
 
       reconnect()
@@ -167,7 +168,7 @@ describe('useWebSocket', () => {
   it('sets error signal when socket errors', () => {
     createRoot((dispose) => {
       const { useWebSocket } = require('./websocket')
-      const onError = vi.fn()
+      const onError = mock(() => {})
       const { error, reconnect } = useWebSocket({ onError, autoReconnect: false })
 
       reconnect()
