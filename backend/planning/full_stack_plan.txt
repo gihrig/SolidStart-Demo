@@ -696,10 +696,11 @@ Task: Ultrathink about the format and detail of the `full_stack_integration` doc
 
 ⏺ Now let's run the tests to see where we stand:
 
-❯ cd /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo && bun test:unit 2>&1
-   Run unit tests
+❯ Now do Step 7.1 Start Servers. Correct any problems that come up.
+- cd /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo && bun test:unit 2>&1
+- Run unit tests
 
-   ... All tests fail Claude analyzes errors and made corrections.
+   ... All tests fail Claude analyzed errors and made corrections.
 
 ⏺ 34/34 tests pass. Here's a summary of everything done in Step 7.0:
 
@@ -726,4 +727,4 @@ Task: Ultrathink about the format and detail of the `full_stack_integration` doc
 
   Full suite result: 34 passed (8 files) — all green.
 
-  Ready to proceed to Step 7.1 when you give the go-ahead.
+❯ Now do Step 7.2 Run Back-End Tests. Pause for review before proceeding to step 7.3.
