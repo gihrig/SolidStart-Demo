@@ -1861,7 +1861,7 @@ Start each server in its own terminal. Commands reference Part 3 section numbers
    All steps should succeed without errors.
 
 #### Step 7.3 Run Front-End Tests
-- [ ] Completed
+- [x] Completed
 
 ##### 7.3.0 Create Missing Tests
 - [x] Completed
@@ -1899,6 +1899,11 @@ cd "$FRONT_END" && npm run test:e2e
 - Network-dependent tests (create agent, send message) require live servers.
 
 ##### 7.3.4 Manual WebSocket Verification (Two-Tab Test)
+- [x] Completed — automated via Playwright script; WebSocket broadcast confirmed
+- Bugs found and fixed:
+  - `websocket.ts`: `data.type` → `data.event_type` (field name mismatch with backend `WsEvent` struct)
+  - `websocket.ts` + `types/backend/index.ts`: payload unwrapped as `{conv_id, msg}` but backend sends `ConvMsg` directly — fixed to `payload as ConvMsg`
+  - `MessagePanel.tsx`: dedup check `m.id === msg.id` failed BigInt vs Number — fixed to `Number(m.id) === Number(msg.id)`
 
 1. Open `http://localhost:3000/fullstack` in **Tab 1**.
 2. Login with username `demo1` / password `welcome`.
