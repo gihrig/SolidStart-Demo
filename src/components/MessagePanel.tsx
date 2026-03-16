@@ -19,7 +19,7 @@ export default function MessagePanel(props: Props) {
       if (props.conv && Number(props.conv.id) === convId) {
         setMessages((prev) => {
           // Avoid duplicates (in case we just sent this message)
-          if (prev.some((m) => m.id === msg.id)) {
+          if (prev.some((m) => Number(m.id) === Number(msg.id))) {
             return prev
           }
           return [...prev, msg]

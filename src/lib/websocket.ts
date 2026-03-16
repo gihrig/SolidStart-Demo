@@ -39,9 +39,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data) as WsMessage
-          if (data.type === 'conv_msg' && options.onConvMsg) {
-            const payload = data.payload as { conv_id: number; msg: ConvMsg }
-            options.onConvMsg(payload.conv_id, payload.msg)
+          if (data.event_type === 'conv_msg' && options.onConvMsg) {
+            const msg = data.payload as ConvMsg
+            options.onConvMsg(Number(msg.conv_id), msg)
           }
         } catch (e) {
           console.error('Failed to parse WebSocket message:', e)

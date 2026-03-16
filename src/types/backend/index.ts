@@ -78,15 +78,11 @@ export function isRpcError(response: JsonRpcResponse): response is JsonRpcErrorR
   return 'error' in response
 }
 
-// WebSocket message types
+// WebSocket message types — matches backend WsEvent struct fields
 export interface WsMessage {
-  type: 'conv_msg' | 'conv_update' | 'agent_update' | 'error'
+  event_type: 'conv_msg' | 'conv_update' | 'agent_update' | 'error'
+  channel: string
   payload: unknown
-}
-
-export interface WsConvMsgPayload {
-  conv_id: bigint | number
-  msg: ConvMsg
 }
 
 export interface WsSubscription {
