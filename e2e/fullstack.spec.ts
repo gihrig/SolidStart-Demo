@@ -26,8 +26,6 @@ test.describe('Fullstack Integration Page', () => {
 
   // Integration tests (require running backend)
   test.describe('with backend', () => {
-    test.skip(({ browserName }) => browserName !== 'chromium', 'Backend tests only on chromium')
-
     test('should login successfully with demo credentials', async ({ page }) => {
       await page.getByRole('button', { name: /login/i }).click()
 
