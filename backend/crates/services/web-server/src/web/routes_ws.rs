@@ -83,15 +83,24 @@ async fn handle_socket(socket: WebSocket, state: Arc<WsState>) {
 
 	// Task to forward broadcast messages to this client
 	let send_task = tokio::spawn(async move {
-		while let Ok(event) = rx.recv().await {
-			match serde_json::to_string(&event) {
-				Ok(msg) => {
-					if sender.send(Message::Text(msg.into())).await.is_err() {
-						break;
+		loop {
+			match rx.recv().await {
+				Ok(event) => match serde_json::to_string(&event) {
+					Ok(msg) => {
+						if sender.send(Message::Text(msg.into())).await.is_err() {
+							break;
+						}
 					}
+					Err(e) => {
+						warn!("Failed to serialize WebSocket event: {}", e);
+					}
+				},
+				Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+					warn!("WebSocket client lagged, missed {} messages", n);
+					// Continue receiving — don't drop the connection
 				}
-				Err(e) => {
-					warn!("Failed to serialize WebSocket event: {}", e);
+				Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+					break;
 				}
 			}
 		}
