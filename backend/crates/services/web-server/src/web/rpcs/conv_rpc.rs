@@ -2,7 +2,7 @@ use crate::web::routes_ws::WsState;
 use lib_core::model::conv::{
 	Conv, ConvBmc, ConvFilter, ConvForCreate, ConvForUpdate,
 };
-use lib_core::model::conv_msg::{ConvMsg, ConvMsgForCreate};
+use lib_core::model::conv_msg::{ConvMsg, ConvMsgFilter, ConvMsgForCreate};
 use lib_rpc_core::prelude::*;
 
 pub fn rpc_router_builder() -> RouterBuilder {
@@ -14,6 +14,7 @@ pub fn rpc_router_builder() -> RouterBuilder {
 		update_conv,
 		delete_conv,
 		add_conv_msg,
+		list_conv_msgs,
 	)
 }
 
@@ -47,6 +48,16 @@ pub async fn add_conv_msg(
 	}
 
 	Ok(msg.into())
+}
+
+/// List conv_msgs, typically filtered by conv_id
+pub async fn list_conv_msgs(
+	ctx: Ctx,
+	mm: ModelManager,
+	params: ParamsList<ConvMsgFilter>,
+) -> Result<DataRpcResult<Vec<ConvMsg>>> {
+	let msgs = ConvBmc::list_msgs(&ctx, &mm, params.filters, params.list_options).await?;
+	Ok(msgs.into())
 }
 
 /// Return conv_msg

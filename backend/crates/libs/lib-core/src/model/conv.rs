@@ -2,7 +2,7 @@ use crate::ctx::Ctx;
 use crate::generate_common_bmc_fns;
 use crate::model::base::{self, DbBmc};
 use crate::model::conv_msg::{
-	ConvMsg, ConvMsgBmc, ConvMsgForCreate, ConvMsgForInsert,
+	ConvMsg, ConvMsgBmc, ConvMsgFilter, ConvMsgForCreate, ConvMsgForInsert,
 };
 use crate::model::modql_utils::time_to_sea_value;
 use crate::model::ModelManager;
@@ -184,6 +184,15 @@ impl ConvBmc {
 		let conv_msg_id = base::create::<ConvMsgBmc, _>(ctx, mm, msg_i).await?;
 
 		Ok(conv_msg_id)
+	}
+
+	pub async fn list_msgs(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		filter: Option<Vec<ConvMsgFilter>>,
+		list_options: Option<ListOptions>,
+	) -> Result<Vec<ConvMsg>> {
+		base::list::<ConvMsgBmc, _, _>(ctx, mm, filter, list_options).await
 	}
 
 	/// NOTE: The current strategy is to not require conv_id, but we will check

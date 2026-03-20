@@ -1972,3 +1972,31 @@ What is missing in the websocket implementation that is needed to facilitate upd
 
   These methods are defined in WsState but never called anywhere. They would be needed if update_conv or update_agent
   RPC calls should also push real-time updates to other tabs — currently only add_conv_msg triggers a broadcast.
+
+❯ Review /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app/planning/full_stack_integration.md:
+- **Project Locations:**
+- Part 2: Implementation Steps > Phase 7: Integration Testing > 7.3.4 Manual WebSocket Verification (Two-Tab Test)
+
+From the previous summary:
+- 2. Missing: Initial message load (front-end + back-end gap)
+  MessagePanel calls setMessages([]) when a conversation is selected, but never fetches existing messages. Tab 2 always
+  starts with an empty list. As a result Tab 2 is blind to any history.
+
+  To fix this:
+  - A list_conv_msgs RPC method on the back-end (none exists yet — get_conv_msg is defined but list_conv_msgs is not in
+  the router)
+  - A convMsg.list(convId) call in backendRpc
+  - A fetch in the createEffect in MessagePanel
+
+  Apply changes described under 'To fix this:' above so MessagePanel fetches existing messages and displays message history when loaded.
+
+⏺ Clean build (only pre-existing unused method warnings). All 4 changes are in place:
+
+  Back-end:
+  - conv.rs: Added ConvMsgFilter import + ConvBmc::list_msgs() method
+  - conv_rpc.rs: Added list_conv_msgs RPC function + registered it in the router
+
+  Front-end:
+  - backend-rpc.ts: Added convMsg.list(convId) — sends list_conv_msgs with a conv_id: { $eq: convId } filter
+  - MessagePanel.tsx: Updated createEffect to call backendRpc.convMsg.list(conv.id) after resetting messages, populating
+   history on conversation select
