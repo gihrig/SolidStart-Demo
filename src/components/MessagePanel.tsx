@@ -86,16 +86,8 @@ export default function MessagePanel(props: Props) {
       </div>
 
       <Show when={!props.conv}>
-        <p class="text-gray-500">Select a conversation first</p>
+        <p class="text-gray-500">Select a conversation</p>
       </Show>
-
-      <button
-        type="submit"
-        disabled={sending()}
-        class="rounded bg-blue-600 px-12 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-      >
-        {sending() ? 'Sending...' : 'Send'}
-      </button>
 
       <Show when={props.conv}>
         <Show when={error()}>
@@ -103,6 +95,14 @@ export default function MessagePanel(props: Props) {
         </Show>
 
         {/* Messages Display */}
+        <button
+          type="submit"
+          disabled={sending()}
+          class="rounded bg-blue-600 px-12 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          {sending() ? 'Sending...' : 'Send'}
+        </button>
+
         <div class="max-h-60 space-y-2 overflow-y-auto rounded border border-gray-200 p-2">
           <Show when={messages().length === 0}>
             <p class="text-gray-500">No messages yet</p>
