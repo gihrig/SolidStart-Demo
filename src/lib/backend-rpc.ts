@@ -106,6 +106,8 @@ export const conv = {
 // Conversation Message RPC methods
 export const convMsg = {
   add: (data: ConvMsgForCreate) => rpcCall<ConvMsg>('add_conv_msg', { data }),
+  list: (convId: bigint | number) =>
+    rpcCall<ConvMsg[]>('list_conv_msgs', { filters: [{ conv_id: { $eq: Number(convId) } }] }),
 }
 
 // Unified export

@@ -29,13 +29,16 @@ export default function MessagePanel(props: Props) {
     onError: (err) => setError(err),
   })
 
-  // Subscribe to conversation updates when conv changes
+  // Subscribe to conversation updates when conv changes and load history
   createEffect(() => {
     const conv = props.conv
     if (conv) {
       subscribe('conv', conv.id)
-      // Reset messages when conversation changes
       setMessages([])
+      backendRpc.convMsg
+        .list(conv.id)
+        .then(setMessages)
+        .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load messages'))
     }
   })
 
