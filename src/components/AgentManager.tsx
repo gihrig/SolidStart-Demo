@@ -48,6 +48,13 @@ export default function AgentManager(props: Props) {
       </Show>
 
       {/* Create Agent Form */}
+      <button
+        type="submit"
+        disabled={creating()}
+        class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+      >
+        {creating() ? 'Creating...' : 'Create Agent'}
+      </button>
       <form onSubmit={handleCreate} class="flex gap-2">
         <input
           name="name"
@@ -55,13 +62,6 @@ export default function AgentManager(props: Props) {
           required
           class="flex-1 rounded border border-gray-300 px-3 py-2"
         />
-        <button
-          type="submit"
-          disabled={creating()}
-          class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
-        >
-          {creating() ? 'Creating...' : 'Create Agent'}
-        </button>
       </form>
 
       {/* Agent List */}
@@ -75,7 +75,10 @@ export default function AgentManager(props: Props) {
 
       <Show when={agents()}>
         <ul class="space-y-2">
-          <For each={agents()} fallback={<li class="text-gray-500">No agents yet</li>}>
+          <For
+            each={agents()}
+            fallback={<li class="text-gray-500">No agents yet</li>}
+          >
             {(agent) => (
               <li
                 class={`cursor-pointer rounded border p-2 transition ${
@@ -86,7 +89,9 @@ export default function AgentManager(props: Props) {
                 onClick={() => selectAgent(agent)}
               >
                 <strong>{agent.name}</strong>
-                <span class="ml-2 text-sm text-gray-500">ID: {String(agent.id)}</span>
+                <span class="ml-2 text-sm text-gray-500">
+                  ID: {String(agent.id)}
+                </span>
               </li>
             )}
           </For>

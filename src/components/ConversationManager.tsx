@@ -12,7 +12,9 @@ export default function ConversationManager(props: Props) {
     () => props.agent,
     async (agent) => {
       if (!agent) return []
-      return backendRpc.conv.list({ filters: [{ agent_id: { $eq: Number(agent.id) } }] })
+      return backendRpc.conv.list({
+        filters: [{ agent_id: { $eq: Number(agent.id) } }],
+      })
     }
   )
   const [selectedConv, setSelectedConv] = createSignal<Conv | null>(null)
@@ -37,7 +39,7 @@ export default function ConversationManager(props: Props) {
     try {
       const conv = await backendRpc.conv.create({
         agent_id: props.agent.id,
-        title: formData.get('title') as string || null,
+        title: (formData.get('title') as string) || null,
       })
       form.reset()
       await refetch()
@@ -69,19 +71,19 @@ export default function ConversationManager(props: Props) {
         </Show>
 
         {/* Create Conversation Form */}
+        <button
+          type="submit"
+          disabled={creating()}
+          class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+        >
+          {creating() ? 'Creating...' : 'Create Conv'}
+        </button>
         <form onSubmit={handleCreate} class="flex gap-2">
           <input
             name="title"
             placeholder="Conversation title (optional)"
             class="flex-1 rounded border border-gray-300 px-3 py-2"
           />
-          <button
-            type="submit"
-            disabled={creating()}
-            class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
-          >
-            {creating() ? 'Creating...' : 'Create Conv'}
-          </button>
         </form>
 
         {/* Conversation List */}
@@ -95,7 +97,10 @@ export default function ConversationManager(props: Props) {
 
         <Show when={convs()}>
           <ul class="space-y-2">
-            <For each={convs()} fallback={<li class="text-gray-500">No conversations yet</li>}>
+            <For
+              each={convs()}
+              fallback={<li class="text-gray-500">No conversations yet</li>}
+            >
               {(conv) => (
                 <li
                   class={`cursor-pointer rounded border p-2 transition ${
@@ -106,7 +111,9 @@ export default function ConversationManager(props: Props) {
                   onClick={() => selectConv(conv)}
                 >
                   <strong>{conv.title || 'Untitled'}</strong>
-                  <span class="ml-2 text-sm text-gray-500">ID: {String(conv.id)}</span>
+                  <span class="ml-2 text-sm text-gray-500">
+                    ID: {String(conv.id)}
+                  </span>
                 </li>
               )}
             </For>

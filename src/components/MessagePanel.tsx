@@ -77,7 +77,9 @@ export default function MessagePanel(props: Props) {
       <div class="flex items-center justify-between">
         <h3 class="text-lg font-semibold">Messages</h3>
         <Show when={props.conv}>
-          <span class={`text-xs ${connected() ? 'text-green-600' : 'text-red-600'}`}>
+          <span
+            class={`text-xs ${connected() ? 'text-green-600' : 'text-red-600'}`}
+          >
             {connected() ? 'Live' : 'Offline'}
           </span>
         </Show>
@@ -86,6 +88,14 @@ export default function MessagePanel(props: Props) {
       <Show when={!props.conv}>
         <p class="text-gray-500">Select a conversation first</p>
       </Show>
+
+      <button
+        type="submit"
+        disabled={sending()}
+        class="rounded bg-blue-600 px-12 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+      >
+        {sending() ? 'Sending...' : 'Send'}
+      </button>
 
       <Show when={props.conv}>
         <Show when={error()}>
@@ -115,13 +125,6 @@ export default function MessagePanel(props: Props) {
             required
             class="flex-1 rounded border border-gray-300 px-3 py-2"
           />
-          <button
-            type="submit"
-            disabled={sending()}
-            class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {sending() ? 'Sending...' : 'Send'}
-          </button>
         </form>
       </Show>
     </div>
