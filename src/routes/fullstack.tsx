@@ -21,7 +21,7 @@ function FullstackContent() {
   return (
     <main class="container mx-auto p-4">
       <h1 class="mb-6 text-2xl font-bold">Full-Stack Integration Demo</h1>
-      <p class="mb-4 text-gray-400">
+      <p class="mb-4 text-center! text-gray-400">
         SolidStart + Rust/Axum JSON-RPC Example (with WebSocket real-time
         updates)
       </p>
