@@ -35,7 +35,9 @@ afterEach(() => {
 
 describe('auth.login', () => {
   it('sends POST to /api/login with username and pwd', async () => {
-    const fetchMock = mock(() => Promise.resolve(mockResponse({ result: { success: true } })))
+    const fetchMock = mock(() =>
+      Promise.resolve(mockResponse({ result: { success: true } }))
+    )
     globalThis.fetch = fetchMock
 
     await auth.login('demo1', 'welcome')
@@ -51,7 +53,9 @@ describe('auth.login', () => {
   })
 
   it('returns the success response on 200', async () => {
-    globalThis.fetch = mock(() => Promise.resolve(mockResponse({ result: { success: true } })))
+    globalThis.fetch = mock(() =>
+      Promise.resolve(mockResponse({ result: { success: true } }))
+    )
 
     const result = await auth.login('demo1', 'welcome')
 
@@ -60,9 +64,13 @@ describe('auth.login', () => {
 
   it('throws with server error message on non-ok response', async () => {
     const errorBody = { error: { message: 'invalid credentials' } }
-    globalThis.fetch = mock(() => Promise.resolve(mockResponse(errorBody, false, 401)))
+    globalThis.fetch = mock(() =>
+      Promise.resolve(mockResponse(errorBody, false, 401))
+    )
 
-    await expect(auth.login('bad', 'creds')).rejects.toThrow('invalid credentials')
+    await expect(auth.login('bad', 'creds')).rejects.toThrow(
+      'invalid credentials'
+    )
   })
 
   it('throws generic message when error body cannot be parsed', async () => {
@@ -83,7 +91,9 @@ describe('auth.login', () => {
 
 describe('auth.logoff', () => {
   it('sends POST to /api/logoff with logoff: true', async () => {
-    const fetchMock = mock(() => Promise.resolve(mockResponse({ result: { logged_off: true } })))
+    const fetchMock = mock(() =>
+      Promise.resolve(mockResponse({ result: { logged_off: true } }))
+    )
     globalThis.fetch = fetchMock
 
     await auth.logoff()
@@ -99,7 +109,9 @@ describe('auth.logoff', () => {
   })
 
   it('does not throw on success', async () => {
-    globalThis.fetch = mock(() => Promise.resolve(mockResponse({ result: { logged_off: true } })))
+    globalThis.fetch = mock(() =>
+      Promise.resolve(mockResponse({ result: { logged_off: true } }))
+    )
 
     await expect(auth.logoff()).resolves.toBeUndefined()
   })
@@ -109,7 +121,9 @@ describe('auth.logoff', () => {
 
 describe('rpcCall core behaviour', () => {
   it('sends POST to /api/rpc with JSON-RPC envelope', async () => {
-    const fetchMock = mock(() => Promise.resolve(mockResponse(rpcSuccess({ id: 1, name: 'Test Agent' }))))
+    const fetchMock = mock(() =>
+      Promise.resolve(mockResponse(rpcSuccess({ id: 1, name: 'Test Agent' })))
+    )
     globalThis.fetch = fetchMock
 
     await agent.create({ name: 'Test Agent' })
@@ -131,7 +145,9 @@ describe('rpcCall core behaviour', () => {
 
   it('returns result.data on success', async () => {
     const agentData = { id: 42, name: 'My Agent' }
-    globalThis.fetch = mock(() => Promise.resolve(mockResponse(rpcSuccess(agentData))))
+    globalThis.fetch = mock(() =>
+      Promise.resolve(mockResponse(rpcSuccess(agentData)))
+    )
 
     const result = await agent.create({ name: 'My Agent' })
 
@@ -146,20 +162,30 @@ describe('rpcCall core behaviour', () => {
 
   it('throws RPC error detail when response contains error with detail', async () => {
     globalThis.fetch = mock(() =>
-      Promise.resolve(mockResponse(rpcError('Method not found', 'create_agent not registered')))
+      Promise.resolve(
+        mockResponse(
+          rpcError('Method not found', 'create_agent not registered')
+        )
+      )
     )
 
-    await expect(agent.create({ name: 'X' })).rejects.toThrow('create_agent not registered')
+    await expect(agent.create({ name: 'X' })).rejects.toThrow(
+      'create_agent not registered'
+    )
   })
 
   it('falls back to error.message when no detail', async () => {
-    globalThis.fetch = mock(() => Promise.resolve(mockResponse(rpcError('Entity not found'))))
+    globalThis.fetch = mock(() =>
+      Promise.resolve(mockResponse(rpcError('Entity not found')))
+    )
 
     await expect(agent.get(1)).rejects.toThrow('Entity not found')
   })
 
   it('serializes BigInt values as numbers', async () => {
-    const fetchMock = mock(() => Promise.resolve(mockResponse(rpcSuccess({ id: 1, name: 'A' }))))
+    const fetchMock = mock(() =>
+      Promise.resolve(mockResponse(rpcSuccess({ id: 1, name: 'A' })))
+    )
     globalThis.fetch = fetchMock
 
     await agent.get(BigInt(9007199254740991))
@@ -185,7 +211,9 @@ describe('rpcCall core behaviour', () => {
 
 describe('agent', () => {
   it('agent.get sends get_agent with numeric id', async () => {
-    const fetchMock = mock(() => Promise.resolve(mockResponse(rpcSuccess({ id: 5, name: 'A' }))))
+    const fetchMock = mock(() =>
+      Promise.resolve(mockResponse(rpcSuccess({ id: 5, name: 'A' })))
+    )
     globalThis.fetch = fetchMock
 
     await agent.get(5)
@@ -206,7 +234,9 @@ describe('agent', () => {
   })
 
   it('agent.update sends update_agent with id and data', async () => {
-    const fetchMock = mock(() => Promise.resolve(mockResponse(rpcSuccess({ id: 3, name: 'Updated' }))))
+    const fetchMock = mock(() =>
+      Promise.resolve(mockResponse(rpcSuccess({ id: 3, name: 'Updated' })))
+    )
     globalThis.fetch = fetchMock
 
     await agent.update(3, { name: 'Updated' })
@@ -217,7 +247,9 @@ describe('agent', () => {
   })
 
   it('agent.delete sends delete_agent with id', async () => {
-    const fetchMock = mock(() => Promise.resolve(mockResponse(rpcSuccess({ id: 3 }))))
+    const fetchMock = mock(() =>
+      Promise.resolve(mockResponse(rpcSuccess({ id: 3 })))
+    )
     globalThis.fetch = fetchMock
 
     await agent.delete(3)
@@ -232,7 +264,9 @@ describe('agent', () => {
 
 describe('conv', () => {
   it('conv.create sends create_conv', async () => {
-    const fetchMock = mock(() => Promise.resolve(mockResponse(rpcSuccess({ id: 10 }))))
+    const fetchMock = mock(() =>
+      Promise.resolve(mockResponse(rpcSuccess({ id: 10 })))
+    )
     globalThis.fetch = fetchMock
 
     await conv.create({ agent_id: 1, title: 'My Conv' })
@@ -254,7 +288,9 @@ describe('conv', () => {
   })
 
   it('conv.update sends update_conv', async () => {
-    const fetchMock = mock(() => Promise.resolve(mockResponse(rpcSuccess({ id: 10 }))))
+    const fetchMock = mock(() =>
+      Promise.resolve(mockResponse(rpcSuccess({ id: 10 })))
+    )
     globalThis.fetch = fetchMock
 
     await conv.update(10, { title: 'Renamed' })
@@ -265,7 +301,9 @@ describe('conv', () => {
   })
 
   it('conv.delete sends delete_conv', async () => {
-    const fetchMock = mock(() => Promise.resolve(mockResponse(rpcSuccess({ id: 10 }))))
+    const fetchMock = mock(() =>
+      Promise.resolve(mockResponse(rpcSuccess({ id: 10 })))
+    )
     globalThis.fetch = fetchMock
 
     await conv.delete(10)

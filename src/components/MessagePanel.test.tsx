@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vite-plus/test'
 import { render, screen, waitFor } from '@solidjs/testing-library'
 import userEvent from '@testing-library/user-event'
 import MessagePanel from './MessagePanel'
@@ -64,13 +64,23 @@ describe('<MessagePanel />', () => {
 
   it('calls convMsg.add with correct params on send', async () => {
     const { backendRpc } = await import('~/lib/backend-rpc')
-    const newMsg: ConvMsg = { id: BigInt(102), conv_id: BigInt(10), role: 'user', content: 'Hello test' }
-    ;(backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(newMsg)
+    const newMsg: ConvMsg = {
+      id: BigInt(102),
+      conv_id: BigInt(10),
+      role: 'user',
+      content: 'Hello test',
+    }
+    ;(backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(
+      newMsg
+    )
     const user = userEvent.setup()
 
     render(() => <MessagePanel conv={mockConv} />)
 
-    await user.type(screen.getByPlaceholderText(/type a message/i), 'Hello test')
+    await user.type(
+      screen.getByPlaceholderText(/type a message/i),
+      'Hello test'
+    )
     await user.click(screen.getByRole('button', { name: /send/i }))
 
     expect(backendRpc.convMsg.add).toHaveBeenCalledWith(
@@ -80,13 +90,23 @@ describe('<MessagePanel />', () => {
 
   it('shows sent message in list after successful send', async () => {
     const { backendRpc } = await import('~/lib/backend-rpc')
-    const newMsg: ConvMsg = { id: BigInt(102), conv_id: BigInt(10), role: 'user', content: 'Hello test' }
-    ;(backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(newMsg)
+    const newMsg: ConvMsg = {
+      id: BigInt(102),
+      conv_id: BigInt(10),
+      role: 'user',
+      content: 'Hello test',
+    }
+    ;(backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(
+      newMsg
+    )
     const user = userEvent.setup()
 
     render(() => <MessagePanel conv={mockConv} />)
 
-    await user.type(screen.getByPlaceholderText(/type a message/i), 'Hello test')
+    await user.type(
+      screen.getByPlaceholderText(/type a message/i),
+      'Hello test'
+    )
     await user.click(screen.getByRole('button', { name: /send/i }))
 
     await waitFor(() => {

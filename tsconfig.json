@@ -19,13 +19,8 @@
     ],
     "isolatedModules": true,
     "paths": {
-      "~/*": [
-        "./src/*"
-      ]
+      "~/*": ["./src/*"]
     }
   },
-  "include": [
-    "src/**/*",
-    "src/types/**/*"
-  ]
+  "include": ["src/**/*", "src/types/**/*"]
 }

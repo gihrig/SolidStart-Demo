@@ -1,17 +1,20 @@
 # Jedi Page Conversion Plan: Alpine.js HTML to SolidStart
 
 ## Overview
+
 Convert `/frontend-tutorial-v3/index.html` (Alpine.js + TailwindCSS v3.2.7) to `/SolidStart-Demo/src/routes/jedi.tsx` (SolidStart + TailwindCSS v4.1.18) with component extraction.
 
 ## Source Analysis Summary
 
 ### Alpine.js State Management (to be converted):
+
 1. **Header mobile navigation**: `x-data="{ mobilenavOpen: false }"` with toggle
 2. **Header dropdown**: `x-data="{ dropdownOpen: false }"` with click-away handling
 3. **Sidebar mobile toggle**: `x-data="{ mobileSidebarOpen: false }"` with toggle
 4. **Alpine.js transitions**: `x-transition:enter` animations for smooth reveals
 
 ### TailwindCSS v3 → v4 Key Changes:
+
 1. **Arbitrary values**: `[&>*]:px-8` → use standard TailwindCSS v4 utilities or custom classes
 2. **Important modifiers**: `md:!block` → `md:block!` (v4 syntax)
 3. **Color opacity**: `bg-opacity-40` → `bg-gray-800/40` (v4 syntax)
@@ -19,6 +22,7 @@ Convert `/frontend-tutorial-v3/index.html` (Alpine.js + TailwindCSS v3.2.7) to `
 5. **Font family**: Google Fonts 'Lobster' needs integration
 
 ### Visual Features to Preserve:
+
 - Sticky header with z-50
 - Hero section with background image overlay
 - Card-based layout with shadows and rounded corners
@@ -33,6 +37,7 @@ Convert `/frontend-tutorial-v3/index.html` (Alpine.js + TailwindCSS v3.2.7) to `
 ### Phase 1: CSS Foundation Setup
 
 #### Step 1.1: Update src/app.css with Custom Properties
+
 **File**: `src/app.css`
 
 **Action**: Add custom properties after existing theme variables
@@ -62,12 +67,12 @@ Convert `/frontend-tutorial-v3/index.html` (Alpine.js + TailwindCSS v3.2.7) to `
 bun i @fontsource/lobster
 ```
 
- **File** `src/app.tsx`
+**File** `src/app.tsx`
 
-**Action**:  Import @fontsource/lobster
+**Action**: Import @fontsource/lobster
 
 ```tsx
-import '@fontsource/lobster';
+import '@fontsource/lobster'
 import './app.css'
 ```
 
@@ -78,11 +83,13 @@ import './app.css'
 ### Phase 2: Component Development
 
 #### Step 2.1: Create Hero Component
+
 **File**: `src/components/Hero.tsx`
 
 **Source HTML**: `<hero>` section from index.html
 
 **Implementation Details**:
+
 - Background image with overlay using TailwindCSS v4 arbitrary properties
 - Grid layout: `grid` with `[grid-template-areas]`
 - Overlay: `bg-gray-800/40` (v4 opacity syntax)
@@ -92,6 +99,7 @@ import './app.css'
 **State Management**: None (static content)
 
 **Props Interface**:
+
 ```typescript
 interface HeroProps {
   title: string
@@ -103,24 +111,28 @@ interface HeroProps {
 ```
 
 **Component Structure**:
+
 ```tsx
 export default function Hero(props: HeroProps) {
   return (
     <section
       class="grid bg-gray-700 text-white text-center bg-cover relative"
-      style={{ "background-image": `url('${props.backgroundImage}')` }}
+      style={{ 'background-image': `url('${props.backgroundImage}')` }}
     >
       <div class="col-start-1 row-start-1 bg-gray-800/40 w-full h-full" />
       <div class="col-start-1 row-start-1 py-24 px-10">
-        <h1 class="text-6xl font-bold mb-4 animate-fade-in" style={{ "font-family": "var(--font-lobster)" }}>
+        <h1
+          class="text-6xl font-bold mb-4 animate-fade-in"
+          style={{ 'font-family': 'var(--font-lobster)' }}
+        >
           {props.title}
         </h1>
         <p class="text-lg font-bold mb-5">{props.subtitle}</p>
         <a
           class="inline-flex items-center justify-center px-4 min-h-[3.3rem] font-semibold rounded-lg text-white transition-transform active:scale-95"
           style={{
-            "background-color": "var(--primary)",
-            "box-shadow": "0 4px 3px rgba(0, 0, 0, 0.1)"
+            'background-color': 'var(--primary)',
+            'box-shadow': '0 4px 3px rgba(0, 0, 0, 0.1)',
           }}
           href={props.ctaHref}
         >
@@ -133,10 +145,16 @@ export default function Hero(props: HeroProps) {
 ```
 
 **CSS Addition to app.css**
+
 ```css
 @keyframes fadeIn {
-  0%, 10% { opacity: 0; }
-  100% { opacity: 1; }
+  0%,
+  10% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 .animate-fade-in {
@@ -145,6 +163,7 @@ export default function Hero(props: HeroProps) {
 ```
 
 **Test File**: `src/components/Hero.test.tsx`
+
 - Test: Renders with provided props
 - Test: Background image style applied
 - Test: CTA button has correct href
@@ -153,17 +172,20 @@ export default function Hero(props: HeroProps) {
 ---
 
 #### Step 2.2: Create Image Component
+
 **File**: `src/components/Image.tsx`
 
 **Source HTML**: `<article><figure>` section from index.html
 
 **Implementation Details**:
+
 - Display figure with image
 - Image link wraps the img element
 - Responsive width: `w-full`
 - Object-fit for consistent display
 
 **Props Interface**:
+
 ```typescript
 interface ImageProps {
   src: string
@@ -174,6 +196,7 @@ interface ImageProps {
 ```
 
 **Component Structure**:
+
 ```tsx
 export default function Image(props: ImageProps) {
   return (
@@ -191,6 +214,7 @@ export default function Image(props: ImageProps) {
 ```
 
 **Test File**: `src/components/Image.test.tsx`
+
 - Test: Renders image with src and alt
 - Test: Wraps in link when href provided
 - Test: No link when href not provided
@@ -199,16 +223,19 @@ export default function Image(props: ImageProps) {
 ---
 
 #### Step 2.3: Create Author Component
+
 **File**: `src/components/Author.tsx`
 
 **Source HTML**: `<article><div>` with author avatar/name
 
 **Implementation Details**:
+
 - Avatar image (rounded-full)
 - Author name with hover underline
 - Flexible layout with gap
 
 **Props Interface**:
+
 ```typescript
 interface AuthorProps {
   avatarSrc: string
@@ -218,11 +245,16 @@ interface AuthorProps {
 ```
 
 **Component Structure**:
+
 ```tsx
 export default function Author(props: AuthorProps) {
   return (
     <a class="flex items-center gap-1 mb-4" href={props.href || '#'}>
-      <img class="w-8 h-8 rounded-full" src={props.avatarSrc} alt={props.name} />
+      <img
+        class="w-8 h-8 rounded-full"
+        src={props.avatarSrc}
+        alt={props.name}
+      />
       <span class="font-bold hover:underline">{props.name}</span>
     </a>
   )
@@ -230,6 +262,7 @@ export default function Author(props: AuthorProps) {
 ```
 
 **Test File**: `src/components/Author.test.tsx`
+
 - Test: Renders avatar and name
 - Test: Default href when not provided
 - Test: Custom href when provided
@@ -238,11 +271,13 @@ export default function Author(props: AuthorProps) {
 ---
 
 #### Step 2.4: Create Card Component
+
 **File**: `src/components/Card.tsx`
 
 **Source HTML**: `<section class="card">` sections in sidebar
 
 **Implementation Details**:
+
 - Reusable card container
 - Theme colors via class attribute with shadow
 - Rounded corners
@@ -250,6 +285,7 @@ export default function Author(props: AuthorProps) {
 - Support for heading and list children
 
 **Props Interface**:
+
 ```typescript
 interface CardProps {
   title?: string
@@ -259,15 +295,23 @@ interface CardProps {
 ```
 
 **Component Structure**:
+
 ```tsx
 import { JSX } from 'solid-js'
 
-export default function Card(props: { title?: string; children: JSX.Element; class?: string }) {
+export default function Card(props: {
+  title?: string
+  children: JSX.Element
+  class?: string
+}) {
   return (
-    <section class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4
+    <section
+      class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4
       ${props.class || ''}`}
     >
-      {props.title && <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{props.title}</h2>}
+      {props.title && (
+        <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{props.title}</h2>
+      )}
       <div class="p-4 pt-0">{props.children}</div>
     </section>
   )
@@ -275,6 +319,7 @@ export default function Card(props: { title?: string; children: JSX.Element; cla
 ```
 
 **Test File**: `src/components/Card.test.tsx`
+
 - Test: Renders children
 - Test: Shows title when provided
 - Test: No title element when not provided
@@ -286,9 +331,11 @@ export default function Card(props: { title?: string; children: JSX.Element; cla
 ### Phase 3: Main Page Construction
 
 #### Step 3.1: Create Jedi Route Page
+
 **File**: `src/routes/jedi.tsx`
 
 **Implementation Details**:
+
 1. Import all components (Nav, Hero, Image, Author, Card)
 2. Implement mobile sidebar state with SolidJS `createSignal`
 3. Convert Alpine.js `x-show` to SolidJS `<Show>` component
@@ -297,6 +344,7 @@ export default function Card(props: { title?: string; children: JSX.Element; cla
 6. Add metadata with `<Title>` from `@solidjs/meta`
 
 **Component Structure** (outline):
+
 ```tsx
 import { Title } from '@solidjs/meta'
 import { createSignal, Show, For } from 'solid-js'
@@ -310,9 +358,15 @@ export default function Jedi() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = createSignal(false)
 
   // Data structures for sidebar content
-  const categories = [ /* ... */ ]
-  const topPhotos = [ /* ... */ ]
-  const topCaptions = [ /* ... */ ]
+  const categories = [
+    /* ... */
+  ]
+  const topPhotos = [
+    /* ... */
+  ]
+  const topCaptions = [
+    /* ... */
+  ]
 
   return (
     <>
@@ -350,7 +404,10 @@ export default function Jedi() {
             <div class="flex items-center justify-between px-4 h-14">
               <h3 class="text-lg font-bold w-1/2 truncate">Little Jedi</h3>
               <div class="text-sm text-gray-500">
-                flickr @ <a href="#" class="hover:underline">John Doe</a>
+                flickr @{' '}
+                <a href="#" class="hover:underline">
+                  John Doe
+                </a>
               </div>
             </div>
 
@@ -369,16 +426,25 @@ export default function Jedi() {
                 href="#"
               />
 
-              <p class="text-5xl mb-10 px-4" style={{ "font-family": "var(--font-lobster)" }}>
+              <p
+                class="text-5xl mb-10 px-4"
+                style={{ 'font-family': 'var(--font-lobster)' }}
+              >
                 Jedi Kitty protects the street
               </p>
 
               {/* Tags */}
               <div class="flex items-center gap-2 text-sm mb-5">
-                <a href="#" class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white">
+                <a
+                  href="#"
+                  class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white"
+                >
                   Animals
                 </a>
-                <a href="#" class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white">
+                <a
+                  href="#"
+                  class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white"
+                >
                   Cute
                 </a>
               </div>
@@ -416,7 +482,11 @@ export default function Jedi() {
                   {(category) => (
                     <li class="rounded hover:bg-gray-100 transition-colors">
                       <a href="#" class="flex items-center p-2">
-                        <img class="w-8 h-8 mr-2" src={category.icon} alt={category.name} />
+                        <img
+                          class="w-8 h-8 mr-2"
+                          src={category.icon}
+                          alt={category.name}
+                        />
                         <span class="font-bold text-sm">{category.name}</span>
                       </a>
                     </li>
@@ -432,10 +502,22 @@ export default function Jedi() {
                   {(photo) => (
                     <li class="rounded hover:bg-gray-100 transition-colors">
                       <a href="#" class="flex items-center p-2">
-                        <img class="w-10 h-10 rounded-lg object-cover mr-3" src={photo.src} alt={photo.alt} />
-                        <img class="w-6 h-6 rounded-full object-cover mr-0.5" src={photo.avatar} alt={photo.author} />
-                        <span class="font-bold text-sm mr-1">{photo.author}</span>
-                        <span class="text-sm text-gray-500">({photo.likes} Likes)</span>
+                        <img
+                          class="w-10 h-10 rounded-lg object-cover mr-3"
+                          src={photo.src}
+                          alt={photo.alt}
+                        />
+                        <img
+                          class="w-6 h-6 rounded-full object-cover mr-0.5"
+                          src={photo.avatar}
+                          alt={photo.author}
+                        />
+                        <span class="font-bold text-sm mr-1">
+                          {photo.author}
+                        </span>
+                        <span class="text-sm text-gray-500">
+                          ({photo.likes} Likes)
+                        </span>
                       </a>
                     </li>
                   )}
@@ -450,9 +532,17 @@ export default function Jedi() {
                   {(caption) => (
                     <li class="rounded hover:bg-gray-100 transition-colors">
                       <a href="#" class="flex items-center p-2">
-                        <img class="w-8 h-8 rounded-full object-cover mr-1" src={caption.avatar} alt={caption.author} />
-                        <span class="font-bold text-sm mr-1">{caption.author}</span>
-                        <span class="text-sm text-gray-500">({caption.likes} Likes)</span>
+                        <img
+                          class="w-8 h-8 rounded-full object-cover mr-1"
+                          src={caption.avatar}
+                          alt={caption.author}
+                        />
+                        <span class="font-bold text-sm mr-1">
+                          {caption.author}
+                        </span>
+                        <span class="text-sm text-gray-500">
+                          ({caption.likes} Likes)
+                        </span>
                       </a>
                     </li>
                   )}
@@ -468,13 +558,23 @@ export default function Jedi() {
 ```
 
 **Data Structures**:
+
 ```typescript
 const categories = [
-  { name: 'Landscape', icon: 'https://img.icons8.com/small/96/null/landscape.png' },
+  {
+    name: 'Landscape',
+    icon: 'https://img.icons8.com/small/96/null/landscape.png',
+  },
   { name: 'People', icon: 'https://img.icons8.com/small/96/null/portrait.png' },
   { name: 'Animals', icon: 'https://img.icons8.com/small/96/null/dog.png' },
-  { name: 'Abstract', icon: 'https://img.icons8.com/small/96/null/collage.png' },
-  { name: 'Black & White', icon: 'https://img.icons8.com/small/96/null/180-degrees.png' }
+  {
+    name: 'Abstract',
+    icon: 'https://img.icons8.com/small/96/null/collage.png',
+  },
+  {
+    name: 'Black & White',
+    icon: 'https://img.icons8.com/small/96/null/180-degrees.png',
+  },
 ]
 
 const topPhotos = [
@@ -483,7 +583,7 @@ const topPhotos = [
     alt: 'Top photo',
     avatar: 'https://img.icons8.com/small/96/A9A9A9/happy.png',
     author: 'Homer',
-    likes: 5
+    likes: 5,
   },
   // ... more entries
 ]
@@ -492,13 +592,14 @@ const topCaptions = [
   {
     avatar: 'https://img.icons8.com/small/96/A9A9A9/happy.png',
     author: 'Homer',
-    likes: 5
+    likes: 5,
   },
   // ... more entries
 ]
 ```
 
 **Key Conversion Notes**:
+
 1. **Alpine.js `x-data`** → SolidJS `createSignal(false)`
 2. **Alpine.js `x-show`** → SolidJS `<Show when={...}>`
 3. **Alpine.js `x-cloak`** → Not needed (SolidJS handles hydration)
@@ -514,6 +615,7 @@ const topCaptions = [
 #### Step 4.1: Component Tests
 
 **File**: `src/components/Hero.test.tsx`
+
 ```typescript
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@solidjs/testing-library'
@@ -556,6 +658,7 @@ describe('<Hero />', () => {
 ```
 
 **File**: `src/components/Image.test.tsx`
+
 ```typescript
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@solidjs/testing-library'
@@ -586,6 +689,7 @@ describe('<Image />', () => {
 ```
 
 **File**: `src/components/Author.test.tsx`
+
 ```typescript
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@solidjs/testing-library'
@@ -617,6 +721,7 @@ describe('<Author />', () => {
 ```
 
 **File**: `src/components/Card.test.tsx`
+
 ```typescript
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@solidjs/testing-library'
@@ -837,6 +942,7 @@ test.describe('Jedi Page', () => {
 #### Step 5.1: Manual Visual Inspection Checklist
 
 **Run Development Server**:
+
 ```bash
 cd /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo
 bun run dev
@@ -845,6 +951,7 @@ bun run dev
 **Navigate to**: `http://localhost:3000/jedi`
 
 **Desktop View (1280px+)**:
+
 - [ ] Hero section displays with background image
 - [ ] Hero title uses Lobster font
 - [ ] Hero overlay has 40% opacity (bg-gray-800/40)
@@ -861,6 +968,7 @@ bun run dev
 - [ ] First category has highlight background (bg-indigo-100)
 
 **Mobile View (375px)**:
+
 - [ ] Hero section stacks vertically
 - [ ] Mobile "Categories" toggle button appears
 - [ ] Clicking toggle shows/hides sidebar
@@ -871,12 +979,14 @@ bun run dev
 - [ ] No horizontal scrolling
 
 **Tablet View (768px)**:
+
 - [ ] Layout transitions smoothly from mobile to desktop
 - [ ] Sidebar becomes always visible
 - [ ] Mobile toggle button disappears
 - [ ] Grid columns activate properly
 
 **Hover States**:
+
 - [ ] Navigation links change background on hover
 - [ ] CTA button darkens on hover (--primary-hover)
 - [ ] Tag pills change to gray-500 background + white text
@@ -885,6 +995,7 @@ bun run dev
 - [ ] Action links (Like, Edit, Delete) underline on hover
 
 **Animations**:
+
 - [ ] Hero title fades in on page load
 - [ ] Mobile sidebar slides in/out smoothly
 - [ ] Toggle arrow rotates smoothly (300ms)
@@ -899,6 +1010,7 @@ bun run test:comp
 ```
 
 **Expected Results**:
+
 - All hero.test.tsx tests pass (4 tests)
 - All image.test.tsx tests pass (3 tests)
 - All author.test.tsx tests pass (3 tests)
@@ -906,6 +1018,7 @@ bun run test:comp
 - No console errors or warnings
 
 **Debugging Failed Tests**:
+
 1. Check import paths are correct
 2. Verify component props interfaces match usage
 3. Confirm TailwindCSS classes are available
@@ -920,16 +1033,19 @@ npm run test:e2e
 ```
 
 **Or run specific test**:
+
 ```bash
 bunx playwright test e2e/jedi.spec.ts
 ```
 
 **Expected Results**:
+
 - All 12 jedi.spec.ts tests pass
 - No timeout errors
 - Screenshots match expected layout (if using visual regression)
 
 **Debugging Failed E2E Tests**:
+
 1. Run in headed mode: `bunx playwright test --headed`
 2. Use debug mode: `bunx playwright test --debug`
 3. Check element selectors match actual rendered HTML
@@ -943,12 +1059,14 @@ bunx playwright test e2e/jedi.spec.ts
 #### Step 6.1: TailwindCSS v4 Migration Review
 
 **Check for v3 Syntax**:
+
 ```bash
 cd /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo
 grep -r "!" src/routes/jedi.tsx src/components/Hero.tsx src/components/Image.tsx src/components/Author.tsx src/components/Card.tsx
 ```
 
 **Common v3 → v4 Issues**:
+
 1. **Important modifier placement**: `md:!block` should be `md:block!`
 2. **Opacity with colors**: `bg-opacity-40` should be `bg-gray-800/40`
 3. **Arbitrary values**: Ensure no unsupported `[&>*]` selectors in component classes
@@ -961,11 +1079,13 @@ grep -r "!" src/routes/jedi.tsx src/components/Hero.tsx src/components/Image.tsx
 #### Step 6.2: Performance Optimization Review
 
 **Check for unnecessary re-renders**:
+
 - Verify `createSignal` is only used for interactive state (mobileSidebarOpen)
 - Static data arrays should be outside component function or memoized
 - No inline function definitions in JSX that recreate on every render
 
 **Example optimization**:
+
 ```tsx
 // BAD - creates new array every render
 export default function Jedi() {
@@ -977,6 +1097,7 @@ export default function Jedi() {
 ```
 
 **Image loading optimization**:
+
 - Consider adding `loading="lazy"` to images below the fold
 - Verify all images have explicit width/height or aspect-ratio
 
@@ -985,18 +1106,21 @@ export default function Jedi() {
 #### Step 6.3: Accessibility Review
 
 **Run axe DevTools or similar**:
+
 - Check for heading hierarchy (h1, h2, h3)
 - Verify all images have meaningful alt text
 - Confirm all interactive elements are keyboard accessible
 - Test with screen reader (basic navigation)
 
 **Required Fixes**:
+
 1. **Alt text**: All decorative icons should have `alt=""`
 2. **ARIA labels**: Mobile toggle button should have `aria-label="Toggle sidebar"`
 3. **Focus indicators**: Ensure visible focus states on all interactive elements
 4. **Semantic HTML**: Use `<button>` for toggle, not `<a>` or `<div>`
 
 **Example fix**:
+
 ```tsx
 // BEFORE
 <a onClick={() => setMobileSidebarOpen(!mobileSidebarOpen())} ...>
@@ -1015,21 +1139,25 @@ export default function Jedi() {
 #### Step 6.4: Code Quality Review
 
 **Run prettier**:
+
 ```bash
 bunx prettier --write src/routes/jedi.tsx src/components/Hero.tsx src/components/Image.tsx src/components/Author.tsx src/components/Card.tsx
 ```
 
 **TypeScript type checking**:
+
 ```bash
 bunx tsc --noEmit
 ```
 
 **Fix any type errors**:
+
 - Ensure all props interfaces are properly typed
 - Add return type annotations if ambiguous
 - Fix any `any` types
 
 **Code style consistency**:
+
 - Component names are PascalCase
 - Props interfaces are named `ComponentNameProps`
 - Signal naming follows `[value, setValue]` pattern
@@ -1043,6 +1171,7 @@ bunx tsc --noEmit
 #### Step 7.1: Add Component Documentation Comments
 
 **Example for hero.tsx**:
+
 ```tsx
 /**
  * Hero component for page headers
@@ -1078,6 +1207,7 @@ export default function Hero(props: HeroProps) { ... }
 ```
 
 **Add similar documentation to**:
+
 - image.tsx
 - author.tsx
 - card.tsx
@@ -1091,11 +1221,14 @@ export default function Hero(props: HeroProps) { ... }
 **Option 2**: Create `docs/jedi-components.md`
 
 **Content should include**:
-```markdown
+
+````markdown
 # Jedi Page Components
 
 ## Overview
+
 The Jedi page demonstrates a photo-sharing interface with the following features:
+
 - Hero banner with background image
 - Main article with image and caption
 - Responsive sidebar with categories and top content
@@ -1104,9 +1237,11 @@ The Jedi page demonstrates a photo-sharing interface with the following features
 ## Components
 
 ### Hero
+
 Full-width hero section with background image and CTA.
 
 **Props**:
+
 - `title`: Main heading
 - `subtitle`: Supporting text
 - `ctaText`: Button label
@@ -1114,6 +1249,7 @@ Full-width hero section with background image and CTA.
 - `backgroundImage`: Background image URL
 
 **Usage**:
+
 ```tsx
 <Hero
   title="Welcome"
@@ -1123,28 +1259,35 @@ Full-width hero section with background image and CTA.
   backgroundImage="https://example.com/bg.jpg"
 />
 ```
+````
 
 ### Image
+
 Displays a figure with optional link wrapper.
 
 **Props**:
+
 - `src`: Image source URL
 - `alt`: Image alt text
 - `href` (optional): Link destination
 - `class` (optional): Additional CSS classes
 
 ### Author
+
 Shows author avatar and name with link.
 
 **Props**:
+
 - `avatarSrc`: Avatar image URL
 - `name`: Author name
 - `href` (optional): Profile link (defaults to #)
 
 ### Card
+
 Reusable card container with optional title.
 
 **Props**:
+
 - `title` (optional): Card heading
 - `children`: Card content
 - `class` (optional): Additional CSS classes
@@ -1152,6 +1295,7 @@ Reusable card container with optional title.
 ## Conversion Notes
 
 ### Alpine.js → SolidJS
+
 - `x-data` → `createSignal`
 - `x-show` → `<Show>` component
 - `@click` → `onClick`
@@ -1159,18 +1303,22 @@ Reusable card container with optional title.
 - `x-cloak` → Not needed (SolidJS handles hydration)
 
 ### TailwindCSS v3 → v4
+
 - `bg-opacity-40` → `bg-gray-800/40`
 - `md:!block` → `md:block!`
 - Custom `[&>*]` selectors → Standard utilities (space-y, etc.)
 
 ### Custom Fonts
+
 Lobster font integrated via @fontsource/lobster
 
 ### Mobile Responsiveness
+
 - Mobile-first approach with `md:` breakpoint at 768px
 - Mobile sidebar toggle at smaller screens
 - Grid collapses to single column on mobile
-```
+
+````
 
 ---
 
@@ -1184,7 +1332,7 @@ bun run test:comp
 npm run test:e2e
 
 # Expected: All passing
-```
+````
 
 ---
 
@@ -1195,6 +1343,7 @@ bun run build
 ```
 
 **Verify**:
+
 - No build errors
 - No TypeScript errors
 - No missing dependencies
@@ -1205,6 +1354,7 @@ bun run start
 ```
 
 **Test in production mode**:
+
 - Navigate to http://localhost:3000/jedi
 - Run e2e tests
 - Verify all functionality works
@@ -1216,6 +1366,7 @@ bun run start
 #### Step 8.3: Browser Compatibility Check
 
 **Test in multiple browsers**:
+
 - [ ] Chrome/Edge (latest)
 - [ ] Firefox (latest)
 - [ ] Safari (latest)
@@ -1223,6 +1374,7 @@ bun run start
 - [ ] Chrome Mobile (Android)
 
 **Check for**:
+
 - Layout consistency
 - Font rendering (Lobster)
 - Animation smoothness
@@ -1238,18 +1390,17 @@ bun run start
 **File**: `src/components/Nav.tsx`
 
 **Add new nav item**:
+
 ```tsx
 <li>
-  <a
-    class={`border-b-4 ${active('/jedi')} mx-1.5 sm:mx-6`}
-    href="/jedi"
-  >
+  <a class={`border-b-4 ${active('/jedi')} mx-1.5 sm:mx-6`} href="/jedi">
     Jedi
   </a>
 </li>
 ```
 
 **Update nav tests**:
+
 - Update `src/components/Nav.test.tsx` to include /jedi route
 - Update `e2e/navigation.spec.ts` to test /jedi navigation
 
@@ -1258,13 +1409,17 @@ bun run start
 #### Step 9.2: SEO and Metadata
 
 **Verify jedi.tsx has**:
+
 ```tsx
 import { Title, Meta } from '@solidjs/meta'
 
 // In component:
-<>
+;<>
   <Title>Little Jedi - Awesome Photos & Captions</Title>
-  <Meta name="description" content="Share your favorite Photos from Flickr and add a great caption" />
+  <Meta
+    name="description"
+    content="Share your favorite Photos from Flickr and add a great caption"
+  />
 </>
 ```
 
@@ -1273,6 +1428,7 @@ import { Title, Meta } from '@solidjs/meta'
 #### Step 9.3: Final Checklist
 
 **Before committing**:
+
 - [ ] All tests passing
 - [ ] No console errors in dev mode
 - [ ] No TypeScript errors
@@ -1285,6 +1441,7 @@ import { Title, Meta } from '@solidjs/meta'
 - [ ] Browser compatibility verified
 
 **Git workflow**:
+
 ```bash
 git checkout -b feature/jedi-page
 git add src/routes/jedi.tsx
@@ -1309,24 +1466,28 @@ git commit -m "feat: Add Jedi page with responsive layout
 ## Summary of Key Decisions
 
 ### Technology Choices
+
 1. **SolidJS Signals**: Used `createSignal` for mobile sidebar state (reactive, performant)
 2. **TailwindCSS v4**: Migrated syntax (opacity, important modifier, arbitrary values)
 3. **Component Architecture**: Extracted 4 reusable components for maintainability
 4. **Testing Strategy**: Component tests (vitest) + E2E tests (Playwright)
 
 ### Design Patterns
+
 1. **Mobile-first**: Responsive design starts with mobile, enhances for desktop
 2. **Props interfaces**: Explicit TypeScript interfaces for all components
 3. **Composition**: Card component accepts children for flexible content
 4. **Signal scoping**: State confined to parent component, passed as props
 
 ### Performance Considerations
+
 1. **Static data**: Categories/photos arrays defined outside component
 2. **Lazy loading**: Can add to below-fold images if needed
 3. **Transitions**: CSS-based for GPU acceleration
 4. **Signal granularity**: Only mobile sidebar uses reactive state
 
 ### Accessibility Improvements
+
 1. **Semantic HTML**: Proper button elements for toggles
 2. **ARIA attributes**: aria-label, aria-expanded for screen readers
 3. **Keyboard navigation**: All interactive elements focusable
@@ -1352,12 +1513,14 @@ This plan is designed to be executed sequentially by Claude AI with the followin
 ### Commands Reference for Claude
 
 **Create/edit files**:
+
 ```bash
 desktop-commander:write_file (for new files)
 desktop-commander:edit_block (for modifications)
 ```
 
 **Run tests**:
+
 ```bash
 desktop-commander:start_process("bun run test:comp")
 desktop-commander:start_process("bun run test:unit")
@@ -1365,17 +1528,20 @@ desktop-commander:start_process("npm run test:e2e")
 ```
 
 **Check syntax**:
+
 ```bash
 desktop-commander:start_process("bunx tsc --noEmit")
 desktop-commander:start_process("bunx prettier --check src/**/*.tsx")
 ```
 
 **Start dev server**:
+
 ```bash
 desktop-commander:start_process("bun run dev")
 ```
 
 ### Expected Timeline
+
 - Phase 1 (CSS): 5 minutes
 - Phase 2 (Components): 20 minutes
 - Phase 3 (Main page): 15 minutes
@@ -1393,6 +1559,7 @@ desktop-commander:start_process("bun run dev")
 ## Success Criteria
 
 The conversion is complete when:
+
 1. ✅ All 4 components created with TypeScript interfaces
 2. ✅ Main jedi.tsx page functional with all sections
 3. ✅ All component tests passing (14 tests)

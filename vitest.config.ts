@@ -1,6 +1,6 @@
-import { defineConfig } from "vitest/config";
-import solid from "vite-plugin-solid";
-import path from "path";
+import { defineConfig } from 'vite-plus'
+import solid from 'vite-plugin-solid'
+import path from 'path'
 
 export default defineConfig({
   plugins: [
@@ -13,7 +13,7 @@ export default defineConfig({
     alias: {
       '~': path.resolve(__dirname, './src'),
     },
-    conditions: ["browser", "development"],
+    conditions: ['browser', 'development'],
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
   },
   test: {
@@ -36,4 +36,4 @@ export default defineConfig({
       inline: [/solid-js/, /@solidjs\/router/],
     },
   },
-});
+})

@@ -22,12 +22,14 @@ The plan converts the Alpine.js + TailwindCSS v3 source project to SolidStart + 
 ### Critical Conversions
 
 **Alpine.js → SolidJS**:
+
 - `x-data` → `createSignal`
 - `x-show` → `<Show>` component
 - `@click` → `onClick`
 - `x-bind:class` → template literals
 
 **TailwindCSS v3 → v4**:
+
 - `bg-opacity-40` → `bg-gray-800/40`
 - `md:!block` → `md:block!`
 - Custom properties integration

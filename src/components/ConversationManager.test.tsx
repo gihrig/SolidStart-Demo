@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vite-plus/test'
 import { render, screen, waitFor } from '@solidjs/testing-library'
 import userEvent from '@testing-library/user-event'
 import { createSignal } from 'solid-js'
@@ -10,12 +10,28 @@ vi.mock('~/lib/backend-rpc', () => ({
   backendRpc: {
     conv: {
       list: vi.fn().mockResolvedValue([
-        { id: BigInt(10), agent_id: BigInt(1), title: 'Conv Alpha', kind: 'MultiMessages', state: 'Active' },
-        { id: BigInt(11), agent_id: BigInt(1), title: 'Conv Beta',  kind: 'MultiMessages', state: 'Active' },
+        {
+          id: BigInt(10),
+          agent_id: BigInt(1),
+          title: 'Conv Alpha',
+          kind: 'MultiMessages',
+          state: 'Active',
+        },
+        {
+          id: BigInt(11),
+          agent_id: BigInt(1),
+          title: 'Conv Beta',
+          kind: 'MultiMessages',
+          state: 'Active',
+        },
       ]),
-      create: vi.fn().mockResolvedValue(
-        { id: BigInt(12), agent_id: BigInt(1), title: 'New Conv', kind: 'MultiMessages', state: 'Active' }
-      ),
+      create: vi.fn().mockResolvedValue({
+        id: BigInt(12),
+        agent_id: BigInt(1),
+        title: 'New Conv',
+        kind: 'MultiMessages',
+        state: 'Active',
+      }),
     },
   },
 }))
@@ -36,8 +52,20 @@ describe('<ConversationManager />', () => {
   it('displays conversations after agent is provided', async () => {
     const { backendRpc } = await import('~/lib/backend-rpc')
     ;(backendRpc.conv.list as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: BigInt(10), agent_id: BigInt(1), title: 'Conv Alpha', kind: 'MultiMessages', state: 'Active' },
-      { id: BigInt(11), agent_id: BigInt(1), title: 'Conv Beta',  kind: 'MultiMessages', state: 'Active' },
+      {
+        id: BigInt(10),
+        agent_id: BigInt(1),
+        title: 'Conv Alpha',
+        kind: 'MultiMessages',
+        state: 'Active',
+      },
+      {
+        id: BigInt(11),
+        agent_id: BigInt(1),
+        title: 'Conv Beta',
+        kind: 'MultiMessages',
+        state: 'Active',
+      },
     ])
 
     render(() => <ConversationManager agent={mockAgent} />)
@@ -55,7 +83,10 @@ describe('<ConversationManager />', () => {
 
     render(() => <ConversationManager agent={mockAgent} />)
 
-    await user.type(screen.getByPlaceholderText(/conversation title/i), 'New Conv')
+    await user.type(
+      screen.getByPlaceholderText(/conversation title/i),
+      'New Conv'
+    )
     await user.click(screen.getByRole('button', { name: /create conv/i }))
 
     expect(backendRpc.conv.create).toHaveBeenCalledWith(
@@ -66,23 +97,39 @@ describe('<ConversationManager />', () => {
   it('fires onConvSelect callback when a conversation is clicked', async () => {
     const { backendRpc } = await import('~/lib/backend-rpc')
     ;(backendRpc.conv.list as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: BigInt(10), agent_id: BigInt(1), title: 'Conv Alpha', kind: 'MultiMessages', state: 'Active' },
+      {
+        id: BigInt(10),
+        agent_id: BigInt(1),
+        title: 'Conv Alpha',
+        kind: 'MultiMessages',
+        state: 'Active',
+      },
     ])
     const onSelect = vi.fn()
     const user = userEvent.setup()
 
-    render(() => <ConversationManager agent={mockAgent} onConvSelect={onSelect} />)
+    render(() => (
+      <ConversationManager agent={mockAgent} onConvSelect={onSelect} />
+    ))
 
     await waitFor(() => screen.getByText('Conv Alpha'))
     await user.click(screen.getByText('Conv Alpha'))
 
-    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ title: 'Conv Alpha' }))
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Conv Alpha' })
+    )
   })
 
   it('resets conversation list when agent changes', async () => {
     const { backendRpc } = await import('~/lib/backend-rpc')
     ;(backendRpc.conv.list as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: BigInt(10), agent_id: BigInt(1), title: 'Conv Alpha', kind: 'MultiMessages', state: 'Active' },
+      {
+        id: BigInt(10),
+        agent_id: BigInt(1),
+        title: 'Conv Alpha',
+        kind: 'MultiMessages',
+        state: 'Active',
+      },
     ])
 
     const [agent, setAgent] = createSignal<Agent | null>(mockAgent)

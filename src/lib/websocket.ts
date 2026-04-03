@@ -54,21 +54,25 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
   const subscribe = (channel: string, id?: number | bigint) => {
     if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        action: 'subscribe',
-        channel,
-        id: id ? Number(id) : undefined,
-      }))
+      ws.send(
+        JSON.stringify({
+          action: 'subscribe',
+          channel,
+          id: id ? Number(id) : undefined,
+        })
+      )
     }
   }
 
   const unsubscribe = (channel: string, id?: number | bigint) => {
     if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        action: 'unsubscribe',
-        channel,
-        id: id ? Number(id) : undefined,
-      }))
+      ws.send(
+        JSON.stringify({
+          action: 'unsubscribe',
+          channel,
+          id: id ? Number(id) : undefined,
+        })
+      )
     }
   }
 

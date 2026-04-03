@@ -3,4 +3,4 @@
 /**
  * Params structure for any RPC Update call.
  */
-export type ParamsForUpdate<D> = { id: bigint, data: D, };
+export type ParamsForUpdate<D> = { id: bigint; data: D }

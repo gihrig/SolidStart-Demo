@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vite-plus/test'
 import { render, screen, waitFor } from '@solidjs/testing-library'
 import userEvent from '@testing-library/user-event'
 import { AuthProvider, useAuth } from './AuthContext'
@@ -16,7 +16,9 @@ function AuthTestConsumer() {
   const auth = useAuth()
   return (
     <div>
-      <span data-testid="status">{auth.isAuthenticated() ? 'logged-in' : 'logged-out'}</span>
+      <span data-testid="status">
+        {auth.isAuthenticated() ? 'logged-in' : 'logged-out'}
+      </span>
       <span data-testid="username">{auth.username() ?? 'none'}</span>
       <button onClick={() => auth.login('demo1', 'welcome')}>Login</button>
       <button onClick={() => auth.logoff()}>Logoff</button>
@@ -59,7 +61,9 @@ describe('AuthContext', () => {
     renderWithAuth()
 
     await user.click(screen.getByRole('button', { name: /^login$/i }))
-    await waitFor(() => expect(screen.getByTestId('status').textContent).toBe('logged-in'))
+    await waitFor(() =>
+      expect(screen.getByTestId('status').textContent).toBe('logged-in')
+    )
 
     await user.click(screen.getByRole('button', { name: /logoff/i }))
 

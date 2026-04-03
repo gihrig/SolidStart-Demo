@@ -45,7 +45,7 @@ By default, `bun run build` will generate an app that you can run with `bun star
 
 ## Component tests
 
-Tests for src/components/** are written with `vitest`, `@solidjs/testing-library` and `@testing-library/jest-dom` to extend `expect` with some helpful custom matchers.
+Tests for src/components/\*\* are written with `vitest`, `@solidjs/testing-library` and `@testing-library/jest-dom` to extend `expect` with some helpful custom matchers.
 
 Run component tests with:
 
@@ -57,7 +57,7 @@ bun test:comp:watch
 
 ## Unit tests
 
-Unit tests for /lib/** are run using bun test as this is the expected deployment
+Unit tests for /lib/\*\* are run using bun test as this is the expected deployment
 environment.
 
 Run unit tests with:

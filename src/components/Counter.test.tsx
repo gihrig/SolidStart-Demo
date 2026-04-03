@@ -1,5 +1,4 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@solidjs/testing-library'
+import { describe, it, expect } from 'vite-plus/test'
 import userEvent from '@testing-library/user-event'
 import Counter from './Counter'
 
@@ -12,7 +11,9 @@ describe('<Counter />', () => {
     // Use screen.getByRole() instead of queryByRole()
     // - throws descriptive error if element not found
     // Use { name: /clicks:/i } for robust button identification
-    const button = screen.getByRole('button', { name: /clicks: 0/i })
+    const button = screen.getByRole('button', {
+      name: /clicks: 0/i,
+    })
     expect(button).toHaveTextContent('Clicks: 0')
     // Verify button type attribute
     expect(button).toHaveAttribute('type', 'button')
@@ -24,7 +25,9 @@ describe('<Counter />', () => {
     const user = userEvent.setup()
     render(() => <Counter />)
 
-    const button = screen.getByRole('button', { name: /clicks:/i })
+    const button = screen.getByRole('button', {
+      name: /clicks:/i,
+    })
 
     await user.click(button)
     expect(button).toHaveTextContent('Clicks: 1')

@@ -5,13 +5,16 @@ SolidStart (the full-stack framework for SolidJS) has experimental support for r
 ### Steps to Attempt Building a Single Executable
 
 1. **Create a SolidStart Project** (if you don't have one):
+
    ```
    bun create solid@latest my-app
    ```
+
    Follow the prompts (choose a template, TypeScript if desired).
 
 2. **Install the Bun Adapter** (experimental):
    This replaces the default Node.js-based adapter to target Bun's runtime.
+
    ```
    cd my-app
    bun add solid-start-bun
@@ -19,19 +22,20 @@ SolidStart (the full-stack framework for SolidJS) has experimental support for r
 
 3. **Configure vite.config.ts**:
    Update your `vite.config.ts` to use the Bun adapter:
+
    ```ts
-   import { defineConfig } from "vite";
-   import solid from "solid-start/vite";
-   import bun from "solid-start-bun";
+   import { defineConfig } from 'vite'
+   import solid from 'solid-start/vite'
+   import bun from 'solid-start-bun'
 
    export default defineConfig({
      plugins: [
        solid({
-         adapter: bun(),  // Use Bun adapter
+         adapter: bun(), // Use Bun adapter
          ssr: true,
        }),
      ],
-   });
+   })
    ```
 
 4. **Identify the Server Entry Point**:
@@ -40,9 +44,11 @@ SolidStart (the full-stack framework for SolidJS) has experimental support for r
 
 5. **Build the Executable**:
    Use Bun's compiler on the server entry point:
+
    ```
    bun build ./path/to/server-entry.ts --compile --outfile my-solidstart-app
    ```
+
    - Add `--target=bun-linux-x64` (or other platforms) for cross-compilation.
    - This embeds imported code and assets. For full-stack apps, importing HTML files triggers automatic frontend bundling and embedding.
 
@@ -53,6 +59,7 @@ SolidStart (the full-stack framework for SolidJS) has experimental support for r
    It should start the server (e.g., on port 3000) with embedded client assets.
 
 ### Important Caveats
+
 - **Compatibility Issues** — SolidStart may hit missing Node.js APIs in Bun (e.g., some server actions or features). Test thoroughly; recent Bun issues (as of 2025) report problems like pending server actions.
 - **Frontend Assets** — Ensure your server code imports HTML/entry points so Bun bundles and embeds the client-side build.
 - **Alternatives if It Fails**:

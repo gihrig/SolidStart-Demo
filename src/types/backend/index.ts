@@ -71,10 +71,14 @@ export interface JsonRpcErrorResponse {
   }
 }
 
-export type JsonRpcResponse<T = unknown> = JsonRpcSuccessResponse<T> | JsonRpcErrorResponse
+export type JsonRpcResponse<T = unknown> =
+  | JsonRpcSuccessResponse<T>
+  | JsonRpcErrorResponse
 
 // Type guard for error response
-export function isRpcError(response: JsonRpcResponse): response is JsonRpcErrorResponse {
+export function isRpcError(
+  response: JsonRpcResponse
+): response is JsonRpcErrorResponse {
   return 'error' in response
 }
 

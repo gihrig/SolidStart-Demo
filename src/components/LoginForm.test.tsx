@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vite-plus/test'
 import { render, screen } from '@solidjs/testing-library'
 import userEvent from '@testing-library/user-event'
 import LoginForm from './LoginForm'

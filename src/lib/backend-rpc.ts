@@ -26,7 +26,10 @@ function serializeWithBigInt(obj: unknown): string {
 }
 
 // Core RPC call function
-async function rpcCall<T>(method: string, params?: Record<string, unknown>): Promise<T> {
+async function rpcCall<T>(
+  method: string,
+  params?: Record<string, unknown>
+): Promise<T> {
   const request: JsonRpcRequest = {
     jsonrpc: '2.0',
     id: ++rpcId,
@@ -57,7 +60,10 @@ async function rpcCall<T>(method: string, params?: Record<string, unknown>): Pro
 
 // Auth functions (not RPC, direct REST)
 export const auth = {
-  async login(username: string, password: string): Promise<{ result: { success: boolean } }> {
+  async login(
+    username: string,
+    password: string
+  ): Promise<{ result: { success: boolean } }> {
     const payload: LoginPayload = { username, pwd: password }
     const response = await fetch(`${BACKEND_URL}/api/login`, {
       method: 'POST',
@@ -67,7 +73,9 @@ export const auth = {
     })
     if (!response.ok) {
       const error = await response.json().catch(() => ({}))
-      throw new Error(error.error?.message || `Login failed: ${response.status}`)
+      throw new Error(
+        error.error?.message || `Login failed: ${response.status}`
+      )
     }
     return response.json()
   },
@@ -87,27 +95,33 @@ export const auth = {
 export const agent = {
   create: (data: AgentForCreate) => rpcCall<Agent>('create_agent', { data }),
   get: (id: bigint | number) => rpcCall<Agent>('get_agent', { id: Number(id) }),
-  list: (filters?: Record<string, unknown>) => rpcCall<Agent[]>('list_agents', { filters }),
+  list: (filters?: Record<string, unknown>) =>
+    rpcCall<Agent[]>('list_agents', { filters }),
   update: (id: bigint | number, data: AgentForUpdate) =>
     rpcCall<Agent>('update_agent', { id: Number(id), data }),
-  delete: (id: bigint | number) => rpcCall<Agent>('delete_agent', { id: Number(id) }),
+  delete: (id: bigint | number) =>
+    rpcCall<Agent>('delete_agent', { id: Number(id) }),
 }
 
 // Conversation RPC methods
 export const conv = {
   create: (data: ConvForCreate) => rpcCall<Conv>('create_conv', { data }),
   get: (id: bigint | number) => rpcCall<Conv>('get_conv', { id: Number(id) }),
-  list: (filters?: Record<string, unknown>) => rpcCall<Conv[]>('list_convs', { filters }),
+  list: (filters?: Record<string, unknown>) =>
+    rpcCall<Conv[]>('list_convs', { filters }),
   update: (id: bigint | number, data: ConvForUpdate) =>
     rpcCall<Conv>('update_conv', { id: Number(id), data }),
-  delete: (id: bigint | number) => rpcCall<Conv>('delete_conv', { id: Number(id) }),
+  delete: (id: bigint | number) =>
+    rpcCall<Conv>('delete_conv', { id: Number(id) }),
 }
 
 // Conversation Message RPC methods
 export const convMsg = {
   add: (data: ConvMsgForCreate) => rpcCall<ConvMsg>('add_conv_msg', { data }),
   list: (convId: bigint | number) =>
-    rpcCall<ConvMsg[]>('list_conv_msgs', { filters: [{ conv_id: { $eq: Number(convId) } }] }),
+    rpcCall<ConvMsg[]>('list_conv_msgs', {
+      filters: [{ conv_id: { $eq: Number(convId) } }],
+    }),
 }
 
 // Unified export

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'vite-plus/test'
 import { render, screen } from '@solidjs/testing-library'
 import { MemoryRouter, Route, createMemoryHistory } from '@solidjs/router'
 import Nav from './Nav'
@@ -26,9 +26,12 @@ describe('<Nav />', () => {
     const nav = screen.getByRole('navigation')
     expect(nav).toBeInTheDocument()
 
-    const homeLink = screen.getByRole('link', { name: 'Home' })
-    const aboutLink = screen.getByRole('link', { name: 'About' })
-    const readmeLink = screen.getByRole('link', { name: 'Readme' })
+    const homeLink = screen.getByRole('link', {
+      name: 'Home',
+    })
+    const aboutLink = screen.getByRole('link', {
+      name: 'About',
+    })
 
     expect(homeLink).toHaveAttribute('href', '/')
     expect(aboutLink).toHaveAttribute('href', '/about')
@@ -37,9 +40,15 @@ describe('<Nav />', () => {
   it('applies active styling to Home link when on home path', () => {
     renderWithRouter('/')
 
-    const homeLink = screen.getByRole('link', { name: 'Home' })
-    const aboutLink = screen.getByRole('link', { name: 'About' })
-    const readmeLink = screen.getByRole('link', { name: 'Readme' })
+    const homeLink = screen.getByRole('link', {
+      name: 'Home',
+    })
+    const aboutLink = screen.getByRole('link', {
+      name: 'About',
+    })
+    const readmeLink = screen.getByRole('link', {
+      name: 'Readme',
+    })
 
     // Active link has sky-600 border, inactive has transparent
     expect(homeLink).toHaveClass('border-sky-600')
@@ -50,9 +59,15 @@ describe('<Nav />', () => {
   it('applies active styling to About link when on about path', () => {
     renderWithRouter('/about')
 
-    const homeLink = screen.getByRole('link', { name: 'Home' })
-    const aboutLink = screen.getByRole('link', { name: 'About' })
-    const readmeLink = screen.getByRole('link', { name: 'Readme' })
+    const homeLink = screen.getByRole('link', {
+      name: 'Home',
+    })
+    const aboutLink = screen.getByRole('link', {
+      name: 'About',
+    })
+    const readmeLink = screen.getByRole('link', {
+      name: 'Readme',
+    })
 
     expect(homeLink).toHaveClass('border-transparent')
     expect(aboutLink).toHaveClass('border-sky-600')
@@ -62,9 +77,15 @@ describe('<Nav />', () => {
   it('applies active styling to Readme link when on about path', () => {
     renderWithRouter('/readme')
 
-    const homeLink = screen.getByRole('link', { name: 'Home' })
-    const aboutLink = screen.getByRole('link', { name: 'About' })
-    const readmeLink = screen.getByRole('link', { name: 'Readme' })
+    const homeLink = screen.getByRole('link', {
+      name: 'Home',
+    })
+    const aboutLink = screen.getByRole('link', {
+      name: 'About',
+    })
+    const readmeLink = screen.getByRole('link', {
+      name: 'Readme',
+    })
 
     expect(homeLink).toHaveClass('border-transparent')
     expect(aboutLink).toHaveClass('border-transparent')
@@ -74,9 +95,15 @@ describe('<Nav />', () => {
   it('renders all links as inactive on unknown path', () => {
     renderWithRouter('/unknown')
 
-    const homeLink = screen.getByRole('link', { name: 'Home' })
-    const aboutLink = screen.getByRole('link', { name: 'About' })
-    const readmeLink = screen.getByRole('link', { name: 'Readme' })
+    const homeLink = screen.getByRole('link', {
+      name: 'Home',
+    })
+    const aboutLink = screen.getByRole('link', {
+      name: 'About',
+    })
+    const readmeLink = screen.getByRole('link', {
+      name: 'Readme',
+    })
 
     expect(homeLink).toHaveClass('border-transparent')
     expect(aboutLink).toHaveClass('border-transparent')

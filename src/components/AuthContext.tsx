@@ -1,4 +1,9 @@
-import { createContext, useContext, createSignal, type ParentComponent } from 'solid-js'
+import {
+  createContext,
+  useContext,
+  createSignal,
+  type ParentComponent,
+} from 'solid-js'
 import { backendRpc } from '~/lib/backend-rpc'
 
 interface AuthContextValue {
@@ -38,7 +43,9 @@ export const AuthProvider: ParentComponent = (props) => {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, username, login, logoff, error }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, username, login, logoff, error }}
+    >
       {props.children}
     </AuthContext.Provider>
   )

@@ -38,7 +38,9 @@ export default function MessagePanel(props: Props) {
       backendRpc.convMsg
         .list(conv.id)
         .then(setMessages)
-        .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load messages'))
+        .catch((e) =>
+          setError(e instanceof Error ? e.message : 'Failed to load messages')
+        )
     }
   })
 

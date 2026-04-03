@@ -105,7 +105,11 @@ describe('useWebSocket', () => {
       ws.open()
 
       const fakeMsg = { id: 42, conv_id: 7, content: 'Hello' }
-      ws.simulateMessage({ event_type: 'conv_msg', channel: 'conv:7', payload: fakeMsg })
+      ws.simulateMessage({
+        event_type: 'conv_msg',
+        channel: 'conv:7',
+        payload: fakeMsg,
+      })
 
       expect(onConvMsg).toHaveBeenCalledWith(7, fakeMsg)
       dispose()
@@ -122,7 +126,11 @@ describe('useWebSocket', () => {
       const ws = MockWebSocket.instances[0]
       ws.open()
 
-      ws.simulateMessage({ event_type: 'agent_update', channel: 'agent:1', payload: {} })
+      ws.simulateMessage({
+        event_type: 'agent_update',
+        channel: 'agent:1',
+        payload: {},
+      })
 
       expect(onConvMsg).not.toHaveBeenCalled()
       dispose()
@@ -169,7 +177,10 @@ describe('useWebSocket', () => {
     createRoot((dispose) => {
       const { useWebSocket } = require('./websocket')
       const onError = mock(() => {})
-      const { error, reconnect } = useWebSocket({ onError, autoReconnect: false })
+      const { error, reconnect } = useWebSocket({
+        onError,
+        autoReconnect: false,
+      })
 
       reconnect()
       const ws = MockWebSocket.instances[0]
