@@ -28,6 +28,7 @@ vi.mock('~/lib/backend-rpc', () => ({
   backendRpc: {
     convMsg: {
       add: vi.fn(),
+      list: vi.fn().mockResolvedValue([]),
     },
   },
 }))

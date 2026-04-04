@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vite-plus/test'
+import { render, screen } from '@solidjs/testing-library'
 import userEvent from '@testing-library/user-event'
 import Counter from './Counter'
 

@@ -1,4 +1,9 @@
-import { createSignal, createResource, For, Show } from 'solid-js'
+import {
+  createSignal,
+  createResource,
+  For,
+  Show,
+} from 'solid-js'
 import { backendRpc } from '~/lib/backend-rpc'
 import type { Agent } from '~/types/backend'
 
@@ -7,10 +12,15 @@ interface Props {
 }
 
 export default function AgentManager(props: Props) {
-  const [agents, { refetch }] = createResource(() => backendRpc.agent.list())
-  const [selectedAgent, setSelectedAgent] = createSignal<Agent | null>(null)
+  const [agents, { refetch }] = createResource(() =>
+    backendRpc.agent.list()
+  )
+  const [selectedAgent, setSelectedAgent] =
+    createSignal<Agent | null>(null)
   const [creating, setCreating] = createSignal(false)
-  const [error, setError] = createSignal<string | null>(null)
+  const [error, setError] = createSignal<string | null>(
+    null
+  )
 
   const handleCreate = async (e: Event) => {
     e.preventDefault()
@@ -28,7 +38,11 @@ export default function AgentManager(props: Props) {
       setSelectedAgent(agent)
       props.onAgentSelect?.(agent)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create agent')
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'Failed to create agent'
+      )
     } finally {
       setCreating(false)
     }
@@ -40,44 +54,50 @@ export default function AgentManager(props: Props) {
   }
 
   return (
-    <div class="space-y-4">
-      <h3 class="text-lg font-semibold">Agents</h3>
+    <div class='space-y-4'>
+      <h3 class='text-lg font-semibold'>Agents</h3>
 
       <Show when={error()}>
-        <div class="rounded bg-red-100 p-2 text-red-700">{error()}</div>
+        <div class='rounded bg-red-100 p-2 text-red-700'>
+          {error()}
+        </div>
       </Show>
 
       {/* Create Agent Form */}
       <button
-        type="submit"
+        type='submit'
         disabled={creating()}
-        class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+        class='rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50'
       >
         {creating() ? 'Creating...' : 'Create Agent'}
       </button>
-      <form onSubmit={handleCreate} class="flex gap-2">
+      <form onSubmit={handleCreate} class='flex gap-2'>
         <input
-          name="name"
-          placeholder="Agent name"
+          name='name'
+          placeholder='Agent name'
           required
-          class="flex-1 rounded border border-gray-300 px-3 py-2"
+          class='flex-1 rounded border border-gray-300 px-3 py-2'
         />
       </form>
 
       {/* Agent List */}
       <Show when={agents.loading}>
-        <p class="text-gray-500">Loading agents...</p>
+        <p class='text-gray-500'>Loading agents...</p>
       </Show>
 
       <Show when={agents.error}>
-        <p class="text-red-600">Error loading agents: {agents.error.message}</p>
+        <p class='text-red-600'>
+          Error loading agents: {agents.error.message}
+        </p>
       </Show>
 
       <Show when={agents()}>
-        <ul class="space-y-2">
+        <ul class='space-y-2'>
           <For
             each={agents()}
-            fallback={<li class="text-gray-500">No agents yet</li>}
+            fallback={
+              <li class='text-gray-500'>No agents yet</li>
+            }
           >
             {(agent) => (
               <li
@@ -89,7 +109,7 @@ export default function AgentManager(props: Props) {
                 onClick={() => selectAgent(agent)}
               >
                 <strong>{agent.name}</strong>
-                <span class="ml-2 text-sm text-gray-500">
+                <span class='ml-2 text-sm text-gray-500'>
                   ID: {String(agent.id)}
                 </span>
               </li>
