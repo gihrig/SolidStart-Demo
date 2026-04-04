@@ -71,18 +71,18 @@ export default function ConversationManager(props: Props) {
         </Show>
 
         {/* Create Conversation Form */}
-        <button
-          type="submit"
-          disabled={creating()}
-          class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
-        >
-          {creating() ? 'Creating...' : 'Create Conv'}
-        </button>
-        <form onSubmit={handleCreate} class="flex gap-2">
+        <form onSubmit={handleCreate} class="flex flex-col gap-2">
+          <button
+            type="submit"
+            disabled={creating()}
+            class="w-full rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+          >
+            {creating() ? 'Creating...' : 'Create Conv'}
+          </button>
           <input
             name="title"
             placeholder="Conversation title (optional)"
-            class="flex-1 rounded border border-gray-300 px-3 py-2"
+            class="w-full rounded border border-gray-300 px-3 py-2"
           />
         </form>
 

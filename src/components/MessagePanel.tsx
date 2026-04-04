@@ -99,36 +99,36 @@ export default function MessagePanel(props: Props) {
           <div class="rounded bg-red-100 p-2 text-red-700">{error()}</div>
         </Show>
 
-        {/* Messages Display */}
-        <button
-          type="submit"
-          disabled={sending()}
-          class="rounded bg-blue-600 px-12 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          {sending() ? 'Sending...' : 'Send'}
-        </button>
-
-        <div class="max-h-60 space-y-2 overflow-y-auto rounded border border-gray-200 p-2">
-          <Show when={messages().length === 0}>
-            <p class="text-gray-500">No messages yet</p>
-          </Show>
-          <For each={messages()}>
-            {(msg) => (
-              <div class="rounded bg-gray-100 p-2">
-                <p>{msg.content}</p>
-                <span class="text-xs text-gray-500">ID: {String(msg.id)}</span>
-              </div>
-            )}
-          </For>
-        </div>
-
         {/* Send Message Form */}
-        <form onSubmit={handleSend} class="flex gap-2">
+        <form onSubmit={handleSend} class="flex flex-col gap-2">
+          <button
+            type="submit"
+            disabled={sending()}
+            class="w-full rounded bg-blue-600 px-12 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {sending() ? 'Sending...' : 'Send'}
+          </button>
+
+          {/* Messages Display */}
+          <div class="max-h-60 space-y-2 overflow-y-auto rounded border border-gray-200 p-2">
+            <Show when={messages().length === 0}>
+              <p class="text-gray-500">No messages yet</p>
+            </Show>
+            <For each={messages()}>
+              {(msg) => (
+                <div class="rounded bg-gray-100 p-2">
+                  <p>{msg.content}</p>
+                  <span class="text-xs text-gray-500">ID: {String(msg.id)}</span>
+                </div>
+              )}
+            </For>
+          </div>
+
           <input
             name="content"
             placeholder="Type a message..."
             required
-            class="flex-1 rounded border border-gray-300 px-3 py-2"
+            class="w-full rounded border border-gray-300 px-3 py-2"
           />
         </form>
       </Show>

@@ -1,5 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vite-plus/test'
-import { render, screen, waitFor } from '@solidjs/testing-library'
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+} from 'vite-plus/test'
+import {
+  render,
+  screen,
+  waitFor,
+} from '@solidjs/testing-library'
 import userEvent from '@testing-library/user-event'
 import MessagePanel from './MessagePanel'
 import type { Conv, ConvMsg } from '~/types/backend'
@@ -38,14 +48,18 @@ describe('<MessagePanel />', () => {
     vi.clearAllMocks()
   })
 
-  it('shows "Select a conversation first" when conv is null', () => {
+  it('shows "Select a conversation" when conv is null', () => {
     render(() => <MessagePanel conv={null} />)
-    expect(screen.getByText(/select a conversation first/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/select a conversation/i)
+    ).toBeInTheDocument()
   })
 
   it('shows Live indicator when WebSocket is connected', async () => {
     const { useWebSocket } = await import('~/lib/websocket')
-    ;(useWebSocket as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+    ;(
+      useWebSocket as ReturnType<typeof vi.fn>
+    ).mockReturnValueOnce({
       connected: () => true,
       error: () => null,
       subscribe: vi.fn(),
@@ -71,9 +85,9 @@ describe('<MessagePanel />', () => {
       role: 'user',
       content: 'Hello test',
     }
-    ;(backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(
-      newMsg
-    )
+    ;(
+      backendRpc.convMsg.add as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(newMsg)
     const user = userEvent.setup()
 
     render(() => <MessagePanel conv={mockConv} />)
@@ -82,10 +96,15 @@ describe('<MessagePanel />', () => {
       screen.getByPlaceholderText(/type a message/i),
       'Hello test'
     )
-    await user.click(screen.getByRole('button', { name: /send/i }))
+    await user.click(
+      screen.getByRole('button', { name: /send/i })
+    )
 
     expect(backendRpc.convMsg.add).toHaveBeenCalledWith(
-      expect.objectContaining({ conv_id: BigInt(10), content: 'Hello test' })
+      expect.objectContaining({
+        conv_id: BigInt(10),
+        content: 'Hello test',
+      })
     )
   })
 
@@ -97,9 +116,9 @@ describe('<MessagePanel />', () => {
       role: 'user',
       content: 'Hello test',
     }
-    ;(backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(
-      newMsg
-    )
+    ;(
+      backendRpc.convMsg.add as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(newMsg)
     const user = userEvent.setup()
 
     render(() => <MessagePanel conv={mockConv} />)
@@ -108,10 +127,14 @@ describe('<MessagePanel />', () => {
       screen.getByPlaceholderText(/type a message/i),
       'Hello test'
     )
-    await user.click(screen.getByRole('button', { name: /send/i }))
+    await user.click(
+      screen.getByRole('button', { name: /send/i })
+    )
 
     await waitFor(() => {
-      expect(screen.getByText('Hello test')).toBeInTheDocument()
+      expect(
+        screen.getByText('Hello test')
+      ).toBeInTheDocument()
     })
   })
 })
