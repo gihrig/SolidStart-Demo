@@ -93,6 +93,18 @@ or
 # Run Playwright in UI mode
 bunx playwright test --ui ./e2e/home.spec.ts
 
+# Other Playwright arguments
+e.g. npm run test:e2e -- --project={ firefox | Chromium | webkit }
+
+Specific test files: tests/todo.spec.ts
+Folders: tests/e2e/
+Grep/filter: --grep "@smoke" or -g "login"
+Projects: --project=firefox
+UI mode: --ui
+Headed mode: --headed
+Workers: --workers=1
+Config: --config=playwright.config.ts
+
 # Snapshot testing
 
 # Screen shots can be used in testing. E.g. Add this code to test file:
