@@ -59,10 +59,9 @@ done
 
 echo "Server ready, running tests..."
 echo
-echo "You must run this script with 'npm run test:e2e'!"
 
 # Run Playwright tests
-bunx playwright test "$@"
+npx playwright test "$@"
 
 # Store test exit code
 TEST_EXIT=$?
