@@ -32,9 +32,13 @@ describe('<Nav />', () => {
     const aboutLink = screen.getByRole('link', {
       name: 'About',
     })
+    const readmeLink = screen.getByRole('link', {
+      name: 'Readme',
+    })
 
     expect(homeLink).toHaveAttribute('href', '/')
     expect(aboutLink).toHaveAttribute('href', '/about')
+    expect(readmeLink).toHaveAttribute('href', '/readme')
   })
 
   it('applies active styling to Home link when on home path', () => {

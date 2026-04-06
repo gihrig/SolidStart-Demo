@@ -33,7 +33,7 @@ export default function ConversationManager(props: Props) {
     on(
       () => props.agent,
       () => {
-    setSelectedConv(null)
+        setSelectedConv(null)
       },
       { defer: true }
     )
