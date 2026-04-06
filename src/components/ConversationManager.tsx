@@ -1,4 +1,11 @@
-import { createSignal, createResource, createEffect, For, Show } from 'solid-js'
+import {
+  createSignal,
+  createResource,
+  createEffect,
+  on,
+  For,
+  Show,
+} from 'solid-js'
 import { backendRpc } from '~/lib/backend-rpc'
 import type { Agent, Conv } from '~/types/backend'
 
@@ -22,10 +29,15 @@ export default function ConversationManager(props: Props) {
   const [error, setError] = createSignal<string | null>(null)
 
   // Reset selection when agent changes
-  createEffect(() => {
-    props.agent // track
+  createEffect(
+    on(
+      () => props.agent,
+      () => {
     setSelectedConv(null)
-  })
+      },
+      { defer: true }
+    )
+  )
 
   const handleCreate = async (e: Event) => {
     e.preventDefault()
