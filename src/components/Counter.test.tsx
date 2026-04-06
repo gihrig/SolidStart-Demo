@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vite-plus/test'
-import { render, screen } from '@solidjs/testing-library'
+import { render, screen, within } from '@solidjs/testing-library'
 import userEvent from '@testing-library/user-event'
 import Counter from './Counter'
 
@@ -40,15 +40,15 @@ describe('<Counter />', () => {
     expect(button).toHaveTextContent('Clicks: 3')
   })
 
-  // Add test for multiple instances (component isolation)
+  // Test for multiple instances (component isolation)
   it('maintains independent state across multiple instances', () => {
     const { container: container1 } = render(() => <Counter />)
     const { container: container2 } = render(() => <Counter />)
 
-    const buttons = screen.getAllByRole('button', { name: /clicks:/i })
-    expect(buttons).toHaveLength(2)
-    // Use exact strings instead of regex for simple matches
-    expect(buttons[0]).toHaveTextContent('Clicks: 0')
-    expect(buttons[1]).toHaveTextContent('Clicks: 0')
+    const button1 = within(container1).getByRole('button', { name: /clicks:/i })
+    const button2 = within(container2).getByRole('button', { name: /clicks:/i })
+
+    expect(button1).toHaveTextContent('Clicks: 0')
+    expect(button2).toHaveTextContent('Clicks: 0')
   })
 })
