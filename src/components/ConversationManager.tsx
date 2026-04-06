@@ -1,4 +1,10 @@
-import { createSignal, createResource, createEffect, For, Show } from 'solid-js'
+import {
+  createSignal,
+  createResource,
+  createEffect,
+  For,
+  Show,
+} from 'solid-js'
 import { backendRpc } from '~/lib/backend-rpc'
 import type { Agent, Conv } from '~/types/backend'
 
@@ -17,9 +23,12 @@ export default function ConversationManager(props: Props) {
       })
     }
   )
-  const [selectedConv, setSelectedConv] = createSignal<Conv | null>(null)
+  const [selectedConv, setSelectedConv] =
+    createSignal<Conv | null>(null)
   const [creating, setCreating] = createSignal(false)
-  const [error, setError] = createSignal<string | null>(null)
+  const [error, setError] = createSignal<string | null>(
+    null
+  )
 
   // Reset selection when agent changes
   createEffect(() => {
@@ -46,7 +55,11 @@ export default function ConversationManager(props: Props) {
       setSelectedConv(conv)
       props.onConvSelect?.(conv)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create conversation')
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'Failed to create conversation'
+      )
     } finally {
       setCreating(false)
     }
@@ -58,60 +71,75 @@ export default function ConversationManager(props: Props) {
   }
 
   return (
-    <div class="space-y-4">
-      <h3 class="text-lg font-semibold">Conversations</h3>
+    <div class='space-y-4'>
+      <h3 class='text-lg font-semibold'>Conversations</h3>
 
       <Show when={!props.agent}>
-        <p class="text-gray-500">Select an agent first</p>
+        <p class='text-gray-500'>Select an agent first</p>
       </Show>
 
       <Show when={props.agent}>
         <Show when={error()}>
-          <div class="rounded bg-red-100 p-2 text-red-700">{error()}</div>
+          <div class='rounded bg-red-100 p-2 text-red-700'>
+            {error()}
+          </div>
         </Show>
 
         {/* Create Conversation Form */}
-        <form onSubmit={handleCreate} class="flex flex-col gap-2">
+        <form
+          onSubmit={handleCreate}
+          class='flex flex-col gap-2'
+        >
           <button
-            type="submit"
+            type='submit'
             disabled={creating()}
-            class="w-full rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+            class='w-full rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50'
           >
             {creating() ? 'Creating...' : 'Create Conv'}
           </button>
           <input
-            name="title"
-            placeholder="Conversation title (optional)"
-            class="w-full rounded border border-gray-300 px-3 py-2"
+            name='title'
+            placeholder='Conversation title (optional)'
+            class='w-full rounded border border-gray-300 px-3 py-2'
           />
         </form>
 
         {/* Conversation List */}
         <Show when={convs.loading}>
-          <p class="text-gray-500">Loading conversations...</p>
+          <p class='text-gray-500'>
+            Loading conversations...
+          </p>
         </Show>
 
         <Show when={convs.error}>
-          <p class="text-red-600">Error: {convs.error.message}</p>
+          <p class='text-red-600'>
+            Error: {convs.error.message}
+          </p>
         </Show>
 
         <Show when={convs()}>
-          <ul class="space-y-2">
+          <ul class='space-y-2'>
             <For
               each={convs()}
-              fallback={<li class="text-gray-500">No conversations yet</li>}
+              fallback={
+                <li class='text-gray-500'>
+                  No conversations yet
+                </li>
+              }
             >
               {(conv) => (
                 <li
                   class={`cursor-pointer rounded border p-2 transition ${
                     selectedConv()?.id === conv.id
-                      ? 'border-blue-500 bg-blue-50'
+                      ? 'border-blue-500 bg-auto'
                       : 'border-gray-200 hover:border-gray-400'
                   }`}
                   onClick={() => selectConv(conv)}
                 >
-                  <strong>{conv.title || 'Untitled'}</strong>
-                  <span class="ml-2 text-sm text-gray-500">
+                  <strong>
+                    {conv.title || 'Untitled'}
+                  </strong>
+                  <span class='ml-2 text-sm text-gray-500'>
                     ID: {String(conv.id)}
                   </span>
                 </li>

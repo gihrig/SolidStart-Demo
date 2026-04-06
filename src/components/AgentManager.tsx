@@ -64,7 +64,10 @@ export default function AgentManager(props: Props) {
       </Show>
 
       {/* Create Agent Form */}
-      <form onSubmit={handleCreate} class='flex flex-col gap-2'>
+      <form
+        onSubmit={handleCreate}
+        class='flex flex-col gap-2'
+      >
         <button
           type='submit'
           disabled={creating()}
@@ -103,7 +106,7 @@ export default function AgentManager(props: Props) {
               <li
                 class={`cursor-pointer rounded border p-2 transition ${
                   selectedAgent()?.id === agent.id
-                    ? 'border-blue-500 bg-blue-50'
+                    ? 'border-blue-500 bg-auto'
                     : 'border-gray-200 hover:border-gray-400'
                 }`}
                 onClick={() => selectAgent(agent)}
