@@ -75,28 +75,24 @@ End to end tests are run with Playwright
 Run end-to-end test with:
 
 ```sh
-# If run with bun it will hang (runs in sub-terminal)
-npm run test:e2e
+vpr test:e2e
 then
 # Open browser for detailed test results
-bun test:show
+vpr test:show
 
 # Run a single test file
-bun dev
-then
-# In a separate terminal
-bunx playwright test ./e2e/home.spec.ts
-or
+vpr test:e2e ./e2e/home.spec.ts
+
 # Run a single test
-bunx playwright test ./e2e/home.spec.ts -g 'should display main heading'
-or
+vpr test:e2e ./e2e/home.spec.ts -g 'should display main heading'
+
 # Run Playwright in UI mode
-bunx playwright test --ui ./e2e/home.spec.ts
+vpr test:e2e --ui ./e2e/home.spec.ts
 
 # Other Playwright arguments
-e.g. npm run test:e2e -- --project={ firefox | Chromium | webkit }
+e.g. vpr test:e2e --project={ firefox | Chromium | webkit }
 
-Specific test files: tests/todo.spec.ts
+Specific test files: ./e2e/home.spec.ts
 Folders: tests/e2e/
 Grep/filter: --grep "@smoke" or -g "login"
 Projects: --project=firefox
@@ -108,7 +104,7 @@ Config: --config=playwright.config.ts
 # Snapshot testing
 
 # Screen shots can be used in testing. E.g. Add this code to test file:
-await expect(page).toHaveScreenshot('landing.png');
+await expect(page).toHaveScreenshot('home.png');
 
 # Update snapshots
 npx playwright test --update-snapshots
