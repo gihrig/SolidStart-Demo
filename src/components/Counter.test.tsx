@@ -45,8 +45,12 @@ describe("<Counter />", () => {
     const { container: container1 } = render(() => <Counter />);
     const { container: container2 } = render(() => <Counter />);
 
-    const button1 = within(container1).getByRole("button", { name: /clicks:/i });
-    const button2 = within(container2).getByRole("button", { name: /clicks:/i });
+    const button1 = within(container1).getByRole("button", {
+      name: /clicks:/i,
+    });
+    const button2 = within(container2).getByRole("button", {
+      name: /clicks:/i,
+    });
 
     expect(button1).toHaveTextContent("Clicks: 0");
     expect(button2).toHaveTextContent("Clicks: 0");
