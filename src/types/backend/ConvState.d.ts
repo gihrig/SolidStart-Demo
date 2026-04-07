@@ -7,4 +7,4 @@
  *       See the `ConvKind` for the manual implementation.
  *
  */
-export type ConvState = 'Active' | 'Archived'
+export type ConvState = "Active" | "Archived";

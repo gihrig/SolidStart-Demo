@@ -47,7 +47,7 @@ Convert `/frontend-tutorial-v3/index.html` (Alpine.js + TailwindCSS v3.2.7) to `
   /* Existing theme variables... */
 
   /* Jedi page custom properties */
-  --font-lobster: 'Lobster', sans-serif;
+  --font-lobster: "Lobster", sans-serif;
   --primary: rgb(88, 40, 244);
   --primary-hover: rgb(69, 29, 200);
 }
@@ -72,8 +72,8 @@ bun i @fontsource/lobster
 **Action**: Import @fontsource/lobster
 
 ```tsx
-import '@fontsource/lobster'
-import './app.css'
+import "@fontsource/lobster";
+import "./app.css";
 ```
 
 **Verification**: Check browser DevTools that Lobster font loads successfully
@@ -102,11 +102,11 @@ import './app.css'
 
 ```typescript
 interface HeroProps {
-  title: string
-  subtitle: string
-  ctaText: string
-  ctaHref: string
-  backgroundImage: string
+  title: string;
+  subtitle: string;
+  ctaText: string;
+  ctaHref: string;
+  backgroundImage: string;
 }
 ```
 
@@ -117,13 +117,13 @@ export default function Hero(props: HeroProps) {
   return (
     <section
       class="grid bg-gray-700 text-white text-center bg-cover relative"
-      style={{ 'background-image': `url('${props.backgroundImage}')` }}
+      style={{ "background-image": `url('${props.backgroundImage}')` }}
     >
       <div class="col-start-1 row-start-1 bg-gray-800/40 w-full h-full" />
       <div class="col-start-1 row-start-1 py-24 px-10">
         <h1
           class="text-6xl font-bold mb-4 animate-fade-in"
-          style={{ 'font-family': 'var(--font-lobster)' }}
+          style={{ "font-family": "var(--font-lobster)" }}
         >
           {props.title}
         </h1>
@@ -131,8 +131,8 @@ export default function Hero(props: HeroProps) {
         <a
           class="inline-flex items-center justify-center px-4 min-h-[3.3rem] font-semibold rounded-lg text-white transition-transform active:scale-95"
           style={{
-            'background-color': 'var(--primary)',
-            'box-shadow': '0 4px 3px rgba(0, 0, 0, 0.1)',
+            "background-color": "var(--primary)",
+            "box-shadow": "0 4px 3px rgba(0, 0, 0, 0.1)",
           }}
           href={props.ctaHref}
         >
@@ -140,7 +140,7 @@ export default function Hero(props: HeroProps) {
         </a>
       </div>
     </section>
-  )
+  );
 }
 ```
 
@@ -188,10 +188,10 @@ export default function Hero(props: HeroProps) {
 
 ```typescript
 interface ImageProps {
-  src: string
-  alt: string
-  href?: string
-  class?: string
+  src: string;
+  alt: string;
+  href?: string;
+  class?: string;
 }
 ```
 
@@ -209,7 +209,7 @@ export default function Image(props: ImageProps) {
         <img class="w-full" src={props.src} alt={props.alt} />
       )}
     </figure>
-  )
+  );
 }
 ```
 
@@ -238,9 +238,9 @@ export default function Image(props: ImageProps) {
 
 ```typescript
 interface AuthorProps {
-  avatarSrc: string
-  name: string
-  href?: string
+  avatarSrc: string;
+  name: string;
+  href?: string;
 }
 ```
 
@@ -249,15 +249,11 @@ interface AuthorProps {
 ```tsx
 export default function Author(props: AuthorProps) {
   return (
-    <a class="flex items-center gap-1 mb-4" href={props.href || '#'}>
-      <img
-        class="w-8 h-8 rounded-full"
-        src={props.avatarSrc}
-        alt={props.name}
-      />
+    <a class="flex items-center gap-1 mb-4" href={props.href || "#"}>
+      <img class="w-8 h-8 rounded-full" src={props.avatarSrc} alt={props.name} />
       <span class="font-bold hover:underline">{props.name}</span>
     </a>
-  )
+  );
 }
 ```
 
@@ -288,33 +284,27 @@ export default function Author(props: AuthorProps) {
 
 ```typescript
 interface CardProps {
-  title?: string
-  children: JSX.Element
-  class?: string
+  title?: string;
+  children: JSX.Element;
+  class?: string;
 }
 ```
 
 **Component Structure**:
 
 ```tsx
-import { JSX } from 'solid-js'
+import { JSX } from "solid-js";
 
-export default function Card(props: {
-  title?: string
-  children: JSX.Element
-  class?: string
-}) {
+export default function Card(props: { title?: string; children: JSX.Element; class?: string }) {
   return (
     <section
       class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4
-      ${props.class || ''}`}
+      ${props.class || ""}`}
     >
-      {props.title && (
-        <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{props.title}</h2>
-      )}
+      {props.title && <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{props.title}</h2>}
       <div class="p-4 pt-0">{props.children}</div>
     </section>
-  )
+  );
 }
 ```
 
@@ -346,27 +336,27 @@ export default function Card(props: {
 **Component Structure** (outline):
 
 ```tsx
-import { Title } from '@solidjs/meta'
-import { createSignal, Show, For } from 'solid-js'
-import Nav from '~/components/Nav'
-import Hero from '~/components/Hero'
-import Image from '~/components/Image'
-import Author from '~/components/Author.'
-import Card from '~/components/Card'
+import { Title } from "@solidjs/meta";
+import { createSignal, Show, For } from "solid-js";
+import Nav from "~/components/Nav";
+import Hero from "~/components/Hero";
+import Image from "~/components/Image";
+import Author from "~/components/Author.";
+import Card from "~/components/Card";
 
 export default function Jedi() {
-  const [mobileSidebarOpen, setMobileSidebarOpen] = createSignal(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = createSignal(false);
 
   // Data structures for sidebar content
   const categories = [
     /* ... */
-  ]
+  ];
   const topPhotos = [
     /* ... */
-  ]
+  ];
   const topCaptions = [
     /* ... */
-  ]
+  ];
 
   return (
     <>
@@ -390,7 +380,7 @@ export default function Jedi() {
           >
             <span>Categories</span>
             <img
-              class={`w-4 ml-1.5 transition-transform ${mobileSidebarOpen() ? 'rotate-180' : ''}`}
+              class={`w-4 ml-1.5 transition-transform ${mobileSidebarOpen() ? "rotate-180" : ""}`}
               src="https://img.icons8.com/small/32/000000/expand-arrow.png"
               alt="Toggle"
             />
@@ -404,7 +394,7 @@ export default function Jedi() {
             <div class="flex items-center justify-between px-4 h-14">
               <h3 class="text-lg font-bold w-1/2 truncate">Little Jedi</h3>
               <div class="text-sm text-gray-500">
-                flickr @{' '}
+                flickr @{" "}
                 <a href="#" class="hover:underline">
                   John Doe
                 </a>
@@ -426,10 +416,7 @@ export default function Jedi() {
                 href="#"
               />
 
-              <p
-                class="text-5xl mb-10 px-4"
-                style={{ 'font-family': 'var(--font-lobster)' }}
-              >
+              <p class="text-5xl mb-10 px-4" style={{ "font-family": "var(--font-lobster)" }}>
                 Jedi Kitty protects the street
               </p>
 
@@ -482,11 +469,7 @@ export default function Jedi() {
                   {(category) => (
                     <li class="rounded hover:bg-gray-100 transition-colors">
                       <a href="#" class="flex items-center p-2">
-                        <img
-                          class="w-8 h-8 mr-2"
-                          src={category.icon}
-                          alt={category.name}
-                        />
+                        <img class="w-8 h-8 mr-2" src={category.icon} alt={category.name} />
                         <span class="font-bold text-sm">{category.name}</span>
                       </a>
                     </li>
@@ -512,12 +495,8 @@ export default function Jedi() {
                           src={photo.avatar}
                           alt={photo.author}
                         />
-                        <span class="font-bold text-sm mr-1">
-                          {photo.author}
-                        </span>
-                        <span class="text-sm text-gray-500">
-                          ({photo.likes} Likes)
-                        </span>
+                        <span class="font-bold text-sm mr-1">{photo.author}</span>
+                        <span class="text-sm text-gray-500">({photo.likes} Likes)</span>
                       </a>
                     </li>
                   )}
@@ -537,12 +516,8 @@ export default function Jedi() {
                           src={caption.avatar}
                           alt={caption.author}
                         />
-                        <span class="font-bold text-sm mr-1">
-                          {caption.author}
-                        </span>
-                        <span class="text-sm text-gray-500">
-                          ({caption.likes} Likes)
-                        </span>
+                        <span class="font-bold text-sm mr-1">{caption.author}</span>
+                        <span class="text-sm text-gray-500">({caption.likes} Likes)</span>
                       </a>
                     </li>
                   )}
@@ -553,7 +528,7 @@ export default function Jedi() {
         </Show>
       </div>
     </>
-  )
+  );
 }
 ```
 
@@ -562,40 +537,40 @@ export default function Jedi() {
 ```typescript
 const categories = [
   {
-    name: 'Landscape',
-    icon: 'https://img.icons8.com/small/96/null/landscape.png',
+    name: "Landscape",
+    icon: "https://img.icons8.com/small/96/null/landscape.png",
   },
-  { name: 'People', icon: 'https://img.icons8.com/small/96/null/portrait.png' },
-  { name: 'Animals', icon: 'https://img.icons8.com/small/96/null/dog.png' },
+  { name: "People", icon: "https://img.icons8.com/small/96/null/portrait.png" },
+  { name: "Animals", icon: "https://img.icons8.com/small/96/null/dog.png" },
   {
-    name: 'Abstract',
-    icon: 'https://img.icons8.com/small/96/null/collage.png',
+    name: "Abstract",
+    icon: "https://img.icons8.com/small/96/null/collage.png",
   },
   {
-    name: 'Black & White',
-    icon: 'https://img.icons8.com/small/96/null/180-degrees.png',
+    name: "Black & White",
+    icon: "https://img.icons8.com/small/96/null/180-degrees.png",
   },
-]
+];
 
 const topPhotos = [
   {
-    src: 'https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg',
-    alt: 'Top photo',
-    avatar: 'https://img.icons8.com/small/96/A9A9A9/happy.png',
-    author: 'Homer',
+    src: "https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg",
+    alt: "Top photo",
+    avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
+    author: "Homer",
     likes: 5,
   },
   // ... more entries
-]
+];
 
 const topCaptions = [
   {
-    avatar: 'https://img.icons8.com/small/96/A9A9A9/happy.png',
-    author: 'Homer',
+    avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
+    author: "Homer",
     likes: 5,
   },
   // ... more entries
-]
+];
 ```
 
 **Key Conversion Notes**:
@@ -1393,7 +1368,7 @@ bun run start
 
 ```tsx
 <li>
-  <a class={`border-b-4 ${active('/jedi')} mx-1.5 sm:mx-6`} href="/jedi">
+  <a class={`border-b-4 ${active("/jedi")} mx-1.5 sm:mx-6`} href="/jedi">
     Jedi
   </a>
 </li>
@@ -1411,16 +1386,16 @@ bun run start
 **Verify jedi.tsx has**:
 
 ```tsx
-import { Title, Meta } from '@solidjs/meta'
+import { Title, Meta } from "@solidjs/meta";
 
 // In component:
-;<>
+<>
   <Title>Little Jedi - Awesome Photos & Captions</Title>
   <Meta
     name="description"
     content="Share your favorite Photos from Flickr and add a great caption"
   />
-</>
+</>;
 ```
 
 ---

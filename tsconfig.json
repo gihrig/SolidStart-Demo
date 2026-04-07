@@ -11,12 +11,7 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "types": [
-      "@types/bun",
-      "vinxi/types/client",
-      "vitest/globals",
-      "@testing-library/jest-dom"
-    ],
+    "types": ["@types/bun", "vinxi/types/client", "vitest/globals", "@testing-library/jest-dom"],
     "isolatedModules": true,
     "paths": {
       "~/*": ["./src/*"]

@@ -1,7 +1,7 @@
 // @refresh reload
-import { mount, StartClient } from '@solidjs/start/client'
+import { mount, StartClient } from "@solidjs/start/client";
 
-mount(() => <StartClient />, document.getElementById('app')!)
+mount(() => <StartClient />, document.getElementById("app")!);
 
 // Only needed to avoid Rolldown build warning
-export default {}
+export default {};

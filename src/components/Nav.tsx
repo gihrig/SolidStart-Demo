@@ -1,36 +1,28 @@
-import { useLocation } from '@solidjs/router'
+import { useLocation } from "@solidjs/router";
 
 export default function Nav() {
-  const location = useLocation()
+  const location = useLocation();
   const active = (path: string) =>
-    path == location.pathname
-      ? 'border-sky-600'
-      : 'border-transparent hover:border-sky-600'
+    path == location.pathname ? "border-sky-600" : "border-transparent hover:border-sky-600";
   return (
     <nav role="navigation" aria-label="Main" class="bg-sky-800">
       <ul class="container flex items-center p-3 text-gray-200">
         <li>
-          <a class={`border-b-4 ${active('/')} mx-1.5 sm:mx-6`} href="/">
+          <a class={`border-b-4 ${active("/")} mx-1.5 sm:mx-6`} href="/">
             Home
           </a>
         </li>
         <li>
-          <a
-            class={`border-b-4 ${active('/about')} mx-1.5 sm:mx-6`}
-            href="/about"
-          >
+          <a class={`border-b-4 ${active("/about")} mx-1.5 sm:mx-6`} href="/about">
             About
           </a>
         </li>
         <li>
-          <a
-            class={`border-b-4 ${active('/readme')} mx-1.5 sm:mx-6`}
-            href="/readme"
-          >
+          <a class={`border-b-4 ${active("/readme")} mx-1.5 sm:mx-6`} href="/readme">
             Readme
           </a>
         </li>
       </ul>
     </nav>
-  )
+  );
 }

@@ -1,5 +1,5 @@
-import { Title } from '@solidjs/meta'
-import { A } from '@solidjs/router'
+import { Title } from "@solidjs/meta";
+import { A } from "@solidjs/router";
 
 export default function NotFound() {
   return (
@@ -15,5 +15,5 @@ export default function NotFound() {
         <A href="/fullstack">FullStack</A>
       </main>
     </>
-  )
+  );
 }

@@ -24,9 +24,9 @@ SolidStart (the full-stack framework for SolidJS) has experimental support for r
    Update your `vite.config.ts` to use the Bun adapter:
 
    ```ts
-   import { defineConfig } from 'vite'
-   import solid from 'solid-start/vite'
-   import bun from 'solid-start-bun'
+   import { defineConfig } from "vite";
+   import solid from "solid-start/vite";
+   import bun from "solid-start-bun";
 
    export default defineConfig({
      plugins: [
@@ -35,7 +35,7 @@ SolidStart (the full-stack framework for SolidJS) has experimental support for r
          ssr: true,
        }),
      ],
-   })
+   });
    ```
 
 4. **Identify the Server Entry Point**:

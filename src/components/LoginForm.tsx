@@ -1,24 +1,21 @@
-import { createSignal, Show } from 'solid-js'
-import { useAuth } from './AuthContext'
+import { createSignal, Show } from "solid-js";
+import { useAuth } from "./AuthContext";
 
 export default function LoginForm() {
-  const { login, error } = useAuth()
-  const [loading, setLoading] = createSignal(false)
+  const { login, error } = useAuth();
+  const [loading, setLoading] = createSignal(false);
 
   const handleSubmit = async (e: Event) => {
-    e.preventDefault()
-    setLoading(true)
-    const form = e.target as HTMLFormElement
-    const formData = new FormData(form)
+    e.preventDefault();
+    setLoading(true);
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
     try {
-      await login(
-        formData.get('username') as string,
-        formData.get('password') as string
-      )
+      await login(formData.get("username") as string, formData.get("password") as string);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit} class="space-y-4">
@@ -61,8 +58,8 @@ export default function LoginForm() {
         disabled={loading()}
         class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
       >
-        {loading() ? 'Logging in...' : 'Login'}
+        {loading() ? "Logging in..." : "Login"}
       </button>
     </form>
-  )
+  );
 }

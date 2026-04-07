@@ -1,0 +1,28 @@
+// Add any other Prettier-compatible options you use
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 80,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "es5",
+  "bracketSpacing": true,
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    ".output",
+    ".vinxi",
+    ".wrangler",
+    ".vercel",
+    ".netlify",
+    ".env*",
+    "test-results",
+    "playwright-report",
+    "blob-report",
+    "coverage",
+    ".bun",
+    ".turbo",
+    "app.config.timestamp_*.js",
+  ],
+}

@@ -1,29 +1,28 @@
-import { Title } from '@solidjs/meta'
-import { createSignal, Show } from 'solid-js'
-import { AuthProvider, useAuth } from '~/components/AuthContext'
-import LoginForm from '~/components/LoginForm'
-import AgentManager from '~/components/AgentManager'
-import ConversationManager from '~/components/ConversationManager'
-import MessagePanel from '~/components/MessagePanel'
-import type { Agent, Conv } from '~/types/backend'
+import { Title } from "@solidjs/meta";
+import { createSignal, Show } from "solid-js";
+import { AuthProvider, useAuth } from "~/components/AuthContext";
+import LoginForm from "~/components/LoginForm";
+import AgentManager from "~/components/AgentManager";
+import ConversationManager from "~/components/ConversationManager";
+import MessagePanel from "~/components/MessagePanel";
+import type { Agent, Conv } from "~/types/backend";
 
 function FullstackContent() {
-  const { isAuthenticated, username, logoff } = useAuth()
-  const [selectedAgent, setSelectedAgent] = createSignal<Agent | null>(null)
-  const [selectedConv, setSelectedConv] = createSignal<Conv | null>(null)
+  const { isAuthenticated, username, logoff } = useAuth();
+  const [selectedAgent, setSelectedAgent] = createSignal<Agent | null>(null);
+  const [selectedConv, setSelectedConv] = createSignal<Conv | null>(null);
 
   const handleLogoff = async () => {
-    await logoff()
-    setSelectedAgent(null)
-    setSelectedConv(null)
-  }
+    await logoff();
+    setSelectedAgent(null);
+    setSelectedConv(null);
+  };
 
   return (
     <main class="container mx-auto p-4">
       <h1 class="mb-6 text-2xl font-bold">Full-Stack Integration Demo</h1>
       <p class="mb-4 text-center! text-gray-400">
-        SolidStart + Rust/Axum JSON-RPC Example (with WebSocket real-time
-        updates)
+        SolidStart + Rust/Axum JSON-RPC Example (with WebSocket real-time updates)
       </p>
 
       <Show when={!isAuthenticated()}>
@@ -49,10 +48,7 @@ function FullstackContent() {
           </div>
 
           <div class="rounded border border-gray-200 p-4">
-            <ConversationManager
-              agent={selectedAgent()}
-              onConvSelect={setSelectedConv}
-            />
+            <ConversationManager agent={selectedAgent()} onConvSelect={setSelectedConv} />
           </div>
 
           <div class="rounded border border-gray-200 p-4">
@@ -61,7 +57,7 @@ function FullstackContent() {
         </div>
       </Show>
     </main>
-  )
+  );
 }
 
 export default function Fullstack() {
@@ -70,5 +66,5 @@ export default function Fullstack() {
       <Title>Full-Stack Demo | SolidStart+</Title>
       <FullstackContent />
     </AuthProvider>
-  )
+  );
 }
