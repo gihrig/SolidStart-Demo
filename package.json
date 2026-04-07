@@ -4,16 +4,14 @@
   "scripts": {
     "dev": "bunx --bun vinxi dev",
     "build": "bunx --bun vinxi build",
-    "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check",
+    "check": " vp check --fix",
     "start": "bunx --bun vinxi start",
     "test:comp": "vp test src/components",
     "test:comp:watch": "vp test src/components --watch",
-    "test:unit": "bun test src/lib",
-    "test:unit:watch": "bun test --watch src/lib",
     "test:e2e": "./src/lib/test-e2e.sh",
     "test:show": "bunx playwright show-report",
-    "prepare": "vp config"
+    "test:unit": "bun test src/lib",
+    "test:unit:watch": "bun test --watch src/lib"
   },
   "devDependencies": {
     "@mdx-js/mdx": "3.1.1",
