@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "solidjs-solidstart-expert": {
+      "source": "modra40/claude-codex-skills-directory",
+      "sourceType": "github",
+      "computedHash": "215115f83d7e4c6b6e541d8b8cee64d2d11c6e9e0e87775953725736aef12e82"
+    }
+  }
+}
