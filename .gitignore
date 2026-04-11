@@ -22,6 +22,7 @@ app.config.timestamp_*.js
 
 # Temp
 gitignore
+/coverage/
 
 # System Files
 .DS_Store

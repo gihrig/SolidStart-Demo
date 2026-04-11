@@ -494,6 +494,7 @@ export function usePerformance(name: string) {
     "test:all:watch": "vp test --watch",
     "test:comp": "vp test src/components",
     "test:comp:watch": "vp test src/components --watch",
+    "test:cover": "vp test src --coverage",
     "test:e2e": "./src/lib/test-e2e.sh",
     "test:show": "playwright show-report",
     "test:unit": "vp test src/lib",

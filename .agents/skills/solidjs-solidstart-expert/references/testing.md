@@ -767,13 +767,16 @@ export function createMockTodo(overrides = {}) {
 // package.json
 {
   "scripts": {
-    "test": "vitest",
-    "test:watch": "vitest --watch",
-    "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:all": "npm run test:coverage && npm run test:e2e"
+    "test:all": "vp test",
+    "test:all:watch": "vp test --watch",
+    "test:comp": "vp test src/components",
+    "test:comp:watch": "vp test src/components --watch",
+    "test:cover": "vp test src --coverage",
+    "test:e2e": "./src/lib/test-e2e.sh",
+    "test:show": "playwright show-report",
+    "test:unit": "vp test src/lib",
+    "test:unit:watch": "vp test --watch src/lib",
+    "lighthouse": "CHROME_PATH=\"/Applications/Brave Browser.app/Contents/MacOS/Brave Browser\" lighthouse http://localhost:3000 --output html --output-path ./lighthouse-report.html --view"
   }
 }
 ```

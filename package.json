@@ -10,6 +10,7 @@
     "test:all:watch": "vp test --watch",
     "test:comp": "vp test src/components",
     "test:comp:watch": "vp test src/components --watch",
+    "test:cover": "vp test src --coverage",
     "test:e2e": "./src/lib/test-e2e.sh",
     "test:show": "playwright show-report",
     "test:unit": "vp test src/lib",
@@ -30,6 +31,7 @@
     "@types/bun": "1.3.4",
     "@types/node": "25.0.2",
     "@vinxi/plugin-mdx": "3.7.1",
+    "@vitest/coverage-v8": "4.1.2",
     "@vitest/ui": "4.0.15",
     "happy-dom": "20.0.11",
     "jsdom": "27.3.0",
@@ -41,8 +43,7 @@
     "vinxi": "0.5.9",
     "vite": "8.0.5",
     "vite-plugin-solid": "2.11.9",
-    "vite-plus": "0.1.16",
-    "vitest": "4.1.2"
+    "vite-plus": "0.1.16"
   },
   "engines": {
     "bun": ">=1.3.0"
