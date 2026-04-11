@@ -26,7 +26,6 @@ Senior/Lead engineer-level guidance for building production-ready applications w
 # Latest SolidStart with TypeScript
 vp create solid@latest my-app
 # Select: SolidStart, TypeScript, TailwindCSS
-
 ```
 
 **Decision matrix**: Use SolidStart unless you're building: embeddable widgets, micro-frontends, or have strict no-server requirements.

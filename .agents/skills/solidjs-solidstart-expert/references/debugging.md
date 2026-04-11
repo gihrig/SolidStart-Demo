@@ -6,27 +6,27 @@
 
 ```bash
 # Install the DevTools
-pnpm add -D solid-devtools
+vp add -D solid-devtools
 
 # For Vite projects
-pnpm add -D vite-plugin-solid-devtools
+vp add -D vite-plugin-solid-devtools
 ```
 
 ### Vite Configuration
 
 ```typescript
 // vite.config.ts
-import { defineConfig } from 'vite';
-import solid from 'vite-plugin-solid';
-import devtools from 'solid-devtools/vite';
+import { defineConfig } from "vite";
+import solid from "vite-plugin-solid";
+import devtools from "solid-devtools/vite";
 
 export default defineConfig({
   plugins: [
     devtools({
-      autoname: true,        // Automatically name signals
+      autoname: true, // Automatically name signals
       locator: {
-        targetIDE: 'vscode', // Click to open in VS Code
-        key: 'Ctrl',         // Hold Ctrl to see component
+        targetIDE: "vscode", // Click to open in VS Code
+        key: "Ctrl", // Hold Ctrl to see component
         jsxLocation: true,
       },
     }),
@@ -39,20 +39,23 @@ export default defineConfig({
 
 ```typescript
 // 1. Named Signals (easier debugging)
-const [count, setCount] = createSignal(0, { name: 'count' });
-const [user, setUser] = createSignal(null, { name: 'currentUser' });
+const [count, setCount] = createSignal(0, { name: "count" });
+const [user, setUser] = createSignal(null, { name: "currentUser" });
 
 // 2. Named Effects
-createEffect(() => {
-  console.log('Count:', count());
-}, { name: 'logCount' });
+createEffect(
+  () => {
+    console.log("Count:", count());
+  },
+  { name: "logCount" },
+);
 
 // 3. Debug utility
-import { createEffect, DEV } from 'solid-js';
+import { createEffect, DEV } from "solid-js";
 
 if (DEV) {
   createEffect(() => {
-    console.log('[DEV] State changed:', someSignal());
+    console.log("[DEV] State changed:", someSignal());
   });
 }
 ```
@@ -63,21 +66,21 @@ if (DEV) {
 
 ```typescript
 // Debug which signals trigger effects
-import { createEffect, createSignal, untrack } from 'solid-js';
+import { createEffect, createSignal, untrack } from "solid-js";
 
 function debugEffect(name: string, fn: () => void) {
   createEffect(() => {
     console.group(`[Effect] ${name}`);
-    console.log('Running at:', new Date().toISOString());
+    console.log("Running at:", new Date().toISOString());
     fn();
     console.groupEnd();
   });
 }
 
 // Usage
-debugEffect('userProfile', () => {
-  console.log('user:', user());
-  console.log('preferences:', preferences());
+debugEffect("userProfile", () => {
+  console.log("user:", user());
+  console.log("preferences:", preferences());
 });
 ```
 
@@ -111,7 +114,7 @@ function GoodComponent2() {
 // ❌ Pattern 3: Storing signal value
 function BadComponent3() {
   const value = count(); // ❌ Snapshot, not reactive
-  
+
   return <button onClick={() => console.log(value)}>
     Log: {value}
   </button>;
@@ -134,7 +137,7 @@ import { createSignal, createMemo, createRoot, getOwner } from 'solid-js';
 function logDependencyTree() {
   const owner = getOwner();
   if (!owner) return;
-  
+
   console.log('Owner:', owner);
   console.log('Sources:', (owner as any).sources);
   console.log('Observers:', (owner as any).observers);
@@ -145,11 +148,11 @@ function DebugComponent() {
   const [a, setA] = createSignal(1);
   const [b, setB] = createSignal(2);
   const sum = createMemo(() => a() + b());
-  
+
   onMount(() => {
     logDependencyTree();
   });
-  
+
   return <div>{sum()}</div>;
 }
 ```
@@ -162,25 +165,25 @@ function DebugComponent() {
 // Hook to count renders
 function useRenderCount(componentName: string) {
   let count = 0;
-  
+
   onMount(() => {
     count = 1;
     console.log(`[${componentName}] Initial render`);
   });
-  
+
   // This effect runs on each reactive update
   createEffect(() => {
     // Access reactive dependencies you want to track
     count++;
     console.log(`[${componentName}] Render #${count}`);
   });
-  
+
   return () => count;
 }
 
 // Usage
 function MyComponent(props: Props) {
-  useRenderCount('MyComponent');
+  useRenderCount("MyComponent");
   // Component code...
 }
 ```
@@ -194,15 +197,16 @@ function profileEffect(name: string, fn: () => void) {
     const start = performance.now();
     fn();
     const end = performance.now();
-    
-    if (end - start > 16) { // More than 1 frame
+
+    if (end - start > 16) {
+      // More than 1 frame
       console.warn(`[SLOW EFFECT] ${name}: ${(end - start).toFixed(2)}ms`);
     }
   });
 }
 
 // Usage
-profileEffect('expensiveComputation', () => {
+profileEffect("expensiveComputation", () => {
   // Some expensive operation
   processLargeDataset(data());
 });
@@ -214,12 +218,12 @@ profileEffect('expensiveComputation', () => {
 // Check for cleanup issues
 function createLeakDetector(name: string) {
   const instances = new Set<string>();
-  
+
   return {
     track: (id: string) => {
       instances.add(id);
       console.log(`[${name}] Created: ${id}, Total: ${instances.size}`);
-      
+
       onCleanup(() => {
         instances.delete(id);
         console.log(`[${name}] Cleaned: ${id}, Total: ${instances.size}`);
@@ -231,14 +235,14 @@ function createLeakDetector(name: string) {
 }
 
 // Usage
-const subscriptionTracker = createLeakDetector('WebSocket');
+const subscriptionTracker = createLeakDetector("WebSocket");
 
 function ChatComponent(props: { roomId: string }) {
   const instanceId = `room-${props.roomId}-${Date.now()}`;
   subscriptionTracker.track(instanceId);
-  
+
   const ws = new WebSocket(`/chat/${props.roomId}`);
-  
+
   onCleanup(() => {
     ws.close();
   });
@@ -251,38 +255,45 @@ function ChatComponent(props: { roomId: string }) {
 
 ```typescript
 // lib/api/debug-client.ts
-import ky from 'ky';
+import ky from "ky";
 
 const isDev = import.meta.env.DEV;
 
 export const api = ky.create({
-  prefixUrl: '/api',
+  prefixUrl: "/api",
   hooks: {
-    beforeRequest: isDev ? [
-      (request) => {
-        console.group(`🌐 ${request.method} ${request.url}`);
-        console.log('Headers:', Object.fromEntries(request.headers));
-        console.log('Time:', new Date().toISOString());
-      }
-    ] : [],
-    afterResponse: isDev ? [
-      async (request, options, response) => {
-        const duration = performance.now();
-        const body = await response.clone().json().catch(() => null);
-        
-        console.log('Status:', response.status);
-        console.log('Response:', body);
-        console.log('Duration:', `${duration.toFixed(2)}ms`);
-        console.groupEnd();
-      }
-    ] : [],
+    beforeRequest: isDev
+      ? [
+          (request) => {
+            console.group(`🌐 ${request.method} ${request.url}`);
+            console.log("Headers:", Object.fromEntries(request.headers));
+            console.log("Time:", new Date().toISOString());
+          },
+        ]
+      : [],
+    afterResponse: isDev
+      ? [
+          async (request, options, response) => {
+            const duration = performance.now();
+            const body = await response
+              .clone()
+              .json()
+              .catch(() => null);
+
+            console.log("Status:", response.status);
+            console.log("Response:", body);
+            console.log("Duration:", `${duration.toFixed(2)}ms`);
+            console.groupEnd();
+          },
+        ]
+      : [],
     beforeError: [
       (error) => {
-        console.error('❌ Request failed:', error.message);
-        console.error('URL:', error.request?.url);
-        console.error('Response:', error.response);
+        console.error("❌ Request failed:", error.message);
+        console.error("URL:", error.request?.url);
+        console.error("Response:", error.response);
         return error;
-      }
+      },
     ],
   },
 });
@@ -322,23 +333,23 @@ const query = createQuery(() => ({
 
 ```typescript
 // Detect hydration mismatches
-import { isServer, hydrate } from 'solid-js/web';
+import { isServer, hydrate } from "solid-js/web";
 
 function HydrationDebugger(props: ParentProps) {
   if (!isServer) {
-    const serverHTML = document.getElementById('app')?.innerHTML;
-    
+    const serverHTML = document.getElementById("app")?.innerHTML;
+
     onMount(() => {
-      const clientHTML = document.getElementById('app')?.innerHTML;
-      
+      const clientHTML = document.getElementById("app")?.innerHTML;
+
       if (serverHTML !== clientHTML) {
-        console.warn('⚠️ Hydration mismatch detected!');
-        console.log('Server HTML:', serverHTML?.slice(0, 500));
-        console.log('Client HTML:', clientHTML?.slice(0, 500));
+        console.warn("⚠️ Hydration mismatch detected!");
+        console.log("Server HTML:", serverHTML?.slice(0, 500));
+        console.log("Client HTML:", clientHTML?.slice(0, 500));
       }
     });
   }
-  
+
   return props.children;
 }
 
@@ -353,25 +364,28 @@ function HydrationDebugger(props: ParentProps) {
 
 ```typescript
 // routes/api/debug.ts
-import type { APIEvent } from '@solidjs/start/server';
+import type { APIEvent } from "@solidjs/start/server";
 
 export async function GET(event: APIEvent) {
   const headers = Object.fromEntries(event.request.headers);
   const url = new URL(event.request.url);
-  
-  console.log('=== Server Debug ===');
-  console.log('URL:', url.pathname);
-  console.log('Query:', Object.fromEntries(url.searchParams));
-  console.log('Headers:', headers);
-  console.log('Cookies:', event.request.headers.get('cookie'));
-  
-  return new Response(JSON.stringify({
-    timestamp: new Date().toISOString(),
-    path: url.pathname,
-    query: Object.fromEntries(url.searchParams),
-  }), {
-    headers: { 'Content-Type': 'application/json' },
-  });
+
+  console.log("=== Server Debug ===");
+  console.log("URL:", url.pathname);
+  console.log("Query:", Object.fromEntries(url.searchParams));
+  console.log("Headers:", headers);
+  console.log("Cookies:", event.request.headers.get("cookie"));
+
+  return new Response(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      path: url.pathname,
+      query: Object.fromEntries(url.searchParams),
+    }),
+    {
+      headers: { "Content-Type": "application/json" },
+    },
+  );
 }
 ```
 
@@ -394,7 +408,7 @@ interface ErrorReport {
 
 function reportError(error: ErrorReport) {
   console.error('Error Report:', error);
-  
+
   // Send to error tracking service
   if (import.meta.env.PROD) {
     fetch('/api/errors', {
@@ -416,7 +430,7 @@ export function AppErrorBoundary(props: ParentProps) {
           url: window.location.href,
           userAgent: navigator.userAgent,
         });
-        
+
         return (
           <div class="error-fallback">
             <h1>Something went wrong</h1>
@@ -442,7 +456,7 @@ if (typeof window !== 'undefined') {
       userAgent: navigator.userAgent,
     });
   };
-  
+
   window.onunhandledrejection = (event) => {
     reportError({
       message: event.reason?.message || 'Unhandled Promise Rejection',
@@ -461,44 +475,44 @@ if (typeof window !== 'undefined') {
 // lib/debug.ts
 export const debug = {
   signal: (name: string, value: unknown) => {
-    console.log(`%c[Signal] ${name}:`, 'color: #61dafb; font-weight: bold', value);
+    console.log(`%c[Signal] ${name}:`, "color: #61dafb; font-weight: bold", value);
   },
-  
+
   effect: (name: string) => {
-    console.log(`%c[Effect] ${name} triggered`, 'color: #ffd700; font-weight: bold');
+    console.log(`%c[Effect] ${name} triggered`, "color: #ffd700; font-weight: bold");
   },
-  
+
   render: (component: string) => {
-    console.log(`%c[Render] ${component}`, 'color: #98c379; font-weight: bold');
+    console.log(`%c[Render] ${component}`, "color: #98c379; font-weight: bold");
   },
-  
+
   api: (method: string, url: string, data?: unknown) => {
-    console.log(`%c[API] ${method} ${url}`, 'color: #c678dd; font-weight: bold', data);
+    console.log(`%c[API] ${method} ${url}`, "color: #c678dd; font-weight: bold", data);
   },
-  
+
   warn: (message: string, data?: unknown) => {
-    console.warn(`%c[Warning] ${message}`, 'color: #e5c07b; font-weight: bold', data);
+    console.warn(`%c[Warning] ${message}`, "color: #e5c07b; font-weight: bold", data);
   },
-  
+
   error: (message: string, error?: Error) => {
-    console.error(`%c[Error] ${message}`, 'color: #e06c75; font-weight: bold', error);
+    console.error(`%c[Error] ${message}`, "color: #e06c75; font-weight: bold", error);
   },
-  
+
   table: (data: unknown[], columns?: string[]) => {
     console.table(data, columns);
   },
-  
+
   time: (label: string) => console.time(label),
   timeEnd: (label: string) => console.timeEnd(label),
-  
+
   group: (label: string) => console.group(label),
   groupEnd: () => console.groupEnd(),
 };
 
 // Usage
-debug.signal('user', user());
-debug.effect('fetchUserData');
-debug.api('GET', '/api/users', { limit: 10 });
+debug.signal("user", user());
+debug.effect("fetchUserData");
+debug.api("GET", "/api/users", { limit: 10 });
 ```
 
 ## VS Code Debug Configuration

@@ -6,36 +6,36 @@
 
 ```typescript
 // vite.config.ts
-import { defineConfig } from 'vite';
-import solid from 'vite-plugin-solid';
-import { visualizer } from 'rollup-plugin-visualizer';
+import { defineConfig } from "vite";
+import solid from "vite-plugin-solid";
+import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig({
   plugins: [
     solid(),
     visualizer({
-      filename: 'dist/stats.html',
+      filename: "dist/stats.html",
       open: true,
       gzipSize: true,
       brotliSize: true,
     }),
   ],
   build: {
-    target: 'esnext',
-    minify: 'terser',
+    target: "esnext",
+    minify: "terser",
     terserOptions: {
       compress: {
         drop_console: true,
         drop_debugger: true,
-        pure_funcs: ['console.log', 'console.debug'],
+        pure_funcs: ["console.log", "console.debug"],
       },
     },
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor-solid': ['solid-js', 'solid-js/web', 'solid-js/store'],
-          'vendor-tanstack': ['@tanstack/solid-query', '@tanstack/solid-table'],
-          'vendor-utils': ['date-fns', 'zod', 'ky'],
+          "vendor-solid": ["solid-js", "solid-js/web", "solid-js/store"],
+          "vendor-tanstack": ["@tanstack/solid-query", "@tanstack/solid-table"],
+          "vendor-utils": ["date-fns", "zod", "ky"],
         },
       },
     },
@@ -59,14 +59,14 @@ const HeavyChart = lazy(() => import('./components/HeavyChart'));
 const DataGrid = lazy(() => import('./components/DataGrid'));
 
 // ✅ Feature-based splitting
-const AdminPanel = lazy(() => 
+const AdminPanel = lazy(() =>
   import('./features/admin').then(m => ({ default: m.AdminPanel }))
 );
 
 // ✅ Conditional loading
 function ConditionalFeature() {
   const [showAdvanced, setShowAdvanced] = createSignal(false);
-  
+
   return (
     <div>
       <button onClick={() => setShowAdvanced(true)}>
@@ -87,17 +87,17 @@ function ConditionalFeature() {
 ```typescript
 // ✅ Named exports for better tree shaking
 // lib/utils/index.ts
-export { formatDate } from './date';
-export { formatCurrency } from './currency';
-export { debounce, throttle } from './timing';
+export { formatDate } from "./date";
+export { formatCurrency } from "./currency";
+export { debounce, throttle } from "./timing";
 
 // ❌ Avoid barrel exports with side effects
 // This bundles everything:
-import * as utils from './utils';
+import * as utils from "./utils";
 
 // ✅ Import only what you need
-import { formatDate } from './utils/date';
-import { debounce } from './utils/timing';
+import { formatDate } from "./utils/date";
+import { debounce } from "./utils/timing";
 ```
 
 ### Icon Optimization
@@ -105,24 +105,24 @@ import { debounce } from './utils/timing';
 ```typescript
 // ✅ Use unplugin-icons for tree-shakeable icons
 // vite.config.ts
-import Icons from 'unplugin-icons/vite';
+import Icons from "unplugin-icons/vite";
 
 export default defineConfig({
   plugins: [
     Icons({
-      compiler: 'solid',
+      compiler: "solid",
       autoInstall: true,
     }),
   ],
 });
 
 // Usage - only bundles used icons
-import IconHome from '~icons/lucide/home';
-import IconUser from '~icons/lucide/user';
-import IconSettings from '~icons/lucide/settings';
+import IconHome from "~icons/lucide/home";
+import IconUser from "~icons/lucide/user";
+import IconSettings from "~icons/lucide/settings";
 
 // ❌ Avoid: Imports entire icon library
-import { Home, User, Settings } from 'lucide-solid';
+import { Home, User, Settings } from "lucide-solid";
 ```
 
 ## Render Performance
@@ -133,14 +133,14 @@ import { Home, User, Settings } from 'lucide-solid';
 // ❌ BAD: Inline objects create new references
 function BadComponent() {
   const [name, setName] = createSignal('John');
-  
+
   return <UserCard user={{ name: name(), age: 25 }} />; // New object every time!
 }
 
 // ✅ GOOD: Use signals directly or stores
 function GoodComponent() {
   const [user, setUser] = createStore({ name: 'John', age: 25 });
-  
+
   return <UserCard user={user} />; // Same reference, fine-grained updates
 }
 
@@ -148,7 +148,7 @@ function GoodComponent() {
 function GoodComponent2() {
   const [name, setName] = createSignal('John');
   const [age, setAge] = createSignal(25);
-  
+
   return <UserCard name={name} age={age} />;
 }
 ```
@@ -169,8 +169,8 @@ function StaticListOptimized() {
       {(item, index) => (
         <div>
           Item {index}: {item().value}
-          <button onClick={() => 
-            setItems(prev => prev.map((i, idx) => 
+          <button onClick={() =>
+            setItems(prev => prev.map((i, idx) =>
               idx === index ? { ...i, value: i.value + 1 } : i
             ))
           }>
@@ -190,8 +190,8 @@ function DynamicListOptimized() {
   return (
     <For each={todos()}>
       {(todo) => (
-        <TodoItem 
-          todo={todo} 
+        <TodoItem
+          todo={todo}
           onDelete={() => setTodos(prev => prev.filter(t => t.id !== todo.id))}
         />
       )}
@@ -273,8 +273,8 @@ function ExpensiveComponent(props: { data: DataPoint[] }) {
   const summary = createMemo(() => ({
     total: processedData().reduce((sum, d) => sum + d.value, 0),
     count: processedData().length,
-    average: processedData().length > 0 
-      ? processedData().reduce((sum, d) => sum + d.value, 0) / processedData().length 
+    average: processedData().length > 0
+      ? processedData().reduce((sum, d) => sum + d.value, 0) / processedData().length
       : 0,
   }));
 
@@ -330,7 +330,7 @@ function ResponsiveImage(props: { src: string; alt: string }) {
 // ✅ Using picture element for modern formats
 function ModernImage(props: { src: string; alt: string }) {
   const base = props.src.replace(/\.[^.]+$/, '');
-  
+
   return (
     <picture>
       <source srcset={`${base}.avif`} type="image/avif" />
@@ -358,14 +358,14 @@ import { A } from '@solidjs/router';
 // ✅ Custom prefetch
 function PrefetchLink(props: { href: string; children: JSX.Element }) {
   let linkRef: HTMLAnchorElement;
-  
+
   const prefetch = () => {
     const link = document.createElement('link');
     link.rel = 'prefetch';
     link.href = props.href;
     document.head.appendChild(link);
   };
-  
+
   onMount(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -379,7 +379,7 @@ function PrefetchLink(props: { href: string; children: JSX.Element }) {
     observer.observe(linkRef);
     onCleanup(() => observer.disconnect());
   });
-  
+
   return <a ref={linkRef!} href={props.href}>{props.children}</a>;
 }
 ```
@@ -429,7 +429,7 @@ function ProfiledComponent() {
       ref={(el) => {
         performance.mark('component-end');
         performance.measure('component-render', 'component-start', 'component-end');
-        
+
         const measures = performance.getEntriesByType('measure');
         console.table(measures);
       }}
@@ -455,7 +455,7 @@ export function usePerformance(name: string) {
 
   onMount(() => {
     renderStart = performance.now();
-    
+
     requestAnimationFrame(() => {
       metrics.renderTime = performance.now() - renderStart;
       console.log(`[${name}] Initial render: ${metrics.renderTime.toFixed(2)}ms`);
@@ -468,8 +468,9 @@ export function usePerformance(name: string) {
       fn();
       const duration = performance.now() - start;
       metrics.updateCount++;
-      
-      if (duration > 16) { // Longer than 1 frame
+
+      if (duration > 16) {
+        // Longer than 1 frame
         console.warn(`[${name}] Slow effect "${effectName}": ${duration.toFixed(2)}ms`);
       }
     });
@@ -485,10 +486,17 @@ export function usePerformance(name: string) {
 // package.json
 {
   "scripts": {
+    "dev": "vinxi dev",
     "build": "vinxi build",
-    "build:analyze": "vinxi build && npx source-map-explorer dist/**/*.js",
-    "build:stats": "vinxi build --mode production",
-    "lighthouse": "lighthouse http://localhost:3000 --output html --output-path ./lighthouse-report.html"
+    "check": "vp check --fix",
+    "start": "vinxi start",
+    "test:comp": "vp test src/components",
+    "test:comp:watch": "vp test src/components --watch",
+    "test:e2e": "./src/lib/test-e2e.sh",
+    "test:show": "playwright show-report",
+    "test:unit": "bun test src/lib",
+    "test:unit:watch": "bun test --watch src/lib",
+    "lighthouse": "CHROME_PATH=\"/Applications/Brave Browser.app/Contents/MacOS/Brave Browser\" lighthouse http://localhost:3000 --output html --output-path ./lighthouse-report.html --view"
   }
 }
 ```
@@ -499,7 +507,7 @@ export function usePerformance(name: string) {
 
 ```typescript
 // app.config.ts
-import { defineConfig } from '@solidjs/start/config';
+import { defineConfig } from "@solidjs/start/config";
 
 export default defineConfig({
   server: {
@@ -509,7 +517,7 @@ export default defineConfig({
   vite: {
     build: {
       cssCodeSplit: true,
-      cssMinify: 'lightningcss',
+      cssMinify: "lightningcss",
     },
   },
 });
@@ -545,9 +553,9 @@ function Component() {
   createEffect(() => {
     const ws = new WebSocket('/ws');
     const handler = (e: MessageEvent) => processMessage(e.data);
-    
+
     ws.addEventListener('message', handler);
-    
+
     onCleanup(() => {
       ws.removeEventListener('message', handler);
       ws.close();
@@ -558,35 +566,35 @@ function Component() {
 // ✅ Cleanup intervals and timeouts
 function TimerComponent() {
   const [count, setCount] = createSignal(0);
-  
+
   createEffect(() => {
     const interval = setInterval(() => {
       setCount(c => c + 1);
     }, 1000);
-    
+
     onCleanup(() => clearInterval(interval));
   });
-  
+
   return <span>{count()}</span>;
 }
 
 // ✅ Abort fetch requests
 function FetchComponent(props: { url: string }) {
   const [data, setData] = createSignal(null);
-  
+
   createEffect(() => {
     const controller = new AbortController();
-    
+
     fetch(props.url, { signal: controller.signal })
       .then(r => r.json())
       .then(setData)
       .catch(e => {
         if (e.name !== 'AbortError') throw e;
       });
-    
+
     onCleanup(() => controller.abort());
   });
-  
+
   return <div>{JSON.stringify(data())}</div>;
 }
 ```
@@ -611,26 +619,30 @@ function getCachedComputation(obj: object): ComputedResult {
 ## Pre-deployment Checklist
 
 ### Bundle
+
 - [ ] Bundle size < 200KB gzipped (initial)
 - [ ] Code splitting implemented for routes
 - [ ] Tree shaking verified (no dead code)
 - [ ] Source maps disabled in production
 
 ### Rendering
+
 - [ ] No inline object creation in JSX
 - [ ] Lists use <For> or <Index> appropriately
 - [ ] Large lists virtualized
 - [ ] Images lazy loaded
 
 ### Network
+
 - [ ] API responses cached (TanStack Query)
 - [ ] Critical resources preloaded
 - [ ] Fonts optimized (subset, woff2)
 - [ ] Images in modern formats (WebP/AVIF)
 
 ### Metrics
+
 - [ ] LCP < 2.5s
-- [ ] FID < 100ms
+- [ ] NIP < 100ms
 - [ ] CLS < 0.1
 - [ ] TTI < 3.8s
 ```

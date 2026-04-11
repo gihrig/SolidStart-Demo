@@ -283,8 +283,8 @@ function Header() {
 
 ```typescript
 // lib/signals/createLocalStorage.ts
-import { createSignal, createEffect, Accessor, Setter } from 'solid-js';
-import { isServer } from 'solid-js/web';
+import { createSignal, createEffect, Accessor, Setter } from "solid-js";
+import { isServer } from "solid-js/web";
 
 interface CreateLocalStorageOptions<T> {
   key: string;
@@ -296,7 +296,7 @@ interface CreateLocalStorageOptions<T> {
 }
 
 export function createLocalStorage<T>(
-  options: CreateLocalStorageOptions<T>
+  options: CreateLocalStorageOptions<T>,
 ): [Accessor<T>, Setter<T>] {
   const {
     key,
@@ -324,7 +324,7 @@ export function createLocalStorage<T>(
     try {
       localStorage.setItem(key, serializer.write(value()));
     } catch (e) {
-      console.error('Failed to save to localStorage:', e);
+      console.error("Failed to save to localStorage:", e);
     }
   });
 
@@ -333,12 +333,12 @@ export function createLocalStorage<T>(
 
 // Usage
 const [theme, setTheme] = createLocalStorage({
-  key: 'app-theme',
-  defaultValue: 'light' as const,
+  key: "app-theme",
+  defaultValue: "light" as const,
 });
 
 const [user, setUser] = createLocalStorage<User | null>({
-  key: 'current-user',
+  key: "current-user",
   defaultValue: null,
 });
 ```
@@ -453,7 +453,7 @@ function BadComponent(props: { userId: string }) {
 function GoodComponent(props: { userId: string }) {
   const [user] = createResource(
     () => props.userId, // Reactive accessor
-    fetchUser
+    fetchUser,
   );
   // ...
 }
@@ -466,23 +466,19 @@ function GoodComponent(props: { userId: string }) {
 function BadComponent() {
   const [items, setItems] = createSignal<Item[]>([]);
   const [filteredItems, setFilteredItems] = createSignal<Item[]>([]);
-  const [filter, setFilter] = createSignal('');
+  const [filter, setFilter] = createSignal("");
 
   createEffect(() => {
-    setFilteredItems(
-      items().filter((i) => i.name.includes(filter()))
-    );
+    setFilteredItems(items().filter((i) => i.name.includes(filter())));
   });
 }
 
 // ✅ GOOD: Use createMemo
 function GoodComponent() {
   const [items, setItems] = createSignal<Item[]>([]);
-  const [filter, setFilter] = createSignal('');
+  const [filter, setFilter] = createSignal("");
 
-  const filteredItems = createMemo(() =>
-    items().filter((i) => i.name.includes(filter()))
-  );
+  const filteredItems = createMemo(() => items().filter((i) => i.name.includes(filter())));
 }
 ```
 
@@ -516,7 +512,7 @@ function GoodButton(props: ButtonProps) {
 // ❌ BAD: Memory leak
 createEffect(() => {
   const interval = setInterval(() => {
-    console.log('tick');
+    console.log("tick");
   }, 1000);
   // Missing cleanup!
 });
@@ -524,7 +520,7 @@ createEffect(() => {
 // ✅ GOOD: Proper cleanup
 createEffect(() => {
   const interval = setInterval(() => {
-    console.log('tick');
+    console.log("tick");
   }, 1000);
 
   onCleanup(() => clearInterval(interval));
@@ -537,12 +533,9 @@ createEffect(() => {
 
 ```typescript
 // hooks/createDeferredValue.ts
-import { createSignal, createEffect, Accessor } from 'solid-js';
+import { createSignal, createEffect, Accessor } from "solid-js";
 
-export function createDeferredValue<T>(
-  value: Accessor<T>,
-  delay = 200
-): Accessor<T> {
+export function createDeferredValue<T>(value: Accessor<T>, delay = 200): Accessor<T> {
   const [deferred, setDeferred] = createSignal<T>(value());
 
   createEffect(() => {
@@ -556,11 +549,11 @@ export function createDeferredValue<T>(
 
 // Usage - prevents expensive re-renders during typing
 function Search() {
-  const [query, setQuery] = createSignal('');
+  const [query, setQuery] = createSignal("");
   const deferredQuery = createDeferredValue(query, 300);
 
-  const results = createMemo(() =>
-    expensiveSearch(deferredQuery()) // Only runs after 300ms pause
+  const results = createMemo(
+    () => expensiveSearch(deferredQuery()), // Only runs after 300ms pause
   );
 }
 ```
@@ -568,7 +561,7 @@ function Search() {
 ### Batch Updates Pattern
 
 ```typescript
-import { batch } from 'solid-js';
+import { batch } from "solid-js";
 
 function handleFormSubmit() {
   // ✅ All updates happen in single batch
@@ -585,7 +578,7 @@ function handleFormSubmit() {
 ### Untrack Pattern
 
 ```typescript
-import { untrack } from 'solid-js';
+import { untrack } from "solid-js";
 
 createEffect(() => {
   // This will track `count` changes
@@ -631,9 +624,9 @@ src/
 
 ```typescript
 // features/auth/index.ts - Clean public API
-export { LoginForm } from './components/LoginForm';
-export { RegisterForm } from './components/RegisterForm';
-export { useAuth } from './hooks/useAuth';
-export { AuthProvider } from './stores/auth-store';
-export type { User, AuthState } from './types';
+export { LoginForm } from "./components/LoginForm";
+export { RegisterForm } from "./components/RegisterForm";
+export { useAuth } from "./hooks/useAuth";
+export { AuthProvider } from "./stores/auth-store";
+export type { User, AuthState } from "./types";
 ```

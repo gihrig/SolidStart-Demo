@@ -6,24 +6,20 @@
 
 ```typescript
 // vitest.config.ts
-import { defineConfig } from 'vitest/config';
-import solid from 'vite-plugin-solid';
+import { defineConfig } from "vitest/config";
+import solid from "vite-plugin-solid";
 
 export default defineConfig({
   plugins: [solid()],
   test: {
-    environment: 'jsdom',
+    environment: "jsdom",
     globals: true,
-    setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.{test,spec}.{js,ts,tsx}'],
+    setupFiles: ["./src/test/setup.ts"],
+    include: ["src/**/*.{test,spec}.{js,ts,tsx}"],
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'src/test/',
-        '**/*.d.ts',
-      ],
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+      exclude: ["node_modules/", "src/test/", "**/*.d.ts"],
       thresholds: {
         branches: 80,
         functions: 80,
@@ -34,13 +30,13 @@ export default defineConfig({
     deps: {
       optimizer: {
         web: {
-          include: ['solid-js'],
+          include: ["solid-js"],
         },
       },
     },
   },
   resolve: {
-    conditions: ['development', 'browser'],
+    conditions: ["development", "browser"],
   },
 });
 ```
@@ -49,9 +45,9 @@ export default defineConfig({
 
 ```typescript
 // src/test/setup.ts
-import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@solidjs/testing-library';
-import { afterEach, vi } from 'vitest';
+import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@solidjs/testing-library";
+import { afterEach, vi } from "vitest";
 
 // Cleanup after each test
 afterEach(() => {
@@ -73,9 +69,9 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
 }));
 
 // Mock matchMedia
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -94,29 +90,29 @@ Object.defineProperty(window, 'matchMedia', {
 
 ```typescript
 // lib/signals/__tests__/createCounter.test.ts
-import { describe, it, expect } from 'vitest';
-import { createRoot } from 'solid-js';
-import { createCounter } from '../createCounter';
+import { describe, it, expect } from "vitest";
+import { createRoot } from "solid-js";
+import { createCounter } from "../createCounter";
 
-describe('createCounter', () => {
-  it('should initialize with default value', () => {
-    createRoot(dispose => {
+describe("createCounter", () => {
+  it("should initialize with default value", () => {
+    createRoot((dispose) => {
       const [count] = createCounter();
       expect(count()).toBe(0);
       dispose();
     });
   });
 
-  it('should initialize with custom value', () => {
-    createRoot(dispose => {
+  it("should initialize with custom value", () => {
+    createRoot((dispose) => {
       const [count] = createCounter(10);
       expect(count()).toBe(10);
       dispose();
     });
   });
 
-  it('should increment', () => {
-    createRoot(dispose => {
+  it("should increment", () => {
+    createRoot((dispose) => {
       const [count, { increment }] = createCounter(0);
       increment();
       expect(count()).toBe(1);
@@ -124,8 +120,8 @@ describe('createCounter', () => {
     });
   });
 
-  it('should decrement', () => {
-    createRoot(dispose => {
+  it("should decrement", () => {
+    createRoot((dispose) => {
       const [count, { decrement }] = createCounter(10);
       decrement();
       expect(count()).toBe(9);
@@ -133,8 +129,8 @@ describe('createCounter', () => {
     });
   });
 
-  it('should reset to initial value', () => {
-    createRoot(dispose => {
+  it("should reset to initial value", () => {
+    createRoot((dispose) => {
       const [count, { increment, reset }] = createCounter(5);
       increment();
       increment();
@@ -151,76 +147,76 @@ describe('createCounter', () => {
 
 ```typescript
 // lib/stores/__tests__/todoStore.test.ts
-import { describe, it, expect } from 'vitest';
-import { createRoot } from 'solid-js';
-import { createTodoStore } from '../todoStore';
+import { describe, it, expect } from "vitest";
+import { createRoot } from "solid-js";
+import { createTodoStore } from "../todoStore";
 
-describe('createTodoStore', () => {
-  it('should add todo', () => {
-    createRoot(dispose => {
+describe("createTodoStore", () => {
+  it("should add todo", () => {
+    createRoot((dispose) => {
       const [state, actions] = createTodoStore();
-      
-      actions.addTodo('Test todo');
-      
+
+      actions.addTodo("Test todo");
+
       expect(state.todos).toHaveLength(1);
-      expect(state.todos[0].text).toBe('Test todo');
+      expect(state.todos[0].text).toBe("Test todo");
       expect(state.todos[0].completed).toBe(false);
-      
+
       dispose();
     });
   });
 
-  it('should toggle todo', () => {
-    createRoot(dispose => {
+  it("should toggle todo", () => {
+    createRoot((dispose) => {
       const [state, actions] = createTodoStore();
-      
-      actions.addTodo('Test todo');
+
+      actions.addTodo("Test todo");
       const id = state.todos[0].id;
-      
+
       actions.toggleTodo(id);
       expect(state.todos[0].completed).toBe(true);
-      
+
       actions.toggleTodo(id);
       expect(state.todos[0].completed).toBe(false);
-      
+
       dispose();
     });
   });
 
-  it('should delete todo', () => {
-    createRoot(dispose => {
+  it("should delete todo", () => {
+    createRoot((dispose) => {
       const [state, actions] = createTodoStore();
-      
-      actions.addTodo('Todo 1');
-      actions.addTodo('Todo 2');
+
+      actions.addTodo("Todo 1");
+      actions.addTodo("Todo 2");
       const id = state.todos[0].id;
-      
+
       actions.deleteTodo(id);
-      
+
       expect(state.todos).toHaveLength(1);
-      expect(state.todos[0].text).toBe('Todo 2');
-      
+      expect(state.todos[0].text).toBe("Todo 2");
+
       dispose();
     });
   });
 
-  it('should filter todos', () => {
-    createRoot(dispose => {
+  it("should filter todos", () => {
+    createRoot((dispose) => {
       const [state, actions] = createTodoStore();
-      
-      actions.addTodo('Todo 1');
-      actions.addTodo('Todo 2');
+
+      actions.addTodo("Todo 1");
+      actions.addTodo("Todo 2");
       actions.toggleTodo(state.todos[0].id);
-      
-      actions.setFilter('completed');
+
+      actions.setFilter("completed");
       expect(state.filteredTodos).toHaveLength(1);
-      
-      actions.setFilter('active');
+
+      actions.setFilter("active");
       expect(state.filteredTodos).toHaveLength(1);
-      
-      actions.setFilter('all');
+
+      actions.setFilter("all");
       expect(state.filteredTodos).toHaveLength(2);
-      
+
       dispose();
     });
   });
@@ -246,9 +242,9 @@ describe('Button', () => {
   it('calls onClick when clicked', async () => {
     const handleClick = vi.fn();
     render(() => <Button onClick={handleClick}>Click me</Button>);
-    
+
     await fireEvent.click(screen.getByRole('button'));
-    
+
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
@@ -259,7 +255,7 @@ describe('Button', () => {
 
   it('shows loading state', () => {
     render(() => <Button loading>Submit</Button>);
-    
+
     expect(screen.getByRole('button')).toBeDisabled();
     expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
@@ -267,7 +263,7 @@ describe('Button', () => {
   it('applies variant styles', () => {
     const { rerender } = render(() => <Button variant="primary">Button</Button>);
     expect(screen.getByRole('button')).toHaveClass('btn-primary');
-    
+
     rerender(() => <Button variant="secondary">Button</Button>);
     expect(screen.getByRole('button')).toHaveClass('btn-secondary');
   });
@@ -291,7 +287,7 @@ describe('LoginForm', () => {
 
   it('renders email and password fields', () => {
     render(() => <LoginForm onSubmit={mockOnSubmit} />);
-    
+
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
@@ -299,20 +295,20 @@ describe('LoginForm', () => {
 
   it('shows validation errors for empty fields', async () => {
     render(() => <LoginForm onSubmit={mockOnSubmit} />);
-    
+
     await fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
-    
+
     await waitFor(() => {
       expect(screen.getByText(/email is required/i)).toBeInTheDocument();
       expect(screen.getByText(/password is required/i)).toBeInTheDocument();
     });
-    
+
     expect(mockOnSubmit).not.toHaveBeenCalled();
   });
 
   it('shows error for invalid email', async () => {
     render(() => <LoginForm onSubmit={mockOnSubmit} />);
-    
+
     await fireEvent.input(screen.getByLabelText(/email/i), {
       target: { value: 'invalid-email' },
     });
@@ -320,7 +316,7 @@ describe('LoginForm', () => {
       target: { value: 'password123' },
     });
     await fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
-    
+
     await waitFor(() => {
       expect(screen.getByText(/invalid email/i)).toBeInTheDocument();
     });
@@ -328,7 +324,7 @@ describe('LoginForm', () => {
 
   it('submits form with valid data', async () => {
     render(() => <LoginForm onSubmit={mockOnSubmit} />);
-    
+
     await fireEvent.input(screen.getByLabelText(/email/i), {
       target: { value: 'user@example.com' },
     });
@@ -336,7 +332,7 @@ describe('LoginForm', () => {
       target: { value: 'password123' },
     });
     await fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
-    
+
     await waitFor(() => {
       expect(mockOnSubmit).toHaveBeenCalledWith({
         email: 'user@example.com',
@@ -347,9 +343,9 @@ describe('LoginForm', () => {
 
   it('disables button while submitting', async () => {
     mockOnSubmit.mockImplementation(() => new Promise(r => setTimeout(r, 100)));
-    
+
     render(() => <LoginForm onSubmit={mockOnSubmit} />);
-    
+
     await fireEvent.input(screen.getByLabelText(/email/i), {
       target: { value: 'user@example.com' },
     });
@@ -357,9 +353,9 @@ describe('LoginForm', () => {
       target: { value: 'password123' },
     });
     await fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
-    
+
     expect(screen.getByRole('button')).toBeDisabled();
-    
+
     await waitFor(() => {
       expect(screen.getByRole('button')).not.toBeDisabled();
     });
@@ -405,7 +401,7 @@ describe('UserList', () => {
     );
 
     renderWithQuery(() => <UserList />);
-    
+
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
   });
 
@@ -451,25 +447,23 @@ describe('UserList', () => {
 
 ```typescript
 // routes/api/__tests__/users.test.ts
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { GET, POST, DELETE } from '../users';
-import { db } from '~/lib/db';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { GET, POST, DELETE } from "../users";
+import { db } from "~/lib/db";
 
-vi.mock('~/lib/db');
+vi.mock("~/lib/db");
 
-describe('Users API', () => {
+describe("Users API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('GET /api/users', () => {
-    it('returns all users', async () => {
-      const mockUsers = [
-        { id: '1', name: 'John', email: 'john@example.com' },
-      ];
+  describe("GET /api/users", () => {
+    it("returns all users", async () => {
+      const mockUsers = [{ id: "1", name: "John", email: "john@example.com" }];
       vi.mocked(db.user.findMany).mockResolvedValue(mockUsers);
 
-      const request = new Request('http://localhost/api/users');
+      const request = new Request("http://localhost/api/users");
       const response = await GET({ request } as any);
       const data = await response.json();
 
@@ -477,59 +471,59 @@ describe('Users API', () => {
       expect(data).toEqual(mockUsers);
     });
 
-    it('supports pagination', async () => {
+    it("supports pagination", async () => {
       vi.mocked(db.user.findMany).mockResolvedValue([]);
 
-      const request = new Request('http://localhost/api/users?page=2&limit=10');
+      const request = new Request("http://localhost/api/users?page=2&limit=10");
       await GET({ request } as any);
 
       expect(db.user.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           skip: 10,
           take: 10,
-        })
+        }),
       );
     });
   });
 
-  describe('POST /api/users', () => {
-    it('creates user with valid data', async () => {
-      const newUser = { name: 'John', email: 'john@example.com', password: 'Password123' };
-      const createdUser = { id: '1', ...newUser };
-      
+  describe("POST /api/users", () => {
+    it("creates user with valid data", async () => {
+      const newUser = { name: "John", email: "john@example.com", password: "Password123" };
+      const createdUser = { id: "1", ...newUser };
+
       vi.mocked(db.user.findUnique).mockResolvedValue(null);
       vi.mocked(db.user.create).mockResolvedValue(createdUser);
 
-      const request = new Request('http://localhost/api/users', {
-        method: 'POST',
+      const request = new Request("http://localhost/api/users", {
+        method: "POST",
         body: JSON.stringify(newUser),
       });
       const response = await POST({ request } as any);
       const data = await response.json();
 
       expect(response.status).toBe(201);
-      expect(data.id).toBe('1');
+      expect(data.id).toBe("1");
     });
 
-    it('returns 400 for invalid data', async () => {
-      const request = new Request('http://localhost/api/users', {
-        method: 'POST',
-        body: JSON.stringify({ name: 'J' }), // Invalid: missing fields
+    it("returns 400 for invalid data", async () => {
+      const request = new Request("http://localhost/api/users", {
+        method: "POST",
+        body: JSON.stringify({ name: "J" }), // Invalid: missing fields
       });
       const response = await POST({ request } as any);
 
       expect(response.status).toBe(400);
     });
 
-    it('returns 409 for duplicate email', async () => {
-      vi.mocked(db.user.findUnique).mockResolvedValue({ id: '1' } as any);
+    it("returns 409 for duplicate email", async () => {
+      vi.mocked(db.user.findUnique).mockResolvedValue({ id: "1" } as any);
 
-      const request = new Request('http://localhost/api/users', {
-        method: 'POST',
+      const request = new Request("http://localhost/api/users", {
+        method: "POST",
         body: JSON.stringify({
-          name: 'John',
-          email: 'existing@example.com',
-          password: 'Password123',
+          name: "John",
+          email: "existing@example.com",
+          password: "Password123",
         }),
       });
       const response = await POST({ request } as any);
@@ -538,21 +532,21 @@ describe('Users API', () => {
     });
   });
 
-  describe('DELETE /api/users/:id', () => {
-    it('deletes user', async () => {
+  describe("DELETE /api/users/:id", () => {
+    it("deletes user", async () => {
       vi.mocked(db.user.delete).mockResolvedValue({} as any);
 
-      const request = new Request('http://localhost/api/users/1', {
-        method: 'DELETE',
+      const request = new Request("http://localhost/api/users/1", {
+        method: "DELETE",
       });
-      const response = await DELETE({ 
-        request, 
-        params: { id: '1' } 
+      const response = await DELETE({
+        request,
+        params: { id: "1" },
       } as any);
 
       expect(response.status).toBe(204);
       expect(db.user.delete).toHaveBeenCalledWith({
-        where: { id: '1' },
+        where: { id: "1" },
       });
     });
   });
@@ -565,41 +559,41 @@ describe('Users API', () => {
 
 ```typescript
 // playwright.config.ts
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: "html",
   use: {
-    baseURL: 'http://localhost:3000',
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
+    baseURL: "http://localhost:3000",
+    trace: "on-first-retry",
+    screenshot: "only-on-failure",
   },
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
     },
     {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
     },
     {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] },
     },
     {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      name: "Mobile Chrome",
+      use: { ...devices["Pixel 5"] },
     },
   ],
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    command: "npm run dev",
+    url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
   },
 });
@@ -609,90 +603,90 @@ export default defineConfig({
 
 ```typescript
 // e2e/auth.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('Authentication', () => {
-  test('should login successfully', async ({ page }) => {
-    await page.goto('/login');
-    
-    await page.fill('[name="email"]', 'user@example.com');
-    await page.fill('[name="password"]', 'password123');
+test.describe("Authentication", () => {
+  test("should login successfully", async ({ page }) => {
+    await page.goto("/login");
+
+    await page.fill('[name="email"]', "user@example.com");
+    await page.fill('[name="password"]', "password123");
     await page.click('button[type="submit"]');
-    
-    await expect(page).toHaveURL('/dashboard');
-    await expect(page.locator('text=Welcome')).toBeVisible();
+
+    await expect(page).toHaveURL("/dashboard");
+    await expect(page.locator("text=Welcome")).toBeVisible();
   });
 
-  test('should show error for invalid credentials', async ({ page }) => {
-    await page.goto('/login');
-    
-    await page.fill('[name="email"]', 'wrong@example.com');
-    await page.fill('[name="password"]', 'wrongpassword');
+  test("should show error for invalid credentials", async ({ page }) => {
+    await page.goto("/login");
+
+    await page.fill('[name="email"]', "wrong@example.com");
+    await page.fill('[name="password"]', "wrongpassword");
     await page.click('button[type="submit"]');
-    
-    await expect(page.locator('text=Invalid credentials')).toBeVisible();
+
+    await expect(page.locator("text=Invalid credentials")).toBeVisible();
   });
 
-  test('should redirect to login for protected routes', async ({ page }) => {
-    await page.goto('/dashboard');
-    
+  test("should redirect to login for protected routes", async ({ page }) => {
+    await page.goto("/dashboard");
+
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test('should logout successfully', async ({ page }) => {
+  test("should logout successfully", async ({ page }) => {
     // Login first
-    await page.goto('/login');
-    await page.fill('[name="email"]', 'user@example.com');
-    await page.fill('[name="password"]', 'password123');
+    await page.goto("/login");
+    await page.fill('[name="email"]', "user@example.com");
+    await page.fill('[name="password"]', "password123");
     await page.click('button[type="submit"]');
-    
+
     // Logout
     await page.click('button:has-text("Logout")');
-    
-    await expect(page).toHaveURL('/');
-    await page.goto('/dashboard');
+
+    await expect(page).toHaveURL("/");
+    await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/login/);
   });
 });
 
 // e2e/crud.spec.ts
-test.describe('Todo CRUD', () => {
+test.describe("Todo CRUD", () => {
   test.beforeEach(async ({ page }) => {
     // Login
-    await page.goto('/login');
-    await page.fill('[name="email"]', 'user@example.com');
-    await page.fill('[name="password"]', 'password123');
+    await page.goto("/login");
+    await page.fill('[name="email"]', "user@example.com");
+    await page.fill('[name="password"]', "password123");
     await page.click('button[type="submit"]');
-    await page.goto('/todos');
+    await page.goto("/todos");
   });
 
-  test('should create todo', async ({ page }) => {
-    await page.fill('[name="todo"]', 'New todo item');
+  test("should create todo", async ({ page }) => {
+    await page.fill('[name="todo"]', "New todo item");
     await page.click('button:has-text("Add")');
-    
-    await expect(page.locator('text=New todo item')).toBeVisible();
+
+    await expect(page.locator("text=New todo item")).toBeVisible();
   });
 
-  test('should toggle todo completion', async ({ page }) => {
+  test("should toggle todo completion", async ({ page }) => {
     // Create todo
-    await page.fill('[name="todo"]', 'Toggle me');
+    await page.fill('[name="todo"]', "Toggle me");
     await page.click('button:has-text("Add")');
-    
+
     // Toggle
     await page.click('[data-testid="todo-checkbox"]');
-    
-    await expect(page.locator('.todo-item.completed')).toBeVisible();
+
+    await expect(page.locator(".todo-item.completed")).toBeVisible();
   });
 
-  test('should delete todo', async ({ page }) => {
+  test("should delete todo", async ({ page }) => {
     // Create todo
-    await page.fill('[name="todo"]', 'Delete me');
+    await page.fill('[name="todo"]', "Delete me");
     await page.click('button:has-text("Add")');
-    
+
     // Delete
     await page.click('[data-testid="delete-todo"]');
-    
-    await expect(page.locator('text=Delete me')).not.toBeVisible();
+
+    await expect(page.locator("text=Delete me")).not.toBeVisible();
   });
 });
 ```
@@ -738,7 +732,7 @@ export function renderWithProviders(
   options?: Omit<RenderOptions, 'wrapper'> & ProvidersProps
 ) {
   const { queryClient, ...renderOptions } = options ?? {};
-  
+
   return render(ui, {
     wrapper: createWrapper({ queryClient }),
     ...renderOptions,
