@@ -7,9 +7,14 @@ import type { Conv, ConvMsg } from "~/types/backend";
 const mockConv: Conv = {
   id: BigInt(10),
   agent_id: BigInt(1),
+  owner_id: BigInt(1),
   title: "Test Conversation",
-  kind: "MultiMessages",
+  kind: "OwnerOnly",
   state: "Active",
+  cid: BigInt(1),
+  ctime: "2024-01-01T00:00:00Z",
+  mid: BigInt(1),
+  mtime: "2024-01-01T00:00:00Z",
 };
 
 // Default: disconnected
@@ -68,8 +73,12 @@ describe("<MessagePanel />", () => {
     const newMsg: ConvMsg = {
       id: BigInt(102),
       conv_id: BigInt(10),
-      role: "user",
+      user_id: BigInt(1),
       content: "Hello test",
+      cid: BigInt(1),
+      ctime: "2024-01-01T00:00:00Z",
+      mid: BigInt(1),
+      mtime: "2024-01-01T00:00:00Z",
     };
     (backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(newMsg);
     const user = userEvent.setup();
@@ -92,8 +101,12 @@ describe("<MessagePanel />", () => {
     const newMsg: ConvMsg = {
       id: BigInt(102),
       conv_id: BigInt(10),
-      role: "user",
+      user_id: BigInt(1),
       content: "Hello test",
+      cid: BigInt(1),
+      ctime: "2024-01-01T00:00:00Z",
+      mid: BigInt(1),
+      mtime: "2024-01-01T00:00:00Z",
     };
     (backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(newMsg);
     const user = userEvent.setup();
