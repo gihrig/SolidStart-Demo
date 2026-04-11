@@ -61,6 +61,7 @@ describe("<LoginForm />", () => {
     await user.type(passwordInput, "testpass");
     await user.click(submitButton);
 
-    expect(backendRpc.auth.login).toHaveBeenCalledWith("testuser", "testpass");
+    const { login } = backendRpc.auth;
+    expect(login).toHaveBeenCalledWith("testuser", "testpass");
   });
 });

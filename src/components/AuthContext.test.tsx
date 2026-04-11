@@ -76,6 +76,7 @@ describe("AuthContext", () => {
 
     await user.click(screen.getByRole("button", { name: /^login$/i }));
 
-    expect(backendRpc.auth.login).toHaveBeenCalledWith("demo1", "welcome");
+    const { login } = backendRpc.auth;
+    expect(login).toHaveBeenCalledWith("demo1", "welcome");
   });
 });
