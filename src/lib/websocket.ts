@@ -47,7 +47,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           console.error("Failed to parse WebSocket message:", e);
         }
       };
-    } catch (e) {
+    } catch {
       setError("Failed to connect to WebSocket");
     }
   };
