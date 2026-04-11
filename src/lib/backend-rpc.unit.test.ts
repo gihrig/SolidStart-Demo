@@ -90,9 +90,7 @@ describe("auth.login", () => {
 
 describe("auth.logoff", () => {
   it("sends POST to /api/logoff with logoff: true", async () => {
-    const fetchMock = vi.fn(() =>
-      Promise.resolve(mockResponse({ result: { logged_off: true } })),
-    );
+    const fetchMock = vi.fn(() => Promise.resolve(mockResponse({ result: { logged_off: true } })));
     vi.stubGlobal("fetch", fetchMock);
 
     await auth.logoff();
@@ -185,9 +183,7 @@ describe("rpcCall core behaviour", () => {
   });
 
   it("serializes BigInt values as numbers", async () => {
-    const fetchMock = vi.fn(() =>
-      Promise.resolve(mockResponse(rpcSuccess({ id: 1, name: "A" }))),
-    );
+    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess({ id: 1, name: "A" }))));
     vi.stubGlobal("fetch", fetchMock);
 
     await agent.get(BigInt(9007199254740991));
@@ -213,9 +209,7 @@ describe("rpcCall core behaviour", () => {
 
 describe("agent", () => {
   it("agent.get sends get_agent with numeric id", async () => {
-    const fetchMock = vi.fn(() =>
-      Promise.resolve(mockResponse(rpcSuccess({ id: 5, name: "A" }))),
-    );
+    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess({ id: 5, name: "A" }))));
     vi.stubGlobal("fetch", fetchMock);
 
     await agent.get(5);
