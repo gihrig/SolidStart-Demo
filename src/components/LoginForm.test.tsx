@@ -61,7 +61,7 @@ describe("<LoginForm />", () => {
     await user.type(passwordInput, "testpass");
     await user.click(submitButton);
 
-    const { login } = backendRpc.auth;
-    expect(login).toHaveBeenCalledWith("testuser", "testpass");
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(vi.mocked(backendRpc.auth.login)).toHaveBeenCalledWith("testuser", "testpass");
   });
 });

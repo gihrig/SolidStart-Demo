@@ -76,7 +76,7 @@ describe("AuthContext", () => {
 
     await user.click(screen.getByRole("button", { name: /^login$/i }));
 
-    const { login } = backendRpc.auth;
-    expect(login).toHaveBeenCalledWith("demo1", "welcome");
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(vi.mocked(backendRpc.auth.login)).toHaveBeenCalledWith("demo1", "welcome");
   });
 });
