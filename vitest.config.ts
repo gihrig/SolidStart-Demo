@@ -14,6 +14,7 @@ export default defineConfig({
       "~": path.resolve(__dirname, "./src"),
     },
     conditions: ["browser", "development"],
+    dedupe: ["solid-js"],
     extensions: [".ts", ".tsx", ".js", ".jsx", ".json"],
   },
   test: {
@@ -30,7 +31,7 @@ export default defineConfig({
     ],
     server: {
       deps: {
-        inline: [/solid-js/, /@solidjs\/router/],
+        inline: [/solid-js/, /@solidjs\//],
       },
     },
   },
