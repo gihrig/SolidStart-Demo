@@ -21,7 +21,6 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["vitest-setup.ts"],
     maxWorkers: 2,
-    isolate: false,
     pool: "forks",
     exclude: [
       "**/node_modules/**",
