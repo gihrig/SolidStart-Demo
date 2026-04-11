@@ -1,5 +1,6 @@
-import { describe, it, expect, mock, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { createRoot } from "solid-js";
+import { useWebSocket } from "./websocket";
 
 // Mock WebSocket
 class MockWebSocket {
@@ -17,8 +18,8 @@ class MockWebSocket {
     MockWebSocket.instances.push(this);
   }
 
-  send = mock(() => {});
-  close = mock(() => {
+  send = vi.fn();
+  close = vi.fn(() => {
     this.readyState = 3;
     this.onclose?.();
   });
@@ -38,22 +39,18 @@ class MockWebSocket {
   }
 }
 
-let originalWebSocket: unknown;
-
 describe("useWebSocket", () => {
   beforeEach(() => {
     MockWebSocket.instances = [];
-    originalWebSocket = (globalThis as any).WebSocket;
-    (globalThis as any).WebSocket = MockWebSocket;
+    vi.stubGlobal("WebSocket", MockWebSocket);
   });
 
   afterEach(() => {
-    (globalThis as any).WebSocket = originalWebSocket;
+    vi.unstubAllGlobals();
   });
 
   it("connects to the correct WebSocket URL", () => {
     createRoot((dispose) => {
-      // Manually invoke connect logic (bypassing onMount which needs a component)
       new (globalThis as any).WebSocket("ws://localhost:8080/ws");
       expect(MockWebSocket.instances).toHaveLength(1);
       expect(MockWebSocket.instances[0].url).toBe("ws://localhost:8080/ws");
@@ -63,8 +60,6 @@ describe("useWebSocket", () => {
 
   it("sets connected to true when socket opens", () => {
     createRoot((dispose) => {
-      const { useWebSocket } = require("./websocket");
-      // Call connect directly via reconnect (skips onMount)
       const { connected, reconnect } = useWebSocket({ autoReconnect: false });
 
       expect(connected()).toBe(false);
@@ -80,7 +75,6 @@ describe("useWebSocket", () => {
 
   it("sets connected to false when socket closes", () => {
     createRoot((dispose) => {
-      const { useWebSocket } = require("./websocket");
       const { connected, reconnect } = useWebSocket({ autoReconnect: false });
 
       reconnect();
@@ -96,8 +90,7 @@ describe("useWebSocket", () => {
 
   it("calls onConvMsg with correct conv_id and msg for conv_msg events", () => {
     createRoot((dispose) => {
-      const { useWebSocket } = require("./websocket");
-      const onConvMsg = mock(() => {});
+      const onConvMsg = vi.fn();
       const { reconnect } = useWebSocket({ onConvMsg, autoReconnect: false });
 
       reconnect();
@@ -118,8 +111,7 @@ describe("useWebSocket", () => {
 
   it("does not call onConvMsg for non-conv_msg event types", () => {
     createRoot((dispose) => {
-      const { useWebSocket } = require("./websocket");
-      const onConvMsg = mock(() => {});
+      const onConvMsg = vi.fn();
       const { reconnect } = useWebSocket({ onConvMsg, autoReconnect: false });
 
       reconnect();
@@ -139,7 +131,6 @@ describe("useWebSocket", () => {
 
   it("sends subscribe message with channel and id", () => {
     createRoot((dispose) => {
-      const { useWebSocket } = require("./websocket");
       const { subscribe, reconnect } = useWebSocket({ autoReconnect: false });
 
       reconnect();
@@ -157,7 +148,6 @@ describe("useWebSocket", () => {
 
   it("sends unsubscribe message with channel and id", () => {
     createRoot((dispose) => {
-      const { useWebSocket } = require("./websocket");
       const { unsubscribe, reconnect } = useWebSocket({ autoReconnect: false });
 
       reconnect();
@@ -175,8 +165,7 @@ describe("useWebSocket", () => {
 
   it("sets error signal when socket errors", () => {
     createRoot((dispose) => {
-      const { useWebSocket } = require("./websocket");
-      const onError = mock(() => {});
+      const onError = vi.fn();
       const { error, reconnect } = useWebSocket({
         onError,
         autoReconnect: false,
@@ -194,7 +183,6 @@ describe("useWebSocket", () => {
 
   it("does not send subscribe when socket is not open", () => {
     createRoot((dispose) => {
-      const { useWebSocket } = require("./websocket");
       const { subscribe, reconnect } = useWebSocket({ autoReconnect: false });
 
       reconnect();
