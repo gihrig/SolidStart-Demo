@@ -74,11 +74,11 @@ test("should show active state for direct URL navigation", async ({ page }) => {
   // Start at Home page
   await page.goto("/");
   const homeLink = page.locator("nav").getByRole("link", { name: /^Home$/i });
-  await expect(homeLink).toBeVisible;
+  await expect(homeLink).toBeVisible();
   const aboutLink = page.locator("nav").getByRole("link", { name: /^About$/i });
-  await expect(aboutLink).toBeVisible;
+  await expect(aboutLink).toBeVisible();
   const readmeLink = page.locator("nav").getByRole("link", { name: /^Readme$/i });
-  await expect(readmeLink).toBeVisible;
+  await expect(readmeLink).toBeVisible();
 
   // Initial state Home active
   await expect(homeLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
@@ -126,11 +126,11 @@ test("should update active state for nav bar navigation", async ({ page }) => {
   // Start at Home page
   await page.goto("/");
   const homeLink = page.locator("nav").getByRole("link", { name: /^Home$/i });
-  await expect(homeLink).toBeVisible;
+  await expect(homeLink).toBeVisible();
   const aboutLink = page.locator("nav").getByRole("link", { name: /^About$/i });
-  await expect(aboutLink).toBeVisible;
+  await expect(aboutLink).toBeVisible();
   const readmeLink = page.locator("nav").getByRole("link", { name: /^Readme$/i });
-  await expect(readmeLink).toBeVisible;
+  await expect(readmeLink).toBeVisible();
 
   // Initial state Home active
   await expect(homeLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
@@ -267,11 +267,11 @@ test.describe("Footer Navigation Integration", () => {
     // Start at Home page
     await page.goto("/");
     const homeLink = page.locator("footer").getByRole("link", { name: /^Home$/i });
-    await expect(homeLink).toBeVisible;
+    await expect(homeLink).toBeVisible();
     const aboutLink = page.locator("footer").getByRole("link", { name: /^About$/i });
-    await expect(aboutLink).toBeVisible;
+    await expect(aboutLink).toBeVisible();
     const readmeLink = page.locator("footer").getByRole("link", { name: /^Readme$/i });
-    await expect(readmeLink).toBeVisible;
+    await expect(readmeLink).toBeVisible();
 
     // Verify footer Home page link active/inactive styling
     await expect(homeLink).toHaveClass(/border-b-2 border-sky-600/);
