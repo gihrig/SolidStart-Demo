@@ -6,6 +6,8 @@
     "build": "vinxi build",
     "check": "vp check --fix",
     "start": "vinxi start",
+    "test:all": "vp test",
+    "test:all:watch": "vp test --watch",
     "test:comp": "vp test src/components",
     "test:comp:watch": "vp test src/components --watch",
     "test:e2e": "./src/lib/test-e2e.sh",

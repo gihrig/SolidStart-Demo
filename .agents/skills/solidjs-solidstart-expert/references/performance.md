@@ -490,12 +490,14 @@ export function usePerformance(name: string) {
     "build": "vinxi build",
     "check": "vp check --fix",
     "start": "vinxi start",
+    "test:all": "vp test",
+    "test:all:watch": "vp test --watch",
     "test:comp": "vp test src/components",
     "test:comp:watch": "vp test src/components --watch",
     "test:e2e": "./src/lib/test-e2e.sh",
     "test:show": "playwright show-report",
-    "test:unit": "bun test src/lib",
-    "test:unit:watch": "bun test --watch src/lib",
+    "test:unit": "vp test src/lib",
+    "test:unit:watch": "vp test --watch src/lib",
     "lighthouse": "CHROME_PATH=\"/Applications/Brave Browser.app/Contents/MacOS/Brave Browser\" lighthouse http://localhost:3000 --output html --output-path ./lighthouse-report.html --view"
   }
 }
