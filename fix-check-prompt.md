@@ -22,3 +22,27 @@
     - Present the commit message for review
   - When the commit message has been accepted commit the changes to the current git branch
 - Repeat the process for the next error or warning until all have been corrected, tested and committed
+
+⏺ All done. Here's a summary of everything fixed and committed:
+
+┌─────────┬────────────────────────────────────────────────────────────────────────────────────────┐
+│ Commit │ Change │
+├─────────┼────────────────────────────────────────────────────────────────────────────────────────┤
+│ d7bbea2 │ fix(websocket): bare catch — removed unused parameter │
+├─────────┼────────────────────────────────────────────────────────────────────────────────────────┤
+│ 444254c │ test(ConversationManager): fixed Agent/Conv types, added create/error tests │
+├─────────┼────────────────────────────────────────────────────────────────────────────────────────┤
+│ 332e914 │ test(MessagePanel): aligned Conv/ConvMsg mocks with generated types │
+├─────────┼────────────────────────────────────────────────────────────────────────────────────────┤
+│ 505a983 │ test(backend-rpc): migrated from bun:test to vite-plus/test, vi.stubGlobal │
+├─────────┼────────────────────────────────────────────────────────────────────────────────────────┤
+│ c0644d9 │ style(backend-rpc): formatter pass after migration │
+├─────────┼────────────────────────────────────────────────────────────────────────────────────────┤
+│ 447e360 │ fix(vitest.config): moved deps.inline → server.deps.inline for Vitest v4 │
+├─────────┼────────────────────────────────────────────────────────────────────────────────────────┤
+│ fd38a82 │ test(AuthContext, LoginForm): destructured mock fix │
+├─────────┼────────────────────────────────────────────────────────────────────────────────────────┤
+│ db8e0b8 │ fix(e2e/navigation): added missing () on .toBeVisible assertions │
+├─────────┼────────────────────────────────────────────────────────────────────────────────────────┤
+│ 75986b1 │ test(AuthContext, LoginForm): eslint-disable comment for unbound-method false positive │
+└─────────┴────────────────────────────────────────────────────────────────────────────────────────┘
