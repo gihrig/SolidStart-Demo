@@ -29,8 +29,10 @@ export default defineConfig({
       "**/.{idea,git,cache,output,temp}/**",
       "**/{e2e,tests-e2e}/**",
     ],
-    deps: {
-      inline: [/solid-js/, /@solidjs\/router/],
+    server: {
+      deps: {
+        inline: [/solid-js/, /@solidjs\/router/],
+      },
     },
   },
 });
