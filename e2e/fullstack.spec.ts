@@ -3,6 +3,13 @@ import { test, expect } from "@playwright/test";
 test.describe("Fullstack Integration Page", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/fullstack");
+    // Wait for JS hydration to complete before any test interacts with the page.
+    // Under full-suite load the dev server transpiles modules on demand; the HTML
+    // arrives (SSR) before the bundle is ready. Clicking before onSubmit is attached
+    // triggers a default browser form GET, reloading the page to the unauthenticated
+    // state with no error — matching the failure snapshot. networkidle ensures all
+    // JS modules have been fetched and executed before proceeding.
+    await page.waitForLoadState("networkidle");
   });
 
   test("should display page title and heading", async ({ page }) => {
@@ -39,7 +46,7 @@ test.describe("Fullstack Integration Page", () => {
     test("should show agents panel after login", async ({ page }) => {
       await page.getByRole("button", { name: /login/i }).click();
       await expect(page.getByText(/logged in as/i)).toBeVisible({
-        timeout: 5000,
+        timeout: 10000,
       });
 
       await expect(page.getByRole("heading", { name: /agents/i })).toBeVisible();
