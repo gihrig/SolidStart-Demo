@@ -75,8 +75,10 @@ export default function MessagePanel(props: Props) {
       });
       // Prevent any in-flight convMsg.list response from overwriting this message
       listStale = true;
-      // Add message immediately (WebSocket will dedupe if needed)
-      setMessages((prev) => [...prev, msg]);
+      // Add message immediately; dedupe in case WebSocket already delivered it
+      setMessages((prev) =>
+        prev.some((m) => Number(m.id) === Number(msg.id)) ? prev : [...prev, msg],
+      );
       form.reset();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to send message");
