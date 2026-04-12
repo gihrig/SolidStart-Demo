@@ -61,7 +61,7 @@ echo "Server ready, running tests..."
 echo
 
 # Run Playwright tests
-npx playwright test "$@"
+vpx playwright test "$@"
 
 # Store test exit code
 TEST_EXIT=$?
