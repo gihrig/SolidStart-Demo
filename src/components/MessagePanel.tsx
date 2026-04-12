@@ -14,6 +14,7 @@ export default function MessagePanel(props: Props) {
 
   // Prevents a stale convMsg.list response from overwriting a message added via handleSend
   let listStale = false;
+  let scrollEl: HTMLDivElement | undefined;
 
   // WebSocket for real-time updates
   const { connected, subscribe, unsubscribe } = useWebSocket({
@@ -48,6 +49,12 @@ export default function MessagePanel(props: Props) {
           if (!listStale) setError(e instanceof Error ? e.message : "Failed to load messages");
         });
     }
+  });
+
+  // Scroll to bottom whenever messages change
+  createEffect(() => {
+    messages();
+    if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight;
   });
 
   // Unsubscribe when conversation changes or component unmounts
@@ -118,7 +125,7 @@ export default function MessagePanel(props: Props) {
           </button>
 
           {/* Messages Display */}
-          <div class="max-h-60 space-y-2 overflow-y-auto rounded border border-gray-200 p-2">
+          <div ref={scrollEl} class="max-h-60 space-y-2 overflow-y-auto rounded border border-gray-200 p-2">
             <Show when={messages().length === 0}>
               <p class="text-gray-500">No messages yet</p>
             </Show>
