@@ -125,7 +125,10 @@ export default function MessagePanel(props: Props) {
           </button>
 
           {/* Messages Display */}
-          <div ref={scrollEl} class="max-h-60 space-y-2 overflow-y-auto rounded border border-gray-200 p-2">
+          <div
+            ref={(el) => (scrollEl = el)}
+            class="max-h-60 space-y-2 overflow-y-auto rounded border border-gray-200 p-2"
+          >
             <Show when={messages().length === 0}>
               <p class="text-gray-500">No messages yet</p>
             </Show>
