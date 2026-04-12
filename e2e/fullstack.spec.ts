@@ -90,6 +90,11 @@ test.describe("Fullstack Integration Page", () => {
         timeout: 5000,
       });
 
+      // Wait for message panel to finish loading before sending
+      await expect(page.getByText(/no messages yet/i)).toBeVisible({
+        timeout: 5000,
+      });
+
       // Send message
       await page.getByPlaceholder(/type a message/i).fill("Hello from E2E test!");
       await page.getByRole("button", { name: /send/i }).click();

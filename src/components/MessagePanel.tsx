@@ -12,6 +12,9 @@ export default function MessagePanel(props: Props) {
   const [sending, setSending] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
 
+  // Prevents a stale convMsg.list response from overwriting a message added via handleSend
+  let listStale = false;
+
   // WebSocket for real-time updates
   const { connected, subscribe, unsubscribe } = useWebSocket({
     onConvMsg: (convId, msg) => {
@@ -33,12 +36,17 @@ export default function MessagePanel(props: Props) {
   createEffect(() => {
     const conv = props.conv;
     if (conv) {
+      listStale = false;
       subscribe("conv", conv.id);
       setMessages([]);
       backendRpc.convMsg
         .list(conv.id)
-        .then(setMessages)
-        .catch((e) => setError(e instanceof Error ? e.message : "Failed to load messages"));
+        .then((msgs) => {
+          if (!listStale) setMessages(msgs);
+        })
+        .catch((e) => {
+          if (!listStale) setError(e instanceof Error ? e.message : "Failed to load messages");
+        });
     }
   });
 
@@ -65,6 +73,8 @@ export default function MessagePanel(props: Props) {
         conv_id: props.conv.id,
         content: formData.get("content") as string,
       });
+      // Prevent any in-flight convMsg.list response from overwriting this message
+      listStale = true;
       // Add message immediately (WebSocket will dedupe if needed)
       setMessages((prev) => [...prev, msg]);
       form.reset();
