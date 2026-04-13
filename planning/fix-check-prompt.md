@@ -46,7 +46,3 @@
 ├─────────┼────────────────────────────────────────────────────────────────────────────────────────┤
 │ 75986b1 │ test(AuthContext, LoginForm): eslint-disable comment for unbound-method false positive │
 └─────────┴────────────────────────────────────────────────────────────────────────────────────────┘
-
-Test errors remain
-
-claude --resume 7c3a107f-6f88-48f6-9074-67862eefbda8
