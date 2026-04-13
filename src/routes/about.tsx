@@ -6,6 +6,8 @@ export default function About() {
       <Title>SolidStart About</Title>
       <main>
         <h1>About</h1>
+        <h2>This page was created with HTML</h2>
+        <h2>---</h2>
         <h2>Lorem One</h2>
         <p>
           Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae
