@@ -20,10 +20,10 @@ test.describe("Readme Page", () => {
   test("should display h2 page headings", async ({ page }) => {
     await page.goto("/readme");
 
-    // Should have 3 Lorem nnn h2 headings
+    // Should have 5 h2 headings
     const h2Headings = page.getByRole("heading", { level: 2 });
     const count = await h2Headings.count();
-    expect(count).toBe(3);
+    expect(count).toBe(5);
   });
 
   test("should display content paragraphs", async ({ page }) => {
