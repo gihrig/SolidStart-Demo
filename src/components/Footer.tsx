@@ -32,6 +32,20 @@ export default function Footer() {
         >
           ReadMe
         </A>{" "}
+        {" - "}
+        <A
+          href="/fullstack"
+          class={`border-b-2 ${active("/fullstack")} text-(--theme-accent) hover:underline`}
+        >
+          FullStack
+        </A>{" "}
+        {" - "}
+        <A
+          href="/jedi"
+          class={`border-b-2 ${active("/jedi")} text-(--theme-accent) hover:underline`}
+        >
+          Jedi
+        </A>{" "}
       </p>
     </footer>
   );

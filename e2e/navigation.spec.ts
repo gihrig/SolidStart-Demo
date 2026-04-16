@@ -12,15 +12,21 @@ test("should render nav bar with correct visibility and structure", async ({ pag
   const homeLink = nav.getByRole("link", { name: "Home" });
   const aboutLink = nav.getByRole("link", { name: "About" });
   const readmeLink = nav.getByRole("link", { name: "Readme" });
+  const fullstackLink = nav.getByRole("link", { name: "FullStack" });
+  const jediLink = nav.getByRole("link", { name: "Jedi" });
 
   await expect(homeLink).toBeVisible();
   await expect(aboutLink).toBeVisible();
   await expect(readmeLink).toBeVisible();
+  await expect(fullstackLink).toBeVisible();
+  await expect(jediLink).toBeVisible();
 
   // Verify correct href attributes
   await expect(homeLink).toHaveAttribute("href", "/");
   await expect(aboutLink).toHaveAttribute("href", "/about");
   await expect(readmeLink).toHaveAttribute("href", "/readme");
+  await expect(fullstackLink).toHaveAttribute("href", "/fullstack");
+  await expect(jediLink).toHaveAttribute("href", "/jedi");
 });
 
 // 2. Nav bar link navigation
@@ -39,6 +45,16 @@ test("should navigate via nav bar links to expected pages", async ({ page }) => 
   await nav.getByRole("link", { name: "Readme" }).click();
   await expect(page).toHaveURL("http://localhost:3000/readme");
   await expect(page.getByRole("heading", { name: /^Readme$/i })).toBeVisible();
+
+  // Navigate to FullStack via nav
+  await nav.getByRole("link", { name: "FullStack" }).click();
+  await expect(page).toHaveURL("http://localhost:3000/fullstack");
+  await expect(page.getByRole("heading", { name: /Full-Stack Integration Demo/i })).toBeVisible();
+
+  // Navigate to Jedi via nav
+  await nav.getByRole("link", { name: "Jedi" }).click();
+  await expect(page).toHaveURL("http://localhost:3000/jedi");
+  await expect(page.getByRole("heading", { name: /^Jedi Kitty$/i })).toBeVisible();
 
   // Navigate back to Home via nav
   await nav.getByRole("link", { name: "Home" }).click();
@@ -64,6 +80,14 @@ test("should maintain nav bar across all pages", async ({ page }) => {
   await page.goto("/readme");
   await expect(nav).toBeVisible();
 
+  // Check nav bar on fullstack page
+  await page.goto("/fullstack");
+  await expect(nav).toBeVisible();
+
+  // Check nav bar on jedi page
+  await page.goto("/jedi");
+  await expect(nav).toBeVisible();
+
   // Check nav bar on 404 page
   await page.goto("/nonexistent");
   await expect(nav).toBeVisible();
@@ -79,6 +103,10 @@ test("should show active state for direct URL navigation", async ({ page }) => {
   await expect(aboutLink).toBeVisible();
   const readmeLink = page.locator("nav").getByRole("link", { name: /^Readme$/i });
   await expect(readmeLink).toBeVisible();
+  const fullstackLink = page.locator("nav").getByRole("link", { name: /^FullStack$/i });
+  await expect(fullstackLink).toBeVisible();
+  const jediLink = page.locator("nav").getByRole("link", { name: /^Jedi$/i });
+  await expect(jediLink).toBeVisible();
 
   // Initial state Home active
   await expect(homeLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
@@ -86,6 +114,12 @@ test("should show active state for direct URL navigation", async ({ page }) => {
     /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
   );
   await expect(readmeLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+  await expect(fullstackLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+  await expect(jediLink).toHaveClass(
     /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
   );
 
@@ -98,6 +132,12 @@ test("should show active state for direct URL navigation", async ({ page }) => {
   await expect(readmeLink).toHaveClass(
     /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
   );
+  await expect(fullstackLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+  await expect(jediLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
 
   // Readme page - Readme link should be active
   await page.goto("/readme");
@@ -108,15 +148,60 @@ test("should show active state for direct URL navigation", async ({ page }) => {
     /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
   );
   await expect(readmeLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
-  //
-  await page.goto("/nonexistent");
+  await expect(fullstackLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+  await expect(jediLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+
+  // FullStack page - FullStack link should be active
+  await page.goto("/fullstack");
   await expect(homeLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+  await expect(aboutLink).toHaveClass(
     /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
   );
   await expect(readmeLink).toHaveClass(
     /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
   );
+  await expect(fullstackLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
+  await expect(jediLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+
+  // Jedi page - Jedi link should be active
+  await page.goto("/jedi");
+  await expect(homeLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
   await expect(aboutLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+  await expect(readmeLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+  await expect(fullstackLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+  await expect(jediLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
+
+  // Unknown page - all links inactive
+  await page.goto("/nonexistent");
+  await expect(homeLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+  await expect(aboutLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+  await expect(readmeLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+  await expect(fullstackLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+  await expect(jediLink).toHaveClass(
     /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
   );
 });
@@ -131,6 +216,10 @@ test("should update active state for nav bar navigation", async ({ page }) => {
   await expect(aboutLink).toBeVisible();
   const readmeLink = page.locator("nav").getByRole("link", { name: /^Readme$/i });
   await expect(readmeLink).toBeVisible();
+  const fullstackLink = page.locator("nav").getByRole("link", { name: /^FullStack$/i });
+  await expect(fullstackLink).toBeVisible();
+  const jediLink = page.locator("nav").getByRole("link", { name: /^Jedi$/i });
+  await expect(jediLink).toBeVisible();
 
   // Initial state Home active
   await expect(homeLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
@@ -140,6 +229,12 @@ test("should update active state for nav bar navigation", async ({ page }) => {
   await expect(readmeLink).toHaveClass(
     /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
   );
+  await expect(fullstackLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+  await expect(jediLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
 
   // Navigate to About and verify state change
   await aboutLink.click();
@@ -147,27 +242,32 @@ test("should update active state for nav bar navigation", async ({ page }) => {
     /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
   );
   await expect(aboutLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
-  await expect(homeLink).toHaveClass(
-    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
-  );
 
   // Navigate to Readme and verify state change
   await readmeLink.click();
-  await expect(homeLink).toHaveClass(
-    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
-  );
   await expect(aboutLink).toHaveClass(
     /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
   );
   await expect(readmeLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
 
+  // Navigate to FullStack and verify state change
+  await fullstackLink.click();
+  await expect(readmeLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+  await expect(fullstackLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
+
+  // Navigate to Jedi and verify state change
+  await jediLink.click();
+  await expect(fullstackLink).toHaveClass(
+    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
+  );
+  await expect(jediLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
+
   // Navigate back to Home and verify state change
   await homeLink.click();
   await expect(homeLink).toHaveClass(/border-b-4 border-sky-600 mx-1.5 sm:mx-6/);
-  await expect(aboutLink).toHaveClass(
-    /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
-  );
-  await expect(readmeLink).toHaveClass(
+  await expect(jediLink).toHaveClass(
     /border-b-4 border-transparent hover:border-sky-600 mx-1.5 sm:mx-6/,
   );
 });
@@ -185,6 +285,14 @@ test("should handle direct URL access to each route", async ({ page }) => {
   // Test direct access to readme
   await page.goto("http://localhost:3000/readme");
   await expect(page.getByRole("heading", { name: /^Readme$/i })).toBeVisible();
+
+  // Test direct access to fullstack
+  await page.goto("http://localhost:3000/fullstack");
+  await expect(page.getByRole("heading", { name: /Full-Stack Integration Demo/i })).toBeVisible();
+
+  // Test direct access to jedi
+  await page.goto("http://localhost:3000/jedi");
+  await expect(page.getByRole("heading", { name: /^Jedi Kitty$/i })).toBeVisible();
 
   // Test direct access to 404
   await page.goto("http://localhost:3000/xxx");
@@ -225,6 +333,12 @@ test("should maintain footer component across all pages", async ({ page }) => {
   await page.goto("/readme");
   await expect(footer).toBeVisible();
 
+  await page.goto("/fullstack");
+  await expect(footer).toBeVisible();
+
+  await page.goto("/jedi");
+  await expect(footer).toBeVisible();
+
   await page.goto("/xxx");
   await expect(footer).toBeVisible();
 });
@@ -253,6 +367,22 @@ test.describe("Footer Navigation Integration", () => {
     await expect(page).toHaveURL("http://localhost:3000/readme");
     await expect(page.getByRole("heading", { name: /^Readme$/i })).toBeVisible();
 
+    // Navigate to FullStack using footer link
+    await page
+      .locator("footer")
+      .getByRole("link", { name: /^FullStack$/i })
+      .click();
+    await expect(page).toHaveURL("http://localhost:3000/fullstack");
+    await expect(page.getByRole("heading", { name: /Full-Stack Integration Demo/i })).toBeVisible();
+
+    // Navigate to Jedi using footer link
+    await page
+      .locator("footer")
+      .getByRole("link", { name: /^Jedi$/i })
+      .click();
+    await expect(page).toHaveURL("http://localhost:3000/jedi");
+    await expect(page.getByRole("heading", { name: /^Jedi Kitty$/i })).toBeVisible();
+
     // Navigate back to Home using footer link
     await page
       .locator("footer")
@@ -272,11 +402,17 @@ test.describe("Footer Navigation Integration", () => {
     await expect(aboutLink).toBeVisible();
     const readmeLink = page.locator("footer").getByRole("link", { name: /^Readme$/i });
     await expect(readmeLink).toBeVisible();
+    const fullstackLink = page.locator("footer").getByRole("link", { name: /^FullStack$/i });
+    await expect(fullstackLink).toBeVisible();
+    const jediLink = page.locator("footer").getByRole("link", { name: /^Jedi$/i });
+    await expect(jediLink).toBeVisible();
 
     // Verify footer Home page link active/inactive styling
     await expect(homeLink).toHaveClass(/border-b-2 border-sky-600/);
     await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
     await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(fullstackLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(jediLink).toHaveClass(/border-b-2 border-transparent/);
 
     // Navigate to About page using footer link
     await page
@@ -288,6 +424,8 @@ test.describe("Footer Navigation Integration", () => {
     await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
     await expect(aboutLink).toHaveClass(/border-b-2 border-sky-600/);
     await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(fullstackLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(jediLink).toHaveClass(/border-b-2 border-transparent/);
 
     // Navigate to Readme page using footer link
     await page
@@ -295,10 +433,38 @@ test.describe("Footer Navigation Integration", () => {
       .getByRole("link", { name: /^Readme$/i })
       .click();
 
-    // Verify footer About page link active/inactive styling
+    // Verify footer Readme page link active/inactive styling
     await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
     await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
     await expect(readmeLink).toHaveClass(/border-b-2 border-sky-600/);
+    await expect(fullstackLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(jediLink).toHaveClass(/border-b-2 border-transparent/);
+
+    // Navigate to FullStack page using footer link
+    await page
+      .locator("footer")
+      .getByRole("link", { name: /^FullStack$/i })
+      .click();
+
+    // Verify footer FullStack page link active/inactive styling
+    await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(fullstackLink).toHaveClass(/border-b-2 border-sky-600/);
+    await expect(jediLink).toHaveClass(/border-b-2 border-transparent/);
+
+    // Navigate to Jedi page using footer link
+    await page
+      .locator("footer")
+      .getByRole("link", { name: /^Jedi$/i })
+      .click();
+
+    // Verify footer Jedi page link active/inactive styling
+    await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(fullstackLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(jediLink).toHaveClass(/border-b-2 border-sky-600/);
 
     // Navigate to 404 page
     await page.goto("notfound");
@@ -307,6 +473,8 @@ test.describe("Footer Navigation Integration", () => {
     await expect(homeLink).toHaveClass(/border-b-2 border-transparent/);
     await expect(aboutLink).toHaveClass(/border-b-2 border-transparent/);
     await expect(readmeLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(fullstackLink).toHaveClass(/border-b-2 border-transparent/);
+    await expect(jediLink).toHaveClass(/border-b-2 border-transparent/);
   });
 
   // 11. Consistent Page title across footer link navigation
@@ -334,6 +502,20 @@ test.describe("Footer Navigation Integration", () => {
       .getByRole("link", { name: /^Readme$/i })
       .click();
     await expect(page).toHaveTitle(/SolidStart Readme/);
+
+    // Use footer FullStack link
+    await page
+      .locator("footer")
+      .getByRole("link", { name: /^FullStack$/i })
+      .click();
+    await expect(page).toHaveTitle(/Full-Stack Demo/);
+
+    // Use footer Jedi link
+    await page
+      .locator("footer")
+      .getByRole("link", { name: /^Jedi$/i })
+      .click();
+    await expect(page).toHaveTitle(/Jedi Kitty/);
 
     // Use direct link to 404 page
     await page.goto("/notfound");

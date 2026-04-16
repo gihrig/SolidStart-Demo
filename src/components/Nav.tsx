@@ -22,6 +22,16 @@ export default function Nav() {
             Readme
           </a>
         </li>
+        <li>
+          <a class={`border-b-4 ${active("/fullstack")} mx-1.5 sm:mx-6`} href="/fullstack">
+            FullStack
+          </a>
+        </li>
+        <li>
+          <a class={`border-b-4 ${active("/jedi")} mx-1.5 sm:mx-6`} href="/jedi">
+            Jedi
+          </a>
+        </li>
       </ul>
     </nav>
   );

@@ -121,4 +121,38 @@ test.describe("Fullstack Integration Page", () => {
       await expect(page.getByRole("heading", { name: /login/i })).toBeVisible();
     });
   });
+
+  test("should have working external link to solidjs.com in footer", async ({ page }) => {
+    const solidjsLink = page.locator("footer").getByRole("link", { name: /solidjs\.com/i });
+    await expect(solidjsLink).toBeVisible();
+    await expect(solidjsLink).toHaveAttribute("href", "https://solidjs.com");
+    await expect(solidjsLink).toHaveAttribute("target", "_blank");
+  });
+
+  test("should have navigation link to Home page in footer", async ({ page }) => {
+    const homeLink = page.locator("footer").getByRole("link", { name: /^Home$/i });
+    await expect(homeLink).toBeVisible();
+    await expect(homeLink).toHaveAttribute("href", "/");
+  });
+
+  test("should navigate to Home page when clicking footer link", async ({ page }) => {
+    const homeLink = page.locator("footer").getByRole("link", { name: /^Home$/i });
+    await homeLink.click();
+
+    await expect(page).toHaveURL("http://localhost:3000/");
+    await expect(page.getByRole("heading", { name: /Hello SolidStart!/i })).toBeVisible();
+  });
+
+  test("should display current page indicator in footer", async ({ page }) => {
+    const fullstackLink = page.locator("footer").getByRole("link", { name: /^FullStack$/i });
+    await expect(fullstackLink).toBeVisible();
+    await expect(fullstackLink).toHaveClass(/border-sky-600/);
+  });
+
+  test("should have proper page structure", async ({ page }) => {
+    const main = page.locator("main");
+    const footer = page.locator("footer");
+    await expect(main).toBeVisible();
+    await expect(footer).toBeVisible();
+  });
 });
