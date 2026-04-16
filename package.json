@@ -2,9 +2,11 @@
   "name": "solidstart-demo",
   "type": "module",
   "scripts": {
-    "dev": "vinxi dev",
+    "audit": "bun audit",
     "build": "vinxi build",
     "check": "vp check --fix",
+    "dev": "vinxi dev",
+    "lighthouse": "CHROME_PATH=\"/Applications/Brave Browser.app/Contents/MacOS/Brave Browser\" lighthouse http://localhost:3000 --output html --output-path ./lighthouse-report.html --view",
     "start": "vinxi start",
     "test:all": "vp test",
     "test:all:watch": "vp test --watch",
@@ -15,7 +17,8 @@
     "test:show": "playwright show-report",
     "test:unit": "vp test src/lib",
     "test:unit:watch": "vp test --watch src/lib",
-    "lighthouse": "CHROME_PATH=\"/Applications/Brave Browser.app/Contents/MacOS/Brave Browser\" lighthouse http://localhost:3000 --output html --output-path ./lighthouse-report.html --view"
+    "update": "bun update",
+    "update:latest": "bun update --latest"
   },
   "devDependencies": {
     "@mdx-js/mdx": "3.1.1",
