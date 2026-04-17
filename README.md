@@ -5,11 +5,20 @@ Everything you need to build a Solid project, powered by [`solid-start`](https:/
 ## Creating a project
 
 ```bash
-# create a new project in the current directory
-bun init solid@latest
 
 # create a new project in my-app
-bun init solid@latest my-app
+vp create solid@latest my-app
+
+cd my-app
+
+git init && git add . && git commit -m "initial(project): vp create test"
+
+vp i
+
+vpx vinxi dev
+
+# At this point app will start but can not be served
+# Copy this project's custom configuration
 ```
 
 # JSON-RPC Client Example with SolidStart
@@ -27,19 +36,19 @@ See [json-client-rpc](https://github.com/pkoretic/json_rpc)
 
 ## Developing
 
-Once you've created a project and installed dependencies with `bun install`.
+Once you've created a project, etc. as in `Creating a project` above:
 
-Then start a development server:
+Start a development server:
 
 ```bash
-bun dev
+vpr dev
 ```
 
 ## Building
 
 Solid apps are built with _presets_, which optimize your project for deployment to different environments.
 
-By default, `bun run build` will generate an app that you can run with `bun start`. To use a different preset, add it to the `devDependencies` in `package.json` and specify in your `app.config.js`. Search e.g. Grok for "where can I find a list of Solid JS presets"
+By default, `vpr build` will generate an app that you can run with `vpr start`. To use a different preset, add it to `devDependencies` in `package.json` and specify in your `app.config.js`. Search e.g. Grok for "where can I find a list of Solid JS presets"
 
 ## Testing
 
@@ -50,22 +59,19 @@ Tests for src/components/\*\* are written with `vitest`, `@solidjs/testing-libra
 Run component tests with:
 
 ```sh
-bun test:comp
+vpr test:comp
 or
-bun test:comp:watch
+vpr test:comp:watch
 ```
 
 ## Unit tests
 
-Unit tests for /lib/\*\* are run using bun test as this is the expected deployment
-environment.
-
-Run unit tests with:
+Unit tests for /lib/\*\* are run using vp test.
 
 ```sh
-bun test:unit
+vpr test:unit
 or
-bun test:unit:watch
+vpr test:unit:watch
 ```
 
 ## End to End tests
@@ -107,15 +113,18 @@ Config: --config=playwright.config.ts
 await expect(page).toHaveScreenshot('home.png');
 
 # Update snapshots
-npx playwright test --update-snapshots
+vpr test:e2e --update-snapshots
 
 # See https://playwright.dev/docs/test-snapshots
 ```
 
-### 4 test files with full coverage:
+### e2e test files with full coverage:
 
 - home.spec.ts - Home page functionality
 - about.spec.ts - About page functionality
+- readme.spec.ts - Readme page functionality
+- fullstack.spec.ts - FullStack page functionality
+- jedi.spec.ts - Jedi page functionality
 - not-found.spec.ts - 404 handling
 - navigation.spec.ts - Cross-page navigation flows
 
@@ -135,8 +144,8 @@ npx playwright test --update-snapshots
 - Scoped locators (page.locator('main')) to avoid duplicate element issues
 - Descriptive test names with test.describe() blocks
 - Multiple assertion types for thorough validation
-- Integration tests for user workflows
+- Integration (e2e) tests for user workflows
 
-The test suite provides solid regression protection and documentation of expected behavior across all routes. Specific subsets cna be run with bunx playwright test e2e/home.spec.ts, etc. or use --ui mode for debugging when needed.
+The test suite provides solid regression protection and documentation of expected behavior across all routes. Specific subsets can be run with vpr test:e2e e2e/home.spec.ts, etc. or use --ui mode for debugging when needed.
 
 ## This project was created with the [Solid CLI](https://github.com/solidjs-community/solid-cli)
