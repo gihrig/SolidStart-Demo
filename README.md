@@ -21,6 +21,21 @@ vpx vinxi dev
 # Copy this project's custom configuration
 ```
 
+# Claude Code Skills and Plugins
+
+- SolidJS & SolidStart Expert Development Skill
+  Senior/Lead engineer-level guidance for building production-ready applications with fine-grained reactivity.
+  https://skills.sh/modra40/claude-codex-skills-directory/solidjs-solidstart-expert
+  References: https://github.com/mOdrA40/claude-codex-skills-directory/tree/main/frontend-skills/solidjs-solidstart-mastery-skill
+
+- Superpowers
+  Superpowers makes Claude stop, plan, and test first.
+  It auto-enforces brainstorming → planning → TDD → code review on every session.
+  Competitor or companion to GSD - Grok says some use both
+  /plugin marketplace add obra/superpowers-marketplace
+  /plugin install superpowers@superpowers-marketplace
+  - See rust-web-app/planning/skills_and_plugins.md for more
+
 # JSON-RPC Client Example with SolidStart
 
 RPC communication services are provided by the json-client-rpc library

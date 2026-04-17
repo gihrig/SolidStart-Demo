@@ -1,5 +1,8 @@
-Goal: Create a step by step plan to convert the source web page to the target format.
-Context:
+# Goal:
+
+Create a step by step plan to convert the source web page to the target format.
+
+# Context:
 
 - The source project is at /Users/glen/Documents/Development/Study/Javascript/SolidJS/frontend-tutorial-v3/
 - The Source project is primarily contained in index.html and style.css
@@ -25,7 +28,10 @@ Context:
   - /src/components/card.tsx based on source project `<body><content><aside><section>` sections
   - Use /src/components/card.tsx to create 'Categories', 'Top Photos' and 'Top Captions' cards
   - Reuse the existing target project src/components/nav.tsx in place of the source project <body><header>
-- Task: Create a step by step plan to convert the source project index.html to the target project src/routes/jedi.tsx with components written to src/components/ directory
+
+# Task:
+
+- Create a step by step plan to convert the source project index.html to the target project src/routes/jedi.tsx with components written to src/components/ directory
   - Review target project src/routes/index.tsx for layout, style and component examples
   - Convert source project appearance and functionality provided by alpine JS to TailwindCSS, Solid.js or Typescript as appropriate.
   - Convert source project TailwindCSS v3.x to target project TailwindCSS v4.x. Reference https://tailwindcss.com/docs/upgrade-guide
