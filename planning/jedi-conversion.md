@@ -2,7 +2,10 @@
 
 ## Overview
 
-Convert `/frontend-tutorial-v3/index.html` (Alpine.js + TailwindCSS v3.2.7) to `/SolidStart-Demo/src/routes/jedi.tsx` (SolidStart + TailwindCSS v4.1.18) with component extraction.
+/Users/glen/Documents/Development/Study/Tailwind4/frontend-tutorial-v3
+/Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo
+
+Convert `../../../Tailwind4/frontend-tutorial-v3/index.html` (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.tsx` (SolidStart v1.3.2 + TailwindCSS v4.2.2) with component extraction. Replace the existing jedi.tsx placeholder
 
 ## Source Analysis Summary
 
@@ -29,6 +32,13 @@ Convert `/frontend-tutorial-v3/index.html` (Alpine.js + TailwindCSS v3.2.7) to `
 - Responsive grid: mobile (full-width) → desktop (2-col main + 1-col sidebar)
 - Hover states on all interactive elements
 - Mobile-first responsive breakpoints (md:768px)
+
+### Visual Features to Create:
+
+- Dark light mode toggle
+- Keyboard navigation:
+  - Tab navigation should stop on all actionable elements
+  - Tab navigation should select "Categories" when in small screen mode
 
 ---
 
@@ -64,7 +74,7 @@ Convert `/frontend-tutorial-v3/index.html` (Alpine.js + TailwindCSS v3.2.7) to `
 **Action** install @fontsource/lobster
 
 ```zsh
-bun i @fontsource/lobster
+vp i @fontsource/lobster
 ```
 
 **File** `src/app.tsx`
@@ -920,7 +930,7 @@ test.describe('Jedi Page', () => {
 
 ```bash
 cd /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo
-bun run dev
+vpr dev
 ```
 
 **Navigate to**: `http://localhost:3000/jedi`
@@ -981,7 +991,7 @@ bun run dev
 #### Step 5.2: Run Component Tests
 
 ```bash
-bun run test:comp
+vpr test:comp
 ```
 
 **Expected Results**:
@@ -1004,25 +1014,25 @@ bun run test:comp
 #### Step 5.3: Run E2E Tests
 
 ```bash
-npm run test:e2e
+vpr test:e2e
 ```
 
 **Or run specific test**:
 
 ```bash
-bunx playwright test e2e/jedi.spec.ts
+vpr test:e2e e2e/jedi.spec.ts
 ```
 
 **Expected Results**:
 
-- All 12 jedi.spec.ts tests pass
+- All jedi.spec.ts tests pass
 - No timeout errors
 - Screenshots match expected layout (if using visual regression)
 
 **Debugging Failed E2E Tests**:
 
-1. Run in headed mode: `bunx playwright test --headed`
-2. Use debug mode: `bunx playwright test --debug`
+1. Run in headed mode: `vpr test:e2e --headed --project=chromium e2e/jedi.spec.ts`
+2. Use debug mode: `vpr test:e2e --debug --project=chromium e2e/jedi.spec.ts`
 3. Check element selectors match actual rendered HTML
 4. Verify mobile viewport tests use correct dimensions
 5. Review network tab for failed resource loads
@@ -1113,16 +1123,16 @@ export default function Jedi() {
 
 #### Step 6.4: Code Quality Review
 
-**Run prettier**:
+**Run Lint, Format check**:
 
 ```bash
-bunx prettier --write src/routes/jedi.tsx src/components/Hero.tsx src/components/Image.tsx src/components/Author.tsx src/components/Card.tsx
+vpr check
 ```
 
 **TypeScript type checking**:
 
 ```bash
-bunx tsc --noEmit
+vpr check:type tsc --noEmit
 ```
 
 **Fix any type errors**:
@@ -1293,8 +1303,6 @@ Lobster font integrated via @fontsource/lobster
 - Mobile sidebar toggle at smaller screens
 - Grid collapses to single column on mobile
 
-````
-
 ---
 
 ### Phase 8: Final Validation
@@ -1303,18 +1311,19 @@ Lobster font integrated via @fontsource/lobster
 
 ```bash
 # Run all tests
-bun run test:comp
-npm run test:e2e
+vpr test:unit
+vpr test:comp
+vpr test:e2e
 
 # Expected: All passing
-````
+```
 
 ---
 
 #### Step 8.2: Build and Production Check
 
 ```bash
-bun run build
+vpr build
 ```
 
 **Verify**:
@@ -1325,7 +1334,7 @@ bun run build
 - Bundle size is reasonable
 
 ```bash
-bun run start
+vpr start
 ```
 
 **Test in production mode**:
@@ -1487,32 +1496,25 @@ This plan is designed to be executed sequentially by Claude AI with the followin
 
 ### Commands Reference for Claude
 
-**Create/edit files**:
-
-```bash
-desktop-commander:write_file (for new files)
-desktop-commander:edit_block (for modifications)
-```
-
 **Run tests**:
 
 ```bash
-desktop-commander:start_process("bun run test:comp")
-desktop-commander:start_process("bun run test:unit")
-desktop-commander:start_process("npm run test:e2e")
+vpr test:comp
+vpr test:unit
+vpr run test:e2e
 ```
 
 **Check syntax**:
 
 ```bash
-desktop-commander:start_process("bunx tsc --noEmit")
-desktop-commander:start_process("bunx prettier --check src/**/*.tsx")
+vpr check
+vpr check:type
 ```
 
 **Start dev server**:
 
 ```bash
-desktop-commander:start_process("bun run dev")
+vpr dev
 ```
 
 ### Expected Timeline
