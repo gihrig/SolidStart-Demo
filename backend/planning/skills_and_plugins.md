@@ -7,6 +7,21 @@ Prefer a CLI over an MCP
 Install/create a skill to use the CLI
 /plugin for official plugins
 
+Anthropic Plugins directory
+https://claude.com/plugins#plugins
+SuperPowers https://claude.com/plugins/superpowers
+Context 7 Docs https://claude.com/plugins/context7
+TypeScript LSP https://claude.com/plugins/typescript-lsp
+Rust LSP https://claude.com/plugins/rust-analyzer-lsp
+SQL Data https://claude.com/plugins/data
+Front End Design https://claude.com/plugins/frontend-design
+GitHub MCP https://claude.com/plugins/github
+Code Review https://claude.com/plugins/code-review
+Security Guidance https://claude.com/plugins/security-guidance
+Memory https://claude.com/plugins/remember
+Skill Creator https://claude.com/plugins/skill-creator
+CLAUDE.md Management https://claude.com/plugins/claude-md-management
+
 Anthropic Skill Creator
 https://claude.com/plugins/skill-creator
 https://www.youtube.com/watch?v=UtGszoiwrsQ
@@ -15,7 +30,7 @@ Awesome Claude Code
 A selectively curated list of skills, agents, plugins, hooks, and other amazing tools for enhancing your Claude Code workflow.
 https://github.com/hesreallyhim/awesome-claude-code
 
-Skills
+Open Source Skills directory
 The Open Agent Skills Ecosystem
 https://skills.sh/
 https://claude.com/blog/improving-skill-creator-test-measure-and-refine-agent-skills
@@ -37,6 +52,10 @@ UI/UX Pro Max
 Default Claude UI looks like every other AI-built app...
 This skill gives Claude 50+ UI styles, 97 color palettes, and 57 font pairings. It analyzes your project and picks the right design system automatically. Works across React, Next.js, Vue, Svelte, SwiftUI, Flutter, and Tailwind.
 https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
+
+Matt Pocock Agent Skills
+A collection of agent skills that extend capabilities across planning, development, and tooling.
+https://github.com/mattpocock/skills
 
 SolidJS & SolidStart Expert Development Skill
 Senior/Lead engineer-level guidance for building production-ready applications with fine-grained reactivity.
