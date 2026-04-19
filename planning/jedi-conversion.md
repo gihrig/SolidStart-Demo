@@ -44,9 +44,9 @@ Convert `../../../Tailwind4/frontend-tutorial-v3/index.html` (Alpine.js + Tailwi
 
 ## Step-by-Step Conversion Plan
 
-### Phase 1: CSS Foundation Setup
+### [ ] Phase 1: CSS Foundation Setup
 
-#### Step 1.1: Update src/app.css with Custom Properties
+#### [ ] Step 1.1: Update src/app.css with Custom Properties
 
 **File**: `src/app.css`
 
@@ -67,7 +67,7 @@ Convert `../../../Tailwind4/frontend-tutorial-v3/index.html` (Alpine.js + Tailwi
 
 ---
 
-#### Step 1.2: Add Lobster Font to Root Layout
+#### [ ] Step 1.2: Add Lobster Font to Root Layout
 
 **File**: `package.json`
 
@@ -90,9 +90,9 @@ import "./app.css";
 
 ---
 
-### Phase 2: Component Development
+### [ ] Phase 2: Component Development
 
-#### Step 2.1: Create Hero Component
+#### [ ] Step 2.1: Create Hero Component
 
 **File**: `src/components/Hero.tsx`
 
@@ -181,7 +181,7 @@ export default function Hero(props: HeroProps) {
 
 ---
 
-#### Step 2.2: Create Image Component
+#### [ ] Step 2.2: Create Image Component
 
 **File**: `src/components/Image.tsx`
 
@@ -232,7 +232,7 @@ export default function Image(props: ImageProps) {
 
 ---
 
-#### Step 2.3: Create Author Component
+#### [ ] Step 2.3: Create Author Component
 
 **File**: `src/components/Author.tsx`
 
@@ -276,7 +276,7 @@ export default function Author(props: AuthorProps) {
 
 ---
 
-#### Step 2.4: Create Card Component
+#### [ ] Step 2.4: Create Card Component
 
 **File**: `src/components/Card.tsx`
 
@@ -328,9 +328,9 @@ export default function Card(props: { title?: string; children: JSX.Element; cla
 
 ---
 
-### Phase 3: Main Page Construction
+### [ ] Phase 3: Main Page Construction
 
-#### Step 3.1: Create Jedi Route Page
+#### [ ] Step 3.1: Create Jedi Route Page
 
 **File**: `src/routes/jedi.tsx`
 
@@ -595,9 +595,9 @@ const topCaptions = [
 
 ---
 
-### Phase 4: Testing
+### [ ] Phase 4: Testing
 
-#### Step 4.1: Component Tests
+#### [ ] Step 4.1: Component Tests
 
 **File**: `src/components/Hero.test.tsx`
 
@@ -758,7 +758,7 @@ describe('<Card />', () => {
 
 ---
 
-#### Step 4.2: E2E Tests
+#### [ ] Step 4.2: E2E Tests
 
 **File**: `e2e/jedi.spec.ts` _(already exists — update with the tests below)_
 
@@ -922,9 +922,9 @@ test.describe("Jedi Page", () => {
 
 ---
 
-### Phase 5: Integration and Verification
+### [ ] Phase 5: Integration and Verification
 
-#### Step 5.1: Manual Visual Inspection Checklist
+#### [ ] Step 5.1: Manual Visual Inspection Checklist
 
 **Run Development Server**:
 
@@ -988,7 +988,7 @@ vpr dev
 
 ---
 
-#### Step 5.2: Run Component Tests
+#### [ ] Step 5.2: Run Component Tests
 
 ```bash
 vpr test:comp
@@ -1011,7 +1011,7 @@ vpr test:comp
 
 ---
 
-#### Step 5.3: Run E2E Tests
+#### [ ] Step 5.3: Run E2E Tests
 
 ```bash
 vpr test:e2e
@@ -1039,9 +1039,9 @@ vpr test:e2e e2e/jedi.spec.ts
 
 ---
 
-### Phase 6: Code Review and Refinement
+### [ ] Phase 6: Code Review and Refinement
 
-#### Step 6.1: TailwindCSS v4 Migration Review
+#### [ ] Step 6.1: TailwindCSS v4 Migration Review
 
 **Check for v3 Syntax**:
 
@@ -1061,7 +1061,7 @@ grep -r "!" src/routes/jedi.tsx src/components/Hero.tsx src/components/Image.tsx
 
 ---
 
-#### Step 6.2: Performance Optimization Review
+#### [ ] Step 6.2: Performance Optimization Review
 
 **Check for unnecessary re-renders**:
 
@@ -1088,7 +1088,7 @@ export default function Jedi() {
 
 ---
 
-#### Step 6.3: Accessibility Review
+#### [ ] Step 6.3: Accessibility Review
 
 **Run axe DevTools or similar**:
 
@@ -1121,7 +1121,7 @@ export default function Jedi() {
 
 ---
 
-#### Step 6.4: Code Quality Review
+#### [ ] Step 6.4: Code Quality Review
 
 **Run Lint, Format check**:
 
@@ -1151,9 +1151,9 @@ vpr check:type tsc --noEmit
 
 ---
 
-### Phase 7: Final Validation
+### [ ] Phase 7: Final Validation
 
-#### Step 7.1: Complete Test Suite
+#### [ ] Step 7.1: Complete Test Suite
 
 ```bash
 # Run all tests
@@ -1166,7 +1166,7 @@ vpr test:e2e
 
 ---
 
-#### Step 7.2: Build and Production Check
+#### [ ] Step 7.2: Build and Production Check
 
 ```bash
 vpr build
@@ -1193,7 +1193,7 @@ vpr start
 
 ---
 
-#### Step 7.3: Browser Compatibility Check
+#### [ ] Step 7.3: Browser Compatibility Check
 
 **Test in multiple browsers**:
 
@@ -1213,9 +1213,9 @@ vpr start
 
 ---
 
-### Phase 8: Deployment Preparation
+### [ ] Phase 8: Deployment Preparation
 
-#### Step 8.1: SEO and Metadata
+#### [ ] Step 8.1: SEO and Metadata
 
 **Verify jedi.tsx has**:
 
@@ -1234,7 +1234,7 @@ import { Title, Meta } from "@solidjs/meta";
 
 ---
 
-#### Step 8.2: Final Checklist
+#### [ ] Step 8.2: Final Checklist
 
 **Before committing**:
 
