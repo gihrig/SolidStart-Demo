@@ -351,7 +351,7 @@ import { createSignal, Show, For } from "solid-js";
 import Nav from "~/components/Nav";
 import Hero from "~/components/Hero";
 import Image from "~/components/Image";
-import Author from "~/components/Author.";
+import Author from "~/components/Author";
 import Card from "~/components/Card";
 
 export default function Jedi() {
@@ -469,73 +469,73 @@ export default function Jedi() {
           </article>
         </main>
 
-        {/* Sidebar */}
-        <Show when={mobileSidebarOpen() || true} /* md:block handled by CSS */>
-          <aside class="md:block! col-span-full md:col-span-1 mx-[5%] md:mr-[20%] order-1 md:order-2">
-            {/* Categories Card */}
-            <Card title="Categories">
-              <ul class="space-y-1">
-                <For each={categories}>
-                  {(category) => (
-                    <li class="rounded hover:bg-gray-100 transition-colors">
-                      <a href="#" class="flex items-center p-2">
-                        <img class="w-8 h-8 mr-2" src={category.icon} alt={category.name} />
-                        <span class="font-bold text-sm">{category.name}</span>
-                      </a>
-                    </li>
-                  )}
-                </For>
-              </ul>
-            </Card>
+        {/* Sidebar - hidden on mobile until toggled, always visible md+ */}
+        <aside
+          class={`col-span-full md:col-span-1 mx-[5%] md:mr-[20%] order-1 md:order-2 md:block! ${mobileSidebarOpen() ? "block" : "hidden"}`}
+        >
+          {/* Categories Card */}
+          <Card title="Categories">
+            <ul class="space-y-1">
+              <For each={categories}>
+                {(category) => (
+                  <li class="rounded hover:bg-gray-100 transition-colors">
+                    <a href="#" class="flex items-center p-2">
+                      <img class="w-8 h-8 mr-2" src={category.icon} alt={category.name} />
+                      <span class="font-bold text-sm">{category.name}</span>
+                    </a>
+                  </li>
+                )}
+              </For>
+            </ul>
+          </Card>
 
-            {/* Top Photos Card */}
-            <Card title="Top Photos">
-              <ul class="space-y-1">
-                <For each={topPhotos}>
-                  {(photo) => (
-                    <li class="rounded hover:bg-gray-100 transition-colors">
-                      <a href="#" class="flex items-center p-2">
-                        <img
-                          class="w-10 h-10 rounded-lg object-cover mr-3"
-                          src={photo.src}
-                          alt={photo.alt}
-                        />
-                        <img
-                          class="w-6 h-6 rounded-full object-cover mr-0.5"
-                          src={photo.avatar}
-                          alt={photo.author}
-                        />
-                        <span class="font-bold text-sm mr-1">{photo.author}</span>
-                        <span class="text-sm text-gray-500">({photo.likes} Likes)</span>
-                      </a>
-                    </li>
-                  )}
-                </For>
-              </ul>
-            </Card>
+          {/* Top Photos Card */}
+          <Card title="Top Photos">
+            <ul class="space-y-1">
+              <For each={topPhotos}>
+                {(photo) => (
+                  <li class="rounded hover:bg-gray-100 transition-colors">
+                    <a href="#" class="flex items-center p-2">
+                      <img
+                        class="w-10 h-10 rounded-lg object-cover mr-3"
+                        src={photo.src}
+                        alt={photo.alt}
+                      />
+                      <img
+                        class="w-6 h-6 rounded-full object-cover mr-0.5"
+                        src={photo.avatar}
+                        alt={photo.author}
+                      />
+                      <span class="font-bold text-sm mr-1">{photo.author}</span>
+                      <span class="text-sm text-gray-500">({photo.likes} Likes)</span>
+                    </a>
+                  </li>
+                )}
+              </For>
+            </ul>
+          </Card>
 
-            {/* Top Captions Card */}
-            <Card title="Top Captions">
-              <ul class="space-y-1">
-                <For each={topCaptions}>
-                  {(caption) => (
-                    <li class="rounded hover:bg-gray-100 transition-colors">
-                      <a href="#" class="flex items-center p-2">
-                        <img
-                          class="w-8 h-8 rounded-full object-cover mr-1"
-                          src={caption.avatar}
-                          alt={caption.author}
-                        />
-                        <span class="font-bold text-sm mr-1">{caption.author}</span>
-                        <span class="text-sm text-gray-500">({caption.likes} Likes)</span>
-                      </a>
-                    </li>
-                  )}
-                </For>
-              </ul>
-            </Card>
-          </aside>
-        </Show>
+          {/* Top Captions Card */}
+          <Card title="Top Captions">
+            <ul class="space-y-1">
+              <For each={topCaptions}>
+                {(caption) => (
+                  <li class="rounded hover:bg-gray-100 transition-colors">
+                    <a href="#" class="flex items-center p-2">
+                      <img
+                        class="w-8 h-8 rounded-full object-cover mr-1"
+                        src={caption.avatar}
+                        alt={caption.author}
+                      />
+                      <span class="font-bold text-sm mr-1">{caption.author}</span>
+                      <span class="text-sm text-gray-500">({caption.likes} Likes)</span>
+                    </a>
+                  </li>
+                )}
+              </For>
+            </ul>
+          </Card>
+        </aside>
       </div>
     </>
   );
@@ -678,7 +678,7 @@ describe('<Image />', () => {
 ```typescript
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@solidjs/testing-library'
-import Author from './Author.'
+import Author from './Author'
 
 describe('<Author />', () => {
   it('renders avatar and name', () => {
@@ -760,164 +760,164 @@ describe('<Card />', () => {
 
 #### Step 4.2: E2E Tests
 
-**File**: `e2e/jedi.spec.ts`
+**File**: `e2e/jedi.spec.ts` _(already exists — update with the tests below)_
 
 ```typescript
-import { test, expect } from '@playwright/test'
+import { test, expect } from "@playwright/test";
 
-test.describe('Jedi Page', () => {
-  test('should load successfully and display correct title', async ({ page }) => {
-    await page.goto('/jedi')
+test.describe("Jedi Page", () => {
+  test("should load successfully and display correct title", async ({ page }) => {
+    await page.goto("/jedi");
 
-    await expect(page).toHaveTitle(/Little Jedi - Awesome/)
-    await expect(page).toHaveURL('http://localhost:3000/jedi')
-  })
+    await expect(page).toHaveTitle(/Little Jedi - Awesome/);
+    await expect(page).toHaveURL("http://localhost:3000/jedi");
+  });
 
-  test('should display hero section with title and CTA', async ({ page }) => {
-    await page.goto('/jedi')
+  test("should display hero section with title and CTA", async ({ page }) => {
+    await page.goto("/jedi");
 
-    const hero = page.locator('section').first()
-    await expect(hero).toBeVisible()
+    const hero = page.locator("section").first();
+    await expect(hero).toBeVisible();
 
-    const heroTitle = hero.getByRole('heading', { name: /awesome photos/i })
-    await expect(heroTitle).toBeVisible()
+    const heroTitle = hero.getByRole("heading", { name: /awesome photos/i });
+    await expect(heroTitle).toBeVisible();
 
-    const ctaButton = hero.getByRole('link', { name: /get started/i })
-    await expect(ctaButton).toBeVisible()
-  })
+    const ctaButton = hero.getByRole("link", { name: /get started/i });
+    await expect(ctaButton).toBeVisible();
+  });
 
-  test('should display main article with image and caption', async ({ page }) => {
-    await page.goto('/jedi')
+  test("should display main article with image and caption", async ({ page }) => {
+    await page.goto("/jedi");
 
-    const article = page.locator('article').first()
-    await expect(article).toBeVisible()
+    const article = page.locator("article").first();
+    await expect(article).toBeVisible();
 
     // Check article title
-    const articleTitle = article.getByRole('heading', { name: /little jedi/i })
-    await expect(articleTitle).toBeVisible()
+    const articleTitle = article.getByRole("heading", { name: /little jedi/i });
+    await expect(articleTitle).toBeVisible();
 
     // Check main image
-    const mainImage = article.getByRole('img').first()
-    await expect(mainImage).toBeVisible()
+    const mainImage = article.getByRole("img").first();
+    await expect(mainImage).toBeVisible();
 
     // Check caption text
-    await expect(article.getByText(/jedi kitty protects/i)).toBeVisible()
-  })
+    await expect(article.getByText(/jedi kitty protects/i)).toBeVisible();
+  });
 
-  test('should display sidebar with categories on desktop', async ({ page }) => {
-    await page.goto('/jedi')
+  test("should display sidebar with categories on desktop", async ({ page }) => {
+    await page.goto("/jedi");
 
-    const aside = page.locator('aside')
-    await expect(aside).toBeVisible()
+    const aside = page.locator("aside");
+    await expect(aside).toBeVisible();
 
     // Check categories card
-    const categoriesHeading = aside.getByRole('heading', { name: /categories/i })
-    await expect(categoriesHeading).toBeVisible()
+    const categoriesHeading = aside.getByRole("heading", { name: /categories/i });
+    await expect(categoriesHeading).toBeVisible();
 
     // Check category items
-    await expect(aside.getByText('Landscape')).toBeVisible()
-    await expect(aside.getByText('Animals')).toBeVisible()
-  })
+    await expect(aside.getByText("Landscape")).toBeVisible();
+    await expect(aside.getByText("Animals")).toBeVisible();
+  });
 
-  test('should toggle mobile sidebar when button clicked', async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 667 }) // Mobile size
-    await page.goto('/jedi')
+  test("should toggle mobile sidebar when button clicked", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 }); // Mobile size
+    await page.goto("/jedi");
 
     // Mobile toggle button should be visible
-    const toggleButton = page.getByRole('button', { name: /categories/i })
-    await expect(toggleButton).toBeVisible()
+    const toggleButton = page.getByRole("button", { name: /categories/i });
+    await expect(toggleButton).toBeVisible();
 
     // Sidebar should be hidden initially on mobile
-    const aside = page.locator('aside')
-    const isVisible = await aside.isVisible()
-    expect isVisible.toBe(false)
+    const aside = page.locator("aside");
+    const isVisible = await aside.isVisible();
+    expect(isVisible).toBe(false);
 
     // Click toggle
-    await toggleButton.click()
-    await page.waitForTimeout(300) // Wait for transition
+    await toggleButton.click();
+    await page.waitForTimeout(300); // Wait for transition
 
-    // Verify sidebar visibility changed
-    const newVisibility = await aside.isVisible()
-    expect(newVisibility)toBe(isVisible)
-  })
+    // Verify sidebar is now visible
+    const newVisibility = await aside.isVisible();
+    expect(newVisibility).toBe(!isVisible);
+  });
 
-  test('should display all three sidebar cards', async ({ page }) => {
-    await page.goto('/jedi')
+  test("should display all three sidebar cards", async ({ page }) => {
+    await page.goto("/jedi");
 
-    const aside = page.locator('aside')
+    const aside = page.locator("aside");
 
     // Check for three card sections
-    await expect(aside.getByRole('heading', { name: /categories/i })).toBeVisible()
-    await expect(aside.getByRole('heading', { name: /top photos/i })).toBeVisible()
-    await expect(aside.getByRole('heading', { name: /top captions/i })).toBeVisible()
-  })
+    await expect(aside.getByRole("heading", { name: /categories/i })).toBeVisible();
+    await expect(aside.getByRole("heading", { name: /top photos/i })).toBeVisible();
+    await expect(aside.getByRole("heading", { name: /top captions/i })).toBeVisible();
+  });
 
-  test('should have working navigation in header', async ({ page }) => {
-    await page.goto('/jedi')
+  test("should have working navigation in header", async ({ page }) => {
+    await page.goto("/jedi");
 
-    const nav = page.locator('nav[role="navigation"]')
-    await expect(nav).toBeVisible()
+    const nav = page.locator('nav[role="navigation"]');
+    await expect(nav).toBeVisible();
 
     // Check nav links exist
-    await expect(nav.getByRole('link', { name: /home/i })).toBeVisible()
-    await expect(nav.getByRole('link', { name: /about/i })).toBeVisible()
-    await expect(nav.getByRole('link', { name: /readme/i })).toBeVisible()
-    await expect(nav.getByRole('link', { name: /jedi/i })).toBeVisible()
-  })
+    await expect(nav.getByRole("link", { name: /home/i })).toBeVisible();
+    await expect(nav.getByRole("link", { name: /about/i })).toBeVisible();
+    await expect(nav.getByRole("link", { name: /readme/i })).toBeVisible();
+    await expect(nav.getByRole("link", { name: /jedi/i })).toBeVisible();
+  });
 
-  test('should display author information', async ({ page }) => {
-    await page.goto('/jedi')
+  test("should display author information", async ({ page }) => {
+    await page.goto("/jedi");
 
-    const article = page.locator('article').first()
+    const article = page.locator("article").first();
 
     // Check author avatar and name
-    const authorLink = article.getByRole('link').filter({ hasText: 'Lisa' })
-    await expect(authorLink).toBeVisible()
+    const authorLink = article.getByRole("link").filter({ hasText: "Lisa" });
+    await expect(authorLink).toBeVisible();
 
-    const avatar = authorLink.getByRole('img')
-    await expect(avatar).toBeVisible()
-  })
+    const avatar = authorLink.getByRole("img");
+    await expect(avatar).toBeVisible();
+  });
 
-  test('should display tags for the post', async ({ page }) => {
-    await page.goto('/jedi')
+  test("should display tags for the post", async ({ page }) => {
+    await page.goto("/jedi");
 
-    const article = page.locator('article').first()
+    const article = page.locator("article").first();
 
     // Check for tag links
-    await expect(article.getByRole('link', { name: /animals/i })).toBeVisible()
-    await expect(article.getByRole('link', { name: /cute/i })).toBeVisible()
-  })
+    await expect(article.getByRole("link", { name: /animals/i })).toBeVisible();
+    await expect(article.getByRole("link", { name: /cute/i })).toBeVisible();
+  });
 
-  test('should display post actions (like, edit, delete)', async ({ page }) => {
-    await page.goto('/jedi')
+  test("should display post actions (like, edit, delete)", async ({ page }) => {
+    await page.goto("/jedi");
 
-    const article = page.locator('article').first()
+    const article = page.locator("article").first();
 
     // Check action links
-    await expect(article.getByRole('link', { name: /Comments/i })).toBeVisible()
-    await expect(article.getByRole('link', { name: /Like/i })).toBeVisible()
-    await expect(article.getByRole('link', { name: /Edit/i })).toBeVisible()
-    await expect(article.getByRole('link', { name: /Delete/i })).toBeVisible()
-  })
+    await expect(article.getByRole("link", { name: /Comments/i })).toBeVisible();
+    await expect(article.getByRole("link", { name: /Like/i })).toBeVisible();
+    await expect(article.getByRole("link", { name: /Edit/i })).toBeVisible();
+    await expect(article.getByRole("link", { name: /Delete/i })).toBeVisible();
+  });
 
-  test('should have responsive layout', async ({ page }) => {
+  test("should have responsive layout", async ({ page }) => {
     // Test desktop layout
-    await page.setViewportSize({ width: 1280, height: 800 })
-    await page.goto('/jedi')
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/jedi");
 
-    const main = page.locator('main')
-    const aside = page.locator('aside')
+    const main = page.locator("main");
+    const aside = page.locator("aside");
 
-    await expect(main).toBeVisible()
-    await expect(aside).toBeVisible()
+    await expect(main).toBeVisible();
+    await expect(aside).toBeVisible();
 
     // Test mobile layout
-    await page.setViewportSize({ width: 375, height: 667 })
+    await page.setViewportSize({ width: 375, height: 667 });
 
-    await expect(main).toBeVisible()
-    await expect(side).not.toBeVisible()
-  })
-})
+    await expect(main).toBeVisible();
+    await expect(aside).not.toBeVisible();
+  });
+});
 ```
 
 ---
@@ -1151,163 +1151,9 @@ vpr check:type tsc --noEmit
 
 ---
 
-### Phase 7: Documentation
+### Phase 7: Final Validation
 
-#### Step 7.1: Add Component Documentation Comments
-
-**Example for hero.tsx**:
-
-```tsx
-/**
- * Hero component for page headers
- *
- * Displays a full-width hero section with:
- * - Background image with dark overlay
- * - Centered title and subtitle
- * - Call-to-action button
- *
- * @example
- * <Hero
- *   title="Welcome"
- *   subtitle="Get started today"
- *   ctaText="Sign Up"
- *   ctaHref="/signup"
- *   backgroundImage="/hero-bg.jpg"
- * />
- */
-interface HeroProps {
-  /** Main heading text (uses Lobster font) */
-  title: string
-  /** Subheading text */
-  subtitle: string
-  /** Button text */
-  ctaText: string
-  /** Button link URL */
-  ctaHref: string
-  /** Background image URL */
-  backgroundImage: string
-}
-
-export default function Hero(props: HeroProps) { ... }
-```
-
-**Add similar documentation to**:
-
-- image.tsx
-- author.tsx
-- card.tsx
-
----
-
-#### Step 7.2: Update README or Create Component Guide
-
-**Option 1**: Add to existing project README
-
-**Option 2**: Create `docs/jedi-components.md`
-
-**Content should include**:
-
-````markdown
-# Jedi Page Components
-
-## Overview
-
-The Jedi page demonstrates a photo-sharing interface with the following features:
-
-- Hero banner with background image
-- Main article with image and caption
-- Responsive sidebar with categories and top content
-- Mobile-friendly collapsible sidebar
-
-## Components
-
-### Hero
-
-Full-width hero section with background image and CTA.
-
-**Props**:
-
-- `title`: Main heading
-- `subtitle`: Supporting text
-- `ctaText`: Button label
-- `ctaHref`: Button destination
-- `backgroundImage`: Background image URL
-
-**Usage**:
-
-```tsx
-<Hero
-  title="Welcome"
-  subtitle="Discover amazing content"
-  ctaText="Get Started"
-  ctaHref="/signup"
-  backgroundImage="https://example.com/bg.jpg"
-/>
-```
-````
-
-### Image
-
-Displays a figure with optional link wrapper.
-
-**Props**:
-
-- `src`: Image source URL
-- `alt`: Image alt text
-- `href` (optional): Link destination
-- `class` (optional): Additional CSS classes
-
-### Author
-
-Shows author avatar and name with link.
-
-**Props**:
-
-- `avatarSrc`: Avatar image URL
-- `name`: Author name
-- `href` (optional): Profile link (defaults to #)
-
-### Card
-
-Reusable card container with optional title.
-
-**Props**:
-
-- `title` (optional): Card heading
-- `children`: Card content
-- `class` (optional): Additional CSS classes
-
-## Conversion Notes
-
-### Alpine.js → SolidJS
-
-- `x-data` → `createSignal`
-- `x-show` → `<Show>` component
-- `@click` → `onClick`
-- `x-bind:class` → Template literals
-- `x-cloak` → Not needed (SolidJS handles hydration)
-
-### TailwindCSS v3 → v4
-
-- `bg-opacity-40` → `bg-gray-800/40`
-- `md:!block` → `md:block!`
-- Custom `[&>*]` selectors → Standard utilities (space-y, etc.)
-
-### Custom Fonts
-
-Lobster font integrated via @fontsource/lobster
-
-### Mobile Responsiveness
-
-- Mobile-first approach with `md:` breakpoint at 768px
-- Mobile sidebar toggle at smaller screens
-- Grid collapses to single column on mobile
-
----
-
-### Phase 8: Final Validation
-
-#### Step 8.1: Complete Test Suite
+#### Step 7.1: Complete Test Suite
 
 ```bash
 # Run all tests
@@ -1320,7 +1166,7 @@ vpr test:e2e
 
 ---
 
-#### Step 8.2: Build and Production Check
+#### Step 7.2: Build and Production Check
 
 ```bash
 vpr build
@@ -1347,7 +1193,7 @@ vpr start
 
 ---
 
-#### Step 8.3: Browser Compatibility Check
+#### Step 7.3: Browser Compatibility Check
 
 **Test in multiple browsers**:
 
@@ -1367,30 +1213,9 @@ vpr start
 
 ---
 
-### Phase 9: Deployment Preparation
+### Phase 8: Deployment Preparation
 
-#### Step 9.1: Add Jedi Link to Navigation
-
-**File**: `src/components/Nav.tsx`
-
-**Add new nav item**:
-
-```tsx
-<li>
-  <a class={`border-b-4 ${active("/jedi")} mx-1.5 sm:mx-6`} href="/jedi">
-    Jedi
-  </a>
-</li>
-```
-
-**Update nav tests**:
-
-- Update `src/components/Nav.test.tsx` to include /jedi route
-- Update `e2e/navigation.spec.ts` to test /jedi navigation
-
----
-
-#### Step 9.2: SEO and Metadata
+#### Step 8.1: SEO and Metadata
 
 **Verify jedi.tsx has**:
 
@@ -1409,7 +1234,7 @@ import { Title, Meta } from "@solidjs/meta";
 
 ---
 
-#### Step 9.3: Final Checklist
+#### Step 8.2: Final Checklist
 
 **Before committing**:
 
@@ -1492,7 +1317,7 @@ This plan is designed to be executed sequentially by Claude AI with the followin
    - After Phase 2 (all components created)
    - After Phase 3 (main page complete)
    - After Phase 4 (all tests written)
-   - Before Phase 9 (final deployment)
+   - Before Phase 8 (final deployment)
 
 ### Commands Reference for Claude
 
@@ -1525,11 +1350,10 @@ vpr dev
 - Phase 4 (Tests): 25 minutes
 - Phase 5 (Integration): 10 minutes (manual)
 - Phase 6 (Review): 10 minutes
-- Phase 7 (Docs): 5 minutes
-- Phase 8 (Validation): 10 minutes (manual)
-- Phase 9 (Deployment): 5 minutes
+- Phase 7 (Validation): 10 minutes (manual)
+- Phase 8 (Deployment): 5 minutes
 
-**Total estimated time**: ~2 hours (including user review and manual testing)
+**Total estimated time**: ~100 minutes (including user review and manual testing)
 
 ---
 
