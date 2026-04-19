@@ -26,6 +26,10 @@ Anthropic Skill Creator
 https://claude.com/plugins/skill-creator
 https://www.youtube.com/watch?v=UtGszoiwrsQ
 
+Andrej Karpathy Skills
+A single CLAUDE.md file to improve Claude Code behavior, derived from Andrej Karpathy's observations on LLM coding pitfalls.
+https://github.com/multica-ai/andrej-karpathy-skills/tree/main
+
 Awesome Claude Code
 A selectively curated list of skills, agents, plugins, hooks, and other amazing tools for enhancing your Claude Code workflow.
 https://github.com/hesreallyhim/awesome-claude-code
