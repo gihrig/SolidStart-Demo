@@ -31,6 +31,9 @@ Thumbs.db
 # Snyk Security Extension - AI Rules (auto-generated)
 .github/instructions/snyk_rules.instructions.md
 
+# Reports
+reports/
+
 # Playwright
 node_modules/
 /test-results/
