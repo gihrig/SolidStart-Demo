@@ -117,3 +117,43 @@ Without this, Claude guesses at n8n node names and gets them wrong. With it, Cla
 https://github.com/czlonkowski/n8n-mcp
 https://www.n8n-mcp.com/
 https://n8n.io/
+
+Status Line
+In Claude Code: /statusline
+- show the current directory last two path segments
+- git branch with dirty status (red if dirty, green if clean)
+- model used
+- context usage 'ctx:0%' when empty color-coded by how full the window is (green < 50%, yellow 50-80%, red > 80%)
+- show weekly/5hr usage percentage used as 'W/5:w%/n% color coded as above.
+Separate all elements with ` | ` do not color these characters.
+
+
+Context Management in long running plans
+Can I write instructions into my plan to have claude check ctx% after each step and compact if >60% and clear at end of each phase?
+
+⏺ Yes, absolutely. The plan file is just instructions — you can add a standing directive like:
+
+Place it near the top of the plan so it's read before execution begins.
+
+  ## Context Management
+
+  After each step:
+  - Check ctx% in status line
+  - If ctx% > 60%, run `/compact`
+
+  ## Phase Boundary Protocol
+
+  At the end of each phase:
+  1. Commit all work
+  2. STOP and prompt user: "Phase X complete. Please run `/clear`, then paste the plan path to continue."
+
+  This makes the phase boundary explicit and puts the /clear in your hands, where it actually has to happen.
+
+  Claude can call /compact itself (it's just a tool call), so that one can be fully automated in the plan.
+
+Track Plan Steps
+Examples commands:
+- Use /plan mode, /SuperPowers and ultrathink to generate a plan that will create in `tanstack-solid-cc` all features and styles found in `tanstack-react-cc`
+- The plan should have left aligned check boxes for each phase and step to track progress
+- Check off each plan Phase and Step when it is complete so the project can be restarted and continue where it left off
+- The plan must include fixing all lint and format errors and warnings found by `npx biome check` This must be done at the end of each phase
