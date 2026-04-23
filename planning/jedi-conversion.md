@@ -44,6 +44,13 @@ Convert `../../../Tailwind4/frontend-tutorial-v3/index.html` (Alpine.js + Tailwi
 
 ## Step-by-Step Conversion Plan
 
+**Procedure**
+
+- Use /superpowers
+- Communicate using /caveman
+- Skip completed phases `[X]`
+- Execute first incomplete phase `[ ]`
+
 ### [ ] Phase 1: CSS Foundation Setup
 
 #### [ ] Step 1.1: Update src/app.css with Custom Properties
@@ -64,6 +71,12 @@ Convert `../../../Tailwind4/frontend-tutorial-v3/index.html` (Alpine.js + Tailwi
 ```
 
 **Verification**: Confirm CSS custom properties are accessible in components
+
+**Step Complete**:
+
+- Check-off step complete
+- Commit changes to git
+- /compact context
 
 ---
 
@@ -87,6 +100,18 @@ import "./app.css";
 ```
 
 **Verification**: Check browser DevTools that Lobster font loads successfully
+
+**Step Complete**:
+
+- Check-off step complete
+- Commit changes to git
+- /compact context
+
+**Phase Complete**:
+
+- Check-off phase complete
+- Summarize phase and commit to git
+- Prompt to clear context and continue with next phase
 
 ---
 
@@ -179,6 +204,14 @@ export default function Hero(props: HeroProps) {
 - Test: CTA button has correct href
 - Test: Title uses Lobster font-family
 
+**Verification** Confirm test passes
+
+**Step Complete**:
+
+- Check-off step complete
+- Commit changes to git
+- /compact context
+
 ---
 
 #### [ ] Step 2.2: Create Image Component
@@ -230,6 +263,14 @@ export default function Image(props: ImageProps) {
 - Test: No link when href not provided
 - Test: Applies custom class
 
+**Verification** Confirm test passes
+
+**Step Complete**:
+
+- Check-off step complete
+- Commit changes to git
+- /compact context
+
 ---
 
 #### [ ] Step 2.3: Create Author Component
@@ -273,6 +314,14 @@ export default function Author(props: AuthorProps) {
 - Test: Default href when not provided
 - Test: Custom href when provided
 - Test: Hover underline class present
+
+**Verification** Confirm test passes
+
+**Step Complete**:
+
+- Check-off step complete
+- Commit changes to git
+- /compact context
 
 ---
 
@@ -325,6 +374,20 @@ export default function Card(props: { title?: string; children: JSX.Element; cla
 - Test: No title element when not provided
 - Test: Applies custom classes
 - Test: Has correct styling classes
+
+**Verification** Confirm test passes
+
+**Step Complete**:
+
+- Check-off step complete
+- Commit changes to git
+- /compact context
+
+**Phase Complete**:
+
+- Check-off phase complete
+- Summarize phase and commit to git
+- Prompt to clear context and continue with next phase
 
 ---
 
@@ -592,6 +655,34 @@ const topCaptions = [
 5. **Alpine.js `x-bind:class`** → Template literal in `class` attribute
 6. **Alpine.js `x-transition`** → TailwindCSS v4 transition utilities + conditional classes
 7. **Custom `[&>*]` selectors** → Use `space-y` utilities or component-scoped styles
+
+**Test File**: `e2e/jedi.spec.ts`
+
+- Test: Displays correct title
+- Test: Displays hero section
+- Test: Displays main article
+- Test: Displays sidebar with categories
+- Test: Toggle mobile sidebar when button clicked
+- Test: Displays three sidebar cards
+- Test: Header navigation is working
+- Test: Displays author info
+- Test: Displays tags for the post
+- Test: Displays post actions (like, edit, delete)
+- Test: Has responsive layout
+
+**Verification** Confirm test passes
+
+**Step Complete**:
+
+- Check-off step complete
+- Commit changes to git
+- /compact context
+
+**Phase Complete**:
+
+- Check-off phase complete
+- Summarize phase and commit to git
+- Prompt to clear context and continue with next phase
 
 ---
 
@@ -922,7 +1013,7 @@ test.describe("Jedi Page", () => {
 
 ---
 
-### [ ] Phase 5: Integration and Verification
+### [ ] Phase 5: Manual Integration and Verification
 
 #### [ ] Step 5.1: Manual Visual Inspection Checklist
 
@@ -1241,7 +1332,7 @@ import { Title, Meta } from "@solidjs/meta";
 - [ ] All tests passing
 - [ ] No console errors in dev mode
 - [ ] No TypeScript errors
-- [ ] Prettier formatting applied
+- [ ] vp config formatting applied
 - [ ] Components documented
 - [ ] E2E tests updated for new nav link
 - [ ] Visual inspection completed (desktop + mobile)

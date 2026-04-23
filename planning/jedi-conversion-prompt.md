@@ -43,3 +43,25 @@ Create a step by step plan to convert the source web page to the target format.
   - Use existing test files as examples
   - The completed step by step plan should be suitable for execution by Claude AI
   - Write the completed step by step plan to the target project jedi-conversion.md
+
+---
+
+# Plan Review (using Opus)
+
+## Review planning/jedi-conversion.md
+
+- Find ways to improve the plan
+  - Make the plan more concise
+  - Eliminate redundant steps or actions
+  - Make the plan more efficient
+  - Make the plan more consistent with superpowers workflow
+
+## Organize the plan for efficiency and code quality
+
+- Redistribute the tests in 'Phase 4 testing' so previous phase tests must pass before the phase is complete
+- Phase 5, 6, 7 and 8 need better organization
+  - There seems to be a lot of redundancy
+  - Clarify phases or steps to be done by Claude vs those done manually by user
+- Phase 8: Deployment Preparation contains example commands for Claude.
+- 'Execution Notes for Claude AI' and 'Commands Reference for Claude' contain much duplication
+  - These should be de-duped and appear at the top of the plan to ensure they are taken into account from the start
