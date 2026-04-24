@@ -44,6 +44,8 @@ Create a step by step plan to convert the source web page to the target format.
   - The completed step by step plan should be suitable for execution by Claude AI
   - Write the completed step by step plan to the target project jedi-conversion.md
 
+⏺ Wrote planning/jedi-conversion.md.
+
 ---
 
 ❯ # Plan Review (using Opus)
@@ -80,7 +82,7 @@ Create a step by step plan to convert the source web page to the target format.
 
 ## Write the updated plan to `planing/jedi-conversion-upd.md`
 
-⏺ Wrote planning/jedi-conversion-upd.md. Key changes from the original:
+⏺ Wrote planning/jedi-conversion-upd.md (renamed jedi-conversion.md). Key changes from the original:
 
 Deduplication / top-of-file context
 
