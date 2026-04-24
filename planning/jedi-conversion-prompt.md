@@ -46,9 +46,18 @@ Create a step by step plan to convert the source web page to the target format.
 
 ---
 
-# Plan Review (using Opus)
+❯ # Plan Review (using Opus)
 
-## Review planning/jedi-conversion.md
+- Respond using /caveman mode
+- Do not provide a /recap at end of session
+
+# Goal:
+
+## Make the Plan more effective and efficient for execution by Claude AI
+
+# Context:
+
+## Read `planning/jedi-conversion.md`
 
 - Find ways to improve the plan
   - Make the plan more concise
@@ -56,12 +65,57 @@ Create a step by step plan to convert the source web page to the target format.
   - Make the plan more efficient
   - Make the plan more consistent with superpowers workflow
 
+# Task:
+
 ## Organize the plan for efficiency and code quality
 
 - Redistribute the tests in 'Phase 4 testing' so previous phase tests must pass before the phase is complete
 - Phase 5, 6, 7 and 8 need better organization
-  - There seems to be a lot of redundancy
-  - Clarify phases or steps to be done by Claude vs those done manually by user
-- Phase 8: Deployment Preparation contains example commands for Claude.
+  - There seems to be a lot of redundancy, consolidate actions into the fewest practical steps
+  - Clarify phases or steps to be done by Claude AI vs those done manually by the user
+  - Place a single user validation phase after the final Claude AI executed phase
+- Phase 8: Deployment Preparation contains example commands for Claude AI.
 - 'Execution Notes for Claude AI' and 'Commands Reference for Claude' contain much duplication
   - These should be de-duped and appear at the top of the plan to ensure they are taken into account from the start
+
+## Write the updated plan to `planing/jedi-conversion-upd.md`
+
+⏺ Wrote planning/jedi-conversion-upd.md. Key changes from the original:
+
+Deduplication / top-of-file context
+
+- Merged "Execution Notes for Claude AI" + "Commands Reference" into a single Execution Notes section at the top
+  (workflow, command table, code output rules).
+- Moved Alpine→Solid mapping into a compact table.
+
+Tests redistributed (old Phase 4 dissolved)
+
+- Each Phase 2 component step now contains its full test source inline — component + test + vpr test:comp
+  verification.
+- Phase 3 now contains both page creation (3.1) and the full e2e spec (3.2).
+- A phase cannot complete until its tests pass.
+
+Phases 5–8 consolidated
+
+- Old Phase 5 (manual visual inspection, re-running tests), Phase 6 (v4 review, perf, a11y, lint), Phase 7 (full test
+
+* build + browser compat), Phase 8 (SEO, deploy checklist) collapsed into:
+  - Phase 4 — Code Quality Audit (Claude): v4 syntax audit → lint/type/full tests → production build.
+  - Phase 5 — User Validation (User): single manual phase covering visual inspection, a11y walk, browser compat,
+    sign-off.
+
+Claude vs user clarified
+
+- Every phase labeled (Claude) or (User). Phase 5 is the sole user-manual phase and runs last.
+
+Moved-forward fixes (no longer a later "review" step)
+
+- Accessibility requirements (button element, aria-label, aria-expanded) are specified in Phase 3.1 so they're built
+  in, not retrofitted.
+- SEO <Title>/<Meta> folded into Phase 3.1 instead of a separate Phase 8 step.
+- Performance rule (static arrays outside component) stated up-front in Execution Notes and Phase 3.1.
+
+Phase 8 deployment commands removed
+
+- Git branch/commit example removed — per your note, that's a user decision, not Claude execution scope. Phase 5 ends
+  with "commit any final fixes and merge/deploy per your normal workflow."
