@@ -2,7 +2,7 @@
 
 # End-to-End test helper script
 # Confirm Back-End server is running
-# Start and confirm Front-End server is running
+# Script starts Front-End server
 # Run Playwright tests
 # Stop Front-End server
 
@@ -59,6 +59,7 @@ done
 
 echo "Server ready, running tests..."
 echo
+echo "Command: vpx playwright test $@"
 
 # Run Playwright tests
 vpx playwright test "$@"
