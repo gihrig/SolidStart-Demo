@@ -736,52 +736,53 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 
 ### Desktop View (1280px+)
 
-- [ ] Hero displays background image with 40% overlay (bg-gray-800/40)
-- [ ] Hero title uses Lobster font
-- [ ] "Get Started" button uses `--primary` color
-- [ ] Nav component visible
-- [ ] Main article in center column (2/3 width), image full-width within card
-- [ ] Caption uses Lobster at text-5xl
-- [ ] Tags are rounded pills; hover → bg-gray-500 + white text
-- [ ] Sidebar in right column (1/3); three cards: Categories, Top Photos, Top Captions
-- [ ] Category items show icons and labels; hover states on list items
+- [0] Hero displays background image with 40% overlay (bg-gray-800/40) <-- Yes but uses --theme-accent should be white
+- [x] Hero title uses Lobster font
+- [0] "Get Started" button uses `--primary` color <-- yes, but uses `style` should use `class`
+- [0] Nav component visible <-- Source `Nav` removed due to conflict
+- [0] Main article in center column (2/3 width), image full-width within card <-- Yes but image is flush left
+- [0] Caption uses Lobster at text-5xl <-- Yes, but uses `style` for font
+- [0] Tags are rounded pills; hover → bg-gray-500 + white text <-- Yes, but foreground contrast is unreadable
+- [0] Sidebar in right column (1/3); three cards: Categories, Top Photos, Top Captions <-- Yes, but card border missing, background color is wrong
+- [0] Category items show icons and labels; hover states on list items <-- Yes but icon contrast is poor
+- [0] Overall should use tailwind classes, not `style` attribute
 
 ### Mobile View (375px)
 
-- [ ] Hero stacks vertically
-- [ ] Mobile "Categories" toggle button appears
-- [ ] Clicking toggle shows/hides sidebar; arrow icon rotates
-- [ ] Main article full width; no horizontal scroll
-- [ ] Interactive elements touch-friendly (min 44px)
+- [x] Hero stacks vertically
+- [x] Mobile "Categories" toggle button appears
+- [x] Clicking toggle shows/hides sidebar; arrow icon rotates
+- [x] Main article full width; no horizontal scroll
+- [x] Interactive elements touch-friendly (min 44px)
 
 ### Tablet (768px)
 
-- [ ] Smooth transition mobile → desktop
-- [ ] Sidebar always visible; mobile toggle hidden
+- [x] Smooth transition mobile → desktop
+- [x] Sidebar always visible; mobile toggle hidden
 
 ### Hover / Animation
 
-- [ ] Nav links change bg on hover
-- [ ] CTA darkens to `--primary-hover`
-- [ ] Author name underlines on hover
-- [ ] Hero title fades in on page load
-- [ ] Mobile sidebar transitions smoothly; arrow rotation smooth (300ms)
+- [0] Nav links change bg on hover <-- `Get Started` has no hover state. Card link have poor contrast on hover
+- [-] CTA (get Started) darkens to `--primary-hover` <-- no hover state
+- [x] Author name underlines on hover
+- [x] Hero title fades in on page load
+- [-] Mobile sidebar transitions smoothly; arrow rotation smooth (300ms) <-- no duration in browser code
 
 ### Accessibility (manual)
 
-- [ ] Keyboard Tab reaches all actionable elements
-- [ ] Tab navigation reaches "Categories" toggle in small-screen mode
-- [ ] Focus indicators visible
-- [ ] Screen-reader basic navigation works
-- [ ] (Optional) Run axe DevTools — no critical issues
+- [x] Keyboard Tab reaches all actionable elements
+- [x] Tab navigation reaches "Categories" toggle in small-screen mode
+- [x] Focus indicators visible
+- [x] Screen-reader basic navigation works <-- Ctrl-Home does not move to top
+- [-] (Optional) Run axe DevTools — no critical issues <-- Not tested
 
 ### Browser Compatibility
 
-- [ ] Chrome / Edge (latest)
-- [ ] Firefox (latest)
-- [ ] Safari (latest)
-- [ ] Mobile Safari (iOS)
-- [ ] Chrome Mobile (Android)
+- [x] Chrome / Edge (latest)
+- [x] Firefox (latest)
+- [x] Safari (latest)
+- [-] Mobile Safari (iOS) <-- Not tested
+- [-] Chrome Mobile (Android) <-- Not tested
 
 Check in each: layout, Lobster font rendering, animation smoothness, touch, image loading.
 

@@ -1,5 +1,11 @@
 {
   "permissions": {
-    "allow": ["WebSearch", "WebFetch(domain:tanstack.com)"]
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:tanstack.com)",
+      "Bash(vp i *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
   }
 }
