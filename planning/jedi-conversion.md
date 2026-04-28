@@ -2,9 +2,12 @@
 
 ## Overview
 
-Convert `/Users/glen/Documents/Development/Study/Tailwind4/frontend-tutorial-v3/index.html` (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.tsx` (SolidStart v1.3.2 + TailwindCSS v4.2.2) with component extraction. Replace the existing `jedi.tsx` placeholder.
+Convert the Source project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.tsx` (SolidStart v1.3.2 + TailwindCSS v4.2.2) with component extraction. Replace the existing `jedi.tsx` placeholder.
 
-**Target project**: `/Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo`
+**Source Project** `/Users/glen/Documents/Development/Study/Tailwind4/frontend-tutorial-v3/index.html`
+**Source Appearance** `/Users/glen/Documents/Development/Study/Tailwind4/frontend-tutorial-v3/Awesome.png`
+**Tanstack Project** `/Users/glen/Documents/Development/Study/Javascript/TanStack/tanstack-solid-cc/src/`
+**Target project** `/Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo`
 
 ---
 
@@ -14,16 +17,18 @@ Read this section before starting any phase.
 
 ### Workflow
 
-- Use `/superpowers` (systematic-debugging, TDD, verification-before-completion)
-- Communicate using `/caveman`
-- Execute first incomplete phase `[ ]`. Skip completed phases `[X]`.
+- Use `karpathy-guidelines` skills
+- Use `superpowers` (systematic-debugging, TDD, verification-before-completion)
+- Use `solidjs-solidstart-expert` skills
+- Use `tailwind-design-system` when creating styles
+- Use `caveman` to communicate
+- The completed **Target project** must match **Source Appearance**
 - Phases labeled **(Claude)** are executed by Claude AI.
-- The **final phase is labeled (User)** and performs manual validation after all Claude phases complete.
+- Execute first incomplete phase with `[ ] Phase...`. Skip completed phases `[√] Phase...`.
+- The **final phase is labeled (User)** this is manual validation after all Claude phases are complete.
 - Within each Claude phase:
   1. Execute each step in order.
-  2. Run the step's verification (tests/checks) — **tests must pass before marking the step complete**.
-  3. Check off the step, commit, `/compact` context.
-  4. After final step in the phase: check off the phase, summarize + commit, prompt user to clear context and continue.
+  2. Run the step's verification (tests/checks) — **tests must pass before the step is complete**.
 
 ### Commands Reference
 
@@ -63,7 +68,7 @@ Read this section before starting any phase.
 1. **Arbitrary values**: `[&>*]:px-8` → standard v4 utilities or custom classes
 2. **Important modifiers**: `md:!block` → `md:block!`
 3. **Color opacity**: `bg-opacity-40` → `bg-gray-800/40`
-4. **Custom properties**: `text-(--theme-accent)` pattern already used in target
+4. **Custom properties**: `text-(--theme-accent)` pattern already used in **Target project**
 5. **Font family**: Google Fonts 'Lobster' integration required
 
 ### Visual Features to Preserve
@@ -131,8 +136,6 @@ Read this section before starting any phase.
 
 **Verification**: `vpr check` passes.
 
-**Step Complete**: Check-off, commit, `/compact`.
-
 ---
 
 ### [ ] Step 1.2: Install and Import Lobster Font
@@ -150,9 +153,10 @@ import "./app.css";
 
 **Verification**: `vpr dev` renders; DevTools shows Lobster font loaded.
 
-**Step Complete**: Check-off, commit, `/compact`.
+**Phase Complete**:
 
-**Phase Complete**: Check-off phase, summarize + commit, prompt user to clear context and restart.
+- Write a commit message in "Conventional Commit" format `feat(jedi): Phase X complete - <summary>` summarizing the changes in this phase.
+- Stop. Wait for user reply before proceeding to the next phase.
 
 ---
 
@@ -164,7 +168,7 @@ Each component ships with its tests. Tests must pass before the step is marked c
 
 **File**: `src/components/Hero.tsx`
 
-**Source**: `<hero>` section from source `index.html`.
+**Source**: `<hero>` section from **Source Project** `index.html`.
 
 **Props**:
 
@@ -240,15 +244,13 @@ describe('<Hero />', () => {
 
 **Verification**: `vpr test:comp` — Hero tests pass.
 
-**Step Complete**: Check-off, commit, `/compact`.
-
 ---
 
 ### [ ] Step 2.2: Create Image Component + Tests
 
 **File**: `src/components/Image.tsx`
 
-**Source**: `<article><figure>` section.
+**Source**: **Source Project** `<article><figure>` section.
 
 **Props**:
 
@@ -308,15 +310,13 @@ describe('<Image />', () => {
 
 **Verification**: `vpr test:comp` — Image tests pass.
 
-**Step Complete**: Check-off, commit, `/compact`.
-
 ---
 
 ### [ ] Step 2.3: Create Author Component + Tests
 
 **File**: `src/components/Author.tsx`
 
-**Source**: `<article><div>` author avatar/name section.
+**Source**: **Source Project** `<article><div>` author avatar/name section.
 
 **Props**:
 
@@ -369,15 +369,13 @@ describe('<Author />', () => {
 
 **Verification**: `vpr test:comp` — Author tests pass.
 
-**Step Complete**: Check-off, commit, `/compact`.
-
 ---
 
 ### [ ] Step 2.4: Create Card Component + Tests
 
 **File**: `src/components/Card.tsx`
 
-**Source**: `<section class="card">` sidebar sections.
+**Source**: **Source Project** `<section class="card">` sidebar sections.
 
 **Props**:
 
@@ -438,9 +436,10 @@ describe('<Card />', () => {
 
 **Verification**: `vpr test:comp` — all component tests pass (14 total).
 
-**Step Complete**: Check-off, commit, `/compact`.
+**Phase Complete**:
 
-**Phase Complete**: Check-off phase, summarize + commit, prompt user to clear context and restart.
+- Write a commit message in "Conventional Commit" format `feat(jedi): Phase X complete - <summary>` summarizing the changes in this phase.
+- Stop. Wait for user reply before proceeding to the next phase.
 
 ---
 
@@ -453,15 +452,20 @@ describe('<Card />', () => {
 **Requirements**:
 
 1. Import components (Nav, Hero, Image, Author, Card).
-2. Implement mobile sidebar toggle with `createSignal`.
-3. Convert Alpine.js `x-show` → `<Show>`, transitions → TailwindCSS v4 utilities.
-4. Responsive grid: mobile stacked → desktop 2-col main + 1-col sidebar.
-5. Include `<Title>` and `<Meta description>` from `@solidjs/meta`.
-6. **Accessibility baseline** (include from the start, not as a later fix):
-   - Mobile toggle uses `<button type="button">` (not `<a>`).
-   - Mobile toggle has `aria-label="Toggle sidebar"` and `aria-expanded={mobileSidebarOpen()}`.
-   - Decorative icons use `alt=""`; content images use meaningful alt.
-7. **Performance**: Declare `categories`, `topPhotos`, `topCaptions` as constants **outside** the component.
+2. Keep the **Source Project** `<header>` element. Place it within `<main>` in the **Target Project**
+3. When creating styles in the **Target project** convert to Tailwind v4 `class=...` syntax.
+4. Avoid using the `<style=...>` element.
+5. Implement mobile sidebar toggle with `createSignal`.
+6. Convert Alpine.js `x-show` → `<Show>`, transitions → TailwindCSS v4 utilities.
+7. Responsive grid: mobile stacked → desktop 2-col main + 1-col sidebar.
+8. Include `<Title>` and `<Meta description>` from `@solidjs/meta`.
+9. **Accessibility baseline** (include from the start, not as a later fix):
+
+- Mobile toggle uses `<button type="button">` (not `<a>`).
+- Mobile toggle has `aria-label="Toggle sidebar"` and `aria-expanded={mobileSidebarOpen()}`.
+- Decorative icons use `alt=""`; content images use meaningful alt.
+
+10. **Performance**: Declare `categories`, `topPhotos`, `topCaptions` as constants **outside** the component.
 
 **Component structure (outline)**:
 
@@ -567,11 +571,38 @@ export default function Jedi() {
 
 **Verification**: `vpr dev` → http://localhost:3000/jedi renders without console errors.
 
-**Step Complete**: Check-off, commit, `/compact`.
+---
+
+### [ ] Step 3.2: Create Dark/Light toggle
+
+- Import **Tanstack Project** `components/ThemeToggle.tsx`
+- Reference **Tanstack Project** `styles.css` for file structure and dark/light theme values
+- Add Dark/Light toggle button page <header> element use `<script innerHTML={THEME_INIT_SCRIPT} />
+- Use sun/moon/system icons to indicate the state resulting from a button click
+- Add `THEME_INIT_SCRIPT`
+
+```typescript
+const THEME_INIT_SCRIPT = `(function(){
+  try {
+    var stored=window.localStorage.getItem('theme');
+    var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';
+    var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;
+    var root=document.documentElement;root.classList.remove('light','dark');
+    root.classList.add(resolved);
+    if(mode==='auto'){
+      root.removeAttribute('data-theme')
+    }else{
+     root.setAttribute('data-theme',mode)
+    }
+    root.style.colorScheme=resolved;
+  } catch(e){}})();
+}`;
+```
 
 ---
 
-### [ ] Step 3.2: Write E2E Tests
+### [ ] Step 3.3: Write E2E Tests
 
 **File**: `e2e/jedi.spec.ts` (file exists — update with the tests below)
 
@@ -667,9 +698,10 @@ test.describe("Jedi Page", () => {
 
 **Verification**: `vpr test:e2e ./e2e/jedi.spec.ts` — all e2e tests pass.
 
-**Step Complete**: Check-off, commit, `/compact`.
+**Phase Complete**:
 
-**Phase Complete**: Check-off phase, summarize + commit, prompt user to clear context and restart.
+- Write a commit message in "Conventional Commit" format `feat(jedi): Phase X complete - <summary>` summarizing the changes in this phase.
+- Stop. Wait for user reply before proceeding to the next phase.
 
 ---
 
@@ -724,7 +756,10 @@ vpr start
 
 Smoke-test http://localhost:3000/jedi in production mode: page loads, no console errors.
 
-**Phase Complete**: Check-off phase, summarize + commit, prompt to hand off to user to clear and Phase 5.
+**Phase Complete**:
+
+- Write a commit message in "Conventional Commit" format `feat(jedi): Phase X complete - <summary>` summarizing the changes in this phase.
+- Stop. Wait for user reply before proceeding to the next phase.
 
 ---
 
@@ -736,53 +771,55 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 
 ### Desktop View (1280px+)
 
-- [0] Hero displays background image with 40% overlay (bg-gray-800/40) <-- Yes but uses --theme-accent should be white
-- [x] Hero title uses Lobster font
-- [0] "Get Started" button uses `--primary` color <-- yes, but uses `style` should use `class`
-- [0] Nav component visible <-- Source `Nav` removed due to conflict
-- [0] Main article in center column (2/3 width), image full-width within card <-- Yes but image is flush left
-- [0] Caption uses Lobster at text-5xl <-- Yes, but uses `style` for font
-- [0] Tags are rounded pills; hover → bg-gray-500 + white text <-- Yes, but foreground contrast is unreadable
-- [0] Sidebar in right column (1/3); three cards: Categories, Top Photos, Top Captions <-- Yes, but card border missing, background color is wrong
-- [0] Category items show icons and labels; hover states on list items <-- Yes but icon contrast is poor
-- [0] Overall should use tailwind classes, not `style` attribute
+- [ ] Hero displays background image with 40% overlay (bg-gray-800/40)
+- [ ] Hero title uses Lobster font
+- [ ] Hero title uses Tile Case
+- [ ] Hero title use while text color
+- [ ] "Get Started" button uses `--primary` color
+- [ ] Nav component visible
+- [ ] Main article in center column (2/3 width), image full-width within card
+- [ ] Caption uses Lobster at text-5xl
+- [ ] Tags are rounded pills; hover → bg-gray-500 + white text
+- [ ] Sidebar in right column (1/3); three cards: Categories, Top Photos, Top Captions
+- [ ] Category items show icons and labels; hover states on list items
+- [ ] Overall should use tailwind classes, not `style` attribute
 
 ### Mobile View (375px)
 
-- [x] Hero stacks vertically
-- [x] Mobile "Categories" toggle button appears
-- [x] Clicking toggle shows/hides sidebar; arrow icon rotates
-- [x] Main article full width; no horizontal scroll
-- [x] Interactive elements touch-friendly (min 44px)
+- [ ] Hero stacks vertically
+- [ ] Mobile "Categories" toggle button appears
+- [ ] Clicking toggle shows/hides sidebar; arrow icon rotates
+- [ ] Main article full width; no horizontal scroll
+- [ ] Interactive elements touch-friendly (min 44px)
 
 ### Tablet (768px)
 
-- [x] Smooth transition mobile → desktop
-- [x] Sidebar always visible; mobile toggle hidden
+- [ ] Smooth transition mobile → desktop
+- [ ] Sidebar always visible; mobile toggle hidden
 
 ### Hover / Animation
 
-- [0] Nav links change bg on hover <-- `Get Started` has no hover state. Card link have poor contrast on hover
-- [-] CTA (get Started) darkens to `--primary-hover` <-- no hover state
-- [x] Author name underlines on hover
-- [x] Hero title fades in on page load
-- [-] Mobile sidebar transitions smoothly; arrow rotation smooth (300ms) <-- no duration in browser code
+- [ ] Nav links change bg on hover to match **Source Project**
+- [ ] CTA (get Started) darkens to `--primary-hover`
+- [ ] Author name underlines on hover
+- [ ] Hero title fades in on page load
+- [ ] Mobile sidebar transitions smoothly; arrow rotation smooth (300ms)
 
 ### Accessibility (manual)
 
-- [x] Keyboard Tab reaches all actionable elements
-- [x] Tab navigation reaches "Categories" toggle in small-screen mode
-- [x] Focus indicators visible
-- [x] Screen-reader basic navigation works <-- Ctrl-Home does not move to top
-- [-] (Optional) Run axe DevTools — no critical issues <-- Not tested
+- [ ] Keyboard Tab reaches all actionable elements
+- [ ] Tab navigation reaches "Categories" toggle in small-screen mode
+- [ ] Focus indicators visible
+- [ ] Screen-reader basic navigation works <-- Ctrl-Home does not move to top
+- [ ] (Optional) Run axe DevTools — no critical issues
 
 ### Browser Compatibility
 
-- [x] Chrome / Edge (latest)
-- [x] Firefox (latest)
-- [x] Safari (latest)
-- [-] Mobile Safari (iOS) <-- Not tested
-- [-] Chrome Mobile (Android) <-- Not tested
+- [ ] Chrome / Edge (latest)
+- [ ] Firefox (latest)
+- [ ] Safari (latest)
+- [ ] Mobile Safari (iOS)
+- [ ] Chrome Mobile (Android)
 
 Check in each: layout, Lobster font rendering, animation smoothness, touch, image loading.
 
@@ -798,7 +835,7 @@ When the above passes, the conversion is **complete**. Commit any final fixes an
 2. `src/routes/jedi.tsx` functional with all sections
 3. All component tests pass (14)
 4. All E2E tests pass (~9)
-5. Visual appearance matches source project
+5. Visual appearance matches **Source Appearance**
 6. Mobile sidebar toggle works
 7. TailwindCSS v4 syntax throughout; no Alpine.js dependencies
 8. Accessibility baseline met (semantic buttons, aria-label, aria-expanded, focus indicators)
