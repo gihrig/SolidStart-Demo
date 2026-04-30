@@ -168,21 +168,21 @@ And add a dark/light mode step (Step 3.2) with concrete implementation details b
 
 # Goal:
 
-Update **Source Project** `planning/jedi-conversion.md` to include Integrate Dark/Light/System mode toggle function
+Update **Target Project** `planning/jedi-conversion.md` to include 'Integrate Dark/Light/System' mode toggle function
 
 # Context
 
-**Tanstack Project** `/Users/glen/Documents/Development/Study/Javascript/TanStack/tanstack-solid-cc/src/`
+**Tanstack Project** `/Users/glen/Documents/Development/Study/Javascript/TanStack/tanstack-solid-cc/`
 **Target project** `/Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo`
 
 - Review **Target project** `planning/jedi-conversion.md` Phase 3 steps 3.2 and 3.3 and related files
-- Review **Tanstack Project** `Tanstack-Solid-cc project` for UI details
+- Review **Tanstack Project** `Tanstack-Solid-cc project/src` for UI details
 
 # Task
 
-- Expand **Target project** `planning/jedi-conversion.md` steps 3.2 and 3.3 to make those steps fully executable by Claude AI
+- Expand **Target project** `planning/jedi-conversion.md` steps 3.2 and 3.3 to make those steps efficiently executable by Claude AI
 - Ensure that Claude AI can:
   - Add dark/light/system toggle button to page header
-  - Add tests to step 3.3 that validate dark/light/system mode toggle function
+  - Add tests to step 3.3 that validate Dark/Light/System mode toggle function
 - Recommend changes and wait for approval
 - Write updated plan to `planning/jedi-conversion-upd.md`

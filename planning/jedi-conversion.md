@@ -6,7 +6,7 @@ Convert the Source project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.
 
 **Source Project** `/Users/glen/Documents/Development/Study/Tailwind4/frontend-tutorial-v3/index.html`
 **Source Appearance** `/Users/glen/Documents/Development/Study/Tailwind4/frontend-tutorial-v3/Awesome.png`
-**Tanstack Project** `/Users/glen/Documents/Development/Study/Javascript/TanStack/tanstack-solid-cc/src/`
+**Tanstack Project** `/Users/glen/Documents/Development/Study/Javascript/TanStack/tanstack-solid-cc/`
 **Target project** `/Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo`
 
 ---
@@ -24,11 +24,12 @@ Read this section before starting any phase.
 - Use `caveman` to communicate
 - The completed **Target project** must match **Source Appearance**
 - Phases labeled **(Claude)** are executed by Claude AI.
-- Execute first incomplete phase with `[ ] Phase...`. Skip completed phases `[√] Phase...`.
+- Skip completed phases: `[√] Phase...`.
+- Execute first incomplete phase: `[ ] Phase...`.
 - The **final phase is labeled (User)** this is manual validation after all Claude phases are complete.
 - Within each Claude phase:
   1. Execute each step in order.
-  2. Run the step's verification (tests/checks) — **tests must pass before the step is complete**.
+  2. Run the step's verification (tests/checks) — **tests/checks must pass before the step is complete**.
 
 ### Commands Reference
 
@@ -49,8 +50,10 @@ Read this section before starting any phase.
 - Output complete code for each file (no truncation).
 - If tests fail, analyze the root cause and fix before proceeding (no skipping).
 - Static data arrays belong **outside** the component function.
-- Signal naming follows `[value, setValue]`. Props interfaces named `<Component>Props`.
-- Component names PascalCase. Imports ordered: external → internal → components.
+- Signal naming follows `[value, setValue]`.
+- Props interfaces named `<Component>Props`.
+- Component names PascalCase.
+- Imports ordered: external → internal → components.
 
 ---
 
@@ -82,7 +85,7 @@ Read this section before starting any phase.
 
 ### Visual Features to Create
 
-- Dark/light mode toggle
+- Dark/light/System mode toggle
 - Keyboard navigation:
   - Tab stops on all actionable elements
   - Tab selects "Categories" when in small-screen mode
@@ -742,24 +745,30 @@ All must pass with no errors and no warnings. Fix any failures before continuing
 
 ---
 
-### [ ] Step 4.3: Production Build Verification
+### [ ] Step 4.3: Production Build
 
 ```bash
 vpr build
 ```
 
-Verify: no build errors, no TS errors, no missing deps, bundle size reasonable.
-
 ```bash
 vpr start
 ```
 
-Smoke-test http://localhost:3000/jedi in production mode: page loads, no console errors.
+**Verification**
+
+- No build errors
+- No TS errors
+- No missing deps
+- Bundle size reasonable.
+- Open http://localhost:3000/jedi
+  - page loads
+  - no console errors.
 
 **Phase Complete**:
 
 - Write a commit message in "Conventional Commit" format `feat(jedi): Phase X complete - <summary>` summarizing the changes in this phase.
-- Stop. Wait for user reply before proceeding to the next phase.
+- Stop.
 
 ---
 
@@ -774,7 +783,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 - [ ] Hero displays background image with 40% overlay (bg-gray-800/40)
 - [ ] Hero title uses Lobster font
 - [ ] Hero title uses Tile Case
-- [ ] Hero title use while text color
+- [ ] Hero title uses white text color
 - [ ] "Get Started" button uses `--primary` color
 - [ ] Nav component visible
 - [ ] Main article in center column (2/3 width), image full-width within card
@@ -805,12 +814,13 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 - [ ] Hero title fades in on page load
 - [ ] Mobile sidebar transitions smoothly; arrow rotation smooth (300ms)
 
-### Accessibility (manual)
+### Accessibility
 
 - [ ] Keyboard Tab reaches all actionable elements
 - [ ] Tab navigation reaches "Categories" toggle in small-screen mode
 - [ ] Focus indicators visible
-- [ ] Screen-reader basic navigation works <-- Ctrl-Home does not move to top
+- [ ] Screen-reader basic navigation works
+- [ ] Ctrl-Home moves to top
 - [ ] (Optional) Run axe DevTools — no critical issues
 
 ### Browser Compatibility
@@ -825,7 +835,7 @@ Check in each: layout, Lobster font rendering, animation smoothness, touch, imag
 
 ### Sign-off
 
-When the above passes, the conversion is **complete**. Commit any final fixes and merge/deploy per your normal workflow.
+When the above passes, the conversion is **complete**. Commit any final fixes and merge/deploy per the normal workflow.
 
 ---
 
@@ -833,7 +843,7 @@ When the above passes, the conversion is **complete**. Commit any final fixes an
 
 1. All 4 components created with TypeScript interfaces
 2. `src/routes/jedi.tsx` functional with all sections
-3. All component tests pass (14)
+3. All component tests pass (~14)
 4. All E2E tests pass (~9)
 5. Visual appearance matches **Source Appearance**
 6. Mobile sidebar toggle works
