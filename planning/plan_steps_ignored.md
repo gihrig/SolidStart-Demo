@@ -186,3 +186,29 @@ Update **Target Project** `planning/jedi-conversion.md` to include 'Integrate Da
   - Add tests to step 3.3 that validate Dark/Light/System mode toggle function
 - Recommend changes and wait for approval
 - Write updated plan to `planning/jedi-conversion-upd.md`
+
+⏺ Written to planning/jedi-conversion-upd.md. Here's what changed from the original:
+
+Step 3.2 — Expanded from 6 bullet points into 5 concrete sub-steps:
+
+- 3.2.1: CSS dark mode variables (app.css) — before/after with exact code
+- 3.2.2: FOUC-prevention init script (entry-server.tsx) — before/after with exact placement
+- 3.2.3: ThemeToggle.tsx component — full code with SVG icons, type definitions, helpers, and icon-to-mode mapping
+  table
+- 3.2.4: ThemeToggle.test.tsx — 6 tests covering rendering, localStorage, mode cycling, DOM class application, and
+  data-theme attribute
+- 3.2.5: Integration into Jedi page header with placement guidance
+
+Step 3.3 — Added 4 new E2E tests in a separate test.describe("Jedi Page - Theme Toggle") block:
+
+- Toggle button visibility
+- Mode cycling with aria-label and HTML class/attribute assertions
+- localStorage persistence across page reload
+- System preference via page.emulateMedia({ colorScheme })
+
+Phase 4 — Added ThemeToggle.tsx to the v4 syntax audit grep, updated test count to ~20
+
+Phase 5 — Added "Theme Toggle" validation section (7 checklist items), added theme toggle to accessibility checks
+
+Success Criteria — Updated from 10 to 12 items, adding ThemeToggle component count, theme toggle functionality, and
+FOUC prevention
