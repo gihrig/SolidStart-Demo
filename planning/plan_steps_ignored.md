@@ -212,3 +212,185 @@ Phase 5 — Added "Theme Toggle" validation section (7 checklist items), added t
 
 Success Criteria — Updated from 10 to 12 items, adding ThemeToggle component count, theme toggle functionality, and
 FOUC prevention
+
+---
+
+Manual: Move project global statements from `jedi-conversion-md` to .claude/CLAUDE.md
+
+---
+
+❯ Review `planning/jedi-conversion.md` for accuracy and efficiency report any recommended improvements
+
+⏺ Agent "Check project dependencies and config" completed
+⏺ Agent "Verify plan accuracy against sources" completed
+⏺ Both agents are back. Here's the full accuracy and efficiency review.
+
+---
+
+Critical Issues (will cause bugs or broken UI)
+
+1. Duplicate Nav rendering
+
+src/app.tsx already renders <Nav /> globally in the Router root:
+
+root={(props) => (
+<>
+<MetaProvider>
+
+<Nav />
+<Suspense>{props.children}</Suspense>
+<Footer />
+</MetaProvider>
+</>
+)}
+
+Step 3.1 imports and renders <Nav /> again inside jedi.tsx. The page will show two Nav bars.
+
+Fix: Remove the <Nav /> import/render from jedi.tsx.
+
+---
+
+2. Global CSS will override Jedi styles
+
+src/app.css lines 22-34 have global @apply rules that will break the Jedi page:
+
+main {
+@apply mx-auto p-4 text-center text-xl text-(--theme-foreground);
+}
+h1 {
+@apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase;
+}
+h2 {
+@apply ml-8 text-left text-2xl font-thin text-(--theme-accent) uppercase;
+}
+p {
+@apply mx-8 mb-6 text-justify;
+}
+
+These will override:
+
+- Hero <h1> — global forces font-thin text-(--theme-accent) uppercase, but Jedi needs font-bold text-white with
+  Lobster font
+- <main> — global forces text-center text-xl p-4, but Jedi needs left-aligned article layout
+- Card <h2> titles — global forces ml-8 font-thin uppercase text-(--theme-accent)
+- Article <p> — global forces mx-8 text-justify
+
+Fix: The plan needs a step to scope these globals (e.g., wrap them in a :where() or move them to route-specific CSS)
+or override them explicitly in Jedi components.
+
+---
+
+3. Missing Jedi header conversion
+
+The Jedi source index.html has a complex header (lines 37-120) with:
+
+- Mobile hamburger menu with x-data="{ mobilenavOpen: false }"
+- Profile dropdown with x-data="{ dropdownOpen: false }" and click-away
+- Alpine.js transitions on both
+- Links: Home, Create Post, profile dropdown (Bart avatar)
+
+Step 3.1 requirement #2 says "Keep the Jedi Project index.html <header> element" — but the component outline just
+imports the existing <Nav />, which is a completely different component (bg-sky-800, no hamburger, no dropdown, no
+profile). No step creates a JediHeader component or converts the Alpine.js header logic.
+
+Fix: Either create a JediHeader component converting the source header, or explicitly state the existing Nav replaces
+it (and remove requirement #2).
+
+---
+
+4. style attribute contradiction
+
+Step 3.1 requirement #4 says: "Avoid using the <style=...> element."
+
+But the Hero component in Step 2.1 uses style four times:
+style={{ "background-image": `url('${props.backgroundImage}')` }}
+style={{ "font-family": "var(--font-lobster)" }}
+style={{ "background-color": "var(--primary)", "box-shadow": "..." }}
+
+Fix: Either convert these to Tailwind utilities (e.g., bg-[url(...)], font-(--font-lobster), bg-(--primary)) or relax
+requirement #4 to allow style where Tailwind can't express the value.
+
+---
+
+Accuracy Errors
+
+5. Hero h1 font-size is wrong
+
+Plan says text-6xl in the Hero component. The Jedi source style.css defines:
+h1 {
+font-size: 4rem; /_ = text-7xl, not text-6xl _/
+}
+
+text-6xl = 3.75rem. text-7xl = 4.5rem. The source is 4rem, which is between the two — closest to text-7xl or use
+text-[4rem].
+
+---
+
+6. E2E test count is wrong
+
+Plan claims "~13 tests: 9 existing + 4 theme toggle". The existing e2e/jedi.spec.ts has 8 tests, not 9. The plan's
+replacement adds 9 Jedi tests + 4 theme tests = 13 total (correct total, wrong breakdown).
+
+---
+
+7. Card dark mode not addressed
+
+The Jedi source style.css .card class sets background-color: white. The Card component in Step 2.4 has no background
+color at all — and the plan adds dark mode support in Step 3.2 but never gives cards a dark-mode-aware background.
+Cards will be transparent (or inherit the dark body background) with no visual distinction.
+
+Fix: Add bg-white dark:bg-gray-800 (or similar) to the Card component.
+
+---
+
+Efficiency Improvements
+
+8. Font loaded globally but used on one page
+
+Step 1.2 adds import "@fontsource/lobster" to app.tsx, loading the Lobster font on every page. Only the Jedi page uses
+it. Move the import to jedi.tsx for better code splitting.
+
+---
+
+9. ThemeToggle placement is page-specific but effect is global
+
+Step 3.2.5 places <ThemeToggle /> inside the Jedi page header only. But the CSS variables and init script are global
+(affecting all pages). Users who toggle theme on /jedi will see the effect on other pages — but have no toggle to
+change it back. The toggle belongs in the global <Nav /> component.
+
+---
+
+10. Footer e2e assertions dropped silently
+
+The existing 8 e2e tests include 4 that verify footer links and structure. The plan replaces all tests without
+mentioning this. The global <Footer /> from app.tsx will still render on the Jedi page — those assertions may still be valid and should either be preserved or explicitly noted as dropped.
+
+---
+
+11. plan_steps_ignored.md lessons not fully applied
+
+That file documents prior execution failures (checkboxes not updated, phase-complete prompts skipped). The current
+plan does include phase-complete commit/stop instructions — good. But it still has the structural issue of
+requirements that contradict the code (issues #3 and #4 above), which was the root cause of prior execution drift.
+
+---
+
+Summary
+
+```
+┌────────────────────────────┬───────┐
+│ Category                   │ Count │
+├────────────────────────────┼───────┤
+│ Critical (will cause bugs) │   4   │
+├────────────────────────────┼───────┤
+│ Accuracy errors            │   3   │
+├────────────────────────────┼───────┤
+│ Efficiency improvements    │   4   │
+└────────────────────────────┴───────┘
+```
+
+The three highest-impact fixes: (1) remove duplicate Nav from jedi.tsx, (2) scope or override the global CSS rules in
+app.css, and (3) decide on the Jedi header — either convert the Alpine.js source header into a component or drop
+requirement #2.
+
+claude --resume 574da5f3-6783-4b97-b650-ad1a0756bf8c
