@@ -2,60 +2,7 @@
 
 ## Overview
 
-Convert the Source project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.tsx` (SolidStart v1.3.2 + TailwindCSS v4.2.2) with component extraction. Replace the existing `jedi.tsx` placeholder.
-
-**Source Project** `/Users/glen/Documents/Development/Study/Tailwind4/frontend-tutorial-v3/index.html`
-**Source Appearance** `/Users/glen/Documents/Development/Study/Tailwind4/frontend-tutorial-v3/Awesome.png`
-**Tanstack Project** `/Users/glen/Documents/Development/Study/Javascript/TanStack/tanstack-solid-cc/`
-**Target project** `/Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo`
-
----
-
-## Execution Notes (for Claude AI)
-
-Read this section before starting any phase.
-
-### Workflow
-
-- Use `karpathy-guidelines` skills
-- Use `superpowers` (systematic-debugging, TDD, verification-before-completion)
-- Use `solidjs-solidstart-expert` skills
-- Use `tailwind-design-system` when creating styles
-- Use `caveman` to communicate
-- The completed **Target project** must match **Source Appearance**
-- Phases labeled **(Claude)** are executed by Claude AI.
-- Skip completed phases: `[√] Phase...`.
-- Execute first incomplete phase: `[ ] Phase...`.
-- The **final phase is labeled (User)** this is manual validation after all Claude phases are complete.
-- Within each Claude phase:
-  1. Execute each step in order.
-  2. Run the step's verification (tests/checks) — **tests/checks must pass before the step is complete**.
-
-### Commands Reference
-
-| Command          | Purpose                             |
-| ---------------- | ----------------------------------- |
-| `vpr dev`        | Start dev server (port 3000)        |
-| `vpr check`      | Format, lint, type-check (auto-fix) |
-| `vpr check:type` | Type-check only (`tsc --noEmit`)    |
-| `vpr test:comp`  | Run component tests                 |
-| `vpr test:unit`  | Run unit tests                      |
-| `vpr test:e2e`   | Run Playwright e2e tests            |
-| `vpr build`      | Production build                    |
-| `vpr start`      | Serve production build              |
-| `vp i <pkg>`     | Install a package via Vite+         |
-
-### Code Output Rules
-
-- Output complete code for each file (no truncation).
-- If tests fail, analyze the root cause and fix before proceeding (no skipping).
-- Static data arrays belong **outside** the component function.
-- Signal naming follows `[value, setValue]`.
-- Props interfaces named `<Component>Props`.
-- Component names PascalCase.
-- Imports ordered: external → internal → components.
-
----
+Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.tsx` (SolidStart v1.3.2 + TailwindCSS v4.2.2) with component extraction. Replace the existing `jedi.tsx` placeholder.
 
 ## Source Analysis Summary
 
@@ -71,7 +18,7 @@ Read this section before starting any phase.
 1. **Arbitrary values**: `[&>*]:px-8` → standard v4 utilities or custom classes
 2. **Important modifiers**: `md:!block` → `md:block!`
 3. **Color opacity**: `bg-opacity-40` → `bg-gray-800/40`
-4. **Custom properties**: `text-(--theme-accent)` pattern already used in **Target project**
+4. **Custom properties**: `text-(--theme-accent)` pattern already used in **Target Project**
 5. **Font family**: Google Fonts 'Lobster' integration required
 
 ### Visual Features to Preserve
@@ -82,6 +29,7 @@ Read this section before starting any phase.
 - Responsive grid: mobile (full-width) → desktop (2-col main + 1-col sidebar)
 - Hover states on all interactive elements
 - Mobile-first breakpoints (md:768px)
+- The completed **Target Project** `/jedi` page must match **Jedi Project** `Awesome.png`
 
 ### Visual Features to Create
 
@@ -171,7 +119,7 @@ Each component ships with its tests. Tests must pass before the step is marked c
 
 **File**: `src/components/Hero.tsx`
 
-**Source**: `<hero>` section from **Source Project** `index.html`.
+**Source**: `<hero>` section from **Jedi Project** `index.html`.
 
 **Props**:
 
@@ -253,7 +201,7 @@ describe('<Hero />', () => {
 
 **File**: `src/components/Image.tsx`
 
-**Source**: **Source Project** `<article><figure>` section.
+**Source**: **Jedi Project** `index.html <article><figure>` section.
 
 **Props**:
 
@@ -319,7 +267,7 @@ describe('<Image />', () => {
 
 **File**: `src/components/Author.tsx`
 
-**Source**: **Source Project** `<article><div>` author avatar/name section.
+**Source**: **Jedi Project** `index.html <article><div>` author avatar/name section.
 
 **Props**:
 
@@ -378,7 +326,7 @@ describe('<Author />', () => {
 
 **File**: `src/components/Card.tsx`
 
-**Source**: **Source Project** `<section class="card">` sidebar sections.
+**Source**: **Jedi Project** `index.html <aside><section class="card">` sidebar sections.
 
 **Props**:
 
@@ -446,7 +394,7 @@ describe('<Card />', () => {
 
 ---
 
-## [ ] Phase 3: Main Page + E2E Tests (Claude)
+## [ ] Phase 3: Main Page + Dark/Light Theme + E2E Tests (Claude)
 
 ### [ ] Step 3.1: Create Jedi Route Page with Metadata
 
@@ -455,8 +403,8 @@ describe('<Card />', () => {
 **Requirements**:
 
 1. Import components (Nav, Hero, Image, Author, Card).
-2. Keep the **Source Project** `<header>` element. Place it within `<main>` in the **Target Project**
-3. When creating styles in the **Target project** convert to Tailwind v4 `class=...` syntax.
+2. Keep the **Jedi Project** `index.html <header>` element. Place it within `<main>` in the **Target Project**
+3. When creating styles in the **Target Project** convert to Tailwind v4 `class=...` syntax.
 4. Avoid using the `<style=...>` element.
 5. Implement mobile sidebar toggle with `createSignal`.
 6. Convert Alpine.js `x-show` → `<Show>`, transitions → TailwindCSS v4 utilities.
@@ -576,32 +524,419 @@ export default function Jedi() {
 
 ---
 
-### [ ] Step 3.2: Create Dark/Light toggle
+### [ ] Step 3.2: Create Dark/Light/System Theme Toggle
 
-- Import **Tanstack Project** `components/ThemeToggle.tsx`
-- Reference **Tanstack Project** `styles.css` for file structure and dark/light theme values
-- Add Dark/Light toggle button page <header> element use `<script innerHTML={THEME_INIT_SCRIPT} />
-- Use sun/moon/system icons to indicate the state resulting from a button click
-- Add `THEME_INIT_SCRIPT`
+This step adds a three-state theme toggle (light / dark / auto) with FOUC prevention. The implementation is adapted from **Tanstack Project** `src/components/ThemeToggle.tsx` and `src/routes/__root.tsx`.
+
+#### 3.2.1: Update `src/app.css` with Dark Mode CSS Variable Support
+
+**File**: `src/app.css`
+
+**Action**: Add a `:root[data-theme="dark"]` block for explicit dark mode, and modify the existing `@media (prefers-color-scheme: dark)` selector to `:root:not([data-theme="light"])` so system-auto dark preference works but is overridden when the user explicitly selects light.
+
+**Reference**: This pattern is taken from **Tanstack Project** `src/styles.css` lines 30–73, where `:root[data-theme="dark"]` handles explicit dark and `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) }` handles system-auto dark.
+
+**Before** (existing `src/app.css`):
+
+```css
+:root {
+  --theme-background: var(--color-zinc-200);
+  --theme-foreground: var(--color-zinc-800);
+  --theme-accent: var(--color-sky-700);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --theme-background: var(--color-stone-800);
+    --theme-foreground: var(--color-stone-300);
+    --theme-accent: var(--color-sky-400);
+  }
+}
+```
+
+**After**:
+
+```css
+:root {
+  --theme-background: var(--color-zinc-200);
+  --theme-foreground: var(--color-zinc-800);
+  --theme-accent: var(--color-sky-700);
+}
+
+:root[data-theme="dark"] {
+  --theme-background: var(--color-stone-800);
+  --theme-foreground: var(--color-stone-300);
+  --theme-accent: var(--color-sky-400);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --theme-background: var(--color-stone-800);
+    --theme-foreground: var(--color-stone-300);
+    --theme-accent: var(--color-sky-400);
+  }
+}
+```
+
+**Verification**: `vpr check` passes.
+
+---
+
+#### 3.2.2: Add Theme Init Script to `src/entry-server.tsx`
+
+**File**: `src/entry-server.tsx`
+
+**Action**: Add an inline `<script>` in the `<head>` to apply the stored theme before first paint, preventing a flash of unstyled content (FOUC). This is a global change — the toggle affects the site-wide `--theme-*` CSS variables.
+
+**Reference**: Adapted from **Tanstack Project** `src/routes/__root.tsx` line 16 (`THEME_INIT_SCRIPT`) and line 34 (`<script innerHTML={THEME_INIT_SCRIPT} />`).
+
+**Before** (existing `src/entry-server.tsx`):
+
+```tsx
+export default createHandler(() => (
+  <StartServer
+    document={({ assets, children, scripts }) => (
+      <html lang="en">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <link rel="icon" href="/favicon.ico" />
+          {assets}
+        </head>
+        <body>
+          <div id="app">{children}</div>
+          {scripts}
+        </body>
+      </html>
+    )}
+  />
+));
+```
+
+**After**:
+
+```tsx
+const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`;
+
+export default createHandler(() => (
+  <StartServer
+    document={({ assets, children, scripts }) => (
+      <html lang="en">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <link rel="icon" href="/favicon.ico" />
+          <script innerHTML={THEME_INIT_SCRIPT} />
+          {assets}
+        </head>
+        <body>
+          <div id="app">{children}</div>
+          {scripts}
+        </body>
+      </html>
+    )}
+  />
+));
+```
+
+**Verification**: `vpr check` passes. `vpr dev` → no console errors, no FOUC on page load.
+
+---
+
+#### 3.2.3: Create ThemeToggle Component
+
+**File**: `src/components/ThemeToggle.tsx`
+
+**Reference**: Adapted from **Tanstack Project** `src/components/ThemeToggle.tsx`. Key changes from Tanstack version:
+
+- SVG icons (sun / moon / monitor) instead of text labels
+- Styling adapted to Target Project's Tailwind utilities (not Tanstack's `--chip-*` variables)
+- Same toggle cycle and localStorage pattern
+
+**Type + helpers** (outside component):
 
 ```typescript
-const THEME_INIT_SCRIPT = `(function(){
-  try {
-    var stored=window.localStorage.getItem('theme');
-    var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';
-    var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;
-    var root=document.documentElement;root.classList.remove('light','dark');
-    root.classList.add(resolved);
-    if(mode==='auto'){
-      root.removeAttribute('data-theme')
-    }else{
-     root.setAttribute('data-theme',mode)
-    }
-    root.style.colorScheme=resolved;
-  } catch(e){}})();
-}`;
+type ThemeMode = "light" | "dark" | "auto";
+
+function getInitialMode(): ThemeMode {
+  if (typeof window === "undefined") return "auto";
+  const stored = window.localStorage.getItem("theme");
+  if (stored === "light" || stored === "dark" || stored === "auto") return stored;
+  return "auto";
+}
+
+function applyThemeMode(mode: ThemeMode) {
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const resolved = mode === "auto" ? (prefersDark ? "dark" : "light") : mode;
+  document.documentElement.classList.remove("light", "dark");
+  document.documentElement.classList.add(resolved);
+  if (mode === "auto") {
+    document.documentElement.removeAttribute("data-theme");
+  } else {
+    document.documentElement.setAttribute("data-theme", mode);
+  }
+  document.documentElement.style.colorScheme = resolved;
+}
 ```
+
+**Component**:
+
+```tsx
+import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
+
+export default function ThemeToggle() {
+  const [mode, setMode] = createSignal<ThemeMode>("auto");
+
+  onMount(() => {
+    const initialMode = getInitialMode();
+    setMode(initialMode);
+    applyThemeMode(initialMode);
+  });
+
+  createEffect(() => {
+    if (mode() !== "auto") return;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => applyThemeMode("auto");
+    media.addEventListener("change", onChange);
+    onCleanup(() => media.removeEventListener("change", onChange));
+  });
+
+  function toggleMode() {
+    const next: ThemeMode = mode() === "light" ? "dark" : mode() === "dark" ? "auto" : "light";
+    setMode(next);
+    applyThemeMode(next);
+    window.localStorage.setItem("theme", next);
+  }
+
+  const label = () =>
+    mode() === "auto"
+      ? "Theme: system. Click for light."
+      : mode() === "light"
+        ? "Theme: light. Click for dark."
+        : "Theme: dark. Click for system.";
+
+  return (
+    <button
+      type="button"
+      onClick={toggleMode}
+      aria-label={label()}
+      title={label()}
+      class="rounded-lg p-2 transition hover:bg-gray-200 dark:hover:bg-gray-700"
+    >
+      {/* Sun icon — shown when mode is "light" (current state) */}
+      <svg
+        class={mode() === "light" ? "block" : "hidden"}
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="5" />
+        <line x1="12" y1="1" x2="12" y2="3" />
+        <line x1="12" y1="21" x2="12" y2="23" />
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+        <line x1="1" y1="12" x2="3" y2="12" />
+        <line x1="21" y1="12" x2="23" y2="12" />
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+      </svg>
+
+      {/* Moon icon — shown when mode is "dark" (current state) */}
+      <svg
+        class={mode() === "dark" ? "block" : "hidden"}
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </svg>
+
+      {/* Monitor icon — shown when mode is "auto" (current state = system) */}
+      <svg
+        class={mode() === "auto" ? "block" : "hidden"}
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+        <line x1="8" y1="21" x2="16" y2="21" />
+        <line x1="12" y1="17" x2="12" y2="21" />
+      </svg>
+    </button>
+  );
+}
+```
+
+**Icon semantics**: Each icon represents the **current** active mode:
+| Current mode | Icon shown | Click advances to |
+| --- | --- | --- |
+| Light | Sun | Dark |
+| Dark | Moon | Auto (system) |
+| Auto | Monitor | Light |
+
+**Toggle cycle**: `light → dark → auto → light` (matches **Tanstack Project** `ThemeToggle.tsx` line 44).
+
+---
+
+#### 3.2.4: Create ThemeToggle Component Test
+
+**File**: `src/components/ThemeToggle.test.tsx`
+
+```typescript
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent } from "@solidjs/testing-library";
+import ThemeToggle from "./ThemeToggle";
+
+describe("<ThemeToggle />", () => {
+  let mockMatchMedia: ReturnType<typeof vi.fn>;
+  let mockLocalStorage: Record<string, string>;
+
+  beforeEach(() => {
+    mockLocalStorage = {};
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(
+      (key: string) => mockLocalStorage[key] ?? null,
+    );
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(
+      (key: string, value: string) => {
+        mockLocalStorage[key] = value;
+      },
+    );
+
+    mockMatchMedia = vi.fn().mockReturnValue({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: mockMatchMedia,
+    });
+
+    document.documentElement.classList.remove("light", "dark");
+    document.documentElement.removeAttribute("data-theme");
+    document.documentElement.style.colorScheme = "";
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("renders a toggle button", () => {
+    render(() => <ThemeToggle />);
+    expect(screen.getByRole("button")).toBeInTheDocument();
+  });
+
+  it("defaults to auto mode when no localStorage value", () => {
+    render(() => <ThemeToggle />);
+    const button = screen.getByRole("button");
+    expect(button.getAttribute("aria-label")).toContain("system");
+  });
+
+  it("reads initial mode from localStorage", () => {
+    mockLocalStorage["theme"] = "dark";
+    render(() => <ThemeToggle />);
+    const button = screen.getByRole("button");
+    expect(button.getAttribute("aria-label")).toContain("dark");
+  });
+
+  it("cycles light → dark → auto on clicks", async () => {
+    mockLocalStorage["theme"] = "light";
+    render(() => <ThemeToggle />);
+    const button = screen.getByRole("button");
+
+    expect(button.getAttribute("aria-label")).toContain("light");
+
+    await fireEvent.click(button);
+    expect(button.getAttribute("aria-label")).toContain("dark");
+    expect(mockLocalStorage["theme"]).toBe("dark");
+
+    await fireEvent.click(button);
+    expect(button.getAttribute("aria-label")).toContain("system");
+    expect(mockLocalStorage["theme"]).toBe("auto");
+
+    await fireEvent.click(button);
+    expect(button.getAttribute("aria-label")).toContain("light");
+    expect(mockLocalStorage["theme"]).toBe("light");
+  });
+
+  it("applies dark class to documentElement when mode is dark", async () => {
+    mockLocalStorage["theme"] = "light";
+    render(() => <ThemeToggle />);
+    const button = screen.getByRole("button");
+
+    await fireEvent.click(button);
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
+    expect(document.documentElement.classList.contains("light")).toBe(false);
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  });
+
+  it("removes data-theme attribute in auto mode", async () => {
+    mockLocalStorage["theme"] = "dark";
+    render(() => <ThemeToggle />);
+    const button = screen.getByRole("button");
+
+    await fireEvent.click(button);
+    expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
+  });
+});
+```
+
+**Verification**: `vpr test:comp` — ThemeToggle tests pass (6 new tests; ~20 component tests total).
+
+---
+
+#### 3.2.5: Integrate ThemeToggle into Jedi Page Header
+
+**File**: `src/routes/jedi.tsx`
+
+**Action**: Import `ThemeToggle` and place it inside the Jedi page's `<header>` element, right-aligned. The `<header>` is the **Jedi Project** header preserved in step 3.1.
+
+```tsx
+import ThemeToggle from "~/components/ThemeToggle";
+```
+
+Place `<ThemeToggle />` at the right edge of the page header:
+
+```tsx
+<header class="...existing header classes...">
+  {/* ...existing header content (logo, nav links, etc.)... */}
+  <div class="ml-auto flex items-center">
+    <ThemeToggle />
+  </div>
+</header>
+```
+
+**Verification**:
+
+1. `vpr check` passes.
+2. `vpr test:comp` — all component tests pass (~20 total).
+3. `vpr dev` → http://localhost:3000/jedi:
+   - Theme toggle button visible in header
+   - Click cycles: sun icon (light) → moon icon (dark) → monitor icon (auto)
+   - Background/foreground colors change with mode
+   - Reload preserves selected mode (localStorage)
+   - No console errors
 
 ---
 
@@ -697,9 +1032,77 @@ test.describe("Jedi Page", () => {
     await expect(page.locator("aside")).not.toBeVisible();
   });
 });
+
+test.describe("Jedi Page - Theme Toggle", () => {
+  test("should display theme toggle button", async ({ page }) => {
+    await page.goto("/jedi");
+    const toggle = page.getByRole("button", { name: /theme/i });
+    await expect(toggle).toBeVisible();
+  });
+
+  test("should cycle through light → dark → auto modes", async ({ page }) => {
+    await page.goto("/jedi");
+    const toggle = page.getByRole("button", { name: /theme/i });
+
+    // Start at auto (default), click to light
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-label", /light/i);
+    const htmlLight = page.locator("html");
+    await expect(htmlLight).toHaveClass(/light/);
+    await expect(htmlLight).toHaveAttribute("data-theme", "light");
+
+    // Click to dark
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-label", /dark/i);
+    const htmlDark = page.locator("html");
+    await expect(htmlDark).toHaveClass(/dark/);
+    await expect(htmlDark).toHaveAttribute("data-theme", "dark");
+
+    // Click to auto (system)
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-label", /system/i);
+    const htmlAuto = page.locator("html");
+    expect(await htmlAuto.getAttribute("data-theme")).toBeNull();
+  });
+
+  test("should persist theme choice across page reload", async ({ page }) => {
+    await page.goto("/jedi");
+    const toggle = page.getByRole("button", { name: /theme/i });
+
+    // Set to light explicitly: auto → light
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-label", /light/i);
+
+    // Verify localStorage was set
+    const stored = await page.evaluate(() => window.localStorage.getItem("theme"));
+    expect(stored).toBe("light");
+
+    // Reload and verify theme persists
+    await page.reload();
+    const htmlAfterReload = page.locator("html");
+    await expect(htmlAfterReload).toHaveClass(/light/);
+    await expect(htmlAfterReload).toHaveAttribute("data-theme", "light");
+  });
+
+  test("should respect system dark preference in auto mode", async ({ page }) => {
+    // Emulate dark system preference
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto("/jedi");
+
+    // In auto mode (default), system dark preference should resolve to dark class
+    const html = page.locator("html");
+    await expect(html).toHaveClass(/dark/);
+
+    // Switch to light system preference
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.goto("/jedi");
+    const htmlLight = page.locator("html");
+    await expect(htmlLight).toHaveClass(/light/);
+  });
+});
 ```
 
-**Verification**: `vpr test:e2e ./e2e/jedi.spec.ts` — all e2e tests pass.
+**Verification**: `vpr test:e2e ./e2e/jedi.spec.ts` — all e2e tests pass (~13 tests: 9 existing + 4 theme toggle).
 
 **Phase Complete**:
 
@@ -719,7 +1122,8 @@ Scan changed files for v3 residue:
 ```bash
 grep -rn -E "!important|bg-opacity-|text-opacity-|md:![a-z]|\[&>" \
   src/routes/jedi.tsx src/components/Hero.tsx src/components/Image.tsx \
-  src/components/Author.tsx src/components/Card.tsx src/app.css
+  src/components/Author.tsx src/components/Card.tsx src/components/ThemeToggle.tsx \
+  src/app.css
 ```
 
 Fix any hits:
@@ -736,9 +1140,9 @@ Fix any hits:
 ```bash
 vpr check         # format + lint + type-check with auto-fix
 vpr check:type    # verify no TS errors
-vpr test:comp     # 14 component tests
+vpr test:comp     # ~20 component tests (including ThemeToggle)
 vpr test:unit     # unit tests
-vpr test:e2e      # e2e tests
+vpr test:e2e      # e2e tests (including theme toggle tests)
 ```
 
 All must pass with no errors and no warnings. Fix any failures before continuing.
@@ -764,6 +1168,7 @@ vpr start
 - Open http://localhost:3000/jedi
   - page loads
   - no console errors.
+  - theme toggle cycles correctly in production build
 
 **Phase Complete**:
 
@@ -808,16 +1213,30 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 
 ### Hover / Animation
 
-- [ ] Nav links change bg on hover to match **Source Project**
+- [ ] Nav links change bg on hover to match **Jedi Project**
 - [ ] CTA (get Started) darkens to `--primary-hover`
 - [ ] Author name underlines on hover
 - [ ] Hero title fades in on page load
 - [ ] Mobile sidebar transitions smoothly; arrow rotation smooth (300ms)
 
+### Theme Toggle
+
+- [ ] Toggle button visible in Jedi page header
+- [ ] Click cycles: sun (light) → moon (dark) → monitor (auto/system)
+- [ ] Light mode: zinc-200 background, zinc-800 text, sky-700 accents
+- [ ] Dark mode: stone-800 background, stone-300 text, sky-400 accents
+- [ ] Auto mode: follows OS `prefers-color-scheme` setting
+- [ ] Reload preserves selected mode (stored in localStorage)
+- [ ] No flash of wrong theme on page load (FOUC prevention)
+- [ ] Toggle works on all pages (CSS + init script are global)
+
 ### Accessibility
 
 - [ ] Keyboard Tab reaches all actionable elements
 - [ ] Tab navigation reaches "Categories" toggle in small-screen mode
+- [ ] Tab navigation reaches theme toggle button
+- [ ] Theme toggle has descriptive `aria-label` indicating current mode and next action
+- [ ] Space toggles theme toggle button
 - [ ] Focus indicators visible
 - [ ] Screen-reader basic navigation works
 - [ ] Ctrl-Home moves to top
@@ -831,7 +1250,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 - [ ] Mobile Safari (iOS)
 - [ ] Chrome Mobile (Android)
 
-Check in each: layout, Lobster font rendering, animation smoothness, touch, image loading.
+Check in each: layout, Lobster font rendering, animation smoothness, touch, image loading, theme toggle.
 
 ### Sign-off
 
@@ -841,13 +1260,15 @@ When the above passes, the conversion is **complete**. Commit any final fixes an
 
 ## Success Criteria
 
-1. All 4 components created with TypeScript interfaces
+1. All 5 components created with TypeScript interfaces (Hero, Image, Author, Card, ThemeToggle)
 2. `src/routes/jedi.tsx` functional with all sections
-3. All component tests pass (~14)
-4. All E2E tests pass (~9)
-5. Visual appearance matches **Source Appearance**
+3. All component tests pass (~20, including ThemeToggle)
+4. All E2E tests pass (~13, including theme toggle)
+5. Visual appearance matches **Jedi Project** `Awesome.png`
 6. Mobile sidebar toggle works
-7. TailwindCSS v4 syntax throughout; no Alpine.js dependencies
-8. Accessibility baseline met (semantic buttons, aria-label, aria-expanded, focus indicators)
-9. Zero browser console errors
-10. `vpr check:type` and `vpr build` succeed without errors or warnings
+7. Dark/light/system theme toggle works with localStorage persistence
+8. No FOUC — theme init script applies stored preference before first paint
+9. TailwindCSS v4 syntax throughout; no Alpine.js dependencies
+10. Accessibility baseline met (semantic buttons, aria-label, aria-expanded, focus indicators)
+11. Zero browser console errors
+12. `vpr check:type` and `vpr build` succeed without errors or warnings
