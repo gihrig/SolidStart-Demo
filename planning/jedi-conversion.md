@@ -704,7 +704,7 @@ describe("<JediNav />", () => {
 **Requirements**:
 
 1. Import components: `JediNav`, `Hero`, `Image`, `Author`, `Card`. Do **NOT** import `Nav` — it is already rendered globally by `app.tsx`.
-2. Place `<JediNav />` below `<Hero />`. The page shows two nav bars: global `<Nav />` (from `app.tsx`) + Jedi-specific `<JediNav />` (converted Jedi source header).
+2. Place `<JediNav />` above `<Hero />`. The page shows two nav bars: global `<Nav />` (from `app.tsx`) + Jedi-specific `<JediNav />` (converted Jedi source header).
 3. Import `@fontsource/lobster` and `./jedi.css` in this file (set up in Phase 1).
 4. Convert to Tailwind v4 `class=...` syntax. Avoid `style=...` except where dynamic prop values require it (e.g., Hero background-image URL).
 5. Implement mobile sidebar toggle with `createSignal`.
@@ -763,6 +763,7 @@ export default function Jedi() {
     <>
       <Title>Little Jedi - Awesome Photos & Captions</Title>
       <Meta name="description" content="Share your favorite Photos from Flickr and add a great caption" />
+      <JediNav />
 
       <Hero
         title="Awesome Photos & Captions"
@@ -771,8 +772,6 @@ export default function Jedi() {
         ctaHref="#"
         backgroundImage="https://live.staticflickr.com/65535/49909538937_3255dcf9e7_b.jpg"
       />
-
-      <JediNav />
 
       <div class="grid grid-cols-3 max-w-7xl mx-auto mt-6">
         {/* Mobile sidebar toggle */}
@@ -1569,7 +1568,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 - [ ] Hero title uses white text color
 - [ ] "Get Started" button uses `--primary` color
 - [ ] Global Nav visible (from `app.tsx`)
-- [ ] JediNav (converted Jedi header) visible below Hero
+- [ ] JediNav (converted Jedi header) visible above Hero
 - [ ] Main article in center column (2/3 width), image full-width within card
 - [ ] Caption uses Lobster at text-5xl
 - [ ] Tags are rounded pills; hover → bg-gray-500 + white text
