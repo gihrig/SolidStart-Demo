@@ -577,3 +577,148 @@ h1 {
 
 New plan structure: 5 phases, 14 steps (was 11). Component count: 6 (added JediNav). Success criteria updated to 13
 items.
+
+❯ Review `planning/jedi-conversion.md` for accuracy and efficiency report any recommended improvements
+
+⏺ All source files verified. Here's my review.
+
+---
+
+Plan Review: planning/jedi-conversion.md
+
+ACCURACY ISSUES
+
+Critical (will cause bugs)
+
+1. TW v4 dark: variant won't work with manual toggle
+
+Plan's ThemeToggle uses dark:hover:bg-gray-700 (line 1029), and applyThemeMode() sets class="dark" on <html>. But TW
+v4 defaults dark: to @media (prefers-color-scheme: dark) — not class-based. Plan never configures TW v4 dark mode
+selector strategy. Result: dark: utilities only respond to OS preference, not manual toggle.
+
+Fix: Add @custom-variant dark (&:where(.dark, .dark \*)); to app.css (TW v4 syntax for class-based dark mode).
+
+2. font-(--font-lobster) likely wrong TW v4 syntax
+
+Hero component line 269: font-(--font-lobster). In TW v4, font- prefix is ambiguous between font-weight and
+font-family. font-(--var) would attempt font-weight, not font-family.
+
+Fix: Use [font-family:var(--font-lobster)] or define via @theme { --font-lobster: "Lobster", sans-serif; } and use
+font-lobster.
+
+3. Hero CTA missing hover state
+
+Source .button:hover (style.css line 1038): background-color: var(--primary-hover). Plan's Hero CTA (line 273) has no
+hover class. Phase 5 validation explicitly checks "CTA darkens to --primary-hover" (line 1596) — but implementation
+doesn't deliver it.
+
+Fix: Add hover:bg-(--primary-hover) to CTA <a> classes.
+
+4. Nav.tsx tests will break — not addressed
+
+Step 3.2.5 adds <ThemeToggle /> inside <Nav />, changing DOM structure. 6 existing Nav tests at
+src/components/Nav.test.tsx don't mock ThemeToggle. Plan says nothing about updating Nav tests.
+
+Actual existing Nav tests:
+Nav.test.tsx: 6 tests (renders links, active styling × 5, inactive)
+
+5. Existing component test count wrong
+
+Plan claims "2 existing" component tests (line 691, Success Criteria line 1643). Actual existing component test files:
+
+```
+  ┌──────────────────────────────┬───────┐
+  │             File             │ Tests │
+  ├──────────────────────────────┼───────┤
+  │ Counter.test.tsx             │ 3     │
+  ├──────────────────────────────┼───────┤
+  │ Footer.test.tsx              │ 6     │
+  ├──────────────────────────────┼───────┤
+  │ Nav.test.tsx                 │ 6     │
+  ├──────────────────────────────┼───────┤
+  │ AgentManager.test.tsx        │ 1+    │
+  ├──────────────────────────────┼───────┤
+  │ AuthContext.test.tsx         │ 1+    │
+  ├──────────────────────────────┼───────┤
+  │ ConversationManager.test.tsx │ 1+    │
+  ├──────────────────────────────┼───────┤
+  │ LoginForm.test.tsx           │ 1+    │
+  ├──────────────────────────────┼───────┤
+  │ MessagePanel.test.tsx        │ 1+    │
+  └──────────────────────────────┴───────┘
+```
+
+At least 21 existing component tests, not 2. All running counts ("~19 total", "~25 total") derived from this wrong
+base.
+
+Moderate
+
+6. Card dark mode — invisible against page background
+
+Source .card (style.css line 1068): background-color: white. Plan's Card uses bg-(--theme-background) (line 465) —
+same variable as page body. In dark mode, cards will blend into page. No visual separation.
+
+Fix: Use a distinct surface variable like --theme-surface or hardcode bg-white dark:bg-gray-700.
+
+7. .highlight class on first Category missing
+
+Source line 246-247: <li class="highlight"> on Landscape category. Source style.css line 1092: .highlight {
+background-color: rgb(224 231 255) !important; } (indigo-100). Plan's CATEGORIES data and rendering don't mention this
+visual indicator.
+
+8. animate-fade-in placed outside @layer
+
+Plan's app.css puts .animate-fade-in outside any layer (line 165). This gives it higher specificity than @layer
+utilities classes. Should be in @layer utilities or use @utility animate-fade-in { ... } (TW v4).
+
+Minor
+
+9. Source sidebar data counts exaggerated
+
+Plan shows // ... more entries for TOP_PHOTOS and TOP_CAPTIONS. Source index.html has exactly 2 entries each (all
+Homer). Plan should match source.
+
+10. [&>a:hover]:underline for article actions not converted
+
+Source line 219: class="flex items-center gap-4 [&>a:hover]:underline" on Like/Edit/Delete container. Plan's Step 3.1
+outline ({/_ ...article body... _/}) doesn't explicitly address this v3 → v4 conversion.
+
+---
+
+EFFICIENCY RECOMMENDATIONS
+
+A. Phase 3 too large — split it
+
+Phase 3 combines: page assembly + dark/light theme (new feature) + E2E tests. Three distinct concerns in one phase. If
+theme toggle breaks, it blocks page completion. Split:
+
+- 3a: Jedi route page assembly
+- 3b: Dark/light/system theme toggle
+- 3c: E2E tests
+
+B. Hero backgroundImage prop — over-engineered?
+
+Source has ONE hero with a static URL. Making backgroundImage a prop adds abstraction for a single-use case. Could
+hardcode URL and skip the style={} exception entirely using TW v4 bg-[url(...)]. Per Karpathy guideline #2 (simplicity
+first). Though component extraction is a stated project goal, so this is judgment call.
+
+C. Image + Author components are single-use
+
+Both used exactly once. Could inline into page. But component extraction is the stated goal, so this may be
+intentional for learning/demo purposes.
+
+---
+
+WHAT'S CORRECT
+
+- All "Before" snapshots match actual files exactly ✓
+- Alpine.js → SolidJS mapping table accurate ✓
+- TW v3→v4 syntax conversions correct (md:!block → md:block!, bg-opacity-40 → bg-gray-800/40) ✓
+- Tanstack ThemeToggle reference verified — THEME_INIT_SCRIPT matches actual code at \_\_root.tsx:16 ✓
+- entry-server.tsx correct location for SolidStart theme init (vs Tanstack's \_\_root.tsx) ✓
+- app.tsx confirms Nav rendered globally — plan correctly avoids duplicate Nav import ✓
+- Source <a> for mobile toggle → plan's <button type="button"> — good a11y fix ✓
+- jedi.css descendant selectors match source style.css patterns ✓
+- E2E test structure: 8 existing tests, 4 footer + 4 placeholder — count verified ✓
+
+claude-max --resume 99fbe6b1-e835-4805-9237-1527c4898212
