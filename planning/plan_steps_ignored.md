@@ -393,7 +393,7 @@ The three highest-impact fixes: (1) remove duplicate Nav from jedi.tsx, (2) scop
 app.css, and (3) decide on the Jedi header — either convert the Alpine.js source header into a component or drop
 requirement #2.
 
-claude --resume 574da5f3-6783-4b97-b650-ad1a0756bf8c
+claude-max --resume 574da5f3-6783-4b97-b650-ad1a0756bf8c
 
 ❯ Solutions to previously listed issues:
 
@@ -540,3 +540,40 @@ h1 {
 - Review the updated plan for accuracy and efficiency report any recommended improvements
 
 ❯ Read and apply`planning/plan_steps_next.md`
+
+⏺ All 11 fixes applied. Summary of changes to planning/jedi-conversion.md:
+
+```
+  ┌──────┬───────────────────────┬─────────────────────────────────────────────────────────┐
+  │ Fix  │       Issue           │                          Change                         │
+  ├──────┼───────────────────────┼─────────────────────────────────────────────────────────┤
+  │ 1    │ Duplicate Nav         │ Removed Nav import/render from jedi.tsx Step 3.1        │
+  ├──────┼───────────────────────┼─────────────────────────────────────────────────────────┤
+  │ 2    │ Global CSS override   │ Step 1.1: wrap app.css rules in @layer base. Step       │
+  │      │                       │ 1.3: new jedi.css for descendant-selector patterns      │
+  ├──────┼───────────────────────┼─────────────────────────────────────────────────────────┤
+  │ 3    │ Missing Jedi header   │ New Step 2.5: JediNav component (Alpine.js → SolidJS    │
+  │      │                       │ conversion w/ tests)                                    │
+  ├──────┼───────────────────────┼─────────────────────────────────────────────────────────┤
+  │ 4    │ style contradiction   │ Hero uses Tailwind utilities; background-image          │
+  │      │                       │ exception noted                                         │
+  ├──────┼───────────────────────┼─────────────────────────────────────────────────────────┤
+  │ 5    │ Hero h1 font-size     │ text-6xl → text-[4rem] leading-[1.2]                    │
+  ├──────┼───────────────────────┼─────────────────────────────────────────────────────────┤
+  │ 6    │ E2E test count        │ Corrected to 17 (9 Jedi + 4 footer + 4 theme)           │
+  ├──────┼───────────────────────┼─────────────────────────────────────────────────────────┤
+  │ 7    │ Card dark mode        │ Added bg-(--theme-background) text-(--theme-foreground) │
+  ├──────┼───────────────────────┼─────────────────────────────────────────────────────────┤
+  │ 8    │ Font loaded globally  │ Lobster import moved from app.tsx → jedi.tsx            │
+  ├──────┼───────────────────────┼─────────────────────────────────────────────────────────┤
+  │ 9    │ ThemeToggle placement │ Step 3.2.5: moved from Jedi header → global Nav.tsx     │
+  ├──────┼───────────────────────┼─────────────────────────────────────────────────────────┤
+  │ 10   │ Footer e2e dropped    │ Added "Jedi Page - Footer" describe block preserving 4  │
+  │      │                       │ existing tests                                          │
+  ├──────┼───────────────────────┼─────────────────────────────────────────────────────────┤
+  │ 11   │ Contradictions        │ Resolved by fixes above; requirements/code consistent   │
+  └──────┴───────────────────────┴─────────────────────────────────────────────────────────┘
+```
+
+New plan structure: 5 phases, 14 steps (was 11). Component count: 6 (added JediNav). Success criteria updated to 13
+items.

@@ -55,17 +55,19 @@ All project-specific scripts must use `vpr <script>` (not `vp <script>`) to avoi
 
 ### Testing
 
-| Command               | Description                                 |
-| --------------------- | ------------------------------------------- |
-| `vpr test:all`        | Run all unit + component tests              |
-| `vpr test:unit`       | Run `src/lib` unit tests only               |
-| `vpr test:comp`       | Run `src/components` tests only             |
-| `vpr test:cover`      | Run tests with V8 coverage report           |
-| `vpr test:e2e`        | Run Playwright e2e tests (see gotcha below) |
-| `vpr test:show`       | Open last Playwright HTML report            |
-| `vpr test:all:watch`  | Watch mode for all tests                    |
-| `vpr test:unit:watch` | Watch mode for unit tests                   |
-| `vpr test:comp:watch` | Watch mode for component tests              |
+| Command                    | Description                                 |
+| -------------------------- | ------------------------------------------- |
+| `vpr test:all`             | Run all unit + component tests              |
+| `vpr test:unit`            | Run `src/lib` unit tests only               |
+| `vpr test:unit -t "regex"` | Run `src/lib` unit tests matching regex     |
+| `vpr test:comp`            | Run `src/components` tests only             |
+| `vpr test:comp -t "regex"` | Run `src/components` tests matching regex   |
+| `vpr test:cover`           | Run tests with V8 coverage report           |
+| `vpr test:e2e`             | Run Playwright e2e tests (see gotcha below) |
+| `vpr test:show`            | Open last Playwright HTML report            |
+| `vpr test:all:watch`       | Watch mode for all tests                    |
+| `vpr test:unit:watch`      | Watch mode for unit tests                   |
+| `vpr test:comp:watch`      | Watch mode for component tests              |
 
 ### Other
 

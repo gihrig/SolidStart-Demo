@@ -67,6 +67,22 @@ By default, `vpr build` will generate an app that you can run with `vpr start`. 
 
 ## Testing
 
+## Unit tests
+
+Unit tests for /lib/\*\* are run using vp test.
+
+```sh
+vpr test:unit
+or
+vpr test:unit:watch
+```
+
+Run a single unit test with:
+
+```
+vpr test:unit -t "rpc" // Run backend-rpc.unit.test.ts
+```
+
 ## Component tests
 
 Tests for src/components/\*\* are written with `vitest`, `@solidjs/testing-library` and `@testing-library/jest-dom` to extend `expect` with some helpful custom matchers.
@@ -79,14 +95,10 @@ or
 vpr test:comp:watch
 ```
 
-## Unit tests
+Run a single component test with:
 
-Unit tests for /lib/\*\* are run using vp test.
-
-```sh
-vpr test:unit
-or
-vpr test:unit:watch
+```
+vpr test:comp -t "Nav" // Run Nav.test.tsx
 ```
 
 ## End to End tests

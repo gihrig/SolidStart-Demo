@@ -54,20 +54,102 @@ Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.ts
 
 ## [ ] Phase 1: CSS Foundation Setup (Claude)
 
-### [ ] Step 1.1: Update `src/app.css` with Custom Properties and Animation
+### [ ] Step 1.1: Update `src/app.css` — Layer Scoping, Custom Properties, Animation
 
 **File**: `src/app.css`
 
-**Action**: Add custom properties and fade-in animation after existing theme variables.
+**Action**:
+
+1. Wrap existing global element rules in `@layer base` so Tailwind utility classes on Jedi components override them.
+2. Add Jedi custom properties (`--font-lobster`, `--primary`, `--primary-hover`) to `:root`.
+3. Add `fadeIn` animation + `.animate-fade-in` utility.
+
+> **Why `@layer base`**: Global `main {}`, `h1 {}`, etc. rules in unlayered CSS have higher precedence than Tailwind utility classes (which live in `@layer utilities`). Wrapping in `@layer base` lets utility classes on Jedi components override these defaults without needing `!important`.
+
+**Before** (existing `src/app.css`):
 
 ```css
-:root {
-  /* Existing theme variables... */
+@import "tailwindcss";
 
-  /* Jedi page custom properties */
-  --font-lobster: "Lobster", sans-serif;
-  --primary: rgb(88, 40, 244);
-  --primary-hover: rgb(69, 29, 200);
+:root {
+  --theme-background: var(--color-zinc-200);
+  --theme-foreground: var(--color-zinc-800);
+  --theme-accent: var(--color-sky-700);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --theme-background: var(--color-stone-800);
+    --theme-foreground: var(--color-stone-300);
+    --theme-accent: var(--color-sky-400);
+  }
+}
+
+body {
+  background: var(--theme-background);
+  color: var(--theme-foreground);
+}
+
+main {
+  @apply mx-auto p-4 text-center text-xl text-(--theme-foreground);
+}
+
+h1 {
+  @apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase;
+}
+
+h2 {
+  @apply ml-8 text-left text-2xl font-thin text-(--theme-accent) uppercase;
+}
+
+p {
+  @apply mx-8 mb-6 text-justify;
+}
+```
+
+**After**:
+
+```css
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --theme-background: var(--color-zinc-200);
+    --theme-foreground: var(--color-zinc-800);
+    --theme-accent: var(--color-sky-700);
+    --font-lobster: "Lobster", sans-serif;
+    --primary: rgb(88, 40, 244);
+    --primary-hover: rgb(69, 29, 200);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --theme-background: var(--color-stone-800);
+      --theme-foreground: var(--color-stone-300);
+      --theme-accent: var(--color-sky-400);
+    }
+  }
+
+  body {
+    background: var(--theme-background);
+    color: var(--theme-foreground);
+  }
+
+  main {
+    @apply mx-auto p-4 text-center text-xl text-(--theme-foreground);
+  }
+
+  h1 {
+    @apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase;
+  }
+
+  h2 {
+    @apply ml-8 text-left text-2xl font-thin text-(--theme-accent) uppercase;
+  }
+
+  p {
+    @apply mx-8 mb-6 text-justify;
+  }
 }
 
 @keyframes fadeIn {
@@ -85,7 +167,7 @@ Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.ts
 }
 ```
 
-**Verification**: `vpr check` passes.
+**Verification**: `vpr check` passes. Existing pages (Home, About, etc.) render unchanged.
 
 ---
 
@@ -95,14 +177,53 @@ Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.ts
 vp i @fontsource/lobster
 ```
 
-**File**: `src/app.tsx`
+**File**: `src/routes/jedi.tsx` (not `app.tsx` — Lobster only used on Jedi page)
 
 ```tsx
 import "@fontsource/lobster";
-import "./app.css";
 ```
 
-**Verification**: `vpr dev` renders; DevTools shows Lobster font loaded.
+**Verification**: `vpr dev` → http://localhost:3000/jedi renders; DevTools shows Lobster font loaded.
+
+---
+
+### [ ] Step 1.3: Create Jedi Route CSS File
+
+**File**: `src/routes/jedi.css`
+
+**Action**: Create route-specific CSS for descendant-selector patterns that can't be expressed as Tailwind utilities. Import in `jedi.tsx`.
+
+```css
+/* Jedi page — descendant-selector patterns from source style.css */
+
+.navitems > li > a {
+  @apply flex h-12 items-center gap-2 rounded-lg px-4;
+}
+
+.navitems > li > a:hover {
+  @apply bg-gray-700;
+}
+
+.hoverlist > * {
+  @apply rounded-md transition-colors duration-150;
+}
+
+.hoverlist > *:hover {
+  @apply bg-gray-100;
+}
+
+.hoverlist > * > a {
+  @apply flex items-center p-2;
+}
+```
+
+**Import** in `src/routes/jedi.tsx`:
+
+```tsx
+import "./jedi.css";
+```
+
+**Verification**: `vpr check` passes.
 
 **Phase Complete**:
 
@@ -144,19 +265,12 @@ export default function Hero(props: HeroProps) {
     >
       <div class="col-start-1 row-start-1 bg-gray-800/40 w-full h-full" />
       <div class="col-start-1 row-start-1 py-24 px-10">
-        <h1
-          class="text-6xl font-bold mb-4 animate-fade-in"
-          style={{ "font-family": "var(--font-lobster)" }}
-        >
+        <h1 class="text-[4rem] leading-[1.2] font-bold mb-4 animate-fade-in font-(--font-lobster)">
           {props.title}
         </h1>
         <p class="text-lg font-bold mb-5">{props.subtitle}</p>
         <a
-          class="inline-flex items-center justify-center px-4 min-h-[3.3rem] font-semibold rounded-lg text-white transition-transform active:scale-95"
-          style={{
-            "background-color": "var(--primary)",
-            "box-shadow": "0 4px 3px rgba(0, 0, 0, 0.1)",
-          }}
+          class="inline-flex items-center justify-center px-4 min-h-[3.3rem] font-semibold rounded-lg text-white transition-transform active:scale-95 bg-(--primary) shadow-[0_4px_3px_rgba(0,0,0,0.1)]"
           href={props.ctaHref}
         >
           {props.ctaText}
@@ -166,6 +280,8 @@ export default function Hero(props: HeroProps) {
   );
 }
 ```
+
+> **Note**: `style={{ "background-image": ... }}` remains — dynamic prop URL can't use Tailwind `bg-[url(...)]`. This is the sole exception to requirement #4.
 
 **Test**: `src/components/Hero.test.tsx`
 
@@ -193,7 +309,7 @@ describe('<Hero />', () => {
 })
 ```
 
-**Verification**: `vpr test:comp` — Hero tests pass.
+**Verification**: `vpr test:comp -t "Hero"` — Hero tests pass.
 
 ---
 
@@ -259,7 +375,7 @@ describe('<Image />', () => {
 })
 ```
 
-**Verification**: `vpr test:comp` — Image tests pass.
+**Verification**: `vpr test:comp -t "Image"` — Image tests pass.
 
 ---
 
@@ -318,7 +434,7 @@ describe('<Author />', () => {
 })
 ```
 
-**Verification**: `vpr test:comp` — Author tests pass.
+**Verification**: `vpr test:comp -t "Author"` — Author tests pass.
 
 ---
 
@@ -346,7 +462,7 @@ import { JSX } from "solid-js";
 export default function Card(props: CardProps) {
   return (
     <section
-      class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 ${props.class || ""}`}
+      class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-background) text-(--theme-foreground) ${props.class || ""}`}
     >
       {props.title && <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{props.title}</h2>}
       <div class="p-4 pt-0">{props.children}</div>
@@ -385,9 +501,194 @@ describe('<Card />', () => {
 })
 ```
 
-**Verification**: `vpr test:comp` — all component tests pass (14 total).
+**Verification**: `vpr test:comp -t "Card"` — Card tests pass.
+
+---
+
+### [ ] Step 2.5: Create JediNav Component + Tests
+
+**File**: `src/components/JediNav.tsx`
+
+**Source**: **Jedi Project** `index.html` lines 37–118 (`<header>` element).
+
+> The Jedi page shows **two** nav bars: the global `<Nav />` (rendered by `app.tsx`) and `<JediNav />` (the converted Jedi source header with hamburger menu, profile dropdown, and Alpine.js → SolidJS conversions).
+
+**Alpine.js → SolidJS conversions in this component**:
+
+| Source (Alpine.js)                                         | Target (SolidJS)                                                |
+| ---------------------------------------------------------- | --------------------------------------------------------------- |
+| `x-data="{ mobilenavOpen: false }"`                        | `const [mobileNavOpen, setMobileNavOpen] = createSignal(false)` |
+| `x-data="{ dropdownOpen: false }"`                         | `const [dropdownOpen, setDropdownOpen] = createSignal(false)`   |
+| `x-show="mobilenavOpen"` / `x-show="!mobilenavOpen"`       | `<Show when={mobileNavOpen()}>` with fallback                   |
+| `@click="mobilenavOpen = !mobilenavOpen"`                  | `onClick={() => setMobileNavOpen(!mobileNavOpen())}`            |
+| `@click.away="dropdownOpen = false"`                       | Click-outside handler via `document.addEventListener`           |
+| `x-cloak`                                                  | Removed (not needed)                                            |
+| `x-transition:enter="duration-300 ease-out"`               | Tailwind `transition-all duration-300 ease-out`                 |
+| `x-bind:class="dropdownOpen && 'rotate-180 duration-300'"` | Template literal class                                          |
+| `md:!block`                                                | `md:block!` (TailwindCSS v4 syntax)                             |
+| `[&>*]:px-8`                                               | Direct `px-8` on each child element                             |
+
+**TailwindCSS v3 → v4 conversions**:
+
+- `[&>*]:px-8` → `px-8` applied directly to child divs
+- `md:!block` → `md:block!`
+- `[&>li>a]:justify-end` → direct `justify-end` class on each `<a>`
+
+**Component**:
+
+```tsx
+import { createSignal, Show, onMount, onCleanup } from "solid-js";
+
+export default function JediNav() {
+  const [mobileNavOpen, setMobileNavOpen] = createSignal(false);
+  const [dropdownOpen, setDropdownOpen] = createSignal(false);
+  let dropdownRef: HTMLLIElement | undefined;
+
+  onMount(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef && !dropdownRef.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    onCleanup(() => document.removeEventListener("click", handleClickOutside));
+  });
+
+  return (
+    <header class="md:flex items-center justify-between bg-gray-800 h-20 text-white sticky top-0 z-50">
+      <div class="flex items-center justify-between h-20 px-8">
+        <a class="flex items-center gap-1" href="#">
+          <img
+            class="h-8 -mt-1"
+            src="https://img.icons8.com/small/64/ffffff/fire-heart.png"
+            alt=""
+          />
+          <span class="text-lg font-bold">Awesome</span>
+        </a>
+        <button
+          type="button"
+          class="md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg"
+          aria-label="Toggle navigation"
+          aria-expanded={mobileNavOpen()}
+          onClick={() => setMobileNavOpen(!mobileNavOpen())}
+        >
+          <Show
+            when={!mobileNavOpen()}
+            fallback={
+              <img
+                class="w-6 h-6 select-none"
+                src="https://img.icons8.com/small/64/ffffff/delete-sign.png"
+                alt=""
+              />
+            }
+          >
+            <img
+              class="w-6 h-6 select-none"
+              src="https://img.icons8.com/small/64/ffffff/menu.png"
+              alt=""
+            />
+          </Show>
+        </button>
+      </div>
+      <nav
+        class={`bg-gray-800 h-screen w-screen md:h-auto md:w-auto -mt-20 md:mt-0 absolute md:relative z-[-1] transition-all duration-300 ease-out md:block! ${mobileNavOpen() ? "block opacity-100 translate-y-0" : "hidden opacity-0 -translate-y-96"}`}
+      >
+        <ul class="navitems flex items-center flex-col md:flex-row gap-8 md:gap-0 justify-center h-full -translate-y-10 md:translate-y-0 px-8">
+          <li>
+            <a href="#">Home</a>
+          </li>
+          <li>
+            <a href="#">Create Post</a>
+          </li>
+          <li ref={dropdownRef} class="relative">
+            <button
+              type="button"
+              class="flex items-center gap-2 cursor-pointer select-none"
+              aria-label="Profile menu"
+              aria-expanded={dropdownOpen()}
+              onClick={() => setDropdownOpen(!dropdownOpen())}
+            >
+              <img
+                class="h-8 rounded-full object-cover bg-teal-200"
+                src="https://img.icons8.com/doodle/96/null/bart-simpson.png"
+                alt="Bart avatar"
+              />
+              Bart
+              <img
+                class={`w-4 transition-transform duration-300 ${dropdownOpen() ? "rotate-180" : ""}`}
+                src="https://img.icons8.com/small/32/777777/expand-arrow.png"
+                alt=""
+              />
+            </button>
+            <Show when={dropdownOpen()}>
+              <div class="absolute right-0 bg-white text-black shadow rounded-lg w-40 p-2 z-20">
+                <ul class="hoverlist">
+                  <li>
+                    <a class="justify-end" href="#">
+                      My Profile
+                    </a>
+                  </li>
+                  <li>
+                    <a class="justify-end" href="#">
+                      Log Out
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </Show>
+          </li>
+        </ul>
+      </nav>
+    </header>
+  );
+}
+```
+
+**Test**: `src/components/JediNav.test.tsx`
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { render, screen, fireEvent } from "@solidjs/testing-library";
+import JediNav from "./JediNav";
+
+describe("<JediNav />", () => {
+  it("renders logo and brand name", () => {
+    render(() => <JediNav />);
+    expect(screen.getByText("Awesome")).toBeInTheDocument();
+  });
+
+  it("renders mobile toggle button", () => {
+    render(() => <JediNav />);
+    expect(screen.getByRole("button", { name: /toggle navigation/i })).toBeInTheDocument();
+  });
+
+  it("renders nav links", () => {
+    render(() => <JediNav />);
+    expect(screen.getByText("Home")).toBeInTheDocument();
+    expect(screen.getByText("Create Post")).toBeInTheDocument();
+  });
+
+  it("renders profile dropdown trigger", () => {
+    render(() => <JediNav />);
+    expect(screen.getByRole("button", { name: /profile menu/i })).toBeInTheDocument();
+    expect(screen.getByText("Bart")).toBeInTheDocument();
+  });
+
+  it("toggles dropdown on profile button click", async () => {
+    render(() => <JediNav />);
+    const trigger = screen.getByRole("button", { name: /profile menu/i });
+    await fireEvent.click(trigger);
+    expect(screen.getByText("My Profile")).toBeInTheDocument();
+    expect(screen.getByText("Log Out")).toBeInTheDocument();
+  });
+});
+```
+
+**Verification**: `vpr test:comp -t "JediNav"`
 
 **Phase Complete**:
+
+**Verification**: `vpr test:comp` — all component tests pass (~19 total: Hero 2 + Image 3 + Author 3 + Card 4 + JediNav 5 + 2 existing).
 
 - Write a commit message in "Conventional Commit" format `feat(jedi): Phase X complete - <summary>` summarizing the changes in this phase.
 - Stop. Wait for user reply before proceeding to the next phase.
@@ -402,10 +703,10 @@ describe('<Card />', () => {
 
 **Requirements**:
 
-1. Import components (Nav, Hero, Image, Author, Card).
-2. Keep the **Jedi Project** `index.html <header>` element. Place it within `<main>` in the **Target Project**
-3. When creating styles in the **Target Project** convert to Tailwind v4 `class=...` syntax.
-4. Avoid using the `<style=...>` element.
+1. Import components: `JediNav`, `Hero`, `Image`, `Author`, `Card`. Do **NOT** import `Nav` — it is already rendered globally by `app.tsx`.
+2. Place `<JediNav />` below `<Hero />`. The page shows two nav bars: global `<Nav />` (from `app.tsx`) + Jedi-specific `<JediNav />` (converted Jedi source header).
+3. Import `@fontsource/lobster` and `./jedi.css` in this file (set up in Phase 1).
+4. Convert to Tailwind v4 `class=...` syntax. Avoid `style=...` except where dynamic prop values require it (e.g., Hero background-image URL).
 5. Implement mobile sidebar toggle with `createSignal`.
 6. Convert Alpine.js `x-show` → `<Show>`, transitions → TailwindCSS v4 utilities.
 7. Responsive grid: mobile stacked → desktop 2-col main + 1-col sidebar.
@@ -421,10 +722,12 @@ describe('<Card />', () => {
 **Component structure (outline)**:
 
 ```tsx
+import "@fontsource/lobster";
+import "./jedi.css";
 import { Title, Meta } from "@solidjs/meta";
 import { createSignal, For } from "solid-js";
-import Nav from "~/components/Nav";
 import Hero from "~/components/Hero";
+import JediNav from "~/components/JediNav";
 import Image from "~/components/Image";
 import Author from "~/components/Author";
 import Card from "~/components/Card";
@@ -460,7 +763,6 @@ export default function Jedi() {
     <>
       <Title>Little Jedi - Awesome Photos & Captions</Title>
       <Meta name="description" content="Share your favorite Photos from Flickr and add a great caption" />
-      <Nav />
 
       <Hero
         title="Awesome Photos & Captions"
@@ -469,6 +771,8 @@ export default function Jedi() {
         ctaHref="#"
         backgroundImage="https://live.staticflickr.com/65535/49909538937_3255dcf9e7_b.jpg"
       />
+
+      <JediNav />
 
       <div class="grid grid-cols-3 max-w-7xl mx-auto mt-6">
         {/* Mobile sidebar toggle */}
@@ -536,45 +840,47 @@ This step adds a three-state theme toggle (light / dark / auto) with FOUC preven
 
 **Reference**: This pattern is taken from **Tanstack Project** `src/styles.css` lines 30–73, where `:root[data-theme="dark"]` handles explicit dark and `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) }` handles system-auto dark.
 
-**Before** (existing `src/app.css`):
+**Before** (after Step 1.1 — inside `@layer base`):
 
 ```css
-:root {
-  --theme-background: var(--color-zinc-200);
-  --theme-foreground: var(--color-zinc-800);
-  --theme-accent: var(--color-sky-700);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --theme-background: var(--color-stone-800);
-    --theme-foreground: var(--color-stone-300);
-    --theme-accent: var(--color-sky-400);
+    /* ...existing vars + Jedi custom properties from Step 1.1... */
   }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --theme-background: var(--color-stone-800);
+      --theme-foreground: var(--color-stone-300);
+      --theme-accent: var(--color-sky-400);
+    }
+  }
+  /* ...body, main, h1, h2, p rules... */
 }
 ```
 
-**After**:
+**After** (add `:root[data-theme="dark"]` block, change media query selector):
 
 ```css
-:root {
-  --theme-background: var(--color-zinc-200);
-  --theme-foreground: var(--color-zinc-800);
-  --theme-accent: var(--color-sky-700);
-}
+@layer base {
+  :root {
+    /* ...existing vars + Jedi custom properties from Step 1.1... */
+  }
 
-:root[data-theme="dark"] {
-  --theme-background: var(--color-stone-800);
-  --theme-foreground: var(--color-stone-300);
-  --theme-accent: var(--color-sky-400);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root[data-theme="dark"] {
     --theme-background: var(--color-stone-800);
     --theme-foreground: var(--color-stone-300);
     --theme-accent: var(--color-sky-400);
   }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --theme-background: var(--color-stone-800);
+      --theme-foreground: var(--color-stone-300);
+      --theme-accent: var(--color-sky-400);
+    }
+  }
+  /* ...body, main, h1, h2, p rules unchanged... */
 }
 ```
 
@@ -902,47 +1208,87 @@ describe("<ThemeToggle />", () => {
 });
 ```
 
-**Verification**: `vpr test:comp` — ThemeToggle tests pass (6 new tests; ~20 component tests total).
+**Verification**: `vpr test:comp` — ThemeToggle tests pass (6 new tests; ~25 component tests total).
 
 ---
 
-#### 3.2.5: Integrate ThemeToggle into Jedi Page Header
+#### 3.2.5: Integrate ThemeToggle into Global Nav
 
-**File**: `src/routes/jedi.tsx`
+**File**: `src/components/Nav.tsx`
 
-**Action**: Import `ThemeToggle` and place it inside the Jedi page's `<header>` element, right-aligned. The `<header>` is the **Jedi Project** header preserved in step 3.1.
+**Action**: Import `ThemeToggle` and place it at the right edge of the global `<Nav />` component. Theme toggle is a **global** feature (affects `--theme-*` CSS variables site-wide), so it belongs in the global nav — not the Jedi-specific header.
+
+**Before** (existing `Nav.tsx`):
 
 ```tsx
-import ThemeToggle from "~/components/ThemeToggle";
+import { useLocation } from "@solidjs/router";
+
+export default function Nav() {
+  const location = useLocation();
+  const active = (path: string) =>
+    path == location.pathname ? "border-sky-600" : "border-transparent hover:border-sky-600";
+  return (
+    <nav role="navigation" aria-label="Main" class="bg-sky-800">
+      <ul class="container flex items-center p-3 text-gray-200">
+        <li>
+          <a class={`border-b-4 ${active("/")} mx-1.5 sm:mx-6`} href="/">
+            Home
+          </a>
+        </li>
+        {/* ...other links... */}
+      </ul>
+    </nav>
+  );
+}
 ```
 
-Place `<ThemeToggle />` at the right edge of the page header:
+**After**:
 
 ```tsx
-<header class="...existing header classes...">
-  {/* ...existing header content (logo, nav links, etc.)... */}
-  <div class="ml-auto flex items-center">
-    <ThemeToggle />
-  </div>
-</header>
+import { useLocation } from "@solidjs/router";
+import ThemeToggle from "~/components/ThemeToggle";
+
+export default function Nav() {
+  const location = useLocation();
+  const active = (path: string) =>
+    path == location.pathname ? "border-sky-600" : "border-transparent hover:border-sky-600";
+  return (
+    <nav role="navigation" aria-label="Main" class="bg-sky-800">
+      <ul class="container flex items-center p-3 text-gray-200">
+        <li>
+          <a class={`border-b-4 ${active("/")} mx-1.5 sm:mx-6`} href="/">
+            Home
+          </a>
+        </li>
+        {/* ...other links... */}
+        <li class="ml-auto">
+          <ThemeToggle />
+        </li>
+      </ul>
+    </nav>
+  );
+}
 ```
 
 **Verification**:
 
 1. `vpr check` passes.
-2. `vpr test:comp` — all component tests pass (~20 total).
-3. `vpr dev` → http://localhost:3000/jedi:
-   - Theme toggle button visible in header
+2. `vpr test:comp` — all component tests pass (~25 total).
+3. `vpr dev` → http://localhost:3000 (any page):
+   - Theme toggle button visible in global nav bar
    - Click cycles: sun icon (light) → moon icon (dark) → monitor icon (auto)
    - Background/foreground colors change with mode
    - Reload preserves selected mode (localStorage)
+   - Toggle works on Home, About, Jedi, etc. — not just Jedi
    - No console errors
 
 ---
 
 ### [ ] Step 3.3: Write E2E Tests
 
-**File**: `e2e/jedi.spec.ts` (file exists — update with the tests below)
+**File**: `e2e/jedi.spec.ts` (file exists — 8 existing tests. Keep 4 footer tests, replace 4 placeholder tests with new Jedi page tests, add theme toggle tests.)
+
+> **Existing tests preserved**: footer solidjs.com link, footer Home link, footer navigation, footer active indicator. These test global Footer behavior on the Jedi route and must not be dropped.
 
 ```typescript
 import { test, expect } from "@playwright/test";
@@ -1033,6 +1379,38 @@ test.describe("Jedi Page", () => {
   });
 });
 
+test.describe("Jedi Page - Footer (preserved from existing tests)", () => {
+  test("should have working external link to solidjs.com in footer", async ({ page }) => {
+    await page.goto("/jedi");
+    const solidjsLink = page.locator("footer").getByRole("link", { name: /solidjs\.com/i });
+    await expect(solidjsLink).toBeVisible();
+    await expect(solidjsLink).toHaveAttribute("href", "https://solidjs.com");
+    await expect(solidjsLink).toHaveAttribute("target", "_blank");
+  });
+
+  test("should have navigation link to Home page in footer", async ({ page }) => {
+    await page.goto("/jedi");
+    const homeLink = page.locator("footer").getByRole("link", { name: /^Home$/i });
+    await expect(homeLink).toBeVisible();
+    await expect(homeLink).toHaveAttribute("href", "/");
+  });
+
+  test("should navigate to Home page when clicking footer link", async ({ page }) => {
+    await page.goto("/jedi");
+    const homeLink = page.locator("footer").getByRole("link", { name: /^Home$/i });
+    await homeLink.click();
+    await expect(page).toHaveURL("http://localhost:3000/");
+    await expect(page.getByRole("heading", { name: /Hello SolidStart!/i })).toBeVisible();
+  });
+
+  test("should display current page indicator in footer", async ({ page }) => {
+    await page.goto("/jedi");
+    const jediLink = page.locator("footer").getByRole("link", { name: /^Jedi$/i });
+    await expect(jediLink).toBeVisible();
+    await expect(jediLink).toHaveClass(/border-sky-600/);
+  });
+});
+
 test.describe("Jedi Page - Theme Toggle", () => {
   test("should display theme toggle button", async ({ page }) => {
     await page.goto("/jedi");
@@ -1102,7 +1480,7 @@ test.describe("Jedi Page - Theme Toggle", () => {
 });
 ```
 
-**Verification**: `vpr test:e2e ./e2e/jedi.spec.ts` — all e2e tests pass (~13 tests: 9 existing + 4 theme toggle).
+**Verification**: `vpr test:e2e ./e2e/jedi.spec.ts` — all e2e tests pass (17 total: 9 Jedi page + 4 footer + 4 theme toggle).
 
 **Phase Complete**:
 
@@ -1121,9 +1499,9 @@ Scan changed files for v3 residue:
 
 ```bash
 grep -rn -E "!important|bg-opacity-|text-opacity-|md:![a-z]|\[&>" \
-  src/routes/jedi.tsx src/components/Hero.tsx src/components/Image.tsx \
-  src/components/Author.tsx src/components/Card.tsx src/components/ThemeToggle.tsx \
-  src/app.css
+  src/routes/jedi.tsx src/routes/jedi.css src/components/Hero.tsx src/components/Image.tsx \
+  src/components/Author.tsx src/components/Card.tsx src/components/JediNav.tsx \
+  src/components/ThemeToggle.tsx src/components/Nav.tsx src/app.css
 ```
 
 Fix any hits:
@@ -1140,7 +1518,7 @@ Fix any hits:
 ```bash
 vpr check         # format + lint + type-check with auto-fix
 vpr check:type    # verify no TS errors
-vpr test:comp     # ~20 component tests (including ThemeToggle)
+vpr test:comp     # ~25 component tests (including JediNav + ThemeToggle)
 vpr test:unit     # unit tests
 vpr test:e2e      # e2e tests (including theme toggle tests)
 ```
@@ -1190,13 +1568,14 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 - [ ] Hero title uses Tile Case
 - [ ] Hero title uses white text color
 - [ ] "Get Started" button uses `--primary` color
-- [ ] Nav component visible
+- [ ] Global Nav visible (from `app.tsx`)
+- [ ] JediNav (converted Jedi header) visible below Hero
 - [ ] Main article in center column (2/3 width), image full-width within card
 - [ ] Caption uses Lobster at text-5xl
 - [ ] Tags are rounded pills; hover → bg-gray-500 + white text
 - [ ] Sidebar in right column (1/3); three cards: Categories, Top Photos, Top Captions
 - [ ] Category items show icons and labels; hover states on list items
-- [ ] Overall should use tailwind classes, not `style` attribute
+- [ ] Overall uses Tailwind classes, not `style` attribute (exception: Hero background-image with dynamic URL)
 
 ### Mobile View (375px)
 
@@ -1221,7 +1600,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 
 ### Theme Toggle
 
-- [ ] Toggle button visible in Jedi page header
+- [ ] Toggle button visible in global Nav (not just Jedi page)
 - [ ] Click cycles: sun (light) → moon (dark) → monitor (auto/system)
 - [ ] Light mode: zinc-200 background, zinc-800 text, sky-700 accents
 - [ ] Dark mode: stone-800 background, stone-300 text, sky-400 accents
@@ -1260,15 +1639,16 @@ When the above passes, the conversion is **complete**. Commit any final fixes an
 
 ## Success Criteria
 
-1. All 5 components created with TypeScript interfaces (Hero, Image, Author, Card, ThemeToggle)
-2. `src/routes/jedi.tsx` functional with all sections
-3. All component tests pass (~20, including ThemeToggle)
-4. All E2E tests pass (~13, including theme toggle)
+1. All 6 components created with TypeScript interfaces (Hero, Image, Author, Card, JediNav, ThemeToggle)
+2. `src/routes/jedi.tsx` functional with all sections; no duplicate `<Nav />` import
+3. All component tests pass (~25: Hero 2 + Image 3 + Author 3 + Card 4 + JediNav 5 + ThemeToggle 6 + existing 2)
+4. All E2E tests pass (17: 9 Jedi page + 4 footer + 4 theme toggle)
 5. Visual appearance matches **Jedi Project** `Awesome.png`
 6. Mobile sidebar toggle works
-7. Dark/light/system theme toggle works with localStorage persistence
+7. Dark/light/system theme toggle works with localStorage persistence; toggle in global Nav (all pages)
 8. No FOUC — theme init script applies stored preference before first paint
-9. TailwindCSS v4 syntax throughout; no Alpine.js dependencies
-10. Accessibility baseline met (semantic buttons, aria-label, aria-expanded, focus indicators)
-11. Zero browser console errors
-12. `vpr check:type` and `vpr build` succeed without errors or warnings
+9. TailwindCSS v4 syntax throughout; no Alpine.js dependencies; `style` only for dynamic background-image
+10. Global CSS in `@layer base` — Tailwind utilities override without `!important`
+11. Accessibility baseline met (semantic buttons, aria-label, aria-expanded, focus indicators)
+12. Zero browser console errors
+13. `vpr check:type` and `vpr build` succeed without errors or warnings
