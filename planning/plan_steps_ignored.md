@@ -946,7 +946,9 @@ CLAUDE.md: "Do not use Tailwind dark class." Theme is driven by CSS custom prope
 
 Fix: Replace with hover:bg-(--theme-hover-bg) (variable already exists in app.css).
 
-## [ ] 3. CSS variable naming mismatch between plan and Hero component
+## [√] 3. CSS variable naming mismatch between plan and Hero component
+
+## Step manually completed
 
 Plan Step 1.1 defines --font-lobster. Hero component (line 273) references --font-hero. Actual CSS uses
 --theme-font-hero. Three names for same thing.

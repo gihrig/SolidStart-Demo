@@ -62,7 +62,7 @@ Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.ts
 **Action**:
 
 1. Wrap existing global element rules in `@layer base` so Tailwind utility classes on Jedi components override them.
-2. Add Jedi custom properties (`--font-lobster`, `--primary`, `--primary-hover`) to `:root`.
+2. Add Jedi custom properties (`--theme-font-hero`, `--theme-btn-primary`, `--theme-btn-primary-hover`) to `:root`.
 3. Add `fadeIn` animation + `.animate-fade-in` utility.
 
 > **Why `@layer base`**: Global `main {}`, `h1 {}`, etc. rules in unlayered CSS have higher precedence than Tailwind utility classes (which live in `@layer utilities`). Wrapping in `@layer base` lets utility classes on Jedi components override these defaults without needing `!important`.
@@ -289,7 +289,7 @@ export default function Hero(props: HeroProps) {
     >
       <div class="col-start-1 row-start-1 bg-gray-800/40 w-full h-full" />
       <div class="col-start-1 row-start-1 py-24 px-10">
-        <h1 class="text-[4rem] leading-[1.2] font-bold mb-4 animate-fade-in font-(family-name:--font-hero)">
+        <h1 class="text-[4rem] leading-[1.2] font-bold mb-4 animate-fade-in font-(family-name:--theme-font-hero)">
           {props.title}
         </h1>
         <p class="text-lg font-bold mb-5">{props.subtitle}</p>
