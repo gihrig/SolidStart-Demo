@@ -37,6 +37,7 @@ Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.ts
 - Keyboard navigation:
   - Tab stops on all actionable elements
   - Tab selects "Categories" when in small-screen mode
+- Selected item in "Categories", "Top Phots" and "Top Captions" lists must have `highlight` class applied
 
 ### Alpine.js → SolidJS Mapping
 
@@ -152,6 +153,12 @@ p {
   }
 }
 
+@layer utilities {
+  .animate-fade-in {
+    animation: 1s fadeIn;
+  }
+}
+
 @keyframes fadeIn {
   0%,
   10% {
@@ -160,10 +167,6 @@ p {
   100% {
     opacity: 1;
   }
-}
-
-.animate-fade-in {
-  animation: 1s fadeIn;
 }
 ```
 
@@ -225,10 +228,12 @@ import "./jedi.css";
 
 **Verification**: `vpr check` passes.
 
+---
+
 **Phase Complete**:
 
-- Write a commit message in "Conventional Commit" format `feat(jedi): Phase X complete - <summary>` summarizing the changes in this phase.
-- Stop. Wait for user reply before proceeding to the next phase.
+- Write a commit message in "Conventional Commit" format `feat(jedi): Phase 1 complete - <summary>` summarizing the changes in this phase.
+- Stop.
 
 ---
 
@@ -265,12 +270,12 @@ export default function Hero(props: HeroProps) {
     >
       <div class="col-start-1 row-start-1 bg-gray-800/40 w-full h-full" />
       <div class="col-start-1 row-start-1 py-24 px-10">
-        <h1 class="text-[4rem] leading-[1.2] font-bold mb-4 animate-fade-in font-(--font-lobster)">
+        <h1 class="text-[4rem] leading-[1.2] font-bold mb-4 animate-fade-in font-(family-name:--font-hero)">
           {props.title}
         </h1>
         <p class="text-lg font-bold mb-5">{props.subtitle}</p>
         <a
-          class="inline-flex items-center justify-center px-4 min-h-[3.3rem] font-semibold rounded-lg text-white transition-transform active:scale-95 bg-(--primary) shadow-[0_4px_3px_rgba(0,0,0,0.1)]"
+          class="inline-flex items-center justify-center px-4 min-h-[3.3rem] font-semibold rounded-lg text-white transition-transform active:scale-95 bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover) shadow-[0_4px_3px_rgba(0,0,0,0.1)]"
           href={props.ctaHref}
         >
           {props.ctaText}
@@ -462,7 +467,7 @@ import { JSX } from "solid-js";
 export default function Card(props: CardProps) {
   return (
     <section
-      class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-background) text-(--theme-foreground) ${props.class || ""}`}
+      class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg) ${props.class || ""}`}
     >
       {props.title && <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{props.title}</h2>}
       <div class="p-4 pt-0">{props.children}</div>
@@ -686,12 +691,14 @@ describe("<JediNav />", () => {
 
 **Verification**: `vpr test:comp -t "JediNav"`
 
+---
+
 **Phase Complete**:
 
-**Verification**: `vpr test:comp` — all component tests pass (~19 total: Hero 2 + Image 3 + Author 3 + Card 4 + JediNav 5 + 2 existing).
+**Verification**: `vpr test:comp` — all component tests pass.
 
-- Write a commit message in "Conventional Commit" format `feat(jedi): Phase X complete - <summary>` summarizing the changes in this phase.
-- Stop. Wait for user reply before proceeding to the next phase.
+- Write a commit message in "Conventional Commit" format `feat(jedi): Phase 2 complete - <summary>` summarizing the changes in this phase.
+- Stop.
 
 ---
 
@@ -707,17 +714,18 @@ describe("<JediNav />", () => {
 2. Place `<JediNav />` above `<Hero />`. The page shows two nav bars: global `<Nav />` (from `app.tsx`) + Jedi-specific `<JediNav />` (converted Jedi source header).
 3. Import `@fontsource/lobster` and `./jedi.css` in this file (set up in Phase 1).
 4. Convert to Tailwind v4 `class=...` syntax. Avoid `style=...` except where dynamic prop values require it (e.g., Hero background-image URL).
-5. Implement mobile sidebar toggle with `createSignal`.
-6. Convert Alpine.js `x-show` → `<Show>`, transitions → TailwindCSS v4 utilities.
-7. Responsive grid: mobile stacked → desktop 2-col main + 1-col sidebar.
-8. Include `<Title>` and `<Meta description>` from `@solidjs/meta`.
-9. **Accessibility baseline** (include from the start, not as a later fix):
+5. Convert to Tailwind v4 `[&>a:hover]:underline` → `hover:underline`.
+6. Implement mobile sidebar toggle with `createSignal`.
+7. Convert Alpine.js `x-show` → `<Show>`, transitions → TailwindCSS v4 utilities.
+8. Responsive grid: mobile stacked → desktop 2-col main + 1-col sidebar.
+9. Include `<Title>` and `<Meta description>` from `@solidjs/meta`.
+10. **Accessibility baseline** (include from the start, not as a later fix):
 
 - Mobile toggle uses `<button type="button">` (not `<a>`).
 - Mobile toggle has `aria-label="Toggle sidebar"` and `aria-expanded={mobileSidebarOpen()}`.
 - Decorative icons use `alt=""`; content images use meaningful alt.
 
-10. **Performance**: Declare `categories`, `topPhotos`, `topCaptions` as constants **outside** the component.
+11. **Performance**: Declare `categories`, `topPhotos`, `topCaptions` as constants **outside** the component.
 
 **Component structure (outline)**:
 
@@ -748,12 +756,24 @@ const TOP_PHOTOS = [
     author: "Homer",
     likes: 5,
   },
-  // ... more entries
+  {
+    src: "https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg",
+    alt: "Top photo",
+    avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
+    author: "Homer",
+    likes: 5,
+  }
 ];
 
 const TOP_CAPTIONS = [
-  { avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png", author: "Homer", likes: 5 },
-  // ... more entries
+  { avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
+    author: "Homer",
+    likes: 5
+  },
+  { avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
+    author: "Homer",
+    likes: 5
+  }
 ];
 
 export default function Jedi() {
@@ -1102,6 +1122,8 @@ export default function ThemeToggle() {
 
 **Toggle cycle**: `light → dark → auto → light` (matches **Tanstack Project** `ThemeToggle.tsx` line 44).
 
+**Verification**: `vpr check` passes.
+
 ---
 
 #### 3.2.4: Create ThemeToggle Component Test
@@ -1207,7 +1229,7 @@ describe("<ThemeToggle />", () => {
 });
 ```
 
-**Verification**: `vpr test:comp` — ThemeToggle tests pass (6 new tests; ~25 component tests total).
+**Verification**: `vpr test:comp -t "ThemeToggle"` — ThemeToggle tests pass.
 
 ---
 
@@ -1269,25 +1291,32 @@ export default function Nav() {
 }
 ```
 
-**Verification**:
+**Verification**: `vpr check` passes.
 
-1. `vpr check` passes.
-2. `vpr test:comp` — all component tests pass (~25 total).
-3. `vpr dev` → http://localhost:3000 (any page):
-   - Theme toggle button visible in global nav bar
-   - Click cycles: sun icon (light) → moon icon (dark) → monitor icon (auto)
-   - Background/foreground colors change with mode
-   - Reload preserves selected mode (localStorage)
-   - Toggle works on Home, About, Jedi, etc. — not just Jedi
-   - No console errors
+---
+
+#### 3.2.6: Update Global Nav test `Nav.tst.tsx`
+
+- Update `Nav.tst.tsx` to cover additional requirements
+  - Theme toggle button visible in global nav bar
+  - Click cycles: sun icon (light) → moon icon (dark) → monitor icon (auto)
+  - Reload preserves selected mode (localStorage)
+
+**Verification** `vpr test:comp -t "Nav"` — all tests pass.
 
 ---
 
 ### [ ] Step 3.3: Write E2E Tests
 
-**File**: `e2e/jedi.spec.ts` (file exists — 8 existing tests. Keep 4 footer tests, replace 4 placeholder tests with new Jedi page tests, add theme toggle tests.)
+**File**: `e2e/jedi.spec.ts` (file exists with existing tests. Keep existing footer tests, replace placeholder tests with new Jedi page tests, add theme toggle tests.)
 
-> **Existing tests preserved**: footer solidjs.com link, footer Home link, footer navigation, footer active indicator. These test global Footer behavior on the Jedi route and must not be dropped.
+**Existing tests preserved**: footer solidjs.com link, footer Home link, footer navigation, footer active indicator. These test global Footer behavior on the Jedi route and must not be dropped.
+
+**Additional test for theme toggle feature**
+
+- `vpr dev` → http://localhost:3000/jedi
+- Background/foreground colors change with mode toggle
+- No console errors
 
 ```typescript
 import { test, expect } from "@playwright/test";
@@ -1479,12 +1508,14 @@ test.describe("Jedi Page - Theme Toggle", () => {
 });
 ```
 
-**Verification**: `vpr test:e2e ./e2e/jedi.spec.ts` — all e2e tests pass (17 total: 9 Jedi page + 4 footer + 4 theme toggle).
+**Verification**: `vpr test:e2e ./e2e/jedi.spec.ts` — all e2e tests pass.
+
+---
 
 **Phase Complete**:
 
-- Write a commit message in "Conventional Commit" format `feat(jedi): Phase X complete - <summary>` summarizing the changes in this phase.
-- Stop. Wait for user reply before proceeding to the next phase.
+- Write a commit message in "Conventional Commit" format `feat(jedi): Phase 3 complete - <summary>` summarizing the changes in this phase.
+- Stop.
 
 ---
 
@@ -1547,9 +1578,11 @@ vpr start
   - no console errors.
   - theme toggle cycles correctly in production build
 
+---
+
 **Phase Complete**:
 
-- Write a commit message in "Conventional Commit" format `feat(jedi): Phase X complete - <summary>` summarizing the changes in this phase.
+- Write a commit message in "Conventional Commit" format `feat(jedi): Phase 4 complete - <summary>` summarizing the changes in this phase.
 - Stop.
 
 ---
@@ -1560,17 +1593,17 @@ vpr start
 
 Run `vpr dev` and navigate to http://localhost:3000/jedi.
 
-### Desktop View (1280px+)
+### Desktop View Jedi page (1280px+)
 
 - [ ] Hero displays background image with 40% overlay (bg-gray-800/40)
 - [ ] Hero title uses Lobster font
 - [ ] Hero title uses Tile Case
 - [ ] Hero title uses white text color
-- [ ] "Get Started" button uses `--primary` color
+- [ ] "Get Started" button uses `--btn-primary` color
 - [ ] Global Nav visible (from `app.tsx`)
-- [ ] JediNav (converted Jedi header) visible above Hero
-- [ ] Main article in center column (2/3 width), image full-width within card
-- [ ] Caption uses Lobster at text-5xl
+- [ ] JediNav (converted Jedi header) visible above Hero on Jedi page
+- [ ] Main Jedi article (image) in center column (2/3 width), image full-width within card
+- [ ] Caption uses Lobster at text-[4rem]
 - [ ] Tags are rounded pills; hover → bg-gray-500 + white text
 - [ ] Sidebar in right column (1/3); three cards: Categories, Top Photos, Top Captions
 - [ ] Category items show icons and labels; hover states on list items
@@ -1578,9 +1611,10 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 
 ### Mobile View (375px)
 
+- [ ] Header menu collapsed under "hamburger" icon
 - [ ] Hero stacks vertically
 - [ ] Mobile "Categories" toggle button appears
-- [ ] Clicking toggle shows/hides sidebar; arrow icon rotates
+- [ ] Clicking "Categories" toggle shows/hides cards; arrow icon rotates
 - [ ] Main article full width; no horizontal scroll
 - [ ] Interactive elements touch-friendly (min 44px)
 
@@ -1592,14 +1626,14 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 ### Hover / Animation
 
 - [ ] Nav links change bg on hover to match **Jedi Project**
-- [ ] CTA (get Started) darkens to `--primary-hover`
-- [ ] Author name underlines on hover
+- [ ] CTA (get Started) darkens to `--btn-primary-hover`
+- [ ] Author, Like, Edit and Delete links underlines on hover
 - [ ] Hero title fades in on page load
-- [ ] Mobile sidebar transitions smoothly; arrow rotation smooth (300ms)
+- [ ] Mobile category cards transition smoothly; arrow rotation smooth (300ms)
 
 ### Theme Toggle
 
-- [ ] Toggle button visible in global Nav (not just Jedi page)
+- [ ] Toggle button visible in global Nav all pages (not within Jedi page)
 - [ ] Click cycles: sun (light) → moon (dark) → monitor (auto/system)
 - [ ] Light mode: zinc-200 background, zinc-800 text, sky-700 accents
 - [ ] Dark mode: stone-800 background, stone-300 text, sky-400 accents
@@ -1640,8 +1674,8 @@ When the above passes, the conversion is **complete**. Commit any final fixes an
 
 1. All 6 components created with TypeScript interfaces (Hero, Image, Author, Card, JediNav, ThemeToggle)
 2. `src/routes/jedi.tsx` functional with all sections; no duplicate `<Nav />` import
-3. All component tests pass (~25: Hero 2 + Image 3 + Author 3 + Card 4 + JediNav 5 + ThemeToggle 6 + existing 2)
-4. All E2E tests pass (17: 9 Jedi page + 4 footer + 4 theme toggle)
+3. All component tests pass.
+4. All E2E tests pass.
 5. Visual appearance matches **Jedi Project** `Awesome.png`
 6. Mobile sidebar toggle works
 7. Dark/light/system theme toggle works with localStorage persistence; toggle in global Nav (all pages)

@@ -592,9 +592,7 @@ Critical (will cause bugs)
 
 1. TW v4 dark: variant won't work with manual toggle
 
-Plan's ThemeToggle uses dark:hover:bg-gray-700 (line 1029), and applyThemeMode() sets class="dark" on <html>. But TW
-v4 defaults dark: to @media (prefers-color-scheme: dark) — not class-based. Plan never configures TW v4 dark mode
-selector strategy. Result: dark: utilities only respond to OS preference, not manual toggle.
+Plan's ThemeToggle uses dark:hover:bg-gray-700 (line 1029), and applyThemeMode() sets class="dark" on <html>. But TW v4 defaults dark: to @media (prefers-color-scheme: dark) — not class-based. Plan never configures TW v4 dark mode selector strategy. Result: dark: utilities only respond to OS preference, not manual toggle.
 
 Fix: Add @custom-variant dark (&:where(.dark, .dark \*)); to app.css (TW v4 syntax for class-based dark mode).
 
@@ -663,8 +661,7 @@ Fix: Use a distinct surface variable like --theme-surface or hardcode bg-white d
 7. .highlight class on first Category missing
 
 Source line 246-247: <li class="highlight"> on Landscape category. Source style.css line 1092: .highlight {
-background-color: rgb(224 231 255) !important; } (indigo-100). Plan's CATEGORIES data and rendering don't mention this
-visual indicator.
+background-color: rgb(224 231 255) !important; } (indigo-100). Plan's CATEGORIES data and rendering don't mention this visual indicator.
 
 8. animate-fade-in placed outside @layer
 
@@ -680,8 +677,7 @@ Homer). Plan should match source.
 
 10. [&>a:hover]:underline for article actions not converted
 
-Source line 219: class="flex items-center gap-4 [&>a:hover]:underline" on Like/Edit/Delete container. Plan's Step 3.1
-outline ({/_ ...article body... _/}) doesn't explicitly address this v3 → v4 conversion.
+Source line 219: class="flex items-center gap-4 [&>a:hover]:underline" on Like/Edit/Delete container. Plan's Step 3.1 outline ({/_ ...article body... _/}) doesn't explicitly address this v3 → v4 conversion.
 
 ---
 
@@ -721,4 +717,194 @@ WHAT'S CORRECT
 - jedi.css descendant selectors match source style.css patterns ✓
 - E2E test structure: 8 existing tests, 4 footer + 4 placeholder — count verified ✓
 
+---
+
 claude-max --resume 99fbe6b1-e835-4805-9237-1527c4898212
+
+❯ Solutions to previously listed issues:
+
+- Apply the following Fixes to `planning/jedi-conversion.md`
+- Fixes manually applied
+
+# ACCURACY ISSUES
+
+# Critical (will cause bugs):
+
+## [√] 1. TW v4 dark: variant won't work with manual toggle
+
+### Problem:
+
+- Plan's ThemeToggle uses dark:hover:bg-gray-700 (line 1029), and applyThemeMode() sets class="dark" on <html>.
+
+### Fix:
+
+- I have added a `data-theme="dark"` block to `app.css`
+
+  ```CSS
+  :root[data-theme="dark"] {
+  --theme-background: --color-zinc-800;
+  --theme-foreground: --color-zinc-300;
+  --theme-hover-bg: --color-gray-700;
+  --theme-card-fg: --color-zinc-200;
+  --theme-card-bg: --color-gray-700;
+  }
+  ```
+
+This is modeled after the **Tanstack Project**. It should work with `src/components/ThemeToggle.tsx` and `THEME_INIT_SCRIPT`
+
+Update `jedi-conversion.md` to use theme variables for light and dark mode
+
+## [√] 2. font-(--font-lobster) likely wrong TW v4 syntax
+
+### Problem:
+
+- Hero component line 269: font-(--font-lobster). In TW v4, font- prefix is ambiguous between font-weight and font-family.
+
+### Fix:
+
+- Define via `@theme { --font-hero: "Lobster", sans-serif; }`
+- Replace `font-(--font-lobster)` with `font-(family-name:--font-hero)`
+
+## [√] 3. Hero CTA missing hover state
+
+### Problem:
+
+- Source .button:hover (style.css line 1038): background-color: var(--primary-hover). Plan's Hero CTA (line 273) has no hover class.
+
+### Fix:
+
+- Add hover:bg-(--primary-hover) to CTA <a> classes.
+
+## [√] 4. Nav.tsx tests will break — not addressed
+
+### Problem:
+
+Step 3.2.5 adds <ThemeToggle /> inside <Nav />, changing DOM structure. Existing Nav tests at
+src/components/Nav.test.tsx don't mock ThemeToggle.
+
+### Fix:
+
+Update plan to include updates to `Nav.test.tsx` in support of <ThemeToggle /> inside <Nav />
+
+- See steps 3.2.6 and 3.3
+
+## [√] 5. Existing component test count wrong
+
+### Problem:
+
+- Plan claims "2 existing" component tests (line 691, Success Criteria line 1643).
+- Actual existing component test file count varies as development continues.
+- Test count is a brittle metric with little value.
+
+### Fix:
+
+- Remove all references to test count
+
+# Moderate:
+
+## [√] 6. Card dark mode — invisible against page background
+
+### Problem:
+
+- Source .card (style.css line 1068): background-color: white. Plan's Card uses bg-(--theme-background) (line 465)
+- same variable as page body. In dark mode, cards will blend into page. No visual separation.
+
+### Fix:
+
+- Use distinct variables `--theme-card-fg` and `--theme-card-bg`
+
+## [√] 7. .highlight class on first Category missing
+
+### Problem:
+
+- Source line 246-247: <li class="highlight"> applied to top Category, 'Landscape'. Plan's CATEGORIES data and rendering don't mention this visual indicator.
+
+### Fix:
+
+- Add item under plan section `Visual Features to Create`:
+  - Selected item in "Categories", "Top Phots" and "Top Captions" lists must have `highlight` class applied
+
+## [√] 8. animate-fade-in placed outside @layer
+
+### Problem:
+
+- Plan's app.css puts .animate-fade-in outside any layer (line 165). This gives it higher specificity than @layer
+  utilities classes. Should be in @layer utilities
+
+### Fix:
+
+- Move `.animate-fade-in` to `@layer utilities`
+
+# Minor:
+
+## [√] 9. Source sidebar data counts exaggerated
+
+### Problem:
+
+- Plan shows // ... more entries for TOP_PHOTOS and TOP_CAPTIONS. Source index.html has exactly 2 entries each (all Homer). Plan should match source.
+
+### Fix:
+
+- Expand plan to be explicit
+
+## [√] 10. [&>a:hover]:underline for article actions not converted
+
+### Problem:
+
+- Source line 219: class="flex items-center gap-4 [&>a:hover]:underline" on Like/Edit/Delete container. Plan's Step 3.1 outline ({/_ ...article body... _/}) doesn't explicitly address this v3 → v4 conversion.
+
+### Fix:
+
+- Add to Steep 3.1 **Requirements:** 'Convert to Tailwind v4 `[&>a:hover]:underline` → `hover:underline`.'
+
+# EFFICIENCY RECOMMENDATIONS
+
+## [√] A. Phase 3 too large — split it
+
+### Problem:
+
+- Phase 3 combines: page assembly + dark/light theme (new feature) + E2E tests. Three distinct concerns in one phase. If theme toggle breaks, it blocks page completion.
+
+### Fix:
+
+- Split:
+  - 3a: Jedi route page assembly
+  - 3b: Dark/light/system theme toggle
+  - 3c: E2E tests
+
+- Already accomplished as:
+  - Step 3.1: (with sub-steps) Create Jedi Route Page with Metadata
+  - Step 3.2: (with sub-steps) Create Dark/Light/System Theme Toggle
+  - Step 3.3: Write E2E Tests
+
+## [√] B. Hero backgroundImage prop — over-engineered?
+
+### Problem:
+
+- Source has ONE hero with a static URL.
+  - Making backgroundImage a prop adds abstraction for a single-use case.
+  - Could hardcode URL and skip the style={} exception entirely using TW v4 bg-[url(...)]. Per Karpathy guideline #2 (simplicity first).
+  - Though component extraction is a stated project goal, so this is judgment call.
+
+### [√] Fix:
+
+- Keep as is.
+- Hero component has additional properties
+  - title
+  - subtitle
+  - ctaText
+  - ctaHref
+  - backgroundImage
+
+## C. Image + Author components are single-use
+
+### Problem:
+
+- Both used exactly once. Could inline into page.
+
+### Fix:
+
+- Keep as is.
+- Single use on this page, but components contribute library that may find additional uses.
+
+❯ Read and apply`planning/plan_steps_next.md`
