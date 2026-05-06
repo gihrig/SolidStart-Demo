@@ -97,7 +97,7 @@ vpr test:comp:watch
 
 Run a single component test with:
 
-```
+```sh
 vpr test:comp -t "Nav" // Run Nav.test.tsx
 ```
 
