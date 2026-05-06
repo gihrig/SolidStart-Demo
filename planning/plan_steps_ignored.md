@@ -907,4 +907,148 @@ Update plan to include updates to `Nav.test.tsx` in support of <ThemeToggle /> i
 - Keep as is.
 - Single use on this page, but components contribute library that may find additional uses.
 
-❯ Read and apply`planning/plan_steps_next.md`
+---
+
+❯ Review `planning/jedi-conversion.md` for accuracy and efficiency report any recommended improvements
+
+⏺ Review complete. Here are findings, organized by severity.
+
+---
+
+Critical Issues (will cause failures or confusion)
+
+1. Plan's "Before" CSS doesn't match actual src/app.css
+
+Plan Step 1.1 shows a "Before" with var(--color-zinc-200) syntax and no dark-mode infrastructure. But actual file
+already has:
+
+// actual app.css lines 4-5, 6-7, 15-21:
+--theme-font-hero: "Lobster", sans-serif;
+--theme-btn-primary: rgb(88, 40, 244);
+:root[data-theme="dark"] { ... }
+
+Plan proposes adding --font-lobster, --primary, --primary-hover — but these already exist under different names.
+Implementor will be confused whether to use plan names or existing names.
+
+Fix: Rewrite Step 1.1 "Before" to match actual file. Use existing var names (--theme-font-hero, --theme-btn-primary,
+etc.).
+
+2. ThemeToggle uses dark: class — violates CLAUDE.md
+
+Plan line 1049:
+class="rounded-lg p-2 transition hover:bg-gray-200 dark:hover:bg-gray-700"
+
+CLAUDE.md: "Do not use Tailwind dark class." Theme is driven by CSS custom properties.
+
+Fix: Replace with hover:bg-(--theme-hover-bg) (variable already exists in app.css).
+
+3. CSS variable naming mismatch between plan and Hero component
+
+Plan Step 1.1 defines --font-lobster. Hero component (line 273) references --font-hero. Actual CSS uses
+--theme-font-hero. Three names for same thing.
+
+Plan Hero also uses bg-(--theme-btn-primary) and hover:bg-(--theme-btn-primary-hover) (line 279) — these DO match
+actual CSS. But Step 1.1 proposes adding --primary / --primary-hover which are DIFFERENT names.
+
+Fix: Standardize on --theme-\* prefix already in app.css. Update Step 1.1 and Hero component to use --theme-font-hero,
+--theme-btn-primary, --theme-btn-primary-hover.
+
+4. highlight class: mentioned but never implemented
+
+"Visual Features to Create" (line 42): "Selected item must have highlight class applied"
+
+Source style.css line 1092:
+.highlight {
+--tw-bg-opacity: 1 !important;
+background-color: rgb(224 231 255 / var(--tw-bg-opacity)) !important;
+}
+
+No step creates this class in jedi.css or applies it to first category item. Plan has a gap.
+
+Fix: Add .highlight to jedi.css (Step 1.3) and apply it to first item in CATEGORIES <For> loop (Step 3.1).
+
+---
+
+Important Issues (accuracy/completeness)
+
+5. Phase 3 too large — split recommended
+
+Phase 3 contains: full page assembly + theme toggle (CSS + init script + component + test + Nav integration) + all E2E
+tests. That's ~3 separate concerns. If anything fails mid-phase, commit scope unclear.
+
+Fix: Split into:
+
+- Phase 3: Page assembly + sidebar toggle
+- Phase 4: Theme toggle (global feature, separate concern)
+- Phase 5: E2E tests
+- Phase 6: Code quality audit (current Phase 4)
+- Phase 7: User validation
+
+6. Article body content hand-waved
+
+Step 3.1 shows {/_ ...article body: header, Image, Author, caption, tags, actions... _/} — this is most complex part
+of page. Source has: title bar with "Little Jedi" + flickr attribution, figure/image, author "Lisa", caption in
+Lobster font, tag pills (Animals, Cute), action links (Comments, Like, Edit, Delete) with fire-heart icon.
+
+Fix: Provide explicit JSX for article section, or at minimum structured data constants + template pattern.
+
+7. @media (prefers-color-scheme: dark) block is empty in actual CSS
+
+Plan Step 3.2.1 shows adding vars to this block, but actual file (line 23-25) already has the block — it's just empty:
+@media (prefers-color-scheme: dark) {
+:root:not([data-theme="light"]) {
+}
+}
+
+Fix: Plan should note this block exists but needs dark vars added (not that it needs the selector changed from :root
+to :root:not([data-theme="light"])).
+
+8. Keyboard navigation: requirement without implementation
+
+"Visual Features to Create" lists keyboard navigation + tab stops. Phase 5 User Validation checks for them. But no
+implementation step adds tabIndex, keyboard event handlers, or focus-ring styles beyond basic button semantics.
+
+Fix: Add a sub-step in Phase 3 (or wherever page assembly happens) for focus management — e.g., focus-visible rings,
+skip-link, logical tab order verification.
+
+9. @layer base wrapping still needed
+
+Actual app.css has NO @layer base wrapping. Plan correctly identifies this need (global main {}, h1 {} etc. will
+override Tailwind utilities). This is valid and should remain.
+
+---
+
+Minor Issues
+
+10. Arbitrary value syntax in Hero
+
+Line 273: text-[4rem], line 279: min-h-[3.3rem], shadow-[0_4px_3px_rgba(0,0,0,0.1)]
+
+CLAUDE.md rule targets [var(--css-variable)] specifically. These might be acceptable but inconsistent with spirit.
+Could use custom properties instead.
+
+11. Typo: Nav.tst.tsx
+
+Plan line 1299: "Update Nav.tst.tsx" — should be Nav.test.tsx.
+
+12. entry-server.tsx — innerHTML on script tag
+
+Plan uses <script innerHTML={THEME_INIT_SCRIPT} />. Valid in SolidJS/SolidStart, but worth noting this bypasses CSP if
+Content-Security-Policy headers are later added. Not blocking, just a note for future.
+
+---
+
+Efficiency Recommendations
+
+1. Merge Image + Author components into page JSX — both very thin (5-10 lines), used once. Adds test overhead without
+   reuse benefit. Counter-argument: testability. Your call.
+2. Static data arrays — plan correctly puts these outside component. But TOP_PHOTOS has duplicate entries (same data
+   twice). Should match source which also has duplicates — confirm this is intentional demo data, not a copy error.
+3. Phase gating — plan says "Stop" after each phase. Good for review checkpoints. Could add explicit "diff review"
+   step before commit.
+
+---
+
+Summary
+
+Biggest risk: plan's CSS "Before" state is stale — actual app.css already evolved past what plan assumes. This will confuse execution of Steps 1.1 and 3.2.1. Second biggest: dark: class usage violating project rules, and highlight class gap. Recommend updating plan before execution starts.
