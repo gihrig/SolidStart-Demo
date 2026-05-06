@@ -36,6 +36,10 @@ Read this section before starting any phase.
 - Props interfaces named `<Component>Props`.
 - Component names PascalCase.
 - Imports ordered: external → internal → components.
+- Style dark/light mode using theme variables.
+- Do not use Tailwind `dark` class.
+- Use Tailwind custom property syntax: `text-(--css-variable)`.
+- Do not use Tailwind arbitrary value syntax: `text-[var(--css-variable)]`.
 
 ---
 
