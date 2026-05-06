@@ -1,47 +1,65 @@
 @import "tailwindcss";
 
-:root {
-  --theme-font-hero: "Lobster", sans-serif;
-  --theme-accent: --color-sky-700;
-  --theme-btn-primary: rgb(88, 40, 244);
-  --theme-btn-primary-hover: rgb(69, 29, 200);
-  --theme-background: --color-zinc-200;
-  --theme-foreground: --color-zinc-800;
-  --theme-hover-bg: --color-gray-200;
-  --theme-card-fg: --color-gray-700;
-  --theme-card-bg: --color-zinc-200;
-}
+@layer base {
+  :root {
+    --theme-font-hero: "Lobster", sans-serif;
+    --theme-accent: --color-sky-700;
+    --theme-btn-primary: rgb(88, 40, 244);
+    --theme-btn-primary-hover: rgb(69, 29, 200);
+    --theme-background: --color-zinc-200;
+    --theme-foreground: --color-zinc-800;
+    --theme-hover-bg: --color-gray-200;
+    --theme-card-fg: --color-gray-700;
+    --theme-card-bg: --color-zinc-200;
+  }
 
-:root[data-theme="dark"] {
-  --theme-background: --color-zinc-800;
-  --theme-foreground: --color-zinc-300;
-  --theme-hover-bg: --color-gray-700;
-  --theme-card-fg: --color-zinc-200;
-  --theme-card-bg: --color-gray-700;
-}
+  :root[data-theme="dark"] {
+    --theme-background: --color-zinc-800;
+    --theme-foreground: --color-zinc-300;
+    --theme-hover-bg: --color-gray-700;
+    --theme-card-fg: --color-zinc-200;
+    --theme-card-bg: --color-gray-700;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+    }
+  }
+
+  body {
+    background: var(--theme-background);
+    color: var(--theme-foreground);
+  }
+
+  main {
+    @apply mx-auto p-4 text-center text-xl text-(--theme-foreground);
+  }
+
+  h1 {
+    @apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase;
+  }
+
+  h2 {
+    @apply ml-8 text-left text-2xl font-thin text-(--theme-accent) uppercase;
+  }
+
+  p {
+    @apply mx-8 mb-6 text-justify;
   }
 }
 
-body {
-  background: var(--theme-background);
-  color: var(--theme-foreground);
+@layer utilities {
+  .animate-fade-in {
+    animation: 1s fadeIn;
+  }
 }
 
-main {
-  @apply mx-auto p-4 text-center text-xl text-(--theme-foreground);
-}
-
-h1 {
-  @apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase;
-}
-
-h2 {
-  @apply ml-8 text-left text-2xl font-thin text-(--theme-accent) uppercase;
-}
-
-p {
-  @apply mx-8 mb-6 text-justify;
+@keyframes fadeIn {
+  0%,
+  10% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }

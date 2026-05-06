@@ -6,5 +6,6 @@
   "editor.formatOnSaveMode": "file",
   "editor.codeActionsOnSave": {
     "source.fixAll.oxc": "explicit"
-  }
+  },
+  "snyk.advanced.organization": "44417c91-6be9-4b72-b780-334d1136d710"
 }
