@@ -19,7 +19,7 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} class="space-y-4">
-      <h2 class="text-xl font-bold">Login</h2>
+      <h2 style="margin-left:0;">Login</h2>
 
       <Show when={error()}>
         <div class="rounded bg-red-100 p-2 text-red-700">{error()}</div>
