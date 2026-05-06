@@ -4,6 +4,7 @@
   :root {
     --theme-font-hero: "Lobster", sans-serif;
     --theme-accent: --color-sky-700;
+    --theme-highlight: --color-indigo-100;
     --theme-btn-primary: rgb(88, 40, 244);
     --theme-btn-primary-hover: rgb(69, 29, 200);
     --theme-background: --color-zinc-200;

@@ -37,7 +37,7 @@ Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.ts
 - Keyboard navigation:
   - Tab stops on all actionable elements
   - Tab selects "Categories" when in small-screen mode
-- Selected item in "Categories", "Top Phots" and "Top Captions" lists must have `highlight` class applied
+- Selected item in "Categories" list must have `--theme-highlight` class applied
 
 ### Alpine.js → SolidJS Mapping
 
@@ -75,6 +75,7 @@ Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.ts
 :root {
   --theme-font-hero: "Lobster", sans-serif;
   --theme-accent: --color-sky-700;
+  --theme-highlight: --color-indigo-100;
   --theme-btn-primary: rgb(88, 40, 244);
   --theme-btn-primary-hover: rgb(69, 29, 200);
   --theme-background: --color-zinc-200;
@@ -128,6 +129,7 @@ p {
   :root {
     --theme-font-hero: "Lobster", sans-serif;
     --theme-accent: --color-sky-700;
+    --theme-highlight: --color-indigo-100;
     --theme-btn-primary: rgb(88, 40, 244);
     --theme-btn-primary-hover: rgb(69, 29, 200);
     --theme-background: --color-zinc-200;
@@ -842,7 +844,13 @@ export default function Jedi() {
         >
           <Card title="Categories">
             <ul class="space-y-1">
-              <For each={CATEGORIES}>{(c) => (/* item */)}</For>
+                <For each={CATEGORIES}>
+                  {(c, index) => (
+                    <li classList={{ "text-(--theme-highlight)": index() === 0 }}>
+                      {/* item */}
+                    </li>
+                  )}
+                </For>
             </ul>
           </Card>
           <Card title="Top Photos">
@@ -1626,6 +1634,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 - [ ] Tags are rounded pills; hover → bg-gray-500 + white text
 - [ ] Sidebar in right column (1/3); three cards: Categories, Top Photos, Top Captions
 - [ ] Category items show icons and labels; hover states on list items
+- [ ] Top Category item has `--theme-highlight` applied
 - [ ] Overall uses Tailwind classes, not `style` attribute (exception: Hero background-image with dynamic URL)
 
 ### Mobile View (375px)

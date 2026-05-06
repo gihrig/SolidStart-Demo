@@ -959,7 +959,9 @@ actual CSS. But Step 1.1 proposes adding --primary / --primary-hover which are D
 Fix: Standardize on --theme-\* prefix already in app.css. Update Step 1.1 and Hero component to use --theme-font-hero,
 --theme-btn-primary, --theme-btn-primary-hover.
 
-## [ ] 4. highlight class: mentioned but never implemented
+## [√] 4. highlight class: mentioned but never implemented
+
+## Step manually completed
 
 "Visual Features to Create" (line 42): "Selected item must have highlight class applied"
 
