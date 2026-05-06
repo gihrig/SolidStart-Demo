@@ -935,7 +935,9 @@ Implementor will be confused whether to use plan names or existing names.
 Fix: Rewrite Step 1.1 "Before" to match actual file. Use existing var names (--theme-font-hero, --theme-btn-primary,
 etc.).
 
-## [ ] 2. ThemeToggle uses dark: class — violates CLAUDE.md
+## [√] 2. ThemeToggle uses dark: class — violates CLAUDE.md
+
+## Step manually completed
 
 Plan line 1049:
 class="rounded-lg p-2 transition hover:bg-gray-200 dark:hover:bg-gray-700"

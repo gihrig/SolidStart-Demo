@@ -1065,7 +1065,7 @@ export default function ThemeToggle() {
       onClick={toggleMode}
       aria-label={label()}
       title={label()}
-      class="rounded-lg p-2 transition hover:bg-gray-200 dark:hover:bg-gray-700"
+      class="rounded-lg p-2 transition hover:bg-(--theme-hover-bg)"
     >
       {/* Sun icon — shown when mode is "light" (current state) */}
       <svg
