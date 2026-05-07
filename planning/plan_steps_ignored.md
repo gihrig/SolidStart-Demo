@@ -1027,12 +1027,15 @@ Actual app.css has NO @layer base wrapping. Plan correctly identifies this need 
 
 Minor Issues
 
-## [ ] 10. Arbitrary value syntax in Hero
+## [√] 10. Arbitrary value syntax in Hero
+
+Step manually completed
 
 Line 273: text-[4rem], line 279: min-h-[3.3rem], shadow-[0_4px_3px_rgba(0,0,0,0.1)]
 
-CLAUDE.md rule targets [var(--css-variable)] specifically. These might be acceptable but inconsistent with spirit.
-Could use custom properties instead.
+replaced with text-6xl, min-h-13, shadow-sm
+
+CLAUDE.md rule targets [var(--css-variable)] specifically. These might be acceptable but inconsistent with spirit. Could use custom properties instead.
 
 ## [ ] 11. Typo: Nav.tst.tsx
 

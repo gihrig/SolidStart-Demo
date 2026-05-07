@@ -291,12 +291,12 @@ export default function Hero(props: HeroProps) {
     >
       <div class="col-start-1 row-start-1 bg-gray-800/40 w-full h-full" />
       <div class="col-start-1 row-start-1 py-24 px-10">
-        <h1 class="text-[4rem] leading-[1.2] font-bold mb-4 animate-fade-in font-(family-name:--theme-font-hero)">
+        <h1 class="text-6xl leading-[1.2] font-bold mb-4 animate-fade-in font-(family-name:--theme-font-hero)">
           {props.title}
         </h1>
         <p class="text-lg font-bold mb-5">{props.subtitle}</p>
         <a
-          class="inline-flex items-center justify-center px-4 min-h-[3.3rem] font-semibold rounded-lg text-white transition-transform active:scale-95 bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover) shadow-[0_4px_3px_rgba(0,0,0,0.1)]"
+          class="inline-flex items-center justify-center px-4 min-h-13 font-semibold rounded-lg text-white transition-transform active:scale-95 bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover) shadow-sm"
           href={props.ctaHref}
         >
           {props.ctaText}
@@ -1631,7 +1631,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 - [ ] Global Nav visible (from `app.tsx`)
 - [ ] JediNav (converted Jedi header) visible above Hero on Jedi page
 - [ ] Main Jedi article (image) in center column (2/3 width), image full-width within card
-- [ ] Caption uses Lobster at text-[4rem]
+- [ ] Caption uses Lobster at text-6xl
 - [ ] Tags are rounded pills; hover → bg-gray-500 + white text
 - [ ] Sidebar in right column (1/3); three cards: Categories, Top Photos, Top Captions
 - [ ] Category items show icons and labels; hover states on list items
