@@ -1323,9 +1323,9 @@ export default function Nav() {
 
 ---
 
-#### 3.2.6: Update Global Nav test `Nav.tst.tsx`
+#### 3.2.6: Update Global Nav test `Nav.test.tsx`
 
-- Update `Nav.tst.tsx` to cover additional requirements
+- Update `Nav.test.tsx` to cover additional requirements
   - Theme toggle button visible in global nav bar
   - Click cycles: sun icon (light) → moon icon (dark) → monitor icon (auto)
   - Reload preserves selected mode (localStorage)

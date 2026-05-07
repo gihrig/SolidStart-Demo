@@ -1037,7 +1037,9 @@ replaced with text-6xl, min-h-13, shadow-sm
 
 CLAUDE.md rule targets [var(--css-variable)] specifically. These might be acceptable but inconsistent with spirit. Could use custom properties instead.
 
-## [ ] 11. Typo: Nav.tst.tsx
+## [√] 11. Typo: Nav.tst.tsx
+
+## Step manually completed
 
 Plan line 1299: "Update Nav.tst.tsx" — should be Nav.test.tsx.
 
