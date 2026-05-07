@@ -1013,11 +1013,9 @@ to :root:not([data-theme="light"])).
 
 ## [ ] 8. Keyboard navigation: requirement without implementation
 
-"Visual Features to Create" lists keyboard navigation + tab stops. Phase 5 User Validation checks for them. But no
-implementation step adds tabIndex, keyboard event handlers, or focus-ring styles beyond basic button semantics.
+"Visual Features to Create" lists keyboard navigation + tab stops. Phase 5 User Validation checks for them. But no implementation step adds tabIndex, keyboard event handlers, or focus-ring styles beyond basic button semantics.
 
-Fix: Add a sub-step in Phase 3 (or wherever page assembly happens) for focus management — e.g., focus-visible rings,
-skip-link, logical tab order verification.
+Fix: Add a sub-step in Phase 3 (or wherever page assembly happens) for focus management — e.g., focus-visible rings, skip-link, logical tab order verification.
 
 ## [ ] 9. @layer base wrapping still needed
 
