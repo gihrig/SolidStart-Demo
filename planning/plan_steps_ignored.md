@@ -1043,10 +1043,20 @@ CLAUDE.md rule targets [var(--css-variable)] specifically. These might be accept
 
 Plan line 1299: "Update Nav.tst.tsx" — should be Nav.test.tsx.
 
-## [ ] 12. entry-server.tsx — innerHTML on script tag
+## [√] 12. entry-server.tsx — innerHTML on script tag
 
-Plan uses <script innerHTML={THEME_INIT_SCRIPT} />. Valid in SolidJS/SolidStart, but worth noting this bypasses CSP if
-Content-Security-Policy headers are later added. Not blocking, just a note for future.
+## Step manually completed
+
+Plan uses <script innerHTML={THEME_INIT_SCRIPT} />. Valid in SolidJS/SolidStart, but worth noting this bypasses CSP if Content-Security-Policy headers are later added. Not blocking, just a note for future.
+
+### Fix:
+
+- SHould be done for CSP support
+- Deferred to change later when site is working
+- Added TODO entry to plan code
+
+Grok: Why does <script innerHTML={THEME_INIT_SCRIPT} /> bypass CSP where THEME_INIT_SCRIPT is Typescript on this web site and what can be done to mitigate this issue
+https://grok.com/share/c2hhcmQtMi1jb3B5_1293335a-4a52-4211-ac87-87ee868c0dc3
 
 ---
 

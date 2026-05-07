@@ -969,6 +969,7 @@ export default createHandler(() => (
 **After**:
 
 ```tsx
+// TODO: `<script innerHTML={THEME_INIT_SCRIPT} />` represents a CSP violation. See https://grok.com/share/c2hhcmQtMi1jb3B5_1293335a-4a52-4211-ac87-87ee868c0dc3
 const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`;
 
 export default createHandler(() => (
