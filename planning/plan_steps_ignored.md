@@ -1017,10 +1017,11 @@ to :root:not([data-theme="light"])).
 
 Fix: Add a sub-step in Phase 3 (or wherever page assembly happens) for focus management — e.g., focus-visible rings, skip-link, logical tab order verification.
 
-## [ ] 9. @layer base wrapping still needed
+## [√] 9. @layer base wrapping still needed
 
-Actual app.css has NO @layer base wrapping. Plan correctly identifies this need (global main {}, h1 {} etc. will
-override Tailwind utilities). This is valid and should remain.
+## Step manually completed See step 3.2.1
+
+Actual app.css has NO @layer base wrapping. Plan correctly identifies this need (global main {}, h1 {} etc. will override Tailwind utilities). This is valid and should remain.
 
 ---
 
