@@ -1082,9 +1082,14 @@ Duplicate data removed in favor of more realistic samples
 - But TOP_PHOTOS has duplicate entries (same data twice).
 - Should match source which also has duplicates — confirm this is intentional demo data, not a copy error.
 
-## [ ] 3. Phase gating — plan says "Stop" after each phase. Good for review checkpoints. Could add explicit "diff review"
+## [√] 3. Phase gating
 
-step before commit.
+## Step manually completed
+
+- Ok Keep as-is
+- plan says "Stop" after each phase.
+- Good for review checkpoints.
+- Could add explicit "diff review" step before commit.
 
 ---
 
