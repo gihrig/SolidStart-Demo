@@ -1072,9 +1072,15 @@ https://grok.com/share/c2hhcmQtMi1jb3B5_1293335a-4a52-4211-ac87-87ee868c0dc3
 - both very thin (5-10 lines), used once. Adds test overhead without reuse benefit.
 - Counter-argument: testability. Your call.
 
-## [ ] 2. Static data arrays — plan correctly puts these outside component. But TOP_PHOTOS has duplicate entries (same data
+## [√] 2. Static data arrays
 
-twice). Should match source which also has duplicates — confirm this is intentional demo data, not a copy error.
+## Step manually completed
+
+Duplicate data removed in favor of more realistic samples
+
+- plan correctly puts these outside component.
+- But TOP_PHOTOS has duplicate entries (same data twice).
+- Should match source which also has duplicates — confirm this is intentional demo data, not a copy error.
 
 ## [ ] 3. Phase gating — plan says "Stop" after each phase. Good for review checkpoints. Could add explicit "diff review"
 

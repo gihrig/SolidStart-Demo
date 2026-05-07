@@ -774,7 +774,7 @@ const TOP_PHOTOS = [
     src: "https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg",
     alt: "Top photo",
     avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
-    author: "Homer",
+    author: "Lisa",
     likes: 5,
   },
   {
@@ -782,17 +782,17 @@ const TOP_PHOTOS = [
     alt: "Top photo",
     avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
     author: "Homer",
-    likes: 5,
+    likes: 4,
   }
 ];
 
 const TOP_CAPTIONS = [
   { avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
-    author: "Homer",
-    likes: 5
+    author: "Lisa",
+    likes: 8
   },
   { avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
-    author: "Homer",
+    author: "Bart",
     likes: 5
   }
 ];
