@@ -1025,11 +1025,11 @@ Actual app.css has NO @layer base wrapping. Plan correctly identifies this need 
 
 ---
 
-Minor Issues
+# Minor Issues
 
 ## [√] 10. Arbitrary value syntax in Hero
 
-Step manually completed
+## Step manually completed
 
 Line 273: text-[4rem], line 279: min-h-[3.3rem], shadow-[0_4px_3px_rgba(0,0,0,0.1)]
 
@@ -1060,11 +1060,17 @@ https://grok.com/share/c2hhcmQtMi1jb3B5_1293335a-4a52-4211-ac87-87ee868c0dc3
 
 ---
 
-Efficiency Recommendations
+# Efficiency Recommendations
 
-## [ ] 1. Merge Image + Author components into page JSX — both very thin (5-10 lines), used once. Adds test overhead without
+## [√] 1. Merge Image + Author components into page JSX
 
-reuse benefit. Counter-argument: testability. Your call.
+## Step manually completed
+
+- Won't fix
+- Contributing to component library
+
+- both very thin (5-10 lines), used once. Adds test overhead without reuse benefit.
+- Counter-argument: testability. Your call.
 
 ## [ ] 2. Static data arrays — plan correctly puts these outside component. But TOP_PHOTOS has duplicate entries (same data
 
