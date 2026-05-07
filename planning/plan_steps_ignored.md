@@ -977,7 +977,7 @@ Fix: Add .highlight to jedi.css (Step 1.3) and apply it to first item in CATEGOR
 
 ---
 
-Important Issues (accuracy/completeness)
+# Important Issues (accuracy/completeness)
 
 ## [ ] 5. Phase 3 too large — split recommended
 
@@ -994,13 +994,13 @@ Fix: Split into:
 
 ## [ ] 6. Article body content hand-waved
 
-Step 3.1 shows {/_ ...article body: header, Image, Author, caption, tags, actions... _/} — this is most complex part
-of page. Source has: title bar with "Little Jedi" + flickr attribution, figure/image, author "Lisa", caption in
-Lobster font, tag pills (Animals, Cute), action links (Comments, Like, Edit, Delete) with fire-heart icon.
+Step 3.1 shows {/_ ...article body: header, Image, Author, caption, tags, actions... _/} — this is most complex part of page. Source has: title bar with "Little Jedi" + flickr attribution, figure/image, author "Lisa", caption in Lobster font, tag pills (Animals, Cute), action links (Comments, Like, Edit, Delete) with fire-heart icon.
 
 Fix: Provide explicit JSX for article section, or at minimum structured data constants + template pattern.
 
-## [ ] 7. @media (prefers-color-scheme: dark) block is empty in actual CSS
+## [√] 7. @media (prefers-color-scheme: dark) block is empty in actual CSS
+
+## Step manually completed
 
 Plan Step 3.2.1 shows adding vars to this block, but actual file (line 23-25) already has the block — it's just empty:
 @media (prefers-color-scheme: dark) {

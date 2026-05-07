@@ -878,7 +878,7 @@ export default function Jedi() {
 
 This step adds a three-state theme toggle (light / dark / auto) with FOUC prevention. The implementation is adapted from **Tanstack Project** `src/components/ThemeToggle.tsx` and `src/routes/__root.tsx`.
 
-#### 3.2.1: Update `src/app.css` with Dark Mode CSS Variable Support
+#### [√] 3.2.1: Update `src/app.css` with Dark Mode CSS Variable Support
 
 **File**: `src/app.css`
 
@@ -896,9 +896,11 @@ This step adds a three-state theme toggle (light / dark / auto) with FOUC preven
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --theme-background: var(--color-stone-800);
-      --theme-foreground: var(--color-stone-300);
-      --theme-accent: var(--color-sky-400);
+      --theme-background: --color-zinc-800;
+      --theme-foreground: --color-zinc-300;
+      --theme-hover-bg: --color-gray-700;
+      --theme-card-fg: --color-zinc-200;
+      --theme-card-bg: --color-gray-700;
     }
   }
   /* ...body, main, h1, h2, p rules... */
@@ -914,16 +916,15 @@ This step adds a three-state theme toggle (light / dark / auto) with FOUC preven
   }
 
   :root[data-theme="dark"] {
-    --theme-background: var(--color-stone-800);
-    --theme-foreground: var(--color-stone-300);
-    --theme-accent: var(--color-sky-400);
+    --theme-background: --color-zinc-800;
+    --theme-foreground: --color-zinc-300;
+    --theme-hover-bg: --color-gray-700;
+    --theme-card-fg: --color-zinc-200;
+    --theme-card-bg: --color-gray-700;
   }
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --theme-background: var(--color-stone-800);
-      --theme-foreground: var(--color-stone-300);
-      --theme-accent: var(--color-sky-400);
     }
   }
   /* ...body, main, h1, h2, p rules unchanged... */
