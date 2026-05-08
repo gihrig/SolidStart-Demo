@@ -930,8 +930,6 @@ export default function Jedi() {
 
 **Phase Complete**:
 
-**Verification**: `vpr test:comp` — all component tests pass.
-
 - Write a commit message in "Conventional Commit" format `feat(jedi): Phase 3 complete - <summary>` summarizing the changes in this phase.
 - Stop.
 
