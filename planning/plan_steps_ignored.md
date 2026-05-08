@@ -919,7 +919,9 @@ Update plan to include updates to `Nav.test.tsx` in support of <ThemeToggle /> i
 
 ## [√] 1. Plan's "Before" CSS doesn't match actual src/app.css
 
-## Step manually completed
+## Step completed
+
+Manually corrected
 
 Plan Step 1.1 shows a "Before" with var(--color-zinc-200) syntax and no dark-mode infrastructure. But actual file
 already has:
@@ -937,7 +939,9 @@ etc.).
 
 ## [√] 2. ThemeToggle uses dark: class — violates CLAUDE.md
 
-## Step manually completed
+## Step completed
+
+Manually corrected
 
 Plan line 1049:
 class="rounded-lg p-2 transition hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -948,7 +952,9 @@ Fix: Replace with hover:bg-(--theme-hover-bg) (variable already exists in app.cs
 
 ## [√] 3. CSS variable naming mismatch between plan and Hero component
 
-## Step manually completed
+## Step completed
+
+Manually corrected
 
 Plan Step 1.1 defines --font-lobster. Hero component (line 273) references --font-hero. Actual CSS uses
 --theme-font-hero. Three names for same thing.
@@ -961,7 +967,9 @@ Fix: Standardize on --theme-\* prefix already in app.css. Update Step 1.1 and He
 
 ## [√] 4. highlight class: mentioned but never implemented
 
-## Step manually completed
+## Step completed
+
+Manually corrected
 
 "Visual Features to Create" (line 42): "Selected item must have highlight class applied"
 
@@ -981,7 +989,9 @@ Fix: Add .highlight to jedi.css (Step 1.3) and apply it to first item in CATEGOR
 
 ## [√] 5. Phase 3 too large — split recommended
 
-## Step manually completed
+## Step completed
+
+Manually corrected
 
 Phase 3 contains: full page assembly + theme toggle (CSS + init script + component + test + Nav integration) + all E2E
 tests. That's ~3 separate concerns. If anything fails mid-phase, commit scope unclear.
@@ -1024,7 +1034,9 @@ Phase 3 (previously Phase 3: step 3.1)
 
 ## [√] 7. @media (prefers-color-scheme: dark) block is empty in actual CSS
 
-## Step manually completed
+## Step completed
+
+Manually corrected
 
 Plan Phase 1 Step 1.1 (was step 3.2.1) shows adding vars to this block, but actual file (line 23-25) already has the block — it's just empty:
 @media (prefers-color-scheme: dark) {
@@ -1043,7 +1055,9 @@ Fix: Add a sub-step in Phase 3 (or wherever page assembly happens) for focus man
 
 ## [√] 9. @layer base wrapping still needed
 
-## Step manually completed See plan Phase 1 step 1.1
+## Step completed
+
+Manually corrected See plan Phase 1 step 1.1
 
 Actual app.css has NO @layer base wrapping. Plan correctly identifies this need (global main {}, h1 {} etc. will override Tailwind utilities). This is valid and should remain.
 
@@ -1053,7 +1067,9 @@ Actual app.css has NO @layer base wrapping. Plan correctly identifies this need 
 
 ## [√] 10. Arbitrary value syntax in Hero
 
-## Step manually completed
+## Step completed
+
+Manually corrected
 
 Line 273: text-[4rem], line 279: min-h-[3.3rem], shadow-[0_4px_3px_rgba(0,0,0,0.1)]
 
@@ -1063,13 +1079,17 @@ CLAUDE.md rule targets [var(--css-variable)] specifically. These might be accept
 
 ## [√] 11. Typo: Nav.tst.tsx
 
-## Step manually completed
+## Step completed
+
+Manually corrected
 
 Plan line 1299: "Update Nav.tst.tsx" — should be Nav.test.tsx.
 
 ## [√] 12. entry-server.tsx — innerHTML on script tag
 
-## Step manually completed
+## Step completed
+
+Manually corrected
 
 Plan uses <script innerHTML={THEME_INIT_SCRIPT} />. Valid in SolidJS/SolidStart, but worth noting this bypasses CSP if Content-Security-Policy headers are later added. Not blocking, just a note for future.
 
@@ -1086,9 +1106,12 @@ https://grok.com/share/c2hhcmQtMi1jb3B5_1293335a-4a52-4211-ac87-87ee868c0dc3
 
 # Efficiency Recommendations
 
-## [√] 1. Merge Image + Author components into page JSX
+## [√] 13. Merge Image + Author components into page JSX
 
-## Step manually completed
+## Step completed
+
+Manually corrected
+Originally labeled 1.
 
 - Won't fix
 - Contributing to component library
@@ -1096,9 +1119,12 @@ https://grok.com/share/c2hhcmQtMi1jb3B5_1293335a-4a52-4211-ac87-87ee868c0dc3
 - both very thin (5-10 lines), used once. Adds test overhead without reuse benefit.
 - Counter-argument: testability. Your call.
 
-## [√] 2. Static data arrays
+## [√] 14. Static data arrays
 
-## Step manually completed
+## Step completed
+
+Manually corrected
+Originally labeled 2.
 
 Duplicate data removed in favor of more realistic samples
 
@@ -1106,9 +1132,12 @@ Duplicate data removed in favor of more realistic samples
 - But TOP_PHOTOS has duplicate entries (same data twice).
 - Should match source which also has duplicates — confirm this is intentional demo data, not a copy error.
 
-## [√] 3. Phase gating
+## [√] 15. Phase gating
 
-## Step manually completed
+## Step completed
+
+Manually corrected
+Originally labeled 15.
 
 - Ok Keep as-is
 - plan says "Stop" after each phase.
