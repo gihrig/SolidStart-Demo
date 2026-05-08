@@ -979,7 +979,9 @@ Fix: Add .highlight to jedi.css (Step 1.3) and apply it to first item in CATEGOR
 
 # Important Issues (accuracy/completeness)
 
-## [ ] 5. Phase 3 too large — split recommended
+## [√] 5. Phase 3 too large — split recommended
+
+## Step manually completed
 
 Phase 3 contains: full page assembly + theme toggle (CSS + init script + component + test + Nav integration) + all E2E
 tests. That's ~3 separate concerns. If anything fails mid-phase, commit scope unclear.

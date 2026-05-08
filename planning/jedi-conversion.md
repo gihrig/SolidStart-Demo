@@ -260,7 +260,8 @@ import "./jedi.css";
 
 ## [ ] Phase 2: Component Development (Claude)
 
-Each component ships with its tests. Tests must pass before the step is marked complete.
+1. Each component ships with its tests.
+2. Tests must pass before the step is marked complete.
 
 ### [ ] Step 2.1: Create Hero Component + Tests
 
@@ -723,9 +724,7 @@ describe("<JediNav />", () => {
 
 ---
 
-## [ ] Phase 3: Main Page + Dark/Light Theme + E2E Tests (Claude)
-
-### [ ] Step 3.1: Create Jedi Route Page with Metadata
+## [ ] Phase 3: Create Jedi Route Page with Metadata
 
 **File**: `src/routes/jedi.tsx`
 
@@ -874,11 +873,23 @@ export default function Jedi() {
 
 ---
 
-### [ ] Step 3.2: Create Dark/Light/System Theme Toggle
+**Phase Complete**:
 
-This step adds a three-state theme toggle (light / dark / auto) with FOUC prevention. The implementation is adapted from **Tanstack Project** `src/components/ThemeToggle.tsx` and `src/routes/__root.tsx`.
+**Verification**: `vpr test:comp` — all component tests pass.
 
-#### [√] 3.2.1: Update `src/app.css` with Dark Mode CSS Variable Support
+- Write a commit message in "Conventional Commit" format `feat(jedi): Phase 3 complete - <summary>` summarizing the changes in this phase.
+- Stop.
+
+---
+
+## [ ] Phase 4: Create Dark/Light/System Theme Toggle
+
+**Requirements**
+
+1. Create a three-state theme toggle (light / dark / auto) with FOUC prevention.
+2. The implementation is adapted from **Tanstack Project** `src/components/ThemeToggle.tsx` and `src/routes/__root.tsx`.
+
+### [√] 4.1: Update `src/app.css` with Dark Mode CSS Variable Support
 
 **File**: `src/app.css`
 
@@ -935,11 +946,14 @@ This step adds a three-state theme toggle (light / dark / auto) with FOUC preven
 
 ---
 
-#### 3.2.2: Add Theme Init Script to `src/entry-server.tsx`
+### [ ] 4.2: Add Theme Init Script to `src/entry-server.tsx`
 
 **File**: `src/entry-server.tsx`
 
-**Action**: Add an inline `<script>` in the `<head>` to apply the stored theme before first paint, preventing a flash of unstyled content (FOUC). This is a global change — the toggle affects the site-wide `--theme-*` CSS variables.
+**Action**:
+
+1. Add an inline `<script>` in the `<head>` to apply the stored theme before first paint, preventing a flash of unstyled content (FOUC).
+2. This is a global change — the toggle affects the site-wide `--theme-*` CSS variables.
 
 **Reference**: Adapted from **Tanstack Project** `src/routes/__root.tsx` line 16 (`THEME_INIT_SCRIPT`) and line 34 (`<script innerHTML={THEME_INIT_SCRIPT} />`).
 
@@ -997,7 +1011,7 @@ export default createHandler(() => (
 
 ---
 
-#### 3.2.3: Create ThemeToggle Component
+### 4.3: Create ThemeToggle Component
 
 **File**: `src/components/ThemeToggle.tsx`
 
@@ -1143,11 +1157,14 @@ export default function ThemeToggle() {
 ```
 
 **Icon semantics**: Each icon represents the **current** active mode:
+
+```
 | Current mode | Icon shown | Click advances to |
-| --- | --- | --- |
-| Light | Sun | Dark |
-| Dark | Moon | Auto (system) |
-| Auto | Monitor | Light |
+| ------------ | ---------- | ----------------- |
+| Light        | Sun        | Dark              |
+| Dark         | Moon       | Auto (system)     |
+| Auto         | Monitor    | Light             |
+```
 
 **Toggle cycle**: `light → dark → auto → light` (matches **Tanstack Project** `ThemeToggle.tsx` line 44).
 
@@ -1155,7 +1172,7 @@ export default function ThemeToggle() {
 
 ---
 
-#### 3.2.4: Create ThemeToggle Component Test
+### 4.4: Create ThemeToggle Component Test
 
 **File**: `src/components/ThemeToggle.test.tsx`
 
@@ -1262,7 +1279,7 @@ describe("<ThemeToggle />", () => {
 
 ---
 
-#### 3.2.5: Integrate ThemeToggle into Global Nav
+### 4.5: Integrate ThemeToggle into Global Nav
 
 **File**: `src/components/Nav.tsx`
 
@@ -1324,7 +1341,7 @@ export default function Nav() {
 
 ---
 
-#### 3.2.6: Update Global Nav test `Nav.test.tsx`
+### 4.6: Update Global Nav test `Nav.test.tsx`
 
 - Update `Nav.test.tsx` to cover additional requirements
   - Theme toggle button visible in global nav bar
@@ -1335,7 +1352,16 @@ export default function Nav() {
 
 ---
 
-### [ ] Step 3.3: Write E2E Tests
+**Phase Complete**:
+
+**Verification**: `vpr test:comp` — all component tests pass.
+
+- Write a commit message in "Conventional Commit" format `feat(jedi): Phase 4 complete - <summary>` summarizing the changes in this phase.
+- Stop.
+
+---
+
+## [ ] Phase 5: Write E2E Tests
 
 **File**: `e2e/jedi.spec.ts` (file exists with existing tests. Keep existing footer tests, replace placeholder tests with new Jedi page tests, add theme toggle tests.)
 
@@ -1543,16 +1569,16 @@ test.describe("Jedi Page - Theme Toggle", () => {
 
 **Phase Complete**:
 
-- Write a commit message in "Conventional Commit" format `feat(jedi): Phase 3 complete - <summary>` summarizing the changes in this phase.
+- Write a commit message in "Conventional Commit" format `feat(jedi): Phase 5 complete - <summary>` summarizing the changes in this phase.
 - Stop.
 
 ---
 
-## [ ] Phase 4: Code Quality Audit (Claude)
+## [ ] Phase 6: Code Quality Audit (Claude)
 
 Single consolidated pass before handing to user validation. Any issue found → fix, re-run relevant tests, re-verify.
 
-### [ ] Step 4.1: TailwindCSS v4 Syntax Audit
+### [ ] Step 6.1: TailwindCSS v4 Syntax Audit
 
 Scan changed files for v3 residue:
 
@@ -1572,7 +1598,7 @@ Fix any hits:
 
 ---
 
-### [ ] Step 4.2: Lint, Format, Type-Check, Full Test Suite
+### [ ] Step 6.2: Lint, Format, Type-Check, Full Test Suite
 
 ```bash
 vpr check         # format + lint + type-check with auto-fix
@@ -1586,7 +1612,7 @@ All must pass with no errors and no warnings. Fix any failures before continuing
 
 ---
 
-### [ ] Step 4.3: Production Build
+### [ ] Step 6.3: Production Build
 
 ```bash
 vpr build
@@ -1611,12 +1637,12 @@ vpr start
 
 **Phase Complete**:
 
-- Write a commit message in "Conventional Commit" format `feat(jedi): Phase 4 complete - <summary>` summarizing the changes in this phase.
+- Write a commit message in "Conventional Commit" format `feat(jedi): Phase 6 complete - <summary>` summarizing the changes in this phase.
 - Stop.
 
 ---
 
-## [ ] Phase 5: User Validation (User — Manual)
+## [ ] Phase 7: User Validation (User — Manual)
 
 **Executed manually by the user after all Claude phases are complete.**
 
@@ -1631,7 +1657,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 - [ ] "Get Started" button uses `--btn-primary` color
 - [ ] Global Nav visible (from `app.tsx`)
 - [ ] JediNav (converted Jedi header) visible above Hero on Jedi page
-- [ ] Main Jedi article (image) in center column (2/3 width), image full-width within card
+- [ ] Main Jedi article image centered in column (2/3 width), full-width within card
 - [ ] Caption uses Lobster at text-6xl
 - [ ] Tags are rounded pills; hover → bg-gray-500 + white text
 - [ ] Sidebar in right column (1/3); three cards: Categories, Top Photos, Top Captions
@@ -1644,7 +1670,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 - [ ] Header menu collapsed under "hamburger" icon
 - [ ] Hero stacks vertically
 - [ ] Mobile "Categories" toggle button appears
-- [ ] Clicking "Categories" toggle shows/hides cards; arrow icon rotates
+- [ ] Clicking "Categories" toggle shows/hides cards; cards slide in, arrow icon rotates
 - [ ] Main article full width; no horizontal scroll
 - [ ] Interactive elements touch-friendly (min 44px)
 
@@ -1656,7 +1682,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 ### Hover / Animation
 
 - [ ] Nav links change bg on hover to match **Jedi Project**
-- [ ] CTA (get Started) darkens to `--btn-primary-hover`
+- [ ] CTA (Get Started) darkens to `--btn-primary-hover`
 - [ ] Author, Like, Edit and Delete links underlines on hover
 - [ ] Hero title fades in on page load
 - [ ] Mobile category cards transition smoothly; arrow rotation smooth (300ms)
@@ -1666,7 +1692,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 - [ ] Toggle button visible in global Nav all pages (not within Jedi page)
 - [ ] Click cycles: sun (light) → moon (dark) → monitor (auto/system)
 - [ ] Light mode: zinc-200 background, zinc-800 text, sky-700 accents
-- [ ] Dark mode: stone-800 background, stone-300 text, sky-400 accents
+- [ ] Dark mode: stone-800 background, stone-300 text, sky-700 accents
 - [ ] Auto mode: follows OS `prefers-color-scheme` setting
 - [ ] Reload preserves selected mode (stored in localStorage)
 - [ ] No flash of wrong theme on page load (FOUC prevention)
@@ -1682,11 +1708,11 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 - [ ] Focus indicators visible
 - [ ] Screen-reader basic navigation works
 - [ ] Ctrl-Home moves to top
-- [ ] (Optional) Run axe DevTools — no critical issues
+- [ ] (Optional) Run axe DevTools, see Brave browser — no critical issues
 
 ### Browser Compatibility
 
-- [ ] Chrome / Edge (latest)
+- [ ] Chrome / Edge / Brave (latest)
 - [ ] Firefox (latest)
 - [ ] Safari (latest)
 - [ ] Mobile Safari (iOS)
