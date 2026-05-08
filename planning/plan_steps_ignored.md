@@ -994,17 +994,39 @@ Fix: Split into:
 - Phase 6: Code quality audit (current Phase 4)
 - Phase 7: User validation
 
-## [ ] 6. Article body content hand-waved
+## [√] 6. Article body content hand-waved
 
-Step 3.1 shows {/_ ...article body: header, Image, Author, caption, tags, actions... _/} — this is most complex part of page. Source has: title bar with "Little Jedi" + flickr attribution, figure/image, author "Lisa", caption in Lobster font, tag pills (Animals, Cute), action links (Comments, Like, Edit, Delete) with fire-heart icon.
+Phase 3 (previously Phase 3: step 3.1)
 
-Fix: Provide explicit JSX for article section, or at minimum structured data constants + template pattern.
+## Step completed
+
+- Code written by Claude
+
+**File** `jedi-conversion.md`
+
+- line 835 shows {/_ ...article body: header, Image, Author, caption, tags, actions... _/}
+- This is the most complex part of page.
+- Source has: title bar with "Little Jedi" + flickr attribution, figure/image, author "Lisa", caption in Lobster font, tag pills (Animals, Cute), action links (Comments, Like, Edit, Delete) with fire-heart icon.
+
+```tsx
+{
+  /* Main article */
+}
+<main class="col-span-full md:col-span-2 mx-[5%] md:mx-[10%] order-2 md:order-1">
+  {/* ...article body: header, Image, Author, caption, tags, actions... */}
+</main>;
+```
+
+**Fix**:
+
+- Create explicit JSX for article section.
+- Update `jedi-conversion.md`
 
 ## [√] 7. @media (prefers-color-scheme: dark) block is empty in actual CSS
 
 ## Step manually completed
 
-Plan Step 3.2.1 shows adding vars to this block, but actual file (line 23-25) already has the block — it's just empty:
+Plan Phase 1 Step 1.1 (was step 3.2.1) shows adding vars to this block, but actual file (line 23-25) already has the block — it's just empty:
 @media (prefers-color-scheme: dark) {
 :root:not([data-theme="light"]) {
 }
@@ -1021,7 +1043,7 @@ Fix: Add a sub-step in Phase 3 (or wherever page assembly happens) for focus man
 
 ## [√] 9. @layer base wrapping still needed
 
-## Step manually completed See step 3.2.1
+## Step manually completed See plan Phase 1 step 1.1
 
 Actual app.css has NO @layer base wrapping. Plan correctly identifies this need (global main {}, h1 {} etc. will override Tailwind utilities). This is valid and should remain.
 
@@ -1099,4 +1121,20 @@ Summary
 
 Biggest risk: plan's CSS "Before" state is stale — actual app.css already evolved past what plan assumes. This will confuse execution of Steps 1.1 and 3.2.1. Second biggest: dark: class usage violating project rules, and highlight class gap. Recommend updating plan before execution starts.
 
-claude-max --resume 2b7be2e5-47b8-4656-9ff6-032baddb4ac4
+---
+
+❯ Article body content hand-waved
+
+- Plus remainder of issue 6 above
+
+⏺ Plan updated. The article body now has explicit JSX replacing the hand-waved comment.
+
+Conversions applied:
+
+- class="card" → inline Tailwind matching .card definition (flex flex-col overflow-hidden relative rounded-2xl
+  shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg))
+- font1 → font-(--theme-font-hero) (Tailwind v4 custom property syntax)
+- text-5xl → text-6xl (matches Phase 7 "Caption uses Lobster at text-6xl")
+- [&>a:hover]:underline → hover:underline on each individual <a>
+- target="blank" → target="\_blank" rel="noreferrer" (security)
+- <Image /> and <Author /> components used as specified in Phase 2

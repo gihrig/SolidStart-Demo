@@ -834,7 +834,62 @@ export default function Jedi() {
 
         {/* Main article */}
         <main class="col-span-full md:col-span-2 mx-[5%] md:mx-[10%] order-2 md:order-1">
-          {/* ...article body: header, Image, Author, caption, tags, actions... */}
+          <article class="flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg)">
+            {/* Title bar */}
+            <div class="flex items-center justify-between px-4 h-14">
+              <h3 class="text-lg font-bold w-[50%] truncate">Little Jedi</h3>
+              <div class="text-sm text-gray-500">
+                flickr @{" "}
+                <a href="#" class="hover:underline" target="_blank" rel="noreferrer">
+                  John Doe
+                </a>
+              </div>
+            </div>
+            {/* Image */}
+            <Image
+              src="https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg"
+              alt="Little Jedi cat"
+              href="#"
+            />
+            {/* Body: author, caption, tags, actions */}
+            <div class="p-4 pb-2">
+              <Author
+                avatarSrc="https://img.icons8.com/small/96/A9A9A9/happy.png"
+                name="Lisa"
+                href="#"
+              />
+              <p class="text-6xl mb-10 px-4 font-(--theme-font-hero)">
+                Jedi Kitty protects the street
+              </p>
+              <div class="flex items-center gap-2 text-sm mb-5">
+                <a class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white" href="#">
+                  Animals
+                </a>
+                <a class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white" href="#">
+                  Cute
+                </a>
+              </div>
+              <div class="flex items-center justify-between text-sm px-2">
+                <a class="font-bold hover:underline" href="#">
+                  Comments
+                  <span class="font-light text-gray-500 ml-2">3</span>
+                </a>
+                <div class="flex items-center gap-4">
+                  <div class="flex items-center gap-1">
+                    <img
+                      class="w-5 -mt-1"
+                      src="https://img.icons8.com/small/24/000000/fire-heart.png"
+                      alt=""
+                    />
+                    1
+                  </div>
+                  <a class="hover:underline" href="#">Like</a>
+                  <a class="hover:underline" href="#">Edit</a>
+                  <a class="hover:underline" href="#">Delete</a>
+                </div>
+              </div>
+            </div>
+          </article>
         </main>
 
         {/* Sidebar */}
