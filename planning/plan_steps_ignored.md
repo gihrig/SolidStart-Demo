@@ -1198,3 +1198,273 @@ Component Structure (lines 753-935):
 - <aside>: onKeyDown Escape handler
 - Categories: role="listbox", items with tabIndex={0}, role="option", aria-selected, click + keyboard handlers
 - Fixed text-(--theme-highlight) → bg-(--theme-highlight) (source uses background-color, not text color)
+
+---
+
+❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
+
+⏺ Review complete. Here's the summary:
+
+3 critical test issues — all plan tests import from 'vitest' instead of "vite-plus/test" (won't run), use fireEvent
+instead of project's userEvent.setup() pattern.
+
+3 critical visual bugs — global @layer base h1/h2/p/main styles leak into Jedi components (Hero title gets sky-700 +
+uppercase + wrong margins instead of white Lobster text; Card h2 gets ml-8 + uppercase; caption gets text-justify).
+Dropdown and sidebar transitions missing (source has 300ms animations, plan has instant show/hide).
+
+4 important accuracy gaps — Step 4.1 "Before" doesn't match post-Step-1.1 state, font-(family-name:...) syntax
+unverified, Nav.test.tsx update has no code, E2E uses waitForTimeout anti-pattern.
+
+Full findings with code evidence and fixes in the plan file.
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Ready to code?
+
+Here is Claude's plan:
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+Review: planning/jedi-conversion.md — Accuracy, Correctness, Efficiency
+
+Context
+
+Fourth review cycle of the Jedi conversion plan. Prior reviews (documented in planning/plan_steps_ignored.md) fixed
+15+ issues including duplicate Nav, global CSS overrides, missing JediNav component, font naming, test counts, Card
+dark mode, ThemeToggle placement, and more.
+
+This review verifies the current plan state against actual source files in all three projects.
+
+---
+
+CRITICAL — Will Cause Test Failures
+
+1.  All test imports use wrong module
+
+Every test file in the plan imports from 'vitest'. Project uses "vite-plus/test".
+
+Plan (Hero.test.tsx line 316, Image.test.tsx line 380, Author.test.tsx line 440, Card.test.tsx line 503,
+JediNav.test.tsx line 677, ThemeToggle.test.tsx line 1248):
+import { describe, it, expect } from 'vitest'
+
+Actual project pattern (Nav.test.tsx:1, Counter.test.tsx:1):
+import { describe, it, expect } from "vite-plus/test";
+
+Fix: Replace 'vitest' with "vite-plus/test" in all 6 test files. ThemeToggle test also needs vi imported: import {
+describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test".
+
+2.  Tests use fireEvent — project convention is userEvent.setup()
+
+Plan's JediNav test (line 679) and ThemeToggle test (line 1249):
+import { render, screen, fireEvent } from "@solidjs/testing-library";
+// ...
+await fireEvent.click(trigger);
+
+Actual project pattern (Counter.test.tsx:3,26,33):
+import userEvent from "@testing-library/user-event";
+// ...
+const user = userEvent.setup();
+await user.click(button);
+
+fireEvent works but doesn't match project patterns. Inconsistency across test files.
+
+Fix: Use userEvent.setup() pattern in JediNav and ThemeToggle tests.
+
+---
+
+CRITICAL — Will Cause Visual Bugs
+
+3.  Global @layer base element styles leak into Jedi components
+
+app.css wraps global rules in @layer base (good — utilities override base). But components don't override EVERY base
+property, so leftovers leak through.
+
+Hero <h1> (plan line 295):
+
+ <h1 class="text-6xl leading-[1.2] font-bold mb-4 animate-fade-in font-(family-name:--theme-font-hero)">
+
+From @layer base (app.css:31):
+h1 { @apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase; }
+
+Leaking properties NOT overridden by Hero h1:
+
+- mx-6 — unwanted horizontal margin
+- mt-16 — only mb-4 is set, my-16 top margin leaks
+- text-(--theme-accent) — sky-700 instead of white (inherited text-white from parent loses to direct rule)
+- uppercase — not explicitly removed
+
+Result: Hero title renders sky-700, uppercase, with wrong margins. Not white Lobster text.
+
+Card <h2> (plan line 494):
+
+ <h2 class="text-2xl font-bold px-4 pt-4 pb-2">
+ Leaking from base h2: ml-8, text-(--theme-accent), uppercase. Card titles will be indented, sky-700, uppercase.
+
+Caption <p> (plan line 867):
+
+ <p class="text-6xl mb-10 px-4 font-(--theme-font-hero)">
+ Leaking from base p: mx-8 (horizontal margin stacks with px-4), text-justify (caption shouldn't justify).
+
+ <main> (plan line 842):
+ <main class="col-span-full md:col-span-2 mx-[5%] md:mx-[10%] order-2 md:order-1">
+ Leaking from base main: text-center, text-xl, p-4. Article text will center, have wrong size.
+
+Fix: Two options:
+
+- A) Add explicit override classes to each element (normal-case mx-0 mt-0 text-white on Hero h1, etc.)
+- B) Scope the global element selectors in app.css to non-Jedi routes (e.g., main:not(.jedi-main)) or remove them and
+  apply directly in each route
+
+Option B is cleaner long-term. Global element selectors are fragile.
+
+4.  Dropdown transition missing
+
+Source index.html lines 106-108:
+x-transition:enter="duration-300 ease-out"
+x-transition:enter-start="opacity-0 -translate-y-5 scale-90"
+x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+
+Plan's JediNav (line 650):
+<Show when={dropdownOpen()}>
+
+   <div class="absolute right-0 bg-white text-black shadow rounded-lg w-40 p-2 z-20">
+
+Bare <Show> — dropdown pops in/out instantly. Source has 300ms opacity + translate + scale animation.
+
+Fix: Add CSS transition classes to dropdown div, or use Transition from solid-transition-group.
+
+5.  Sidebar transition incomplete
+
+Phase 7 validation (line 1743) expects: "Cards slide in, arrow icon rotates."
+
+Plan's sidebar (line 904):
+class={`... md:block! ${mobileSidebarOpen() ? "block" : "hidden"}`}
+
+hidden -> block doesn't animate. Arrow rotation works (line 835). Card slide-in doesn't.
+
+Source index.html lines 239-241:
+x-transition:enter="duration-300 ease-out"
+x-transition:enter-start="opacity-0 -mt-96"
+x-transition:enter-end="opacity-100 mt-0"
+
+Fix: Use transition approach similar to JediNav's mobile menu (which correctly uses transition-all duration-300
+ease-out with opacity/translate toggling).
+
+---
+
+IMPORTANT — Accuracy Issues
+
+6.  Step 4.1 "Before" CSS doesn't match post-Step-1.1 state
+
+Step 4.1 (marked [√]) shows "Before" with dark vars inside @media (prefers-color-scheme: dark) { :root { ... } } (plan
+line 976-987).
+
+But after Step 1.1 (also [√]), app.css already has dark vars in :root[data-theme="dark"] and an empty media query.
+Step 4.1's "Before" describes a state that never existed after Step 1.1.
+
+Both steps are [√] and end state is correct, but documentation is confusing if someone re-reads the plan.
+
+Fix: Note in Step 4.1 that this was a no-op relative to Step 1.1 (dark mode structure already established there).
+
+7.  font-(family-name:--theme-font-hero) syntax unverified
+
+Used in Hero (line 295) and caption (line 867). In TW v4, font-() maps to font-family, so font-(--theme-font-hero)
+should work. The family-name: modifier is non-standard.
+
+Fix: Verify this compiles during Phase 1. If not, use font-(--theme-font-hero) without the family-name: prefix, or
+[font-family:var(--theme-font-hero)].
+
+8.  Nav.test.tsx update (Step 4.6) has no test code
+
+Step 4.6 (line 1412-1419) says "Update Nav.test.tsx" with bullet requirements but shows NO test code. Existing
+Nav.test.tsx uses MemoryRouter + createMemoryHistory wrapper (7 tests, 138 lines). Adding ThemeToggle to Nav changes
+DOM structure.
+
+Fix: Add explicit test code for Step 4.6 showing:
+
+- Import pattern with router wrapper
+- ThemeToggle button exists in nav
+- Click cycling test within router context
+
+9.  E2E page.waitForTimeout(300) is Playwright anti-pattern
+
+Plan line 1489:
+await page.waitForTimeout(300);
+expect(await aside.isVisible()).toBe(true);
+
+Playwright docs recommend auto-retrying assertions over fixed timeouts.
+
+Fix: Replace with:
+await expect(aside).toBeVisible();
+
+---
+
+MINOR — Style/Efficiency
+
+10. Plan uses mx-[5%] and md:mx-[10%] arbitrary values
+
+Lines 842, 904. While CLAUDE.md's arbitrary-value rule targets [var(--x)] specifically, the plan's own TW v3->v4
+section (line 18) aims to eliminate [&>*] arbitrary patterns. These are inconsistent with that goal.
+
+11. Card class concatenation not idiomatic SolidJS
+
+Line 492: class={`...${props.class || ""}`}
+
+SolidJS convention: use classList or splitProps. Minor but inconsistent with framework patterns.
+
+12. Empty @media (prefers-color-scheme: dark) block
+
+Lines 98-99 of current app.css. If JS fails, system dark mode doesn't work. THEME_INIT_SCRIPT handles it client-side,
+but no graceful degradation for no-JS. Acceptable for demo project, but worth noting.
+
+---
+
+What's Correct
+
+- All "Before" snapshots (Steps 1.1, 1.2, 4.2, 4.5) match actual files
+- Alpine.js -> SolidJS mapping table verified against source index.html
+- TW v3->v4 conversions correct (md:!block -> md:block!, bg-opacity-40 -> bg-gray-800/40)
+- JediNav component correctly converts all 3 Alpine.js patterns (mobile nav, dropdown, click-away)
+- ThemeToggle THEME_INIT_SCRIPT matches Tanstack project pattern
+- Nav rendered globally in app.tsx — plan correctly avoids duplicate import
+- Source <a> for mobile toggle -> plan's <button type="button"> (good a11y)
+- E2E tests preserve existing footer tests in separate describe block
+- Phase gating with commit/stop between phases
+- Static data arrays outside component functions
+- Accessibility: aria-label, aria-expanded, role="listbox", keyboard handlers, focus-visible rings
+
+---
+
+Recommended Fix Priority
+
+```
+ ┌─────┬───────────────────────────────────────┬──────────────────────────────┬─────────────────────────────┐
+ │  #  │                 Issue                 │            Impact            │           Effort            │
+ ├─────┼───────────────────────────────────────┼──────────────────────────────┼─────────────────────────────┤
+ │ 1   │ Test imports vitest -> vite-plus/test │ Tests won't run              │ Find/replace                │
+ ├─────┼───────────────────────────────────────┼──────────────────────────────┼─────────────────────────────┤
+ │ 1   │ Test imports vitest -> vite-plus/test │ Tests won't run              │ Find/replace                │
+ ├─────┼───────────────────────────────────────┼──────────────────────────────┼─────────────────────────────┤
+ │ 3   │ Global @layer base element leaks      │ Visual bugs on every element │ Moderate — scoping strategy │
+ ├─────┼───────────────────────────────────────┼──────────────────────────────┼─────────────────────────────┤
+ │ 2   │ fireEvent -> userEvent.setup()        │ Tests inconsistent           │ Small per file              │
+ ├─────┼───────────────────────────────────────┼──────────────────────────────┼─────────────────────────────┤
+ │ 4   │ Dropdown transition missing           │ Instant pop vs 300ms fade    │ Small — add classes         │
+ ├─────┼───────────────────────────────────────┼──────────────────────────────┼─────────────────────────────┤
+ │ 5   │ Sidebar transition incomplete         │ Validation expects slide-in  │ Small — add classes         │
+ ├─────┼───────────────────────────────────────┼──────────────────────────────┼─────────────────────────────┤
+ │ 8   │ Nav.test.tsx update has no code       │ Implementor left guessing    │ Write test code             │
+ ├─────┼───────────────────────────────────────┼──────────────────────────────┼─────────────────────────────┤
+ │ 7   │ font-(family-name:...) unverified     │ Might not compile            │ Verify or use fallback      │
+ ├─────┼───────────────────────────────────────┼──────────────────────────────┼─────────────────────────────┤
+ │ 9   │ E2E waitForTimeout                    │ Flaky test                   │ One-line fix                │
+ ├─────┼───────────────────────────────────────┼──────────────────────────────┼─────────────────────────────┤
+ │ 6   │ Step 4.1 "Before" mismatch            │ Confusion only               │ Add note                    │
+ └─────┴───────────────────────────────────────┴──────────────────────────────┴─────────────────────────────┘
+```
+
+⏺ Review delivered. 12 issues found across 4 severity levels.
+
+❯ apply all fixes
+
+...
+
+⏺ Committed. 28e396a — all 9 review fixes applied to jedi-conversion.md and plan_steps_ignored.md. Pre-commit hooks
+passed clean.

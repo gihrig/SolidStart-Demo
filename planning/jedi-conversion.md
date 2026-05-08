@@ -292,10 +292,10 @@ export default function Hero(props: HeroProps) {
     >
       <div class="col-start-1 row-start-1 bg-gray-800/40 w-full h-full" />
       <div class="col-start-1 row-start-1 py-24 px-10">
-        <h1 class="text-6xl leading-[1.2] font-bold mb-4 animate-fade-in font-(family-name:--theme-font-hero)">
+        <h1 class="text-6xl font-bold mb-4 mx-0 mt-0 normal-case text-white animate-fade-in font-(family-name:--theme-font-hero)">
           {props.title}
         </h1>
-        <p class="text-lg font-bold mb-5">{props.subtitle}</p>
+        <p class="text-lg font-bold mb-5 mx-0 text-left">{props.subtitle}</p>
         <a
           class="inline-flex items-center justify-center px-4 min-h-13 font-semibold rounded-lg text-white transition-transform active:scale-95 bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover) shadow-sm"
           href={props.ctaHref}
@@ -309,11 +309,13 @@ export default function Hero(props: HeroProps) {
 ```
 
 > **Note**: `style={{ "background-image": ... }}` remains — dynamic prop URL can't use Tailwind `bg-[url(...)]`. This is the sole exception to requirement #4.
+>
+> **Verify**: `font-(family-name:--theme-font-hero)` is non-standard TW v4 syntax. If it doesn't compile, use `font-(--theme-font-hero)` (TW v4 `font-()` maps to `font-family`) or `[font-family:var(--theme-font-hero)]` as fallback. Test during Phase 1 `vpr check`.
 
 **Test**: `src/components/Hero.test.tsx`
 
 ```typescript
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from "vite-plus/test"
 import { render, screen } from '@solidjs/testing-library'
 import Hero from './Hero'
 
@@ -378,7 +380,7 @@ export default function Image(props: ImageProps) {
 **Test**: `src/components/Image.test.tsx`
 
 ```typescript
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from "vite-plus/test"
 import { render, screen } from '@solidjs/testing-library'
 import Image from './Image'
 
@@ -438,7 +440,7 @@ export default function Author(props: AuthorProps) {
 **Test**: `src/components/Author.test.tsx`
 
 ```typescript
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from "vite-plus/test"
 import { render, screen } from '@solidjs/testing-library'
 import Author from './Author'
 
@@ -491,7 +493,11 @@ export default function Card(props: CardProps) {
     <section
       class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg) ${props.class || ""}`}
     >
-      {props.title && <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{props.title}</h2>}
+      {props.title && (
+        <h2 class="text-2xl font-bold px-4 pt-4 pb-2 ml-0 normal-case text-(--theme-card-fg)">
+          {props.title}
+        </h2>
+      )}
       <div class="p-4 pt-0">{props.children}</div>
     </section>
   );
@@ -501,7 +507,7 @@ export default function Card(props: CardProps) {
 **Test**: `src/components/Card.test.tsx`
 
 ```typescript
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from "vite-plus/test"
 import { render, screen } from '@solidjs/testing-library'
 import Card from './Card'
 
@@ -647,22 +653,22 @@ export default function JediNav() {
                 alt=""
               />
             </button>
-            <Show when={dropdownOpen()}>
-              <div class="absolute right-0 bg-white text-black shadow rounded-lg w-40 p-2 z-20">
-                <ul class="hoverlist">
-                  <li>
-                    <a class="justify-end" href="#">
-                      My Profile
-                    </a>
-                  </li>
-                  <li>
-                    <a class="justify-end" href="#">
-                      Log Out
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </Show>
+            <div
+              class={`absolute right-0 bg-white text-black shadow rounded-lg w-40 p-2 z-20 transition-all duration-300 ease-out origin-top ${dropdownOpen() ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 -translate-y-5 pointer-events-none"}`}
+            >
+              <ul class="hoverlist">
+                <li>
+                  <a class="justify-end" href="#">
+                    My Profile
+                  </a>
+                </li>
+                <li>
+                  <a class="justify-end" href="#">
+                    Log Out
+                  </a>
+                </li>
+              </ul>
+            </div>
           </li>
         </ul>
       </nav>
@@ -674,8 +680,9 @@ export default function JediNav() {
 **Test**: `src/components/JediNav.test.tsx`
 
 ```typescript
-import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent } from "@solidjs/testing-library";
+import { describe, it, expect } from "vite-plus/test";
+import { render, screen } from "@solidjs/testing-library";
+import userEvent from "@testing-library/user-event";
 import JediNav from "./JediNav";
 
 describe("<JediNav />", () => {
@@ -702,9 +709,10 @@ describe("<JediNav />", () => {
   });
 
   it("toggles dropdown on profile button click", async () => {
+    const user = userEvent.setup();
     render(() => <JediNav />);
     const trigger = screen.getByRole("button", { name: /profile menu/i });
-    await fireEvent.click(trigger);
+    await user.click(trigger);
     expect(screen.getByText("My Profile")).toBeInTheDocument();
     expect(screen.getByText("Log Out")).toBeInTheDocument();
   });
@@ -750,6 +758,8 @@ describe("<JediNav />", () => {
 - Mobile sidebar: Escape key dismisses when open (handler on toggle button + `<aside>`).
 
 11. **Performance**: Declare `categories`, `topPhotos`, `topCaptions` as constants **outside** the component.
+
+> **Global CSS override note**: `app.css` `@layer base` rules for `main`, `h1`, `h2`, `p` leak properties that Jedi components don't explicitly override (e.g., `uppercase`, `mx-6`, `text-(--theme-accent)`, `text-center`, `text-justify`). Each Jedi element using these tags must include explicit override utilities: `normal-case`, `mx-0`, `text-white`, `text-left`, `text-base`, `p-0`, etc. See component code below for applied overrides.
 
 **Component structure (outline)**:
 
@@ -839,7 +849,7 @@ export default function Jedi() {
         </div>
 
         {/* Main article */}
-        <main class="col-span-full md:col-span-2 mx-[5%] md:mx-[10%] order-2 md:order-1">
+        <main class="col-span-full md:col-span-2 mx-[5%] md:mx-[10%] order-2 md:order-1 text-left text-base p-0">
           <article class="flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg)">
             {/* Title bar */}
             <div class="flex items-center justify-between px-4 h-14">
@@ -864,7 +874,7 @@ export default function Jedi() {
                 name="Lisa"
                 href="#"
               />
-              <p class="text-6xl mb-10 px-4 font-(--theme-font-hero)">
+              <p class="text-6xl mb-10 px-4 mx-0 text-left font-(--theme-font-hero)">
                 Jedi Kitty protects the street
               </p>
               <div class="flex items-center gap-2 text-sm mb-5">
@@ -901,7 +911,7 @@ export default function Jedi() {
         {/* Sidebar */}
         <aside
           onKeyDown={(e) => { if (e.key === "Escape" && mobileSidebarOpen()) setMobileSidebarOpen(false); }}
-          class={`col-span-full md:col-span-1 mx-[5%] md:mr-[20%] order-1 md:order-2 md:block! ${mobileSidebarOpen() ? "block" : "hidden"}`}
+          class={`col-span-full md:col-span-1 mx-[5%] md:mr-[20%] order-1 md:order-2 transition-all duration-300 ease-out md:opacity-100 md:max-h-[none] md:block! ${mobileSidebarOpen() ? "opacity-100 max-h-[2000px]" : "opacity-0 max-h-0 overflow-hidden md:overflow-visible"}`}
         >
           <Card title="Categories">
             <ul class="space-y-1" role="listbox" aria-label="Categories">
@@ -965,28 +975,9 @@ export default function Jedi() {
 
 **Reference**: This pattern is taken from **Tanstack Project** `src/styles.css` lines 30–73, where `:root[data-theme="dark"]` handles explicit dark and `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) }` handles system-auto dark.
 
-**Before** (after Step 1.1 — inside `@layer base`):
+> **Note**: This step is a no-op relative to Step 1.1 — the `:root[data-theme="dark"]` block and empty `@media (prefers-color-scheme: dark)` selector were already established in Step 1.1's "After" CSS. The "After" below confirms the expected state.
 
-```css
-@layer base {
-  :root {
-    /* ...existing vars + Jedi custom properties from Step 1.1... */
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --theme-background: --color-zinc-800;
-      --theme-foreground: --color-zinc-300;
-      --theme-hover-bg: --color-gray-700;
-      --theme-card-fg: --color-zinc-200;
-      --theme-card-bg: --color-gray-700;
-    }
-  }
-  /* ...body, main, h1, h2, p rules... */
-}
-```
-
-**After** (add `:root[data-theme="dark"]` block, change media query selector):
+**After** (`:root[data-theme="dark"]` block and media query selector already in place from Step 1.1):
 
 ```css
 @layer base {
@@ -1245,8 +1236,9 @@ export default function ThemeToggle() {
 **File**: `src/components/ThemeToggle.test.tsx`
 
 ```typescript
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@solidjs/testing-library";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
+import { render, screen } from "@solidjs/testing-library";
+import userEvent from "@testing-library/user-event";
 import ThemeToggle from "./ThemeToggle";
 
 describe("<ThemeToggle />", () => {
@@ -1302,42 +1294,45 @@ describe("<ThemeToggle />", () => {
   });
 
   it("cycles light → dark → auto on clicks", async () => {
+    const user = userEvent.setup();
     mockLocalStorage["theme"] = "light";
     render(() => <ThemeToggle />);
     const button = screen.getByRole("button");
 
     expect(button.getAttribute("aria-label")).toContain("light");
 
-    await fireEvent.click(button);
+    await user.click(button);
     expect(button.getAttribute("aria-label")).toContain("dark");
     expect(mockLocalStorage["theme"]).toBe("dark");
 
-    await fireEvent.click(button);
+    await user.click(button);
     expect(button.getAttribute("aria-label")).toContain("system");
     expect(mockLocalStorage["theme"]).toBe("auto");
 
-    await fireEvent.click(button);
+    await user.click(button);
     expect(button.getAttribute("aria-label")).toContain("light");
     expect(mockLocalStorage["theme"]).toBe("light");
   });
 
   it("applies dark class to documentElement when mode is dark", async () => {
+    const user = userEvent.setup();
     mockLocalStorage["theme"] = "light";
     render(() => <ThemeToggle />);
     const button = screen.getByRole("button");
 
-    await fireEvent.click(button);
+    await user.click(button);
     expect(document.documentElement.classList.contains("dark")).toBe(true);
     expect(document.documentElement.classList.contains("light")).toBe(false);
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
   });
 
   it("removes data-theme attribute in auto mode", async () => {
+    const user = userEvent.setup();
     mockLocalStorage["theme"] = "dark";
     render(() => <ThemeToggle />);
     const button = screen.getByRole("button");
 
-    await fireEvent.click(button);
+    await user.click(button);
     expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
   });
 });
@@ -1411,10 +1406,41 @@ export default function Nav() {
 
 ### 4.6: Update Global Nav test `Nav.test.tsx`
 
-- Update `Nav.test.tsx` to cover additional requirements
-  - Theme toggle button visible in global nav bar
-  - Click cycles: sun icon (light) → moon icon (dark) → monitor icon (auto)
-  - Reload preserves selected mode (localStorage)
+**File**: `src/components/Nav.test.tsx`
+
+**Action**: Add tests for ThemeToggle integration. Existing tests use `MemoryRouter` + `createMemoryHistory` wrapper — new tests must follow the same pattern.
+
+Add these tests to the existing `describe("<Nav />")` block:
+
+```typescript
+it("renders theme toggle button in nav", () => {
+  renderWithRouter();
+  expect(screen.getByRole("button", { name: /theme/i })).toBeInTheDocument();
+});
+
+it("theme toggle cycles through modes on click", async () => {
+  const user = userEvent.setup();
+  renderWithRouter();
+  const toggle = screen.getByRole("button", { name: /theme/i });
+
+  expect(toggle.getAttribute("aria-label")).toContain("system");
+
+  await user.click(toggle);
+  expect(toggle.getAttribute("aria-label")).toContain("light");
+
+  await user.click(toggle);
+  expect(toggle.getAttribute("aria-label")).toContain("dark");
+
+  await user.click(toggle);
+  expect(toggle.getAttribute("aria-label")).toContain("system");
+});
+```
+
+**Note**: Existing `Nav.test.tsx` imports must be updated to include `userEvent`:
+
+```typescript
+import userEvent from "@testing-library/user-event";
+```
 
 **Verification** `vpr test:comp -t "Nav"` — all tests pass.
 
@@ -1483,10 +1509,9 @@ test.describe("Jedi Page", () => {
     const toggle = page.getByRole("button", { name: /toggle sidebar/i });
     await expect(toggle).toBeVisible();
     const aside = page.locator("aside");
-    expect(await aside.isVisible()).toBe(false);
+    await expect(aside).not.toBeVisible();
     await toggle.click();
-    await page.waitForTimeout(300);
-    expect(await aside.isVisible()).toBe(true);
+    await expect(aside).toBeVisible();
   });
 
   test("should display all three sidebar cards", async ({ page }) => {
