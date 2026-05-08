@@ -1047,11 +1047,19 @@ Plan Phase 1 Step 1.1 (was step 3.2.1) shows adding vars to this block, but actu
 Fix: Plan should note this block exists but needs dark vars added (not that it needs the selector changed from :root
 to :root:not([data-theme="light"])).
 
-## [ ] 8. Keyboard navigation: requirement without implementation
+## [√] 8. Keyboard navigation: requirement without implementation
+
+## Step completed
+
+Added to Phase 3
+
+**Requirements**: 10. **Accessibility baseline** (include from the start, not as a later fix):
+
+- Include tabIndex, keyboard event handlers, and focus-ring styles
 
 "Visual Features to Create" lists keyboard navigation + tab stops. Phase 5 User Validation checks for them. But no implementation step adds tabIndex, keyboard event handlers, or focus-ring styles beyond basic button semantics.
 
-Fix: Add a sub-step in Phase 3 (or wherever page assembly happens) for focus management — e.g., focus-visible rings, skip-link, logical tab order verification.
+Fix: Add a sub-step in Phase 3 requirements for focus management — e.g., focus-visible rings, skip-link, logical tab order verification.
 
 ## [√] 9. @layer base wrapping still needed
 

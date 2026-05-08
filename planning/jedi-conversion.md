@@ -744,6 +744,7 @@ describe("<JediNav />", () => {
 - Mobile toggle uses `<button type="button">` (not `<a>`).
 - Mobile toggle has `aria-label="Toggle sidebar"` and `aria-expanded={mobileSidebarOpen()}`.
 - Decorative icons use `alt=""`; content images use meaningful alt.
+- Include tabIndex, keyboard event handlers, and focus-ring styles
 
 11. **Performance**: Declare `categories`, `topPhotos`, `topCaptions` as constants **outside** the component.
 
