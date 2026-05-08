@@ -1051,15 +1051,15 @@ to :root:not([data-theme="light"])).
 
 ## Step completed
 
-Added to Phase 3
+Requirement 10 expanded + Component Structure revised in `jedi-conversion.md`:
 
-**Requirements**: 10. **Accessibility baseline** (include from the start, not as a later fix):
-
-- Include tabIndex, keyboard event handlers, and focus-ring styles
-
-"Visual Features to Create" lists keyboard navigation + tab stops. Phase 5 User Validation checks for them. But no implementation step adds tabIndex, keyboard event handlers, or focus-ring styles beyond basic button semantics.
-
-Fix: Add a sub-step in Phase 3 requirements for focus management — e.g., focus-visible rings, skip-link, logical tab order verification.
+- Requirement 10: 4 bullets → 7 bullets with explicit keyboard patterns
+- Added `selectedCategory` signal for interactive category selection
+- Mobile toggle: Escape key handler + focus-visible ring
+- All links (flickr, tags, actions): focus-visible ring added
+- Categories `<ul>`: `role="listbox"`, `aria-label`
+- Category `<li>`: `tabIndex={0}`, `role="option"`, `aria-selected`, Enter/Space `onKeyDown`, click handler, `bg-(--theme-highlight)` (was wrong `text-` prefix)
+- `<aside>`: Escape key handler for sidebar dismiss
 
 ## [√] 9. @layer base wrapping still needed
 
@@ -1175,3 +1175,26 @@ Conversions applied:
 - [&>a:hover]:underline → hover:underline on each individual <a>
 - target="blank" → target="\_blank" rel="noreferrer" (security)
 - <Image /> and <Author /> components used as specified in Phase 2
+
+❯ Keyboard navigation: requirement needs implementation
+
+- Review `jedi-conversion.md @line 747
+- Revise Component Structure @line 753-925 to meet all requirements
+
+⏺ Changes to jedi-conversion.md:
+
+Requirement 10 (line 742-748) — expanded from 4 to 7 bullets:
+
+- Focus-visible ring pattern for all interactive elements
+- Category items: tabIndex, role="option", aria-selected, Enter/Space onKeyDown
+- Category <ul>: role="listbox" + aria-label
+- Escape key dismiss on toggle button + <aside>
+
+Component Structure (lines 753-935):
+
+- Added selectedCategory signal
+- Button: onKeyDown Escape + focus-visible ring
+- All <a> links: focus-visible ring (flickr, tag pills, Comments, Like/Edit/Delete)
+- <aside>: onKeyDown Escape handler
+- Categories: role="listbox", items with tabIndex={0}, role="option", aria-selected, click + keyboard handlers
+- Fixed text-(--theme-highlight) → bg-(--theme-highlight) (source uses background-color, not text color)

@@ -744,7 +744,10 @@ describe("<JediNav />", () => {
 - Mobile toggle uses `<button type="button">` (not `<a>`).
 - Mobile toggle has `aria-label="Toggle sidebar"` and `aria-expanded={mobileSidebarOpen()}`.
 - Decorative icons use `alt=""`; content images use meaningful alt.
-- Include tabIndex, keyboard event handlers, and focus-ring styles
+- All interactive elements: `focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none`.
+- Category list items: `tabIndex={0}`, `role="option"`, `aria-selected`, `onKeyDown` (Enter/Space selects item, updates `selectedCategory` signal and highlight).
+- Category `<ul>`: `role="listbox"` with `aria-label="Categories"`.
+- Mobile sidebar: Escape key dismisses when open (handler on toggle button + `<aside>`).
 
 11. **Performance**: Declare `categories`, `topPhotos`, `topCaptions` as constants **outside** the component.
 
@@ -799,6 +802,7 @@ const TOP_CAPTIONS = [
 
 export default function Jedi() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = createSignal(false);
+  const [selectedCategory, setSelectedCategory] = createSignal(0);
 
   return (
     <>
@@ -822,7 +826,8 @@ export default function Jedi() {
             aria-label="Toggle sidebar"
             aria-expanded={mobileSidebarOpen()}
             onClick={() => setMobileSidebarOpen(!mobileSidebarOpen())}
-            class="flex items-center font-bold hover:bg-gray-200 rounded-lg p-3"
+            onKeyDown={(e) => { if (e.key === "Escape" && mobileSidebarOpen()) setMobileSidebarOpen(false); }}
+            class="flex items-center font-bold hover:bg-gray-200 rounded-lg p-3 focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none"
           >
             <span>Categories</span>
             <img
@@ -841,7 +846,7 @@ export default function Jedi() {
               <h3 class="text-lg font-bold w-[50%] truncate">Little Jedi</h3>
               <div class="text-sm text-gray-500">
                 flickr @{" "}
-                <a href="#" class="hover:underline" target="_blank" rel="noreferrer">
+                <a href="#" class="hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded" target="_blank" rel="noreferrer">
                   John Doe
                 </a>
               </div>
@@ -863,15 +868,15 @@ export default function Jedi() {
                 Jedi Kitty protects the street
               </p>
               <div class="flex items-center gap-2 text-sm mb-5">
-                <a class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white" href="#">
+                <a class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none" href="#">
                   Animals
                 </a>
-                <a class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white" href="#">
+                <a class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none" href="#">
                   Cute
                 </a>
               </div>
               <div class="flex items-center justify-between text-sm px-2">
-                <a class="font-bold hover:underline" href="#">
+                <a class="font-bold hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded" href="#">
                   Comments
                   <span class="font-light text-gray-500 ml-2">3</span>
                 </a>
@@ -884,9 +889,9 @@ export default function Jedi() {
                     />
                     1
                   </div>
-                  <a class="hover:underline" href="#">Like</a>
-                  <a class="hover:underline" href="#">Edit</a>
-                  <a class="hover:underline" href="#">Delete</a>
+                  <a class="hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded" href="#">Like</a>
+                  <a class="hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded" href="#">Edit</a>
+                  <a class="hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded" href="#">Delete</a>
                 </div>
               </div>
             </div>
@@ -895,13 +900,22 @@ export default function Jedi() {
 
         {/* Sidebar */}
         <aside
+          onKeyDown={(e) => { if (e.key === "Escape" && mobileSidebarOpen()) setMobileSidebarOpen(false); }}
           class={`col-span-full md:col-span-1 mx-[5%] md:mr-[20%] order-1 md:order-2 md:block! ${mobileSidebarOpen() ? "block" : "hidden"}`}
         >
           <Card title="Categories">
-            <ul class="space-y-1">
+            <ul class="space-y-1" role="listbox" aria-label="Categories">
                 <For each={CATEGORIES}>
                   {(c, index) => (
-                    <li classList={{ "text-(--theme-highlight)": index() === 0 }}>
+                    <li
+                      role="option"
+                      aria-selected={selectedCategory() === index()}
+                      tabIndex={0}
+                      classList={{ "bg-(--theme-highlight)": selectedCategory() === index() }}
+                      onClick={() => setSelectedCategory(index())}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedCategory(index()); } }}
+                      class="cursor-pointer px-2 py-1 rounded focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none"
+                    >
                       {/* item */}
                     </li>
                   )}
