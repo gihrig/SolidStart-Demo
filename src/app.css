@@ -32,19 +32,19 @@
     color: var(--theme-foreground);
   }
 
-  main {
+  .demo main {
     @apply mx-auto p-4 text-center text-xl text-(--theme-foreground);
   }
 
-  h1 {
+  .demo h1 {
     @apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase;
   }
 
-  h2 {
+  .demo h2 {
     @apply ml-8 text-left text-2xl font-thin text-(--theme-accent) uppercase;
   }
 
-  p {
+  .demo p {
     @apply mx-8 mb-6 text-justify;
   }
 }

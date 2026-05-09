@@ -5,10 +5,12 @@ export default function Home() {
   return (
     <>
       <Title>SolidStart+</Title>
-      <main>
-        <h1>Hello SolidStart!</h1>
-        <Counter />
-      </main>
+      <div class="demo">
+        <main>
+          <h1>Hello SolidStart!</h1>
+          <Counter />
+        </main>
+      </div>
     </>
   );
 }

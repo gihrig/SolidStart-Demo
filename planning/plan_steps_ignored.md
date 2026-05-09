@@ -1217,11 +1217,9 @@ unverified, Nav.test.tsx update has no code, E2E uses waitForTimeout anti-patter
 
 Full findings with code evidence and fixes in the plan file.
 
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Ready to code?
-
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 Here is Claude's plan:
-╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
 Review: planning/jedi-conversion.md — Accuracy, Correctness, Efficiency
 
 Context
@@ -1273,8 +1271,7 @@ CRITICAL — Will Cause Visual Bugs
 
 3.  Global @layer base element styles leak into Jedi components
 
-app.css wraps global rules in @layer base (good — utilities override base). But components don't override EVERY base
-property, so leftovers leak through.
+app.css wraps global rules in @layer base (good — utilities override base). But components don't override EVERY base property, so leftovers leak through.
 
 Hero <h1> (plan line 295):
 
@@ -1309,8 +1306,7 @@ Caption <p> (plan line 867):
 Fix: Two options:
 
 - A) Add explicit override classes to each element (normal-case mx-0 mt-0 text-white on Hero h1, etc.)
-- B) Scope the global element selectors in app.css to non-Jedi routes (e.g., main:not(.jedi-main)) or remove them and
-  apply directly in each route
+- B) Scope the global element selectors in app.css to non-Jedi routes (e.g., main:not(.jedi-main)) or remove them and apply directly in each route
 
 Option B is cleaner long-term. Global element selectors are fragile.
 
@@ -1440,8 +1436,6 @@ Recommended Fix Priority
  ├─────┼───────────────────────────────────────┼──────────────────────────────┼─────────────────────────────┤
  │ 1   │ Test imports vitest -> vite-plus/test │ Tests won't run              │ Find/replace                │
  ├─────┼───────────────────────────────────────┼──────────────────────────────┼─────────────────────────────┤
- │ 1   │ Test imports vitest -> vite-plus/test │ Tests won't run              │ Find/replace                │
- ├─────┼───────────────────────────────────────┼──────────────────────────────┼─────────────────────────────┤
  │ 3   │ Global @layer base element leaks      │ Visual bugs on every element │ Moderate — scoping strategy │
  ├─────┼───────────────────────────────────────┼──────────────────────────────┼─────────────────────────────┤
  │ 2   │ fireEvent -> userEvent.setup()        │ Tests inconsistent           │ Small per file              │
@@ -1468,3 +1462,5 @@ Recommended Fix Priority
 
 ⏺ Committed. 28e396a — all 9 review fixes applied to jedi-conversion.md and plan_steps_ignored.md. Pre-commit hooks
 passed clean.
+
+❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements

@@ -64,7 +64,9 @@ export default function Fullstack() {
   return (
     <AuthProvider>
       <Title>Full-Stack Demo | SolidStart+</Title>
-      <FullstackContent />
+      <div class="demo">
+        <FullstackContent />
+      </div>
     </AuthProvider>
   );
 }
