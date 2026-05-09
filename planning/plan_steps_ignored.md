@@ -1520,8 +1520,7 @@ Plan uses text-6xl (3.75rem). Source index.html line 192 uses text-5xl (3rem):
   <p class="text-5xl mb-10 px-4 font1">
 
 Plan's Phase 7 validation (line 1778) says "Caption uses Lobster at text-6xl" — but this was written to match the
-plan, not the source. Source says text-5xl. Success criteria (line 1847) says "Visual appearance matches Jedi Project
-Awesome.png" — text-6xl won't match.
+plan, not the source. Source says text-5xl. Success criteria (line 1847) says "Visual appearance matches Jedi Project Awesome.png" — text-6xl won't match.
 
 Fix: Change caption to text-5xl. Update Phase 7 validation line 1778.
 

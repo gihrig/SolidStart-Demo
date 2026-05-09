@@ -888,7 +888,7 @@ export default function Jedi() {
                 name="Lisa"
                 href="#"
               />
-              <p class="text-6xl mb-10 px-4 mx-0 text-left font-hero)">
+              <p class="text-5xl mb-10 px-4 mx-0 text-left font-hero)">
                 Jedi Kitty protects the street
               </p>
               <div class="flex items-center gap-2 text-sm mb-5">
@@ -1763,14 +1763,14 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 ### Desktop View Jedi page (1280px+)
 
 - [ ] Hero displays background image with 40% overlay (bg-gray-800/40)
-- [ ] Hero title uses Lobster font
+- [ ] Hero title uses Lobster font 6xl
 - [ ] Hero title uses Tile Case
 - [ ] Hero title uses white text color
 - [ ] "Get Started" button uses `--btn-primary` color
 - [ ] Global Nav visible (from `app.tsx`)
 - [ ] JediNav (converted Jedi header) visible above Hero on Jedi page
 - [ ] Main Jedi article image centered in column (2/3 width), full-width within card
-- [ ] Caption uses Lobster at text-6xl
+- [ ] Caption uses Lobster at text-5xl
 - [ ] Tags are rounded pills; hover → bg-gray-500 + white text
 - [ ] Sidebar in right column (1/3); three cards: Categories, Top Photos, Top Captions
 - [ ] Category items show icons and labels; hover states on list items
