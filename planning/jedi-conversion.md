@@ -311,7 +311,7 @@ export default function Hero(props: HeroProps) {
         <h1 class="text-6xl font-bold mb-4 mx-0 mt-0 normal-case text-white animate-fade-in font-hero)">
           {props.title}
         </h1>
-        <p class="text-lg font-bold mb-5 mx-0 text-left">{props.subtitle}</p>
+        <p class="text-lg font-bold mb-5">{props.subtitle}</p>
         <a
           class="inline-flex items-center justify-center px-4 min-h-13 font-semibold rounded-lg text-white transition-transform active:scale-95 bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover) shadow-sm"
           href={props.ctaHref}
@@ -508,9 +508,7 @@ export default function Card(props: CardProps) {
       class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg) ${props.class || ""}`}
     >
       {props.title && (
-        <h2 class="text-2xl font-bold px-4 pt-4 pb-2 ml-0 normal-case text-(--theme-card-fg)">
-          {props.title}
-        </h2>
+        <h2 class="text-2xl font-bold px-4 pt-4 pb-2 text-(--theme-card-fg)">{props.title}</h2>
       )}
       <div class="p-4 pt-0">{props.children}</div>
     </section>
@@ -773,8 +771,6 @@ describe("<JediNav />", () => {
 
 11. **Performance**: Declare `categories`, `topPhotos`, `topCaptions` as constants **outside** the component.
 
-> **Global CSS override note**: `app.css` `@layer base` rules for `main`, `h1`, `h2`, `p` leak properties that Jedi components don't explicitly override (e.g., `uppercase`, `mx-6`, `text-(--theme-accent)`, `text-center`, `text-justify`). Each Jedi element using these tags must include explicit override utilities: `normal-case`, `mx-0`, `text-white`, `text-left`, `text-base`, `p-0`, etc. See component code below for applied overrides.
-
 **Component structure (outline)**:
 
 ```tsx
@@ -863,7 +859,7 @@ export default function Jedi() {
         </div>
 
         {/* Main article */}
-        <main class="col-span-full md:col-span-2 mx-[5%] md:mx-[10%] order-2 md:order-1 text-left text-base p-0">
+        <main class="col-span-full md:col-span-2 mx-[5%] md:mx-[10%] order-2 md:order-1 text-base">
           <article class="flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg)">
             {/* Title bar */}
             <div class="flex items-center justify-between px-4 h-14">
@@ -888,7 +884,7 @@ export default function Jedi() {
                 name="Lisa"
                 href="#"
               />
-              <p class="text-5xl mb-10 px-4 mx-0 text-left font-hero)">
+              <p class="text-5xl mb-10 px-4 font-hero)">
                 Jedi Kitty protects the street
               </p>
               <div class="flex items-center gap-2 text-sm mb-5">

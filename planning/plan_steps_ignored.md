@@ -1511,6 +1511,8 @@ Then:
 <h1 class="... font-hero)"></h1>
 ```
 
+**Updated per Fix**
+
 ---
 
 2. Caption font size deviates from source
@@ -1523,6 +1525,8 @@ Plan's Phase 7 validation (line 1778) says "Caption uses Lobster at text-6xl" �
 plan, not the source. Source says text-5xl. Success criteria (line 1847) says "Visual appearance matches Jedi Project Awesome.png" — text-6xl won't match.
 
 Fix: Change caption to text-5xl. Update Phase 7 validation line 1778.
+
+**Updated per Fix**
 
 ---
 
@@ -1550,11 +1554,12 @@ But Step 1.1 (already [√]) wraps these in .demo scope. Actual app.css lines 43
 @apply mx-8 mb-6 text-justify;
 }
 
-Jedi page has no .demo wrapper → these rules don't leak. Override classes throughout Phase 3 components (mx-0 mt-0
-normal-case text-left p-0 on main, h1, h2, p) are redundant noise.
+Jedi page has no .demo wrapper → these rules don't leak. Override classes throughout Phase 3 components (mx-0 mt-0 normal-case text-left p-0 on main, h1, h2, p) are redundant noise.
 
 Fix: Remove stale note at line 776. Remove unnecessary override classes (mx-0, mt-0, normal-case, text-left, p-0,
 ml-0) from Hero h1, Card h2, caption p, and main — only keep classes needed for Jedi styling itself.
+
+**Updated per Fix**
 
 ---
 
