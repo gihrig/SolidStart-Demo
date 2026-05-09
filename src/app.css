@@ -27,6 +27,11 @@
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
+      --theme-background: --color-zinc-800;
+      --theme-foreground: --color-zinc-300;
+      --theme-hover-bg: --color-gray-700;
+      --theme-card-fg: --color-zinc-200;
+      --theme-card-bg: --color-gray-700;
     }
   }
 

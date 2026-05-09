@@ -98,6 +98,11 @@ Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.ts
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    --theme-background: --color-zinc-800;
+    --theme-foreground: --color-zinc-300;
+    --theme-hover-bg: --color-gray-700;
+    --theme-card-fg: --color-zinc-200;
+    --theme-card-bg: --color-gray-700;
   }
 }
 
@@ -155,6 +160,11 @@ body {
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
+      --theme-background: --color-zinc-800;
+      --theme-foreground: --color-zinc-300;
+      --theme-hover-bg: --color-gray-700;
+      --theme-card-fg: --color-zinc-200;
+      --theme-card-bg: --color-gray-700;
     }
   }
 
@@ -999,6 +1009,11 @@ export default function Jedi() {
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
+      --theme-background: --color-zinc-800;
+      --theme-foreground: --color-zinc-300;
+      --theme-hover-bg: --color-gray-700;
+      --theme-card-fg: --color-zinc-200;
+      --theme-card-bg: --color-gray-700;
     }
   }
   /* ...body, main, h1, h2, p rules unchanged... */
