@@ -1497,7 +1497,19 @@ Plan line 891:
 
   <p class="text-6xl mb-10 px-4 mx-0 text-left theme-font-hero)">
 
-Fix: Replace theme-font-hero) with font-(--theme-font-hero) in both.
+Fix: Define Tailwind @theme property:
+
+```css
+@theme {
+  --font-hero: "Lobster", sans-serif;
+}
+```
+
+Then:
+
+```html
+<h1 class="... font-hero)"></h1>
+```
 
 ---
 

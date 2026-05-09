@@ -73,7 +73,7 @@ Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.ts
 @import "tailwindcss";
 
 @theme {
-  --theme-font-hero: "Lobster", sans-serif;
+  --font-hero: "Lobster", sans-serif;
 }
 
 :root {
@@ -134,7 +134,7 @@ body {
 @import "tailwindcss";
 
 @theme {
-  --theme-font-hero: "Lobster", sans-serif;
+  --font-hero: "Lobster", sans-serif;
 }
 
 @layer base {
@@ -308,7 +308,7 @@ export default function Hero(props: HeroProps) {
     >
       <div class="col-start-1 row-start-1 bg-gray-800/40 w-full h-full" />
       <div class="col-start-1 row-start-1 py-24 px-10">
-        <h1 class="text-6xl font-bold mb-4 mx-0 mt-0 normal-case text-white animate-fade-in theme-font-hero)">
+        <h1 class="text-6xl font-bold mb-4 mx-0 mt-0 normal-case text-white animate-fade-in font-hero)">
           {props.title}
         </h1>
         <p class="text-lg font-bold mb-5 mx-0 text-left">{props.subtitle}</p>
@@ -888,7 +888,7 @@ export default function Jedi() {
                 name="Lisa"
                 href="#"
               />
-              <p class="text-6xl mb-10 px-4 mx-0 text-left theme-font-hero)">
+              <p class="text-6xl mb-10 px-4 mx-0 text-left font-hero)">
                 Jedi Kitty protects the street
               </p>
               <div class="flex items-center gap-2 text-sm mb-5">
