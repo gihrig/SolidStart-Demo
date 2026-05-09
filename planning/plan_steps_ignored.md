@@ -1474,3 +1474,163 @@ Recommended Fix Priority
 passed clean.
 
 ❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
+
+⏺ All source files verified against plan. Here are findings.
+
+---
+
+Critical — Will Cause Bugs
+
+1. Broken font class syntax (2 locations)
+
+Hero h1 (line 311) and caption p (line 891) both have malformed class:
+
+theme-font-hero)
+
+Missing prefix. Should be font-(--theme-font-hero).
+
+Evidence — plan line 311:
+
+  <h1 class="text-6xl font-bold mb-4 mx-0 mt-0 normal-case text-white animate-fade-in theme-font-hero)">
+
+Plan line 891:
+
+  <p class="text-6xl mb-10 px-4 mx-0 text-left theme-font-hero)">
+
+Fix: Replace theme-font-hero) with font-(--theme-font-hero) in both.
+
+---
+
+2. Caption font size deviates from source
+
+Plan uses text-6xl (3.75rem). Source index.html line 192 uses text-5xl (3rem):
+
+  <p class="text-5xl mb-10 px-4 font1">
+
+Plan's Phase 7 validation (line 1778) says "Caption uses Lobster at text-6xl" — but this was written to match the
+plan, not the source. Source says text-5xl. Success criteria (line 1847) says "Visual appearance matches Jedi Project
+Awesome.png" — text-6xl won't match.
+
+Fix: Change caption to text-5xl. Update Phase 7 validation line 1778.
+
+---
+
+Important — Accuracy/Consistency
+
+3. Phase 3 CSS override note is stale
+
+Line 776:
+
+> **Global CSS override note**: `app.css` `@layer base` rules for `main`, `h1`, `h2`, `p`
+> leak properties that Jedi components don't explicitly override...
+
+But Step 1.1 (already [√]) wraps these in .demo scope. Actual app.css lines 43-57:
+
+.demo main {
+@apply mx-auto p-4 text-center text-xl text-(--theme-foreground);
+}
+.demo h1 {
+@apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase;
+}
+.demo h2 {
+@apply ml-8 text-left text-2xl font-thin text-(--theme-accent) uppercase;
+}
+.demo p {
+@apply mx-8 mb-6 text-justify;
+}
+
+Jedi page has no .demo wrapper → these rules don't leak. Override classes throughout Phase 3 components (mx-0 mt-0
+normal-case text-left p-0 on main, h1, h2, p) are redundant noise.
+
+Fix: Remove stale note at line 776. Remove unnecessary override classes (mx-0, mt-0, normal-case, text-left, p-0,
+ml-0) from Hero h1, Card h2, caption p, and main — only keep classes needed for Jedi styling itself.
+
+---
+
+4. Phase 4 step formatting inconsistent
+
+Steps 4.3–4.6 missing [ ] checkboxes and Step prefix. Compare:
+
+### [√] Step 1.1: ... ← correct format
+
+### [ ] Step 1.2: ... ← correct format
+
+### 4.3: ... ← missing checkbox + "Step"
+
+### 4.4: ... ← missing checkbox + "Step"
+
+### 4.5: ... ← missing checkbox + "Step"
+
+### 4.6: ... ← missing checkbox + "Step"
+
+Fix: Rename to ### [ ] Step 4.3:, ### [ ] Step 4.4:, ### [ ] Step 4.5:, ### [ ] Step 4.6:.
+
+---
+
+5. @theme font namespace may not auto-generate utility
+
+Plan defines:
+@theme {
+--theme-font-hero: "Lobster", sans-serif;
+}
+
+TW v4 auto-generates font-family utilities from --font-_ namespace, not --theme-font-_. So font-hero utility won't
+exist. font-(--theme-font-hero) should work as custom property syntax but prior review flagged this as unverified
+(issue #7 in plan_steps_ignored.md, marked [√] but fix was just "replaced with current syntax").
+
+Fix: Verify during Phase 1 execution. If broken, change to @theme { --font-hero: "Lobster", sans-serif; } and use
+font-hero class directly.
+
+---
+
+Minor — Style/Efficiency
+
+6. Sidebar max-h-[2000px] arbitrary value
+
+Line 928:
+mobileSidebarOpen() ? "opacity-100 max-h-[2000px]" : "opacity-0 max-h-0 overflow-hidden"
+
+max-h-[2000px] is a magic number. Use max-h-screen (100vh) — sidebar won't exceed viewport height.
+
+7. Card class concatenation not idiomatic SolidJS
+
+Line 508:
+class={`...${props.class || ""}`}
+
+Could use classList or splitProps per SolidJS convention. Not blocking.
+
+---
+
+What's Correct
+
+- Step 1.1 "After" CSS matches actual app.css exactly ✓
+- Step 4.2 "Before" entry-server.tsx matches actual file exactly ✓
+- Step 4.5 "Before" Nav.tsx matches actual file exactly ✓
+- Alpine.js → SolidJS conversions verified against source index.html ✓
+- TW v3→v4 syntax conversions correct (md:!block → md:block!, bg-opacity-40 → bg-gray-800/40) ✓
+- JediNav correctly converts all 3 Alpine patterns (mobile nav, dropdown, click-away) ✓
+- THEME_INIT_SCRIPT uses data-theme attribute matching CSS selectors ✓
+- ThemeToggle in global Nav, not page-specific ✓
+- E2E tests preserve existing footer tests ✓
+- Accessibility: aria-label, aria-expanded, role="listbox", keyboard handlers, focus-visible rings ✓
+- Static data arrays outside component ✓
+- Phase gating with commit/stop ✓
+
+---
+
+Summary
+
+```
+   ┌────────────┬───────┬─────────────────────────────────────────┐
+   │  Severity  │ Count │           Highest Impact                │
+   ├────────────┼───────┼─────────────────────────────────────────┤
+   │ Critical   │   2   │ Broken font class; caption size wrong   │
+   ├────────────┼───────┼─────────────────────────────────────────┤
+   │ Important  │   3   │ Stale CSS note → unnecessary overrides  │
+   ├────────────┼───────┼─────────────────────────────────────────┤
+   │ Minor      │   2   │ max-h magic number; class concatenation │
+   └────────────┴───────┴─────────────────────────────────────────┘
+```
+
+Biggest risk: broken (theme-font-hero) syntax — Lobster font won't load on Hero or caption. Second: text-6xl vs source
+text-5xl — visual mismatch with Awesome.png reference image.
