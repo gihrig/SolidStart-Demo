@@ -62,7 +62,7 @@ Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.ts
 **Action**:
 
 1. Wrap existing global element rules in `@layer base` so Tailwind utility classes on Jedi components override them.
-2. Add Jedi custom properties (`--theme-font-hero`, `--theme-btn-primary`, `--theme-btn-primary-hover`) to `:root`.
+2. Add Jedi custom properties (`--theme-btn-primary`, `--theme-btn-primary-hover`) to `:root`.
 3. Add `fadeIn` animation + `.animate-fade-in` utility.
 
 > **Why `@layer base`**: Global `main {}`, `h1 {}`, etc. rules in unlayered CSS have higher precedence than Tailwind utility classes (which live in `@layer utilities`). Wrapping in `@layer base` lets utility classes on Jedi components override these defaults without needing `!important`.
@@ -72,8 +72,11 @@ Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.ts
 ```css
 @import "tailwindcss";
 
-:root {
+@theme {
   --theme-font-hero: "Lobster", sans-serif;
+}
+
+:root {
   --theme-accent: --color-sky-700;
   --theme-highlight: --color-indigo-100;
   --theme-btn-primary: rgb(88, 40, 244);
@@ -125,9 +128,12 @@ p {
 ```css
 @import "tailwindcss";
 
+@theme {
+  --theme-font-hero: "Lobster", sans-serif;
+}
+
 @layer base {
   :root {
-    --theme-font-hero: "Lobster", sans-serif;
     --theme-accent: --color-sky-700;
     --theme-highlight: --color-indigo-100;
     --theme-btn-primary: rgb(88, 40, 244);
@@ -292,7 +298,7 @@ export default function Hero(props: HeroProps) {
     >
       <div class="col-start-1 row-start-1 bg-gray-800/40 w-full h-full" />
       <div class="col-start-1 row-start-1 py-24 px-10">
-        <h1 class="text-6xl font-bold mb-4 mx-0 mt-0 normal-case text-white animate-fade-in font-(family-name:--theme-font-hero)">
+        <h1 class="text-6xl font-bold mb-4 mx-0 mt-0 normal-case text-white animate-fade-in theme-font-hero)">
           {props.title}
         </h1>
         <p class="text-lg font-bold mb-5 mx-0 text-left">{props.subtitle}</p>
@@ -309,8 +315,6 @@ export default function Hero(props: HeroProps) {
 ```
 
 > **Note**: `style={{ "background-image": ... }}` remains — dynamic prop URL can't use Tailwind `bg-[url(...)]`. This is the sole exception to requirement #4.
->
-> **Verify**: `font-(family-name:--theme-font-hero)` is non-standard TW v4 syntax. If it doesn't compile, use `font-(--theme-font-hero)` (TW v4 `font-()` maps to `font-family`) or `[font-family:var(--theme-font-hero)]` as fallback. Test during Phase 1 `vpr check`.
 
 **Test**: `src/components/Hero.test.tsx`
 
@@ -874,7 +878,7 @@ export default function Jedi() {
                 name="Lisa"
                 href="#"
               />
-              <p class="text-6xl mb-10 px-4 mx-0 text-left font-(--theme-font-hero)">
+              <p class="text-6xl mb-10 px-4 mx-0 text-left theme-font-hero)">
                 Jedi Kitty protects the street
               </p>
               <div class="flex items-center gap-2 text-sm mb-5">

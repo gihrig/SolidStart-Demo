@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
+@theme {
+  --theme-font-hero: "Lobster", sans-serif;
+}
+
 @layer base {
   :root {
-    --theme-font-hero: "Lobster", sans-serif;
     --theme-accent: --color-sky-700;
     --theme-highlight: --color-indigo-100;
     --theme-btn-primary: rgb(88, 40, 244);

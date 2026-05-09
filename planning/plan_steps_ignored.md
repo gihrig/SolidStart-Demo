@@ -1361,11 +1361,19 @@ Fix: Note in Step 4.1 that this was a no-op relative to Step 1.1 (dark mode stru
 
 7.  font-(family-name:--theme-font-hero) syntax unverified
 
-Used in Hero (line 295) and caption (line 867). In TW v4, font-() maps to font-family, so font-(--theme-font-hero)
-should work. The family-name: modifier is non-standard.
+Used in Hero (line 295) and caption (line 867). In TW v4, font-() maps to font-family, so font-(--theme-font-hero) should work. The family-name: modifier is non-standard.
 
-Fix: Verify this compiles during Phase 1. If not, use font-(--theme-font-hero) without the family-name: prefix, or
-[font-family:var(--theme-font-hero)].
+Fix: Replaced with:
+
+```css
+@theme {
+  --theme-font-hero: "Lobster", sans-serif;
+}
+```
+
+```html
+<h1 class=" ... theme-font-hero)"></h1>
+```
 
 8.  Nav.test.tsx update (Step 4.6) has no test code
 
@@ -1398,6 +1406,8 @@ MINOR — Style/Efficiency
 
 Lines 842, 904. While CLAUDE.md's arbitrary-value rule targets [var(--x)] specifically, the plan's own TW v3->v4
 section (line 18) aims to eliminate [&>*] arbitrary patterns. These are inconsistent with that goal.
+
+Won't fix: Ok as is.
 
 11. Card class concatenation not idiomatic SolidJS
 
