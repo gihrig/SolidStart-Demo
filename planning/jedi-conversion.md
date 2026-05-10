@@ -500,17 +500,21 @@ interface CardProps {
 **Component**:
 
 ```tsx
-import { JSX } from "solid-js";
+import { splitProps } from "solid-js";
+import type { JSX } from "solid-js";
 
 export default function Card(props: CardProps) {
+  const [local, rest] = splitProps(props, ["class", "title", "children"]);
+
   return (
     <section
-      class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg) ${props.class || ""}`}
+      class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg)${local.class ? ` ${local.class}` : ""}`}
+      {...rest}
     >
-      {props.title && (
-        <h2 class="text-2xl font-bold px-4 pt-4 pb-2 text-(--theme-card-fg)">{props.title}</h2>
+      {local.title && (
+        <h2 class="text-2xl font-bold px-4 pt-4 pb-2 text-(--theme-card-fg)">{local.title}</h2>
       )}
-      <div class="p-4 pt-0">{props.children}</div>
+      <div class="p-4 pt-0">{local.children}</div>
     </section>
   );
 }

@@ -1621,6 +1621,17 @@ class={`...${props.class || ""}`}
 
 Could use classList or splitProps per SolidJS convention. Not blocking.
 
+❯ In the recent plan review, Claude mentioned
+" 7. Card class concatenation not idiomatic SolidJS
+...
+"
+Explain the difference between classList and splitProps and why one would be more Solid JS idiomatic in this case.
+Provide an example.
+
+⏺ Done. Changes: splitProps separates class/title/children, local.class forwarded cleanly, {...rest} spreads remaining props to <section>.
+
+**Changes implemented**
+
 ---
 
 What's Correct
