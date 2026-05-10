@@ -1892,8 +1892,14 @@ Plan jedi.css:249:
 @apply bg-gray-100;
 }
 
-bg-gray-100 = bright white-ish hover on dark mode cards (bg-gray-700). Should use theme variable like
-bg-(--theme-hover-bg).
+bg-gray-100 = bright white-ish hover on dark mode cards (bg-gray-700).
+
+Fix:
+Use theme variable like bg-(--theme-hover-bg).
+
+**Updated per Fix**
+
+---
 
 4. --theme-highlight has no dark mode override
 

@@ -241,7 +241,7 @@ import "@fontsource/lobster";
 }
 
 .navitems > li > a:hover {
-  @apply bg-gray-700;
+  @apply bg-(--theme-card-fg);
 }
 
 .hoverlist > * {
@@ -249,7 +249,7 @@ import "@fontsource/lobster";
 }
 
 .hoverlist > *:hover {
-  @apply bg-gray-100;
+  @apply bg-(--theme-hover-bg);
 }
 
 .hoverlist > * > a {
