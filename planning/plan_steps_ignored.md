@@ -1906,6 +1906,12 @@ Use theme variable like bg-(--theme-hover-bg).
 app.css:10: --theme-highlight: --color-indigo-100 — defined in :root only. Not overridden in data-theme="dark" or
 prefers-color-scheme: dark. indigo-100 (very pale blue) on gray-700 card bg might be intentional as a high-contrast highlight, but should be a deliberate decision, not an oversight.
 
+Fix:
+
+Won't fix - Color decisions deferred too visible page
+
+---
+
 5. w-[50%] → use w-1/2
 
 Plan line 868: w-[50%] — standard Tailwind utility w-1/2 exists. Unnecessary arbitrary value.
