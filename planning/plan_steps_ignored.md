@@ -1581,6 +1581,8 @@ Steps 4.3–4.6 missing [ ] checkboxes and Step prefix. Compare:
 
 Fix: Rename to ### [ ] Step 4.3:, ### [ ] Step 4.4:, ### [ ] Step 4.5:, ### [ ] Step 4.6:.
 
+**Updated per Fix**
+
 ---
 
 5. @theme font namespace may not auto-generate utility

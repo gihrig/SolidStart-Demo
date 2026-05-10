@@ -977,7 +977,7 @@ export default function Jedi() {
 1. Create a three-state theme toggle (light / dark / auto) with FOUC prevention.
 2. The implementation is adapted from **Tanstack Project** `src/components/ThemeToggle.tsx` and `src/routes/__root.tsx`.
 
-### [√] 4.1: Update `src/app.css` with Dark Mode CSS Variable Support
+### [√] Step 4.1: Update `src/app.css` with Dark Mode CSS Variable Support
 
 **File**: `src/app.css`
 
@@ -1020,7 +1020,7 @@ export default function Jedi() {
 
 ---
 
-### [ ] 4.2: Add Theme Init Script to `src/entry-server.tsx`
+### [ ] Step 4.2: Add Theme Init Script to `src/entry-server.tsx`
 
 **File**: `src/entry-server.tsx`
 
@@ -1085,7 +1085,7 @@ export default createHandler(() => (
 
 ---
 
-### 4.3: Create ThemeToggle Component
+### [ ] Step 4.3: Create ThemeToggle Component
 
 **File**: `src/components/ThemeToggle.tsx`
 
@@ -1246,7 +1246,7 @@ export default function ThemeToggle() {
 
 ---
 
-### 4.4: Create ThemeToggle Component Test
+### [ ] Step 4.4: Create ThemeToggle Component Test
 
 **File**: `src/components/ThemeToggle.test.tsx`
 
@@ -1357,7 +1357,7 @@ describe("<ThemeToggle />", () => {
 
 ---
 
-### 4.5: Integrate ThemeToggle into Global Nav
+### [ ] Step 4.5: Integrate ThemeToggle into Global Nav
 
 **File**: `src/components/Nav.tsx`
 
@@ -1419,7 +1419,7 @@ export default function Nav() {
 
 ---
 
-### 4.6: Update Global Nav test `Nav.test.tsx`
+### [ ] Step 4.6: Update Global Nav test `Nav.test.tsx`
 
 **File**: `src/components/Nav.test.tsx`
 
