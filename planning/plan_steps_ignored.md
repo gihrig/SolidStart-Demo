@@ -1781,7 +1781,15 @@ Minor
 
 5. z-[-1] arbitrary value
 
-Line 643. TW v4 has -z-1 utility. Works but not idiomatic v4.
+Works but not idiomatic v4.
+
+Line 641. TW v4 has -z-1 utility.
+
+Fix:
+
+Replace `z-[-1]` > `-z-1`
+
+**Updated per Fix**
 
 6. JediNav dropdown hardcoded bg-white text-black
 
