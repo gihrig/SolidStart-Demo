@@ -808,18 +808,12 @@ const TOP_PHOTOS = [
     avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
     author: "Homer",
     likes: 4,
-  }
+  },
 ];
 
 const TOP_CAPTIONS = [
-  { avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
-    author: "Lisa",
-    likes: 8
-  },
-  { avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
-    author: "Bart",
-    likes: 5
-  }
+  { avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png", author: "Lisa", likes: 8 },
+  { avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png", author: "Bart", likes: 5 },
 ];
 
 export default function Jedi() {
@@ -829,7 +823,10 @@ export default function Jedi() {
   return (
     <>
       <Title>Little Jedi - Awesome Photos & Captions</Title>
-      <Meta name="description" content="Share your favorite Photos from Flickr and add a great caption" />
+      <Meta
+        name="description"
+        content="Share your favorite Photos from Flickr and add a great caption"
+      />
       <JediNav />
 
       <Hero
@@ -848,7 +845,9 @@ export default function Jedi() {
             aria-label="Toggle sidebar"
             aria-expanded={mobileSidebarOpen()}
             onClick={() => setMobileSidebarOpen(!mobileSidebarOpen())}
-            onKeyDown={(e) => { if (e.key === "Escape" && mobileSidebarOpen()) setMobileSidebarOpen(false); }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && mobileSidebarOpen()) setMobileSidebarOpen(false);
+            }}
             class="flex items-center font-bold hover:bg-gray-200 rounded-lg p-3 focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none"
           >
             <span>Categories</span>
@@ -868,7 +867,12 @@ export default function Jedi() {
               <h3 class="text-lg font-bold w-[50%] truncate">Little Jedi</h3>
               <div class="text-sm text-gray-500">
                 flickr @{" "}
-                <a href="#" class="hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded" target="_blank" rel="noreferrer">
+                <a
+                  href="#"
+                  class="hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded"
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   John Doe
                 </a>
               </div>
@@ -886,19 +890,26 @@ export default function Jedi() {
                 name="Lisa"
                 href="#"
               />
-              <p class="text-5xl mb-10 px-4 font-hero">
-                Jedi Kitty protects the street
-              </p>
+              <p class="text-5xl mb-10 px-4 font-hero">Jedi Kitty protects the street</p>
               <div class="flex items-center gap-2 text-sm mb-5">
-                <a class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none" href="#">
+                <a
+                  class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none"
+                  href="#"
+                >
                   Animals
                 </a>
-                <a class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none" href="#">
+                <a
+                  class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none"
+                  href="#"
+                >
                   Cute
                 </a>
               </div>
               <div class="flex items-center justify-between text-sm px-2">
-                <a class="font-bold hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded" href="#">
+                <a
+                  class="font-bold hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded"
+                  href="#"
+                >
                   Comments
                   <span class="font-light text-gray-500 ml-2">3</span>
                 </a>
@@ -911,9 +922,24 @@ export default function Jedi() {
                     />
                     1
                   </div>
-                  <a class="hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded" href="#">Like</a>
-                  <a class="hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded" href="#">Edit</a>
-                  <a class="hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded" href="#">Delete</a>
+                  <a
+                    class="hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded"
+                    href="#"
+                  >
+                    Like
+                  </a>
+                  <a
+                    class="hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded"
+                    href="#"
+                  >
+                    Edit
+                  </a>
+                  <a
+                    class="hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded"
+                    href="#"
+                  >
+                    Delete
+                  </a>
                 </div>
               </div>
             </div>
@@ -922,36 +948,71 @@ export default function Jedi() {
 
         {/* Sidebar */}
         <aside
-          onKeyDown={(e) => { if (e.key === "Escape" && mobileSidebarOpen()) setMobileSidebarOpen(false); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && mobileSidebarOpen()) setMobileSidebarOpen(false);
+          }}
           class={`col-span-full md:col-span-1 mx-[5%] md:mr-[20%] order-1 md:order-2 transition-all duration-300 ease-out md:opacity-100 md:max-h-none md:block! ${mobileSidebarOpen() ? "opacity-100 max-h-screen" : "opacity-0 max-h-0 overflow-hidden md:overflow-visible"}`}
         >
           <Card title="Categories">
             <ul class="space-y-1" role="listbox" aria-label="Categories">
-                <For each={CATEGORIES}>
-                  {(c, index) => (
-                    <li
-                      role="option"
-                      aria-selected={selectedCategory() === index()}
-                      tabIndex={0}
-                      classList={{ "bg-(--theme-highlight)": selectedCategory() === index() }}
-                      onClick={() => setSelectedCategory(index())}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedCategory(index()); } }}
-                      class="cursor-pointer px-2 py-1 rounded focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none"
-                    >
-                      {/* item */}
-                    </li>
-                  )}
-                </For>
+              <For each={CATEGORIES}>
+                {(c, index) => (
+                  <li
+                    role="option"
+                    aria-selected={selectedCategory() === index()}
+                    tabIndex={0}
+                    classList={{ "bg-(--theme-highlight)": selectedCategory() === index() }}
+                    onClick={() => setSelectedCategory(index())}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedCategory(index());
+                      }
+                    }}
+                    class="flex items-center cursor-pointer px-2 py-1 rounded focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none"
+                  >
+                    <img class="w-8 h-8 object-cover mr-2" src={c.icon} alt="" />
+                    <span class="font-bold text-sm">{c.name}</span>
+                  </li>
+                )}
+              </For>
             </ul>
           </Card>
           <Card title="Top Photos">
             <ul class="space-y-1">
-              <For each={TOP_PHOTOS}>{(p) => (/* item */)}</For>
+              <For each={TOP_PHOTOS}>
+                {(p) => (
+                  <li class="rounded-md transition-colors duration-150">
+                    <a
+                      href="#"
+                      class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg) focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none"
+                    >
+                      <img class="w-10 h-10 rounded-lg object-cover mr-3" src={p.src} alt={p.alt} />
+                      <img class="w-6 h-6 rounded-full object-cover mr-0.5" src={p.avatar} alt="" />
+                      <span class="font-bold text-sm mr-1">{p.author}</span>
+                      <span class="text-sm font-light text-gray-500">({p.likes} Likes)</span>
+                    </a>
+                  </li>
+                )}
+              </For>
             </ul>
           </Card>
           <Card title="Top Captions">
             <ul class="space-y-1">
-              <For each={TOP_CAPTIONS}>{(c) => (/* item */)}</For>
+              <For each={TOP_CAPTIONS}>
+                {(c) => (
+                  <li class="rounded-md transition-colors duration-150">
+                    <a
+                      href="#"
+                      class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg) focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none"
+                    >
+                      <img class="w-8 h-8 rounded-full object-cover mr-1" src={c.avatar} alt="" />
+                      <span class="font-bold text-sm mr-1">{c.author}</span>
+                      <span class="text-sm font-light text-gray-500">({c.likes} Likes)</span>
+                    </a>
+                  </li>
+                )}
+              </For>
             </ul>
           </Card>
         </aside>

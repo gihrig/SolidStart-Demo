@@ -1833,6 +1833,9 @@ Review: planning/jedi-conversion.md
 
 CRITICAL — Blocks Correct Execution
 
+❯ In the recent plan review, Claude mentioned:
+"
+
 1. Phase 3 sidebar content never specified
 
 Lines 941, 949, 952 all have {/_ item _/} placeholder comments. No subsequent phase fills these in. Source rendering for categories (Jedi Project index.html:246-301):
@@ -1844,6 +1847,17 @@ Lines 941, 949, 952 all have {/_ item _/} placeholder comments. No subsequent ph
 
 Same gap for Top Photos (source lines 306-344) and Top Captions (source lines 348-379). Three sidebar cards would
 render empty.
+"
+
+Fix:
+
+Review `jedi-conversion.md` @line 1838-1848.
+
+- Write code to complete `Categories`
+- Write code to complete `Top Photos`
+- Write code to complete `Top Captions`
+
+**Updated per Fix by Claude Sonnet 4.6**
 
 2. Missing aria-hidden on hidden mobile nav + sidebar
 
@@ -1868,8 +1882,7 @@ bg-(--theme-hover-bg).
 4. --theme-highlight has no dark mode override
 
 app.css:10: --theme-highlight: --color-indigo-100 — defined in :root only. Not overridden in data-theme="dark" or
-prefers-color-scheme: dark. indigo-100 (very pale blue) on gray-700 card bg might be intentional as a high-contrast
-highlight, but should be a deliberate decision, not an oversight.
+prefers-color-scheme: dark. indigo-100 (very pale blue) on gray-700 card bg might be intentional as a high-contrast highlight, but should be a deliberate decision, not an oversight.
 
 5. w-[50%] → use w-1/2
 
@@ -1894,8 +1907,7 @@ props.children directly.
 
 8. ThemeToggle: three hidden SVGs vs <Switch>/<Match>
 
-Plan renders all three SVGs, hides two via class="hidden". SolidJS idiomatic approach: <Switch>/<Match> — smaller DOM,
-no unnecessary nodes.
+Plan renders all three SVGs, hides two via class="hidden". SolidJS idiomatic approach: <Switch>/<Match> — smaller DOM, no unnecessary nodes.
 
 9. entry-server.tsx "Before" omits existing code
 
