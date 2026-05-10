@@ -1802,7 +1802,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 - [ ] Toggle button visible in global Nav all pages (not within Jedi page)
 - [ ] Click cycles: sun (light) → moon (dark) → monitor (auto/system)
 - [ ] Light mode: zinc-200 background, zinc-800 text, sky-700 accents
-- [ ] Dark mode: stone-800 background, stone-300 text, sky-700 accents
+- [ ] Dark mode: zinc-800 background, zinc-300 text, sky-700 accents
 - [ ] Auto mode: follows OS `prefers-color-scheme` setting
 - [ ] Reload preserves selected mode (stored in localStorage)
 - [ ] No flash of wrong theme on page load (FOUC prevention)

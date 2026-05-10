@@ -1773,6 +1773,8 @@ Actual CSS vars use zinc, not stone:
 
 Fix: stone-800 → zinc-800, stone-300 → zinc-300
 
+**Updated per Fix**
+
 ---
 
 Minor
