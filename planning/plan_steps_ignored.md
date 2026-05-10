@@ -1946,12 +1946,28 @@ Update `jedi.spec.ts`
 
 MINOR — Efficiency/Style
 
-1. Card splitProps unnecessary
+7. Card splitProps unnecessary
 
 Plan Card.tsx:505:
 const [local, rest] = splitProps(props, ["class", "title", "children"]);
 All props extracted → rest always {}. Spread {...rest} does nothing. Simpler: use props.class, props.title,
 props.children directly.
+
+Fix: Manual application of splitProps/mergeProps in Solid JS/SolidStart idiomatic style
+
+❯ Examine `jedi-conversion.md` @lines 500-527 of this code block for idiomatic Solid JS/SolidStart, accuracy,
+correctness and efficiency report any recommended improvements
+
+⏺ 4 fixes applied:
+
+1. ParentProps — replaced manual CardProps with ParentProps<CardOwnProps>, dropped JSX import
+2. <Show> — replaced && with <Show when={local.title}>
+3. Redundant color — dropped text-(--theme-card-fg) from h2
+4. Trailing space — conditional class join instead of bare interpolation
+
+**Updated per Fix**
+
+---
 
 8. ThemeToggle: three hidden SVGs vs <Switch>/<Match>
 

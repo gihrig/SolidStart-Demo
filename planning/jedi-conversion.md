@@ -488,30 +488,39 @@ describe('<Author />', () => {
 **Props**:
 
 ```typescript
-interface CardProps {
+import { type ParentProps } from "solid-js";
+
+interface CardOwnProps {
   title?: string;
-  children: JSX.Element;
   class?: string;
 }
+type CardProps = ParentProps<CardOwnProps>;
 ```
 
 **Component**:
 
 ```tsx
-import { splitProps } from "solid-js";
-import type { JSX } from "solid-js";
+import { splitProps, mergeProps, Show, type ParentProps } from "solid-js";
 
 export default function Card(props: CardProps) {
-  const [local, rest] = splitProps(props, ["class", "title", "children"]);
+  const defaulted = mergeProps(
+    {
+      title: "",
+      class: "",
+    },
+    props,
+  );
+
+  const [local, rest] = splitProps(defaulted, ["title", "class", "children"]);
 
   return (
     <section
       class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg)${local.class ? ` ${local.class}` : ""}`}
       {...rest}
     >
-      {local.title && (
-        <h2 class="text-2xl font-bold px-4 pt-4 pb-2 text-(--theme-card-fg)">{local.title}</h2>
-      )}
+      <Show when={local.title}>
+        <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{local.title}</h2>
+      </Show>
       <div class="p-4 pt-0">{local.children}</div>
     </section>
   );
