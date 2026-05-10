@@ -1729,6 +1729,8 @@ Fix: Replace hidden/block with opacity + pointer-events pattern. Nav is absolute
 
 ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}
 
+**Updated per Fix**
+
 ---
 
 Important — Accuracy
