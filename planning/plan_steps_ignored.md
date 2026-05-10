@@ -1926,15 +1926,27 @@ Replace w-[50%] > w-1/2
 
 6. Existing E2E test silently dropped
 
-Current e2e/jedi.spec.ts:65-77 has "should have proper page structure" test checking
-footer.locator("p")).toHaveCount(2). Plan says "keep existing footer tests" but this test isn't in Phase 5's
-replacement set and not called out as intentionally removed.
+- Current e2e/jedi.spec.ts:65-77 has "should have proper page structure" test checking footer.locator("p").toHaveCount(2).
+- Plan says "keep existing footer tests" but this test isn't in Phase 5's replacement set and not called out as intentionally removed.
+
+Fix:
+
+Update `jedi-conversion.md`
+
+- Include all existing tests
+
+Update `jedi.spec.ts`
+
+- Revise existing pages tests as needed
+- Add test for new elements
+
+**Updated per Fix**
 
 ---
 
 MINOR — Efficiency/Style
 
-7. Card splitProps unnecessary
+1. Card splitProps unnecessary
 
 Plan Card.tsx:505:
 const [local, rest] = splitProps(props, ["class", "title", "children"]);

@@ -12,18 +12,18 @@ test.describe("Jedi Page", () => {
     await page.goto("/jedi");
 
     // Should have an h1 heading
-    const heading = page.getByRole("heading", { name: /Jedi Kitty/i });
+    const heading = page.getByRole("heading", { name: /Awesome Photos & Captions/i });
     await expect(heading).toBeVisible();
-    await expect(heading).toHaveText("Jedi Kitty");
+    await expect(heading).toHaveText("Awesome Photos & Captions");
   });
 
   test("should display h2 page headings", async ({ page }) => {
     await page.goto("/jedi");
 
-    // Should have 2 h2 headings
+    // Should have 3 h2 headings
     const h2Headings = page.getByRole("heading", { level: 2 });
     const count = await h2Headings.count();
-    expect(count).toBe(2);
+    expect(count).toBe(3);
   });
 
   test("should have working external link to solidjs.com in footer", async ({ page }) => {
@@ -66,8 +66,13 @@ test.describe("Jedi Page", () => {
     await page.goto("/jedi");
 
     const main = page.locator("main");
+    const article = page.locator("article");
+    const aside = page.locator("aside");
     const footer = page.locator("footer");
     await expect(main).toBeVisible();
+    await expect(article).toBeVisible();
+    await expect(aside).toBeVisible();
+    await expect(page.locator("section:visible")).toHaveCount(3);
     await expect(footer).toBeVisible();
 
     // Verify key elements exist within main
