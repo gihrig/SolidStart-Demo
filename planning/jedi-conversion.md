@@ -668,7 +668,7 @@ export default function JediNav() {
               />
             </button>
             <div
-              class={`absolute right-0 bg-white text-black shadow rounded-lg w-40 p-2 z-20 transition-all duration-300 ease-out origin-top ${dropdownOpen() ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 -translate-y-5 pointer-events-none"}`}
+              class={`absolute right-0 bg-(--theme-card-bg) text-(--theme-card-fg) shadow rounded-lg w-40 p-2 z-20 transition-all duration-300 ease-out origin-top ${dropdownOpen() ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 -translate-y-5 pointer-events-none"}`}
             >
               <ul class="hoverlist">
                 <li>
@@ -1807,6 +1807,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 - [ ] Reload preserves selected mode (stored in localStorage)
 - [ ] No flash of wrong theme on page load (FOUC prevention)
 - [ ] Toggle works on all pages (CSS + init script are global)
+- [ ] Jedi drop-down visible in light and dark mode
 
 ### Accessibility
 

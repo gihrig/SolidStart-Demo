@@ -1795,6 +1795,13 @@ Replace `z-[-1]` > `-z-1`
 
 Won't adapt to dark mode. Matches source (source has no dark mode). Faithful conversion but profile dropdown will look odd in dark theme. Note for Phase 7 validation.
 
+Fix:
+
+Replace hard coded color values with text-(--theme-card-fg) and bg-(--theme-card-bg)
+Add note to Phase 7 > Theme Toggle: "Jedi drop-down visible in light and dark mode"
+
+**Updated per Fix**
+
 ---
 
 Summary
