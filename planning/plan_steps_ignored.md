@@ -1667,3 +1667,128 @@ Summary
 
 Biggest risk: broken (theme-font-hero) syntax — Lobster font won't load on Hero or caption. Second: text-6xl vs source
 text-5xl — visual mismatch with Awesome.png reference image.
+
+❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
+
+⏺ Review complete. Verified plan against all 3 project source files + actual codebase state.
+
+---
+
+Review: planning/jedi-conversion.md — 5th cycle
+
+Verified Correct
+
+- Step 1.1 "After" CSS ↔ actual src/app.css — exact match ✓
+- Step 4.2 "Before" ↔ actual src/entry-server.tsx — exact match ✓
+- Step 4.5 "Before" ↔ actual src/components/Nav.tsx — exact match ✓
+- Alpine.js → SolidJS mapping ✓
+- TW v3→v4 conversions (md:!block → md:block!, bg-opacity-40 → bg-gray-800/40) ✓
+- ThemeToggle in global Nav, not page-specific ✓
+- THEME_INIT_SCRIPT matches Tanstack reference ✓
+- Toggle cycle (light→dark→auto→light) consistent across component, Nav test, E2E ✓
+- Sidebar max-h/overflow animation approach ✓
+- E2E footer tests preserved ✓
+- Accessibility (aria-label, aria-expanded, role="listbox", keyboard handlers) ✓
+- All test files import "vite-plus/test" ✓
+- All tests use userEvent.setup() pattern ✓
+
+---
+
+Critical — Will Cause Visible Bugs
+
+1. font-hero) — trailing parenthesis (2 locations)
+
+Plan lines 311 and 891:
+
+font-hero)
+
+@theme { --font-hero: "Lobster", sans-serif; } generates utility class font-hero. Stray ) → broken class name →
+Lobster font won't load on hero title or caption.
+
+Fix: font-hero) → font-hero
+
+---
+
+2. Mobile nav transition won't animate
+
+Plan line 643, JediNav <nav>:
+
+${mobileNavOpen() ? "block opacity-100 translate-y-0" : "hidden opacity-0 -translate-y-96"}
+
+hidden = display: none. display property doesn't CSS-transition → nav pops in/out instantly. No 300ms slide.
+
+Contrast with sidebar (line 928) which works correctly:
+
+${mobileSidebarOpen() ? "opacity-100 max-h-screen" : "opacity-0 max-h-0 overflow-hidden md:overflow-visible"}
+
+Sidebar stays in DOM (opacity-0, max-h-0) → transitions work.
+
+Fix: Replace hidden/block with opacity + pointer-events pattern. Nav is absolute so won't affect layout:
+
+${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}
+
+---
+
+Important — Accuracy
+
+3. Unnecessary override classes (stale fix)
+
+plan_steps_ignored.md says "Remove unnecessary override classes (mx-0, mt-0, normal-case)" and marks "Updated per Fix"
+— but they're still present.
+
+Root cause: app.css scopes global rules to .demo class. Verified — all routes except Jedi use <div class="demo">
+wrapper:
+
+src/routes/index.tsx:8: <div class="demo">
+src/routes/about.tsx:7: <div class="demo">
+src/routes/fullstack.tsx:67: <div class="demo">
+src/routes/[...404].tsx:7: <div class="demo">
+
+Jedi page has no .demo wrapper → rules don't leak → overrides are dead weight.
+
+Affected lines:
+
+- Line 311: mx-0 mt-0 normal-case on Hero <h1> — remove
+- Line 866: text-base on <main> — remove (source has no text-base)
+
+---
+
+4. Phase 7 validation: wrong color family
+
+Line 1807:
+
+- [ ] Dark mode: stone-800 background, stone-300 text, sky-700 accents
+
+Actual CSS vars use zinc, not stone:
+--theme-background: --color-zinc-800;
+--theme-foreground: --color-zinc-300;
+
+Fix: stone-800 → zinc-800, stone-300 → zinc-300
+
+---
+
+Minor
+
+5. z-[-1] arbitrary value
+
+Line 643. TW v4 has -z-1 utility. Works but not idiomatic v4.
+
+6. JediNav dropdown hardcoded bg-white text-black
+
+Won't adapt to dark mode. Matches source (source has no dark mode). Faithful conversion but profile dropdown will look odd in dark theme. Note for Phase 7 validation.
+
+---
+
+Summary
+
+┌────────────┬───────┬────────────────────────────────────────────┐
+│ Severity │ Count │ Highest Impact │
+├────────────┼───────┼────────────────────────────────────────────┤
+│ Critical │ 2 │ Broken font class; nav transition instant │
+├────────────┼───────┼────────────────────────────────────────────┤
+│ Important │ 2 │ Dead override classes; wrong color name │
+├────────────┼───────┼────────────────────────────────────────────┤
+│ Minor │ 2 │ z-index syntax; dropdown dark mode │
+└────────────┴───────┴────────────────────────────────────────────┘
+
+Biggest risks: (1) font-hero) → Lobster font missing on hero + caption, (2) mobile nav pops instead of sliding. Both quick fixes.
