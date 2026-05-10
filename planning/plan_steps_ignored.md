@@ -1099,7 +1099,7 @@ Plan line 1299: "Update Nav.tst.tsx" — should be Nav.test.tsx.
 
 Manually corrected
 
-Plan uses <script innerHTML={THEME_INIT_SCRIPT} />. Valid in SolidJS/SolidStart, but worth noting this bypasses CSP if Content-Security-Policy headers are later added. Not blocking, just a note for future.
+Plan uses `<script innerHTML={THEME_INIT_SCRIPT} />`. Valid in SolidJS/SolidStart, but worth noting this bypasses CSP if Content-Security-Policy headers are later added. Not blocking, just a note for future.
 
 ### Fix:
 
@@ -1107,7 +1107,7 @@ Plan uses <script innerHTML={THEME_INIT_SCRIPT} />. Valid in SolidJS/SolidStart,
 - Deferred to change later when site is working
 - Added TODO entry to plan code
 
-Grok: Why does <script innerHTML={THEME_INIT_SCRIPT} /> bypass CSP where THEME_INIT_SCRIPT is Typescript on this web site and what can be done to mitigate this issue
+Grok: Why does `<script innerHTML={THEME_INIT_SCRIPT} />` bypass CSP where THEME_INIT_SCRIPT is Typescript on this web site and what can be done to mitigate this issue
 https://grok.com/share/c2hhcmQtMi1jb3B5_1293335a-4a52-4211-ac87-87ee868c0dc3
 
 ---
@@ -1785,14 +1785,16 @@ Won't adapt to dark mode. Matches source (source has no dark mode). Faithful con
 
 Summary
 
+```
 ┌────────────┬───────┬────────────────────────────────────────────┐
-│ Severity │ Count │ Highest Impact │
+│ Severity   │ Count │ Highest Impact                             │
 ├────────────┼───────┼────────────────────────────────────────────┤
-│ Critical │ 2 │ Broken font class; nav transition instant │
+│ Critical   │ 2     │ Broken font class; nav transition instant  │
 ├────────────┼───────┼────────────────────────────────────────────┤
-│ Important │ 2 │ Dead override classes; wrong color name │
+│ Important  │ 2     │ Dead override classes; wrong color name    │
 ├────────────┼───────┼────────────────────────────────────────────┤
-│ Minor │ 2 │ z-index syntax; dropdown dark mode │
+│ Minor      │ 2     │ z-index syntax; dropdown dark mode         │
 └────────────┴───────┴────────────────────────────────────────────┘
+```
 
 Biggest risks: (1) font-hero) → Lobster font missing on hero + caption, (2) mobile nav pops instead of sliding. Both quick fixes.
