@@ -1203,7 +1203,7 @@ Component Structure (lines 753-935):
 
 ❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
 
-⏺ Review complete. Here's the summary:
+⏺ Review complete. 2nd cycle
 
 3 critical test issues — all plan tests import from 'vitest' instead of "vite-plus/test" (won't run), use fireEvent
 instead of project's userEvent.setup() pattern.
@@ -1215,18 +1215,15 @@ Dropdown and sidebar transitions missing (source has 300ms animations, plan has 
 4 important accuracy gaps — Step 4.1 "Before" doesn't match post-Step-1.1 state, font-(family-name:...) syntax
 unverified, Nav.test.tsx update has no code, E2E uses waitForTimeout anti-pattern.
 
-Full findings with code evidence and fixes in the plan file.
+---
 
-─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Here is Claude's plan:
-╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
-Review: planning/jedi-conversion.md — Accuracy, Correctness, Efficiency
+❯ Review: planning/jedi-conversion.md — Accuracy, Correctness, Efficiency
+
+⏺ Review complete. 3rd cycle.
 
 Context
 
-Fourth review cycle of the Jedi conversion plan. Prior reviews (documented in planning/plan_steps_ignored.md) fixed
-15+ issues including duplicate Nav, global CSS overrides, missing JediNav component, font naming, test counts, Card
-dark mode, ThemeToggle placement, and more.
+Prior reviews (documented in planning/plan_steps_ignored.md) fixed 15+ issues including duplicate Nav, global CSS overrides, missing JediNav component, font naming, test counts, Card dark mode, ThemeToggle placement, and more.
 
 This review verifies the current plan state against actual source files in all three projects.
 
@@ -1473,9 +1470,11 @@ Recommended Fix Priority
 ⏺ Committed. 28e396a — all 9 review fixes applied to jedi-conversion.md and plan_steps_ignored.md. Pre-commit hooks
 passed clean.
 
+---
+
 ❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
 
-⏺ All source files verified against plan. Here are findings.
+⏺ All source files verified against plan. 4th cycle.
 
 ---
 
@@ -1668,13 +1667,15 @@ Summary
 Biggest risk: broken (theme-font-hero) syntax — Lobster font won't load on Hero or caption. Second: text-6xl vs source
 text-5xl — visual mismatch with Awesome.png reference image.
 
+---
+
 ❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
 
 ⏺ Review complete. Verified plan against all 3 project source files + actual codebase state.
 
 ---
 
-Review: planning/jedi-conversion.md — 5th cycle
+Review: planning/jedi-conversion.md. 5th cycle
 
 Verified Correct
 
@@ -1819,3 +1820,129 @@ Summary
 ```
 
 Biggest risks: (1) font-hero) → Lobster font missing on hero + caption, (2) mobile nav pops instead of sliding. Both quick fixes.
+
+---
+
+❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
+
+⏺ Verified plan against all source files. 6th cycle.
+
+---
+
+Review: planning/jedi-conversion.md
+
+CRITICAL — Blocks Correct Execution
+
+1. Phase 3 sidebar content never specified
+
+Lines 941, 949, 952 all have {/_ item _/} placeholder comments. No subsequent phase fills these in. Source rendering for categories (Jedi Project index.html:246-301):
+
+  <li><a href="">
+    <img class="w-8 h-8 object-cover mr-2" src="..." />
+    <span class="font-bold text-sm">Landscape</span>
+  </a></li>
+
+Same gap for Top Photos (source lines 306-344) and Top Captions (source lines 348-379). Three sidebar cards would
+render empty.
+
+2. Missing aria-hidden on hidden mobile nav + sidebar
+
+JediNav nav (plan line 641) and sidebar aside (plan line 926) use opacity-0/pointer-events-none when closed — elements stay in DOM. Keyboard tab can reach hidden links. Screen readers announce invisible content. Need
+aria-hidden={!mobileNavOpen()} on <nav> and aria-hidden={!mobileSidebarOpen()} on <aside> (with md: override
+consideration).
+
+---
+
+IMPORTANT — Visual/Behavioral Bugs
+
+3. jedi.css .hoverlist hover hardcodes light color
+
+Plan jedi.css:249:
+.hoverlist > \*:hover {
+@apply bg-gray-100;
+}
+
+bg-gray-100 = bright white-ish hover on dark mode cards (bg-gray-700). Should use theme variable like
+bg-(--theme-hover-bg).
+
+4. --theme-highlight has no dark mode override
+
+app.css:10: --theme-highlight: --color-indigo-100 — defined in :root only. Not overridden in data-theme="dark" or
+prefers-color-scheme: dark. indigo-100 (very pale blue) on gray-700 card bg might be intentional as a high-contrast
+highlight, but should be a deliberate decision, not an oversight.
+
+5. w-[50%] → use w-1/2
+
+Plan line 868: w-[50%] — standard Tailwind utility w-1/2 exists. Unnecessary arbitrary value.
+
+6. Existing E2E test silently dropped
+
+Current e2e/jedi.spec.ts:65-77 has "should have proper page structure" test checking
+footer.locator("p")).toHaveCount(2). Plan says "keep existing footer tests" but this test isn't in Phase 5's
+replacement set and not called out as intentionally removed.
+
+---
+
+MINOR — Efficiency/Style
+
+7. Card splitProps unnecessary
+
+Plan Card.tsx:505:
+const [local, rest] = splitProps(props, ["class", "title", "children"]);
+All props extracted → rest always {}. Spread {...rest} does nothing. Simpler: use props.class, props.title,
+props.children directly.
+
+8. ThemeToggle: three hidden SVGs vs <Switch>/<Match>
+
+Plan renders all three SVGs, hides two via class="hidden". SolidJS idiomatic approach: <Switch>/<Match> — smaller DOM,
+no unnecessary nodes.
+
+9. entry-server.tsx "Before" omits existing code
+
+Current file has // @refresh reload (line 1) and import { createHandler, StartServer } (line 2). Plan's "Before" (line 1039) and "After" (line 1062) omit both. Could confuse implementer into losing them.
+
+10. Hero text-6xl vs source 4rem
+
+Source style.css:999: font-size: 4rem. Tailwind text-6xl = 3.75rem. Close but 4px smaller. No standard utility for 4rem (text-7xl = 4.5rem, too big). Acceptable tradeoff given arbitrary value restriction.
+
+11. Hero text-white redundant
+
+Plan line 313: <h1 class="... text-white ..."> inside <section class="... text-white ...">. Inherits from parent.
+Harmless but redundant.
+
+---
+
+Verified Correct
+
+- Step 1.1 [√] matches current app.css exactly
+- Step 4.1 [√] correctly identified as no-op
+- entry-server.tsx "Before" matches current file structure
+- Nav.tsx "Before" matches current file
+- jedi.tsx is placeholder, plan correctly replaces
+- @fontsource/lobster not installed — plan correctly installs Step 1.2
+- Alpine → SolidJS mapping table accurate against source
+- TW v3 → v4 conversions (bg-opacity-40 → /40, md:!block → md:block!, z-[-1] → -z-1) all correct
+- Theme toggle cycle auto → light → dark → auto consistent across component code, unit tests, and E2E tests
+- THEME_INIT_SCRIPT logic correctly handles data-theme attr + classList + colorScheme for all three modes
+- createEffect + onCleanup pattern for media query listener in ThemeToggle correct SolidJS pattern
+- Source target="blank" (missing \_) correctly fixed to target="\_blank" rel="noreferrer"
+
+---
+
+Recommendation Summary
+
+```
+┌───────────┬────────────────────────────────────────────────────────┬─────────────────────┐
+│ Priority  │ Fix                                                    │ Impact              │
+├───────────┼────────────────────────────────────────────────────────┼─────────────────────┤
+│ Critical  │ Fill {/_ item _/} placeholders for all 3 sidebar cards │ Empty sidebar       │
+├───────────┼────────────────────────────────────────────────────────┼─────────────────────┤
+│ Critical  │ Add aria-hidden to mobile nav + sidebar                │ A11y violation      │
+├───────────┼────────────────────────────────────────────────────────┼─────────────────────┤
+│ Important │ .hoverlist hover → theme variable                      │ Dark mode broken    │
+├───────────┼────────────────────────────────────────────────────────┼─────────────────────┤
+│ Important │ Decide --theme-highlight dark mode value               │ Possible design gap │
+├───────────┼────────────────────────────────────────────────────────┼─────────────────────┤
+│ Minor │ w-1/2, drop splitProps, Switch/Match for icons             │ Cleanup             │
+└───────────┴────────────────────────────────────────────────────────┴─────────────────────┘
+```
