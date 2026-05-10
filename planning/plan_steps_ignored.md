@@ -1750,10 +1750,14 @@ src/routes/[...404].tsx:7: <div class="demo">
 
 Jedi page has no .demo wrapper → rules don't leak → overrides are dead weight.
 
+Fix:
+
 Affected lines:
 
 - Line 311: mx-0 mt-0 normal-case on Hero <h1> — remove
 - Line 866: text-base on <main> — remove (source has no text-base)
+
+**Updated per Fix**
 
 ---
 

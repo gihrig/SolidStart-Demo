@@ -308,9 +308,7 @@ export default function Hero(props: HeroProps) {
     >
       <div class="col-start-1 row-start-1 bg-gray-800/40 w-full h-full" />
       <div class="col-start-1 row-start-1 py-24 px-10">
-        <h1 class="text-6xl font-bold mb-4 mx-0 mt-0 normal-case text-white animate-fade-in font-hero">
-          {props.title}
-        </h1>
+        <h1 class="text-6xl font-bold mb-4 text-white animate-fade-in font-hero">{props.title}</h1>
         <p class="text-lg font-bold mb-5">{props.subtitle}</p>
         <a
           class="inline-flex items-center justify-center px-4 min-h-13 font-semibold rounded-lg text-white transition-transform active:scale-95 bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover) shadow-sm"
@@ -863,7 +861,7 @@ export default function Jedi() {
         </div>
 
         {/* Main article */}
-        <main class="col-span-full md:col-span-2 mx-[5%] md:mx-[10%] order-2 md:order-1 text-base">
+        <main class="col-span-full md:col-span-2 mx-[5%] md:mx-[10%] order-2 md:order-1">
           <article class="flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg)">
             {/* Title bar */}
             <div class="flex items-center justify-between px-4 h-14">
