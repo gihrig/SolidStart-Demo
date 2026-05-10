@@ -1592,12 +1592,12 @@ Plan defines:
 --theme-font-hero: "Lobster", sans-serif;
 }
 
-TW v4 auto-generates font-family utilities from --font-_ namespace, not --theme-font-_. So font-hero utility won't
-exist. font-(--theme-font-hero) should work as custom property syntax but prior review flagged this as unverified
-(issue #7 in plan_steps_ignored.md, marked [√] but fix was just "replaced with current syntax").
+TW v4 auto-generates font-family utilities from --font-_ namespace, not --theme-font-_. So font-hero utility won't exist. font-(--theme-font-hero) should work as custom property syntax but prior review flagged this as unverified (issue #7 in plan_steps_ignored.md, marked [√] but fix was just "replaced with current syntax").
 
 Fix: Verify during Phase 1 execution. If broken, change to @theme { --font-hero: "Lobster", sans-serif; } and use
 font-hero class directly.
+
+**Corrected in item 1. above**
 
 ---
 
@@ -1608,7 +1608,11 @@ Minor — Style/Efficiency
 Line 928:
 mobileSidebarOpen() ? "opacity-100 max-h-[2000px]" : "opacity-0 max-h-0 overflow-hidden"
 
-max-h-[2000px] is a magic number. Use max-h-screen (100vh) — sidebar won't exceed viewport height.
+max-h-[2000px] is a magic number.
+
+Fix: Use max-h-screen (100vh) — sidebar won't exceed viewport height.
+
+**Updated per Fix**
 
 7. Card class concatenation not idiomatic SolidJS
 

@@ -921,7 +921,7 @@ export default function Jedi() {
         {/* Sidebar */}
         <aside
           onKeyDown={(e) => { if (e.key === "Escape" && mobileSidebarOpen()) setMobileSidebarOpen(false); }}
-          class={`col-span-full md:col-span-1 mx-[5%] md:mr-[20%] order-1 md:order-2 transition-all duration-300 ease-out md:opacity-100 md:max-h-[none] md:block! ${mobileSidebarOpen() ? "opacity-100 max-h-[2000px]" : "opacity-0 max-h-0 overflow-hidden md:overflow-visible"}`}
+          class={`col-span-full md:col-span-1 mx-[5%] md:mr-[20%] order-1 md:order-2 transition-all duration-300 ease-out md:opacity-100 md:max-h-none md:block! ${mobileSidebarOpen() ? "opacity-100 max-h-screen" : "opacity-0 max-h-0 overflow-hidden md:overflow-visible"}`}
         >
           <Card title="Categories">
             <ul class="space-y-1" role="listbox" aria-label="Categories">
