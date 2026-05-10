@@ -1916,6 +1916,14 @@ Won't fix - Color decisions deferred too visible page
 
 Plan line 868: w-[50%] — standard Tailwind utility w-1/2 exists. Unnecessary arbitrary value.
 
+Fix:
+
+Replace w-[50%] > w-1/2
+
+**Updated per Fix**
+
+---
+
 6. Existing E2E test silently dropped
 
 Current e2e/jedi.spec.ts:65-77 has "should have proper page structure" test checking

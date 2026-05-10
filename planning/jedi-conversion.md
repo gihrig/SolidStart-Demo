@@ -874,7 +874,7 @@ export default function Jedi() {
           <article class="flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg)">
             {/* Title bar */}
             <div class="flex items-center justify-between px-4 h-14">
-              <h3 class="text-lg font-bold w-[50%] truncate">Little Jedi</h3>
+              <h3 class="text-lg font-bold w-1/2 truncate">Little Jedi</h3>
               <div class="text-sm text-gray-500">
                 flickr @{" "}
                 <a
