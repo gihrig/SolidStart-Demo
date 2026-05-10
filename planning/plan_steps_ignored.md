@@ -1707,6 +1707,8 @@ Lobster font won't load on hero title or caption.
 
 Fix: font-hero) → font-hero
 
+**Updated per Fix**
+
 ---
 
 2. Mobile nav transition won't animate
