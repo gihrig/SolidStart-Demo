@@ -1859,11 +1859,27 @@ Review `jedi-conversion.md` @line 1838-1848.
 
 **Updated per Fix by Claude Sonnet 4.6**
 
-2. Missing aria-hidden on hidden mobile nav + sidebar
+---
 
-JediNav nav (plan line 641) and sidebar aside (plan line 926) use opacity-0/pointer-events-none when closed — elements stay in DOM. Keyboard tab can reach hidden links. Screen readers announce invisible content. Need
-aria-hidden={!mobileNavOpen()} on <nav> and aria-hidden={!mobileSidebarOpen()} on <aside> (with md: override
-consideration).
+❯ In the recent plan review, Claude mentioned:
+" 2. Missing aria-hidden on hidden mobile nav + sidebar
+
+JediNav nav (plan line 641) and sidebar aside (plan line 954):
+
+- Use opacity-0/pointer-events-none when closed.
+- Elements stay in DOM.
+- Keyboard tab can reach hidden links.
+- Screen readers announce invisible content.
+  "
+
+Fix:
+
+Review `jedi-conversion.md` @line 641, 671, and 954.
+
+- Add aria-hidden={!mobileNavOpen()} on <nav>.
+- Add aria-hidden={!mobileSidebarOpen()} on <aside> (with md: override consideration).
+
+**Updated per Fix by Claude Sonnet 4.6**
 
 ---
 

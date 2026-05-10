@@ -638,6 +638,7 @@ export default function JediNav() {
         </button>
       </div>
       <nav
+        aria-hidden={!mobileNavOpen()}
         class={`bg-gray-800 h-screen w-screen md:h-auto md:w-auto -mt-20 md:mt-0 absolute md:relative -z-1 transition-all duration-300 ease-out md:block! ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`}
       >
         <ul class="navitems flex items-center flex-col md:flex-row gap-8 md:gap-0 justify-center h-full -translate-y-10 md:translate-y-0 px-8">
@@ -668,6 +669,7 @@ export default function JediNav() {
               />
             </button>
             <div
+              aria-hidden={!dropdownOpen()}
               class={`absolute right-0 bg-(--theme-card-bg) text-(--theme-card-fg) shadow rounded-lg w-40 p-2 z-20 transition-all duration-300 ease-out origin-top ${dropdownOpen() ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 -translate-y-5 pointer-events-none"}`}
             >
               <ul class="hoverlist">
@@ -779,7 +781,7 @@ describe("<JediNav />", () => {
 import "@fontsource/lobster";
 import "./jedi.css";
 import { Title, Meta } from "@solidjs/meta";
-import { createSignal, For } from "solid-js";
+import { createSignal, For, onMount, onCleanup } from "solid-js";
 import Hero from "~/components/Hero";
 import JediNav from "~/components/JediNav";
 import Image from "~/components/Image";
@@ -819,6 +821,14 @@ const TOP_CAPTIONS = [
 export default function Jedi() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = createSignal(false);
   const [selectedCategory, setSelectedCategory] = createSignal(0);
+  const mql = typeof window !== "undefined" ? window.matchMedia("(max-width: 767px)") : null;
+  const [isMobile, setIsMobile] = createSignal(mql?.matches ?? false);
+  onMount(() => {
+    if (!mql) return;
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener("change", handler);
+    onCleanup(() => mql.removeEventListener("change", handler));
+  });
 
   return (
     <>
@@ -948,6 +958,7 @@ export default function Jedi() {
 
         {/* Sidebar */}
         <aside
+          aria-hidden={isMobile() && !mobileSidebarOpen()}
           onKeyDown={(e) => {
             if (e.key === "Escape" && mobileSidebarOpen()) setMobileSidebarOpen(false);
           }}
