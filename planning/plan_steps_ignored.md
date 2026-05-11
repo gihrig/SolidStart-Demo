@@ -2007,6 +2007,14 @@ import { createHandler, StartServer } from "@solidjs/start/server";
 
 Source style.css:999: font-size: 4rem. Tailwind text-6xl = 3.75rem. Close but 4px smaller. No standard utility for 4rem (text-7xl = 4.5rem, too big). Acceptable tradeoff given arbitrary value restriction.
 
+Fix;
+
+Replace `text-6xl` with an arbitrary value `text-[4rem]`
+
+**Updated per Fix**
+
+---
+
 11. Hero text-white redundant
 
 Plan line 313: <h1 class="... text-white ..."> inside <section class="... text-white ...">. Inherits from parent.
