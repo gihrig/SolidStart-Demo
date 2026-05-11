@@ -2095,7 +2095,7 @@ Verified Correct
 - Step 4.2 "Before" entry-server.tsx matches actual file exactly
 - Step 4.5 "Before" Nav.tsx matches actual file exactly
 - @theme { --font-hero: "Lobster" } → generates font-hero utility class (TW v4 --font-\* namespace)
-- font-hero used correctly at plan lines 322 and 946 (stray ) from cycle 5 is gone)
+- font-hero used correctly at plan lines 322 and 946 (stray) from cycle 5 is gone
 - Alpine.js → SolidJS mapping verified against source index.html lines 37-117
 - TW v3→v4 conversions all correct (bg-opacity-40 → /40, md:!block → md:block!, z-[-1] → -z-1)
 - splitProps/mergeProps pattern on Hero, Image, Author, Card — idiomatic SolidJS
@@ -2221,3 +2221,143 @@ Summary
 ```
 
 Plan is in good shape after 6 cycles. Only blocker: navitems hover variable — one-line fix in jedi.css. Everything else is cosmetic or optional cleanup.
+
+---
+
+❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
+
+⏺ 8th cycle. Verified plan against source files and actual codebase.
+
+---
+
+Review: planning/jedi-conversion.md — 8th Cycle
+
+Verified Correct
+
+- Step 1.1 [√] "After" CSS matches actual src/app.css ✓
+- Step 4.2 "Before" entry-server.tsx matches actual file ✓
+- Step 4.5 "Before" Nav.tsx matches actual file ✓
+- @theme { --font-hero } → generates font-hero utility (TW v4 --font-\* namespace) ✓
+- font-hero used correctly at lines 322, 946 ✓
+- Alpine.js → SolidJS mapping verified against source index.html:37-117 ✓
+- TW v3→v4 conversions correct (bg-opacity-40 → /40, z-[-1] → -z-1) ✓
+- splitProps/mergeProps pattern on Image, Author, Card — idiomatic ✓
+- <Switch>/<Match> in ThemeToggle — idiomatic (no hidden DOM nodes) ✓
+- All tests import "vite-plus/test", use userEvent.setup() ✓
+- THEME_INIT_SCRIPT handles data-theme + classList + colorScheme ✓
+- ThemeToggle cycle (auto→light→dark→auto) consistent across component, unit tests, E2E ✓
+- Sidebar md:opacity-100 md:max-h-none for desktop visibility ✓
+- aria-hidden={isMobile() && !mobileSidebarOpen()} on sidebar — correct ✓
+- Static data arrays outside component ✓
+- E2E footer tests preserved ✓
+
+---
+
+CRITICAL — Desktop Nav Invisible
+
+1. JediNav <nav> missing md: desktop override classes
+
+Plan line 685:
+class={`bg-gray-800 h-screen w-screen md:h-auto md:w-auto -mt-20 md:mt-0 absolute md:relative -z-1 transition-all duration-300 ease-out ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`}
+
+- mobileNavOpen() defaults false → opacity-0 -translate-y-96 pointer-events-none applied.
+- No md:opacity-100 md:translate-y-0 md:pointer-events-auto to keep nav visible on desktop.
+- Nav links invisible on all screen sizes until hamburger clicked.
+
+Contrast sidebar (line 1008) which correctly has md:opacity-100 md:max-h-none.
+
+Fix: Add to static classes: md:opacity-100 md:translate-y-0 md:pointer-events-auto
+
+---
+
+2. JediNav <nav aria-hidden={!mobileNavOpen()}> — desktop a11y bug
+
+Plan line 684:
+aria-hidden={!mobileNavOpen()}
+
+- On desktop, mobileNavOpen() = false → aria-hidden="true".
+- Screen readers skip nav on desktop even though it's visible.
+- Sidebar correctly uses aria-hidden={isMobile() && !mobileSidebarOpen()} but JediNav has no isMobile awareness.
+
+Fix:
+
+- Add isMobile signal to JediNav
+- or
+- Change to match sidebar pattern.
+- Simplest — pass isMobile as prop from Jedi parent,
+- or
+- replicate matchMedia pattern inside JediNav.
+
+---
+
+IMPORTANT — Visual Mismatch
+
+3. Hero h1 missing leading-[1.2]
+
+Source style.css:998-1001:
+h1 {
+font-size: 4rem;
+line-height: 1.2;
+}
+
+Plan line 322:
+
+  <h1 class="text-[4rem] font-bold mb-4 animate-fade-in font-hero">
+
+- text-[4rem] sets only font-size.
+- No leading-\* class.
+- TW preflight default line-height: 1.5 applies → Hero title has 25% more line spacing than source.
+- Visible on multi-line title text.
+
+Fix: Add leading-tight (1.25, close) or leading-[1.2] (exact match).
+
+---
+
+MINOR — Code Style
+
+4. Hero/Image/Author splitProps rest always empty
+
+- HeroProps, ImageProps, AuthorProps are closed interfaces — don't extend HTML attributes.
+- splitProps extracts all props → rest = {} → {...rest} is no-op.
+- Not a bug (reactivity preserved via local.\*), but misleading API signal.
+
+Two options:
+
+- A) Remove splitProps, use props.\* directly (simpler)
+- B) Extend props with & JSX.HTMLAttributes<HTMLElement> (makes rest meaningful)
+
+Option A preferred per KISS — these are single-use demo components.
+
+---
+
+1. Image conditional — ternary vs <Show>
+
+Plan line 402-408:
+{local.href ? (
+<a href={local.href}><img ... /></a>
+) : (
+<img ... />
+)}
+
+- SolidJS idiomatic: <Show> for conditional rendering.
+- Ternary works, but <Show> signals intent more clearly.
+- Not blocking.
+
+---
+
+Summary
+
+```
+  ┌────────────┬───────┬──────────────────────────────────────────┐
+  │ Severity   │ Count │ Highest Impact                           │
+  ├────────────┼───────┼──────────────────────────────────────────┤
+  │ Critical   │   2   │ Desktop nav invisible; nav aria-hidden   │
+  ├────────────┼───────┼──────────────────────────────────────────┤
+  │ Important  │   1   │ Hero title line-height wrong             │
+  ├────────────┼───────┼──────────────────────────────────────────┤
+  │ Minor      │   2   │ Empty rest spread; ternary vs <Show>     │
+  └────────────┴───────┴──────────────────────────────────────────┘
+```
+
+Biggest risk: JediNav nav invisible on desktop — md: overrides missing for opacity/translate/pointer-events. One-line
+fix but blocks all desktop testing.
