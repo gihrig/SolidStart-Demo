@@ -2128,6 +2128,8 @@ Header is always bg-gray-800. In light mode --theme-card-fg = --color-gray-700 �
 
 Fix: @apply bg-gray-700; — header doesn't theme, hover shouldn't either.
 
+**Updated per Fix**
+
 ---
 
 IMPORTANT — Visual Mismatch
