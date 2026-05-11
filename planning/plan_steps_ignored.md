@@ -2183,8 +2183,15 @@ Apply flex-wrap and shrink-0 to Hero @line 325
 
 5. Card h2 bottom spacing differs from source
 
-Plan Card h2: pb-2 (0.5rem). Source h2 rule (style.css:1011): margin-bottom: 0.75rem. 4px difference. Barely
-noticeable.
+- Plan Card h2: pb-2 (0.5rem).
+- Source h2 rule (style.css:1011): margin-bottom: 0.75rem. 4px difference.
+- Barely noticeable.
+
+Fix:
+
+Won't fix
+
+---
 
 6. text-[4rem] arbitrary value on Hero h1
 
