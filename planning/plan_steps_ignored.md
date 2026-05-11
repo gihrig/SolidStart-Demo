@@ -2141,10 +2141,11 @@ Plan line 325: shadow-sm
 Source .button (style.css:1029):
 box-shadow: 0 4px 3px rgba(0,0,0,0.1);
 
-TW shadow-sm = 0 1px 2px 0 rgba(0,0,0,0.05) — 4x shorter offset, half opacity. Visually noticeable difference on the
-"Get Started" button.
+TW shadow-sm = 0 1px 2px 0 rgba(0,0,0,0.05) — 4x shorter offset, half opacity. Visually noticeable difference on the "Get Started" button.
 
 Fix: shadow-md closer match (0 4px 6px -1px rgba(0,0,0,0.1)) or accept as deliberate approximation.
+
+**Updated per Fix**
 
 ---
 
