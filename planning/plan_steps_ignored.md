@@ -1983,9 +1983,25 @@ Fix: Replace 3 hidden SVGs with `<Switch>/<Match>` in `jedi-conversion.md` Step 
 
 **Updated per Fix**
 
+---
+
 9. entry-server.tsx "Before" omits existing code
 
-Current file has // @refresh reload (line 1) and import { createHandler, StartServer } (line 2). Plan's "Before" (line 1039) and "After" (line 1062) omit both. Could confuse implementer into losing them.
+- Current file has // @refresh reload (line 1) and import { createHandler, StartServer } (line 2).
+- Plan's "Before" (line 1020) and "After" (line 1046) omit both. Could confuse implementer into losing them.
+
+Fix:
+
+Import current file's first statement into plan `before` and `after` code blocks
+
+```tsx
+// @refresh reload
+import { createHandler, StartServer } from "@solidjs/start/server";
+```
+
+**Updated per Fix**
+
+---
 
 10. Hero text-6xl vs source 4rem
 
