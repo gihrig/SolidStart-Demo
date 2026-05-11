@@ -2189,13 +2189,20 @@ Apply flex-wrap and shrink-0 to Hero @line 325
 
 Fix:
 
-Won't fix
+**Won't fix**
 
 ---
 
 6. text-[4rem] arbitrary value on Hero h1
 
-CLAUDE.md rule targets text-[var(--css-variable)] specifically. text-[4rem] is a fixed value, not a CSS variable. No standard TW utility for 4rem (text-6xl=3.75rem, text-7xl=4.5rem). Acceptable exception. Documented in plan_steps_ignored.md.
+- CLAUDE.md rule targets text-[var(--css-variable)] specifically.
+- text-[4rem] is a fixed value, not a CSS variable.
+- No standard TW utility for 4rem (text-6xl=3.75rem, text-7xl=4.5rem).
+- Acceptable exception. Documented in plan_steps_ignored.md.
+
+Fix:
+
+**Won't fix**
 
 ---
 
