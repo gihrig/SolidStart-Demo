@@ -300,21 +300,32 @@ interface HeroProps {
 **Component**:
 
 ```tsx
+import { splitProps } from "solid-js";
+
 export default function Hero(props: HeroProps) {
+  const [local, rest] = splitProps(props, [
+    "title",
+    "subtitle",
+    "ctaText",
+    "ctaHref",
+    "backgroundImage",
+  ]);
+
   return (
     <section
       class="grid bg-gray-700 text-white text-center bg-cover relative"
-      style={{ "background-image": `url('${props.backgroundImage}')` }}
+      style={{ "background-image": `url('${local.backgroundImage}')` }}
+      {...rest}
     >
       <div class="col-start-1 row-start-1 bg-gray-800/40 w-full h-full" />
       <div class="col-start-1 row-start-1 py-24 px-10">
-        <h1 class="text-[4rem] font-bold mb-4 animate-fade-in font-hero">{props.title}</h1>
-        <p class="text-lg font-bold mb-5">{props.subtitle}</p>
+        <h1 class="text-[4rem] font-bold mb-4 animate-fade-in font-hero">{local.title}</h1>
+        <p class="text-lg font-bold mb-5">{local.subtitle}</p>
         <a
           class="inline-flex items-center justify-center px-4 min-h-13 font-semibold rounded-lg text-white transition-transform active:scale-95 bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover) shadow-sm"
-          href={props.ctaHref}
+          href={local.ctaHref}
         >
-          {props.ctaText}
+          {local.ctaText}
         </a>
       </div>
     </section>
@@ -374,15 +385,27 @@ interface ImageProps {
 **Component**:
 
 ```tsx
+import { splitProps, mergeProps } from "solid-js";
+
 export default function Image(props: ImageProps) {
+  const defaulted = mergeProps(
+    {
+      href: "",
+      class: "",
+    },
+    props,
+  );
+
+  const [local, rest] = splitProps(defaulted, ["src", "alt", "href", "class"]);
+
   return (
-    <figure class={props.class}>
-      {props.href ? (
-        <a href={props.href}>
-          <img class="w-full" src={props.src} alt={props.alt} />
+    <figure class={local.class} {...rest}>
+      {local.href ? (
+        <a href={local.href}>
+          <img class="w-full" src={local.src} alt={local.alt} />
         </a>
       ) : (
-        <img class="w-full" src={props.src} alt={props.alt} />
+        <img class="w-full" src={local.src} alt={local.alt} />
       )}
     </figure>
   );
@@ -439,11 +462,22 @@ interface AuthorProps {
 **Component**:
 
 ```tsx
+import { splitProps, mergeProps } from "solid-js";
+
 export default function Author(props: AuthorProps) {
+  const defaulted = mergeProps(
+    {
+      href: "#",
+    },
+    props,
+  );
+
+  const [local, rest] = splitProps(defaulted, ["avatarSrc", "name", "href"]);
+
   return (
-    <a class="flex items-center gap-1 mb-4" href={props.href || "#"}>
-      <img class="w-8 h-8 rounded-full" src={props.avatarSrc} alt={props.name} />
-      <span class="font-bold hover:underline">{props.name}</span>
+    <a class="flex items-center gap-1 mb-4" href={local.href} {...rest}>
+      <img class="w-8 h-8 rounded-full" src={local.avatarSrc} alt={local.name} />
+      <span class="font-bold hover:underline">{local.name}</span>
     </a>
   );
 }

@@ -2027,6 +2027,25 @@ Remove redundant `text-white`
 
 ---
 
+ADDED
+
+12. Apply idiomatic SolidJS pattern to other components
+
+❯ update `jedi-conversion.md` as according to the `Fix:` below
+
+- mergeProps is the safe, reactive way to provide defaults and combine prop objects without breaking Solid's fine-grained reactivity system.
+
+Fix:
+
+- Read from `Card` component @line 491-527
+- Apply the `splitProps/MergeProps` pattern to Hero @line 291
+- Apply the `splitProps/MergeProps` pattern to Image @line 366
+- Apply the `splitProps/MergeProps` pattern to Author @line 432
+
+**Updated per Fix by Claude Opus 4.6**
+
+---
+
 Verified Correct
 
 - Step 1.1 [√] matches current app.css exactly
