@@ -2156,15 +2156,18 @@ Plan lines 685 and 1008 both use md:block!.
 Source needed md:!block because Alpine.js x-show sets display: none on hidden elements. SolidJS version uses
 opacity/translate/max-h animation — never sets display: none. <nav> and <aside> are display: block by default. Nothing overrides this.
 
-md:block! is dead weight. Not harmful, but misleading — suggests something toggles display, when nothing does.
+- md:block! is dead weight. Not harmful, but misleading — suggests something toggles display, when nothing does.
+- md:opacity-100 and md:max-h-none already handle desktop visibility.
 
 Fix: Remove md:block! from both locations. md:opacity-100 and md:max-h-none already handle desktop visibility.
+
+**Updated per Fix**
 
 ---
 
 MINOR
 
-4. CTA button missing flex-wrap and shrink-0 from source
+1. CTA button missing flex-wrap and shrink-0 from source
 
 Source .button (style.css:1019-1020): flex-wrap: wrap; flex-shrink: 0;
 
