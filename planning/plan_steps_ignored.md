@@ -2167,11 +2167,19 @@ Fix: Remove md:block! from both locations. md:opacity-100 and md:max-h-none alre
 
 MINOR
 
-1. CTA button missing flex-wrap and shrink-0 from source
+4. CTA button missing flex-wrap and shrink-0 from source
 
 Source .button (style.css:1019-1020): flex-wrap: wrap; flex-shrink: 0;
 
 Plan omits both. Won't cause issues with short "Get Started" text. Only matters with very long button text at narrow viewports.
+
+Fix:
+
+Apply flex-wrap and shrink-0 to Hero @line 325
+
+**Updated per Fix**
+
+---
 
 5. Card h2 bottom spacing differs from source
 
