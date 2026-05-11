@@ -1971,7 +1971,17 @@ correctness and efficiency report any recommended improvements
 
 8. ThemeToggle: three hidden SVGs vs <Switch>/<Match>
 
+❯ Show a Solid JS/SolidStart idiomatic implementation of this concept
+
 Plan renders all three SVGs, hides two via class="hidden". SolidJS idiomatic approach: <Switch>/<Match> — smaller DOM, no unnecessary nodes.
+
+Fix: Replace 3 hidden SVGs with `<Switch>/<Match>` in `jedi-conversion.md` Step 4.3. Import updated to include `Match, Switch` from "solid-js". Only matching SVG renders — no hidden DOM nodes.
+
+- jedi-conversion.md Step 4.3:
+- import now includes Match, Switch;
+- JSX replaced 3 hidden SVGs with <Switch>/<Match> control flow
+
+**Updated per Fix**
 
 9. entry-server.tsx "Before" omits existing code
 
