@@ -2080,3 +2080,116 @@ Recommendation Summary
 │ Minor │ w-1/2, drop splitProps, Switch/Match for icons             │ Cleanup             │
 └───────────┴────────────────────────────────────────────────────────┴─────────────────────┘
 ```
+
+---
+
+❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
+
+⏺ 7th cycle review complete. Verified plan against all 3 project source files.
+
+Review: planning/jedi-conversion.md — 7th Cycle
+
+Verified Correct
+
+- Step 1.1 [√] "After" CSS matches actual src/app.css exactly
+- Step 4.2 "Before" entry-server.tsx matches actual file exactly
+- Step 4.5 "Before" Nav.tsx matches actual file exactly
+- @theme { --font-hero: "Lobster" } → generates font-hero utility class (TW v4 --font-\* namespace)
+- font-hero used correctly at plan lines 322 and 946 (stray ) from cycle 5 is gone)
+- Alpine.js → SolidJS mapping verified against source index.html lines 37-117
+- TW v3→v4 conversions all correct (bg-opacity-40 → /40, md:!block → md:block!, z-[-1] → -z-1)
+- splitProps/mergeProps pattern on Hero, Image, Author, Card — idiomatic SolidJS
+- <Switch>/<Match> in ThemeToggle — idiomatic SolidJS (no hidden DOM nodes)
+- All tests import "vite-plus/test" and use userEvent.setup() pattern
+- THEME_INIT_SCRIPT handles data-theme + classList + colorScheme for all 3 modes
+- Source target="blank" (missing \_) correctly fixed to target="\_blank" rel="noreferrer"
+- Static data arrays outside component functions
+- aria-hidden on hidden mobile nav + sidebar
+- E2E footer tests preserved in separate describe block
+
+---
+
+CRITICAL — Will Cause Dark Mode Bug
+
+1. jedi.css navitems hover uses theme variable that inverts in dark mode
+
+Plan line 243-244:
+.navitems > li > a:hover {
+@apply bg-(--theme-card-fg);
+}
+
+Source style.css:1054-1057 uses hardcoded bg-gray-700 (rgb 55 65 81):
+.navitems>li>a:hover {
+background-color: rgb(55 65 81 / var(--tw-bg-opacity));
+}
+
+Header is always bg-gray-800. In light mode --theme-card-fg = --color-gray-700 → correct hover. In dark mode
+--theme-card-fg = --color-zinc-200 → light hover on dark header. Broken.
+
+Fix: @apply bg-gray-700; — header doesn't theme, hover shouldn't either.
+
+---
+
+IMPORTANT — Visual Mismatch
+
+2. CTA button shadow too weak
+
+Plan line 325: shadow-sm
+
+Source .button (style.css:1029):
+box-shadow: 0 4px 3px rgba(0,0,0,0.1);
+
+TW shadow-sm = 0 1px 2px 0 rgba(0,0,0,0.05) — 4x shorter offset, half opacity. Visually noticeable difference on the
+"Get Started" button.
+
+Fix: shadow-md closer match (0 4px 6px -1px rgba(0,0,0,0.1)) or accept as deliberate approximation.
+
+---
+
+3. md:block! redundant on both nav and sidebar — vestige of Alpine.js
+
+Plan lines 685 and 1008 both use md:block!.
+
+Source needed md:!block because Alpine.js x-show sets display: none on hidden elements. SolidJS version uses
+opacity/translate/max-h animation — never sets display: none. <nav> and <aside> are display: block by default. Nothing overrides this.
+
+md:block! is dead weight. Not harmful, but misleading — suggests something toggles display, when nothing does.
+
+Fix: Remove md:block! from both locations. md:opacity-100 and md:max-h-none already handle desktop visibility.
+
+---
+
+MINOR
+
+4. CTA button missing flex-wrap and shrink-0 from source
+
+Source .button (style.css:1019-1020): flex-wrap: wrap; flex-shrink: 0;
+
+Plan omits both. Won't cause issues with short "Get Started" text. Only matters with very long button text at narrow viewports.
+
+5. Card h2 bottom spacing differs from source
+
+Plan Card h2: pb-2 (0.5rem). Source h2 rule (style.css:1011): margin-bottom: 0.75rem. 4px difference. Barely
+noticeable.
+
+6. text-[4rem] arbitrary value on Hero h1
+
+CLAUDE.md rule targets text-[var(--css-variable)] specifically. text-[4rem] is a fixed value, not a CSS variable. No standard TW utility for 4rem (text-6xl=3.75rem, text-7xl=4.5rem). Acceptable exception. Documented in plan_steps_ignored.md.
+
+---
+
+Summary
+
+```
+  ┌────────────┬───────┬───────────────────────────────────────────┐
+  │ Severity   │ Count │ Highest Impact                            │
+  ├────────────┼───────┼───────────────────────────────────────────┤
+  │ Critical   │   1   │ Nav hover bg inverts in dark mode         │
+  ├────────────┼───────┼───────────────────────────────────────────┤
+  │ Important  │   2   │ CTA shadow weak; md:block! dead weight    │
+  ├────────────┼───────┼───────────────────────────────────────────┤
+  │ Minor      │   3   │ flex-wrap, h2 spacing, text-[4rem]        │
+  └────────────┴───────┴───────────────────────────────────────────┘
+```
+
+Plan is in good shape after 6 cycles. Only blocker: navitems hover variable — one-line fix in jedi.css. Everything else is cosmetic or optional cleanup.
