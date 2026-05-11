@@ -2017,8 +2017,13 @@ Replace `text-6xl` with an arbitrary value `text-[4rem]`
 
 11. Hero text-white redundant
 
-Plan line 313: <h1 class="... text-white ..."> inside <section class="... text-white ...">. Inherits from parent.
-Harmless but redundant.
+Plan line 313: <h1 class="... text-white ..."> inside <section class="... text-white ...">. Inherits from parent. Harmless but redundant.
+
+Fix:
+
+Remove redundant `text-white`
+
+**Updated per Fix**
 
 ---
 

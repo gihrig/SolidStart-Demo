@@ -308,9 +308,7 @@ export default function Hero(props: HeroProps) {
     >
       <div class="col-start-1 row-start-1 bg-gray-800/40 w-full h-full" />
       <div class="col-start-1 row-start-1 py-24 px-10">
-        <h1 class="text-[4rem] font-bold mb-4 text-white animate-fade-in font-hero">
-          {props.title}
-        </h1>
+        <h1 class="text-[4rem] font-bold mb-4 animate-fade-in font-hero">{props.title}</h1>
         <p class="text-lg font-bold mb-5">{props.subtitle}</p>
         <a
           class="inline-flex items-center justify-center px-4 min-h-13 font-semibold rounded-lg text-white transition-transform active:scale-95 bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover) shadow-sm"
