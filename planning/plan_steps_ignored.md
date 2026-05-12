@@ -2268,6 +2268,8 @@ Contrast sidebar (line 1008) which correctly has md:opacity-100 md:max-h-none.
 
 Fix: Add to static classes: md:opacity-100 md:translate-y-0 md:pointer-events-auto
 
+**Updated per Fix**
+
 ---
 
 2. JediNav <nav aria-hidden={!mobileNavOpen()}> — desktop a11y bug

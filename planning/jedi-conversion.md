@@ -682,7 +682,7 @@ export default function JediNav() {
       </div>
       <nav
         aria-hidden={!mobileNavOpen()}
-        class={`bg-gray-800 h-screen w-screen md:h-auto md:w-auto -mt-20 md:mt-0 absolute md:relative -z-1 transition-all duration-300 ease-out ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`}
+        class={`bg-gray-800 h-screen w-screen md:h-auto md:w-auto -mt-20 md:mt-0 md:opacity-100 md:translate-y-0 md:pointer-events-auto absolute md:relative -z-1 transition-all duration-300 ease-out ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`}
       >
         <ul class="navitems flex items-center flex-col md:flex-row gap-8 md:gap-0 justify-center h-full -translate-y-10 md:translate-y-0 px-8">
           <li>
