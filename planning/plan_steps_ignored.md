@@ -2369,7 +2369,7 @@ Apply option 'C'
 
 5. Image conditional — ternary vs <Show>
 
-Plan line 402-408:
+Plan line 404-410:
 {local.href ? (
 <a href={local.href}><img ... /></a>
 ) : (
@@ -2379,6 +2379,12 @@ Plan line 402-408:
 - SolidJS idiomatic: <Show> for conditional rendering.
 - Ternary works, but <Show> signals intent more clearly.
 - Not blocking.
+
+Fix:
+
+Replace ternary expression with show/fallback
+
+**Updated per Fix**
 
 ---
 

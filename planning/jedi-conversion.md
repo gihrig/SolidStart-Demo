@@ -401,13 +401,11 @@ export default function Image(props: ImageProps) {
 
   return (
     <figure class={local.class}>
-      {local.href ? (
+      <Show when={local.href} fallback={<img class="w-full" src={local.src} alt={local.alt} />}>
         <a href={local.href}>
           <img class="w-full" src={local.src} alt={local.alt} />
         </a>
-      ) : (
-        <img class="w-full" src={local.src} alt={local.alt} />
-      )}
+      </Show>
     </figure>
   );
 }
