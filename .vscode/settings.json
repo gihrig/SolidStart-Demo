@@ -1,5 +1,5 @@
 {
-  "snyk.advanced.autoSelectOrganization": true,
+  "snyk.advanced.autoSelectOrganization": false,
   "editor.defaultFormatter": "oxc.oxc-vscode",
   "oxc.fmt.configPath": "./oxfmtrc.jsonc",
   "editor.formatOnSave": true,

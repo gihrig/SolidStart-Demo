@@ -2330,7 +2330,7 @@ Option A preferred per KISS — these are single-use demo components.
 
 ---
 
-1. Image conditional — ternary vs <Show>
+5. Image conditional — ternary vs <Show>
 
 Plan line 402-408:
 {local.href ? (
@@ -2361,3 +2361,25 @@ Summary
 
 Biggest risk: JediNav nav invisible on desktop — md: overrides missing for opacity/translate/pointer-events. One-line
 fix but blocks all desktop testing.
+
+---
+
+❯ A 15 day old git commit (750156a) message was modified. Now all commits since that date have that date. Many commits have been made since the change occurred. Is there any way to recover the past commit dates? Can Claude help with this?
+
+⏺ Recovery
+
+The fix sets committer dates back to match author dates. The parent of the first affected commit (750156a) is 93e7c1b:
+
+git rebase --committer-date-is-author-date 93e7c1b
+
+This rewrites all commits from 750156a to HEAD with committer date = author date. It changes commit SHAs, so the
+remote needs a force-push afterward:
+
+git push --force-with-lease origin integrate_jedi_ii
+
+⏺ All formerly-affected commits now have matching author and committer dates. Zero commits remain with the bad
+2026-05-10 12:47:04 timestamp.
+
+Now push to update the remote:
+
+git push --force-with-lease origin integrate_jedi_ii
