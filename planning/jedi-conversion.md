@@ -628,13 +628,20 @@ describe('<Card />', () => {
 
 ```tsx
 import { createSignal, Show, onMount, onCleanup } from "solid-js";
+import { isServer } from "solid-js/web";
 
 export default function JediNav() {
   const [mobileNavOpen, setMobileNavOpen] = createSignal(false);
   const [dropdownOpen, setDropdownOpen] = createSignal(false);
+  const [isMobile, setIsMobile] = createSignal(isServer ? false : window.innerWidth < 768);
   let dropdownRef: HTMLLIElement | undefined;
 
   onMount(() => {
+    const mql = window.matchMedia("(max-width: 767px)");
+    const mqlHandler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener("change", mqlHandler);
+    onCleanup(() => mql.removeEventListener("change", mqlHandler));
+
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef && !dropdownRef.contains(e.target as Node)) {
         setDropdownOpen(false);
@@ -681,7 +688,7 @@ export default function JediNav() {
         </button>
       </div>
       <nav
-        aria-hidden={!mobileNavOpen()}
+        aria-hidden={isMobile() && !mobileNavOpen()}
         class={`bg-gray-800 h-screen w-screen md:h-auto md:w-auto -mt-20 md:mt-0 md:opacity-100 md:translate-y-0 md:pointer-events-auto absolute md:relative -z-1 transition-all duration-300 ease-out ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`}
       >
         <ul class="navitems flex items-center flex-col md:flex-row gap-8 md:gap-0 justify-center h-full -translate-y-10 md:translate-y-0 px-8">

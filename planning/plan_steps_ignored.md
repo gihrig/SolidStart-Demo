@@ -2258,7 +2258,7 @@ CRITICAL — Desktop Nav Invisible
 1. JediNav <nav> missing md: desktop override classes
 
 Plan line 685:
-class={`bg-gray-800 h-screen w-screen md:h-auto md:w-auto -mt-20 md:mt-0 absolute md:relative -z-1 transition-all duration-300 ease-out ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`}
+class={`bg-gray-800 h-screen w-screen md:h-auto md:w-auto -mt-20 md:mt-0 absolute md:relative -z-1 transition-all duration-300 ease-out ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`
 
 - mobileNavOpen() defaults false → opacity-0 -translate-y-96 pointer-events-none applied.
 - No md:opacity-100 md:translate-y-0 md:pointer-events-auto to keep nav visible on desktop.
@@ -2281,7 +2281,7 @@ aria-hidden={!mobileNavOpen()}
 - Screen readers skip nav on desktop even though it's visible.
 - Sidebar correctly uses aria-hidden={isMobile() && !mobileSidebarOpen()} but JediNav has no isMobile awareness.
 
-Fix:
+Options:
 
 - Add isMobile signal to JediNav
 - or
@@ -2289,6 +2289,31 @@ Fix:
 - Simplest — pass isMobile as prop from Jedi parent,
 - or
 - replicate matchMedia pattern inside JediNav.
+
+---
+
+❯ `plan_steps_ignored.md` @line 2275-2282 includes:
+
+```md
+JediNav <nav aria-hidden={!mobileNavOpen()}> — desktop a11y bug
+
+Plan line 684:
+aria-hidden={!mobileNavOpen()}
+
+- On desktop, mobileNavOpen() = false → aria-hidden="true".
+- Screen readers skip nav on desktop even though it's visible.
+- Sidebar correctly uses aria-hidden={isMobile() && !mobileSidebarOpen()} but JediNav has no isMobile awareness.
+```
+
+Read @lines 2275-2282 in `plan_steps_ignored.md` and @line 684 in `jedi-conversion.md` and Update the plan document `jedi-conversion.md` to produce components/jediNav.tsx when the plan is executed.
+
+Fix:
+
+- Add isMobile signal to JediNav
+
+⏺ Done. Plan now produces JediNav with isMobile signal + aria-hidden={isMobile() && !mobileNavOpen()}. Also need to update plan_steps_ignored.md to mark item 2 resolved?
+
+**Updated per Fix by Claude Sonnet 4.6**
 
 ---
 
