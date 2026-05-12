@@ -2426,3 +2426,202 @@ git push --force-with-lease origin integrate_jedi_ii
 Now push to update the remote:
 
 git push --force-with-lease origin integrate_jedi_ii
+
+---
+
+❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
+
+⏺ Good picture now. Here's the review - 9th cycle
+
+---
+
+Review: planning/jedi-conversion.md
+
+Critical Issues (will cause errors)
+
+1. Image.tsx — missing Show import (line 389)
+
+Plan imports:
+import { splitProps, mergeProps } from "solid-js";
+But template uses <Show when={local.href}> at line 404. Will fail at runtime.
+
+Fix: import { splitProps, mergeProps, Show } from "solid-js";
+
+---
+
+2. jedi.css — unlayered CSS overrides Tailwind utilities (lines 237-258)
+
+Step 1.1 explains why @layer base is needed:
+
+▎ "Global rules in unlayered CSS have higher precedence than Tailwind utility classes (which live in @layer
+▎ utilities)"
+
+But jedi.css doesn't follow its own rule. .navitems > li > a and .hoverlist > \* are unlayered -> can't be overridden by Tailwind utilities on those elements.
+
+Fix: wrap in @layer components { ... }.
+
+---
+
+SolidJS Idiom Issues
+
+3. Hero/Image/Author — splitProps with always-empty \_rest (lines 306, 400, 466)
+
+All props listed in the split array -> \_rest always {}. Git log 400972b already flagged this. Two fixes:
+
+Option A — drop splitProps, access props directly:
+export default function Hero(props: HeroProps) {
+return (
+
+<section style={{ "background-image": `url('${props.backgroundImage}')` }}>
+
+Option B — if intent is forward-compatible rest spreading, name it rest and spread onto root element. \_rest naming + unused variable contradicts CLAUDE.md ("Avoid backwards-compatibility hacks like renaming unused \_vars").
+
+---
+
+4. Jedi route — inconsistent SSR guard (line 873)
+
+JediNav uses isServer from solid-js/web (line 635):
+const [isMobile, setIsMobile] = createSignal(isServer ? false : window.innerWidth < 768);
+
+Jedi route uses typeof window !== "undefined" (line 873):
+const mql = typeof window !== "undefined" ? window.matchMedia("(max-width: 767px)") : null;
+
+Both work. isServer is the SolidJS-idiomatic way. Pick one pattern.
+
+---
+
+5. Duplicate isMobile signal — both JediNav (line 635-641) and jedi.tsx (lines 873-879)
+
+Same matchMedia("(max-width: 767px)") pattern duplicated. Extract to hooks/useIsMobile.ts:
+export function useIsMobile(breakpoint = 767) {
+const [isMobile, setIsMobile] = createSignal(isServer ? false : window.innerWidth <= breakpoint);
+onMount(() => {
+const mql = window.matchMedia(`(max-width: ${breakpoint}px)`);
+const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+mql.addEventListener("change", handler);
+onCleanup(() => mql.removeEventListener("change", handler));
+});
+return isMobile;
+}
+
+---
+
+Accessibility Issues
+
+6. role="listbox" missing arrow key navigation (line 1017-1031)
+
+Plan adds role="listbox" + role="option" + Enter/Space handling. WAI-ARIA listbox pattern requires ArrowUp/ArrowDown to move focus between options, Home/End to jump to first/last. Without them, screen reader users expect arrow nav and get nothing.
+
+Fix: either add arrow key handlers (full listbox pattern) or downgrade to simple clickable list (remove role="listbox" / role="option", keep tabIndex and click/keyboard handlers).
+
+---
+
+7. Escape key on <aside> only fires when focus is inside (line 1010-1013)
+
+  <aside onKeyDown={(e) => {
+    if (e.key === "Escape" && mobileSidebarOpen()) setMobileSidebarOpen(false);
+  }}>
+
+When sidebar opens, focus stays on the toggle button (outside <aside>). Escape won't fire. The button has its own Escape handler (line 907-909), so the button case is covered — but if user tabs INTO the sidebar and presses Escape, that's when the aside handler fires. This works but is fragile. Consider a single document-level Escape handler inside onMount.
+
+---
+
+Tailwind v4 Issues
+
+8. Hero h1 — arbitrary value syntax (line 327)
+
+class="text-[4rem] leading-[1.2] font-bold mb-4 animate-fade-in font-hero"
+
+text-[4rem] isn't a CSS variable, so it doesn't violate CLAUDE.md's custom property rule. But Tailwind v4 has standard sizes. 4rem = 64px, closest standard: text-6xl (3.75rem) or text-7xl (4.5rem). If exact match needed, arbitrary value is correct. If approximate is fine, use text-7xl and drop the bracket syntax.
+
+Git log 3d2409a flagged leading-[1.2] — still present in plan. Tailwind v4 equivalent: leading-tight (1.25) or
+leading-snug (1.375). Neither exact. leading-[1.2] is justified if source needs exact 1.2.
+
+---
+
+Test Issues
+
+9. Nav.test.tsx theme toggle tests — wrong cycle order (lines 1577-1579)
+
+Plan test expects:
+system → click → light → click → dark → click → system
+
+ThemeToggle toggleMode:
+const next: ThemeMode = mode() === "light" ? "dark" : mode() === "dark" ? "auto" : "light";
+
+Cycle: auto->light->dark->auto. Test matches. This is actually correct. (I initially flagged it but verified it's fine.)
+
+---
+
+10. E2E aside visibility — fragile Playwright check (line 1661-1664)
+
+await expect(aside).not.toBeVisible();
+
+Sidebar uses opacity-0 max-h-0 overflow-hidden when hidden, not display: none. Playwright considers zero-height
+elements not visible, so max-h-0 makes this work. But if the transition hasn't completed, max-h-0 might not have
+applied yet. Consider adding await page.waitForTimeout(350) or checking a more deterministic attribute.
+
+---
+
+Minor / Style Issues
+
+11. Card — string concatenation for class merging (line 551)
+
+class={`...base classes...${local.class ? ` ${local.class}` : ""}`}
+
+Works but verbose. SolidJS classList directive handles individual class toggling. For string merging, consider a cn() utility or just always append:
+class={`...base classes... ${local.class}`}
+Empty string produces trailing space — harmless.
+
+---
+
+12. ThemeToggle — createEffect for media listener vs onMount (lines 1267-1271)
+
+createEffect(() => {
+if (mode() !== "auto") return;
+const media = window.matchMedia("(prefers-color-scheme: dark)");
+...
+});
+
+This re-runs whenever mode() changes. When mode switches TO "auto", listener attaches. When mode switches FROM "auto", onCleanup detaches. Correct SolidJS pattern. No issue — just noting it's correctly reactive.
+
+---
+
+13. THEME_INIT_SCRIPT CSP note (line 1189)
+
+Plan includes a TODO:
+// TODO: `<script innerHTML={THEME_INIT_SCRIPT} />` represents a CSP violation.
+
+Good awareness. For production, move to external script or configure CSP nonce. Fine for demo.
+
+---
+
+Summary Table
+
+```
+  ┌─────┬──────────┬──────────────────────────────────────────────────────────────────┬─────────────────────┐
+  │  #  │ Severity │                              Issue                               │      Location       │
+  ├─────┼──────────┼──────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ 1   │ Bug      │ Missing Show import in Image                                     │ line 389            │
+  ├─────┼──────────┼──────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ 2   │ Bug      │ jedi.css unlayered — blocks Tailwind overrides                   │ lines 237-258       │
+  ├─────┼──────────┼──────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ 3   │ Idiom    │ splitProps with unused _rest on 3 components                     │ lines 306, 400, 466 │
+  ├─────┼──────────┼──────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ 4   │ Idiom    │ Inconsistent SSR guard (typeof window vs isServer)               │ line 873            │
+  ├─────┼──────────┼──────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ 5   │ Idiom    │ Duplicate isMobile hook — extract shared                         │ JediNav + jedi.tsx  │
+  ├─────┼──────────┼──────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ 6   │ A11y     │ role="listbox" missing arrow key nav                             │ line 1017           │
+  ├─────┼──────────┼──────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ 7   │ A11y     │ Escape handler only fires from inside <aside>                    │ line 1010           │
+  ├─────┼──────────┼──────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ 8   │ Style    │ text-[4rem] + leading-[1.2] — arbitrary ok if exact match needed │ line 327            │
+  ├─────┼──────────┼──────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ 9   │ Test     │ E2E aside visibility check fragile during transitions            │ line 1661           │
+  ├─────┼──────────┼──────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ 10  │ Minor    │ Card class string concat verbose                                 │ line 551            │
+  └─────┴──────────┴──────────────────────────────────────────────────────────────────┴─────────────────────┘
+```
+
+Items 1-2 will cause runtime/styling bugs. Items 3-7 are idiomatic improvements. Rest are minor polish.
