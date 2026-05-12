@@ -2338,6 +2338,8 @@ Plan line 322:
 
 Fix: Add leading-tight (1.25, close) or leading-[1.2] (exact match).
 
+**Updated per Fix**
+
 ---
 
 MINOR — Code Style
