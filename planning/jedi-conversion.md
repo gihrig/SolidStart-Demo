@@ -303,7 +303,7 @@ interface HeroProps {
 import { splitProps } from "solid-js";
 
 export default function Hero(props: HeroProps) {
-  const [local, rest] = splitProps(props, [
+  const [local, _rest] = splitProps(props, [
     "title",
     "subtitle",
     "ctaText",
@@ -315,7 +315,6 @@ export default function Hero(props: HeroProps) {
     <section
       class="grid bg-gray-700 text-white text-center bg-cover relative"
       style={{ "background-image": `url('${local.backgroundImage}')` }}
-      {...rest}
     >
       <div class="col-start-1 row-start-1 bg-gray-800/40 w-full h-full" />
       <div class="col-start-1 row-start-1 py-24 px-10">
@@ -398,10 +397,10 @@ export default function Image(props: ImageProps) {
     props,
   );
 
-  const [local, rest] = splitProps(defaulted, ["src", "alt", "href", "class"]);
+  const [local, _rest] = splitProps(defaulted, ["src", "alt", "href", "class"]);
 
   return (
-    <figure class={local.class} {...rest}>
+    <figure class={local.class}>
       {local.href ? (
         <a href={local.href}>
           <img class="w-full" src={local.src} alt={local.alt} />
@@ -474,10 +473,10 @@ export default function Author(props: AuthorProps) {
     props,
   );
 
-  const [local, rest] = splitProps(defaulted, ["avatarSrc", "name", "href"]);
+  const [local, _rest] = splitProps(defaulted, ["avatarSrc", "name", "href"]);
 
   return (
-    <a class="flex items-center gap-1 mb-4" href={local.href} {...rest}>
+    <a class="flex items-center gap-1 mb-4" href={local.href}>
       <img class="w-8 h-8 rounded-full" src={local.avatarSrc} alt={local.name} />
       <span class="font-bold hover:underline">{local.name}</span>
     </a>

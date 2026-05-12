@@ -2354,8 +2354,16 @@ Two options:
 
 - A) Remove splitProps, use props.\* directly (simpler)
 - B) Extend props with & JSX.HTMLAttributes<HTMLElement> (makes rest meaningful)
+- C) Keep splitProps for reactivity guarantee and code style example; write as `_rest` and delete `{ ...rest }`
 
 Option A preferred per KISS — these are single-use demo components.
+Option C preferred for code example/best practice.
+
+Fix:
+
+Apply option 'C'
+
+**Updated per Fix**
 
 ---
 
