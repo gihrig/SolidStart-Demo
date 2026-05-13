@@ -2447,6 +2447,8 @@ But template uses <Show when={local.href}> at line 404. Will fail at runtime.
 
 Fix: import { splitProps, mergeProps, Show } from "solid-js";
 
+**Updated per Fix**
+
 ---
 
 2. jedi.css — unlayered CSS overrides Tailwind utilities (lines 237-258)

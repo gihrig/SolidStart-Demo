@@ -386,7 +386,7 @@ interface ImageProps {
 **Component**:
 
 ```tsx
-import { splitProps, mergeProps } from "solid-js";
+import { splitProps, mergeProps, Show } from "solid-js";
 
 export default function Image(props: ImageProps) {
   const defaulted = mergeProps(
