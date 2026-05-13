@@ -2577,9 +2577,14 @@ text-[4rem] isn't a CSS variable, so it doesn't violate CLAUDE.md's custom prope
 Git log 3d2409a flagged leading-[1.2] — still present in plan. Tailwind v4 equivalent: leading-tight (1.25) or
 leading-snug (1.375). Neither exact. leading-[1.2] is justified if source needs exact 1.2.
 
----
+Fix:
 
-Test Issues
+- Change `leading-[1.2` to `leading-tight`.
+- Change text-[4rem] to `text-7xl`
+
+**Updated per Fix**
+
+---
 
 9. Nav.test.tsx theme toggle tests — wrong cycle order (lines 1577-1579)
 
