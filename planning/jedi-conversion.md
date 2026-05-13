@@ -33,7 +33,7 @@ Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.ts
 
 ### Visual Features to Create
 
-- Dark/light/System mode toggle
+- Dark/light/auto mode toggle
 - Keyboard navigation:
   - Tab stops on all actionable elements
   - Tab selects "Categories" when in small-screen mode
@@ -1068,7 +1068,7 @@ export default function Jedi() {
 
 ---
 
-## [ ] Phase 4: Create Dark/Light/System Theme Toggle
+## [ ] Phase 4: Create Dark/Light/Auto Theme Toggle
 
 **Requirements**
 
@@ -1079,9 +1079,9 @@ export default function Jedi() {
 
 **File**: `src/app.css`
 
-**Action**: Add a `:root[data-theme="dark"]` block for explicit dark mode, and modify the existing `@media (prefers-color-scheme: dark)` selector to `:root:not([data-theme="light"])` so system-auto dark preference works but is overridden when the user explicitly selects light.
+**Action**: Add a `:root[data-theme="dark"]` block for explicit dark mode, and modify the existing `@media (prefers-color-scheme: dark)` selector to `:root:not([data-theme="light"])` so auto mode (OS preference) dark works but is overridden when the user explicitly selects light.
 
-**Reference**: This pattern is taken from **Tanstack Project** `src/styles.css` lines 30–73, where `:root[data-theme="dark"]` handles explicit dark and `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) }` handles system-auto dark.
+**Reference**: This pattern is taken from **Tanstack Project** `src/styles.css` lines 30–73, where `:root[data-theme="dark"]` handles explicit dark and `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) }` handles auto-mode dark.
 
 > **Note**: This step is a no-op relative to Step 1.1 — the `:root[data-theme="dark"]` block and empty `@media (prefers-color-scheme: dark)` selector were already established in Step 1.1's "After" CSS. The "After" below confirms the expected state.
 
@@ -1340,7 +1340,7 @@ export default function ThemeToggle() {
 | Current mode | Icon shown | Click advances to |
 | ------------ | ---------- | ----------------- |
 | Light        | Sun        | Dark              |
-| Dark         | Moon       | Auto (system)     |
+| Dark         | Moon       | Auto              |
 | Auto         | Monitor    | Light             |
 ```
 
@@ -1736,7 +1736,7 @@ test.describe("Jedi Page - Theme Toggle", () => {
     await expect(htmlDark).toHaveClass(/dark/);
     await expect(htmlDark).toHaveAttribute("data-theme", "dark");
 
-    // Click to auto (system)
+    // Click to auto (aria-label shows "system" — user-facing term for auto mode)
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-label", /system/i);
     const htmlAuto = page.locator("html");
@@ -1747,7 +1747,7 @@ test.describe("Jedi Page - Theme Toggle", () => {
     await page.goto("/jedi");
     const toggle = page.getByRole("button", { name: /theme/i });
 
-    // Set to light explicitly: auto → light
+    // Set to light explicitly: auto -> light
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-label", /light/i);
 
@@ -1907,7 +1907,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 ### Theme Toggle
 
 - [ ] Toggle button visible in global Nav all pages (not within Jedi page)
-- [ ] Click cycles: sun (light) → moon (dark) → monitor (auto/system)
+- [ ] Click cycles: sun (light) → moon (dark) → monitor (auto)
 - [ ] Light mode: zinc-200 background, zinc-800 text, sky-700 accents
 - [ ] Dark mode: zinc-800 background, zinc-300 text, sky-700 accents
 - [ ] Auto mode: follows OS `prefers-color-scheme` setting
@@ -1952,7 +1952,7 @@ When the above passes, the conversion is **complete**. Commit any final fixes an
 4. All E2E tests pass.
 5. Visual appearance matches **Jedi Project** `Awesome.png`
 6. Mobile sidebar toggle works
-7. Dark/light/system theme toggle works with localStorage persistence; toggle in global Nav (all pages)
+7. Dark/light/auto theme toggle works with localStorage persistence; toggle in global Nav (all pages)
 8. No FOUC — theme init script applies stored preference before first paint
 9. TailwindCSS v4 syntax throughout; no Alpine.js dependencies; `style` only for dynamic background-image
 10. Global CSS in `@layer base` — Tailwind utilities override without `!important`

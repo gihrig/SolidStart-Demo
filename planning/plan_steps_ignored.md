@@ -2586,7 +2586,7 @@ Fix:
 
 ---
 
-9. Nav.test.tsx theme toggle tests — wrong cycle order (lines 1577-1579)
+9. Nav.test.tsx theme toggle tests — wrong cycle order (lines 1250-1262)
 
 Plan test expects:
 system → click → light → click → dark → click → system
@@ -2595,6 +2595,13 @@ ThemeToggle toggleMode:
 const next: ThemeMode = mode() === "light" ? "dark" : mode() === "dark" ? "auto" : "light";
 
 Cycle: auto->light->dark->auto. Test matches. This is actually correct. (I initially flagged it but verified it's fine.)
+
+Fix:
+
+Update Plan tests to expect (aria-label checks for user-facing "system", internal mode is "auto"):
+auto → click → light → click → dark → click → auto
+
+**Updated per Fix - Co-authored by Claude Opus 4.6**
 
 ---
 
