@@ -2462,6 +2462,8 @@ But jedi.css doesn't follow its own rule. .navitems > li > a and .hoverlist > \*
 
 Fix: wrap in @layer components { ... }.
 
+**Updated per Fix**
+
 ---
 
 SolidJS Idiom Issues

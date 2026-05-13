@@ -236,24 +236,26 @@ import "@fontsource/lobster";
 ```css
 /* Jedi page — descendant-selector patterns from source style.css */
 
-.navitems > li > a {
-  @apply flex h-12 items-center gap-2 rounded-lg px-4;
-}
+@layer components {
+  .navitems > li > a {
+    @apply flex h-12 items-center gap-2 rounded-lg px-4;
+  }
 
-.navitems > li > a:hover {
-  @apply bg-gray-700;
-}
+  .navitems > li > a:hover {
+    @apply bg-gray-700;
+  }
 
-.hoverlist > * {
-  @apply rounded-md transition-colors duration-150;
-}
+  .hoverlist > * {
+    @apply rounded-md transition-colors duration-150;
+  }
 
-.hoverlist > *:hover {
-  @apply bg-(--theme-hover-bg);
-}
+  .hoverlist > *:hover {
+    @apply bg-(--theme-hover-bg);
+  }
 
-.hoverlist > * > a {
-  @apply flex items-center p-2;
+  .hoverlist > * > a {
+    @apply flex items-center p-2;
+  }
 }
 ```
 
