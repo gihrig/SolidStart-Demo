@@ -2508,19 +2508,29 @@ guard at top, mql?.matches ?? false for SSR-safe initial value.
 
 ---
 
-5. Duplicate isMobile signal — both JediNav (line 635-641) and jedi.tsx (lines 873-879)
+5. Duplicate isMobile signal — both JediNav (line 624) and jedi.tsx (line 864)
 
-Same matchMedia("(max-width: 767px)") pattern duplicated. Extract to hooks/useIsMobile.ts:
+Same `const [isMobile, setIsMobile] = createSignal(mql?.matches ?? false);` pattern duplicated. Extract to src/lib/useIsMobile.ts:
+
+```ts
 export function useIsMobile(breakpoint = 767) {
-const [isMobile, setIsMobile] = createSignal(isServer ? false : window.innerWidth <= breakpoint);
-onMount(() => {
-const mql = window.matchMedia(`(max-width: ${breakpoint}px)`);
-const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-mql.addEventListener("change", handler);
-onCleanup(() => mql.removeEventListener("change", handler));
-});
-return isMobile;
+  const [isMobile, setIsMobile] = createSignal(isServer ? false : window.innerWidth <= breakpoint);
+  onMount(() => {
+    const mql = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener("change", handler);
+    onCleanup(() => mql.removeEventListener("change", handler));
+  });
+  return isMobile;
 }
+```
+
+Fix:
+
+- Create `src/lib/useIsMobile.ts` as above
+- Refactor `jedi-conversion.md` as needed
+
+**Updated per Fix - Co-authored by Claude Opus 4.6**
 
 ---
 

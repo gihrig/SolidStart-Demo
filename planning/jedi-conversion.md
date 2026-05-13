@@ -615,21 +615,15 @@ describe('<Card />', () => {
 
 ```tsx
 import { createSignal, Show, onMount, onCleanup } from "solid-js";
-import { isServer } from "solid-js/web";
+import { useIsMobile } from "~/lib/useIsMobile";
 
 export default function JediNav() {
   const [mobileNavOpen, setMobileNavOpen] = createSignal(false);
   const [dropdownOpen, setDropdownOpen] = createSignal(false);
-  const mql = isServer ? undefined : window.matchMedia("(max-width: 767px)");
-  const [isMobile, setIsMobile] = createSignal(mql?.matches ?? false);
+  const isMobile = useIsMobile();
   let dropdownRef: HTMLLIElement | undefined;
 
   onMount(() => {
-    if (!mql) return;
-    const mqlHandler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mql.addEventListener("change", mqlHandler);
-    onCleanup(() => mql.removeEventListener("change", mqlHandler));
-
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef && !dropdownRef.contains(e.target as Node)) {
         setDropdownOpen(false);
@@ -819,8 +813,8 @@ describe("<JediNav />", () => {
 import "@fontsource/lobster";
 import "./jedi.css";
 import { Title, Meta } from "@solidjs/meta";
-import { createSignal, For, onMount, onCleanup } from "solid-js";
-import { isServer } from "solid-js/web";
+import { createSignal, For } from "solid-js";
+import { useIsMobile } from "~/lib/useIsMobile";
 import Hero from "~/components/Hero";
 import JediNav from "~/components/JediNav";
 import Image from "~/components/Image";
@@ -860,14 +854,7 @@ const TOP_CAPTIONS = [
 export default function Jedi() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = createSignal(false);
   const [selectedCategory, setSelectedCategory] = createSignal(0);
-  const mql = isServer ? undefined : window.matchMedia("(max-width: 767px)");
-  const [isMobile, setIsMobile] = createSignal(mql?.matches ?? false);
-  onMount(() => {
-    if (!mql) return;
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mql.addEventListener("change", handler);
-    onCleanup(() => mql.removeEventListener("change", handler));
-  });
+  const isMobile = useIsMobile();
 
   return (
     <>
