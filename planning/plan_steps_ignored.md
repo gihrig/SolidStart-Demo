@@ -2536,11 +2536,15 @@ Fix:
 
 Accessibility Issues
 
-6. role="listbox" missing arrow key navigation (line 1017-1031)
+6. role="listbox" missing arrow key navigation (line 805 and 994)
 
 Plan adds role="listbox" + role="option" + Enter/Space handling. WAI-ARIA listbox pattern requires ArrowUp/ArrowDown to move focus between options, Home/End to jump to first/last. Without them, screen reader users expect arrow nav and get nothing.
 
-Fix: either add arrow key handlers (full listbox pattern) or downgrade to simple clickable list (remove role="listbox" / role="option", keep tabIndex and click/keyboard handlers).
+Fix:
+
+Add arrow key handlers (full listbox pattern) as hook
+
+**Updated per Fix - Co-authored by Claude Opus 4.6**
 
 ---
 

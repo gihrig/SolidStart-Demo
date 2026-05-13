@@ -815,6 +815,7 @@ import "./jedi.css";
 import { Title, Meta } from "@solidjs/meta";
 import { createSignal, For } from "solid-js";
 import { useIsMobile } from "~/lib/useIsMobile";
+import { useListbox } from "~/lib/useListbox";
 import Hero from "~/components/Hero";
 import JediNav from "~/components/JediNav";
 import Image from "~/components/Image";
@@ -855,6 +856,13 @@ export default function Jedi() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = createSignal(false);
   const [selectedCategory, setSelectedCategory] = createSignal(0);
   const isMobile = useIsMobile();
+  const { listboxProps, getOptionProps, focusedIndex } = useListbox({
+    count: () => CATEGORIES.length,
+    selectedIndex: selectedCategory,
+    onSelect: setSelectedCategory,
+    label: "Categories",
+    idPrefix: "category",
+  });
 
   return (
     <>
@@ -991,22 +999,16 @@ export default function Jedi() {
           class={`col-span-full md:col-span-1 mx-[5%] md:mr-[20%] order-1 md:order-2 transition-all duration-300 ease-out md:opacity-100 md:max-h-none ${mobileSidebarOpen() ? "opacity-100 max-h-screen" : "opacity-0 max-h-0 overflow-hidden md:overflow-visible"}`}
         >
           <Card title="Categories">
-            <ul class="space-y-1" role="listbox" aria-label="Categories">
+            <ul class="space-y-1" {...listboxProps}>
               <For each={CATEGORIES}>
                 {(c, index) => (
                   <li
-                    role="option"
-                    aria-selected={selectedCategory() === index()}
-                    tabIndex={0}
-                    classList={{ "bg-(--theme-highlight)": selectedCategory() === index() }}
-                    onClick={() => setSelectedCategory(index())}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setSelectedCategory(index());
-                      }
+                    {...getOptionProps(index())}
+                    classList={{
+                      "bg-(--theme-highlight)": selectedCategory() === index(),
+                      "ring-2 ring-(--theme-accent)": focusedIndex() === index(),
                     }}
-                    class="flex items-center cursor-pointer px-2 py-1 rounded focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none"
+                    class="flex items-center cursor-pointer px-2 py-1 rounded outline-none"
                   >
                     <img class="w-8 h-8 object-cover mr-2" src={c.icon} alt="" />
                     <span class="font-bold text-sm">{c.name}</span>
