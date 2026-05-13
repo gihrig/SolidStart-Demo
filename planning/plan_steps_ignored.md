@@ -2605,13 +2605,20 @@ auto → click → light → click → dark → click → auto
 
 ---
 
-10. E2E aside visibility — fragile Playwright check (line 1661-1664)
+10. E2E aside visibility — fragile Playwright check (line 1636-1638)
 
 await expect(aside).not.toBeVisible();
 
 Sidebar uses opacity-0 max-h-0 overflow-hidden when hidden, not display: none. Playwright considers zero-height
 elements not visible, so max-h-0 makes this work. But if the transition hasn't completed, max-h-0 might not have
-applied yet. Consider adding await page.waitForTimeout(350) or checking a more deterministic attribute.
+applied yet. Consider adding `await page.waitForTimeout(350)` or checking a more deterministic attribute.
+
+Fix:
+
+- Change `await expect(aside).not.toBeVisible()` to `await expect(aside).toBeHidden()`.
+- `toBeHidden()` auto-retries internally until timeout — handles transition timing without fixed waits.
+
+**Updated per Fix - Co-authored by Claude Opus 4.6**
 
 ---
 

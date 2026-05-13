@@ -1633,7 +1633,7 @@ test.describe("Jedi Page", () => {
     const toggle = page.getByRole("button", { name: /toggle sidebar/i });
     await expect(toggle).toBeVisible();
     const aside = page.locator("aside");
-    await expect(aside).not.toBeVisible();
+    await expect(aside).toBeHidden();
     await toggle.click();
     await expect(aside).toBeVisible();
   });
