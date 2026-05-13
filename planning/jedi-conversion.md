@@ -803,7 +803,7 @@ describe("<JediNav />", () => {
 - All interactive elements: `focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none`.
 - Category list items: `tabIndex={0}`, `role="option"`, `aria-selected`, `onKeyDown` (Enter/Space selects item, updates `selectedCategory` signal and highlight).
 - Category `<ul>`: `role="listbox"` with `aria-label="Categories"`.
-- Mobile sidebar: Escape key dismisses when open (handler on toggle button + `<aside>`).
+- Mobile sidebar: Escape key dismisses when open (`useEscapeKey` hook — document-level, works regardless of focus position).
 
 11. **Performance**: Declare `categories`, `topPhotos`, `topCaptions` as constants **outside** the component.
 
@@ -816,6 +816,7 @@ import { Title, Meta } from "@solidjs/meta";
 import { createSignal, For } from "solid-js";
 import { useIsMobile } from "~/lib/useIsMobile";
 import { useListbox } from "~/lib/useListbox";
+import { useEscapeKey } from "~/lib/useEscapeKey";
 import Hero from "~/components/Hero";
 import JediNav from "~/components/JediNav";
 import Image from "~/components/Image";
@@ -863,6 +864,7 @@ export default function Jedi() {
     label: "Categories",
     idPrefix: "category",
   });
+  useEscapeKey(() => setMobileSidebarOpen(false), mobileSidebarOpen);
 
   return (
     <>
@@ -889,9 +891,6 @@ export default function Jedi() {
             aria-label="Toggle sidebar"
             aria-expanded={mobileSidebarOpen()}
             onClick={() => setMobileSidebarOpen(!mobileSidebarOpen())}
-            onKeyDown={(e) => {
-              if (e.key === "Escape" && mobileSidebarOpen()) setMobileSidebarOpen(false);
-            }}
             class="flex items-center font-bold hover:bg-gray-200 rounded-lg p-3 focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none"
           >
             <span>Categories</span>
@@ -993,9 +992,6 @@ export default function Jedi() {
         {/* Sidebar */}
         <aside
           aria-hidden={isMobile() && !mobileSidebarOpen()}
-          onKeyDown={(e) => {
-            if (e.key === "Escape" && mobileSidebarOpen()) setMobileSidebarOpen(false);
-          }}
           class={`col-span-full md:col-span-1 mx-[5%] md:mr-[20%] order-1 md:order-2 transition-all duration-300 ease-out md:opacity-100 md:max-h-none ${mobileSidebarOpen() ? "opacity-100 max-h-screen" : "opacity-0 max-h-0 overflow-hidden md:overflow-visible"}`}
         >
           <Card title="Categories">

@@ -2548,13 +2548,21 @@ Add arrow key handlers (full listbox pattern) as hook
 
 ---
 
-7. Escape key on <aside> only fires when focus is inside (line 1010-1013)
+7. Escape key on <aside> only fires when focus is inside (line 994-998)
 
   <aside onKeyDown={(e) => {
     if (e.key === "Escape" && mobileSidebarOpen()) setMobileSidebarOpen(false);
   }}>
 
-When sidebar opens, focus stays on the toggle button (outside <aside>). Escape won't fire. The button has its own Escape handler (line 907-909), so the button case is covered — but if user tabs INTO the sidebar and presses Escape, that's when the aside handler fires. This works but is fragile. Consider a single document-level Escape handler inside onMount.
+When sidebar opens, focus stays on the toggle button (outside <aside>). Escape won't fire. The button has its own Escape handler (line 887-894), so the button case is covered — but if user tabs INTO the sidebar and presses Escape, that's when the aside handler fires. This works but is fragile. Consider a single document-level Escape handler inside onMount.
+
+Fix:
+
+❯ Explore refactoring `jedi-conversion.md` as discussed in `plan_steps_ignored.md` @lines 2551-2557. What would this refactor look like? Could the suggested escape handler be packaged as a hook for site wide use?
+
+⏺ Refactored: both inline `onKeyDown` handlers (button line 887-894, aside line 994-998) replaced with a single `useEscapeKey(callback, active)` hook in `src/lib/useEscapeKey.ts`. Document-level listener fires regardless of focus position. Hook is reusable site-wide for any dismissible overlay. Conversion plan updated.
+
+**Updated per Fix - Co-authored by Claude Opus 4.6**
 
 ---
 
