@@ -2470,15 +2470,15 @@ SolidJS Idiom Issues
 
 3. Hero/Image/Author — splitProps with always-empty \_rest (lines 306, 400, 466)
 
-All props listed in the split array -> \_rest always {}. Git log 400972b already flagged this. Two fixes:
+All props listed in the split array -> \_rest always {}. Git log 400972b already flagged this.
 
-Option A — drop splitProps, access props directly:
-export default function Hero(props: HeroProps) {
-return (
+Fix:
 
-<section style={{ "background-image": `url('${props.backgroundImage}')` }}>
+Drop splitProps, access props directly for Hero/Image/Author.
 
-Option B — if intent is forward-compatible rest spreading, name it rest and spread onto root element. \_rest naming + unused variable contradicts CLAUDE.md ("Avoid backwards-compatibility hacks like renaming unused \_vars").
+TypeScript interface enforces required props at compile time; splitProps adds no value when nothing is forwarded.
+
+**Updated per Fix**
 
 ---
 

@@ -302,33 +302,23 @@ interface HeroProps {
 **Component**:
 
 ```tsx
-import { splitProps } from "solid-js";
-
 export default function Hero(props: HeroProps) {
-  const [local, _rest] = splitProps(props, [
-    "title",
-    "subtitle",
-    "ctaText",
-    "ctaHref",
-    "backgroundImage",
-  ]);
-
   return (
     <section
       class="grid bg-gray-700 text-white text-center bg-cover relative"
-      style={{ "background-image": `url('${local.backgroundImage}')` }}
+      style={{ "background-image": `url('${props.backgroundImage}')` }}
     >
       <div class="col-start-1 row-start-1 bg-gray-800/40 w-full h-full" />
       <div class="col-start-1 row-start-1 py-24 px-10">
         <h1 class="text-[4rem] leading-[1.2] font-bold mb-4 animate-fade-in font-hero">
-          {local.title}
+          {props.title}
         </h1>
-        <p class="text-lg font-bold mb-5">{local.subtitle}</p>
+        <p class="text-lg font-bold mb-5">{props.subtitle}</p>
         <a
           class="inline-flex flex-wrap shrink-0 items-center justify-center px-4 min-h-13 font-semibold rounded-lg text-white transition-transform active:scale-95 bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover) shadow-md"
-          href={local.ctaHref}
+          href={props.ctaHref}
         >
-          {local.ctaText}
+          {props.ctaText}
         </a>
       </div>
     </section>
@@ -388,10 +378,10 @@ interface ImageProps {
 **Component**:
 
 ```tsx
-import { splitProps, mergeProps, Show } from "solid-js";
+import { mergeProps, Show } from "solid-js";
 
 export default function Image(props: ImageProps) {
-  const defaulted = mergeProps(
+  const merged = mergeProps(
     {
       href: "",
       class: "",
@@ -399,13 +389,11 @@ export default function Image(props: ImageProps) {
     props,
   );
 
-  const [local, _rest] = splitProps(defaulted, ["src", "alt", "href", "class"]);
-
   return (
-    <figure class={local.class}>
-      <Show when={local.href} fallback={<img class="w-full" src={local.src} alt={local.alt} />}>
-        <a href={local.href}>
-          <img class="w-full" src={local.src} alt={local.alt} />
+    <figure class={merged.class}>
+      <Show when={merged.href} fallback={<img class="w-full" src={merged.src} alt={merged.alt} />}>
+        <a href={merged.href}>
+          <img class="w-full" src={merged.src} alt={merged.alt} />
         </a>
       </Show>
     </figure>
@@ -463,22 +451,20 @@ interface AuthorProps {
 **Component**:
 
 ```tsx
-import { splitProps, mergeProps } from "solid-js";
+import { mergeProps } from "solid-js";
 
 export default function Author(props: AuthorProps) {
-  const defaulted = mergeProps(
+  const merged = mergeProps(
     {
       href: "#",
     },
     props,
   );
 
-  const [local, _rest] = splitProps(defaulted, ["avatarSrc", "name", "href"]);
-
   return (
-    <a class="flex items-center gap-1 mb-4" href={local.href}>
-      <img class="w-8 h-8 rounded-full" src={local.avatarSrc} alt={local.name} />
-      <span class="font-bold hover:underline">{local.name}</span>
+    <a class="flex items-center gap-1 mb-4" href={merged.href}>
+      <img class="w-8 h-8 rounded-full" src={merged.avatarSrc} alt={merged.name} />
+      <span class="font-bold hover:underline">{merged.name}</span>
     </a>
   );
 }
