@@ -620,11 +620,12 @@ import { isServer } from "solid-js/web";
 export default function JediNav() {
   const [mobileNavOpen, setMobileNavOpen] = createSignal(false);
   const [dropdownOpen, setDropdownOpen] = createSignal(false);
-  const [isMobile, setIsMobile] = createSignal(isServer ? false : window.innerWidth < 768);
+  const mql = isServer ? undefined : window.matchMedia("(max-width: 767px)");
+  const [isMobile, setIsMobile] = createSignal(mql?.matches ?? false);
   let dropdownRef: HTMLLIElement | undefined;
 
   onMount(() => {
-    const mql = window.matchMedia("(max-width: 767px)");
+    if (!mql) return;
     const mqlHandler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mql.addEventListener("change", mqlHandler);
     onCleanup(() => mql.removeEventListener("change", mqlHandler));
@@ -819,6 +820,7 @@ import "@fontsource/lobster";
 import "./jedi.css";
 import { Title, Meta } from "@solidjs/meta";
 import { createSignal, For, onMount, onCleanup } from "solid-js";
+import { isServer } from "solid-js/web";
 import Hero from "~/components/Hero";
 import JediNav from "~/components/JediNav";
 import Image from "~/components/Image";
@@ -858,7 +860,7 @@ const TOP_CAPTIONS = [
 export default function Jedi() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = createSignal(false);
   const [selectedCategory, setSelectedCategory] = createSignal(0);
-  const mql = typeof window !== "undefined" ? window.matchMedia("(max-width: 767px)") : null;
+  const mql = isServer ? undefined : window.matchMedia("(max-width: 767px)");
   const [isMobile, setIsMobile] = createSignal(mql?.matches ?? false);
   onMount(() => {
     if (!mql) return;
@@ -1380,7 +1382,7 @@ describe("<ThemeToggle />", () => {
   beforeEach(() => {
     mockLocalStorage = {};
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(
-      (key: string) => mockLocalStorage[key] ?? null,
+      (key: string) => mockLocalStorage[key] ?? undefined,
     );
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(
       (key: string, value: string) => {

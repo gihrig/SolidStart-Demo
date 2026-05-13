@@ -2482,15 +2482,29 @@ TypeScript interface enforces required props at compile time; splitProps adds no
 
 ---
 
-4. Jedi route — inconsistent SSR guard (line 873)
+4. Jedi route — inconsistent SSR guard (line 861)
 
-JediNav uses isServer from solid-js/web (line 635):
+JediNav uses isServer from solid-js/web (line 623):
 const [isMobile, setIsMobile] = createSignal(isServer ? false : window.innerWidth < 768);
 
-Jedi route uses typeof window !== "undefined" (line 873):
+Jedi route uses typeof window !== "undefined" (line 861):
 const mql = typeof window !== "undefined" ? window.matchMedia("(max-width: 767px)") : null;
 
-Both work. isServer is the SolidJS-idiomatic way. Pick one pattern.
+Fix:
+
+Refactor `const mql = typeof window !== "undefined" ? window.matchMedia("(max-width: 767px)") : null;` ternary to the SolidJS-idiomatic way `const [isMobile, setIsMobile] = createSignal(isServer ? false : window.innerWidth < 768);`.
+
+❯ Plan @line 623 `const [isMobile, setIsMobile] = createSignal(isServer ? false : window.innerWidth < 768);` and @line 627 `const mql = window.matchMedia("(max-width: 767px)");` Seem redundant. Is there a refactoring opportunity here?
+
+⏺ Yes, redundancy exists. Both components do the same thing — track mobile breakpoint via matchMedia — but with
+different patterns.
+
+❯ align JediNav to match. Save the src/lib helper idea for later if the need arises
+
+⏺ JediNav now uses same matchMedia-only pattern as Jedi route — single API for both init + listener, isServer
+guard at top, mql?.matches ?? false for SSR-safe initial value.
+
+**Updated per Fix - Co-authored by Claude Opus 4.6**
 
 ---
 
