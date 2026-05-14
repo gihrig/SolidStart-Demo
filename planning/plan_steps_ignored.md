@@ -2657,12 +2657,18 @@ Fix:
 
 ---
 
-13. THEME_INIT_SCRIPT CSP note (line 1189)
+13. THEME_INIT_SCRIPT CSP note (line 1164)
 
 Plan includes a TODO:
 // TODO: `<script innerHTML={THEME_INIT_SCRIPT} />` represents a CSP violation.
 
 Good awareness. For production, move to external script or configure CSP nonce. Fine for demo.
+
+Fix:
+
+Move `THEME_INIT_SCRIPT` to external script
+
+**Updated per Fix - Co-authored by Claude Opus 4.6**
 
 ---
 

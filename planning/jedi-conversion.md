@@ -1118,18 +1118,43 @@ export default function Jedi() {
 
 ---
 
-### [ ] Step 4.2: Add Theme Init Script to `src/entry-server.tsx`
+### [√] Step 4.2: Add Theme Init Script to `src/entry-server.tsx`
 
-**File**: `src/entry-server.tsx`
+**Files**: `public/theme-init.js`, `src/entry-server.tsx`
 
 **Action**:
 
-1. Add an inline `<script>` in the `<head>` to apply the stored theme before first paint, preventing a flash of unstyled content (FOUC).
-2. This is a global change — the toggle affects the site-wide `--theme-*` CSS variables.
+1. Create `public/theme-init.js` — an external script that applies the stored theme before first paint, preventing a flash of unstyled content (FOUC).
+2. Add a synchronous `<script src="/theme-init.js" />` in the `<head>` of `src/entry-server.tsx`, before `{assets}`, so it render-blocks and applies the theme before any content is painted.
+3. This is a global change — the toggle affects the site-wide `--theme-*` CSS variables.
 
-**Reference**: Adapted from **Tanstack Project** `src/routes/__root.tsx` line 16 (`THEME_INIT_SCRIPT`) and line 34 (`<script innerHTML={THEME_INIT_SCRIPT} />`).
+**Why external instead of inline**: The **Tanstack Project** reference uses `<script innerHTML={THEME_INIT_SCRIPT} />` which injects inline JavaScript. This violates Content Security Policy (CSP) — a strict `script-src 'self'` policy blocks inline scripts. An external same-origin file is permitted by `script-src 'self'` with no nonce or `'unsafe-inline'` required.
 
-**Before** (existing `src/entry-server.tsx`):
+**Reference**: Logic adapted from **Tanstack Project** `src/routes/__root.tsx` line 16 (`THEME_INIT_SCRIPT`), moved to an external file for CSP compliance.
+
+**New file** `public/theme-init.js`:
+
+```js
+(function () {
+  try {
+    var stored = window.localStorage.getItem("theme");
+    var mode = stored === "light" || stored === "dark" || stored === "auto" ? stored : "auto";
+    var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var resolved = mode === "auto" ? (prefersDark ? "dark" : "light") : mode;
+    var root = document.documentElement;
+    root.classList.remove("light", "dark");
+    root.classList.add(resolved);
+    if (mode === "auto") {
+      root.removeAttribute("data-theme");
+    } else {
+      root.setAttribute("data-theme", mode);
+    }
+    root.style.colorScheme = resolved;
+  } catch (e) {}
+})();
+```
+
+**Updated** `src/entry-server.tsx`:
 
 ```tsx
 // @refresh reload
@@ -1143,6 +1168,7 @@ export default createHandler(() => (
           <meta charset="utf-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <link rel="icon" href="/favicon.ico" />
+          <script src="/theme-init.js" />
           {assets}
         </head>
         <body>
@@ -1155,37 +1181,7 @@ export default createHandler(() => (
 ));
 ```
 
-**After**:
-
-```tsx
-// @refresh reload
-import { createHandler, StartServer } from "@solidjs/start/server";
-
-// TODO: `<script innerHTML={THEME_INIT_SCRIPT} />` represents a CSP violation. See https://grok.com/share/c2hhcmQtMi1jb3B5_1293335a-4a52-4211-ac87-87ee868c0dc3
-const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`;
-
-export default createHandler(() => (
-  <StartServer
-    document={({ assets, children, scripts }) => (
-      <html lang="en">
-        <head>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <link rel="icon" href="/favicon.ico" />
-          <script innerHTML={THEME_INIT_SCRIPT} />
-          {assets}
-        </head>
-        <body>
-          <div id="app">{children}</div>
-          {scripts}
-        </body>
-      </html>
-    )}
-  />
-));
-```
-
-**Verification**: `vpr check` passes. `vpr dev` → no console errors, no FOUC on page load.
+**Verification**: `vpr check:type` passes. `vpr dev` → no console errors, no FOUC on page load.
 
 ---
 
