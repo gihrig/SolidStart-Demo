@@ -2641,7 +2641,7 @@ Fix:
 
 ---
 
-12. ThemeToggle — createEffect for media listener vs onMount (lines 1267-1271)
+12. ThemeToggle — createEffect for media listener vs onMount (lines 1242-1248)
 
 createEffect(() => {
 if (mode() !== "auto") return;
@@ -2650,6 +2650,10 @@ const media = window.matchMedia("(prefers-color-scheme: dark)");
 });
 
 This re-runs whenever mode() changes. When mode switches TO "auto", listener attaches. When mode switches FROM "auto", onCleanup detaches. Correct SolidJS pattern. No issue — just noting it's correctly reactive.
+
+Fix:
+
+**Nothing to Fix**
 
 ---
 
