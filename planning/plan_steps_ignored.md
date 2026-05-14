@@ -2624,13 +2624,20 @@ Fix:
 
 Minor / Style Issues
 
-11. Card — string concatenation for class merging (line 551)
+11. Card — string concatenation for class merging (line 539)
 
 class={`...base classes...${local.class ? ` ${local.class}` : ""}`}
 
 Works but verbose. SolidJS classList directive handles individual class toggling. For string merging, consider a cn() utility or just always append:
 class={`...base classes... ${local.class}`}
 Empty string produces trailing space — harmless.
+
+Fix:
+
+- `local.class` defaulted to `""` by `mergeProps`
+- Replace `${local.class ? ` ${local.class}` : ""}` with `${local.class}`
+
+**Updated per Fix**
 
 ---
 
