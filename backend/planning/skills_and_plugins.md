@@ -58,6 +58,8 @@ This skill gives Claude 50+ UI styles, 97 color palettes, and 57 font pairings. 
 https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
 
 Matt Pocock Agent Skills
+/grill-me - Use before code exists
+/grill-with-docs - Use with existing code
 A collection of agent skills that extend capabilities across planning, development, and tooling.
 https://github.com/mattpocock/skills
 
