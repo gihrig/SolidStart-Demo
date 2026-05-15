@@ -1,5 +1,6 @@
 [install]
-auto-install = true
+# Refuse packages published less than 24 hours ago (86400 seconds)
+minimumReleaseAge = 86400
 
 [run]
 bun = true
