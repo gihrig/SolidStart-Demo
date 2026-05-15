@@ -2635,7 +2635,7 @@ Empty string produces trailing space — harmless.
 Fix:
 
 - `local.class` defaulted to `""` by `mergeProps`
-- Replace `${local.class ? ` ${local.class}` : ""}` with `${local.class}`
+- Replace '${local.class ? ` ${local.class}` : ""} with `${local.class}`}'
 
 **Updated per Fix**
 
@@ -2701,3 +2701,148 @@ Summary Table
 ```
 
 Items 1-2 will cause runtime/styling bugs. Items 3-7 are idiomatic improvements. Rest are minor polish.
+
+❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
+
+⏺ Review: planning/jedi-conversion.md - 10th cycle
+
+Overall: well-structured, mostly idiomatic. Found 8 items worth flagging — 2 bugs, 3 improvements, 3 minor.
+
+---
+
+BUGS (will cause failures)
+
+1. E2E aside visibility check may be fragile (line 1632)
+
+await expect(aside).toBeHidden();
+
+Aside hidden via opacity-0 max-h-0 overflow-hidden — NOT display:none/visibility:hidden. Playwright toBeHidden()
+relies on accessibility tree. This works ONLY because aria-hidden={isMobile() && !mobileSidebarOpen()} is set. If
+useIsMobile() returns false in test environment (e.g., jsdom defaults to desktop viewport), aria-hidden won't be true → test fails.
+
+The E2E sets viewport { width: 375, height: 667 } so useIsMobile(767) should fire. But useIsMobile uses
+window.matchMedia — Playwright DOES support this for real browser viewports, so it should work. Verify this passes in CI — if matchMedia ever lags the resize, it's a race.
+
+---
+
+2. Nav.test.tsx theme toggle cycle order is wrong (lines 1540-1552)
+
+Plan shows:
+expect(toggle.getAttribute("aria-label")).toContain("system"); // initial await user.click(toggle);
+expect(toggle.getAttribute("aria-label")).toContain("light"); // ✓ auto→light
+await user.click(toggle);
+expect(toggle.getAttribute("aria-label")).toContain("dark"); // ✓ light→dark
+await user.click(toggle);
+expect(toggle.getAttribute("aria-label")).toContain("system"); // ✓ dark→auto
+
+This is actually correct per the toggle logic auto→light→dark→auto. However, this conflicts with the "Icon semantics" table (line 1336) which says cycle is light → dark → auto → light. The table is documenting it from the perspective of "if you're currently in light, next is dark" — that's the same cycle, just starting at a different point. Labels match code. Not actually a bug, but the documentation is confusing. Suggest clarifying the table header.
+
+---
+
+IMPROVEMENTS (idiomatic/correctness)
+
+3. Card class merging via string concatenation (line 539)
+
+class={`flex flex-col overflow-hidden ... ${local.class}`}
+
+If consumer passes conflicting utilities (e.g., class="rounded-none"), both rounded-2xl AND rounded-none appear →
+last-in-source wins (unpredictable). Idiomatic fix: use clsx or a simple cn() join. Since project doesn't have
+tailwind-merge, at minimum document this limitation or use classList for the override slot:
+
+class="flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg)"
+classList={{ [local.class]: !!local.class }}
+
+---
+
+4. ThemeToggle: createEffect for media listener vs onMount (lines 1238-1244)
+
+createEffect(() => {
+if (mode() !== "auto") return;
+const media = window.matchMedia("(prefers-color-scheme: dark)");
+const onChange = () => applyThemeMode("auto");
+media.addEventListener("change", onChange);
+onCleanup(() => media.removeEventListener("change", onChange));
+});
+
+This is correct but creates a new matchMedia query object on every re-run. More efficient:
+
+onMount(() => {
+const media = window.matchMedia("(prefers-color-scheme: dark)");
+const onChange = () => { if (mode() === "auto") applyThemeMode("auto"); };
+media.addEventListener("change", onChange);
+onCleanup(() => media.removeEventListener("change", onChange));
+});
+
+Single listener, checks mode() reactively inside handler. Avoids repeated add/remove cycles.
+
+---
+
+5. theme-init.js CSP note is good (line 1131), but the <script> tag in entry-server.tsx (line 1171) should include
+   defer attribute or NOT
+
+  <script src="/theme-init.js" />
+
+  Current: no async/defer → render-blocking (intentional for FOUC prevention). This is correct. But JSX <script>
+  self-closing tags can behave unexpectedly in HTML parsing. SolidStart's SSR should handle this, but worth verifying it
+   emits <script src="/theme-init.js"></script> (not self-closing) in the HTML output.
+
+---
+
+MINOR (style/nit)
+
+6. animate-fade-in could use TW4 @theme animation tokens
+
+Current (lines 60-74 of app.css):
+@layer utilities {
+.animate-fade-in { animation: 1s fadeIn; }
+}
+@keyframes fadeIn { ... }
+
+TW4 idiomatic:
+@theme {
+--animate-fade-in: fadeIn 1s ease-out;
+@keyframes fadeIn { ... }
+}
+
+Then use animate-fade-in as a native TW utility (no manual @layer utilities needed). Minor — current approach works.
+
+---
+
+7. useIsMobile default breakpoint 767 vs Tailwind md:768px
+
+useIsMobile.ts line 4: breakpoint = 767 → max-width: 767px. Tailwind md: triggers at min-width: 768px. These are
+complementary (767 is mobile, 768+ is desktop). Correct. ✓ Just noting for clarity.
+
+---
+
+8. Hero component: XSS surface via backgroundImage prop (line 309)
+
+style={{ "background-image": `url('${props.backgroundImage}')` }}
+
+If backgroundImage ever comes from user input, a value like '); background: url(evil breaks out. For this demo (static
+hardcoded URLs), it's fine. For production, sanitize or validate URL format.
+
+---
+
+VERDICT
+
+Plan is solid. Recommended actions before execution:
+
+┌──────────┬──────┬────────────────────────────────────────────────────────────────┐
+│ Priority │ Item │ Action │
+├──────────┼──────┼────────────────────────────────────────────────────────────────┤
+│ High │ #3 │ Document Card class-merge limitation OR switch to classList │
+├──────────┼──────┼────────────────────────────────────────────────────────────────┤
+│ Medium │ #4 │ Consider single-listener onMount pattern for ThemeToggle │
+├──────────┼──────┼────────────────────────────────────────────────────────────────┤
+│ Medium │ #1 │ Add comment noting aria-hidden is what makes toBeHidden() work │
+├──────────┼──────┼────────────────────────────────────────────────────────────────┤
+│ Low │ #6 │ Optional: migrate to @theme animation token │
+├──────────┼──────┼────────────────────────────────────────────────────────────────┤
+│ Low │ #5 │ Verify script tag renders non-self-closing in HTML │
+└──────────┴──────┴────────────────────────────────────────────────────────────────┘
+
+Architecture, phasing, test strategy, accessibility approach — all good. SolidJS idioms are correct (no destructured
+props, proper <Show>/<For>, signals outside components, SSR guards). TW4 syntax is valid throughout.
+
+claude --resume d9edc5f0-4211-4504-8c4d-faf17f6ffdf5
