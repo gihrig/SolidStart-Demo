@@ -2774,7 +2774,7 @@ Apply change as above (note class={`... vs class="...)
 
 ---
 
-4. ThemeToggle: createEffect for media listener vs onMount (lines 1238-1244)
+4. ThemeToggle: createEffect for media listener vs onMount (lines 1223-1245)
 
 createEffect(() => {
 if (mode() !== "auto") return;
@@ -2794,6 +2794,19 @@ onCleanup(() => media.removeEventListener("change", onChange));
 });
 
 Single listener, checks mode() reactively inside handler. Avoids repeated add/remove cycles.
+
+❯ Updated plan step "4. ThemeToggle: createEffect for media listener vs onMount (lines 1223-1245)" above discusses
+replacing `createEffect` with `onMount`. What happens to the exiting onMount code?
+
+⏺ The earlier review item suggested replacing createEffect with onMount for the media listener, but that was actually wrong — the createEffect pattern here is correct and intentional.
+
+...
+
+The existing onMount stays as-is for initialization. The createEffect stays as-is for the reactive media listener. The plan code is correct on this point
+
+Fix:
+
+**Won't fix**
 
 ---
 
