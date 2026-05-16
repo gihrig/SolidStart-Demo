@@ -2723,6 +2723,14 @@ useIsMobile() returns false in test environment (e.g., jsdom defaults to desktop
 The E2E sets viewport { width: 375, height: 667 } so useIsMobile(767) should fire. But useIsMobile uses
 window.matchMedia — Playwright DOES support this for real browser viewports, so it should work. Verify this passes in CI — if matchMedia ever lags the resize, it's a race.
 
+❯ How can the test be modified to ensure matchMedia loads and responds to the resize in the proper order?
+
+Fix:
+
+⏺ Add the toggle-button gate before the aside visibility assertion in the responsive layout test (line 1672 area). This ensures the full matchMedia → isMobile() → render chain has settled before checking that the aside is hidden.
+
+**Updated per Fix - Co-authored by Claude Opus 4.6**
+
 ---
 
 2. Nav.test.tsx theme toggle cycle order is wrong (lines 1540-1552)
