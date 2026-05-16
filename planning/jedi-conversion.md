@@ -1335,9 +1335,9 @@ export default function ThemeToggle() {
 ```
 | Current mode | Icon shown | Click advances to |
 | ------------ | ---------- | ----------------- |
+| Auto         | Monitor    | Light             |
 | Light        | Sun        | Dark              |
 | Dark         | Moon       | Auto              |
-| Auto         | Monitor    | Light             |
 ```
 
 **Toggle cycle**: `light → dark → auto → light` (matches **Tanstack Project** `ThemeToggle.tsx` line 44).

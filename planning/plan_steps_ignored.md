@@ -2745,6 +2745,12 @@ expect(toggle.getAttribute("aria-label")).toContain("system"); // ✓ dark→aut
 
 This is actually correct per the toggle logic auto→light→dark→auto. However, this conflicts with the "Icon semantics" table (line 1336) which says cycle is light → dark → auto → light. The table is documenting it from the perspective of "if you're currently in light, next is dark" — that's the same cycle, just starting at a different point. Labels match code. Not actually a bug, but the documentation is confusing. Suggest clarifying the table header.
 
+Fix:
+
+Move "Auto" row to the top of table @1336
+
+**Updated per Fix**
+
 ---
 
 IMPROVEMENTS (idiomatic/correctness)
