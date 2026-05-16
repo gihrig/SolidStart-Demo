@@ -1126,7 +1126,7 @@ export default function Jedi() {
 **Action**:
 
 1. Create `public/theme-init.js` — an external script that applies the stored theme before first paint, preventing a flash of unstyled content (FOUC).
-2. Add a synchronous `<script src="/theme-init.js" />` in the `<head>` of `src/entry-server.tsx`, before `{assets}`, so it render-blocks and applies the theme before any content is painted.
+2. Add a synchronous `<script src="/theme-init.js"></script>` in the `<head>` of `src/entry-server.tsx`, before `{assets}`, so it render-blocks and applies the theme before any content is painted.
 3. This is a global change — the toggle affects the site-wide `--theme-*` CSS variables.
 
 **Why external instead of inline**: The **Tanstack Project** reference uses `<script innerHTML={THEME_INIT_SCRIPT} />` which injects inline JavaScript. This violates Content Security Policy (CSP) — a strict `script-src 'self'` policy blocks inline scripts. An external same-origin file is permitted by `script-src 'self'` with no nonce or `'unsafe-inline'` required.
@@ -1169,7 +1169,7 @@ export default createHandler(() => (
           <meta charset="utf-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <link rel="icon" href="/favicon.ico" />
-          <script src="/theme-init.js" />
+          <script src="/theme-init.js"></script>
           {assets}
         </head>
         <body>

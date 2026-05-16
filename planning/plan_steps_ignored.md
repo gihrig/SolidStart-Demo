@@ -2810,14 +2810,23 @@ Fix:
 
 ---
 
-5. theme-init.js CSP note is good (line 1131), but the <script> tag in entry-server.tsx (line 1171) should include
-   defer attribute or NOT
+5. theme-init.js CSP note is good (line 1132), but the <script> tag in entry-server.tsx (line 1172) should include
+   a closing </script> tag.
 
-  <script src="/theme-init.js" />
+  <script src="/theme-init.js"></script>
 
-  Current: no async/defer → render-blocking (intentional for FOUC prevention). This is correct. But JSX <script>
-  self-closing tags can behave unexpectedly in HTML parsing. SolidStart's SSR should handle this, but worth verifying it
-   emits <script src="/theme-init.js"></script> (not self-closing) in the HTML output.
+Current: no async/defer → render-blocking (intentional for FOUC prevention). This is correct. But JSX <script>
+self-closing tags can behave unexpectedly in HTML parsing. SolidStart's SSR should handle this, but worth verifying it emits <script src="/theme-init.js"></script> (not self-closing) in the HTML output.
+
+Fix:
+
+Add closing script tags to
+
+- `entry-server.tsx` @line 12
+- `jedi-conversion.md` @line 1129
+- `jedi-conversion.md` @line 1172
+
+**Updated per Fix**
 
 ---
 
