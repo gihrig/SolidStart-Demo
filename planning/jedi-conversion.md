@@ -536,7 +536,8 @@ export default function Card(props: CardProps) {
 
   return (
     <section
-      class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg) ${local.class}`}
+      class="flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg)"
+      classList={{ [local.class]: !!local.class }}
       {...rest}
     >
       <Show when={local.title}>

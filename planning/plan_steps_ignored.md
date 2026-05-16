@@ -2766,6 +2766,12 @@ tailwind-merge, at minimum document this limitation or use classList for the ove
 class="flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg)"
 classList={{ [local.class]: !!local.class }}
 
+Fix:
+
+Apply change as above (note class={`... vs class="...)
+
+**Updated per Fix**
+
 ---
 
 4. ThemeToggle: createEffect for media listener vs onMount (lines 1238-1244)
