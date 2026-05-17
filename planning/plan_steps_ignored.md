@@ -3059,17 +3059,22 @@ Update line 284: `const BREAK_CHARS = /['\"()\\]/;`
 
 7. JediNav — onMount for Click-Outside Not SSR-Safe by Default
 
-Plan line 715-720:
+Plan line 798-706:
 onMount(() => {
 const handleClickOutside = (e: MouseEvent) => { ... };
 document.addEventListener("click", handleClickOutside);
 onCleanup(() => document.removeEventListener("click", handleClickOutside));
 });
 
-This is correct — onMount only fires client-side. But onCleanup inside onMount is a pattern that works because onMount
-runs within the component's ownership scope. Valid but worth noting: if this were moved outside onMount (like in a
-createEffect), onCleanup would still work because Solid tracks cleanup per reactive owner. No fix needed, just
-confirming correctness.
+"Not SSR-Safe by Default" title refers to the general pattern of accessing document directly — which would be unsafe if placed at component top-level or in createEffect without a guard. But wrapped in onMount, it's the idiomatic Solid way to do client-only DOM setup.
+
+This is correct — onMount only fires client-side. But onCleanup inside onMount is a pattern that works because onMount runs within the component's ownership scope. Valid but worth noting: if this were moved outside onMount (like in a createEffect), onCleanup would still work because Solid tracks cleanup per reactive owner. No fix needed, just confirming correctness.
+
+Fix:
+
+Add explanatory comment before `onMount` @line 698
+
+**Updated per Fix**
 
 ---
 
