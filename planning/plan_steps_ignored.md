@@ -2958,22 +2958,30 @@ const merged = mergeProps({ href: "", class: "" }, props);
 
 Then <Show when={merged.href}> relies on "" being falsy. More idiomatic SolidJS:
 
+```tsx
 export default function Image(props: ImageProps) {
-return (
-
-<figure class={props.class ?? ""}>
-<Show when={props.href} fallback={<img class="w-full" src={props.src} alt={props.alt} />}>
-{(href) => (
-<a href={href()}>
-<img class="w-full" src={props.src} alt={props.alt} />
-</a>
-)}
-</Show>
-</figure>
-);
+  return (
+    <figure class={props.class ?? ""}>
+      // Solid wraps `props.href` in an accessor `href()` to maintain fine-grained reactivity.
+      <Show when={props.href} fallback={<img class="w-full" src={props.src} alt={props.alt} />}>
+        {(href) => (
+          <a href={href()}>
+            <img class="w-full" src={props.src} alt={props.alt} />
+          </a>
+        )}
+      </Show>
+    </figure>
+  );
 }
+```
 
 Why: mergeProps with href: "" creates an intermediate object just to exploit falsy empty-string in <Show>. Direct prop access + <Show> callback form is cleaner and avoids allocating merged object.
+
+Fix:
+
+Update the `Image` component as shown above
+
+**Updated per Fix**
 
 ---
 

@@ -458,23 +458,18 @@ interface ImageProps {
 **Component**:
 
 ```tsx
-import { mergeProps, Show } from "solid-js";
+import { Show } from "solid-js";
 
 export default function Image(props: ImageProps) {
-  const merged = mergeProps(
-    {
-      href: "",
-      class: "",
-    },
-    props,
-  );
-
   return (
-    <figure class={merged.class}>
-      <Show when={merged.href} fallback={<img class="w-full" src={merged.src} alt={merged.alt} />}>
-        <a href={merged.href}>
-          <img class="w-full" src={merged.src} alt={merged.alt} />
-        </a>
+    <figure class={props.class ?? ""}>
+      // Solid wraps `props.href` in an accessor `href()` to maintain fine-grained reactivity.
+      <Show when={props.href} fallback={<img class="w-full" src={props.src} alt={props.alt} />}>
+        {(href) => (
+          <a href={href()}>
+            <img class="w-full" src={props.src} alt={props.alt} />
+          </a>
+        )}
       </Show>
     </figure>
   );
