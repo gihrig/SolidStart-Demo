@@ -420,7 +420,7 @@ describe('<Hero />', () => {
     const { container } = render(() => (
       <Hero title="T" subtitle="T" ctaText="T" ctaHref="#" backgroundImage="/images/test-bg.jpg" />
     ))
-    expect(container.querySelector('section')).toHaveStyle({ backgroundImage: "url('/images/test-bg.jpg')" })
+    expect(container.querySelector('section')!.style.backgroundImage).toContain("/images/test-bg.jpg");
   })
 
   it('omits background image for unsafe URLs', () => {

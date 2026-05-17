@@ -3029,12 +3029,16 @@ Fix:
 
 5. Hero Test toHaveStyle — Potentially Flaky in jsdom
 
-Plan line 429:
+Plan line 423:
 expect(container.querySelector('section')).toHaveStyle({ backgroundImage: "url('/images/test-bg.jpg')" })
 
 jsdom normalizes inline style values inconsistently — quotes may be stripped or doubled. Safer approach:
 
-expect(container.querySelector('section')!.style.backgroundImage).toContain("/images/test-bg.jpg");
+Fix:
+
+Update line 423: `expect(container.querySelector('section')!.style.backgroundImage).toContain("/images/test-bg.jpg");`
+
+**Updated per Fix**
 
 ---
 
