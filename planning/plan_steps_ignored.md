@@ -3044,10 +3044,16 @@ Update line 423: `expect(container.querySelector('section')!.style.backgroundIma
 
 6. sanitizeImageUrl — Doesn't Block Backslash
 
-Plan line 290:
+Plan line 284:
 const BREAK_CHARS = /['\"()]/;
 
-A URL like https://evil.com/img\ could cause issues in some CSS parsers (backslash is an escape char in CSS). Consider adding \\ to BREAK_CHARS.
+A URL like https://evil.com/img\ could cause issues in some CSS parsers (backslash is an escape char in CSS).
+
+Fix:
+
+Update line 284: `const BREAK_CHARS = /['\"()\\]/;`
+
+**Update per Fix**
 
 ---
 

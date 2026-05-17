@@ -281,7 +281,7 @@ import "./jedi.css";
 
 ```typescript
 const SAFE_URL_PATTERN = /^(?:https?:\/\/|\/[\w])/i;
-const BREAK_CHARS = /['\"()]/;
+const BREAK_CHARS = /['\"()\\]/;
 
 export function sanitizeImageUrl(url: string): string | undefined {
   if (!SAFE_URL_PATTERN.test(url) || BREAK_CHARS.test(url)) {
