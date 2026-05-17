@@ -2834,19 +2834,25 @@ MINOR (style/nit)
 
 6. animate-fade-in could use TW4 @theme animation tokens
 
+Minor — current approach works.
+
 Current (lines 60-74 of app.css):
 @layer utilities {
 .animate-fade-in { animation: 1s fadeIn; }
 }
 @keyframes fadeIn { ... }
 
-TW4 idiomatic:
+Fix:
+
+Update `app.css` to be more TW4 idiomatic:
 @theme {
 --animate-fade-in: fadeIn 1s ease-out;
 @keyframes fadeIn { ... }
 }
 
-Then use animate-fade-in as a native TW utility (no manual @layer utilities needed). Minor — current approach works.
+Then use animate-fade-in as a native TW utility (no manual @layer utilities needed).
+
+**Updated per Fix**
 
 ---
 
