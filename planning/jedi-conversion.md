@@ -283,6 +283,76 @@ import "./jedi.css";
 
 ### [ ] Step 2.1: Create Hero Component + Tests
 
+**File**: `src/lib/sanitizeImageUrl.ts`
+
+```typescript
+const SAFE_URL_PATTERN = /^(?:https?:\/\/|\/[\w])/i;
+const BREAK_CHARS = /['\"()]/;
+
+export function sanitizeImageUrl(url: string): string | undefined {
+  if (!SAFE_URL_PATTERN.test(url) || BREAK_CHARS.test(url)) {
+    console.warn(`[sanitizeImageUrl] Blocked unsafe URL: ${url}`);
+    return undefined;
+  }
+  return url;
+}
+```
+
+**Test**: `src/lib/sanitizeImageUrl.unit.test.ts`
+
+```typescript
+import { describe, it, expect, vi } from "vite-plus/test";
+import { sanitizeImageUrl } from "./sanitizeImageUrl";
+
+describe("sanitizeImageUrl", () => {
+  it("allows https URLs", () => {
+    expect(sanitizeImageUrl("https://example.com/img.jpg")).toBe("https://example.com/img.jpg");
+  });
+
+  it("allows http URLs", () => {
+    expect(sanitizeImageUrl("http://example.com/img.jpg")).toBe("http://example.com/img.jpg");
+  });
+
+  it("allows absolute paths", () => {
+    expect(sanitizeImageUrl("/images/hero.jpg")).toBe("/images/hero.jpg");
+  });
+
+  it("blocks javascript: protocol", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(sanitizeImageUrl("javascript:alert(1)")).toBeUndefined();
+    warn.mockRestore();
+  });
+
+  it("blocks data: URIs", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(sanitizeImageUrl("data:image/svg+xml,<svg></svg>")).toBeUndefined();
+    warn.mockRestore();
+  });
+
+  it("blocks URLs with single quotes (CSS breakout)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(sanitizeImageUrl("https://evil.com/img'.jpg")).toBeUndefined();
+    warn.mockRestore();
+  });
+
+  it("blocks URLs with parentheses (CSS breakout)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(sanitizeImageUrl("https://evil.com/img).jpg")).toBeUndefined();
+    warn.mockRestore();
+  });
+
+  it("blocks relative paths", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(sanitizeImageUrl("../images/hack.jpg")).toBeUndefined();
+    warn.mockRestore();
+  });
+});
+```
+
+**Verification**: `vpr test:unit -t "sanitizeImageUrl"` — all sanitizer tests pass.
+
+---
+
 **File**: `src/components/Hero.tsx`
 
 **Source**: `<hero>` section from **Jedi Project** `index.html`.
@@ -302,11 +372,18 @@ interface HeroProps {
 **Component**:
 
 ```tsx
+import { sanitizeImageUrl } from "~/lib/sanitizeImageUrl";
+
 export default function Hero(props: HeroProps) {
+  const bgImage = () => {
+    const url = sanitizeImageUrl(props.backgroundImage);
+    return url ? `url('${url}')` : undefined;
+  };
+
   return (
     <section
       class="grid bg-gray-700 text-white text-center bg-cover relative"
-      style={{ "background-image": `url('${props.backgroundImage}')` }}
+      style={{ "background-image": bgImage() }}
     >
       <div class="col-start-1 row-start-1 bg-gray-800/40 w-full h-full" />
       <div class="col-start-1 row-start-1 py-24 px-10">
@@ -326,30 +403,39 @@ export default function Hero(props: HeroProps) {
 }
 ```
 
-> **Note**: `style={{ "background-image": ... }}` remains — dynamic prop URL can't use Tailwind `bg-[url(...)]`. This is the sole exception to requirement #4.
+> **Note**: `style={{ "background-image": ... }}` remains — dynamic prop URL can't use Tailwind `bg-[url(...)]`. This is the sole exception to requirement #4. The URL is sanitized via `sanitizeImageUrl` — blocks non-http(s) protocols and CSS breakout characters. When blocked, `bg-gray-700` shows through as the fallback.
 
 **Test**: `src/components/Hero.test.tsx`
 
 ```typescript
-import { describe, it, expect } from "vite-plus/test"
+import { describe, it, expect, vi } from "vite-plus/test"
 import { render, screen } from '@solidjs/testing-library'
 import Hero from './Hero'
 
 describe('<Hero />', () => {
   it('renders with all props', () => {
     render(() => (
-      <Hero title="Test Title" subtitle="Test Subtitle" ctaText="Click Me" ctaHref="/test" backgroundImage="test.jpg" />
+      <Hero title="Test Title" subtitle="Test Subtitle" ctaText="Click Me" ctaHref="/test" backgroundImage="/images/test.jpg" />
     ))
     expect(screen.getByRole('heading')).toHaveTextContent('Test Title')
     expect(screen.getByText('Test Subtitle')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /click me/i })).toHaveAttribute('href', '/test')
   })
 
-  it('applies background image style', () => {
+  it('applies background image style for safe URLs', () => {
     const { container } = render(() => (
-      <Hero title="T" subtitle="T" ctaText="T" ctaHref="#" backgroundImage="test-bg.jpg" />
+      <Hero title="T" subtitle="T" ctaText="T" ctaHref="#" backgroundImage="/images/test-bg.jpg" />
     ))
-    expect(container.querySelector('section')).toHaveStyle({ backgroundImage: "url('test-bg.jpg')" })
+    expect(container.querySelector('section')).toHaveStyle({ backgroundImage: "url('/images/test-bg.jpg')" })
+  })
+
+  it('omits background image for unsafe URLs', () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { container } = render(() => (
+      <Hero title="T" subtitle="T" ctaText="T" ctaHref="#" backgroundImage="javascript:alert(1)" />
+    ))
+    expect(container.querySelector('section')).not.toHaveStyle({ backgroundImage: expect.stringContaining("javascript") })
+    warn.mockRestore();
   })
 })
 ```

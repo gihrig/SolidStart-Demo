@@ -2873,8 +2873,22 @@ Add explanatory note ~/lib/useIsMobile.ts
 
 style={{ "background-image": `url('${props.backgroundImage}')` }}
 
-If backgroundImage ever comes from user input, a value like '); background: url(evil breaks out. For this demo (static
-hardcoded URLs), it's fine. For production, sanitize or validate URL format.
+If backgroundImage ever comes from user input, a value like
+'); background-image: url('http://evil.com/track.png
+breaks out. For this demo (static hardcoded URLs), it's fine. For production, sanitize or validate URL format.
+
+Fix:
+
+Update Step 2.1: Create Hero Component + Tests (line 284-439) to include image url sanitization.
+
+⏺ Updated. Step 2.1 now includes:
+
+1. src/lib/sanitizeImageUrl.ts — allowlists https://, http://, and absolute paths; rejects CSS breakout characters (', ", (, )); logs a warning on block.
+2. Unit tests for the sanitizer covering all cases.
+3. Simplified Hero style binding — bgImage() derived signal returns the wrapped URL or undefined; no ternary in the template. When blocked, SolidJS skips the property and bg-gray-700 shows through.
+4. Hero test updated to verify both safe URL application and unsafe URL omission.
+
+**Updated per Fix - Co-authored by Claude Opus 4.6**
 
 ---
 
@@ -2882,21 +2896,22 @@ VERDICT
 
 Plan is solid. Recommended actions before execution:
 
+```
 ┌──────────┬──────┬────────────────────────────────────────────────────────────────┐
-│ Priority │ Item │ Action │
+│ Priority │ Item │                         Action                                 │
 ├──────────┼──────┼────────────────────────────────────────────────────────────────┤
-│ High │ #3 │ Document Card class-merge limitation OR switch to classList │
+│ High     │ #3   │ Document Card class-merge limitation OR switch to classList    │
 ├──────────┼──────┼────────────────────────────────────────────────────────────────┤
-│ Medium │ #4 │ Consider single-listener onMount pattern for ThemeToggle │
+│ Medium   │ #4   │ Consider single-listener onMount pattern for ThemeToggle       │
 ├──────────┼──────┼────────────────────────────────────────────────────────────────┤
-│ Medium │ #1 │ Add comment noting aria-hidden is what makes toBeHidden() work │
+│ Medium   │ #1   │ Add comment noting aria-hidden is what makes toBeHidden() work │
 ├──────────┼──────┼────────────────────────────────────────────────────────────────┤
-│ Low │ #6 │ Optional: migrate to @theme animation token │
+│ Low      │ #6   │ Optional: migrate to @theme animation token                    │
 ├──────────┼──────┼────────────────────────────────────────────────────────────────┤
-│ Low │ #5 │ Verify script tag renders non-self-closing in HTML │
+│ Low      │ #5   │ Verify script tag renders non-self-closing in HTML             │
 └──────────┴──────┴────────────────────────────────────────────────────────────────┘
+```
 
-Architecture, phasing, test strategy, accessibility approach — all good. SolidJS idioms are correct (no destructured
-props, proper <Show>/<For>, signals outside components, SSR guards). TW4 syntax is valid throughout.
+Architecture, phasing, test strategy, accessibility approach — all good. SolidJS idioms are correct (no destructured props, proper <Show>/<For>, signals outside components, SSR guards). TW4 syntax is valid throughout.
 
 claude --resume d9edc5f0-4211-4504-8c4d-faf17f6ffdf5
