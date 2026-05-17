@@ -2861,6 +2861,12 @@ Then use animate-fade-in as a native TW utility (no manual @layer utilities need
 useIsMobile.ts line 4: breakpoint = 767 → max-width: 767px. Tailwind md: triggers at min-width: 768px. These are
 complementary (767 is mobile, 768+ is desktop). Correct. ✓ Just noting for clarity.
 
+Fix:
+
+Add explanatory note ~/lib/useIsMobile.ts
+
+**Updated per Fix**
+
 ---
 
 8. Hero component: XSS surface via backgroundImage prop (line 309)
