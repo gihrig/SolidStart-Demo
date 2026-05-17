@@ -2947,6 +2947,8 @@ Fix:
 Recommendation: Update plan Step 1.1 "After" to match actual implementation. TW4 @theme approach auto-generates
 animate-fade-in utility — no manual @layer utilities needed.
 
+**Updated per Fix**
+
 ---
 
 2. Image Component — Unnecessary mergeProps Pattern

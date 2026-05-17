@@ -135,6 +135,16 @@ body {
 
 @theme {
   --font-hero: "Lobster", sans-serif;
+  --animate-fade-in: fadeIn 1s ease-out;
+  @keyframes fadeIn {
+    0%,
+    10% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
 }
 
 @layer base {
@@ -187,22 +197,6 @@ body {
 
   .demo p {
     @apply mx-8 mb-6 text-justify;
-  }
-}
-
-@layer utilities {
-  .animate-fade-in {
-    animation: 1s fadeIn;
-  }
-}
-
-@keyframes fadeIn {
-  0%,
-  10% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
   }
 }
 ```
