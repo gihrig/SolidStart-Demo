@@ -2987,7 +2987,7 @@ Update the `Image` component as shown above
 
 3. Card Component — Pointless splitProps + Spread
 
-Plan line 621-622:
+Plan line 610-624:
 const [local, rest] = splitProps(defaulted, ["title", "class", "children"]);
 // ...
 
@@ -2995,7 +2995,13 @@ const [local, rest] = splitProps(defaulted, ["title", "class", "children"]);
 
 CardProps = { title?, class?, children }. After splitting those 3 keys, rest is always {}. Spreading empty object is dead code.
 
-Fix: Drop splitProps, use defaulted.title / defaulted.class / defaulted.children directly. Or if future extensibility desired (forwarding HTML attrs), type props as CardOwnProps & JSX.HTMLAttributes<HTMLElement> and split properly.
+Fix:
+
+- Drop splitProps.
+- Use defaulted.title / defaulted.class / defaulted.children directly.
+- Remove redundant import @line 610
+
+**Updated per Fix**
 
 ---
 
