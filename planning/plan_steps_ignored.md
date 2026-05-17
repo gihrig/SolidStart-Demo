@@ -3007,16 +3007,23 @@ Fix:
 
 4. Dead .dark/.light Classes on <html>
 
-theme-init.js (line 1237-1238) adds root.classList.add(resolved) — sets .dark or .light on <html>. ThemeToggle
-applyThemeMode does same.
+theme-init.js (line 1210-1226) adds root.classList.add(resolved) — sets .dark or .light on <html>. ThemeToggle
+applyThemeMode (line 1282-1293) does the same.
 
-But the CSS exclusively uses :root[data-theme="dark"] selector (line 1183). The .dark/.light classes are never
+But the CSS exclusively uses :root[data-theme="dark"] selector (line 1168). The .dark/.light classes are never
 referenced anywhere — no dark: variant usage (CLAUDE.md prohibits it).
 
 Impact: Minor dead code. colorScheme property is useful (browser chrome adapts). The class additions serve no current purpose.
 
-Recommendation: Either remove the class toggling from both theme-init.js and applyThemeMode, or document it as
-future-proofing.
+Fix:
+
+- Remove the class toggling from both theme-init.js and applyThemeMode
+- Also update the ThemeToggle test that checks for classList
+- Update the E2E theme toggle tests that check for classList
+- update the Phase 7 User Validation checklist that references classList
+- update the existing `public/theme-init.js` file to match the plan
+
+**Updated per Fix - Co-authored by Claude Opus 4.6**
 
 ---
 

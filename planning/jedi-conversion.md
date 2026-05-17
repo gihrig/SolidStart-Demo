@@ -1214,8 +1214,6 @@ export default function Jedi() {
     var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     var resolved = mode === "auto" ? (prefersDark ? "dark" : "light") : mode;
     var root = document.documentElement;
-    root.classList.remove("light", "dark");
-    root.classList.add(resolved);
     if (mode === "auto") {
       root.removeAttribute("data-theme");
     } else {
@@ -1282,8 +1280,6 @@ function getInitialMode(): ThemeMode {
 function applyThemeMode(mode: ThemeMode) {
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   const resolved = mode === "auto" ? (prefersDark ? "dark" : "light") : mode;
-  document.documentElement.classList.remove("light", "dark");
-  document.documentElement.classList.add(resolved);
   if (mode === "auto") {
     document.documentElement.removeAttribute("data-theme");
   } else {
@@ -1501,16 +1497,15 @@ describe("<ThemeToggle />", () => {
     expect(mockLocalStorage["theme"]).toBe("light");
   });
 
-  it("applies dark class to documentElement when mode is dark", async () => {
+  it("applies data-theme and colorScheme when mode is dark", async () => {
     const user = userEvent.setup();
     mockLocalStorage["theme"] = "light";
     render(() => <ThemeToggle />);
     const button = screen.getByRole("button");
 
     await user.click(button);
-    expect(document.documentElement.classList.contains("dark")).toBe(true);
-    expect(document.documentElement.classList.contains("light")).toBe(false);
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    expect(document.documentElement.style.colorScheme).toBe("dark");
   });
 
   it("removes data-theme attribute in auto mode", async () => {
@@ -1796,15 +1791,15 @@ test.describe("Jedi Page - Theme Toggle", () => {
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-label", /light/i);
     const htmlLight = page.locator("html");
-    await expect(htmlLight).toHaveClass(/light/);
     await expect(htmlLight).toHaveAttribute("data-theme", "light");
+    expect(await htmlLight.evaluate((el) => el.style.colorScheme)).toBe("light");
 
     // Click to dark
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-label", /dark/i);
     const htmlDark = page.locator("html");
-    await expect(htmlDark).toHaveClass(/dark/);
     await expect(htmlDark).toHaveAttribute("data-theme", "dark");
+    expect(await htmlDark.evaluate((el) => el.style.colorScheme)).toBe("dark");
 
     // Click to auto (aria-label shows "system" — user-facing term for auto mode)
     await toggle.click();
@@ -1828,8 +1823,8 @@ test.describe("Jedi Page - Theme Toggle", () => {
     // Reload and verify theme persists
     await page.reload();
     const htmlAfterReload = page.locator("html");
-    await expect(htmlAfterReload).toHaveClass(/light/);
     await expect(htmlAfterReload).toHaveAttribute("data-theme", "light");
+    expect(await htmlAfterReload.evaluate((el) => el.style.colorScheme)).toBe("light");
   });
 
   test("should respect system dark preference in auto mode", async ({ page }) => {
@@ -1837,15 +1832,17 @@ test.describe("Jedi Page - Theme Toggle", () => {
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto("/jedi");
 
-    // In auto mode (default), system dark preference should resolve to dark class
+    // In auto mode (default), system dark preference should resolve to colorScheme dark
     const html = page.locator("html");
-    await expect(html).toHaveClass(/dark/);
+    expect(await html.evaluate((el) => el.style.colorScheme)).toBe("dark");
+    expect(await html.getAttribute("data-theme")).toBeNull();
 
     // Switch to light system preference
     await page.emulateMedia({ colorScheme: "light" });
     await page.goto("/jedi");
     const htmlLight = page.locator("html");
-    await expect(htmlLight).toHaveClass(/light/);
+    expect(await htmlLight.evaluate((el) => el.style.colorScheme)).toBe("light");
+    expect(await htmlLight.getAttribute("data-theme")).toBeNull();
   });
 });
 ```
