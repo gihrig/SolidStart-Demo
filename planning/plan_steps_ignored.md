@@ -2874,7 +2874,7 @@ Add explanatory note ~/lib/useIsMobile.ts
 style={{ "background-image": `url('${props.backgroundImage}')` }}
 
 If backgroundImage ever comes from user input, a value like
-'); background-image: url('http://evil.com/track.png
+'); background-image: url('http://evil.com/track.png )
 breaks out. For this demo (static hardcoded URLs), it's fine. For production, sanitize or validate URL format.
 
 Fix:
@@ -2915,3 +2915,175 @@ Plan is solid. Recommended actions before execution:
 Architecture, phasing, test strategy, accessibility approach — all good. SolidJS idioms are correct (no destructured props, proper <Show>/<For>, signals outside components, SSR guards). TW4 syntax is valid throughout.
 
 claude --resume d9edc5f0-4211-4504-8c4d-faf17f6ffdf5
+
+❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
+
+⏺ Reviewed plan against actual project state. Here's my findings:
+
+---
+
+Review: planning/jedi-conversion.md
+
+Issues Found
+
+1. Step 1.1 animate-fade-in — Plan Outdated vs Actual Implementation
+
+Plan shows (line 193-207):
+@layer utilities {
+.animate-fade-in {
+animation: 1s fadeIn;
+}
+}
+@keyframes fadeIn { ... }
+
+Actual src/app.css (already committed) uses TW4-idiomatic @theme tokens:
+@theme {
+--animate-fade-in: fadeIn 1s ease-out;
+@keyframes fadeIn { ... }
+}
+
+Fix:
+
+Recommendation: Update plan Step 1.1 "After" to match actual implementation. TW4 @theme approach auto-generates
+animate-fade-in utility — no manual @layer utilities needed.
+
+---
+
+2. Image Component — Unnecessary mergeProps Pattern
+
+Plan line 469:
+const merged = mergeProps({ href: "", class: "" }, props);
+
+Then <Show when={merged.href}> relies on "" being falsy. More idiomatic SolidJS:
+
+export default function Image(props: ImageProps) {
+return (
+
+<figure class={props.class ?? ""}>
+<Show when={props.href} fallback={<img class="w-full" src={props.src} alt={props.alt} />}>
+{(href) => (
+<a href={href()}>
+<img class="w-full" src={props.src} alt={props.alt} />
+</a>
+)}
+</Show>
+</figure>
+);
+}
+
+Why: mergeProps with href: "" creates an intermediate object just to exploit falsy empty-string in <Show>. Direct prop access + <Show> callback form is cleaner and avoids allocating merged object.
+
+---
+
+3. Card Component — Pointless splitProps + Spread
+
+Plan line 621-622:
+const [local, rest] = splitProps(defaulted, ["title", "class", "children"]);
+// ...
+
+<section ... {...rest}>
+
+CardProps = { title?, class?, children }. After splitting those 3 keys, rest is always {}. Spreading empty object is dead code.
+
+Fix: Drop splitProps, use defaulted.title / defaulted.class / defaulted.children directly. Or if future extensibility desired (forwarding HTML attrs), type props as CardOwnProps & JSX.HTMLAttributes<HTMLElement> and split properly.
+
+---
+
+4. Dead .dark/.light Classes on <html>
+
+theme-init.js (line 1237-1238) adds root.classList.add(resolved) — sets .dark or .light on <html>. ThemeToggle
+applyThemeMode does same.
+
+But the CSS exclusively uses :root[data-theme="dark"] selector (line 1183). The .dark/.light classes are never
+referenced anywhere — no dark: variant usage (CLAUDE.md prohibits it).
+
+Impact: Minor dead code. colorScheme property is useful (browser chrome adapts). The class additions serve no current purpose.
+
+Recommendation: Either remove the class toggling from both theme-init.js and applyThemeMode, or document it as
+future-proofing.
+
+---
+
+5. Hero Test toHaveStyle — Potentially Flaky in jsdom
+
+Plan line 429:
+expect(container.querySelector('section')).toHaveStyle({ backgroundImage: "url('/images/test-bg.jpg')" })
+
+jsdom normalizes inline style values inconsistently — quotes may be stripped or doubled. Safer approach:
+
+expect(container.querySelector('section')!.style.backgroundImage).toContain("/images/test-bg.jpg");
+
+---
+
+6. sanitizeImageUrl — Doesn't Block Backslash
+
+Plan line 290:
+const BREAK_CHARS = /['\"()]/;
+
+A URL like https://evil.com/img\ could cause issues in some CSS parsers (backslash is an escape char in CSS). Consider adding \\ to BREAK_CHARS.
+
+---
+
+7. JediNav — onMount for Click-Outside Not SSR-Safe by Default
+
+Plan line 715-720:
+onMount(() => {
+const handleClickOutside = (e: MouseEvent) => { ... };
+document.addEventListener("click", handleClickOutside);
+onCleanup(() => document.removeEventListener("click", handleClickOutside));
+});
+
+This is correct — onMount only fires client-side. But onCleanup inside onMount is a pattern that works because onMount
+runs within the component's ownership scope. Valid but worth noting: if this were moved outside onMount (like in a
+createEffect), onCleanup would still work because Solid tracks cleanup per reactive owner. No fix needed, just
+confirming correctness.
+
+---
+
+8. E2E Test — aside Visibility Check May Be Fragile
+
+Plan line 1719:
+await expect(aside).toBeHidden();
+
+The sidebar uses opacity-0 max-h-0 overflow-hidden — Playwright's .toBeHidden() checks visibility/display/opacity. With opacity: 0, Playwright considers element hidden. ✓ Correct.
+
+But with aria-hidden={isMobile() && !mobileSidebarOpen()} (line 1082), the aria-hidden attribute also signals hidden state. This is good — both visual and semantic hiding. ✓
+
+---
+
+9. Minor: Nav Test Cycle Assertion Order
+
+Plan Step 4.6 (line 1630-1638) has the toggle cycle starting from "system" → "light" → "dark" → "system". This matches toggleMode() logic: auto → light → dark → auto. ✓ Correct.
+
+---
+
+Positive Observations
+
+- Alpine.js → SolidJS mapping table is accurate
+- TW3→TW4 conversions correct (md:block!, opacity modifiers, custom property syntax)
+- useIsMobile, useListbox, useEscapeKey hooks already exist and are correctly referenced
+- Proper @layer base scoping for global CSS (lower than utilities)
+- sanitizeImageUrl XSS protection for dynamic background-image — good security practice
+- FOUC prevention via blocking <script> in <head> — correct approach
+- Static data outside component functions — avoids re-allocation
+- createEffect + onCleanup for media listener in ThemeToggle — idiomatic Solid reactive cleanup
+
+---
+
+Summary
+
+```
+  ┌─────────────────────┬───────┬────────────────────────────────────────────────────────────────────────┐
+  │      Severity       │ Count │                               Categories                               │
+  ├─────────────────────┼───────┼────────────────────────────────────────────────────────────────────────┤
+  │ Fix required        │ 2     │ Card dead spread (#3), Plan/actual mismatch (#1)                       │
+  ├─────────────────────┼───────┼────────────────────────────────────────────────────────────────────────┤
+  │ Recommended         │ 3     │ Image simplification (#2), sanitizer backslash (#6), dead classes (#4) │
+  ├─────────────────────┼───────┼────────────────────────────────────────────────────────────────────────┤
+  │ Potential flakiness │ 1     │ Hero toHaveStyle (#5)                                                  │
+  ├─────────────────────┼───────┼────────────────────────────────────────────────────────────────────────┤
+  │ Correct (confirmed) │ 5     │ Hooks, toggles, accessibility, E2E approach                            │
+  └─────────────────────┴───────┴────────────────────────────────────────────────────────────────────────┘
+```
+
+Plan is solid overall. Main fixes: update Step 1.1 to match actual @theme approach, simplify Image/Card components.
