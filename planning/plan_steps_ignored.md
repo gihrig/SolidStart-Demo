@@ -3137,3 +3137,185 @@ Summary
 ```
 
 Plan is solid overall. Main fixes: update Step 1.1 to match actual @theme approach, simplify Image/Card components.
+
+---
+
+❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
+
+⏺ Jedi Conversion Plan Review - 12th Cycle
+
+1. State: Step 1.1 done, app.css + entry-server.tsx + theme-init.js + hooks already implemented. No Jedi components exist yet. No jedi.css.
+
+---
+
+2. BUG: Card.tsx uses undeclared rest variable
+
+Step 2.4 — Card.tsx line 613 in plan:
+classList={{ [defaulted.class]: !!defaulted.class }}
+{...rest}
+rest never declared. Need splitProps:
+import { mergeProps, Show, splitProps, type ParentProps } from "solid-js";
+
+export default function Card(props: CardProps) {
+const [local, rest] = splitProps(props, ["title", "class", "children"]);
+const defaulted = mergeProps({ title: "", class: "" }, local);
+// ... use {...rest} on <section>
+
+Or just remove {...rest} — Card has no other props in plan usage.
+
+---
+
+3. BUG: Image.tsx has JSX comment syntax error
+
+Step 2.2 — line 466:
+// Solid wraps `props.href` in an accessor...
+// inside JSX body = render as text, not comment. Must be {/_ ... _/} or removed.
+
+---
+
+4. MISSING: Three hooks referenced but never created by plan
+
+useIsMobile, useListbox, useEscapeKey — used in Phase 2/3 but no plan step creates them. They exist in codebase already
+(verified), so plan is executable. But plan should note these as prerequisites or mark Step 1.1 as having created
+them. Otherwise confusing if someone reads plan fresh.
+
+---
+
+5. MISSING: sanitizeImageUrl blocks backslash but BREAK_CHARS regex doesn't include \
+
+Step 2.1 — plan says BREAK_CHARS = /['\"()\\]/ which DOES include backslash (the \\ is escaped backslash in regex).
+This is correct. Previous cycle noted this was fixed — confirmed, plan regex is right.
+
+---
+
+6. ISSUE: onMount + onCleanup pattern in JediNav — comment is misleading
+
+Step 2.5 — lines 698-709 — large comment block explaining onCleanup inside onMount. Per CLAUDE.md rules: "Do not add
+comments. Only add when WHY is non-obvious." The behavior is standard Solid — onCleanup inside onMount works because
+ownership scope. Delete comment.
+
+---
+
+7. ISSUE: Hero.test.tsx — toHaveStyle with expect.stringContaining is wrong API
+
+Step 2.1 — line 432:
+expect(container.querySelector('section')).not.toHaveStyle({
+backgroundImage: expect.stringContaining("javascript")
+})
+toHaveStyle compares exact values, not matchers. Should be:
+const style = container.querySelector('section')!.style.backgroundImage;
+expect(style).not.toContain("javascript");
+
+---
+
+8. ISSUE: ThemeToggle createEffect with onCleanup — reactivity concern
+
+Step 4.3 — lines 1310-1316:
+createEffect(() => {
+if (mode() !== "auto") return;
+const media = window.matchMedia("(prefers-color-scheme: dark)");
+const onChange = () => applyThemeMode("auto");
+media.addEventListener("change", onChange);
+onCleanup(() => media.removeEventListener("change", onChange));
+});
+When mode() is not "auto", effect returns early without calling onCleanup -> previous listener stays attached. Fix:
+move onCleanup before early return, or restructure:
+createEffect(() => {
+const m = mode();
+if (m !== "auto") return;
+const media = window.matchMedia("(prefers-color-scheme: dark)");
+const onChange = () => applyThemeMode("auto");
+media.addEventListener("change", onChange);
+onCleanup(() => media.removeEventListener("change", onChange));
+});
+Actually — Solid runs cleanup before each re-execution of effect. If previous run DID register cleanup, it fires before
+next run. If previous run returned early (no cleanup registered), nothing to clean. So transitioning auto->light:
+cleanup fires from previous auto run. Transitioning light->auto: no cleanup from light run (correct), registers new
+one. This is actually fine. But worth noting in plan to avoid confusion during impl.
+
+---
+
+9. ISSUE: Nav.test.tsx theme toggle cycle assertion order wrong
+
+Step 4.6 — lines 1608-1624:
+expect "system" first
+click -> expect "light"
+click -> expect "dark"
+click -> expect "system"
+But toggleMode() in Step 4.3 cycles light -> dark -> auto -> light. Starting from auto (default): click -> light, click
+-> dark, click -> auto. Plan test assertions match this. Correct.
+
+---
+
+10. ISSUE: E2E test aside visibility check may be fragile
+
+Step 5 — line 1709:
+await expect(aside).toBeHidden();
+Sidebar uses opacity-0 max-h-0 overflow-hidden — Playwright's toBeHidden() checks CSS visibility/display/opacity.
+opacity: 0 makes element "hidden" to Playwright. But max-h-0 overflow-hidden with no display:none means DOM element
+exists, has zero height. May pass or fail depending on Playwright version. Plan already notes this fragility (line
+1700-1701). Consider toHaveCSS or not.toBeVisible() instead.
+
+---
+
+11. TAILWIND v4: Plan correctly uses v4 patterns
+
+Verified:
+
+- bg-gray-800/40 (opacity modifier) — correct v4
+- text-(--theme-accent) (custom property syntax) — correct v4
+- md:block! (important modifier suffix) — correct v4
+- @theme block with @keyframes — correct v4
+- @layer base wrapping — correct v4
+- No [&>*] in component code (moved to jedi.css @layer components) — correct
+
+---
+
+12. SOLIDJS: Idiomatic patterns verified
+
+- createSignal for boolean toggles — correct
+- <Show> with when/fallback — correct
+- <For> for list rendering — correct
+- mergeProps for defaults — correct
+- onMount for client-only code — correct
+- onCleanup for listener teardown — correct
+- Props accessed via props.x (no destructuring) — correct
+- Static data outside component — correct
+
+---
+
+13. MINOR: Author component — hover underline on wrong element
+
+Step 2.3 — <span class="font-bold hover:underline">. Hover underline on <span> inside <a> works but semantically the
+<a> should carry hover state. Minor.
+
+---
+
+SUMMARY — Required fixes before execution
+
+```
+┌─────┬──────────┬─────────────────┬───────────────────────────────────────────────────────────────┐
+│  #  │ Severity │    Location     │                               Issue                           │
+├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
+│ 1   │ Bug      │ Step 2.4        │ {...rest} — rest undeclared. Use splitProps or remove         │
+│     │          │ Card.tsx        │                                                               │
+├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
+│ 2   │ Bug      │ Step 2.2        │ // comment inside JSX renders as text                         │
+│     │          │ Image.tsx       │                                                               │
+├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
+│ 3   │ Bug      │ Step 2.1        │ toHaveStyle + expect.stringContaining — wrong API             │
+│     │          │ Hero.test       │                                                               │
+├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
+│ 4   │ Minor    │ Step 2.5        │ Large explanatory comment violates no-comments rule           │
+│     │          │ JediNav         │                                                               │
+├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
+│ 5   │ Doc      │ Plan-wide       │ Hooks useIsMobile/useListbox/useEscapeKey used but never      │
+│     │          │                 │ created by plan — add prereqs note                            │
+├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
+│ 6   │ Minor    │ Step 5 E2E      │ toBeHidden() on opacity-0 aside — fragile, plan acknowledges  │
+└─────┴──────────┴─────────────────┴───────────────────────────────────────────────────────────────┘
+```
+
+Items 1-3 will cause test/compile failures. Fix before executing.
+
+claude-max --resume e4df9a16-c50f-479f-b6ca-c783d27bc00
