@@ -1694,6 +1694,8 @@ test.describe("Jedi Page", () => {
     await expect(aside.getByText("Animals")).toBeVisible();
   });
 
+  // `expect(toggle).toBeVisible()` confirms correct response to viewport size
+  // `expect(aside).toBeHidden()` May be fragile. May be removed if problematic?
   test("should toggle mobile sidebar when button clicked", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto("/jedi");

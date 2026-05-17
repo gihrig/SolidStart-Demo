@@ -3080,12 +3080,18 @@ Add explanatory comment before `onMount` @line 698
 
 8. E2E Test — aside Visibility Check May Be Fragile
 
-Plan line 1719:
+Plan line 1703:
 await expect(aside).toBeHidden();
 
 The sidebar uses opacity-0 max-h-0 overflow-hidden — Playwright's .toBeHidden() checks visibility/display/opacity. With opacity: 0, Playwright considers element hidden. ✓ Correct.
 
-But with aria-hidden={isMobile() && !mobileSidebarOpen()} (line 1082), the aria-hidden attribute also signals hidden state. This is good — both visual and semantic hiding. ✓
+But with aria-hidden={isMobile() && !mobileSidebarOpen()} (line 1070), the aria-hidden attribute also signals hidden state. This is good — both visual and semantic hiding. ✓
+
+Fix:
+
+Added explanatory note to `test("should toggle mobile sidebar when button clicked"` @line 1697
+
+**Updated per Fix**
 
 ---
 
