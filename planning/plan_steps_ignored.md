@@ -3097,7 +3097,13 @@ Added explanatory note to `test("should toggle mobile sidebar when button clicke
 
 9. Minor: Nav Test Cycle Assertion Order
 
-Plan Step 4.6 (line 1630-1638) has the toggle cycle starting from "system" → "light" → "dark" → "system". This matches toggleMode() logic: auto → light → dark → auto. ✓ Correct.
+Plan Step 4.6 (line 1593-1622) has the toggle cycle starting from "system" → "light" → "dark" → "system". This matches toggleMode() logic: auto → light → dark → auto. ✓ Correct.
+
+Fix:
+
+Add explanatory note re "auto" vs "system" in Step 4.6
+
+**Updated per Fix**
 
 ---
 

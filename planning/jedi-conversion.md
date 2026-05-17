@@ -1594,6 +1594,8 @@ export default function Nav() {
 
 **File**: `src/components/Nav.test.tsx`
 
+**Note** ThemeToggle state for system default is called "auto" in `toggleMode()` and presented to user as "system".
+
 **Action**: Add tests for ThemeToggle integration. Existing tests use `MemoryRouter` + `createMemoryHistory` wrapper — new tests must follow the same pattern.
 
 Add these tests to the existing `describe("<Nav />")` block:
