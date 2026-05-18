@@ -3144,11 +3144,9 @@ Plan is solid overall. Main fixes: update Step 1.1 to match actual @theme approa
 
 ⏺ Jedi Conversion Plan Review - 12th Cycle
 
-1. State: Step 1.1 done, app.css + entry-server.tsx + theme-init.js + hooks already implemented. No Jedi components exist yet. No jedi.css.
+1. BUG: Card.tsx uses undeclared rest variable and no children
 
----
-
-2. BUG: Card.tsx uses undeclared rest variable
+See @line 1951 of this document - previous erroneous change
 
 Step 2.4 — Card.tsx line 613 in plan:
 classList={{ [defaulted.class]: !!defaulted.class }}
@@ -3165,7 +3163,7 @@ Or just remove {...rest} — Card has no other props in plan usage.
 
 ---
 
-3. BUG: Image.tsx has JSX comment syntax error
+2. BUG: Image.tsx has JSX comment syntax error
 
 Step 2.2 — line 466:
 // Solid wraps `props.href` in an accessor...
@@ -3173,22 +3171,13 @@ Step 2.2 — line 466:
 
 ---
 
-4. MISSING: Three hooks referenced but never created by plan
+3. MISSING: Three hooks referenced but never created by plan
 
-useIsMobile, useListbox, useEscapeKey — used in Phase 2/3 but no plan step creates them. They exist in codebase already
-(verified), so plan is executable. But plan should note these as prerequisites or mark Step 1.1 as having created
-them. Otherwise confusing if someone reads plan fresh.
+useIsMobile, useListbox, useEscapeKey — used in Phase 2/3 but no plan step creates them. They exist in codebase already (verified), so plan is executable. But plan should note these as prerequisites or mark Step 1.1 as having created them. Otherwise confusing if someone reads plan fresh.
 
 ---
 
-5. MISSING: sanitizeImageUrl blocks backslash but BREAK_CHARS regex doesn't include \
-
-Step 2.1 — plan says BREAK_CHARS = /['\"()\\]/ which DOES include backslash (the \\ is escaped backslash in regex).
-This is correct. Previous cycle noted this was fixed — confirmed, plan regex is right.
-
----
-
-6. ISSUE: onMount + onCleanup pattern in JediNav — comment is misleading
+4. ISSUE: onMount + onCleanup pattern in JediNav — comment is misleading
 
 Step 2.5 — lines 698-709 — large comment block explaining onCleanup inside onMount. Per CLAUDE.md rules: "Do not add
 comments. Only add when WHY is non-obvious." The behavior is standard Solid — onCleanup inside onMount works because
@@ -3196,9 +3185,9 @@ ownership scope. Delete comment.
 
 ---
 
-7. ISSUE: Hero.test.tsx — toHaveStyle with expect.stringContaining is wrong API
+5. ISSUE: Hero.test.tsx — toHaveStyle with expect.stringContaining is wrong API
 
-Step 2.1 — line 432:
+Step 2.1 — line 431:
 expect(container.querySelector('section')).not.toHaveStyle({
 backgroundImage: expect.stringContaining("javascript")
 })
@@ -3208,7 +3197,7 @@ expect(style).not.toContain("javascript");
 
 ---
 
-8. ISSUE: ThemeToggle createEffect with onCleanup — reactivity concern
+6. ISSUE: ThemeToggle createEffect with onCleanup — reactivity concern
 
 Step 4.3 — lines 1310-1316:
 createEffect(() => {
@@ -3235,9 +3224,9 @@ one. This is actually fine. But worth noting in plan to avoid confusion during i
 
 ---
 
-9. ISSUE: Nav.test.tsx theme toggle cycle assertion order wrong
+7. ISSUE: Nav.test.tsx theme toggle cycle assertion order wrong
 
-Step 4.6 — lines 1608-1624:
+Step 4.6 — lines 1609-1624:
 expect "system" first
 click -> expect "light"
 click -> expect "dark"
@@ -3247,7 +3236,7 @@ But toggleMode() in Step 4.3 cycles light -> dark -> auto -> light. Starting fro
 
 ---
 
-10. ISSUE: E2E test aside visibility check may be fragile
+8. ISSUE: E2E test aside visibility check may be fragile
 
 Step 5 — line 1709:
 await expect(aside).toBeHidden();
@@ -3258,33 +3247,7 @@ exists, has zero height. May pass or fail depending on Playwright version. Plan 
 
 ---
 
-11. TAILWIND v4: Plan correctly uses v4 patterns
-
-Verified:
-
-- bg-gray-800/40 (opacity modifier) — correct v4
-- text-(--theme-accent) (custom property syntax) — correct v4
-- md:block! (important modifier suffix) — correct v4
-- @theme block with @keyframes — correct v4
-- @layer base wrapping — correct v4
-- No [&>*] in component code (moved to jedi.css @layer components) — correct
-
----
-
-12. SOLIDJS: Idiomatic patterns verified
-
-- createSignal for boolean toggles — correct
-- <Show> with when/fallback — correct
-- <For> for list rendering — correct
-- mergeProps for defaults — correct
-- onMount for client-only code — correct
-- onCleanup for listener teardown — correct
-- Props accessed via props.x (no destructuring) — correct
-- Static data outside component — correct
-
----
-
-13. MINOR: Author component — hover underline on wrong element
+9.  MINOR: Author component — hover underline on wrong element
 
 Step 2.3 — <span class="font-bold hover:underline">. Hover underline on <span> inside <a> works but semantically the
 <a> should carry hover state. Minor.
@@ -3303,19 +3266,38 @@ SUMMARY — Required fixes before execution
 │ 2   │ Bug      │ Step 2.2        │ // comment inside JSX renders as text                         │
 │     │          │ Image.tsx       │                                                               │
 ├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
-│ 3   │ Bug      │ Step 2.1        │ toHaveStyle + expect.stringContaining — wrong API             │
-│     │          │ Hero.test       │                                                               │
+│ 3   │ Doc      │ Plan-wide       │ Missing three Hooks useIsMobile/useListbox/useEscapeKey used  │
+│     │          │                 │ but never created by plan — add prereqs note                  │
 ├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
 │ 4   │ Minor    │ Step 2.5        │ Large explanatory comment violates no-comments rule           │
 │     │          │ JediNav         │                                                               │
 ├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
-│ 5   │ Doc      │ Plan-wide       │ Hooks useIsMobile/useListbox/useEscapeKey used but never      │
-│     │          │                 │ created by plan — add prereqs note                            │
+│ 5   │ Bug      │ Step 2.1        │ toHaveStyle + expect.stringContaining — wrong API             │
+│     │          │ Hero.test       │                                                               │
 ├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
-│ 6   │ Minor    │ Step 5 E2E      │ toBeHidden() on opacity-0 aside — fragile, plan acknowledges  │
+│ 6   │ Issue    │ Step 4.3        │ ThemeToggle createEffect with onCleanup — reactivity concern  │
+├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
+│ 7   │ Issue    │ Step 4.6        │ Nav.test.tsx theme toggle cycle assertion order wrong         │
+├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
+│ 8   │ Issue    │ Step 5 E2E      │ toBeHidden() on opacity-0 aside — fragile, plan acknowledges  │
+├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
+│ 9   │ Minor    │ Step 2.3        │ Author component — hover underline on wrong element           │
 └─────┴──────────┴─────────────────┴───────────────────────────────────────────────────────────────┘
 ```
 
 Items 1-3 will cause test/compile failures. Fix before executing.
 
 claude-max --resume e4df9a16-c50f-479f-b6ca-c783d27bc00
+
+---
+
+❯ Review `planning/jedi-conversion.md`
+
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- List Positive Observations in a bulleted list at end of results
