@@ -3161,6 +3161,14 @@ const defaulted = mergeProps({ title: "", class: "" }, local);
 
 Or just remove {...rest} — Card has no other props in plan usage.
 
+note that .children is automatically provided by `ParentProps`
+
+Fix:
+
+- Remove {...rest}
+
+**Updated per Fix**
+
 ---
 
 2. BUG: Image.tsx has JSX comment syntax error

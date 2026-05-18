@@ -609,7 +609,6 @@ export default function Card(props: CardProps) {
     <section
       class="flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg)"
       classList={{ [defaulted.class]: !!defaulted.class }}
-      {...rest}
     >
       <Show when={defaulted.title}>
         <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{defaulted.title}</h2>
