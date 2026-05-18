@@ -3177,19 +3177,36 @@ Step 2.2 — line 466:
 // Solid wraps `props.href` in an accessor...
 // inside JSX body = render as text, not comment. Must be {/_ ... _/} or removed.
 
+Fix:
+
+Remove comment
+
+**Updated per Fix**
+
 ---
 
-3. MISSING: Three hooks referenced but never created by plan
-
-useIsMobile, useListbox, useEscapeKey — used in Phase 2/3 but no plan step creates them. They exist in codebase already (verified), so plan is executable. But plan should note these as prerequisites or mark Step 1.1 as having created them. Otherwise confusing if someone reads plan fresh.
-
----
-
-4. ISSUE: onMount + onCleanup pattern in JediNav — comment is misleading
+3. ISSUE: onMount + onCleanup pattern in JediNav — comment is misleading
 
 Step 2.5 — lines 698-709 — large comment block explaining onCleanup inside onMount. Per CLAUDE.md rules: "Do not add
 comments. Only add when WHY is non-obvious." The behavior is standard Solid — onCleanup inside onMount works because
 ownership scope. Delete comment.
+
+// onMount only fires client-side. onCleanup inside onMount works because onMount
+// runs within the component's ownership scope. Worth noting: if this were moved
+// outside onMount (like in a createEffect), onCleanup would still work because
+// Solid tracks cleanup per reactive owner.
+
+Fix:
+
+Remove comment (done in 2 above)
+
+**Updated per Fix**
+
+---
+
+4. MISSING: Three hooks referenced but never created by plan
+
+useIsMobile, useListbox, useEscapeKey — used in Phase 2/3 but no plan step creates them. They exist in codebase already (verified), so plan is executable. But plan should note these as prerequisites or mark Step 1.1 as having created them. Otherwise confusing if someone reads plan fresh.
 
 ---
 
@@ -3274,11 +3291,11 @@ SUMMARY — Required fixes before execution
 │ 2   │ Bug      │ Step 2.2        │ // comment inside JSX renders as text                         │
 │     │          │ Image.tsx       │                                                               │
 ├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
-│ 3   │ Doc      │ Plan-wide       │ Missing three Hooks useIsMobile/useListbox/useEscapeKey used  │
-│     │          │                 │ but never created by plan — add prereqs note                  │
-├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
-│ 4   │ Minor    │ Step 2.5        │ Large explanatory comment violates no-comments rule           │
+│ 3   │ Minor    │ Step 2.5        │ Large explanatory comment violates no-comments rule           │
 │     │          │ JediNav         │                                                               │
+├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
+│ 4   │ Doc      │ Plan-wide       │ Missing three Hooks useIsMobile/useListbox/useEscapeKey used  │
+│     │          │                 │ but never created by plan — add prereqs note                  │
 ├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
 │ 5   │ Bug      │ Step 2.1        │ toHaveStyle + expect.stringContaining — wrong API             │
 │     │          │ Hero.test       │                                                               │

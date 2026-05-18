@@ -694,10 +694,6 @@ export default function JediNav() {
   const isMobile = useIsMobile();
   let dropdownRef: HTMLLIElement | undefined;
 
-  // onMount only fires client-side. onCleanup inside onMount works because onMount
-  // runs within the component's ownership scope. Worth noting: if this were moved
-  // outside onMount (like in a createEffect), onCleanup would still work because
-  // Solid tracks cleanup per reactive owner.
   onMount(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef && !dropdownRef.contains(e.target as Node)) {
