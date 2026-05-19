@@ -3208,6 +3208,14 @@ Remove comment (done in 2 above)
 
 useIsMobile, useListbox, useEscapeKey — used in Phase 2/3 but no plan step creates them. They exist in codebase already (verified), so plan is executable. But plan should note these as prerequisites or mark Step 1.1 as having created them. Otherwise confusing if someone reads plan fresh.
 
+Fix:
+
+Create new section `### Make use of existing hooks`
+
+Mention exiting hooks
+
+**Updated per Fix**
+
 ---
 
 5. ISSUE: Hero.test.tsx — toHaveStyle with expect.stringContaining is wrong API
