@@ -3411,11 +3411,15 @@ Remove comment
 
 ---
 
-2. CRITICAL — E2E test: double invocation (line 1710)
+2. CRITICAL — E2E test: double invocation (line 1709)
 
 await expect(aside).not.toBeVisible()();
 
-Extra () → runtime error. Fix: await expect(aside).not.toBeVisible();
+Extra () → runtime error.
+
+Fix: await expect(aside).not.toBeVisible();
+
+**Updated per Fix**
 
 ---
 
