@@ -33,7 +33,7 @@ Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.ts
 
 ### Visual Features to Create
 
-- Dark/light/auto mode toggle
+- light/Dark/auto mode toggle
 - Keyboard navigation:
   - Tab stops on all actionable elements
   - Tab selects "Categories" when in small-screen mode
@@ -1148,7 +1148,7 @@ export default function Jedi() {
 
 ---
 
-## [ ] Phase 4: Create Dark/Light/Auto Theme Toggle
+## [ ] Phase 4: Create Light/Dark/Auto Theme Toggle
 
 **Requirements**
 
@@ -1218,7 +1218,7 @@ export default function Jedi() {
 (function () {
   try {
     var stored = window.localStorage.getItem("theme");
-    var mode = stored === "light" || stored === "dark" || stored === "auto" ? stored : "auto";
+    var mode = ["light", "dark", "auto"].includes(stored) ? stored : "auto";
     var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     var resolved = mode === "auto" ? (prefersDark ? "dark" : "light") : mode;
     var root = document.documentElement;
@@ -1228,7 +1228,7 @@ export default function Jedi() {
       root.setAttribute("data-theme", mode);
     }
     root.style.colorScheme = resolved;
-  } catch (e) {}
+  } catch {}
 })();
 ```
 
@@ -1281,7 +1281,7 @@ type ThemeMode = "light" | "dark" | "auto";
 function getInitialMode(): ThemeMode {
   if (typeof window === "undefined") return "auto";
   const stored = window.localStorage.getItem("theme");
-  if (stored === "light" || stored === "dark" || stored === "auto") return stored;
+  if (["light", "dark", "auto"].includes(stored)) return stored;
   return "auto";
 }
 
@@ -2032,7 +2032,7 @@ When the above passes, the conversion is **complete**. Commit any final fixes an
 4. All E2E tests pass.
 5. Visual appearance matches **Jedi Project** `Awesome.png`
 6. Mobile sidebar toggle works
-7. Dark/light/auto theme toggle works with localStorage persistence; toggle in global Nav (all pages)
+7. light/Dark/auto theme toggle works with localStorage persistence; toggle in global Nav (all pages)
 8. No FOUC — theme init script applies stored preference before first paint
 9. TailwindCSS v4 syntax throughout; no Alpine.js dependencies; `style` only for dynamic background-image
 10. Global CSS in `@layer base` — Tailwind utilities override without `!important`

@@ -3278,13 +3278,21 @@ createEffect(() => {
 
 7. ISSUE: Nav.test.tsx theme toggle cycle assertion order wrong
 
-Step 4.6 — lines 1609-1624:
+Step 4.6 — lines 1614-1629:
 expect "system" first
 click -> expect "light"
 click -> expect "dark"
 click -> expect "system"
-But toggleMode() in Step 4.3 cycles light -> dark -> auto -> light. Starting from auto (default): click -> light, click
--> dark, click -> auto. Plan test assertions match this. Correct.
+But toggleMode() in Step 4.3 cycles light -> dark -> auto -> light.
+Starting from auto (default): click -> light, click -> dark, click -> auto. Plan test assertions match this.
+Correct.
+
+Fix:
+
+- Review all document instances of "dark"
+- Ensure cycle order is "auto", "light", "dark", "auto"
+
+**Updated per Fix**
 
 ---
 
