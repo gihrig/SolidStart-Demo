@@ -3445,7 +3445,7 @@ Equality checks naturally narrow type to ThemeMode.
 
 ---
 
-4. MODERATE — Phase 3 requirement #10 contradicts useListbox code (line 884)
+4. MODERATE — Phase 3 requirement #10 contradicts useListbox code (line 883)
 
 Requirement says:
 
@@ -3463,6 +3463,12 @@ tabIndex: -1 as const,
   — items navigated via arrow keys, not Tab.
 - Plan code (line 1082) correctly uses {...getOptionProps(index())}.
 - Requirement text wrong → fix doc.
+
+Fix:
+
+Update line 883 `tabIndex={0}` -> `tabIndex={-1}`
+
+**Updated per Fix**
 
 ---
 

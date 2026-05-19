@@ -880,7 +880,7 @@ describe("<JediNav />", () => {
 - Mobile toggle has `aria-label="Toggle sidebar"` and `aria-expanded={mobileSidebarOpen()}`.
 - Decorative icons use `alt=""`; content images use meaningful alt.
 - All interactive elements: `focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none`.
-- Category list items: `tabIndex={0}`, `role="option"`, `aria-selected`, `onKeyDown` (Enter/Space selects item, updates `selectedCategory` signal and highlight).
+- Category list items: `tabIndex={-1}`, `role="option"`, `aria-selected`, `onKeyDown` (Enter/Space selects item, updates `selectedCategory` signal and highlight).
 - Category `<ul>`: `role="listbox"` with `aria-label="Categories"`.
 - Mobile sidebar: Escape key dismisses when open (`useEscapeKey` hook — document-level, works regardless of focus position).
 
