@@ -1,4 +1,4 @@
-import { createSignal, onMount, onCleanup, type Accessor } from "solid-js";
+import { createSignal, type Accessor } from "solid-js";
 
 interface UseListboxOptions {
   count: Accessor<number>;
