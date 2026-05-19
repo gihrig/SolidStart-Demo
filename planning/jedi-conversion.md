@@ -472,7 +472,6 @@ import { Show } from "solid-js";
 export default function Image(props: ImageProps) {
   return (
     <figure class={props.class ?? ""}>
-      // Solid wraps `props.href` in an accessor `href()` to maintain fine-grained reactivity.
       <Show when={props.href} fallback={<img class="w-full" src={props.src} alt={props.alt} />}>
         {(href) => (
           <a href={href()}>

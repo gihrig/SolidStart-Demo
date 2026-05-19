@@ -3403,6 +3403,12 @@ Issues (Critical → Minor)
 
 JS-style // comment inside JSX renders as visible text in DOM. Must use {/_ ... _/} or remove entirely.
 
+Fix:
+
+Remove comment
+
+**Updated per Fix**
+
 ---
 
 2. CRITICAL — E2E test: double invocation (line 1710)
