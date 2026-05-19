@@ -545,9 +545,9 @@ export default function Author(props: AuthorProps) {
   );
 
   return (
-    <a class="flex items-center gap-1 mb-4 hover:underline" href={merged.href}>
+    <a class="flex items-center gap-1 mb-4" href={merged.href}>
       <img class="w-8 h-8 rounded-full" src={merged.avatarSrc} alt={merged.name} />
-      <span class="font-bold">{merged.name}</span>
+      <span class="font-bold hover:underline">{merged.name}</span>
     </a>
   );
 }

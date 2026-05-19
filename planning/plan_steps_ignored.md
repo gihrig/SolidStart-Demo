@@ -3479,12 +3479,27 @@ Update line 883 `tabIndex={0}` -> `tabIndex={-1}`
   <span class="font-bold">{merged.name}</span>
 </a>
 
-hover:underline on <a> applies underline to all children including avatar image. Move to <span>:
+hover:underline on <a> applies underline to all children including avatar image.
+
+Move to <span>:
 
 <a class="flex items-center gap-1 mb-4" href={merged.href}>
   <img class="w-8 h-8 rounded-full" ... />
   <span class="font-bold hover:underline">{merged.name}</span>
 </a>
+
+12th -Cycle Step 9:
+
+Hover underline on <span> inside <a> works but semantically the
+<a> should carry hover state.
+
+Fix:
+
+Revert previous Claude recommendation
+
+Move `hover:underline` back to <span>
+
+**Updated per Fix**
 
 ---
 
