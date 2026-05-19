@@ -3298,12 +3298,31 @@ Fix:
 
 8. ISSUE: E2E test aside visibility check may be fragile
 
-Step 5 — line 1709:
+Step 5 — line 1712:
+
 await expect(aside).toBeHidden();
-Sidebar uses opacity-0 max-h-0 overflow-hidden — Playwright's toBeHidden() checks CSS visibility/display/opacity.
-opacity: 0 makes element "hidden" to Playwright. But max-h-0 overflow-hidden with no display:none means DOM element
-exists, has zero height. May pass or fail depending on Playwright version. Plan already notes this fragility (line
-1700-1701). Consider toHaveCSS or not.toBeVisible() instead.
+
+- Sidebar uses opacity-0 max-h-0 overflow-hidden
+- Playwright's toBeHidden() checks CSS visibility/display/opacity
+- opacity: 0 makes element "hidden" to Playwright.
+- But max-h-0 overflow-hidden with no display:none means DOM element exists, has zero height.
+- May pass or fail depending on Playwright version.
+- Plan already notes this fragility (line 1704-1705).
+- Consider toHaveCSS or not.toBeVisible() instead.
+
+Fix:
+
+Replace line 1712
+
+`await expect(aside).toBeHidden();`
+
+With:
+
+`await expect(aside).not.toBeVisible()();`
+
+Remove comment
+
+**Updated per Fix**
 
 ---
 
