@@ -1280,7 +1280,7 @@ type ThemeMode = "light" | "dark" | "auto";
 function getInitialMode(): ThemeMode {
   if (typeof window === "undefined") return "auto";
   const stored = window.localStorage.getItem("theme");
-  if (["light", "dark", "auto"].includes(stored)) return stored;
+  if (stored === "light" || stored === "dark" || stored === "auto") return stored;
   return "auto";
 }
 

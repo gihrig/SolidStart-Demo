@@ -3435,9 +3435,13 @@ Two TS errors:
 
 Fix:
 
+Reverting previous Claude suggestion...
+
 if (stored === "light" || stored === "dark" || stored === "auto") return stored;
 
 Equality checks naturally narrow type to ThemeMode.
+
+**Updated per Fix**
 
 ---
 
