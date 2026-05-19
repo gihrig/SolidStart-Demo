@@ -3328,8 +3328,15 @@ Remove comment
 
 9.  MINOR: Author component — hover underline on wrong element
 
-Step 2.3 — <span class="font-bold hover:underline">. Hover underline on <span> inside <a> works but semantically the
-<a> should carry hover state. Minor.
+Step 2.3 — <span class="font-bold hover:underline">.
+Hover underline on <span> inside <a> works but semantically the
+<a> should carry hover state.
+
+Fix:
+
+Move `hover:underline` to the `<a class=""> element
+
+**Updated per Fix**
 
 ---
 
