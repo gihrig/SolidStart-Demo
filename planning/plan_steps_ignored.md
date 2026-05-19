@@ -3242,7 +3242,10 @@ expect(style).not.toContain("javascript");
 
 6. ISSUE: ThemeToggle createEffect with onCleanup — reactivity concern
 
-Step 4.3 — lines 1310-1316:
+Step 4.3 — lines 1314-1320:
+
+**Nothing to fix - Comment clears up potential confusion**
+
 createEffect(() => {
 if (mode() !== "auto") return;
 const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -3250,20 +3253,26 @@ const onChange = () => applyThemeMode("auto");
 media.addEventListener("change", onChange);
 onCleanup(() => media.removeEventListener("change", onChange));
 });
-When mode() is not "auto", effect returns early without calling onCleanup -> previous listener stays attached. Fix:
-move onCleanup before early return, or restructure:
+
+When mode() is not "auto", effect returns early without calling onCleanup -> previous listener stays attached.
+
+Actually — Solid runs cleanup before each re-execution of effect.
+If previous run DID register cleanup, it fires before next run.
+If previous run returned early (no cleanup registered), nothing to clean.
+So transitioning auto->light: cleanup fires from previous auto run.
+Transitioning light->auto: no cleanup from light run (correct), registers new one.
+
+This is actually fine. But worth noting in plan to avoid confusion during impl.
+
+Fix:
+
+Add comment describing non-react behavior of Solid
+// Solid calls only cleanups registered in the prior run — early return with no onCleanup is safe
 createEffect(() => {
-const m = mode();
-if (m !== "auto") return;
-const media = window.matchMedia("(prefers-color-scheme: dark)");
-const onChange = () => applyThemeMode("auto");
-media.addEventListener("change", onChange);
-onCleanup(() => media.removeEventListener("change", onChange));
+...
 });
-Actually — Solid runs cleanup before each re-execution of effect. If previous run DID register cleanup, it fires before
-next run. If previous run returned early (no cleanup registered), nothing to clean. So transitioning auto->light:
-cleanup fires from previous auto run. Transitioning light->auto: no cleanup from light run (correct), registers new
-one. This is actually fine. But worth noting in plan to avoid confusion during impl.
+
+**Updated per Fix**
 
 ---
 

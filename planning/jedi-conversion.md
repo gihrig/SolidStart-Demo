@@ -1311,6 +1311,7 @@ export default function ThemeToggle() {
     applyThemeMode(initialMode);
   });
 
+  // Solid calls only cleanups registered in the prior run — early return with no onCleanup is safe
   createEffect(() => {
     if (mode() !== "auto") return;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
