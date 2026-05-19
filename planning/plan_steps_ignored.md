@@ -3220,13 +3220,23 @@ Mention exiting hooks
 
 5. ISSUE: Hero.test.tsx — toHaveStyle with expect.stringContaining is wrong API
 
-Step 2.1 — line 431:
-expect(container.querySelector('section')).not.toHaveStyle({
-backgroundImage: expect.stringContaining("javascript")
-})
-toHaveStyle compares exact values, not matchers. Should be:
+Step 2.1 — line 439:
+expect(container.querySelector('section')).not.toHaveStyle({ backgroundImage: expect.stringContaining("javascript") })
+
+toHaveStyle internally calls getComputedStyle(element).
+jsdom doesn't compute CSS — it never applies stylesheets.
+So getComputedStyle(...).backgroundImage returns "" regardless of
+whether the inline style attribute was set or not.
+The test passes regardless: It never actually checks the value.
+
+Fix:
+
+Replace @line 439, as above with:
+
 const style = container.querySelector('section')!.style.backgroundImage;
 expect(style).not.toContain("javascript");
+
+**Updated per Fix**
 
 ---
 

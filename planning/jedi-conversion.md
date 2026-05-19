@@ -436,7 +436,8 @@ describe('<Hero />', () => {
     const { container } = render(() => (
       <Hero title="T" subtitle="T" ctaText="T" ctaHref="#" backgroundImage="javascript:alert(1)" />
     ))
-    expect(container.querySelector('section')).not.toHaveStyle({ backgroundImage: expect.stringContaining("javascript") })
+    const style = container.querySelector('section')!.style.backgroundImage;
+    expect(style).not.toContain("javascript");
     warn.mockRestore();
   })
 })
