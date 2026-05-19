@@ -3158,6 +3158,7 @@ export default function Card(props: CardProps) {
 const [local, rest] = splitProps(props, ["title", "class", "children"]);
 const defaulted = mergeProps({ title: "", class: "" }, local);
 // ... use {...rest} on <section>
+}
 
 Or just remove {...rest} — Card has no other props in plan usage.
 
@@ -3387,3 +3388,187 @@ claude-max --resume e4df9a16-c50f-479f-b6ca-c783d27bc00
 - Sort the list from critical to minor in order of most impacting first
 - Present a summary of issues found in table format after the list of issues
 - List Positive Observations in a bulleted list at end of results
+
+---
+
+⏺ Jedi Conversion Plan Review - 13th cycle
+
+Issues (Critical → Minor)
+
+1. CRITICAL — Image.tsx: JS comment inside JSX (line 475-476)
+
+<figure class={props.class ?? ""}>
+  // Solid wraps `props.href` in an accessor `href()` to maintain fine-grained reactivity.
+  <Show when={props.href} ...>
+
+JS-style // comment inside JSX renders as visible text in DOM. Must use {/_ ... _/} or remove entirely.
+
+---
+
+2. CRITICAL — E2E test: double invocation (line 1710)
+
+await expect(aside).not.toBeVisible()();
+
+Extra () → runtime error. Fix: await expect(aside).not.toBeVisible();
+
+---
+
+3. CRITICAL — ThemeToggle getInitialMode: TS compile errors (lines 1283-1286)
+
+const stored = window.localStorage.getItem("theme"); // string | null
+if (["light", "dark", "auto"].includes(stored)) return stored;
+
+Two TS errors:
+
+- includes(stored) — null not assignable to string param
+- return stored — string | null not assignable to return type ThemeMode
+
+Fix:
+
+if (stored === "light" || stored === "dark" || stored === "auto") return stored;
+
+Equality checks naturally narrow type to ThemeMode.
+
+---
+
+4. MODERATE — Phase 3 requirement #10 contradicts useListbox code (line 884)
+
+Requirement says:
+
+▎ Category list items: tabIndex={0}
+
+But useListbox.ts correctly returns tabIndex: -1 on options (line 72):
+
+function getOptionProps(index: number) {
+return {
+// ...
+tabIndex: -1 as const,
+}}
+
+- Container gets tabIndex: 0 (line 17). This is correct ARIA listbox pattern
+  — items navigated via arrow keys, not Tab.
+- Plan code (line 1082) correctly uses {...getOptionProps(index())}.
+- Requirement text wrong → fix doc.
+
+---
+
+5. MODERATE — Author hover:underline on wrong element (line 549)
+
+<a class="flex items-center gap-1 mb-4 hover:underline" href={merged.href}>
+  <img class="w-8 h-8 rounded-full" ... />
+  <span class="font-bold">{merged.name}</span>
+</a>
+
+hover:underline on <a> applies underline to all children including avatar image. Move to <span>:
+
+<a class="flex items-center gap-1 mb-4" href={merged.href}>
+  <img class="w-8 h-8 rounded-full" ... />
+  <span class="font-bold hover:underline">{merged.name}</span>
+</a>
+
+---
+
+6. MODERATE — E2E instructions contradictory (lines 1655-1657)
+
+▎ - Keep all existing tests
+▎ - Replace placeholder tests with new Jedi page tests
+
+- Existing tests should display page heading
+- should display h2 page headings
+- should have proper page structure
+
+get dropped. Clarify: "Keep footer tests. Replace page-structure placeholders with detailed Jedi tests."
+
+---
+
+7. MODERATE — Card mergeProps for title serves no purpose (lines 609-622)
+
+const defaulted = mergeProps({ title: "", class: "" }, props);
+// ...
+<Show when={defaulted.title}>
+
+Default "" is falsy → <Show> never renders it → same behavior as no default. Simpler:
+
+<Show when={props.title}>
+  <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{props.title}</h2>
+</Show>
+
+Keep mergeProps only for class if needed, or use props.class ?? "" directly.
+
+---
+
+8. MODERATE — JediNav <nav> missing aria-label (line 753)
+
+<nav aria-hidden={isMobile() && !mobileNavOpen()} class={...}>
+
+Page has two <nav> landmarks:
+
+- global Nav (aria-label="Main") and
+- JediNav.
+- Screen readers need labels to distinguish them.
+- Add aria-label="Jedi site".
+
+---
+
+9. MINOR — Typo in hook reference (line 48)
+
+lib.useListbox.ts
+
+Should be lib/useListbox.ts (period → slash).
+
+---
+
+10. MINOR — E2E test title misleading (line 1723)
+
+test("should have working navigation in header", async ({ page }) => {
+const nav = page.locator('nav[role="navigation"]');
+})
+
+- Tests global <Nav> (which has role="navigation"), not JediNav header
+- Title implies Jedi header. Rename: "should have global nav links on jedi page".
+
+---
+
+Summary Table
+
+┌─────┬──────────┬───────────────────────┬──────────────────────────────────────────────────────────────────────┐
+│ # │ Severity │ Location │ Issue │
+├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+│ 1 │ CRITICAL │ Image.tsx:475 │ JS comment in JSX → renders as visible text │
+├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+│ 2 │ CRITICAL │ E2E:1710 │ toBeVisible()() double invocation → runtime error │
+├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+│ 3 │ CRITICAL │ ThemeToggle:1283-1286 │ includes(null) + return type mismatch → TS compile fail │
+├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+│ 4 │ MODERATE │ Phase 3 req #10:884 │ Requirement says tabIndex={0} on items; useListbox correctly uses -1 │
+├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+│ 5 │ MODERATE │ Author.tsx:549 │ hover:underline on <a> underlines avatar image too │
+├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+│ 6 │ MODERATE │ Phase 5:1655-1657 │ "Keep all" vs "replace placeholder" contradictory │
+├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+│ 7 │ MODERATE │ Card.tsx:609-622 │ mergeProps({title: ""}) + <Show when={""}> = no-op default │
+├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+│ 8 │ MODERATE │ JediNav:753 │ Missing aria-label on second <nav> landmark │
+├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+│ 9 │ MINOR │ Line 48 │ Typo: lib.useListbox.ts → lib/useListbox.ts │
+├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+│ 10 │ MINOR │ E2E:1723 │ Test title says "header nav" but tests global Nav │
+└─────┴──────────┴───────────────────────┴──────────────────────────────────────────────────────────────────────┘
+
+---
+
+Positive Observations
+
+- Clean Alpine.js → SolidJS mapping table — accurate and complete
+- Tailwind v3 → v4 migrations correctly identified (md:!block → md:block!, opacity syntax, [&>\*] removal)
+- sanitizeImageUrl is solid security work — blocks javascript:, data:, CSS breakout chars, relative paths. Tests
+  thorough.
+- @layer base wrapping rationale well-explained — prevents specificity fights with utility classes
+- Static data arrays (CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS) correctly placed outside component fn
+- useListbox hook: proper ARIA listbox implementation with aria-activedescendant, Home/End, Arrow key navigation
+- useEscapeKey + useIsMobile hooks reused across components — good separation
+- Theme toggle FOUC prevention via external theme-init.js — CSP-compliant design, well-reasoned over inline script
+- createEffect with conditional onCleanup pattern correctly documented — comment explains SolidJS cleanup semantics
+- E2E theme persistence test (reload → verify data-theme survives) covers real user scenario
+- Phase-gated workflow with per-step verification prevents cascading errors
+- Accessibility baseline baked into Phase 3 requirements rather than bolted on later
