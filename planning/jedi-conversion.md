@@ -1652,8 +1652,8 @@ import userEvent from "@testing-library/user-event";
 **File**: `e2e/jedi.spec.ts`
 
 - File exists with existing tests.
-- Keep all existing tests
-- Replace placeholder tests with new Jedi page tests
+- Keep Footer tests
+- Replace page-structure placeholders with detailed Jedi tests
 - Add theme toggle tests.
 
 **Existing tests preserved**: footer solidjs.com link, footer Home link, footer navigation, footer active indicator. These test global Footer behavior on the Jedi route and must not be dropped.

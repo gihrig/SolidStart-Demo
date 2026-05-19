@@ -3512,7 +3512,16 @@ Move `hover:underline` back to <span>
 - should display h2 page headings
 - should have proper page structure
 
-get dropped. Clarify: "Keep footer tests. Replace page-structure placeholders with detailed Jedi tests."
+get dropped.
+
+Fix:
+
+Clarify:
+
+- Keep footer tests.
+- Replace page-structure placeholders with detailed Jedi tests.
+
+**Updated per Fix**
 
 ---
 
