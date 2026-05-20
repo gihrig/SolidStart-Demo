@@ -534,20 +534,11 @@ interface AuthorProps {
 **Component**:
 
 ```tsx
-import { mergeProps } from "solid-js";
-
 export default function Author(props: AuthorProps) {
-  const merged = mergeProps(
-    {
-      href: "#",
-    },
-    props,
-  );
-
   return (
-    <a class="flex items-center gap-1 mb-4" href={merged.href}>
-      <img class="w-8 h-8 rounded-full" src={merged.avatarSrc} alt={merged.name} />
-      <span class="font-bold hover:underline">{merged.name}</span>
+    <a class="flex items-center gap-1 mb-4" href={props.href ?? "#"}>
+      <img class="w-8 h-8 rounded-full" src={props.avatarSrc} alt={props.name} />
+      <span class="font-bold hover:underline">{props.name}</span>
     </a>
   );
 }
@@ -602,26 +593,17 @@ type CardProps = ParentProps<CardOwnProps>;
 **Component**:
 
 ```tsx
-import { mergeProps, Show, type ParentProps } from "solid-js";
+import { Show, type ParentProps } from "solid-js";
 
 export default function Card(props: CardProps) {
-  const defaulted = mergeProps(
-    {
-      title: "",
-      class: "",
-    },
-    props,
-  );
-
   return (
     <section
-      class="flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg)"
-      classList={{ [defaulted.class]: !!defaulted.class }}
+      class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg) ${props.class ?? ""}`}
     >
-      <Show when={defaulted.title}>
-        <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{defaulted.title}</h2>
+      <Show when={props.title}>
+        <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{props.title}</h2>
       </Show>
-      <div class="p-4 pt-0">{defaulted.children}</div>
+      <div class="p-4 pt-0">{props.children}</div>
     </section>
   );
 }

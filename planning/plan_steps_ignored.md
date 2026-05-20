@@ -3537,7 +3537,14 @@ Default "" is falsy → <Show> never renders it → same behavior as no default.
   <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{props.title}</h2>
 </Show>
 
-Keep mergeProps only for class if needed, or use props.class ?? "" directly.
+Fix:
+
+- Remove mergeProps
+- Replace defaulted... with props...
+- use props.class ?? "" directly.
+- Similar changes to Author @line 537
+
+**Updated per Fix**
 
 ---
 
