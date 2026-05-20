@@ -3557,7 +3557,12 @@ Page has two <nav> landmarks:
 - global Nav (aria-label="Main") and
 - JediNav.
 - Screen readers need labels to distinguish them.
+
+Fix:
+
 - Add aria-label="Jedi site".
+
+**Updated per Fix**
 
 ---
 
