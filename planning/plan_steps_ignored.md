@@ -3666,6 +3666,12 @@ Validation checklist at line 1936:
 - [ ] Hero title uses Lobster font 6xl
 text-7xl vs 6xl — one wrong. Implement whichever, other needs update.
 
+Fix:
+
+Standardize on 7xl
+
+**Updated per Fix**
+
 ---
 
 2. MODERATE — JediNav missing focus-visible on ALL interactive elements

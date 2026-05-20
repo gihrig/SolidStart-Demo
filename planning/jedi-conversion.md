@@ -124,7 +124,7 @@ body {
 }
 
 .demo h1 {
-  @apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase;
+  @apply mx-6 my-16 text-7xl font-thin text-(--theme-accent) uppercase;
 }
 
 .demo h2 {
@@ -196,7 +196,7 @@ body {
   }
 
   .demo h1 {
-    @apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase;
+    @apply mx-6 my-16 text-7xl font-thin text-(--theme-accent) uppercase;
   }
 
   .demo h2 {
@@ -1928,7 +1928,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 ### Desktop View Jedi page (1280px+)
 
 - [ ] Hero displays background image with 40% overlay (bg-gray-800/40)
-- [ ] Hero title uses Lobster font 6xl
+- [ ] Hero title uses Lobster font 7xl
 - [ ] Hero title uses Tile Case
 - [ ] Hero title uses white text color
 - [ ] "Get Started" button uses `--btn-primary` color
