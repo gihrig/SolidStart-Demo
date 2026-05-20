@@ -3641,3 +3641,202 @@ Positive Observations
 - E2E theme persistence test (reload → verify data-theme survives) covers real user scenario
 - Phase-gated workflow with per-step verification prevents cascading errors
 - Accessibility baseline baked into Phase 3 requirements rather than bolted on later
+
+---
+
+❯ Review `planning/jedi-conversion.md`
+
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- List Positive Observations in a bulleted list at end of results
+
+⏺ Issues Found - 14th cycle
+
+1. MODERATE — Hero font size contradicts Phase 7 validation checklist
+
+Code at line 393:
+
+<h1 class="text-7xl leading-tight font-bold mb-4 animate-fade-in font-hero">
+Validation checklist at line 1936:
+- [ ] Hero title uses Lobster font 6xl
+text-7xl vs 6xl — one wrong. Implement whichever, other needs update.
+
+---
+
+2. MODERATE — JediNav missing focus-visible on ALL interactive elements
+
+Phase 3 requirement 10 (line 865):
+All interactive elements: `focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none`
+
+JediNav code missing this on 7 elements:
+
+- Logo link (line 700): <a class="flex items-center gap-1" href="#"> — no focus-visible
+- Hamburger button (line 710): class="md:hidden h-12 w-12 flex items-center..." — no focus-visible
+- Nav link Home (line 740): <a href="#">Home</a> — no focus-visible
+- Nav link Create Post (line 742): same
+- Profile button (line 748): class="flex items-center gap-2 cursor-pointer..." — no focus-visible
+- Dropdown My Profile link (line 772): no focus-visible
+- Dropdown Log Out link (line 776): no focus-visible
+
+jedi.css .navitems rules (line 241-249) also lack focus-visible styles.
+Jedi route page elements have it, JediNav doesn't.
+
+---
+
+3. MODERATE — ThemeToggle test localStorage mock returns undefined not null
+
+Line 1425-1427:
+vi.spyOn(Storage.prototype, "getItem").mockImplementation(
+(key: string) => mockLocalStorage[key] ?? undefined,
+);
+
+Real localStorage.getItem() returns null for missing keys per Web Storage spec. Should be:
+(key: string) => mockLocalStorage[key] ?? null,
+
+Works now because getInitialMode() uses strict equality (stored === "light"), both undefined and null fail. Breaks future code checks stored !== null.
+
+---
+
+4. MINOR — Phase 7 validation typo "Tile Case"
+
+Line 1937:
+
+- [ ] Hero title uses Tile Case
+      Should be "Title Case".
+
+---
+
+5. MINOR — JediNav test missing mobile nav toggle show/hide behavior
+
+Test file (lines 798-829) tests:
+
+- Logo renders ✓
+- Toggle button exists ✓
+- Nav links render ✓
+- Dropdown opens on click ✓
+
+Missing: clicking hamburger shows/hides mobile nav.
+Core feature untested at component level. Only covered in E2E.
+
+---
+
+6. MINOR — Image component test missing class prop coverage
+
+ImageProps interface (line 459-463):
+interface ImageProps {
+src: string;
+alt: string;
+href?: string;
+class?: string; // ← untested
+}
+
+Component applies it (line 474): class={props.class ?? ""}.
+No test verifies pass-through.
+
+---
+
+7. MINOR — Props interfaces not exported
+
+HeroProps (line 366), ImageProps (line 459), AuthorProps (line 527), CardOwnProps (line 586)
+all unexported.
+Convention in SolidJS projects: export props interfaces for testing and consumer type reuse.
+
+---
+
+8. MINOR — JediNav aria-label="jedi-site" too terse
+
+Line 736:
+
+<nav aria-label="jedi-site" ...>
+
+Screen reader announces "jedi-site navigation". Better: aria-label="Jedi site navigation" — human-readable phrase.
+Global Nav uses aria-label="Main" (Nav.tsx line 8) for comparison.
+
+---
+
+9. MINOR — JediNav click-outside listener always active
+
+Lines 687-694 register listener in onMount — fires on every document click even when dropdown closed.
+
+More idiomatic SolidJS:
+createEffect(() => {
+if (!dropdownOpen()) return;
+const handler = (e: MouseEvent) => { ... };
+document.addEventListener("click", handler);
+onCleanup(() => document.removeEventListener("click", handler));
+});
+
+Only listens when dropdown open. Negligible perf diff for single dropdown — idiomatic improvement.
+
+---
+
+10. MINOR — Card class concatenation lacks conflict resolution
+
+Line 600-601:
+class={`flex flex-col overflow-hidden ... ${props.class ?? ""}`}
+
+Template literal concat.
+
+- If consumer passes conflicting utility (e.g., class="overflow-visible"), both overflow-hidden
+  and overflow-visible apply
+  — last-in-stylesheet wins, not last-in-class-attr. No tailwind-merge or cn() in project.
+- Current Card usage in plan has no conflicts, but fragile for future reuse.
+
+---
+
+Summary Table
+
+```
+┌─────┬──────────┬────────────────────────────────────┬─────────────────────────────────────────────────────┐
+│  #  │ Severity │              Location              │                        Issue                        │
+├─────┼──────────┼────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ 1   │ MODERATE │ Hero line 393 vs Phase 7 line 1936 │ text-7xl contradicts validation "6xl"               │
+├─────┼──────────┼────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ 2   │ MODERATE │ JediNav lines 700-780              │ Missing focus-visible on all 7 interactive elements │
+├─────┼──────────┼────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ 3   │ MODERATE │ ThemeToggle test line 1427         │ localStorage mock returns undefined not null        │
+├─────┼──────────┼────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ 4   │ MINOR    │ Phase 7 line 1937                  │ Typo "Tile Case" → "Title Case"                     │
+├─────┼──────────┼────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ 5   │ MINOR    │ JediNav test lines 798-829         │ No test for mobile nav toggle show/hide             │
+├─────┼──────────┼────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ 6   │ MINOR    │ Image test lines 489-512           │ class prop untested                                 │
+├─────┼──────────┼────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ 7   │ MINOR    │ Lines 366, 459, 527, 586           │ Props interfaces unexported                         │
+├─────┼──────────┼────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ 8   │ MINOR    │ JediNav line 736                   │ aria-label="jedi-site" not human-readable           │
+├─────┼──────────┼────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ 9   │ MINOR    │ JediNav lines 687-694              │ Click-outside listener always active                │
+├─────┼──────────┼────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ 10  │ MINOR    │ Card line 600                      │ Class concat lacks tailwind-merge                   │
+└─────┴──────────┴────────────────────────────────────┴─────────────────────────────────────────────────────┘
+```
+
+---
+
+Positive Observations
+
+- Correct @layer base strategy — wrapping :root custom properties and global element rules in @layer base so Tailwind utilities can override without !important. Well-reasoned, well-documented at line 76-77
+- Security-conscious sanitizeImageUrl — blocks javascript:, data:, CSS breakout chars (', ", (, ), \). Covers real
+  attack vectors for CSS url() injection. Good that it's scoped to Hero (where CSS context exists) and not over-applied to <img src>
+- Correct SolidJS reactivity patterns throughout — no props destructuring, derived values use functions not effects,
+  onCleanup inside onMount/createEffect for listener cleanup, <Show> callback form {(href) => ...} for type narrowing
+- Proper useListbox integration — signal accessors passed correctly (selectedCategory as Accessor<number>,
+  setSelectedCategory as onSelect), classList for dynamic highlight + focus ring, ARIA listbox/option roles via hook
+- Theme FOUC prevention well-architected — external theme-init.js (CSP-safe) in <head> before {assets}, var for max
+  compat, empty catch {} for graceful degradation when localStorage blocked. Better than Tanstack source's inline
+  innerHTML approach
+- ThemeToggle createEffect early-return pattern — comment at line 1296 correctly explains SolidJS cleanup semantics
+  ("Solid calls only cleanups registered in the prior run"). Shows deep understanding of reactive lifecycle
+- Static data outside component — CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS declared outside Jedi() per requirement 11.
+  Prevents recreation on every render
+- Tailwind v4 syntax consistently correct — bg-gray-800/40 (not bg-opacity-40), text-(--theme-accent) (not
+  text-[var(--theme-accent)]), @theme for animation tokens, md:block! syntax noted in mapping table
+- E2E tests preserve existing footer tests — all 4 footer tests carried over verbatim (lines 1741-1770 match existing lines 29-63). Phase 5 instructions explicit about this at line 1641
+- Clean Alpine.js → SolidJS mapping table — lines 52-60 and 654-667 provide concrete before/after for each pattern.
+  Good implementation reference
