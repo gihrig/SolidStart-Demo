@@ -1702,7 +1702,7 @@ test.describe("Jedi Page", () => {
     await expect(aside.getByRole("heading", { name: /top captions/i })).toBeVisible();
   });
 
-  test("should have working navigation in header", async ({ page }) => {
+  test("should have global nav links on jedi page", async ({ page }) => {
     await page.goto("/jedi");
     const nav = page.locator('nav[role="navigation"]');
     await expect(nav).toBeVisible();

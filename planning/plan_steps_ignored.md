@@ -3578,42 +3578,51 @@ Should be lib/useListbox.ts (period → slash).
 
 ---
 
-10. MINOR — E2E test title misleading (line 1723)
+10. MINOR — E2E test title misleading (line 1705)
 
 test("should have working navigation in header", async ({ page }) => {
 const nav = page.locator('nav[role="navigation"]');
 })
 
 - Tests global <Nav> (which has role="navigation"), not JediNav header
-- Title implies Jedi header. Rename: "should have global nav links on jedi page".
+- Title implies Jedi header.
+
+Fix:
+
+- Rename test: "should have global nav links on jedi page".
+
+**Updated per Fix**
 
 ---
 
 Summary Table
 
-┌─────┬──────────┬───────────────────────┬──────────────────────────────────────────────────────────────────────┐
-│ # │ Severity │ Location │ Issue │
-├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
-│ 1 │ CRITICAL │ Image.tsx:475 │ JS comment in JSX → renders as visible text │
-├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
-│ 2 │ CRITICAL │ E2E:1710 │ toBeVisible()() double invocation → runtime error │
-├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
-│ 3 │ CRITICAL │ ThemeToggle:1283-1286 │ includes(null) + return type mismatch → TS compile fail │
-├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
-│ 4 │ MODERATE │ Phase 3 req #10:884 │ Requirement says tabIndex={0} on items; useListbox correctly uses -1 │
-├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
-│ 5 │ MODERATE │ Author.tsx:549 │ hover:underline on <a> underlines avatar image too │
-├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
-│ 6 │ MODERATE │ Phase 5:1655-1657 │ "Keep all" vs "replace placeholder" contradictory │
-├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
-│ 7 │ MODERATE │ Card.tsx:609-622 │ mergeProps({title: ""}) + <Show when={""}> = no-op default │
-├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
-│ 8 │ MODERATE │ JediNav:753 │ Missing aria-label on second <nav> landmark │
-├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
-│ 9 │ MINOR │ Line 48 │ Typo: lib.useListbox.ts → lib/useListbox.ts │
-├─────┼──────────┼───────────────────────┼──────────────────────────────────────────────────────────────────────┤
-│ 10 │ MINOR │ E2E:1723 │ Test title says "header nav" but tests global Nav │
-└─────┴──────────┴───────────────────────┴──────────────────────────────────────────────────────────────────────┘
+```
+┌─────┬──────────┬───────────────────────┬────────────────────────────────────────────────────────────┐
+│ #   │ Severity │ Location              │                              Issue                         │
+├─────┼──────────┼───────────────────────┼────────────────────────────────────────────────────────────┤
+│ 1   │ CRITICAL │ Image.tsx:475         │ JS comment in JSX → renders as visible text                │
+├─────┼──────────┼───────────────────────┼────────────────────────────────────────────────────────────┤
+│ 2   │ CRITICAL │ E2E:1709              │ toBeVisible()() double invocation → runtime error          │
+├─────┼──────────┼───────────────────────┼────────────────────────────────────────────────────────────┤
+│ 3   │ CRITICAL │ ThemeToggle:1283-1286 │ includes(null) + return type mismatch → TS compile fail    │
+├─────┼──────────┼───────────────────────┼────────────────────────────────────────────────────────────┤
+│ 4   │ MODERATE │ Phase 3 req #10:883   │ Requirement says tabIndex={0} on items; useListbox         │
+│     │          │                       │ correctly uses -1                                          │
+├─────┼──────────┼───────────────────────┼────────────────────────────────────────────────────────────┤
+│ 5   │ MODERATE │ Author.tsx:549        │ hover:underline on <a> underlines avatar image too         │
+├─────┼──────────┼───────────────────────┼────────────────────────────────────────────────────────────┤
+│ 6   │ MODERATE │ Phase 5:1655-1657     │ "Keep all" vs "replace placeholder" contradictory          │
+├─────┼──────────┼───────────────────────┼────────────────────────────────────────────────────────────┤
+│ 7   │ MODERATE │ Card.tsx:609-622      │ mergeProps({title: ""}) + <Show when={""}> = no-op default │
+├─────┼──────────┼───────────────────────┼────────────────────────────────────────────────────────────┤
+│ 8   │ MODERATE │ JediNav:753           │ Missing aria-label on second <nav> landmark                │
+├─────┼──────────┼───────────────────────┼────────────────────────────────────────────────────────────┤
+│ 9   │ MINOR    │ Line 47               │ Typo: lib.useListbox.ts → lib/useListbox.ts                │
+├─────┼──────────┼───────────────────────┼────────────────────────────────────────────────────────────┤
+│ 10  │ MINOR    │ E2E:1705              │ Test title says "header nav" but tests global Nav          │
+└─────┴──────────┴───────────────────────┴────────────────────────────────────────────────────────────┘
+```
 
 ---
 
