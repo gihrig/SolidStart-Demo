@@ -3566,11 +3566,15 @@ Fix:
 
 ---
 
-9. MINOR — Typo in hook reference (line 48)
+9. MINOR — Typo in hook reference (line 47)
 
 lib.useListbox.ts
 
+Fix:
+
 Should be lib/useListbox.ts (period → slash).
+
+**Updated per Fix**
 
 ---
 

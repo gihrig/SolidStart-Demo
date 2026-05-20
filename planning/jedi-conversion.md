@@ -44,7 +44,7 @@ Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.ts
 Existing hooks used in Step 2.5 and Phase 3
 
 - lib/useIsMobile.ts: Detect mobile screen size < 768px
-- lib.useListbox.ts: Provide Aria compliant navigation for list box components
+- lib/useListbox.ts: Provide Aria compliant navigation for list box components
 - lib/useEscapeKey: Execute handler on Escape
 
 ### Alpine.js → SolidJS Mapping
