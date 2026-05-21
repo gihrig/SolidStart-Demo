@@ -516,6 +516,11 @@ describe('<Image />', () => {
     const { container } = render(() => <Image src="test.jpg" alt="Test" />)
     expect(container.querySelector('a')).toBeNull()
   })
+
+  it('applies class prop to figure element', () => {
+    const { container } = render(() => <Image src="test.jpg" alt="Test" class="custom-class" />)
+    expect(container.querySelector('figure')).toHaveClass('custom-class')
+  })
 })
 ```
 

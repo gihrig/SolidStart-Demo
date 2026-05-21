@@ -3810,7 +3810,7 @@ All 14 tests are RED. The next step (Phase 2, Step 2.5) is to create JediNav.tsx
 
 6. MINOR — Image component test missing class prop coverage
 
-ImageProps interface (line 459-463):
+ImageProps interface (line 467-471):
 interface ImageProps {
 src: string;
 alt: string;
@@ -3818,8 +3818,18 @@ href?: string;
 class?: string; // ← untested
 }
 
-Component applies it (line 474): class={props.class ?? ""}.
+Component applies it (line 482): class={props.class ?? ""}.
 No test verifies pass-through.
+
+Fix:
+
+❯ Read `planning/jedi-conversion.md` source code for `src/components/Image.tsx` @lines 460-493 and source code for
+`src/components/Image.test.tsx` @lines 495-519. Update the plan file for `src/components/Image.test.tsx` to include testing for the `class` property pass through.
+
+⏺ Plan updated. The new test (line 520–523) verifies that class="custom-class" lands on the <figure> element —
+exercising the props.class ?? "" expression in <figure class={props.class ?? ""}> which was untested.
+
+**Updated per Fix - Co-authored by Claude Sonnet 4.6**
 
 ---
 
