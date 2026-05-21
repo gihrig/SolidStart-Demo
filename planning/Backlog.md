@@ -31,3 +31,7 @@
   - "https://img.icons8.com/small/96/A9A9A9/happy.png"
 
 ## 2. Download `https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg` read from /pubic
+
+## 3. MODERATE — Card class concatenation has no conflict resolution
+
+- Detail `planning/plan_steps_ignored.md` @line 4066

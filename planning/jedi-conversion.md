@@ -543,7 +543,7 @@ describe('<Author />', () => {
 ```typescript
 export interface CardProps extends ParentProps {
   title?: string;
-  /** Additive classes only — does not override Card's base utilities (overflow-hidden, etc.) */
+  /** Add classes only — May not override base utilities. Consider tailwind-merge + clsx = cn see iCrumz*/
   class?: string;
 }
 ```
