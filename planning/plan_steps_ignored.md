@@ -4051,6 +4051,16 @@ src="https://img.icons8.com/small/24/000000/fire-heart.png"
 Fix: use SVGs with currentColor, or swap icon color param based on theme, or use a neutral gray (999999) with enough
 contrast for both modes.
 
+- Create a comparable svg icon sprite
+- Update instances of icon usage `https://img.icons8.com...` with sprite access:
+  ```
+  <svg width="24" height="24" aria-hidden="true">
+    <use href="/icons.svg#icon-home"></use>
+  </svg>
+  ```
+
+**Added to `/planning/Backlog.md**
+
 ---
 
 4. MODERATE — Card class concatenation has no conflict resolution
