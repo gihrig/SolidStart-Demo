@@ -370,7 +370,7 @@ describe("sanitizeImageUrl", () => {
 **Props**:
 
 ```typescript
-interface HeroProps {
+export interface HeroProps {
   title: string;
   subtitle: string;
   ctaText: string;
@@ -464,7 +464,7 @@ describe('<Hero />', () => {
 **Props**:
 
 ```typescript
-interface ImageProps {
+export interface ImageProps {
   src: string;
   alt: string;
   href?: string;
@@ -537,7 +537,7 @@ describe('<Image />', () => {
 **Props**:
 
 ```typescript
-interface AuthorProps {
+export interface AuthorProps {
   avatarSrc: string;
   name: string;
   href?: string;
@@ -596,11 +596,10 @@ describe('<Author />', () => {
 **Props**:
 
 ```typescript
-interface CardOwnProps {
+export interface CardProps extends ParentProps {
   title?: string;
   class?: string;
 }
-type CardProps = ParentProps<CardOwnProps>;
 ```
 
 **Component**:
@@ -2088,16 +2087,17 @@ When the above passes, the conversion is **complete**. Commit any final fixes an
 
 ## Success Criteria
 
-1. All 6 components created with TypeScript interfaces (Hero, Image, Author, Card, JediNav, ThemeToggle)
-2. `src/routes/jedi.tsx` functional with all sections; no duplicate `<Nav />` import
-3. All component tests pass.
-4. All E2E tests pass.
-5. Visual appearance matches **Jedi Project** `Awesome.png`
-6. Mobile sidebar toggle works
-7. light/Dark/auto theme toggle works with localStorage persistence; toggle in global Nav (all pages)
-8. No FOUC — theme init script applies stored preference before first paint
-9. TailwindCSS v4 syntax throughout; no Alpine.js dependencies; `style` only for dynamic background-image
-10. Global CSS in `@layer base` — Tailwind utilities override without `!important`
-11. Accessibility baseline met (semantic buttons, aria-label, aria-expanded, focus indicators)
-12. Zero browser console errors
-13. `vpr check:type` and `vpr build` succeed without errors or warnings
+1. 6 Solid JS components created with TypeScript (Hero, Image, Author, Card, JediNav, ThemeToggle)
+2. 4 Solid JS components accept props and have exported TypeScript interfaces (Hero, Image, Author, Card)
+3. `src/routes/jedi.tsx` functional with all sections; no duplicate `<Nav />` import
+4. All component tests pass.
+5. All E2E tests pass.
+6. Visual appearance matches **Jedi Project** `Awesome.png`
+7. Mobile sidebar toggle works
+8. light/Dark/auto theme toggle works with localStorage persistence; toggle in global Nav (all pages)
+9. No FOUC — theme init script applies stored preference before first paint
+10. TailwindCSS v4 syntax throughout; no Alpine.js dependencies; `style` only for dynamic background-image
+11. Global CSS in `@layer base` — Tailwind utilities override without `!important`
+12. Accessibility baseline met (semantic buttons, aria-label, aria-expanded, focus indicators)
+13. Zero browser console errors
+14. `vpr check:type` and `vpr build` succeed without errors or warnings

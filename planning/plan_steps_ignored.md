@@ -3835,9 +3835,19 @@ exercising the props.class ?? "" expression in <figure class={props.class ?? ""}
 
 7. MINOR — Props interfaces not exported
 
-HeroProps (line 366), ImageProps (line 459), AuthorProps (line 527), CardOwnProps (line 586)
-all unexported.
+- HeroProps (line 373)
+- ImageProps (line 467)
+- AuthorProps (line 548)
+- CardOwnProps (line 586)
+
 Convention in SolidJS projects: export props interfaces for testing and consumer type reuse.
+
+Fix:
+
+- Export component interfaces
+- Simplify Card interface: `CardOwnProps` -> `CardProps extends ParentProps`
+
+**Updated per Fix**
 
 ---
 
