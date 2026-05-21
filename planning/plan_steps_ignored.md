@@ -3911,6 +3911,24 @@ Template literal concat.
   — last-in-stylesheet wins, not last-in-class-attr. No tailwind-merge or cn() in project.
 - Current Card usage in plan has no conflicts, but fragile for future reuse.
 
+Fix:
+
+❯ Read `planning/jedi-conversion.md` source code for `src/components/Card.tsx` @lines 610-621 and `planning/plan_steps_ignored.md` @lines 3902-3912. Recommend a change that would handle a potential utility class conflict.
+
+⏺ recommendation: Add a JSDoc constraint.
+
+The project has no tailwind-merge or cn(). Adding it for a single component, for a conflict that doesn't exist in the current plan, violates YAGNI. But leaving the interface silent is what makes it "fragile for future reuse." A JSDoc comment on the class prop tells any future caller exactly what to expect:
+
+interface CardProps {
+title?: string;
+/\*_ Additive classes only — does not override Card's base utilities (overflow-hidden, etc.) _/
+class?: string;
+}
+
+If a future caller genuinely needs to override a base utility (e.g., overflow-visible for a tooltip card), that's the right moment to reach for tailwind-merge — scoped to the problem that actually exists.
+
+**Updated per Fix - Co-authored by Claude Sonnet 4.6**
+
 ---
 
 Summary Table

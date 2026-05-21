@@ -598,6 +598,7 @@ describe('<Author />', () => {
 ```typescript
 export interface CardProps extends ParentProps {
   title?: string;
+  /** Additive classes only — does not override Card's base utilities (overflow-hidden, etc.) */
   class?: string;
 }
 ```
