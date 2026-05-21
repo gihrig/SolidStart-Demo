@@ -3756,7 +3756,7 @@ Should be "Title Case".
 
 5. MINOR — JediNav test missing mobile nav toggle show/hide behavior
 
-Test file (lines 798-829) tests:
+Test file `jedi-conversion.md` (lines 798-838) tests:
 
 - Logo renders ✓
 - Toggle button exists ✓
@@ -3764,7 +3764,47 @@ Test file (lines 798-829) tests:
 - Dropdown opens on click ✓
 
 Missing: clicking hamburger shows/hides mobile nav.
-Core feature untested at component level. Only covered in E2E.
+Core feature untested at component level.
+Only covered in E2E.
+
+Fix:
+
+❯ Read `planning/jedi-conversion.md` Source code for `src/components/JediNav.tsx` @lines 656-796 and source code for
+`src/components/JediNav.test.tsx` @lines 798-838. Create tests for clicking hamburger shows/hides mobile nav.
+
+⏺ What was written (src/components/JediNav.test.tsx):
+
+- Carried forward the 5 existing plan tests, now with beforeEach(() => setupMatchMedia(false))
+  — required because useIsMobile calls window.matchMedia at construction time (not in onMount), which throws in jsdom without a mock.
+- Added describe("hamburger menu") with 9 new tests covering the open/close cycle:
+
+```
+┌───────────────────────────────────────────────────────┬───────────────────────────────────┐
+│                         Test                          │          What it proves           │
+├───────────────────────────────────────────────────────┼───────────────────────────────────┤
+│ starts with aria-expanded false                       │ initial closed state              │
+├───────────────────────────────────────────────────────┼───────────────────────────────────┤
+│ mobile nav starts hidden                              │ pointer-events-none class present │
+├───────────────────────────────────────────────────────┼───────────────────────────────────┤
+│ shows menu icon when closed                           │ src contains "menu"               │
+├───────────────────────────────────────────────────────┼───────────────────────────────────┤
+│ click → aria-expanded true                            │ state change reflected in ARIA    │
+├───────────────────────────────────────────────────────┼───────────────────────────────────┤
+│ click → removes pointer-events-none, adds opacity-100 │ nav becomes interactive/visible   │
+├───────────────────────────────────────────────────────┼───────────────────────────────────┤
+│ click → shows close icon                              │ src contains "delete-sign"        │
+├───────────────────────────────────────────────────────┼───────────────────────────────────┤
+│ second click → aria-expanded false                    │ toggle closes                     │
+├───────────────────────────────────────────────────────┼───────────────────────────────────┤
+│ second click → restores pointer-events-none           │ nav re-hidden                     │
+├───────────────────────────────────────────────────────┼───────────────────────────────────┤
+│ second click → restores menu icon                     │ icon reverts                      │
+└───────────────────────────────────────────────────────┴───────────────────────────────────┘
+```
+
+All 14 tests are RED. The next step (Phase 2, Step 2.5) is to create JediNav.tsx and make them go GREEN.
+
+**Updated per Fix - Co-authored by Claude Sonnet 4.6**
 
 ---
 
