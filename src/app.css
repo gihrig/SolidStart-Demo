@@ -20,28 +20,34 @@
     --theme-highlight: --color-indigo-100;
     --theme-btn-primary: rgb(88, 40, 244);
     --theme-btn-primary-hover: rgb(69, 29, 200);
-    --theme-background: --color-zinc-200;
     --theme-foreground: --color-zinc-800;
-    --theme-hover-bg: --color-gray-200;
-    --theme-card-fg: --color-gray-700;
+    --theme-background: --color-zinc-100;
+    --theme-hover-fg: --color-gray-100;
+    --theme-hover-bg: --color-gray-500;
+    --theme-card-fg: --color-gray-900;
     --theme-card-bg: --color-zinc-200;
+    --theme-muted: --color-gray-500;
   }
 
   :root[data-theme="dark"] {
+    --theme-foreground: --color-zinc-100;
     --theme-background: --color-zinc-800;
-    --theme-foreground: --color-zinc-300;
-    --theme-hover-bg: --color-gray-700;
+    --theme-hover-fg: --color-gray-500;
+    --theme-hover-bg: --color-gray-100;
     --theme-card-fg: --color-zinc-200;
-    --theme-card-bg: --color-gray-700;
+    --theme-card-bg: --color-gray-900;
+    --theme-muted: --color-gray-200;
   }
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
+      --theme-foreground: --color-zinc-100;
       --theme-background: --color-zinc-800;
-      --theme-foreground: --color-zinc-300;
-      --theme-hover-bg: --color-gray-700;
+      --theme-hover-fg: --color-gray-500;
+      --theme-hover-bg: --color-gray-100;
       --theme-card-fg: --color-zinc-200;
-      --theme-card-bg: --color-gray-700;
+      --theme-card-bg: --color-gray-900;
+      --theme-muted: --color-gray-200;
     }
   }
 

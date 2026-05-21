@@ -72,71 +72,10 @@ Existing hooks used in Step 2.5 and Phase 3
 1. Wrap existing global element rules in `@layer base` so Tailwind utility classes on Jedi components override them.
 2. Add Jedi custom properties (`--theme-btn-primary`, `--theme-btn-primary-hover`) to `:root`.
 3. Add `fadeIn` animation + `.animate-fade-in` utility.
+4. Use `text-(--theme-vars)` and `bg-(--theme-vars)` for page elements.
+5. JediNav.tsx and Hero.tsx are exceptions to #4 above. They do not change for dark/light mode.
 
 > **Why `@layer base`**: Global `main {}`, `h1 {}`, etc. rules in unlayered CSS have higher precedence than Tailwind utility classes (which live in `@layer utilities`). Wrapping in `@layer base` lets utility classes on Jedi components override these defaults without needing `!important`.
-
-**Before** (existing `src/app.css`):
-
-```css
-@import "tailwindcss";
-
-@theme {
-  --font-hero: "Lobster", sans-serif;
-}
-
-:root {
-  --theme-accent: --color-sky-700;
-  --theme-highlight: --color-indigo-100;
-  --theme-btn-primary: rgb(88, 40, 244);
-  --theme-btn-primary-hover: rgb(69, 29, 200);
-  --theme-background: --color-zinc-200;
-  --theme-foreground: --color-zinc-800;
-  --theme-hover-bg: --color-gray-200;
-  --theme-card-fg: --color-gray-700;
-  --theme-card-bg: --color-zinc-200;
-}
-
-:root[data-theme="dark"] {
-  --theme-background: --color-zinc-800;
-  --theme-foreground: --color-zinc-300;
-  --theme-hover-bg: --color-gray-700;
-  --theme-card-fg: --color-zinc-200;
-  --theme-card-bg: --color-gray-700;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --theme-background: --color-zinc-800;
-    --theme-foreground: --color-zinc-300;
-    --theme-hover-bg: --color-gray-700;
-    --theme-card-fg: --color-zinc-200;
-    --theme-card-bg: --color-gray-700;
-  }
-}
-
-body {
-  background: var(--theme-background);
-  color: var(--theme-foreground);
-}
-
-.demo main {
-  @apply mx-auto p-4 text-center text-xl text-(--theme-foreground);
-}
-
-.demo h1 {
-  @apply mx-6 my-16 text-7xl font-thin text-(--theme-accent) uppercase;
-}
-
-.demo h2 {
-  @apply ml-8 text-left text-2xl font-thin text-(--theme-accent) uppercase;
-}
-
-.demo p {
-  @apply mx-8 mb-6 text-justify;
-}
-```
-
-**After**:
 
 ```css
 @import "tailwindcss";
@@ -161,28 +100,34 @@ body {
     --theme-highlight: --color-indigo-100;
     --theme-btn-primary: rgb(88, 40, 244);
     --theme-btn-primary-hover: rgb(69, 29, 200);
-    --theme-background: --color-zinc-200;
     --theme-foreground: --color-zinc-800;
-    --theme-hover-bg: --color-gray-200;
-    --theme-card-fg: --color-gray-700;
+    --theme-background: --color-zinc-100;
+    --theme-hover-fg: --color-gray-100;
+    --theme-hover-bg: --color-gray-500;
+    --theme-card-fg: --color-gray-900;
     --theme-card-bg: --color-zinc-200;
+    --theme-muted: --color-gray-500;
   }
 
   :root[data-theme="dark"] {
+    --theme-foreground: --color-zinc-100;
     --theme-background: --color-zinc-800;
-    --theme-foreground: --color-zinc-300;
-    --theme-hover-bg: --color-gray-700;
+    --theme-hover-fg: --color-gray-500;
+    --theme-hover-bg: --color-gray-100;
     --theme-card-fg: --color-zinc-200;
-    --theme-card-bg: --color-gray-700;
+    --theme-card-bg: --color-gray-900;
+    --theme-muted: --color-gray-200;
   }
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
+      --theme-foreground: --color-zinc-100;
       --theme-background: --color-zinc-800;
-      --theme-foreground: --color-zinc-300;
-      --theme-hover-bg: --color-gray-700;
+      --theme-hover-fg: --color-gray-500;
+      --theme-hover-bg: --color-gray-100;
       --theme-card-fg: --color-zinc-200;
-      --theme-card-bg: --color-gray-700;
+      --theme-card-bg: --color-gray-900;
+      --theme-muted: --color-gray-200;
     }
   }
 
@@ -196,7 +141,7 @@ body {
   }
 
   .demo h1 {
-    @apply mx-6 my-16 text-7xl font-thin text-(--theme-accent) uppercase;
+    @apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase;
   }
 
   .demo h2 {
@@ -1059,7 +1004,7 @@ export default function Jedi() {
             aria-label="Toggle sidebar"
             aria-expanded={mobileSidebarOpen()}
             onClick={() => setMobileSidebarOpen(!mobileSidebarOpen())}
-            class="flex items-center font-bold hover:bg-gray-200 rounded-lg p-3"
+            class="flex items-center font-bold text-(--theme-card-fg) bg-(--theme-card-bg) hover:text-(--theme-hover-fg) hover:bg-(--theme-hover-bg) rounded-lg p-3"
           >
             <span>Categories</span>
             <img
@@ -1076,7 +1021,7 @@ export default function Jedi() {
             {/* Title bar */}
             <div class="flex items-center justify-between px-4 h-14">
               <h3 class="text-lg font-bold w-1/2 truncate">Little Jedi</h3>
-              <div class="text-sm text-gray-500">
+              <div class="text-sm text-(--theme-muted)">
                 flickr @{" "}
                 <a href="#" class="hover:underline rounded" target="_blank" rel="noreferrer">
                   John Doe
@@ -1099,13 +1044,13 @@ export default function Jedi() {
               <p class="text-5xl mb-10 px-4 font-hero">Jedi Kitty protects the street</p>
               <div class="flex items-center gap-2 text-sm mb-5">
                 <a
-                  class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white"
+                  class="text-(--theme-card-fg) bg-(--theme-card-bg) rounded-full px-3 py-1 hover:text-(--theme-hover-fg) hover:bg-(--theme-hover-bg)"
                   href="#"
                 >
                   Animals
                 </a>
                 <a
-                  class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white"
+                  class="text-(--theme-card-fg) bg-(--theme-card-bg) rounded-full px-3 py-1 hover:text-(--theme-hover-fg) hover:bg-(--theme-hover-bg)"
                   href="#"
                 >
                   Cute
@@ -1114,7 +1059,7 @@ export default function Jedi() {
               <div class="flex items-center justify-between text-sm px-2">
                 <a class="font-bold hover:underline rounded" href="#">
                   Comments
-                  <span class="font-light text-gray-500 ml-2">3</span>
+                  <span class="font-light text-(--theme-card-fg) ml-2">3</span>
                 </a>
                 <div class="flex items-center gap-4">
                   <div class="flex items-center gap-1">
@@ -1125,13 +1070,13 @@ export default function Jedi() {
                     />
                     1
                   </div>
-                  <a class="hover:underline rounded" href="#">
+                  <a class="text-(--theme-card-fg) hover:underline rounded" href="#">
                     Like
                   </a>
-                  <a class="hover:underline rounded" href="#">
+                  <a class="text-(--theme-card-fg) hover:underline rounded" href="#">
                     Edit
                   </a>
-                  <a class="hover:underline rounded" href="#">
+                  <a class="text-(--theme-card-fg) hover:underline rounded" href="#">
                     Delete
                   </a>
                 </div>
@@ -1173,7 +1118,9 @@ export default function Jedi() {
                       <img class="w-10 h-10 rounded-lg object-cover mr-3" src={p.src} alt={p.alt} />
                       <img class="w-6 h-6 rounded-full object-cover mr-0.5" src={p.avatar} alt="" />
                       <span class="font-bold text-sm mr-1">{p.author}</span>
-                      <span class="text-sm font-light text-gray-500">({p.likes} Likes)</span>
+                      <span class="text-sm font-light text-(--theme-card-fg)">
+                        ({p.likes} Likes)
+                      </span>
                     </a>
                   </li>
                 )}
@@ -1188,7 +1135,9 @@ export default function Jedi() {
                     <a href="#" class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg)">
                       <img class="w-8 h-8 rounded-full object-cover mr-1" src={c.avatar} alt="" />
                       <span class="font-bold text-sm mr-1">{c.author}</span>
-                      <span class="text-sm font-light text-gray-500">({c.likes} Likes)</span>
+                      <span class="text-sm font-light text-(--theme-card-fg)">
+                        ({c.likes} Likes)
+                      </span>
                     </a>
                   </li>
                 )}

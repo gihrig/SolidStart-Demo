@@ -4021,11 +4021,20 @@ Fix: change regex to /jedi site/i in all 3 test cases.
 Several elements inside the main article use hardcoded light-mode colors. In dark mode (card bg resolves to
 --color-gray-700), these break visually:
 
-- Tags (lines 1105–1109): bg-gray-200 rounded-full — light gray pills on dark card
+- Tags (lines 1102 & 1108): bg-gray-200 rounded-full — light gray pills on dark card
 - Muted text (lines 1079, 1117): text-gray-500 — low contrast on dark bg
-- Action links section uses no theme vars
+- Action links (lines 1128-1134) use no theme vars
 
-Fix: use bg-(--theme-hover-bg) for tag bg, text-(--theme-card-fg)/60 or a theme muted var for secondary text.
+Fix:
+
+- Tags use `class="text-(--theme-card-fg) bg-(--theme-card-bg) rounded-full px-3 py-1 hover:text-(--theme-hover-fg) hover:bg-(--theme-hover-bg)"`
+- Muted text (1079) use `class="text-sm text-(--theme-muted)"`
+- Comments (1117) use `class="font-light text-(--theme-card-fg) ml-2"`
+- Action links use `class="text-(--theme-card-fg) hover:underline rounded"`
+- Search and replace instances of `text-{color}` and `bg-{color}` with `--theme-*` variables
+- Step 1.1 Remove "before" css block - this step is complete and before state is unneeded clutter
+
+**Updated per Fix**
 
 ---
 
