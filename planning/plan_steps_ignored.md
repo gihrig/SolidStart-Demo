@@ -4082,15 +4082,23 @@ Update comment at potential issue location
 
 5. MODERATE — Sidebar toggle hover hardcoded for light mode
 
-Line 1063:
+Line 1007:
 class="flex items-center font-bold hover:bg-gray-200 rounded-lg p-3"
 
 hover:bg-gray-200 — jarring light hover on dark bg. Should be hover:bg-(--theme-hover-bg) like other interactive
 elements.
 
+Fix:
+
+Corrected in #2 above - Search and replace instances of `text-{color}` and `bg-{color}` with `--theme-*` variables
+
+No changes here
+
+**Updated per Fix**
+
 ---
 
-6. MODERATE — JediNav dropdown not dismissable via Escape
+6. MODERATE — JediNav dropdown not dismissible via Escape
 
 useEscapeKey hook exists and is used for the mobile sidebar (line 1035), but the JediNav dropdown menu has no Escape
 handler. Users can click-outside to close, but keyboard-only users can't dismiss the profile dropdown without tabbing
