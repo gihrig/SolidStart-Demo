@@ -3982,3 +3982,185 @@ Positive Observations
 - E2E tests preserve existing footer tests — all 4 footer tests carried over verbatim (lines 1741-1770 match existing lines 29-63). Phase 5 instructions explicit about this at line 1641
 - Clean Alpine.js → SolidJS mapping table — lines 52-60 and 654-667 provide concrete before/after for each pattern.
   Good implementation reference
+
+---
+
+❯ Review `planning/jedi-conversion.md`
+
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- List Positive Observations in a bulleted list at end of results
+
+⏺ Jedi Conversion Plan Review - 15th cycle
+
+Numbered Issues (Critical → Minor)
+
+1. CRITICAL — JediNav tests will fail: aria-label regex mismatch
+
+Component defines aria-label="Jedi site navigation" (space) but 3 tests query with /jedi-site/i (hyphen). Regex won't match.
+
+Component (line 749):
+aria-label="Jedi site navigation"
+
+Tests (lines 872, 895, 922):
+const nav = screen.getByRole("navigation", { name: /jedi-site/i });
+
+Fix: change regex to /jedi site/i in all 3 test cases.
+
+---
+
+2. HIGH — Article content not dark-mode-aware
+
+Several elements inside the main article use hardcoded light-mode colors. In dark mode (card bg resolves to
+--color-gray-700), these break visually:
+
+- Tags (lines 1105–1109): bg-gray-200 rounded-full — light gray pills on dark card
+- Muted text (lines 1079, 1117): text-gray-500 — low contrast on dark bg
+- Action links section uses no theme vars
+
+Fix: use bg-(--theme-hover-bg) for tag bg, text-(--theme-card-fg)/60 or a theme muted var for secondary text.
+
+---
+
+3. HIGH — Icons invisible in dark mode
+
+External icons use hardcoded 000000 (black) color in URL path. On dark backgrounds, black icons vanish.
+
+Categories toggle arrow (line 1068):
+src="https://img.icons8.com/small/32/000000/expand-arrow.png"
+
+Likes heart (line 1123):
+src="https://img.icons8.com/small/24/000000/fire-heart.png"
+
+Fix: use SVGs with currentColor, or swap icon color param based on theme, or use a neutral gray (999999) with enough
+contrast for both modes.
+
+---
+
+4. MODERATE — Card class concatenation has no conflict resolution
+
+Card uses template literal concatenation:
+
+class={`flex flex-col overflow-hidden ... rounded-2xl ... ${props.class ?? ""}`}
+
+If consumer passes class="rounded-none", both rounded-2xl and rounded-none appear. Last-in-source-order wins in TW4,
+but this is fragile. No twMerge or cn() utility used. (Previously flagged at commit 5ff7f33.)
+
+---
+
+5. MODERATE — Sidebar toggle hover hardcoded for light mode
+
+Line 1063:
+class="flex items-center font-bold hover:bg-gray-200 rounded-lg p-3"
+
+hover:bg-gray-200 — jarring light hover on dark bg. Should be hover:bg-(--theme-hover-bg) like other interactive
+elements.
+
+---
+
+6. MODERATE — JediNav dropdown not dismissable via Escape
+
+useEscapeKey hook exists and is used for the mobile sidebar (line 1035), but the JediNav dropdown menu has no Escape
+handler. Users can click-outside to close, but keyboard-only users can't dismiss the profile dropdown without tabbing
+away. Accessibility gap per WCAG 2.1 SC 1.4.13.
+
+---
+
+7. MINOR — Plan "Before" CSS snapshot wrong for Step 1.1
+
+Plan's "Before" block (line 128) shows .demo h1 with text-7xl:
+.demo h1 {
+@apply mx-6 my-16 text-7xl font-thin ...
+
+Actual src/app.css:59:
+.demo h1 {
+@apply mx-6 my-16 text-6xl font-thin ...
+
+Step already complete ([√]), so no implementation impact. Doc inaccuracy only.
+
+---
+
+8. MINOR — Article duplicates Card component styling
+
+Main article (line 1075) manually repeats Card's full base utility string:
+class="flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg)
+text-(--theme-card-fg)"
+
+Identical to Card's base classes (lines 613–615). Could extract shared Tailwind @apply class in jedi.css or compose
+with Card. Maintenance risk if card styling changes.
+
+---
+
+9. MINOR — Author hover target too narrow
+
+<a class="flex items-center gap-1 mb-4" href={props.href ?? "#"}>
+<img class="w-8 h-8 rounded-full" src={props.avatarSrc} alt={props.name} />
+<span class="font-bold hover:underline">{props.name}</span>
+</a>
+
+hover:underline on <span> — underline only activates when hovering the name text, not the avatar portion of the
+anchor. Move hover:underline to the <a> or apply a group-hover pattern.
+
+---
+
+10. MINOR — Props + Component split across separate code blocks
+
+For all 4 prop-bearing components (Hero, Image, Author, Card), the export interface and component code appear in
+separate markdown code blocks. Implementer must combine them into one file. Not explicit in the plan — risk of missed
+merge.
+
+---
+
+Summary Table
+
+```
+┌─────┬──────────┬─────────────────┬─────────────────────────────────────────────────────────────┐
+│  #  │ Severity │      Area       │                             Issue                           │
+├─────┼──────────┼─────────────────┼─────────────────────────────────────────────────────────────┤
+│ 1   │ CRITICAL │ JediNav test    │ Regex /jedi-site/i won't match aria-label "Jedi site        │
+│     │          │                 │ navigation" — 3 tests fail                                  │
+├─────┼──────────┼─────────────────┼─────────────────────────────────────────────────────────────┤
+│ 2   │ HIGH     │ Theme/Dark mode │ Article tags, muted text use hardcoded light-mode colors    │
+├─────┼──────────┼─────────────────┼─────────────────────────────────────────────────────────────┤
+│ 3   │ HIGH     │ Theme/Dark mode │ External icons use black (000000) — invisible on dark bg    │
+├─────┼──────────┼─────────────────┼─────────────────────────────────────────────────────────────┤
+│ 4   │ MODERATE │ Card component  │ No twMerge/cn() for class conflict resolution               │
+├─────┼──────────┼─────────────────┼─────────────────────────────────────────────────────────────┤
+│ 5   │ MODERATE │ Theme/Dark mode │ Sidebar toggle hover:bg-gray-200 hardcoded for light mode   │
+├─────┼──────────┼─────────────────┼─────────────────────────────────────────────────────────────┤
+│ 6   │ MODERATE │ Accessibility   │ JediNav dropdown not Escape-dismissible                     │
+├─────┼──────────┼─────────────────┼─────────────────────────────────────────────────────────────┤
+│ 7   │ MINOR    │ Documentation   │ Step 1.1 "Before" shows text-7xl, actual is text-6xl        │
+├─────┼──────────┼─────────────────┼─────────────────────────────────────────────────────────────┤
+│ 8   │ MINOR    │ Maintainability │ Article duplicates Card's base utility string               │
+├─────┼──────────┼─────────────────┼─────────────────────────────────────────────────────────────┤
+│ 9   │ MINOR    │ UX              │ Author underline hover only on span, not full anchor        │
+├─────┼──────────┼─────────────────┼─────────────────────────────────────────────────────────────┤
+│ 10  │ MINOR    │ Documentation   │ Props interfaces in separate code blocks from components    │
+└─────┴──────────┴─────────────────┴─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+Positive Observations
+
+- Security: sanitizeImageUrl blocks javascript:, data: URIs, and CSS breakout chars before injecting into style attr — thorough input validation at system boundary
+- Idiomatic SolidJS reactivity: No prop destructuring, derived functions over effects, onCleanup inside createEffect
+  for conditional listeners, classList for reactive toggles
+- Clean TW4 syntax: Consistent text-(--css-variable) custom property syntax, bg-gray-800/40 opacity shorthand, no v3
+  residue (!important, bg-opacity-_, [&>_] in components)
+- Accessibility depth: useListbox provides full ARIA listbox with Home/End/Arrow/Enter keyboard nav, aria-expanded on all toggles, aria-hidden for hidden panels, :focus-visible ring utility in global CSS
+- SSR-safe: isServer guards in hooks, onMount for client-only code, FOUC prevention via sync external script
+  (CSP-friendly vs inline innerHTML)
+- Performance: Static data arrays (CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS) declared outside component — no re-allocation per render
+- Test coverage: 3 levels (unit for sanitizeImageUrl, component for all 6 components, e2e for page interactions +
+  theme persistence + responsive layout)
+- Clean separation: Global theme (app.css + theme-init.js) vs page-scoped styles (jedi.css), global toggle in Nav vs
+  page-specific JediNav
+- @layer base wrapping: Correctly solves TW utility specificity override for global element rules — well-documented
+  rationale in plan
