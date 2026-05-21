@@ -4012,6 +4012,8 @@ const nav = screen.getByRole("navigation", { name: /jedi-site/i });
 
 Fix: change regex to /jedi site/i in all 3 test cases.
 
+**Updated per Fix**
+
 ---
 
 2. HIGH — Article content not dark-mode-aware

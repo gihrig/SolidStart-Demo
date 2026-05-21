@@ -868,7 +868,7 @@ describe("<JediNav />", () => {
 
     it("mobile nav starts hidden (pointer-events-none)", () => {
       render(() => <JediNav />);
-      const nav = screen.getByRole("navigation", { name: /jedi-site/i });
+      const nav = screen.getByRole("navigation", { name: /Jedi site navigation/i });
       expect(nav).toHaveClass("pointer-events-none");
     });
 
@@ -891,7 +891,7 @@ describe("<JediNav />", () => {
       render(() => <JediNav />);
       const btn = screen.getByRole("button", { name: /toggle navigation/i });
       await user.click(btn);
-      const nav = screen.getByRole("navigation", { name: /jedi-site/i });
+      const nav = screen.getByRole("navigation", { name: /Jedi site navigation/i });
       expect(nav).not.toHaveClass("pointer-events-none");
       expect(nav).toHaveClass("opacity-100");
     });
@@ -919,7 +919,7 @@ describe("<JediNav />", () => {
       const btn = screen.getByRole("button", { name: /toggle navigation/i });
       await user.click(btn);
       await user.click(btn);
-      const nav = screen.getByRole("navigation", { name: /jedi-site/i });
+      const nav = screen.getByRole("navigation", { name: /Jedi site navigation/i });
       expect(nav).toHaveClass("pointer-events-none");
     });
 
