@@ -1407,7 +1407,7 @@ describe("<ThemeToggle />", () => {
   beforeEach(() => {
     mockLocalStorage = {};
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(
-      (key: string) => mockLocalStorage[key] ?? undefined,
+      (key: string) => mockLocalStorage[key] ?? null,
     );
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(
       (key: string, value: string) => {

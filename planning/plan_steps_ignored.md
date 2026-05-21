@@ -3716,7 +3716,7 @@ textarea:focus-visible {
 
 3. MODERATE — ThemeToggle test localStorage mock returns undefined not null
 
-Line 1425-1427:
+Line 1409-1410:
 vi.spyOn(Storage.prototype, "getItem").mockImplementation(
 (key: string) => mockLocalStorage[key] ?? undefined,
 );
@@ -3725,6 +3725,18 @@ Real localStorage.getItem() returns null for missing keys per Web Storage spec. 
 (key: string) => mockLocalStorage[key] ?? null,
 
 Works now because getInitialMode() uses strict equality (stored === "light"), both undefined and null fail. Breaks future code checks stored !== null.
+
+Fix:
+
+Replace:
+
+`(key: string) => mockLocalStorage[key] ?? undefined,`
+
+with
+
+`(key: string) => mockLocalStorage[key] ?? null,`
+
+**Updated per Fix**
 
 ---
 
