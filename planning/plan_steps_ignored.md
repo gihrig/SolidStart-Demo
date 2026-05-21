@@ -3740,12 +3740,17 @@ with
 
 ---
 
-1. MINOR — Phase 7 validation typo "Tile Case"
+4. MINOR — Phase 7 validation typo "Tile Case"
 
-Line 1937:
+Line 1917:
 
 - [ ] Hero title uses Tile Case
-      Should be "Title Case".
+
+Fix:
+
+Should be "Title Case".
+
+**Updated per Fix**
 
 ---
 

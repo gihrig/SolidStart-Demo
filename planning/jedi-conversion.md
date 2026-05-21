@@ -1914,7 +1914,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 
 - [ ] Hero displays background image with 40% overlay (bg-gray-800/40)
 - [ ] Hero title uses Lobster font 7xl
-- [ ] Hero title uses Tile Case
+- [ ] Hero title uses Title Case
 - [ ] Hero title uses white text color
 - [ ] "Get Started" button uses `--btn-primary` color
 - [ ] Global Nav visible (from `app.tsx`)
