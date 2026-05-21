@@ -3871,7 +3871,7 @@ Replace <nav aria-label="jedi-site" ...> with <nav aria-label="Jedi site navigat
 
 9. MINOR — JediNav click-outside listener always active
 
-Lines 687-694 register listener in onMount — fires on every document click even when dropdown closed.
+Lines 699-707 register listener in onMount — fires on every document click even when dropdown closed.
 
 More idiomatic SolidJS:
 createEffect(() => {
@@ -3882,6 +3882,20 @@ onCleanup(() => document.removeEventListener("click", handler));
 });
 
 Only listens when dropdown open. Negligible perf diff for single dropdown — idiomatic improvement.
+
+Fix:
+
+❯ Read `planning/jedi-conversion.md` source code for `src/components/JediNav.tsx` @lines 699-707 and `planning/plan_steps_ignored.md` @lines 3872-3884. Update `planning/jedi-conversion.md` to implement the recommended `createEffect()` pattern.
+
+⏺ Done. Two changes in the plan's JediNav.tsx block:
+
+1. Import (line 690): onMount → createEffect
+2. Body (lines 699–707): onMount(() => { ... }) → createEffect(() => { if (!dropdownOpen()) return; ... })
+
+The listener now only attaches when the dropdown is open and removes itself via onCleanup when dropdownOpen() goes
+false — no document clicks processed while the dropdown is closed.
+
+**Updated per Fix - Co-authored by Claude Sonnet 4.6**
 
 ---
 

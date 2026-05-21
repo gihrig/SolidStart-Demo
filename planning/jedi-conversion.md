@@ -687,7 +687,7 @@ describe('<Card />', () => {
 **Component**:
 
 ```tsx
-import { createSignal, Show, onMount, onCleanup } from "solid-js";
+import { createSignal, Show, createEffect, onCleanup } from "solid-js";
 import { useIsMobile } from "~/lib/useIsMobile";
 
 export default function JediNav() {
@@ -696,7 +696,8 @@ export default function JediNav() {
   const isMobile = useIsMobile();
   let dropdownRef: HTMLLIElement | undefined;
 
-  onMount(() => {
+  createEffect(() => {
+    if (!dropdownOpen()) return;
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef && !dropdownRef.contains(e.target as Node)) {
         setDropdownOpen(false);
