@@ -65,4 +65,12 @@
   .demo p {
     @apply mx-8 mb-6 text-justify;
   }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply ring-2 ring-(--theme-accent) outline-none;
+  }
 }

@@ -3679,18 +3679,38 @@ Standardize on 7xl
 Phase 3 requirement 10 (line 865):
 All interactive elements: `focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none`
 
-JediNav code missing this on 7 elements:
+JediNav `focus-visible` code missing this on 7 elements:
 
-- Logo link (line 700): <a class="flex items-center gap-1" href="#"> — no focus-visible
-- Hamburger button (line 710): class="md:hidden h-12 w-12 flex items-center..." — no focus-visible
-- Nav link Home (line 740): <a href="#">Home</a> — no focus-visible
-- Nav link Create Post (line 742): same
-- Profile button (line 748): class="flex items-center gap-2 cursor-pointer..." — no focus-visible
-- Dropdown My Profile link (line 772): no focus-visible
-- Dropdown Log Out link (line 776): no focus-visible
+- Logo link (line 708): <a class="flex items-center gap-1" href="#">
+- Hamburger button (716): <button class="md:hidden h-12 w-12 flex items-center...">
+- Nav link Home (line 748): <a href="#">Home</a>
+- Nav link Create Post (line 751): <a href="#">Create Post</a>
+- Profile button (line 756): <button class="flex items-center gap-2 cursor-pointer...">
+- Dropdown My Profile link (line 779): <a class="justify-end" href="#"> Profile </a>
+- Dropdown Log Out link 784: <a class="justify-end" href="#">Log Out</a>
 
-jedi.css .navitems rules (line 241-249) also lack focus-visible styles.
-Jedi route page elements have it, JediNav doesn't.
+jedi.css .navitems rules (line 241-249) lack focus-visible styles.
+
+- Inherited from app.css
+
+Fix:
+
+- Create `*:focus-visible` properties in app.css
+
+```css
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  @apply ring-2 ring-(--theme-accent) outline-none;
+}
+```
+
+- Remove 11 instances of `focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none`
+- Add note @line 874 describing this arrangement
+
+**Updated per Fix**
 
 ---
 
@@ -3708,7 +3728,7 @@ Works now because getInitialMode() uses strict equality (stored === "light"), bo
 
 ---
 
-4. MINOR — Phase 7 validation typo "Tile Case"
+1. MINOR — Phase 7 validation typo "Tile Case"
 
 Line 1937:
 

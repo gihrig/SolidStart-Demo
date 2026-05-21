@@ -206,6 +206,14 @@ body {
   .demo p {
     @apply mx-8 mb-6 text-justify;
   }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply ring-2 ring-(--theme-accent) outline-none;
+  }
 }
 ```
 
@@ -862,7 +870,7 @@ describe("<JediNav />", () => {
 - Mobile toggle uses `<button type="button">` (not `<a>`).
 - Mobile toggle has `aria-label="Toggle sidebar"` and `aria-expanded={mobileSidebarOpen()}`.
 - Decorative icons use `alt=""`; content images use meaningful alt.
-- All interactive elements: `focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none`.
+- All interactive elements: get `*:focus-visible` sudo classes as defined in `app.css`.
 - Category list items: `tabIndex={-1}`, `role="option"`, `aria-selected`, `onKeyDown` (Enter/Space selects item, updates `selectedCategory` signal and highlight).
 - Category `<ul>`: `role="listbox"` with `aria-label="Categories"`.
 - Mobile sidebar: Escape key dismisses when open (`useEscapeKey` hook — document-level, works regardless of focus position).
@@ -953,7 +961,7 @@ export default function Jedi() {
             aria-label="Toggle sidebar"
             aria-expanded={mobileSidebarOpen()}
             onClick={() => setMobileSidebarOpen(!mobileSidebarOpen())}
-            class="flex items-center font-bold hover:bg-gray-200 rounded-lg p-3 focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none"
+            class="flex items-center font-bold hover:bg-gray-200 rounded-lg p-3"
           >
             <span>Categories</span>
             <img
@@ -972,12 +980,7 @@ export default function Jedi() {
               <h3 class="text-lg font-bold w-1/2 truncate">Little Jedi</h3>
               <div class="text-sm text-gray-500">
                 flickr @{" "}
-                <a
-                  href="#"
-                  class="hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded"
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <a href="#" class="hover:underline rounded" target="_blank" rel="noreferrer">
                   John Doe
                 </a>
               </div>
@@ -998,23 +1001,20 @@ export default function Jedi() {
               <p class="text-5xl mb-10 px-4 font-hero">Jedi Kitty protects the street</p>
               <div class="flex items-center gap-2 text-sm mb-5">
                 <a
-                  class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none"
+                  class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white"
                   href="#"
                 >
                   Animals
                 </a>
                 <a
-                  class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none"
+                  class="bg-gray-200 rounded-full px-3 py-1 hover:bg-gray-500 hover:text-white"
                   href="#"
                 >
                   Cute
                 </a>
               </div>
               <div class="flex items-center justify-between text-sm px-2">
-                <a
-                  class="font-bold hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded"
-                  href="#"
-                >
+                <a class="font-bold hover:underline rounded" href="#">
                   Comments
                   <span class="font-light text-gray-500 ml-2">3</span>
                 </a>
@@ -1027,22 +1027,13 @@ export default function Jedi() {
                     />
                     1
                   </div>
-                  <a
-                    class="hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded"
-                    href="#"
-                  >
+                  <a class="hover:underline rounded" href="#">
                     Like
                   </a>
-                  <a
-                    class="hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded"
-                    href="#"
-                  >
+                  <a class="hover:underline rounded" href="#">
                     Edit
                   </a>
-                  <a
-                    class="hover:underline focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none rounded"
-                    href="#"
-                  >
+                  <a class="hover:underline rounded" href="#">
                     Delete
                   </a>
                 </div>
@@ -1080,10 +1071,7 @@ export default function Jedi() {
               <For each={TOP_PHOTOS}>
                 {(p) => (
                   <li class="rounded-md transition-colors duration-150">
-                    <a
-                      href="#"
-                      class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg) focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none"
-                    >
+                    <a href="#" class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg)">
                       <img class="w-10 h-10 rounded-lg object-cover mr-3" src={p.src} alt={p.alt} />
                       <img class="w-6 h-6 rounded-full object-cover mr-0.5" src={p.avatar} alt="" />
                       <span class="font-bold text-sm mr-1">{p.author}</span>
@@ -1099,10 +1087,7 @@ export default function Jedi() {
               <For each={TOP_CAPTIONS}>
                 {(c) => (
                   <li class="rounded-md transition-colors duration-150">
-                    <a
-                      href="#"
-                      class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg) focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none"
-                    >
+                    <a href="#" class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg)">
                       <img class="w-8 h-8 rounded-full object-cover mr-1" src={c.avatar} alt="" />
                       <span class="font-bold text-sm mr-1">{c.author}</span>
                       <span class="text-sm font-light text-gray-500">({c.likes} Likes)</span>
