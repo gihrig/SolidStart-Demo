@@ -3853,12 +3853,19 @@ Fix:
 
 8. MINOR — JediNav aria-label="jedi-site" too terse
 
-Line 736:
+Line 747:
 
 <nav aria-label="jedi-site" ...>
 
-Screen reader announces "jedi-site navigation". Better: aria-label="Jedi site navigation" — human-readable phrase.
-Global Nav uses aria-label="Main" (Nav.tsx line 8) for comparison.
+- Screen reader announces "jedi-site navigation".
+- Better: aria-label="Jedi site navigation" — human-readable phrase.
+- Global Nav uses aria-label="Main" (Nav.tsx line 8) for comparison.
+
+Fix:
+
+Replace <nav aria-label="jedi-site" ...> with <nav aria-label="Jedi site navigation" ...>
+
+**Updated per Fix**
 
 ---
 
