@@ -615,18 +615,25 @@ describe('<Card />', () => {
 
 **Alpine.js → SolidJS conversions in this component**:
 
-| Source (Alpine.js)                                         | Target (SolidJS)                                                |
-| ---------------------------------------------------------- | --------------------------------------------------------------- |
-| `x-data="{ mobilenavOpen: false }"`                        | `const [mobileNavOpen, setMobileNavOpen] = createSignal(false)` |
-| `x-data="{ dropdownOpen: false }"`                         | `const [dropdownOpen, setDropdownOpen] = createSignal(false)`   |
-| `x-show="mobilenavOpen"` / `x-show="!mobilenavOpen"`       | `<Show when={mobileNavOpen()}>` with fallback                   |
-| `@click="mobilenavOpen = !mobilenavOpen"`                  | `onClick={() => setMobileNavOpen(!mobileNavOpen())}`            |
-| `@click.away="dropdownOpen = false"`                       | Click-outside handler via `document.addEventListener`           |
-| `x-cloak`                                                  | Removed (not needed)                                            |
-| `x-transition:enter="duration-300 ease-out"`               | Tailwind `transition-all duration-300 ease-out`                 |
-| `x-bind:class="dropdownOpen && 'rotate-180 duration-300'"` | Template literal class                                          |
-| `md:!block`                                                | `md:block!` (TailwindCSS v4 syntax)                             |
-| `[&>*]:px-8`                                               | Direct `px-8` on each child element                             |
+```
+┌──────────────────────────────────────────────────────┬───────────────────────────────────────────────────────┐
+| Source (Alpine.js)                                   | Target (SolidJS)                                      |
+├──────────────────────────────────────────────────────┼───────────────────────────────────────────────────────┤
+| `x-data="{ mobilenavOpen: false }"`                  | `const [mobileNavOpen, setMobileNavOpen] =            |
+|                                                      |  createSignal(false)`                                 |
+| `x-data="{ dropdownOpen: false }"`                   | `const [dropdownOpen, setDropdownOpen] =              |
+|                                                      |  createSignal(false)`                                 |
+| `x-show="mobilenavOpen"` / `x-show="!mobilenavOpen"` | `<Show when={mobileNavOpen()}>` with fallback         |
+| `@click="mobilenavOpen = !mobilenavOpen"`            | `onClick={() => setMobileNavOpen(!mobileNavOpen())}`  |
+| `@click.away="dropdownOpen = false"`                 | Click-outside handler via `document.addEventListener` |
+| `x-cloak`                                            | Removed (not needed)                                  |
+| `x-transition:enter="duration-300 ease-out"`         | Tailwind `transition-all duration-300 ease-out`       |
+| `x-bind:class="dropdownOpen && 'rotate-180           | Template literal class                                |
+|  duration-300'"`                                     |                                                       |
+| `md:!block`                                          | `md:block!` (TailwindCSS v4 syntax)                   |
+| `[&>*]:px-8`                                         | Direct `px-8` on each child element                   |
+└──────────────────────────────────────────────────────┴───────────────────────────────────────────────────────┘
+```
 
 **TailwindCSS v3 → v4 conversions**:
 
