@@ -4190,6 +4190,16 @@ Fix:
 hover:underline on <span> — underline only activates when hovering the name text, not the avatar portion of the
 anchor. Move hover:underline to the <a> or apply a group-hover pattern.
 
+Fix:
+
+- This was addressed at 12th Cycle Step "5. MODERATE — Author hover:underline on wrong element (line 549)"
+- Have gone back and forth on this issue
+- Decided to underline Avatar and Author as both are click active
+- This deviates from Source project
+- Do not flag this issue again
+
+**Updated per Fix**
+
 ---
 
 10. MINOR — Props + Component split across separate code blocks

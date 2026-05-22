@@ -502,9 +502,9 @@ export interface AuthorProps {
 ```tsx
 export default function Author(props: AuthorProps) {
   return (
-    <a class="flex items-center gap-1 mb-4" href={props.href ?? "#"}>
+    <a class="flex items-center gap-1 mb-4 hover:underline" href={props.href ?? "#"}>
       <img class="w-8 h-8 rounded-full" src={props.avatarSrc} alt={props.name} />
-      <span class="font-bold hover:underline">{props.name}</span>
+      <span class="font-bold">{props.name}</span>
     </a>
   );
 }
