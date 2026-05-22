@@ -4147,10 +4147,11 @@ Fix:
 Plan's "Before" block (line 128) shows .demo h1 with text-7xl:
 .demo h1 {
 @apply mx-6 my-16 text-7xl font-thin ...
-
+}
 Actual src/app.css:59:
 .demo h1 {
 @apply mx-6 my-16 text-6xl font-thin ...
+}
 
 Step already complete ([√]), so no implementation impact. Doc inaccuracy only.
 
@@ -4302,6 +4303,8 @@ dropdownRef is HTMLLIElement | undefined (a variable). At call time during setup
 directive assigns later. Even after assignment, the hook captured the initial undefined value, not the live binding.
 
 Fix: useDismiss(() => setDropdownOpen(false), dropdownOpen, () => dropdownRef)
+
+**Updated per Fix**
 
 ---
 

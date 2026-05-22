@@ -641,7 +641,11 @@ export default function JediNav() {
   let dropdownRef: HTMLLIElement | undefined;
 
   useDismiss(() => setMobileNavOpen(false), mobileNavOpen);
-  useDismiss(() => setDropdownOpen(false), dropdownOpen, dropdownRef);
+  useDismiss(
+    () => setDropdownOpen(false),
+    dropdownOpen,
+    () => dropdownRef,
+  );
 
   return (
     <header class="md:flex items-center justify-between bg-gray-800 h-20 text-white sticky top-0 z-50">
