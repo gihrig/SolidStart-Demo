@@ -196,6 +196,10 @@ import "@fontsource/lobster";
 /* Jedi page — descendant-selector patterns from source style.css */
 
 @layer components {
+  .card-style {
+    @apply flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg);
+  }
+
   .navitems > li > a {
     @apply flex h-12 items-center gap-2 rounded-lg px-4;
   }
@@ -559,9 +563,7 @@ import { Show, type ParentProps } from "solid-js";
 
 export default function Card(props: CardProps) {
   return (
-    <section
-      class={`flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg) ${props.class ?? ""}`}
-    >
+    <section class={`card-style ${props.class ?? ""}`}>
       <Show when={props.title}>
         <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{props.title}</h2>
       </Show>
@@ -1021,7 +1023,7 @@ export default function Jedi() {
 
         {/* Main article */}
         <main class="col-span-full md:col-span-2 mx-[5%] md:mx-[10%] order-2 md:order-1">
-          <article class="flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg)">
+          <article class="card-style">
             {/* Title bar */}
             <div class="flex items-center justify-between px-4 h-14">
               <h3 class="text-lg font-bold w-1/2 truncate">Little Jedi</h3>

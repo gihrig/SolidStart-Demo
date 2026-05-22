@@ -4165,12 +4165,18 @@ Fix:
 
 8. MINOR — Article duplicates Card component styling
 
-Main article (line 1075) manually repeats Card's full base utility string:
-class="flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg)
-text-(--theme-card-fg)"
+Main article (line 1024) manually repeats Card's full base utility string:
+class="flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg)"
 
 Identical to Card's base classes (lines 613–615). Could extract shared Tailwind @apply class in jedi.css or compose
 with Card. Maintenance risk if card styling changes.
+
+Fix:
+
+- Create `jedi.css .cardStyle`
+- Replace duplicated instances
+
+**Updated per Fix**
 
 ---
 
