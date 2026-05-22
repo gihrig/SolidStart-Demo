@@ -320,7 +320,7 @@ describe("sanitizeImageUrl", () => {
 
 **Source**: `<hero>` section from **Jedi Project** `index.html`.
 
-**Props**:
+**Component**:
 
 ```typescript
 export interface HeroProps {
@@ -330,11 +330,7 @@ export interface HeroProps {
   ctaHref: string;
   backgroundImage: string;
 }
-```
 
-**Component**:
-
-```tsx
 import { sanitizeImageUrl } from "~/lib/sanitizeImageUrl";
 
 export default function Hero(props: HeroProps) {
@@ -414,7 +410,7 @@ describe('<Hero />', () => {
 
 **Source**: **Jedi Project** `index.html <article><figure>` section.
 
-**Props**:
+**Component**:
 
 ```typescript
 export interface ImageProps {
@@ -423,11 +419,7 @@ export interface ImageProps {
   href?: string;
   class?: string;
 }
-```
 
-**Component**:
-
-```tsx
 import { Show } from "solid-js";
 
 export default function Image(props: ImageProps) {
@@ -487,7 +479,7 @@ describe('<Image />', () => {
 
 **Source**: **Jedi Project** `index.html <article><div>` author avatar/name section.
 
-**Props**:
+**Component**:
 
 ```typescript
 export interface AuthorProps {
@@ -495,11 +487,7 @@ export interface AuthorProps {
   name: string;
   href?: string;
 }
-```
 
-**Component**:
-
-```tsx
 export default function Author(props: AuthorProps) {
   return (
     <a class="flex items-center gap-1 mb-4 hover:underline" href={props.href ?? "#"}>
@@ -546,7 +534,7 @@ describe('<Author />', () => {
 
 **Source**: **Jedi Project** `index.html <aside><section class="card">` sidebar sections.
 
-**Props**:
+**Component**:
 
 ```typescript
 export interface CardProps extends ParentProps {
@@ -554,11 +542,7 @@ export interface CardProps extends ParentProps {
   /** Add classes only — May not override base utilities. Consider tailwind-merge + clsx = cn see iCrumz*/
   class?: string;
 }
-```
 
-**Component**:
-
-```tsx
 import { Show, type ParentProps } from "solid-js";
 
 export default function Card(props: CardProps) {

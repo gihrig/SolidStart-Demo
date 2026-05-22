@@ -4205,8 +4205,13 @@ Fix:
 10. MINOR — Props + Component split across separate code blocks
 
 For all 4 prop-bearing components (Hero, Image, Author, Card), the export interface and component code appear in
-separate markdown code blocks. Implementer must combine them into one file. Not explicit in the plan — risk of missed
-merge.
+separate markdown code blocks. Implementer must combine them into one file. Not explicit in the plan — risk of missed merge.
+
+Fix:
+
+Merge `tsx...` blocks into `typescript...` blocks
+
+**Updated per Fix**
 
 ---
 
