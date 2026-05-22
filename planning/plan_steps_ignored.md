@@ -4098,11 +4098,47 @@ No changes here
 
 ---
 
-6. MODERATE — JediNav dropdown not dismissible via Escape
+6. MODERATE — JediNav (line 650) dropdown not dismissible via Escape
 
 useEscapeKey hook exists and is used for the mobile sidebar (line 1035), but the JediNav dropdown menu has no Escape
-handler. Users can click-outside to close, but keyboard-only users can't dismiss the profile dropdown without tabbing
-away. Accessibility gap per WCAG 2.1 SC 1.4.13.
+handler. Users can click-outside to close, but keyboard-only users can't dismiss the profile dropdown without tabbing away.
+
+Accessibility gap per WCAG 2.1 SC 1.4.13.
+
+❯ Read `planning/jedi-conversion.md` @lines 646-761. Is the use of `useEscapeKey` correct?
+⏺ Yes, the usage in the plan is correct.
+❯ Now review the createEffect block @lines 657-666. handleClickOutside and useEscapeKey address similar concerns,
+closing of a section of the document. Would it make sense to combine them into a single hook?
+⏺ No existing click-outside hook. Here's the situation:
+
+The createEffect block (lines 657–666) and useEscapeKey (line 668) both dismiss the dropdown, but through different triggers — click-outside needs a ref for containment checking, escape does not. The mobile nav (line 667) only uses escape, with no click-outside counterpart.
+
+A combined useDismiss hook could work — the ref would be optional, so it handles both cases:
+⏺ Good test patterns. I'll write the test first, then the implementation, run tests, and update the plan.
+⏺ The 3 failures are all click-outside — createEffect defers its initial run in SolidJS, so the click listener isn't
+registered yet when the test fires. The simpler fix is to match useEscapeKey's pattern: register the listener once and guard with active() inside the handler.
+⏺ All 81 tests pass. Now I'll update the plan to use useDismiss in the JediNav code block.
+⏺ Done. Created src/lib/useDismiss.ts — a hook that composes useEscapeKey with optional click-outside dismissal. The ref parameter is a getter (to handle late-binding refs), and when omitted, only escape-key dismissal is active.
+⏺ The useDismiss implementation would inline the escape logic and useEscapeKey gets deleted. The API stays identical — callers that only need escape just omit the ref.
+⏺ Write(src/lib/useDismiss.unit.test.ts)
+⏺ Now merge the escape-key tests into the dismiss test file.
+⏺ All 78 tests pass (was 81 — 6 old useEscapeKey tests replaced by 12 useDismiss tests covering both concerns, net -3 from removing duplicated basic cases).
+
+Summary of changes:
+
+- src/lib/useDismiss.ts — inlined the escape-key logic, removed useEscapeKey import
+- src/lib/useDismiss.unit.test.ts — merged all escape-key tests (non-Escape keys, signal reactivity, multiple
+  instances) into organized describe blocks
+- Deleted src/lib/useEscapeKey.ts and src/lib/useEscapeKey.unit.test.ts
+
+Fix:
+
+- Create `useDismiss` hook to provide close on click away functionality
+- Merge and remove existing `useEscapeKey` hook
+- Create `useDismiss.test.js` include existing tests from `usesEscapeKey.test.js`
+- Update existing code to migrate `useEscapeKey` to `useDismiss`
+
+**Updated per Fix - Co-authored by Claude Opus 4.6**
 
 ---
 

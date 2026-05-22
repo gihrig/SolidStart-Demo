@@ -45,7 +45,7 @@ Existing hooks used in Step 2.5 and Phase 3
 
 - lib/useIsMobile.ts: Detect mobile screen size < 768px
 - lib/useListbox.ts: Provide Aria compliant navigation for list box components
-- lib/useEscapeKey: Execute handler on Escape
+- lib/useDismiss: Execute handler on Escape or click away
 
 ### Alpine.js → SolidJS Mapping
 
@@ -644,8 +644,9 @@ describe('<Card />', () => {
 **Component**:
 
 ```tsx
-import { createSignal, Show, createEffect, onCleanup } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { useIsMobile } from "~/lib/useIsMobile";
+import { useDismiss } from "~/lib/useDismiss";
 
 export default function JediNav() {
   const [mobileNavOpen, setMobileNavOpen] = createSignal(false);
@@ -653,16 +654,8 @@ export default function JediNav() {
   const isMobile = useIsMobile();
   let dropdownRef: HTMLLIElement | undefined;
 
-  createEffect(() => {
-    if (!dropdownOpen()) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef && !dropdownRef.contains(e.target as Node)) {
-        setDropdownOpen(false);
-      }
-    };
-    document.addEventListener("click", handleClickOutside);
-    onCleanup(() => document.removeEventListener("click", handleClickOutside));
-  });
+  useDismiss(() => setMobileNavOpen(false), mobileNavOpen);
+  useDismiss(() => setDropdownOpen(false), dropdownOpen, dropdownRef);
 
   return (
     <header class="md:flex items-center justify-between bg-gray-800 h-20 text-white sticky top-0 z-50">
@@ -927,7 +920,7 @@ describe("<JediNav />", () => {
 - All interactive elements: get `*:focus-visible` sudo classes as defined in `app.css`.
 - Category list items: `tabIndex={-1}`, `role="option"`, `aria-selected`, `onKeyDown` (Enter/Space selects item, updates `selectedCategory` signal and highlight).
 - Category `<ul>`: `role="listbox"` with `aria-label="Categories"`.
-- Mobile sidebar: Escape key dismisses when open (`useEscapeKey` hook — document-level, works regardless of focus position).
+- Mobile sidebar: Escape key dismisses when open (`useDismiss` hook — document-level, works regardless of focus position).
 
 11. **Performance**: Declare `categories`, `topPhotos`, `topCaptions` as constants **outside** the component.
 
@@ -940,7 +933,7 @@ import { Title, Meta } from "@solidjs/meta";
 import { createSignal, For } from "solid-js";
 import { useIsMobile } from "~/lib/useIsMobile";
 import { useListbox } from "~/lib/useListbox";
-import { useEscapeKey } from "~/lib/useEscapeKey";
+import { useDismiss } from "~/lib/useDismiss";
 import Hero from "~/components/Hero";
 import JediNav from "~/components/JediNav";
 import Image from "~/components/Image";
@@ -988,7 +981,7 @@ export default function Jedi() {
     label: "Categories",
     idPrefix: "category",
   });
-  useEscapeKey(() => setMobileSidebarOpen(false), mobileSidebarOpen);
+  useDismiss(() => setMobileSidebarOpen(false), mobileSidebarOpen);
 
   return (
     <>
