@@ -75,7 +75,11 @@ Existing hooks used in Step 2.5 and Phase 3
 4. Use `text-(--theme-vars)` and `bg-(--theme-vars)` for page elements.
 5. JediNav.tsx and Hero.tsx are exceptions to #4 above. They do not change for dark/light mode.
 
-> **Why `@layer base`**: Global `main {}`, `h1 {}`, etc. rules in unlayered CSS have higher precedence than Tailwind utility classes (which live in `@layer utilities`). Wrapping in `@layer base` lets utility classes on Jedi components override these defaults without needing `!important`.
+**Why `@layer base`**: Global `main {}`, `h1 {}`, etc. rules in unlayered CSS have higher precedence than Tailwind utility classes (which live in `@layer utilities`). Wrapping in `@layer base` lets utility classes on Jedi components override these defaults without needing `!important`.
+
+**Action**: Add a `:root[data-theme="dark"]` block for explicit dark mode, and modify the existing `@media (prefers-color-scheme: dark)` selector to `:root:not([data-theme="light"])` so auto mode (OS preference) dark works but is overridden when the user explicitly selects light.
+
+**Reference**: This pattern is taken from **Tanstack Project** `src/styles.css` lines 30–73, where `:root[data-theme="dark"]` handles explicit dark and `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) }` handles auto-mode dark.
 
 ```css
 @import "tailwindcss";
@@ -1169,50 +1173,7 @@ export default function Jedi() {
 1. Create a three-state theme toggle (light / dark / auto) with FOUC prevention.
 2. The implementation is adapted from **Tanstack Project** `src/components/ThemeToggle.tsx` and `src/routes/__root.tsx`.
 
-### [√] Step 4.1: Update `src/app.css` with Dark Mode CSS Variable Support
-
-**File**: `src/app.css`
-
-**Action**: Add a `:root[data-theme="dark"]` block for explicit dark mode, and modify the existing `@media (prefers-color-scheme: dark)` selector to `:root:not([data-theme="light"])` so auto mode (OS preference) dark works but is overridden when the user explicitly selects light.
-
-**Reference**: This pattern is taken from **Tanstack Project** `src/styles.css` lines 30–73, where `:root[data-theme="dark"]` handles explicit dark and `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) }` handles auto-mode dark.
-
-> **Note**: This step is a no-op relative to Step 1.1 — the `:root[data-theme="dark"]` block and empty `@media (prefers-color-scheme: dark)` selector were already established in Step 1.1's "After" CSS. The "After" below confirms the expected state.
-
-**After** (`:root[data-theme="dark"]` block and media query selector already in place from Step 1.1):
-
-```css
-@layer base {
-  :root {
-    /* ...existing vars + Jedi custom properties from Step 1.1... */
-  }
-
-  :root[data-theme="dark"] {
-    --theme-background: --color-zinc-800;
-    --theme-foreground: --color-zinc-300;
-    --theme-hover-bg: --color-gray-700;
-    --theme-card-fg: --color-zinc-200;
-    --theme-card-bg: --color-gray-700;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --theme-background: --color-zinc-800;
-      --theme-foreground: --color-zinc-300;
-      --theme-hover-bg: --color-gray-700;
-      --theme-card-fg: --color-zinc-200;
-      --theme-card-bg: --color-gray-700;
-    }
-  }
-  /* ...body, main, h1, h2, p rules unchanged... */
-}
-```
-
-**Verification**: `vpr check` passes.
-
----
-
-### [√] Step 4.2: Add Theme Init Script to `src/entry-server.tsx`
+### [√] Step 4.1: Add Theme Init Script to `src/entry-server.tsx`
 
 **Files**: `public/theme-init.js`, `src/entry-server.tsx`
 
@@ -1277,7 +1238,7 @@ export default createHandler(() => (
 
 ---
 
-### [ ] Step 4.3: Create ThemeToggle Component
+### [ ] Step 4.2: Create ThemeToggle Component
 
 **File**: `src/components/ThemeToggle.tsx`
 
@@ -1437,7 +1398,7 @@ export default function ThemeToggle() {
 
 ---
 
-### [ ] Step 4.4: Create ThemeToggle Component Test
+### [ ] Step 4.3: Create ThemeToggle Component Test
 
 **File**: `src/components/ThemeToggle.test.tsx`
 
@@ -1547,7 +1508,7 @@ describe("<ThemeToggle />", () => {
 
 ---
 
-### [ ] Step 4.5: Integrate ThemeToggle into Global Nav
+### [ ] Step 4.4: Integrate ThemeToggle into Global Nav
 
 **File**: `src/components/Nav.tsx`
 
@@ -1609,7 +1570,7 @@ export default function Nav() {
 
 ---
 
-### [ ] Step 4.6: Update Global Nav test `Nav.test.tsx`
+### [ ] Step 4.5: Update Global Nav test `Nav.test.tsx`
 
 **File**: `src/components/Nav.test.tsx`
 
