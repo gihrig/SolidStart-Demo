@@ -4154,6 +4154,13 @@ Actual src/app.css:59:
 
 Step already complete ([√]), so no implementation impact. Doc inaccuracy only.
 
+Fix:
+
+- Remove CSS "Before" block - Previously completed at commit 870c22be
+  - Complete 2. HIGH — Article content not dark-mode-aware
+
+**Updated per Fix**
+
 ---
 
 8. MINOR — Article duplicates Card component styling
