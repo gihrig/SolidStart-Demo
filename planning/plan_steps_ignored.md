@@ -4263,3 +4263,140 @@ Positive Observations
   page-specific JediNav
 - @layer base wrapping: Correctly solves TW utility specificity override for global element rules — well-documented
   rationale in plan
+
+---
+
+❯ Review `planning/jedi-conversion.md`
+
+- Reference `planning/plan_steps_ignored.md` @lines 3999-4214
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- List Positive Observations in a bulleted list at end of results
+
+⏺ Jedi Conversion Plan Review - 16th cycle
+
+Issues (Critical → Minor)
+
+1. HIGH — useDismiss ref type mismatch in JediNav (Step 2.5)
+
+Click-outside dismissal for profile dropdown will not work. Plan passes bare variable; hook expects getter function.
+
+Plan jedi-conversion.md:642-644:
+let dropdownRef: HTMLLIElement | undefined;
+// ...
+useDismiss(() => setDropdownOpen(false), dropdownOpen, dropdownRef);
+
+Actual hook signature src/lib/useDismiss.ts:5-9:
+export function useDismiss(
+onDismiss: () => void,
+active: Accessor<boolean>,
+ref?: () => HTMLElement | undefined, // ← getter function
+)
+
+dropdownRef is HTMLLIElement | undefined (a variable). At call time during setup, value is undefined — SolidJS ref=
+directive assigns later. Even after assignment, the hook captured the initial undefined value, not the live binding.
+
+Fix: useDismiss(() => setDropdownOpen(false), dropdownOpen, () => dropdownRef)
+
+---
+
+2. MODERATE — Image component missing loading="lazy" (Step 2.2)
+
+Plan jedi-conversion.md:428:
+<img class="w-full" src={props.src} alt={props.alt} />
+
+Below-fold images (article, sidebar thumbnails) load eagerly. Add loading="lazy" for below-fold instances. Hero
+background-image is exempt (above fold, CSS-based).
+
+Consider adding optional loading prop to ImageProps:
+loading?: "lazy" | "eager";
+
+---
+
+3. MODERATE — Action links use <a href="#"> for non-navigation actions (Phase 3)
+
+Plan jedi-conversion.md:1063-1070:
+<a class="text-(--theme-card-fg) hover:underline rounded" href="#">Like</a>
+<a class="text-(--theme-card-fg) hover:underline rounded" href="#">Edit</a>
+<a class="text-(--theme-card-fg) hover:underline rounded" href="#">Delete</a>
+
+Like/Edit/Delete are actions, not navigation. Semantic HTML = <button type="button">. Using <a href="#"> breaks screen reader action semantics (announces "link" instead of "button") and creates scroll-to-top on click. Source project uses anchors — faithful conversion, but accessibility requirement (Phase 3 point 10) conflicts.
+
+---
+
+4. MINOR — E2E nav link test omits FullStack (Phase 5)
+
+Plan jedi-conversion.md:1684-1691 checks Home, About, Readme, Jedi but skips FullStack.
+
+Actual src/components/Nav.tsx:27:
+<a class={`border-b-4 ${active("/fullstack")} mx-1.5 sm:mx-6`} href="/fullstack">
+FullStack
+</a>
+
+---
+
+5. MINOR — TOP_PHOTOS entries have identical generic alt text (Phase 3)
+
+Plan jedi-conversion.md:939-941:
+{ src: "...", alt: "Top photo", author: "Lisa", likes: 5 },
+{ src: "...", alt: "Top photo", author: "Homer", likes: 4 },
+
+Same alt for both — not descriptive/unique. Better: include author or distinguishing detail.
+
+---
+
+6. MINOR — jedi.css comment violates Code Output Rules (Step 1.3)
+
+Plan jedi-conversion.md:196:
+/_ Jedi page — descendant-selector patterns from source style.css _/
+
+CLAUDE.md Code Output Rules: "Default to writing no comments."
+
+---
+
+Summary Table
+
+```
+┌─────┬──────────┬────────────────────────┬────────────────────────────────────┬──────────────────────────────────┐
+│  #  │ Severity │        Location        │               Issue                │              Impact              │
+├─────┼──────────┼────────────────────────┼────────────────────────────────────┼──────────────────────────────────┤
+│ 1   │ HIGH     │ Step 2.5 JediNav:644   │ useDismiss ref passed as variable, │ Click-outside dropdown dismiss   │
+│     │          │                        │  not getter fn                     │ broken                           │
+├─────┼──────────┼────────────────────────┼────────────────────────────────────┼──────────────────────────────────┤
+│ 2   │ MOD      │ Step 2.2 Image:428     │ No loading="lazy" on below-fold    │ Unnecessary eager loads          │
+│     │          │                        │ images                             │                                  │
+├─────┼──────────┼────────────────────────┼────────────────────────────────────┼──────────────────────────────────┤
+│ 3   │ MOD      │ Phase 3                │ Action links (Like/Edit/Delete)    │ Wrong semantic role,             │
+│     │          │ jedi.tsx:1063-1070     │ use <a href="#">                   │ scroll-to-top side effect        │
+├─────┼──────────┼────────────────────────┼────────────────────────────────────┼──────────────────────────────────┤
+│ 4   │ MINOR    │ Phase 5 e2e:1684       │ FullStack nav link not tested      │ Incomplete coverage              │
+├─────┼──────────┼────────────────────────┼────────────────────────────────────┼──────────────────────────────────┤
+│ 5   │ MINOR    │ Phase 3 data:939       │ Both TOP_PHOTOS share alt: "Top    │ Non-descriptive alt text         │
+│     │          │                        │ photo"                             │                                  │
+├─────┼──────────┼────────────────────────┼────────────────────────────────────┼──────────────────────────────────┤
+│ 6   │ MINOR    │ Step 1.3 jedi.css:196  │ CSS comment present                │ Violates "no comments" rule      │
+└─────┴──────────┴────────────────────────┴────────────────────────────────────┴──────────────────────────────────┘
+```
+
+---
+
+Positive Observations
+
+- Correct SolidJS idioms throughout — createSignal, <Show>, <For>, <Switch>/<Match>, classList directive, onCleanup in createEffect all used properly
+- ThemeToggle createEffect early-return pattern — correctly relies on SolidJS cleanup semantics; comment at line 1275 accurately explains behavior
+- useListbox API consumption is precise — reactive accessors (selectedCategory, () => CATEGORIES.length) match hook's Accessor<number> interface exactly
+- FOUC prevention architecture is sound — external theme-init.js in <head> before {assets} render-blocks correctly;
+  CSP-compliant (no inline script)
+- sanitizeImageUrl security model is solid — blocks javascript:, data:, relative paths, CSS breakout chars (', ", (, ), \); url('${url}') wrapper + BREAK_CHARS regex prevents CSS injection
+- TailwindCSS v4 syntax consistent — text-(--var) custom property syntax throughout, no dark: variant (uses CSS
+  variables), no text-[var(...)] arbitrary syntax, @layer base for correct specificity
+- Tanstack reference correctly adapted — classList.remove/add properly omitted (Target uses data-theme attribute, not class selectors); toggle cycle preserved; theme-init.js logic matches
+- Comprehensive test pyramid — unit (sanitizeImageUrl) → component (Hero, Image, Author, Card, JediNav, ThemeToggle, Nav) → e2e (structure, responsive, theme persistence)
+- Static data arrays outside component — CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS correctly hoisted per Code Output Rules - Mobile nav stacking context is well-designed — -z-1 within header's z-50 context means nav appears above page content but behind header bar; absolute + h-screen w-screen + CSS transitions create smooth overlay
+- Accessibility baseline is strong — aria-label, aria-expanded, aria-hidden, role="listbox"/role="option",
+  focus-visible ring, keyboard handlers all present from initial implementation
