@@ -4310,7 +4310,7 @@ Fix: useDismiss(() => setDropdownOpen(false), dropdownOpen, () => dropdownRef)
 
 2. MODERATE — Image component missing loading="lazy" (Step 2.2)
 
-Plan jedi-conversion.md:428:
+Plan jedi-conversion.md:431:
 <img class="w-full" src={props.src} alt={props.alt} />
 
 Below-fold images (article, sidebar thumbnails) load eagerly. Add loading="lazy" for below-fold instances. Hero
@@ -4318,6 +4318,17 @@ background-image is exempt (above fold, CSS-based).
 
 Consider adding optional loading prop to ImageProps:
 loading?: "lazy" | "eager";
+
+Fix:
+
+❯ This issue applies to `planning/jedi-conversion.md`. How would `loading?: "lazy" | "eager";` be implemented?
+
+⏺ Three edits made to Step 2.2 in jedi-conversion.md: loading added to ImageProps, both <img> elements now pass
+loading={props.loading}, and two new test cases cover the lazy and omitted-attribute cases.
+
+Add `loading="lazy"` to Jedi.tsx `main > img`
+
+**Updated per Fix - Co-authored by Claude Sonnet 4.6**
 
 ---
 

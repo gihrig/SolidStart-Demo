@@ -2,7 +2,7 @@
 
 ## Overview
 
-Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.tsx` (SolidStart v1.3.2 + TailwindCSS v4.2.2) with component extraction. Replace the existing `jedi.tsx` placeholder.
+Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/Jedi.tsx` (SolidStart v1.3.2 + TailwindCSS v4.2.2) with component extraction. Replace the existing `Jedi.tsx` placeholder.
 
 ## Source Analysis Summary
 
@@ -176,7 +176,7 @@ Existing hooks used in Step 2.5 and Phase 3
 vp i @fontsource/lobster
 ```
 
-**File**: `src/routes/jedi.tsx` (not `app.tsx` — Lobster only used on Jedi page)
+**File**: `src/routes/Jedi.tsx` (not `app.tsx` — Lobster only used on Jedi page)
 
 ```tsx
 import "@fontsource/lobster";
@@ -190,7 +190,7 @@ import "@fontsource/lobster";
 
 **File**: `src/routes/jedi.css`
 
-**Action**: Create route-specific CSS for descendant-selector patterns that can't be expressed as Tailwind utilities. Import in `jedi.tsx`.
+**Action**: Create route-specific CSS for descendant-selector patterns that can't be expressed as Tailwind utilities. Import in `Jedi.tsx`.
 
 ```css
 /* Jedi page — descendant-selector patterns from source style.css */
@@ -222,7 +222,7 @@ import "@fontsource/lobster";
 }
 ```
 
-**Import** in `src/routes/jedi.tsx`:
+**Import** in `src/routes/Jedi.tsx`:
 
 ```tsx
 import "./jedi.css";
@@ -418,6 +418,7 @@ export interface ImageProps {
   alt: string;
   href?: string;
   class?: string;
+  loading?: "lazy" | "eager";
 }
 
 import { Show } from "solid-js";
@@ -425,10 +426,10 @@ import { Show } from "solid-js";
 export default function Image(props: ImageProps) {
   return (
     <figure class={props.class ?? ""}>
-      <Show when={props.href} fallback={<img class="w-full" src={props.src} alt={props.alt} />}>
+      <Show when={props.href} fallback={<img class="w-full" src={props.src} alt={props.alt} loading={props.loading} />}>
         {(href) => (
           <a href={href()}>
-            <img class="w-full" src={props.src} alt={props.alt} />
+            <img class="w-full" src={props.src} alt={props.alt} loading={props.loading} />
           </a>
         )}
       </Show>
@@ -465,6 +466,16 @@ describe('<Image />', () => {
   it('applies class prop to figure element', () => {
     const { container } = render(() => <Image src="test.jpg" alt="Test" class="custom-class" />)
     expect(container.querySelector('figure')).toHaveClass('custom-class')
+  })
+
+  it('applies loading attribute when provided', () => {
+    render(() => <Image src="test.jpg" alt="Test" loading="lazy" />)
+    expect(screen.getByRole('img')).toHaveAttribute('loading', 'lazy')
+  })
+
+  it('omits loading attribute when not provided', () => {
+    render(() => <Image src="test.jpg" alt="Test" />)
+    expect(screen.getByRole('img')).not.toHaveAttribute('loading')
   })
 })
 ```
@@ -889,7 +900,7 @@ describe("<JediNav />", () => {
 
 ## [ ] Phase 3: Create Jedi Route Page with Metadata
 
-**File**: `src/routes/jedi.tsx`
+**File**: `src/routes/Jedi.tsx`
 
 **Requirements**:
 
@@ -1027,6 +1038,7 @@ export default function Jedi() {
               src="https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg"
               alt="Little Jedi cat"
               href="#"
+              loading="lazy"
             />
             {/* Body: author, caption, tags, actions */}
             <div class="p-4 pb-2">
@@ -1844,7 +1856,7 @@ Scan changed files for v3 residue:
 
 ```bash
 grep -rn -E "!important|bg-opacity-|text-opacity-|md:![a-z]|\[&>" \
-  src/routes/jedi.tsx src/routes/jedi.css src/components/Hero.tsx src/components/Image.tsx \
+  src/routes/Jedi.tsx src/routes/jedi.css src/components/Hero.tsx src/components/Image.tsx \
   src/components/Author.tsx src/components/Card.tsx src/components/JediNav.tsx \
   src/components/ThemeToggle.tsx src/components/Nav.tsx src/app.css
 ```
@@ -1991,7 +2003,7 @@ When the above passes, the conversion is **complete**. Commit any final fixes an
 
 1. 6 Solid JS components created with TypeScript (Hero, Image, Author, Card, JediNav, ThemeToggle)
 2. 4 Solid JS components accept props and have exported TypeScript interfaces (Hero, Image, Author, Card)
-3. `src/routes/jedi.tsx` functional with all sections; no duplicate `<Nav />` import
+3. `src/routes/Jedi.tsx` functional with all sections; no duplicate `<Nav />` import
 4. All component tests pass.
 5. All E2E tests pass.
 6. Visual appearance matches **Jedi Project** `Awesome.png`
