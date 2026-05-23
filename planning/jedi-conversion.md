@@ -959,14 +959,14 @@ const CATEGORIES = [
 const TOP_PHOTOS = [
   {
     src: "https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg",
-    alt: "Top photo",
+    alt: "Jedi Kitty",
     avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
     author: "Lisa",
     likes: 5,
   },
   {
-    src: "https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg",
-    alt: "Top photo",
+    src: "https://live.staticflickr.com/7374/9311425598_46cfda9977_c.jpg",
+    alt: "Brilliant tree",
     avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
     author: "Homer",
     likes: 4,

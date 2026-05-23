@@ -4376,6 +4376,13 @@ Plan jedi-conversion.md:939-941:
 
 Same alt for both — not descriptive/unique. Better: include author or distinguishing detail.
 
+Fix:
+
+- Choose a different mage for Homer
+- Revise alt text to reflect image
+
+**Updated per Fix**
+
 ---
 
 6. MINOR — jedi.css comment violates Code Output Rules (Step 1.3)
