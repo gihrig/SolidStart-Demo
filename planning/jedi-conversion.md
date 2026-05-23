@@ -1704,6 +1704,7 @@ test.describe("Jedi Page", () => {
     await expect(nav).toBeVisible();
     await expect(nav.getByRole("link", { name: /home/i })).toBeVisible();
     await expect(nav.getByRole("link", { name: /about/i })).toBeVisible();
+    await expect(nav.getByRole("link", { name: /fullstack/i })).toBeVisible();
     await expect(nav.getByRole("link", { name: /readme/i })).toBeVisible();
     await expect(nav.getByRole("link", { name: /jedi/i })).toBeVisible();
   });

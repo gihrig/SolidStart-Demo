@@ -4353,12 +4353,18 @@ Fix:
 
 4. MINOR — E2E nav link test omits FullStack (Phase 5)
 
-Plan jedi-conversion.md:1684-1691 checks Home, About, Readme, Jedi but skips FullStack.
+Plan jedi-conversion.md:1701-1708 checks Home, About, Readme, Jedi but skips FullStack.
 
 Actual src/components/Nav.tsx:27:
 <a class={`border-b-4 ${active("/fullstack")} mx-1.5 sm:mx-6`} href="/fullstack">
 FullStack
 </a>
+
+Fix:
+
+Add test for fullstack link
+
+**Updated per Fix**
 
 ---
 
