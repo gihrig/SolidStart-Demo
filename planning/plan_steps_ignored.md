@@ -4392,6 +4392,12 @@ Plan jedi-conversion.md:196:
 
 CLAUDE.md Code Output Rules: "Default to writing no comments."
 
+Fix:
+
+- Remove comment
+
+**Updated per Fix**
+
 ---
 
 Summary Table

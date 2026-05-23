@@ -200,8 +200,6 @@ import "@fontsource/lobster";
 **Action**: Create route-specific CSS for descendant-selector patterns that can't be expressed as Tailwind utilities. Import in `Jedi.tsx`.
 
 ```css
-/* Jedi page — descendant-selector patterns from source style.css */
-
 @layer components {
   .card-style {
     @apply flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg);
