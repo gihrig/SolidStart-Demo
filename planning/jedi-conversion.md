@@ -164,6 +164,13 @@ Existing hooks used in Step 2.5 and Phase 3
     @apply ring-2 ring-(--theme-accent) outline-none;
   }
 }
+
+@layer components {
+  .theme-button {
+    @apply bg-(--theme-card-bg) text-(--theme-card-fg) rounded-full px-3 py-1;
+    @apply hover:bg-(--theme-hover-bg) hover:text-(--theme-hover-fg);
+  }
+}
 ```
 
 **Verification**: `vpr check` passes. Existing pages (Home, About, etc.) render unchanged.
@@ -1049,16 +1056,10 @@ export default function Jedi() {
               />
               <p class="text-5xl mb-10 px-4 font-hero">Jedi Kitty protects the street</p>
               <div class="flex items-center gap-2 text-sm mb-5">
-                <a
-                  class="text-(--theme-card-fg) bg-(--theme-card-bg) rounded-full px-3 py-1 hover:text-(--theme-hover-fg) hover:bg-(--theme-hover-bg)"
-                  href="#"
-                >
+                <a class="theme-button" href="#">
                   Animals
                 </a>
-                <a
-                  class="text-(--theme-card-fg) bg-(--theme-card-bg) rounded-full px-3 py-1 hover:text-(--theme-hover-fg) hover:bg-(--theme-hover-bg)"
-                  href="#"
-                >
+                <a class="theme-button" href="#">
                   Cute
                 </a>
               </div>
@@ -1076,15 +1077,15 @@ export default function Jedi() {
                     />
                     1
                   </div>
-                  <a class="text-(--theme-card-fg) hover:underline rounded" href="#">
+                  <button type="button" onClick="#" class="theme-button">
                     Like
-                  </a>
-                  <a class="text-(--theme-card-fg) hover:underline rounded" href="#">
+                  </button>
+                  <button type="button" onClick="#" class="theme-button" href="#">
                     Edit
-                  </a>
-                  <a class="text-(--theme-card-fg) hover:underline rounded" href="#">
+                  </button>
+                  <button type="button" onClick="#" class="theme-button" href="#">
                     Delete
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>
@@ -1955,7 +1956,8 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 
 - [ ] Nav links change bg on hover to match **Jedi Project**
 - [ ] CTA (Get Started) darkens to `--btn-primary-hover`
-- [ ] Author, Like, Edit and Delete links underlines on hover
+- [ ] Author and avatar link underlines on hover
+- [ ] Animals, Cute, Like, Edit and Delete buttons animate to inverse on hover
 - [ ] Hero title fades in on page load
 - [ ] Mobile category cards transition smoothly; arrow rotation smooth (300ms)
 

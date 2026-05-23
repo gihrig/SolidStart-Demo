@@ -80,3 +80,10 @@
     @apply ring-2 ring-(--theme-accent) outline-none;
   }
 }
+
+@layer components {
+  .theme-button {
+    @apply bg-(--theme-card-bg) text-(--theme-card-fg) rounded-full px-3 py-1;
+    @apply hover:bg-(--theme-hover-bg) hover:text-(--theme-hover-fg);
+  }
+}

@@ -4334,12 +4334,20 @@ Add `loading="lazy"` to Jedi.tsx `main > img`
 
 3. MODERATE — Action links use <a href="#"> for non-navigation actions (Phase 3)
 
-Plan jedi-conversion.md:1063-1070:
+Plan jedi-conversion.md:1063-1079:
 <a class="text-(--theme-card-fg) hover:underline rounded" href="#">Like</a>
 <a class="text-(--theme-card-fg) hover:underline rounded" href="#">Edit</a>
 <a class="text-(--theme-card-fg) hover:underline rounded" href="#">Delete</a>
 
 Like/Edit/Delete are actions, not navigation. Semantic HTML = <button type="button">. Using <a href="#"> breaks screen reader action semantics (announces "link" instead of "button") and creates scroll-to-top on click. Source project uses anchors — faithful conversion, but accessibility requirement (Phase 3 point 10) conflicts.
+
+Fix:
+
+- Standardize Animals, Cute, Lke, Edit and Delete button appearance
+- Convert <a> tags to <button>
+- Apply `theme-button` style to all
+
+**Updated per Fix - Co-authored by Claude Sonnet 4.6**
 
 ---
 
