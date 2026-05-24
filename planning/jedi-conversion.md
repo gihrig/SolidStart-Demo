@@ -1079,7 +1079,7 @@ export default function Jedi() {
                   <div class="flex items-center gap-1">
                     <img
                       class="w-5 -mt-1"
-                      src="https://img.icons8.com/small/24/000000/fire-heart.png"
+                      src="https://img.icons8.com/small/24/777777/fire-heart.png"
                       alt=""
                       loading="lazy"
                     />

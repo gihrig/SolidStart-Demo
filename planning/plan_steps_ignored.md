@@ -5019,6 +5019,8 @@ black-on-black = invisible.
 
 Fix: change /000000/ → /777777/.
 
+**Updated per Fix**
+
 ---
 
 4. MODERATE — Heading hierarchy inverted (Phase 2 + Phase 3)

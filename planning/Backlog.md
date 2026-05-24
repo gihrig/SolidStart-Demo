@@ -21,8 +21,10 @@
   - "https://img.icons8.com/small/96/null/collage.png"
   - "https://img.icons8.com/small/96/null/180-degrees.png"
   - "https://img.icons8.com/small/96/A9A9A9/happy.png"
+  - "https://img.icons8.com/small/24/777777/fire-heart.png"
 
-- Update instances of icon usage `https://img.icons8.com...` with sprite access:
+- Update instances of icon usage `https://img.icons8
+- .com...` with sprite access:
   ```
   <svg width="24" height="24" aria-hidden="true">
     <use href="/icons.svg#icon-home"></use>
