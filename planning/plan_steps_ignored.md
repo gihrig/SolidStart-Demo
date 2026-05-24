@@ -4801,7 +4801,42 @@ Object.defineProperty(window, "matchMedia", { writable: true, value: mockMatchMe
 
 Nav test additions (Step 4.5, lines 1596-1611) call renderWithRouter() + click ThemeToggle but include NO matchMedia mock. applyThemeMode() calls window.matchMedia(...) — jsdom's default implementation may lack addEventListener, causing test failure.
 
-Fix: Add matchMedia mock to Nav test beforeEach, matching ThemeToggle test pattern.
+Fix:
+
+- Add matchMedia mock to Nav test beforeEach, matching ThemeToggle test pattern.
+
+❯ `planing/plan_steps_ignored.md` 5. MODERATE — Nav.test.tsx ThemeToggle tests missing matchMedia mock (Phase 4, Step 4.5) @lines 4791-4806 describes a Fix "Add matchMedia mock to Nav test beforeEach, matching ThemeToggle test pattern." What would this look like?
+
+⏺ ThemeToggle doesn't exist yet — it's part of the plan being implemented.
+
+Here's what the fix would look like concretely. In Nav.test.tsx, you'd add a beforeEach that stubs window.matchMedia the same way useIsMobile.unit.test.ts does:
+
+```ts
+import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
+// ... existing imports ...
+
+const mockMatchMedia = vi.fn().mockReturnValue({
+  matches: false,
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+});
+
+describe("<Nav />", () => {
+  beforeEach(() => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: mockMatchMedia,
+    });
+  });
+
+  // ... existing tests unchanged ...
+
+  // Future ThemeToggle interaction tests can now safely
+  // trigger applyThemeMode() without jsdom throwing
+});
+```
+
+**Updated per Fix - Co-authored by Claude Opus 4.6**
 
 ---
 

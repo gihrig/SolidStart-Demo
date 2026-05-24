@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vite-plus/test";
+import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { render, screen } from "@solidjs/testing-library";
 import { MemoryRouter, Route, createMemoryHistory } from "@solidjs/router";
 import Nav from "./Nav";
@@ -19,7 +19,19 @@ const renderWithRouter = (path: string = "/") => {
   ));
 };
 
+const mockMatchMedia = vi.fn().mockReturnValue({
+  matches: false,
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+});
+
 describe("<Nav />", () => {
+  beforeEach(() => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: mockMatchMedia,
+    });
+  });
   it("renders navigation with Home, About, Readme, FullStack and Jedi links", () => {
     renderWithRouter();
 
