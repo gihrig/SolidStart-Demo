@@ -4470,7 +4470,12 @@ SolidJS onClick expects function, not string. TypeScript will reject, runtime wi
     Like
   </button>
 
-Fix: onClick={() => {}} (or actual handler).
+Fix:
+
+- Replace with `onClick={() => {}}`
+- Skip actual handler for now, no backend handler in demo
+
+**Updated per Fix**
 
 ---
 
