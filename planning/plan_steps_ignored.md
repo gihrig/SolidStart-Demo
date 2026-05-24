@@ -4707,4 +4707,159 @@ Positive Observations
   role="listbox"/role="option", focus-visible ring, keyboard handlers all present. Not bolted on as afterthought.
 - E2E theme persistence test strong — Tests localStorage write, page reload, and data-theme + colorScheme
   verification. Also tests emulateMedia({ colorScheme }) for system preference.
+
+---
+
+❯ Review `planning/jedi-conversion.md`
+
+- Reference `planning/plan_steps_ignored.md` - 16th cycle @lines 4459-4647
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- List Positive Observations in a bulleted list at end of results
+
+⏺ Jedi Conversion Plan Review - 18th cycle
+
+1. CRITICAL — "Cute" tag mismatch: <button> opens, </a> closes (Phase 3, line 1065)
+
+  17th cycle fix #4 converted Animals/Cute opening tags from <a> to <button> but missed the closing tag on Cute.
+  TSX compiler rejects mismatched tags → build fails.
+
+  <button type="button" onClick={() => {}} class="theme-button">
+    Cute
+  </a>
+
+  Fix:
+
+  - Change </a> → </button> on line 1065.
+
+  ---
+
+  2. CRITICAL — E2E test queries Lisa as button but Author renders <a> (Phase 5, line 1717)
+
+  Author component (line 509-515) wraps content in <a>:
+
+  export default function Author(props: AuthorProps) {
+    return (
+      <a class="flex items-center gap-1 mb-4 hover:underline" href={props.href ?? "#"}>
+        <img class="w-8 h-8 rounded-full" src={props.avatarSrc} alt={props.name} />
+        <span class="font-bold">{props.name}</span>
+      </a>
+    );
+  }
+
+  E2E test expects button:
+
+  await expect(article.getByRole("button").filter({ hasText: "Lisa" })).toBeVisible();
+
+  Fix: Change to getByRole("link").filter({ hasText: "Lisa" }).
+
+  ---
+
+  3. HIGH — E2E test queries Cute as link but 17th cycle converted to <button> (Phase 5, line 1719)
+
+  17th cycle fix #4 says "Convert to <button>" and marks "Updated per Fix", but E2E test still queries:
+
+  await expect(article.getByRole("link", { name: /cute/i })).toBeVisible();
+
+  Fix: Change to getByRole("button", { name: /cute/i }).
+
+  ---
+
+  4. MODERATE — Sidebar toggle arrow icon black → invisible in dark mode (Phase 3, line 1024)
+
+  Sidebar Categories toggle uses /000000/ (black) arrow:
+
+  src="https://img.icons8.com/small/32/000000/expand-arrow.png"
+
+  Dark mode card-bg = --color-gray-900 (near-black). Black-on-black = invisible.
+
+  JediNav dropdown arrow (line 733) uses /777777/ (gray) — better contrast both modes.
+
+  Fix: Change to /777777/ or use SVG with currentColor.
+
+  ---
+
+  5. MODERATE — Nav.test.tsx ThemeToggle tests missing matchMedia mock (Phase 4, Step 4.5)
+
+  ThemeToggle component test (Step 4.3, lines 1433-1445) sets up matchMedia mock:
+
+  mockMatchMedia = vi.fn().mockReturnValue({
+    matches: false,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  });
+  Object.defineProperty(window, "matchMedia", { writable: true, value: mockMatchMedia });
+
+  Nav test additions (Step 4.5, lines 1596-1611) call renderWithRouter() + click ThemeToggle but include NO matchMedia mock. applyThemeMode() calls window.matchMedia(...) — jsdom's default implementation may lack addEventListener, causing test failure.
+
+  Fix: Add matchMedia mock to Nav test beforeEach, matching ThemeToggle test pattern.
+
+  ---
+
+  6. MINOR — Arbitrary value syntax mx-[5%], mx-[10%], md:mr-[20%] (Phase 3, lines 1032, 1099)
+
+  Code Output Rules prohibit Tailwind arbitrary value syntax for CSS variables (text-[var(--x)]). These use percentage values, not CSS variables — technically different from the stated rule. But still bracket syntax in a plan that otherwise avoids it.
+
+  Lines:
+
+  <main class="col-span-full md:col-span-2 mx-[5%] md:mx-[10%] order-2 md:order-1">
+
+  <aside ... class="col-span-full md:col-span-1 mx-[5%] md:mr-[20%] ...">
+
+  Potential fix: Define percentage spacing tokens in @theme or accept as exception.
+
+  ---
+
+  7. MINOR — Sidebar images missing loading="lazy" (Phase 3, lines 1113-1154)
+
+  Main article Image uses loading="lazy" (line 1049), but sidebar images (category icons, top photo thumbs, top caption
+  avatars) all omit it. These are below-the-fold on desktop. Minor performance gain.
+
+  ---
+
+  Summary Table
+```
+
+┌─────┬──────────┬──────────────────────────┬──────────────────────────────────────────────────┐
+│ # │ Severity │ Location │ Issue │
+├─────┼──────────┼──────────────────────────┼──────────────────────────────────────────────────┤
+│ 1 │ CRITICAL │ Phase 3, line 1065 │ Cute <button> closes as </a> — TSX compile error │
+├─────┼──────────┼──────────────────────────┼──────────────────────────────────────────────────┤
+│ 2 │ CRITICAL │ Phase 5, line 1717 │ Lisa E2E test expects button, Author renders <a> │
+├─────┼──────────┼──────────────────────────┼──────────────────────────────────────────────────┤
+│ 3 │ HIGH │ Phase 5, line 1719 │ Cute E2E test expects link, plan has <button> │
+├─────┼──────────┼──────────────────────────┼──────────────────────────────────────────────────┤
+│ 4 │ MODERATE │ Phase 3, line 1024 │ Black arrow icon invisible in dark mode │
+├─────┼──────────┼──────────────────────────┼──────────────────────────────────────────────────┤
+│ 5 │ MODERATE │ Phase 4, Step 4.5 │ Nav test missing matchMedia mock for ThemeToggle │
+├─────┼──────────┼──────────────────────────┼──────────────────────────────────────────────────┤
+│ 6 │ MINOR │ Phase 3, lines 1032/1099 │ Arbitrary mx-[5%] bracket syntax │
+├─────┼──────────┼──────────────────────────┼──────────────────────────────────────────────────┤
+│ 7 │ MINOR │ Phase 3, lines 1113-1154 │ Sidebar images missing loading="lazy" │
+└─────┴──────────┴──────────────────────────┴──────────────────────────────────────────────────┘
+
+```
+  ---
+
+  Positive Observations
+
+  - Accessibility baseline thorough from initial implementation — aria-label, aria-expanded, aria-hidden,
+  role="listbox"/role="option", focus-visible ring, keyboard handlers all present. Not bolted on as afterthought.
+  - E2E theme persistence test strong — Tests localStorage write, page reload, data-theme + colorScheme verification.
+  Also tests emulateMedia({ colorScheme }) for system preference.
+  - Hook reuse clean — useIsMobile, useListbox, useDismiss consumed correctly with proper SolidJS accessor patterns. No reactivity loss from destructuring (return values are accessors/functions, not reactive proxies).
+  - ThemeToggle createEffect cleanup pattern correct — Early return when mode != "auto" with onCleanup only registered on auto branch. Comment accurately explains Solid's cleanup semantics.
+  - FOUC prevention architecture sound — External theme-init.js in <head> before assets = render-blocking, applies theme before first paint. CSP-friendly vs inline script. Logic mirrors ThemeToggle's applyThemeMode exactly.
+  - sanitizeImageUrl security-conscious — Blocks javascript:, data: URIs, and CSS breakout chars (', ", (, ), \). Test coverage covers all attack vectors.
+  - Tailwind v4 syntax consistent — text-(--theme-accent), bg-(--theme-card-bg), hover:bg-(--theme-hover-bg) all use correct v4 custom property syntax. md:block! instead of md:!block. No v3 residue detected.
+  - Dark/light/auto theme cascade well-designed — :root[data-theme="dark"] for explicit, @media (prefers-color-scheme:
+  dark) { :root:not([data-theme="light"]) } for auto. Clean override hierarchy.
+  - Static data arrays placed outside component — CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS declared as module-level
+  constants per performance requirement.
+  - useDismiss for mobile nav correctly omits ref — Full-screen overlay (h-screen w-screen) has no "outside" to click; Escape-only dismissal is correct UX for this layout.
 ```
