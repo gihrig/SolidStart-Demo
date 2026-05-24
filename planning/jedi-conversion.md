@@ -1078,10 +1078,10 @@ export default function Jedi() {
                   <button type="button" onClick={() => {}} class="theme-button">
                     Like
                   </button>
-                  <button type="button" onClick={() => {}} class="theme-button" href="#">
+                  <button type="button" onClick={() => {}} class="theme-button">
                     Edit
                   </button>
-                  <button type="button" onClick={() => {}} class="theme-button" href="#">
+                  <button type="button" onClick={() => {}} class="theme-button">
                     Delete
                   </button>
                 </div>

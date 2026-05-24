@@ -4491,7 +4491,11 @@ Browsers ignore it silently, but signals incomplete <a> → <button> conversion.
     Delete
   </button>
 
-Fix: Remove href="#" from both.
+Fix:
+
+Remove href="#" from both.
+
+**Updated per Fix**
 
 ---
 
