@@ -1716,7 +1716,7 @@ test.describe("Jedi Page", () => {
   test("should display author, tags, and post actions", async ({ page }) => {
     await page.goto("/jedi");
     const article = page.locator("article").first();
-    await expect(article.getByRole("button").filter({ hasText: "Lisa" })).toBeVisible();
+    await expect(article.getByRole("link").filter({ hasText: "Lisa" })).toBeVisible();
     await expect(article.getByRole("button", { name: /animals/i })).toBeVisible();
     await expect(article.getByRole("link", { name: /cute/i })).toBeVisible();
     await expect(article.getByRole("link", { name: /Comments/i })).toBeVisible();

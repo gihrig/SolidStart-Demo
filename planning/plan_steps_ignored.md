@@ -4748,7 +4748,11 @@ E2E test expects button:
 
 await expect(article.getByRole("button").filter({ hasText: "Lisa" })).toBeVisible();
 
-Fix: Change to getByRole("link").filter({ hasText: "Lisa" }).
+Fix:
+
+- Change to getByRole("link").filter({ hasText: "Lisa" }).
+
+**Updated per Fix**
 
 ---
 
