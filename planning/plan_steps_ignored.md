@@ -4993,15 +4993,19 @@ untestable until Phase 4 ThemeToggle. When toggle ships, all theme colors break.
 
 Also: --theme-highlight: --color-indigo-100/50; (lines 36, 48) — /50 opacity modifier is Tailwind syntax, not valid CSS outside @theme.
 
-Fix — wrap in var():
+Affects lines 22-33, 35-43, 47-56 in app.css (already deployed) and identical block in jedi-conversion.md lines
+104-141.
+
+Fix:
+
+— wrap in var():
 :root {
 --theme-accent: var(--color-sky-700);
 --theme-highlight: color-mix(in oklch, var(--color-indigo-100), transparent 50%);
 /_ ... all other --color-_ references ... \*/
 }
 
-Affects lines 22-33, 35-43, 47-56 in app.css (already deployed) and identical block in jedi-conversion.md lines
-104-141.
+**Updated per Fix**
 
 ---
 
