@@ -1062,7 +1062,7 @@ export default function Jedi() {
                 </button>
                 <button type="button" onClick={() => {}} class="theme-button">
                   Cute
-                </a>
+                </button>
               </div>
               <div class="flex items-center justify-between text-sm px-2">
                 <a class="font-bold hover:underline rounded" href="#">

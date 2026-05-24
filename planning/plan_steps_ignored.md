@@ -4727,6 +4727,8 @@ Fix:
 
 - Change </a> → </button> on line 1065.
 
+**Updated per Fix**
+
 ---
 
 2. CRITICAL — E2E test queries Lisa as button but Author renders <a> (Phase 5, line 1717)
