@@ -4731,7 +4731,7 @@ Fix:
 
 ---
 
-2. CRITICAL — E2E test queries Lisa as button but Author renders <a> (Phase 5, line 1717)
+2. CRITICAL — E2E test queries Lisa as button but Author renders <a> (Phase 5, line 1719)
 
 Author component (line 509-515) wraps content in <a>:
 
@@ -4756,13 +4756,17 @@ Fix:
 
 ---
 
-3. HIGH — E2E test queries Cute as link but 17th cycle converted to <button> (Phase 5, line 1719)
+3. HIGH — E2E test queries Cute as link but 17th cycle converted to <button> (Phase 5, line 1721)
 
 17th cycle fix #4 says "Convert to <button>" and marks "Updated per Fix", but E2E test still queries:
 
 await expect(article.getByRole("link", { name: /cute/i })).toBeVisible();
 
-Fix: Change to getByRole("button", { name: /cute/i }).
+Fix:
+
+- Change to getByRole("button", { name: /cute/i }).
+
+**Updated per Fix**
 
 ---
 
