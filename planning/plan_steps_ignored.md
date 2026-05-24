@@ -4595,7 +4595,12 @@ Code Output Rules: "Don't explain WHAT the code does, since well-named
 identifiers already do that." The JSX structure
 (<main>, <aside>, <article>) is self-documenting.
 
-Fix: Remove all 6 comments.
+Fix:
+
+- Comments do serve a purpose in quickly identifying code blocks
+- Comments are more visible and more explanatory than semantic html
+
+**Won't Fix**
 
 ---
 
