@@ -4884,8 +4884,18 @@ Fix:
 
 7. MINOR — Sidebar images missing loading="lazy" (Phase 3, lines 1113-1154)
 
-Main article Image uses loading="lazy" (line 1049), but sidebar images (category icons, top photo thumbs, top caption
-avatars) all omit it. These are below-the-fold on desktop. Minor performance gain.
+Main article Image uses loading="lazy" (line 1051), but sidebar images (category icons, top photo thumbs, top caption avatars) all omit it. These are below-the-fold on desktop. Minor performance gain.
+
+Icon color `null` (black) is invisible in dark mode. ref: HIGH — Icons invisible in dark mode
+e.g. "https://img.icons8.com/small/96/null/landscape.png" -> "https://img.icons8.com/small/96/777777/landscape.png"
+Temporary solution until backlog "1. Convert .png icons to svg image sprite" is completed.
+
+Fix:
+
+- Add `loading="lazy" to icon <img> tags
+- Change icon <img> color to `777777`
+
+**Updated per Fix**
 
 ---
 

@@ -512,7 +512,7 @@ export interface AuthorProps {
 export default function Author(props: AuthorProps) {
   return (
     <a class="flex items-center gap-1 mb-4 hover:underline" href={props.href ?? "#"}>
-      <img class="w-8 h-8 rounded-full" src={props.avatarSrc} alt={props.name} />
+      <img class="w-8 h-8 rounded-full" src={props.avatarSrc} alt={props.name} loading="lazy" />
       <span class="font-bold">{props.name}</span>
     </a>
   );
@@ -955,11 +955,11 @@ import Author from "~/components/Author";
 import Card from "~/components/Card";
 
 const CATEGORIES = [
-  { name: "Landscape", icon: "https://img.icons8.com/small/96/null/landscape.png" },
-  { name: "People", icon: "https://img.icons8.com/small/96/null/portrait.png" },
-  { name: "Animals", icon: "https://img.icons8.com/small/96/null/dog.png" },
-  { name: "Abstract", icon: "https://img.icons8.com/small/96/null/collage.png" },
-  { name: "Black & White", icon: "https://img.icons8.com/small/96/null/180-degrees.png" },
+  { name: "Landscape", icon: "https://img.icons8.com/small/96777777/landscape.png" },
+  { name: "People", icon: "https://img.icons8.com/small/96777777/portrait.png" },
+  { name: "Animals", icon: "https://img.icons8.com/small/96777777/dog.png" },
+  { name: "Abstract", icon: "https://img.icons8.com/small/96777777/collage.png" },
+  { name: "Black & White", icon: "https://img.icons8.com/small/96777777/180-degrees.png" },
 ];
 
 const TOP_PHOTOS = [
@@ -1029,6 +1029,7 @@ export default function Jedi() {
               class={`w-4 ml-1.5 transition-transform ${mobileSidebarOpen() ? "rotate-180" : ""}`}
               src="https://img.icons8.com/small/32/777777/expand-arrow.png"
               alt=""
+              loading="lazy"
             />
           </button>
         </div>
@@ -1080,6 +1081,7 @@ export default function Jedi() {
                       class="w-5 -mt-1"
                       src="https://img.icons8.com/small/24/000000/fire-heart.png"
                       alt=""
+                      loading="lazy"
                     />
                     1
                   </div>
@@ -1115,7 +1117,7 @@ export default function Jedi() {
                     }}
                     class="flex items-center cursor-pointer px-2 py-1 rounded outline-none"
                   >
-                    <img class="w-8 h-8 object-cover mr-2" src={c.icon} alt="" />
+                    <img class="w-8 h-8 object-cover mr-2" src={c.icon} alt="" loading="lazy" />
                     <span class="font-bold text-sm">{c.name}</span>
                   </li>
                 )}
@@ -1128,8 +1130,18 @@ export default function Jedi() {
                 {(p) => (
                   <li class="rounded-md transition-colors duration-150">
                     <a href="#" class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg)">
-                      <img class="w-10 h-10 rounded-lg object-cover mr-3" src={p.src} alt={p.alt} />
-                      <img class="w-6 h-6 rounded-full object-cover mr-0.5" src={p.avatar} alt="" />
+                      <img
+                        class="w-10 h-10 rounded-lg object-cover mr-3"
+                        src={p.src}
+                        alt={p.alt}
+                        loading="lazy"
+                      />
+                      <img
+                        class="w-6 h-6 rounded-full object-cover mr-0.5"
+                        src={p.avatar}
+                        alt=""
+                        loading="lazy"
+                      />
                       <span class="font-bold text-sm mr-1">{p.author}</span>
                       <span class="text-sm font-light text-(--theme-card-fg)">
                         ({p.likes} Likes)
@@ -1146,7 +1158,12 @@ export default function Jedi() {
                 {(c) => (
                   <li class="rounded-md transition-colors duration-150">
                     <a href="#" class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg)">
-                      <img class="w-8 h-8 rounded-full object-cover mr-1" src={c.avatar} alt="" />
+                      <img
+                        class="w-8 h-8 rounded-full object-cover mr-1"
+                        src={c.avatar}
+                        alt=""
+                        loading="lazy"
+                      />
                       <span class="font-bold text-sm mr-1">{c.author}</span>
                       <span class="text-sm font-light text-(--theme-card-fg)">
                         ({c.likes} Likes)
