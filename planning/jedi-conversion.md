@@ -955,11 +955,11 @@ import Author from "~/components/Author";
 import Card from "~/components/Card";
 
 const CATEGORIES = [
-  { name: "Landscape", icon: "https://img.icons8.com/small/96777777/landscape.png" },
-  { name: "People", icon: "https://img.icons8.com/small/96777777/portrait.png" },
-  { name: "Animals", icon: "https://img.icons8.com/small/96777777/dog.png" },
-  { name: "Abstract", icon: "https://img.icons8.com/small/96777777/collage.png" },
-  { name: "Black & White", icon: "https://img.icons8.com/small/96777777/180-degrees.png" },
+  { name: "Landscape", icon: "https://img.icons8.com/small/96/777777/landscape.png" },
+  { name: "People", icon: "https://img.icons8.com/small/96/777777/portrait.png" },
+  { name: "Animals", icon: "https://img.icons8.com/small/96/777777/dog.png" },
+  { name: "Abstract", icon: "https://img.icons8.com/small/96/777777/collage.png" },
+  { name: "Black & White", icon: "https://img.icons8.com/small/96/777777/180-degrees.png" },
 ];
 
 const TOP_PHOTOS = [

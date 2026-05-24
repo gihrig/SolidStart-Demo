@@ -4969,6 +4969,12 @@ Should be:
 
 18th cycle fix #7 described correct format (96/777777) but plan text concatenated 96 + 777777 → 96777777. All 5 URLs affected: landscape, portrait, dog, collage, 180-degrees.
 
+Fix:
+
+Replace `96777777` with `96/777777`
+
+**Updated per Fix**
+
 ---
 
 2. HIGH — CSS custom properties use bare Tailwind tokens, not var() (Phase 1, lines 22-55)
