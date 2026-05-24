@@ -1054,10 +1054,10 @@ export default function Jedi() {
               />
               <p class="text-5xl mb-10 px-4 font-hero">Jedi Kitty protects the street</p>
               <div class="flex items-center gap-2 text-sm mb-5">
-                <a class="theme-button" href="#">
+                <button type="button" onClick={() => {}} class="theme-button">
                   Animals
-                </a>
-                <a class="theme-button" href="#">
+                </button>
+                <button type="button" onClick={() => {}} class="theme-button">
                   Cute
                 </a>
               </div>
@@ -1710,8 +1710,8 @@ test.describe("Jedi Page", () => {
   test("should display author, tags, and post actions", async ({ page }) => {
     await page.goto("/jedi");
     const article = page.locator("article").first();
-    await expect(article.getByRole("link").filter({ hasText: "Lisa" })).toBeVisible();
-    await expect(article.getByRole("link", { name: /animals/i })).toBeVisible();
+    await expect(article.getByRole("button").filter({ hasText: "Lisa" })).toBeVisible();
+    await expect(article.getByRole("button", { name: /animals/i })).toBeVisible();
     await expect(article.getByRole("link", { name: /cute/i })).toBeVisible();
     await expect(article.getByRole("link", { name: /Comments/i })).toBeVisible();
     await expect(article.getByRole("button", { name: /^Like$/i })).toBeVisible();

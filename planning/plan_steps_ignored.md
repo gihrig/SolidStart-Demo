@@ -4515,7 +4515,7 @@ Fix:
 
 ---
 
-4. HIGH — Animals/Cute still <a href="#"> despite fix claim (Phase 3, lines 1057-1062)
+4. HIGH — Animals/Cute still <a href="#"> despite fix claim (Phase 3, lines 1057-1060)
 
 16th cycle fix says "Convert tags to " and lists "Animals, Cute, Like, Edit and Delete"
 — marked "Updated per Fix". But plan code still shows:
@@ -4529,8 +4529,12 @@ Fix:
 
 Like/Edit/Delete converted; Animals/Cute were not. Fix partially applied.
 
-Fix: Convert to <button type="button" class="theme-button"> or acknowledge these
-are intentionally tag-links and update fix notes.
+Fix:
+
+- Convert to <button type="button" onClick={() => {}} class="theme-button">
+- Update E2E tests to getByRole("button"), (lines 1714-1715)
+
+**Updated per Fix**
 
 ---
 
