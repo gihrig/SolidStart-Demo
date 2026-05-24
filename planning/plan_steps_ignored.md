@@ -377,7 +377,7 @@ requirements that contradict the code (issues #3 and #4 above), which was the ro
 
 Summary
 
-```
+```pre
 ┌────────────────────────────┬───────┐
 │ Category                   │ Count │
 ├────────────────────────────┼───────┤
@@ -543,7 +543,7 @@ h1 {
 
 ⏺ All 11 fixes applied. Summary of changes to planning/jedi-conversion.md:
 
-```
+```pre
   ┌──────┬───────────────────────┬─────────────────────────────────────────────────────────┐
   │ Fix  │       Issue           │                          Change                         │
   ├──────┼───────────────────────┼─────────────────────────────────────────────────────────┤
@@ -624,7 +624,7 @@ Nav.test.tsx: 6 tests (renders links, active styling × 5, inactive)
 
 Plan claims "2 existing" component tests (line 691, Success Criteria line 1643). Actual existing component test files:
 
-```
+```pre
   ┌──────────────────────────────┬───────┐
   │             File             │ Tests │
   ├──────────────────────────────┼───────┤
@@ -1437,7 +1437,7 @@ What's Correct
 
 Recommended Fix Priority
 
-```
+```pre
  ┌─────┬───────────────────────────────────────┬──────────────────────────────┬─────────────────────────────┐
  │  #  │                 Issue                 │            Impact            │           Effort            │
  ├─────┼───────────────────────────────────────┼──────────────────────────────┼─────────────────────────────┤
@@ -1652,7 +1652,7 @@ What's Correct
 
 Summary
 
-```
+```pre
    ┌────────────┬───────┬─────────────────────────────────────────┐
    │  Severity  │ Count │           Highest Impact                │
    ├────────────┼───────┼─────────────────────────────────────────┤
@@ -1807,7 +1807,7 @@ Add note to Phase 7 > Theme Toggle: "Jedi drop-down visible in light and dark mo
 
 Summary
 
-```
+```pre
 ┌────────────┬───────┬────────────────────────────────────────────┐
 │ Severity   │ Count │ Highest Impact                             │
 ├────────────┼───────┼────────────────────────────────────────────┤
@@ -2065,7 +2065,7 @@ Verified Correct
 
 Recommendation Summary
 
-```
+```pre
 ┌───────────┬────────────────────────────────────────────────────────┬─────────────────────┐
 │ Priority  │ Fix                                                    │ Impact              │
 ├───────────┼────────────────────────────────────────────────────────┼─────────────────────┤
@@ -2208,7 +2208,7 @@ Fix:
 
 Summary
 
-```
+```pre
   ┌────────────┬───────┬───────────────────────────────────────────┐
   │ Severity   │ Count │ Highest Impact                            │
   ├────────────┼───────┼───────────────────────────────────────────┤
@@ -2390,7 +2390,7 @@ Replace ternary expression with show/fallback
 
 Summary
 
-```
+```pre
   ┌────────────┬───────┬──────────────────────────────────────────┐
   │ Severity   │ Count │ Highest Impact                           │
   ├────────────┼───────┼──────────────────────────────────────────┤
@@ -2674,7 +2674,7 @@ Move `THEME_INIT_SCRIPT` to external script
 
 Summary Table
 
-```
+```pre
   ┌─────┬──────────┬──────────────────────────────────────────────────────────────────┬─────────────────────┐
   │  #  │ Severity │                              Issue                               │      Location       │
   ├─────┼──────────┼──────────────────────────────────────────────────────────────────┼─────────────────────┤
@@ -2896,7 +2896,7 @@ VERDICT
 
 Plan is solid. Recommended actions before execution:
 
-```
+```pre
 ┌──────────┬──────┬────────────────────────────────────────────────────────────────┐
 │ Priority │ Item │                         Action                                 │
 ├──────────┼──────┼────────────────────────────────────────────────────────────────┤
@@ -3122,7 +3122,7 @@ Positive Observations
 
 Summary
 
-```
+```pre
   ┌─────────────────────┬───────┬────────────────────────────────────────────────────────────────────────┐
   │      Severity       │ Count │                               Categories                               │
   ├─────────────────────┼───────┼────────────────────────────────────────────────────────────────────────┤
@@ -3343,7 +3343,7 @@ Move `hover:underline` to the `<a class=""> element
 
 SUMMARY — Required fixes before execution
 
-```
+```pre
 ┌─────┬──────────┬─────────────────┬───────────────────────────────────────────────────────────────┐
 │  #  │ Severity │    Location     │                               Issue                           │
 ├─────┼──────────┼─────────────────┼───────────────────────────────────────────────────────────────┤
@@ -3597,7 +3597,7 @@ Fix:
 
 Summary Table
 
-```
+```pre
 ┌─────┬──────────┬───────────────────────┬────────────────────────────────────────────────────────────┐
 │ #   │ Severity │ Location              │                              Issue                         │
 ├─────┼──────────┼───────────────────────┼────────────────────────────────────────────────────────────┤
@@ -3778,7 +3778,7 @@ Fix:
   — required because useIsMobile calls window.matchMedia at construction time (not in onMount), which throws in jsdom without a mock.
 - Added describe("hamburger menu") with 9 new tests covering the open/close cycle:
 
-```
+```pre
 ┌───────────────────────────────────────────────────────┬───────────────────────────────────┐
 │                         Test                          │          What it proves           │
 ├───────────────────────────────────────────────────────┼───────────────────────────────────┤
@@ -3933,7 +3933,7 @@ If a future caller genuinely needs to override a base utility (e.g., overflow-vi
 
 Summary Table
 
-```
+```pre
 ┌─────┬──────────┬────────────────────────────────────┬─────────────────────────────────────────────────────┐
 │  #  │ Severity │              Location              │                        Issue                        │
 ├─────┼──────────┼────────────────────────────────────┼─────────────────────────────────────────────────────┤
@@ -4218,7 +4218,7 @@ Merge `tsx...` blocks into `typescript...` blocks
 
 Summary Table
 
-```
+```pre
 ┌─────┬──────────┬─────────────────┬─────────────────────────────────────────────────────────────┐
 │  #  │ Severity │      Area       │                             Issue                           │
 ├─────┼──────────┼─────────────────┼─────────────────────────────────────────────────────────────┤
@@ -4402,7 +4402,7 @@ Fix:
 
 Summary Table
 
-```
+```pre
 ┌─────┬──────────┬────────────────────────┬────────────────────────────────────┬──────────────────────────────────┐
 │  #  │ Severity │        Location        │               Issue                │              Impact              │
 ├─────┼──────────┼────────────────────────┼────────────────────────────────────┼──────────────────────────────────┤
@@ -4644,7 +4644,7 @@ Fix:
   // `getInitialMode` is called from server-active code
   ```
 
-```
+````
 
 **Updated per Fix**
 
@@ -4652,35 +4652,33 @@ Fix:
 
 Summary Table
 
-```
-
-┌─────┬──────────┬────────────────────────────┬─────────────────────────────────────┬─────────────────────────┐
-│ # │ Severity │ Location │ Issue │ Impact │
-├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
-│ 1 │ CRITICAL │ Phase 3 Jedi.tsx:1078-1086 │ onClick="#" on buttons — invalid │ TS error + runtime │
-│ │ │ │ value type │ crash/noop │
-├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
-│ 2 │ CRITICAL │ Phase 3 Jedi.tsx:1081-1086 │ href="#" on <button> — invalid HTML │ Signals incomplete │
-│ │ │ │ │ a → button convert │
-├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
-│ 3 │ HIGH │ Phase 5 e2e:1717-1719 │ getByRole("link") for buttons │ E2E tests will fail │
-├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
-│ 4 │ HIGH │ Phase 3 Jedi.tsx:1057-1062 │ Animals/Cute still <a> despite fix │ Incomplete 16th │
-│ │ │ │ claiming conversion │ cycle fix │
-├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
-│ 5 │ MOD │ Step 1.1 app.css:116-124 │ --theme-highlight no dark override │ Selected Category has │
-│ │ │ │ │ poor dark mode contrast │
-├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
-│ 6 │ MOD │ Step 2.4 Card.tsx:558 │ JSDoc comment on class prop │ Violates Code Output │
-│ │ │ │ │ Rules │
-├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
-│ 7 │ MINOR │ Phase 3 Jedi.tsx │ 6 structural WHAT-comments │ Violates "no WHAT │
-│ │ │ │ │ comments" rule │
-├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
-│ 8 │ MINOR │ Step 4.2 ThemeToggle:1258 │ SSR guard unreachable inside onMount│ Dead code │
-└─────┴──────────┴────────────────────────────┴─────────────────────────────────────┴─────────────────────────┘
-
-```
+```pre
+  ┌─────┬──────────┬────────────────────────────┬─────────────────────────────────────┬─────────────────────────┐
+  │  #  │ Severity │         Location           │               Issue                 │              Impact     │
+  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+  │ 1   │ CRITICAL │ Phase 3 Jedi.tsx:1078-1086 │ onClick="#" on buttons — invalid    │ TS error + runtime      │
+  │     │          │                            │ value type                          │ crash/noop              │
+  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+  │ 2   │ CRITICAL │ Phase 3 Jedi.tsx:1081-1086 │ href="#" on <button> — invalid HTML │ Signals incomplete      │
+  │     │          │                            │                                     │ a → button convert      │
+  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+  │ 3   │ HIGH     │ Phase 5 e2e:1717-1719      │ getByRole("link") for buttons       │ E2E tests will fail     │
+  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+  │ 4   │ HIGH     │ Phase 3 Jedi.tsx:1057-1062 │ Animals/Cute still <a> despite fix  │ Incomplete 16th         │
+  │     │          │                            │ claiming conversion                 │ cycle fix               │
+  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+  │ 5   │ MOD      │ Step 1.1 app.css:116-124   │ --theme-highlight no dark override  │ Selected Category has   │
+  │     │          │                            │                                     │ poor dark mode contrast │
+  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+  │ 6   │ MOD      │ Step 2.4 Card.tsx:558      │ JSDoc comment on class prop         │ Violates Code Output    │
+  │     │          │                            │                                     │ Rules                   │
+  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+  │ 7   │ MINOR    │ Phase 3 Jedi.tsx           │ 6 structural WHAT-comments          │ Violates "no WHAT       │
+  │     │          │                            │                                     │ comments" rule          │
+  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+  │ 8   │ MINOR    │ Step 4.2 ThemeToggle:1258  │ SSR guard unreachable inside onMount│ Dead code               │
+  └─────┴──────────┴────────────────────────────┴─────────────────────────────────────┴─────────────────────────┘
+````
 
 ---
 
@@ -4726,140 +4724,140 @@ Positive Observations
 
 1. CRITICAL — "Cute" tag mismatch: <button> opens, </a> closes (Phase 3, line 1065)
 
-  17th cycle fix #4 converted Animals/Cute opening tags from <a> to <button> but missed the closing tag on Cute.
-  TSX compiler rejects mismatched tags → build fails.
+17th cycle fix #4 converted Animals/Cute opening tags from <a> to <button> but missed the closing tag on Cute.
+TSX compiler rejects mismatched tags → build fails.
 
-  <button type="button" onClick={() => {}} class="theme-button">
-    Cute
-  </a>
+<button type="button" onClick={() => {}} class="theme-button">
+Cute
+</a>
 
-  Fix:
+Fix:
 
-  - Change </a> → </button> on line 1065.
+- Change </a> → </button> on line 1065.
 
-  ---
+---
 
-  2. CRITICAL — E2E test queries Lisa as button but Author renders <a> (Phase 5, line 1717)
+2. CRITICAL — E2E test queries Lisa as button but Author renders <a> (Phase 5, line 1717)
 
-  Author component (line 509-515) wraps content in <a>:
+Author component (line 509-515) wraps content in <a>:
 
-  export default function Author(props: AuthorProps) {
-    return (
-      <a class="flex items-center gap-1 mb-4 hover:underline" href={props.href ?? "#"}>
-        <img class="w-8 h-8 rounded-full" src={props.avatarSrc} alt={props.name} />
-        <span class="font-bold">{props.name}</span>
-      </a>
-    );
-  }
+export default function Author(props: AuthorProps) {
+return (
+<a class="flex items-center gap-1 mb-4 hover:underline" href={props.href ?? "#"}>
+<img class="w-8 h-8 rounded-full" src={props.avatarSrc} alt={props.name} />
+<span class="font-bold">{props.name}</span>
+</a>
+);
+}
 
-  E2E test expects button:
+E2E test expects button:
 
-  await expect(article.getByRole("button").filter({ hasText: "Lisa" })).toBeVisible();
+await expect(article.getByRole("button").filter({ hasText: "Lisa" })).toBeVisible();
 
-  Fix: Change to getByRole("link").filter({ hasText: "Lisa" }).
+Fix: Change to getByRole("link").filter({ hasText: "Lisa" }).
 
-  ---
+---
 
-  3. HIGH — E2E test queries Cute as link but 17th cycle converted to <button> (Phase 5, line 1719)
+3. HIGH — E2E test queries Cute as link but 17th cycle converted to <button> (Phase 5, line 1719)
 
-  17th cycle fix #4 says "Convert to <button>" and marks "Updated per Fix", but E2E test still queries:
+17th cycle fix #4 says "Convert to <button>" and marks "Updated per Fix", but E2E test still queries:
 
-  await expect(article.getByRole("link", { name: /cute/i })).toBeVisible();
+await expect(article.getByRole("link", { name: /cute/i })).toBeVisible();
 
-  Fix: Change to getByRole("button", { name: /cute/i }).
+Fix: Change to getByRole("button", { name: /cute/i }).
 
-  ---
+---
 
-  4. MODERATE — Sidebar toggle arrow icon black → invisible in dark mode (Phase 3, line 1024)
+4. MODERATE — Sidebar toggle arrow icon black → invisible in dark mode (Phase 3, line 1024)
 
-  Sidebar Categories toggle uses /000000/ (black) arrow:
+Sidebar Categories toggle uses /000000/ (black) arrow:
 
-  src="https://img.icons8.com/small/32/000000/expand-arrow.png"
+src="https://img.icons8.com/small/32/000000/expand-arrow.png"
 
-  Dark mode card-bg = --color-gray-900 (near-black). Black-on-black = invisible.
+Dark mode card-bg = --color-gray-900 (near-black). Black-on-black = invisible.
 
-  JediNav dropdown arrow (line 733) uses /777777/ (gray) — better contrast both modes.
+JediNav dropdown arrow (line 733) uses /777777/ (gray) — better contrast both modes.
 
-  Fix: Change to /777777/ or use SVG with currentColor.
+Fix: Change to /777777/ or use SVG with currentColor.
 
-  ---
+---
 
-  5. MODERATE — Nav.test.tsx ThemeToggle tests missing matchMedia mock (Phase 4, Step 4.5)
+5. MODERATE — Nav.test.tsx ThemeToggle tests missing matchMedia mock (Phase 4, Step 4.5)
 
-  ThemeToggle component test (Step 4.3, lines 1433-1445) sets up matchMedia mock:
+ThemeToggle component test (Step 4.3, lines 1433-1445) sets up matchMedia mock:
 
-  mockMatchMedia = vi.fn().mockReturnValue({
-    matches: false,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-  });
-  Object.defineProperty(window, "matchMedia", { writable: true, value: mockMatchMedia });
+mockMatchMedia = vi.fn().mockReturnValue({
+matches: false,
+addEventListener: vi.fn(),
+removeEventListener: vi.fn(),
+});
+Object.defineProperty(window, "matchMedia", { writable: true, value: mockMatchMedia });
 
-  Nav test additions (Step 4.5, lines 1596-1611) call renderWithRouter() + click ThemeToggle but include NO matchMedia mock. applyThemeMode() calls window.matchMedia(...) — jsdom's default implementation may lack addEventListener, causing test failure.
+Nav test additions (Step 4.5, lines 1596-1611) call renderWithRouter() + click ThemeToggle but include NO matchMedia mock. applyThemeMode() calls window.matchMedia(...) — jsdom's default implementation may lack addEventListener, causing test failure.
 
-  Fix: Add matchMedia mock to Nav test beforeEach, matching ThemeToggle test pattern.
+Fix: Add matchMedia mock to Nav test beforeEach, matching ThemeToggle test pattern.
 
-  ---
+---
 
-  6. MINOR — Arbitrary value syntax mx-[5%], mx-[10%], md:mr-[20%] (Phase 3, lines 1032, 1099)
+6. MINOR — Arbitrary value syntax mx-[5%], mx-[10%], md:mr-[20%] (Phase 3, lines 1032, 1099)
 
-  Code Output Rules prohibit Tailwind arbitrary value syntax for CSS variables (text-[var(--x)]). These use percentage values, not CSS variables — technically different from the stated rule. But still bracket syntax in a plan that otherwise avoids it.
+Code Output Rules prohibit Tailwind arbitrary value syntax for CSS variables (text-[var(--x)]). These use percentage values, not CSS variables — technically different from the stated rule. But still bracket syntax in a plan that otherwise avoids it.
 
-  Lines:
+Lines:
 
   <main class="col-span-full md:col-span-2 mx-[5%] md:mx-[10%] order-2 md:order-1">
 
   <aside ... class="col-span-full md:col-span-1 mx-[5%] md:mr-[20%] ...">
 
-  Potential fix: Define percentage spacing tokens in @theme or accept as exception.
+Potential fix: Define percentage spacing tokens in @theme or accept as exception.
 
-  ---
+---
 
-  7. MINOR — Sidebar images missing loading="lazy" (Phase 3, lines 1113-1154)
+7. MINOR — Sidebar images missing loading="lazy" (Phase 3, lines 1113-1154)
 
-  Main article Image uses loading="lazy" (line 1049), but sidebar images (category icons, top photo thumbs, top caption
-  avatars) all omit it. These are below-the-fold on desktop. Minor performance gain.
+Main article Image uses loading="lazy" (line 1049), but sidebar images (category icons, top photo thumbs, top caption
+avatars) all omit it. These are below-the-fold on desktop. Minor performance gain.
 
-  ---
+---
 
-  Summary Table
-```
+Summary Table
 
+```pre
 ┌─────┬──────────┬──────────────────────────┬──────────────────────────────────────────────────┐
-│ # │ Severity │ Location │ Issue │
+│ #   │ Severity │         Location         │                     Issue                        │
 ├─────┼──────────┼──────────────────────────┼──────────────────────────────────────────────────┤
-│ 1 │ CRITICAL │ Phase 3, line 1065 │ Cute <button> closes as </a> — TSX compile error │
+│ 1   │ CRITICAL │ Phase 3, line 1065       │ Cute <button> closes as </a> — TSX compile error │
 ├─────┼──────────┼──────────────────────────┼──────────────────────────────────────────────────┤
-│ 2 │ CRITICAL │ Phase 5, line 1717 │ Lisa E2E test expects button, Author renders <a> │
+│ 2   │ CRITICAL │ Phase 5, line 1717       │ Lisa E2E test expects button, Author renders <a> │
 ├─────┼──────────┼──────────────────────────┼──────────────────────────────────────────────────┤
-│ 3 │ HIGH │ Phase 5, line 1719 │ Cute E2E test expects link, plan has <button> │
+│ 3   │ HIGH     │ Phase 5, line 1719       │ Cute E2E test expects link, plan has <button>    │
 ├─────┼──────────┼──────────────────────────┼──────────────────────────────────────────────────┤
-│ 4 │ MODERATE │ Phase 3, line 1024 │ Black arrow icon invisible in dark mode │
+│ 4   │ MODERATE │ Phase 3, line 1024       │ Black arrow icon invisible in dark mode          │
 ├─────┼──────────┼──────────────────────────┼──────────────────────────────────────────────────┤
-│ 5 │ MODERATE │ Phase 4, Step 4.5 │ Nav test missing matchMedia mock for ThemeToggle │
+│ 5   │ MODERATE │ Phase 4, Step 4.5        │ Nav test missing matchMedia mock for ThemeToggle │
 ├─────┼──────────┼──────────────────────────┼──────────────────────────────────────────────────┤
-│ 6 │ MINOR │ Phase 3, lines 1032/1099 │ Arbitrary mx-[5%] bracket syntax │
+│ 6   │ MINOR    │ Phase 3, lines 1032/1099 │ Arbitrary mx-[5%] bracket syntax                 │
 ├─────┼──────────┼──────────────────────────┼──────────────────────────────────────────────────┤
-│ 7 │ MINOR │ Phase 3, lines 1113-1154 │ Sidebar images missing loading="lazy" │
+│ 7   │ MINOR    │ Phase 3, lines 1113-1154 │ Sidebar images missing loading="lazy"            │
 └─────┴──────────┴──────────────────────────┴──────────────────────────────────────────────────┘
 
 ```
-  ---
 
-  Positive Observations
+---
 
-  - Accessibility baseline thorough from initial implementation — aria-label, aria-expanded, aria-hidden,
+Positive Observations
+
+- Accessibility baseline thorough from initial implementation — aria-label, aria-expanded, aria-hidden,
   role="listbox"/role="option", focus-visible ring, keyboard handlers all present. Not bolted on as afterthought.
-  - E2E theme persistence test strong — Tests localStorage write, page reload, data-theme + colorScheme verification.
+- E2E theme persistence test strong — Tests localStorage write, page reload, data-theme + colorScheme verification.
   Also tests emulateMedia({ colorScheme }) for system preference.
-  - Hook reuse clean — useIsMobile, useListbox, useDismiss consumed correctly with proper SolidJS accessor patterns. No reactivity loss from destructuring (return values are accessors/functions, not reactive proxies).
-  - ThemeToggle createEffect cleanup pattern correct — Early return when mode != "auto" with onCleanup only registered on auto branch. Comment accurately explains Solid's cleanup semantics.
-  - FOUC prevention architecture sound — External theme-init.js in <head> before assets = render-blocking, applies theme before first paint. CSP-friendly vs inline script. Logic mirrors ThemeToggle's applyThemeMode exactly.
-  - sanitizeImageUrl security-conscious — Blocks javascript:, data: URIs, and CSS breakout chars (', ", (, ), \). Test coverage covers all attack vectors.
-  - Tailwind v4 syntax consistent — text-(--theme-accent), bg-(--theme-card-bg), hover:bg-(--theme-hover-bg) all use correct v4 custom property syntax. md:block! instead of md:!block. No v3 residue detected.
-  - Dark/light/auto theme cascade well-designed — :root[data-theme="dark"] for explicit, @media (prefers-color-scheme:
+- Hook reuse clean — useIsMobile, useListbox, useDismiss consumed correctly with proper SolidJS accessor patterns. No reactivity loss from destructuring (return values are accessors/functions, not reactive proxies).
+- ThemeToggle createEffect cleanup pattern correct — Early return when mode != "auto" with onCleanup only registered on auto branch. Comment accurately explains Solid's cleanup semantics.
+- FOUC prevention architecture sound — External theme-init.js in <head> before assets = render-blocking, applies theme before first paint. CSP-friendly vs inline script. Logic mirrors ThemeToggle's applyThemeMode exactly.
+- sanitizeImageUrl security-conscious — Blocks javascript:, data: URIs, and CSS breakout chars (', ", (, ), \). Test coverage covers all attack vectors.
+- Tailwind v4 syntax consistent — text-(--theme-accent), bg-(--theme-card-bg), hover:bg-(--theme-hover-bg) all use correct v4 custom property syntax. md:block! instead of md:!block. No v3 residue detected.
+- Dark/light/auto theme cascade well-designed — :root[data-theme="dark"] for explicit, @media (prefers-color-scheme:
   dark) { :root:not([data-theme="light"]) } for auto. Clean override hierarchy.
-  - Static data arrays placed outside component — CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS declared as module-level
+- Static data arrays placed outside component — CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS declared as module-level
   constants per performance requirement.
-  - useDismiss for mobile nav correctly omits ref — Full-screen overlay (h-screen w-screen) has no "outside" to click; Escape-only dismissal is correct UX for this layout.
-```
+- useDismiss for mobile nav correctly omits ref — Full-screen overlay (h-screen w-screen) has no "outside" to click; Escape-only dismissal is correct UX for this layout.
