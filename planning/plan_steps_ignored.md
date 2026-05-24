@@ -4554,7 +4554,13 @@ Light text on light-blue bg = poor contrast in dark mode.
 /_ --theme-highlight not overridden _/
 }
 
-Fix: Add --theme-highlight: --color-indigo-900; (or similar dark value) to both dark blocks.
+Fix:
+
+- Add --theme-highlight: --color-indigo-100/50; (lines 117 & 129)
+- Update `app.css` to match (lines 33 & 45)
+- May need to adjust colors in working project
+
+**Updated per Fix**
 
 ---
 

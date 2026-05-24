@@ -114,6 +114,7 @@ Existing hooks used in Step 2.5 and Phase 3
   }
 
   :root[data-theme="dark"] {
+    --theme-highlight: --color-indigo-100/50;
     --theme-foreground: --color-zinc-100;
     --theme-background: --color-zinc-800;
     --theme-hover-fg: --color-gray-500;
@@ -125,6 +126,7 @@ Existing hooks used in Step 2.5 and Phase 3
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
+      --theme-highlight: --color-indigo-100/50;
       --theme-foreground: --color-zinc-100;
       --theme-background: --color-zinc-800;
       --theme-hover-fg: --color-gray-500;

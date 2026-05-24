@@ -30,6 +30,7 @@
   }
 
   :root[data-theme="dark"] {
+    --theme-highlight: --color-indigo-100/50;
     --theme-foreground: --color-zinc-100;
     --theme-background: --color-zinc-800;
     --theme-hover-fg: --color-gray-500;
@@ -41,6 +42,7 @@
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
+      --theme-highlight: --color-indigo-100/50;
       --theme-foreground: --color-zinc-100;
       --theme-background: --color-zinc-800;
       --theme-hover-fg: --color-gray-500;
