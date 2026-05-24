@@ -1199,11 +1199,11 @@ Component Structure (lines 753-935):
 - Categories: role="listbox", items with tabIndex={0}, role="option", aria-selected, click + keyboard handlers
 - Fixed text-(--theme-highlight) → bg-(--theme-highlight) (source uses background-color, not text color)
 
----
+===================================================================================
 
 ❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
 
-⏺ Review complete. 2nd cycle
+⏺ Review complete. - 2nd cycle.
 
 3 critical test issues — all plan tests import from 'vitest' instead of "vite-plus/test" (won't run), use fireEvent
 instead of project's userEvent.setup() pattern.
@@ -1215,11 +1215,11 @@ Dropdown and sidebar transitions missing (source has 300ms animations, plan has 
 4 important accuracy gaps — Step 4.1 "Before" doesn't match post-Step-1.1 state, font-(family-name:...) syntax
 unverified, Nav.test.tsx update has no code, E2E uses waitForTimeout anti-pattern.
 
----
+===================================================================================
 
 ❯ Review: planning/jedi-conversion.md — Accuracy, Correctness, Efficiency
 
-⏺ Review complete. 3rd cycle.
+⏺ Review complete. - 3rd cycle.
 
 Context
 
@@ -1470,11 +1470,11 @@ Recommended Fix Priority
 ⏺ Committed. 28e396a — all 9 review fixes applied to jedi-conversion.md and plan_steps_ignored.md. Pre-commit hooks
 passed clean.
 
----
+===================================================================================
 
 ❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
 
-⏺ All source files verified against plan. 4th cycle.
+⏺ All source files verified against plan. - 4th cycle.
 
 ---
 
@@ -1667,7 +1667,7 @@ Summary
 Biggest risk: broken (theme-font-hero) syntax — Lobster font won't load on Hero or caption. Second: text-6xl vs source
 text-5xl — visual mismatch with Awesome.png reference image.
 
----
+===================================================================================
 
 ❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
 
@@ -1675,7 +1675,7 @@ text-5xl — visual mismatch with Awesome.png reference image.
 
 ---
 
-Review: planning/jedi-conversion.md. 5th cycle
+Review: planning/jedi-conversion.md. - 5th cycle.
 
 Verified Correct
 
@@ -1819,13 +1819,13 @@ Summary
 └────────────┴───────┴────────────────────────────────────────────┘
 ```
 
-Biggest risks: (1) font-hero) → Lobster font missing on hero + caption, (2) mobile nav pops instead of sliding. Both quick fixes.
+Biggest risks: (1) font-hero → Lobster font missing on hero + caption, (2) mobile nav pops instead of sliding. Both quick fixes.
 
----
+===================================================================================
 
 ❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
 
-⏺ Verified plan against all source files. 6th cycle.
+⏺ Verified plan against all source files. - 6th cycle.
 
 ---
 
@@ -2081,13 +2081,11 @@ Recommendation Summary
 └───────────┴────────────────────────────────────────────────────────┴─────────────────────┘
 ```
 
----
+===================================================================================
 
 ❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
 
-⏺ 7th cycle review complete. Verified plan against all 3 project source files.
-
-Review: planning/jedi-conversion.md — 7th Cycle
+⏺ Review: planning/jedi-conversion.md — 7th Cycle.
 
 Verified Correct
 
@@ -2222,15 +2220,11 @@ Summary
 
 Plan is in good shape after 6 cycles. Only blocker: navitems hover variable — one-line fix in jedi.css. Everything else is cosmetic or optional cleanup.
 
----
+===================================================================================
 
 ❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
 
-⏺ 8th cycle. Verified plan against source files and actual codebase.
-
----
-
-Review: planning/jedi-conversion.md — 8th Cycle
+⏺ Review: planning/jedi-conversion.md — 8th Cycle.
 
 Verified Correct
 
@@ -2427,15 +2421,11 @@ Now push to update the remote:
 
 git push --force-with-lease origin integrate_jedi_ii
 
----
+===================================================================================
 
 ❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
 
-⏺ Good picture now. Here's the review - 9th cycle
-
----
-
-Review: planning/jedi-conversion.md
+⏺ Review: planning/jedi-conversion.md — 9th Cycle.
 
 Critical Issues (will cause errors)
 
@@ -2702,9 +2692,11 @@ Summary Table
 
 Items 1-2 will cause runtime/styling bugs. Items 3-7 are idiomatic improvements. Rest are minor polish.
 
+===================================================================================
+
 ❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
 
-⏺ Review: planning/jedi-conversion.md - 10th cycle
+⏺ Review: planning/jedi-conversion.md - 10th cycle.
 
 Overall: well-structured, mostly idiomatic. Found 8 items worth flagging — 2 bugs, 3 improvements, 3 minor.
 
@@ -3138,11 +3130,11 @@ Summary
 
 Plan is solid overall. Main fixes: update Step 1.1 to match actual @theme approach, simplify Image/Card components.
 
----
+===================================================================================
 
 ❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
 
-⏺ Jedi Conversion Plan Review - 12th Cycle
+⏺ Jedi Conversion Plan Review - 12th Cycle.
 
 1. BUG: Card.tsx uses undeclared rest variable and no children
 
@@ -3389,9 +3381,9 @@ claude-max --resume e4df9a16-c50f-479f-b6ca-c783d27bc00
 - Present a summary of issues found in table format after the list of issues
 - List Positive Observations in a bulleted list at end of results
 
----
+===================================================================================
 
-⏺ Jedi Conversion Plan Review - 13th cycle
+⏺ Jedi Conversion Plan Review - 13th cycle.
 
 Issues (Critical → Minor)
 
@@ -3642,7 +3634,7 @@ Positive Observations
 - Phase-gated workflow with per-step verification prevents cascading errors
 - Accessibility baseline baked into Phase 3 requirements rather than bolted on later
 
----
+===================================================================================
 
 ❯ Review `planning/jedi-conversion.md`
 
@@ -3655,7 +3647,7 @@ Positive Observations
 - Present a summary of issues found in table format after the list of issues
 - List Positive Observations in a bulleted list at end of results
 
-⏺ Issues Found - 14th cycle
+⏺ Jedi Conversion Plan Review - 14th cycle.
 
 1. MODERATE — Hero font size contradicts Phase 7 validation checklist
 
@@ -3983,7 +3975,7 @@ Positive Observations
 - Clean Alpine.js → SolidJS mapping table — lines 52-60 and 654-667 provide concrete before/after for each pattern.
   Good implementation reference
 
----
+===================================================================================
 
 ❯ Review `planning/jedi-conversion.md`
 
@@ -3996,7 +3988,7 @@ Positive Observations
 - Present a summary of issues found in table format after the list of issues
 - List Positive Observations in a bulleted list at end of results
 
-⏺ Jedi Conversion Plan Review - 15th cycle
+⏺ Jedi Conversion Plan Review - 15th cycle.
 
 Numbered Issues (Critical → Minor)
 
@@ -4265,7 +4257,7 @@ Positive Observations
 - @layer base wrapping: Correctly solves TW utility specificity override for global element rules — well-documented
   rationale in plan
 
----
+===================================================================================
 
 ❯ Review `planning/jedi-conversion.md`
 
@@ -4279,7 +4271,7 @@ Positive Observations
 - Present a summary of issues found in table format after the list of issues
 - List Positive Observations in a bulleted list at end of results
 
-⏺ Jedi Conversion Plan Review - 16th cycle
+⏺ Jedi Conversion Plan Review - 16th cycle.
 
 Issues (Critical → Minor)
 
@@ -4442,7 +4434,7 @@ Positive Observations
 - Accessibility baseline is strong — aria-label, aria-expanded, aria-hidden, role="listbox"/role="option",
   focus-visible ring, keyboard handlers all present from initial implementation
 
----
+===================================================================================
 
 ❯ Review `planning/jedi-conversion.md`
 
@@ -4456,7 +4448,7 @@ Positive Observations
 - Present a summary of issues found in table format after the list of issues
 - List Positive Observations in a bulleted list at end of results
 
-⏺ Jedi Conversion Plan Review - 17th cycle
+⏺ Jedi Conversion Plan Review - 17th cycle.
 
 ---
 
@@ -4706,11 +4698,11 @@ Positive Observations
 - E2E theme persistence test strong — Tests localStorage write, page reload, and data-theme + colorScheme
   verification. Also tests emulateMedia({ colorScheme }) for system preference.
 
----
+===================================================================================
 
 ❯ Review `planning/jedi-conversion.md`
 
-- Reference `planning/plan_steps_ignored.md` - 16th cycle @lines 4459-4647
+- Reference `planning/plan_steps_ignored.md` - 17th cycle @lines 4459-4647
 - Check for idiomatic Solid JS/SolidStart syntax
 - Check for idiomatic Tailwind syntax
 - Check code for accuracy, correctness and efficiency
@@ -4720,7 +4712,7 @@ Positive Observations
 - Present a summary of issues found in table format after the list of issues
 - List Positive Observations in a bulleted list at end of results
 
-⏺ Jedi Conversion Plan Review - 18th cycle
+⏺ Jedi Conversion Plan Review - 18th cycle.
 
 1. CRITICAL — "Cute" tag mismatch: <button> opens, </a> closes (Phase 3, line 1065)
 
