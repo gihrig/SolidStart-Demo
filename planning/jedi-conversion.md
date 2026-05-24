@@ -1022,7 +1022,7 @@ export default function Jedi() {
             <span>Categories</span>
             <img
               class={`w-4 ml-1.5 transition-transform ${mobileSidebarOpen() ? "rotate-180" : ""}`}
-              src="https://img.icons8.com/small/32/000000/expand-arrow.png"
+              src="https://img.icons8.com/small/32/777777/expand-arrow.png"
               alt=""
             />
           </button>

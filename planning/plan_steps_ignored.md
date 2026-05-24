@@ -4770,7 +4770,7 @@ Fix:
 
 ---
 
-4. MODERATE — Sidebar toggle arrow icon black → invisible in dark mode (Phase 3, line 1024)
+4. MODERATE — Sidebar toggle arrow icon black → invisible in dark mode (Phase 3, line 1025)
 
 Sidebar Categories toggle uses /000000/ (black) arrow:
 
@@ -4780,7 +4780,11 @@ Dark mode card-bg = --color-gray-900 (near-black). Black-on-black = invisible.
 
 JediNav dropdown arrow (line 733) uses /777777/ (gray) — better contrast both modes.
 
-Fix: Change to /777777/ or use SVG with currentColor.
+Fix:
+
+- Change to /777777/ or use SVG with currentColor.
+
+**Updated per Fix**
 
 ---
 
