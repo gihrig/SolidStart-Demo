@@ -4573,7 +4573,12 @@ Rules say "Default to writing no comments." Forward-looking suggestion:
 ("Consider tailwind-merge + clsx") = design note, not constraint.
 Especially after 16th cycle caught and removed a CSS comment for same rule.
 
-Fix: Remove comment.
+Fix:
+
+- Remove comment
+- Add Note: "Additional `class` properties may not override base utilities. Consider 'Tailwind twmerge, clsx, cn' see iCrumz."
+
+**Updated per Fix**
 
 ---
 

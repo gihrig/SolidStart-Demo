@@ -552,12 +552,13 @@ describe('<Author />', () => {
 
 **Source**: **Jedi Project** `index.html <aside><section class="card">` sidebar sections.
 
+**Note:** Additional `class` properties may not override base utilities. Consider 'Tailwind twmerge, clsx, cn' see iCrumz.
+
 **Component**:
 
 ```typescript
 export interface CardProps extends ParentProps {
   title?: string;
-  /** Add classes only — May not override base utilities. Consider tailwind-merge + clsx = cn see iCrumz*/
   class?: string;
 }
 
