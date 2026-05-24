@@ -86,6 +86,9 @@ Existing hooks used in Step 2.5 and Phase 3
 
 @theme {
   --font-hero: "Lobster", sans-serif;
+  --spacing-5pct: 5%;
+  --spacing-10pct: 10%;
+  --spacing-20pct: 20%;
   --animate-fade-in: fadeIn 1s ease-out;
   @keyframes fadeIn {
     0%,
@@ -1029,7 +1032,7 @@ export default function Jedi() {
         </div>
 
         {/* Main article */}
-        <main class="col-span-full md:col-span-2 mx-[5%] md:mx-[10%] order-2 md:order-1">
+        <main class="col-span-full md:col-span-2 mx-5pct md:mx-10pct order-2 md:order-1">
           <article class="card-style">
             {/* Title bar */}
             <div class="flex items-center justify-between px-4 h-14">
@@ -1096,7 +1099,7 @@ export default function Jedi() {
         {/* Sidebar */}
         <aside
           aria-hidden={isMobile() && !mobileSidebarOpen()}
-          class={`col-span-full md:col-span-1 mx-[5%] md:mr-[20%] order-1 md:order-2 transition-all duration-300 ease-out md:opacity-100 md:max-h-none ${mobileSidebarOpen() ? "opacity-100 max-h-screen" : "opacity-0 max-h-0 overflow-hidden md:overflow-visible"}`}
+          class={`col-span-full md:col-span-1 mx-5pct md:mr-20pct order-1 md:order-2 transition-all duration-300 ease-out md:opacity-100 md:max-h-none ${mobileSidebarOpen() ? "opacity-100 max-h-screen" : "opacity-0 max-h-0 overflow-hidden md:overflow-visible"}`}
         >
           <Card title="Categories">
             <ul class="space-y-1" {...listboxProps}>

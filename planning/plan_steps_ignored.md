@@ -4852,6 +4852,35 @@ Lines:
 
 Potential fix: Define percentage spacing tokens in @theme or accept as exception.
 
+❯ `planning/plan_steps_ignored.md` "6. MINOR — Arbitrary value syntax mx-[5%], mx-[10%], md:mr-[20%] (Phase 3, lines 1032, 1099)" @lines 4843-4853 points out an issue with Tailwind arbitrary value syntax. The values `mx-[5%],
+  mx-[10%], md:mr-[20%]` are in use here. Are there pre-defined Tailwind v4 utility classes approximating these values?
+
+⏺ No predefined percentage-based margin utilities in Tailwind v4. The mx-_ / mr-_ scale is rem-based (--spacing
+multiplier), not percentages.
+
+Options:
+
+1. Define @theme tokens — cleanest, stays in the design system:
+
+```css
+@theme {
+  --spacing-5pct: 5%;
+  --spacing-10pct: 10%;
+  --spacing-20pct: 20%;
+}
+```
+
+Then use mx-5pct, md:mx-10pct, md:mr-20pct.
+
+2. Accept as exception
+3. Switch to rem approximations — e.g. mx-4 (~1rem) or mx-8 (~2rem), but these won't scale with container width the way percentages do, so behavior changes.
+
+Fix:
+
+- Implement option 1
+
+**Updated per Fix - Co-authored by Claude Opus 4.6**
+
 ---
 
 7. MINOR — Sidebar images missing loading="lazy" (Phase 3, lines 1113-1154)
