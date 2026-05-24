@@ -4441,3 +4441,206 @@ Positive Observations
 - Static data arrays outside component — CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS correctly hoisted per Code Output Rules - Mobile nav stacking context is well-designed — -z-1 within header's z-50 context means nav appears above page content but behind header bar; absolute + h-screen w-screen + CSS transitions create smooth overlay
 - Accessibility baseline is strong — aria-label, aria-expanded, aria-hidden, role="listbox"/role="option",
   focus-visible ring, keyboard handlers all present from initial implementation
+
+---
+
+❯ Review `planning/jedi-conversion.md`
+
+- Reference `planning/plan_steps_ignored.md` - 16th cycle @lines 4282-4443
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- List Positive Observations in a bulleted list at end of results
+
+⏺ Jedi Conversion Plan Review - 17th cycle
+
+---
+
+Issues Found (Critical → Minor)
+
+1. CRITICAL — onClick="#" invalid on buttons (Phase 3, lines 1078-1086)
+
+SolidJS onClick expects function, not string. TypeScript will reject, runtime will error.
+
+  <button type="button" onClick="#" class="theme-button">
+    Like
+  </button>
+
+Fix: onClick={() => {}} (or actual handler).
+
+---
+
+2. CRITICAL — href="#" on <button> elements (Phase 3, lines 1081-1086)
+
+Edit/Delete buttons carry href attribute — invalid on <button>.
+Browsers ignore it silently, but signals incomplete <a> → <button> conversion.
+
+  <button type="button" onClick="#" class="theme-button" href="#">
+    Edit
+  </button>
+  <button type="button" onClick="#" class="theme-button" href="#">
+    Delete
+  </button>
+
+Fix: Remove href="#" from both.
+
+---
+
+3. HIGH — E2E test expects link role for Like/Edit/Delete (Phase 5, lines 1717-1719)
+
+16th cycle converted these to <button>, but e2e test still queries getByRole("link") → will fail.
+
+await expect(article.getByRole("link", { name: /^Like$/i })).toBeVisible();
+await expect(article.getByRole("link", { name: /Edit/i })).toBeVisible();
+await expect(article.getByRole("link", { name: /Delete/i })).toBeVisible();
+
+Fix: Change to getByRole("button").
+
+---
+
+4. HIGH — Animals/Cute still <a href="#"> despite fix claim (Phase 3, lines 1057-1062)
+
+16th cycle fix says "Convert tags to " and lists "Animals, Cute, Like, Edit and Delete"
+— marked "Updated per Fix". But plan code still shows:
+
+  <a class="theme-button" href="#">
+    Animals
+  </a>
+  <a class="theme-button" href="#">
+    Cute
+  </a>
+
+Like/Edit/Delete converted; Animals/Cute were not. Fix partially applied.
+
+Fix: Convert to <button type="button" class="theme-button"> or acknowledge these
+are intentionally tag-links and update fix notes.
+
+---
+
+5. MODERATE — --theme-highlight no dark-mode override → contrast issue (Step 1.1, lines 103-104 vs 116-124)
+
+:root defines --theme-highlight: --color-indigo-100; (very light blue).
+Dark-mode block has no override.
+Selected category item gets bg-(--theme-highlight) (line 1105) while dark card-fg is --color-zinc-200 (light text).
+
+Light text on light-blue bg = poor contrast in dark mode.
+
+:root {
+--theme-highlight: --color-indigo-100;
+}
+
+:root[data-theme="dark"] {
+/_ --theme-highlight not overridden _/
+}
+
+Fix: Add --theme-highlight: --color-indigo-900; (or similar dark value) to both dark blocks.
+
+---
+
+6. MODERATE — Card.tsx JSDoc comment violates Code Output Rules (Step 2.4, lines 558-559)
+
+/\*_ Add classes only — May not override base utilities. Consider tailwind-merge + clsx = cn see iCrumz_/
+class?: string;
+
+Rules say "Default to writing no comments." Forward-looking suggestion:
+("Consider tailwind-merge + clsx") = design note, not constraint.
+Especially after 16th cycle caught and removed a CSS comment for same rule.
+
+Fix: Remove comment.
+
+---
+
+7. MINOR — Jedi.tsx has 6 structural WHAT-comments (Phase 3, lines 1010-1093)
+
+{/_ Mobile sidebar toggle _/}
+{/_ Main article _/}
+{/_ Title bar _/}
+{/_ Image _/}
+{/_ Body: author, caption, tags, actions _/}
+{/_ Sidebar _/}
+
+Code Output Rules: "Don't explain WHAT the code does, since well-named
+identifiers already do that." The JSX structure
+(<main>, <aside>, <article>) is self-documenting.
+
+Fix: Remove all 6 comments.
+
+---
+
+8. MINOR — getInitialMode() SSR guard redundant inside onMount (Step 4.2, lines 1258-1261, 1284-1287)
+
+function getInitialMode(): ThemeMode {
+if (typeof window === "undefined") return "auto"; // SSR guard
+// ...
+}
+
+onMount(() => {
+const initialMode = getInitialMode(); // onMount = client only
+// ...
+});
+
+onMount never runs server-side in SolidJS → typeof window === "undefined" branch unreachable. Harmless but dead code.
+
+Fix: Remove SSR guard or add comment explaining defensive intent.
+
+---
+
+Summary Table
+
+```
+  ┌─────┬──────────┬────────────────────────────┬─────────────────────────────────────┬─────────────────────────┐
+  │  #  │ Severity │         Location           │               Issue                 │              Impact     │
+  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+  │ 1   │ CRITICAL │ Phase 3 Jedi.tsx:1078-1086 │ onClick="#" on buttons — invalid    │ TS error + runtime      │
+  │     │          │                            │ value type                          │ crash/noop              │
+  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+  │ 2   │ CRITICAL │ Phase 3 Jedi.tsx:1081-1086 │ href="#" on <button> — invalid HTML │ Signals incomplete      │
+  │     │          │                            │                                     │ a → button convert      │
+  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+  │ 3   │ HIGH     │ Phase 5 e2e:1717-1719      │ getByRole("link") for buttons       │ E2E tests will fail     │
+  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+  │ 4   │ HIGH     │ Phase 3 Jedi.tsx:1057-1062 │ Animals/Cute still <a> despite fix  │ Incomplete 16th         │
+  │     │          │                            │ claiming conversion                 │ cycle fix               │
+  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+  │ 5   │ MOD      │ Step 1.1 app.css:116-124   │ --theme-highlight no dark override  │ Selected Category has   │
+  │     │          │                            │                                     │ poor dark mode contrast │
+  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+  │ 6   │ MOD      │ Step 2.4 Card.tsx:558      │ JSDoc comment on class prop         │ Violates Code Output    │
+  │     │          │                            │                                     │ Rules                   │
+  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+  │ 7   │ MINOR    │ Phase 3 Jedi.tsx           │ 6 structural WHAT-comments          │ Violates "no WHAT       │
+  │     │          │                            │                                     │ comments" rule          │
+  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+  │ 8   │ MINOR    │ Step 4.2 ThemeToggle:1258  │ SSR guard unreachable inside onMount│ Dead code               │
+  └─────┴──────────┴────────────────────────────┴─────────────────────────────────────┴─────────────────────────┘
+```
+
+---
+
+Positive Observations
+
+- useDismiss ref getter fixed correctly — () => dropdownRef at line 663 matches hook's () => HTMLElement | undefined signature. 16th cycle fix properly applied.
+- Image component loading prop clean — Optional loading?: "lazy" | "eager" with passthrough. No default = browser
+  decides. 16th cycle fix well-integrated.
+- useListbox integration precise — count: () => CATEGORIES.length, selectedIndex: selectedCategory, onSelect:
+  setSelectedCategory match hook's Accessor<number> interface exactly (verified against src/lib/useListbox.ts:4-8).
+- FOUC prevention architecture sound — External theme-init.js in <head> before {assets} render-blocks correctly.
+  CSP-compliant (no inline script). Plan explains rationale well.
+- sanitizeImageUrl security model solid — Blocks javascript:, data:, relative paths, CSS breakout chars.
+  SAFE_URL_PATTERN + BREAK_CHARS regex pair prevents CSS injection in url() wrapper.
+- TailwindCSS v4 syntax consistent — text-(--var) custom property syntax throughout, no dark: variant (uses CSS
+  variables + data-theme), no text-[var(...)] forbidden syntax.
+- ThemeToggle createEffect early-return pattern correct — Relies on SolidJS cleanup semantics; onCleanup only
+  registered when mode() === "auto", so cleanup only runs when that branch was last executed.
+- Static data arrays properly hoisted — CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS all outside component function per Code Output Rules.
+- Comprehensive test pyramid — unit (sanitizeImageUrl) → component (Hero, Image, Author, Card, JediNav, ThemeToggle, Nav) → e2e (structure, responsive, theme persistence, footer). Good coverage.
+- Mobile nav z-stacking well-designed — -z-1 within header's z-50 context, absolute + h-screen w-screen, CSS
+  transitions for smooth overlay. pointer-events-none prevents interaction when hidden.
+- Accessibility baseline thorough from initial implementation — aria-label, aria-expanded, aria-hidden,
+  role="listbox"/role="option", focus-visible ring, keyboard handlers all present. Not bolted on as afterthought.
+- E2E theme persistence test strong — Tests localStorage write, page reload, and data-theme + colorScheme
+  verification. Also tests emulateMedia({ colorScheme }) for system preference.
