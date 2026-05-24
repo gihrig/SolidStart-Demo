@@ -555,7 +555,9 @@ describe('<Author />', () => {
 
 **Source**: **Jedi Project** `index.html <aside><section class="card">` sidebar sections.
 
-**Note:** Additional `class` properties may not override base utilities. Consider 'Tailwind twmerge, clsx, cn' see iCrumz.
+**Note:** Additional `class` properties may not override base utilities. Consider 'Tailwind twmerge, clsx, cn'
+see iCrumz 'Tailwind twmerge, clsx, cn'
+see Backlog '3. MODERATE — Card class concatenation has no conflict resolution'
 
 **Component**:
 
