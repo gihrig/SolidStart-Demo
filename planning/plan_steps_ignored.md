@@ -4940,3 +4940,163 @@ Positive Observations
 - Static data arrays placed outside component — CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS declared as module-level
   constants per performance requirement.
 - useDismiss for mobile nav correctly omits ref — Full-screen overlay (h-screen w-screen) has no "outside" to click; Escape-only dismissal is correct UX for this layout.
+
+===================================================================================
+
+❯ Review `planning/jedi-conversion.md`
+
+- Reference `planning/plan_steps_ignored.md` - 18th cycle @lines 4714-4900
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- List Positive Observations in a bulleted list at end of results
+
+⏺ Jedi Conversion Plan Review - 19th cycle.
+
+1. CRITICAL — CATEGORIES icon URLs malformed (Phase 3, lines 958-962)
+
+All 5 category icon URLs missing / separator between size and color segments. Images won't load.
+
+Plan has:
+"https://img.icons8.com/small/96777777/landscape.png"
+
+Should be:
+"https://img.icons8.com/small/96/777777/landscape.png"
+
+18th cycle fix #7 described correct format (96/777777) but plan text concatenated 96 + 777777 → 96777777. All 5 URLs affected: landscape, portrait, dog, collage, 180-degrees.
+
+---
+
+2. HIGH — CSS custom properties use bare Tailwind tokens, not var() (Phase 1, lines 22-55)
+
+:root in @layer base uses bare Tailwind token names as values:
+
+:root {
+--theme-accent: --color-sky-700; /_ ← bare string, not a color _/
+--theme-foreground: --color-zinc-800; /_ ← same _/
+}
+
+CSS resolves var(--theme-accent) → literal string "--color-sky-700" → invalid color → browser fallback.
+
+Currently masked — light mode fallbacks (black text, white/transparent bg) happen to look acceptable. Dark mode
+untestable until Phase 4 ThemeToggle. When toggle ships, all theme colors break.
+
+Also: --theme-highlight: --color-indigo-100/50; (lines 36, 48) — /50 opacity modifier is Tailwind syntax, not valid CSS outside @theme.
+
+Fix — wrap in var():
+:root {
+--theme-accent: var(--color-sky-700);
+--theme-highlight: color-mix(in oklch, var(--color-indigo-100), transparent 50%);
+/_ ... all other --color-_ references ... \*/
+}
+
+Affects lines 22-33, 35-43, 47-56 in app.css (already deployed) and identical block in jedi-conversion.md lines
+104-141.
+
+---
+
+3. MODERATE — Fire-heart icon 000000 invisible in dark mode (Phase 3, line 1082)
+
+Article action bar fire-heart icon uses black:
+src="https://img.icons8.com/small/24/000000/fire-heart.png"
+
+Same class of bug as 18th cycle fix #4 (sidebar arrow 000000 → 777777). Dark mode --theme-card-bg = near-black →
+black-on-black = invisible.
+
+Fix: change /000000/ → /777777/.
+
+---
+
+4. MODERATE — Heading hierarchy inverted (Phase 2 + Phase 3)
+
+Card component uses <h2> (line 576) for sidebar sections ("Categories", "Top Photos", "Top Captions").
+Main article uses <h3> (line 1042) for content title ("Little Jedi").
+
+Sidebar headings outranking main content heading is semantically backwards. Screen readers and SEO tools flag this.
+
+Fix: either promote article title to <h2> or demote Card headings to <h3>.
+
+---
+
+5. MODERATE — Hero.tsx import after interface declaration (Phase 2, lines 336-344)
+
+export interface HeroProps { // ← interface first
+title: string;
+// ...
+}
+
+import { sanitizeImageUrl } from "~/lib/sanitizeImageUrl"; // ← import second
+
+Violates Code Output Rule "Imports ordered: external → internal → components." Import should precede interface. vpr check auto-fix may correct this, but plan text is misleading.
+
+---
+
+6. MINOR — Card class concatenation lacks conflict resolution (Phase 2, line 574)
+
+class={`card-style ${props.class ?? ""}`}
+
+Plan acknowledges this (line 558-559) and references backlog item. No twMerge/clsx/cn. Conflicting Tailwind classes
+from props.class won't override card-style base utilities.
+
+Already tracked — no action beyond awareness.
+
+---
+
+7. MINOR — Image component lacks URL sanitization unlike Hero (Phase 2, lines 436-448)
+
+Hero sanitizes backgroundImage via sanitizeImageUrl() (CSS url() injection prevention). Image component passes
+props.src and props.href unsanitized.
+
+Low risk in current usage — all URLs are hardcoded constants. But design asymmetry: if Image is reused with dynamic URLs, <a href="javascript:..."> would be unprotected.
+
+---
+
+Summary Table
+
+```pre
+  ┌─────┬──────────┬─────────────────────────────────────────────────┬────────────────────┬─────────────┐
+  │  #  │ Severity │                      Issue                      │      Location      │    Status   │
+  ├─────┼──────────┼─────────────────────────────────────────────────┼────────────────────┼─────────────┤
+  │ 1   │ CRITICAL │ CATEGORIES icon URLs malformed — missing /      │ Phase 3, L958-962  │ Fix needed  │
+  ├─────┼──────────┼─────────────────────────────────────────────────┼────────────────────┼─────────────┤
+  │ 2   │ HIGH     │ CSS custom properties use bare Tailwind tokens  │ Phase 1, L22-55    │ Fix needed  │
+  │     │          │                                                 │ (app.css)          │             │
+  ├─────┼──────────┼─────────────────────────────────────────────────┼────────────────────┼─────────────┤
+  │ 3   │ MODERATE │ Fire-heart icon 000000 invisible dark mode      │ Phase 3, L1082     │ Fix needed  │
+  ├─────┼──────────┼─────────────────────────────────────────────────┼────────────────────┼─────────────┤
+  │ 4   │ MODERATE │ Heading hierarchy inverted (Card h2 vs article  │ Phase 2+3          │ Fix needed  │
+  │     │          │ h3)                                             │                    │             │
+  ├─────┼──────────┼─────────────────────────────────────────────────┼────────────────────┼─────────────┤
+  │ 5   │ MODERATE │ Hero import after interface declaration         │ Phase 2, L336-344  │ Fix needed  │
+  ├─────┼──────────┼─────────────────────────────────────────────────┼────────────────────┼─────────────┤
+  │ 6   │ MINOR    │ Card class concatenation no conflict resolution │ Phase 2, L574      │ Tracked in  │
+  │     │          │                                                 │                    │ backlog     │
+  ├─────┼──────────┼─────────────────────────────────────────────────┼────────────────────┼─────────────┤
+  │ 7   │ MINOR    │ Image component no URL sanitization             │ Phase 2, L436-448  │ Design note │
+  └─────┴──────────┴─────────────────────────────────────────────────┴────────────────────┴─────────────┘
+```
+
+---
+
+Positive Observations
+
+- Solid security pattern — sanitizeImageUrl blocks javascript:, data:, CSS breakout chars. BREAK_CHARS regex covers single quotes, double quotes, parens, backslashes. Well-designed for CSS url() context
+- Correct SolidJS reactivity — useListbox getters (aria-selected, aria-activedescendant) remain reactive through
+  spread. createEffect early-return with onCleanup correctly leverages Solid's cleanup-per-run semantics
+- Theme system architecture — theme-init.js + applyThemeMode() logic is identical (verified line-by-line). FOUC
+  prevention via synchronous external script is CSP-compliant, avoiding inline innerHTML approach from Tanstack
+  reference
+- Hook reuse — useDismiss, useIsMobile, useListbox signatures in plan match actual implementations exactly. useDismiss without ref → Escape-only (correct for full-screen mobile nav); with ref → Escape + click-away (correct for dropdown)
+- Tailwind v4 migration — md:block! syntax, bg-gray-800/40 opacity, @theme spacing tokens (--spacing-5pct), @keyframes inside @theme — all correct v4 patterns. 18th cycle fix #6 spacing tokens properly resolve arbitrary-value bracket syntax
+- Comprehensive a11y baseline — aria-expanded on all toggles, aria-hidden on hidden panels, role="listbox" with
+  aria-activedescendant, keyboard navigation (Arrow/Home/End/Enter/Space), focus-visible ring on all interactive
+  elements
+- Test quality — JediNav tests cover full toggle lifecycle (8 granular hamburger tests). ThemeToggle tests mock both
+  localStorage and matchMedia. E2E tests verify persistence across reload and system preference emulation
+- Static data outside component — CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS declared outside Jedi(). Avoids re-creating arrays on every render
+- Clean Alpine.js conversion — x-data → createSignal, x-show → <Show>, @click.away → useDismiss with ref. Mapping
+  table (lines 629-645) is accurate and complete
