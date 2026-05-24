@@ -1714,9 +1714,9 @@ test.describe("Jedi Page", () => {
     await expect(article.getByRole("link", { name: /animals/i })).toBeVisible();
     await expect(article.getByRole("link", { name: /cute/i })).toBeVisible();
     await expect(article.getByRole("link", { name: /Comments/i })).toBeVisible();
-    await expect(article.getByRole("link", { name: /^Like$/i })).toBeVisible();
-    await expect(article.getByRole("link", { name: /Edit/i })).toBeVisible();
-    await expect(article.getByRole("link", { name: /Delete/i })).toBeVisible();
+    await expect(article.getByRole("button", { name: /^Like$/i })).toBeVisible();
+    await expect(article.getByRole("button", { name: /Edit/i })).toBeVisible();
+    await expect(article.getByRole("button", { name: /Delete/i })).toBeVisible();
   });
 
   test("should have responsive layout", async ({ page }) => {

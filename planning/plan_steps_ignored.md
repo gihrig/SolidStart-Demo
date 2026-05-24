@@ -4507,7 +4507,11 @@ await expect(article.getByRole("link", { name: /^Like$/i })).toBeVisible();
 await expect(article.getByRole("link", { name: /Edit/i })).toBeVisible();
 await expect(article.getByRole("link", { name: /Delete/i })).toBeVisible();
 
-Fix: Change to getByRole("button").
+Fix:
+
+- Change to getByRole("button").
+
+**Updated per Fix**
 
 ---
 
