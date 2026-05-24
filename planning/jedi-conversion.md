@@ -1258,6 +1258,9 @@ export default createHandler(() => (
 type ThemeMode = "light" | "dark" | "auto";
 
 function getInitialMode(): ThemeMode {
+  // onMount (only call site) doesn't run server-side.
+  // `typeof window...` crashes server-side. Defensive code in case
+  // `getInitialMode` is called from server-active code
   if (typeof window === "undefined") return "auto";
   const stored = window.localStorage.getItem("theme");
   if (stored === "light" || stored === "dark" || stored === "auto") return stored;

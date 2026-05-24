@@ -4604,7 +4604,7 @@ Fix:
 
 ---
 
-8. MINOR — getInitialMode() SSR guard redundant inside onMount (Step 4.2, lines 1258-1261, 1284-1287)
+8. MINOR — getInitialMode() SSR guard redundant inside onMount (Step 4.2, lines 1260-1265, 1287-1291)
 
 function getInitialMode(): ThemeMode {
 if (typeof window === "undefined") return "auto"; // SSR guard
@@ -4618,38 +4618,68 @@ const initialMode = getInitialMode(); // onMount = client only
 
 onMount never runs server-side in SolidJS → typeof window === "undefined" branch unreachable. Harmless but dead code.
 
-Fix: Remove SSR guard or add comment explaining defensive intent.
+❯ Explain `planning/plan_steps_ignored.md` "8. MINOR — getInitialMode() SSR guard redundant inside onMount (Step 4.2, lines 1260-1265, 1287-1291)" (lines 4507-4619).
+Would the 'Fix' be simply to remove the `onMount` block assuming `getInitialMode` would always be called on page load and reload, even under aggressive caching? Considering subtle details of SSR and caching, is the onMount block really dead code?
+
+⏺ ...
+No — that would break things. The onMount isn't the dead code; the SSR guard inside getInitialMode is the dead code. The two serve different purposes
+...
+Since onMount never runs server-side in SolidJS, typeof window === "undefined" can never be true when getInitialMode is called — making that branch dead code.
+...
+Without onMount, window.localStorage.getItem("theme") would execute during SSR and crash (no window on the server).
+...
+onMount runs on every client-side component mount — initial page load, navigation that causes remount, and yes, even when the page is served from aggressive cache (bfcache, CDN cache, SolidStart streaming cache).
+...
+No caching scenario causes getInitialMode() to run server-side.
+...
+Keep (the SSR guard) with a comment — defensive coding in case getInitialMode is ever called outside onMount in the future
+
+Fix:
+
+- Won't fix
+- Add Comment explaining reasoning for defensive SSR guard code.
+- ```ts
+  // onMount (only call site) doesn't run server-side.
+  // `typeof window...` crashes server-side. Defensive code in case
+  // `getInitialMode` is called from server-active code
+  ```
+
+```
+
+**Updated per Fix**
 
 ---
 
 Summary Table
 
 ```
-  ┌─────┬──────────┬────────────────────────────┬─────────────────────────────────────┬─────────────────────────┐
-  │  #  │ Severity │         Location           │               Issue                 │              Impact     │
-  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
-  │ 1   │ CRITICAL │ Phase 3 Jedi.tsx:1078-1086 │ onClick="#" on buttons — invalid    │ TS error + runtime      │
-  │     │          │                            │ value type                          │ crash/noop              │
-  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
-  │ 2   │ CRITICAL │ Phase 3 Jedi.tsx:1081-1086 │ href="#" on <button> — invalid HTML │ Signals incomplete      │
-  │     │          │                            │                                     │ a → button convert      │
-  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
-  │ 3   │ HIGH     │ Phase 5 e2e:1717-1719      │ getByRole("link") for buttons       │ E2E tests will fail     │
-  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
-  │ 4   │ HIGH     │ Phase 3 Jedi.tsx:1057-1062 │ Animals/Cute still <a> despite fix  │ Incomplete 16th         │
-  │     │          │                            │ claiming conversion                 │ cycle fix               │
-  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
-  │ 5   │ MOD      │ Step 1.1 app.css:116-124   │ --theme-highlight no dark override  │ Selected Category has   │
-  │     │          │                            │                                     │ poor dark mode contrast │
-  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
-  │ 6   │ MOD      │ Step 2.4 Card.tsx:558      │ JSDoc comment on class prop         │ Violates Code Output    │
-  │     │          │                            │                                     │ Rules                   │
-  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
-  │ 7   │ MINOR    │ Phase 3 Jedi.tsx           │ 6 structural WHAT-comments          │ Violates "no WHAT       │
-  │     │          │                            │                                     │ comments" rule          │
-  ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
-  │ 8   │ MINOR    │ Step 4.2 ThemeToggle:1258  │ SSR guard unreachable inside onMount│ Dead code               │
-  └─────┴──────────┴────────────────────────────┴─────────────────────────────────────┴─────────────────────────┘
+
+┌─────┬──────────┬────────────────────────────┬─────────────────────────────────────┬─────────────────────────┐
+│ # │ Severity │ Location │ Issue │ Impact │
+├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+│ 1 │ CRITICAL │ Phase 3 Jedi.tsx:1078-1086 │ onClick="#" on buttons — invalid │ TS error + runtime │
+│ │ │ │ value type │ crash/noop │
+├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+│ 2 │ CRITICAL │ Phase 3 Jedi.tsx:1081-1086 │ href="#" on <button> — invalid HTML │ Signals incomplete │
+│ │ │ │ │ a → button convert │
+├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+│ 3 │ HIGH │ Phase 5 e2e:1717-1719 │ getByRole("link") for buttons │ E2E tests will fail │
+├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+│ 4 │ HIGH │ Phase 3 Jedi.tsx:1057-1062 │ Animals/Cute still <a> despite fix │ Incomplete 16th │
+│ │ │ │ claiming conversion │ cycle fix │
+├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+│ 5 │ MOD │ Step 1.1 app.css:116-124 │ --theme-highlight no dark override │ Selected Category has │
+│ │ │ │ │ poor dark mode contrast │
+├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+│ 6 │ MOD │ Step 2.4 Card.tsx:558 │ JSDoc comment on class prop │ Violates Code Output │
+│ │ │ │ │ Rules │
+├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+│ 7 │ MINOR │ Phase 3 Jedi.tsx │ 6 structural WHAT-comments │ Violates "no WHAT │
+│ │ │ │ │ comments" rule │
+├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
+│ 8 │ MINOR │ Step 4.2 ThemeToggle:1258 │ SSR guard unreachable inside onMount│ Dead code │
+└─────┴──────────┴────────────────────────────┴─────────────────────────────────────┴─────────────────────────┘
+
 ```
 
 ---
@@ -4677,3 +4707,4 @@ Positive Observations
   role="listbox"/role="option", focus-visible ring, keyboard handlers all present. Not bolted on as afterthought.
 - E2E theme persistence test strong — Tests localStorage write, page reload, and data-theme + colorScheme
   verification. Also tests emulateMedia({ colorScheme }) for system preference.
+```
