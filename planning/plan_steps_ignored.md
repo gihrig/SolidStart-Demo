@@ -5039,7 +5039,7 @@ Fix:
 
 ---
 
-5. MODERATE — Hero.tsx import after interface declaration (Phase 2, lines 336-344)
+5. MODERATE — Hero.tsx import after interface declaration Phase 2, lines 336-565
 
 export interface HeroProps { // ← interface first
 title: string;
@@ -5049,6 +5049,12 @@ title: string;
 import { sanitizeImageUrl } from "~/lib/sanitizeImageUrl"; // ← import second
 
 Violates Code Output Rule "Imports ordered: external → internal → components." Import should precede interface. vpr check auto-fix may correct this, but plan text is misleading.
+
+Fix:
+
+Organize `import`s first @lines 336, 426 & 565
+
+**Updated per Fix**
 
 ---
 

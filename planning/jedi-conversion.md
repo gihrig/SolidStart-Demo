@@ -333,6 +333,8 @@ describe("sanitizeImageUrl", () => {
 **Component**:
 
 ```typescript
+import { sanitizeImageUrl } from "~/lib/sanitizeImageUrl";
+
 export interface HeroProps {
   title: string;
   subtitle: string;
@@ -340,8 +342,6 @@ export interface HeroProps {
   ctaHref: string;
   backgroundImage: string;
 }
-
-import { sanitizeImageUrl } from "~/lib/sanitizeImageUrl";
 
 export default function Hero(props: HeroProps) {
   const bgImage = () => {
@@ -423,6 +423,8 @@ describe('<Hero />', () => {
 **Component**:
 
 ```typescript
+import { Show } from "solid-js";
+
 export interface ImageProps {
   src: string;
   alt: string;
@@ -430,8 +432,6 @@ export interface ImageProps {
   class?: string;
   loading?: "lazy" | "eager";
 }
-
-import { Show } from "solid-js";
 
 export default function Image(props: ImageProps) {
   return (
@@ -562,12 +562,12 @@ see Backlog '3. MODERATE — Card class concatenation has no conflict resolution
 **Component**:
 
 ```typescript
+import { Show, type ParentProps } from "solid-js";
+
 export interface CardProps extends ParentProps {
   title?: string;
   class?: string;
 }
-
-import { Show, type ParentProps } from "solid-js";
 
 export default function Card(props: CardProps) {
   return (
