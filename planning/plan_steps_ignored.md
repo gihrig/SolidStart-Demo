@@ -5356,3 +5356,199 @@ Positive Observations
 - Static data arrays correctly outside component function — prevents re-allocation on every render
 - E2E theme persistence test validates full round-trip: click → localStorage → reload → theme-init.js → correct
   data-theme
+
+===================================================================================
+
+❯ Review `planning/jedi-conversion.md`
+
+- Reference `planning/plan_steps_ignored.md` - 20th cycle @lines 5154-5309
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for security, accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- List Positive Observations in a bulleted list at end of results
+
+⏺ Jedi Conversion Plan Review - 21st cycle.
+
+Cross-referenced with 20th cycle fixes (lines 5154-5309 of plan_steps_ignored.md).
+
+---
+
+1. HIGH — Author <Show> fallback has two sibling JSX elements without fragment wrapper (Phase 2, lines 525-528)
+
+// plan line 525-528
+<Show when={props.href} fallback={
+<img class="w-8 h-8 rounded-full" src={imgSrc()} alt={props.name} loading="lazy" />
+<span class="font-bold">{props.name}</span>
+}>
+
+JSX prop value {} expects a single expression. Two adjacent JSX elements is a parse error. Needs <>...</> fragment:
+
+fallback={<>
+<img class="w-8 h-8 rounded-full" src={imgSrc()} alt={props.name} loading="lazy" />
+<span class="font-bold">{props.name}</span>
+</>}
+
+---
+
+2. HIGH — Image test assertion checks wrong src value (Phase 2, line 466)
+
+// plan line 464 — input was fixed to /images/test.jpg (20th cycle fix #1)
+render(() => <Image src="/images/test.jpg" alt="Test Image" />)
+// plan line 466 — assertion NOT updated
+expect(img).toHaveAttribute('src', 'test.jpg') // ← should be '/images/test.jpg'
+
+20th cycle fix #1 updated the input from "test.jpg" to "/images/test.jpg" but the assertion still expects 'test.jpg'. sanitizeImageUrl("/images/test.jpg") returns "/images/test.jpg" → test fails.
+
+---
+
+3. HIGH — Author test asserts href="#" link after <Show when={props.href}> fix removed it (Phase 2, lines 559-562)
+
+// plan line 559-562
+it('defaults to # when href not provided', () => {
+render(() => <Author avatarSrc="avatar.jpg" name="Test" />)
+expect(screen.getByRole('link')).toHaveAttribute('href', '#')
+})
+
+20th cycle fix #6 changed Author to <Show when={props.href}> — no href means no <a> rendered. getByRole('link') throws
+→ test crashes. This entire test case now validates a removed behavior and must be rewritten to assert the fallback (no link).
+
+---
+
+4. HIGH — Author tests use relative avatarSrc="avatar.jpg" → sanitizer blocks it (Phase 2, lines 549, 554)
+
+// plan line 549
+render(() => <Author avatarSrc="avatar.jpg" name="Test Author" />)
+expect(screen.getByRole('img')).toHaveAttribute('src', 'avatar.jpg')
+
+20th cycle fix #5 added sanitizeImageUrl to Author. sanitizeImageUrl("avatar.jpg") → doesn't match
+^(?:https?:\/\/|\/[\w]) → returns undefined → src attribute absent from DOM. Same class of bug as the Image test fix #1, but Author tests not updated. Both tests at lines 549 and 554 need avatarSrc="/images/avatar.jpg".
+
+---
+
+5. MODERATE — aria-label="1 like" placed on wrong element and lacks role (Phase 3, line 1103)
+
+// plan line 1103 — outer div gets the label
+
+  <div class="flex items-center gap-4" aria-label="1 like">
+    <div class="flex items-center gap-1">    <!-- ← label belongs here -->
+      <img ... alt="" />
+      <span ...>1</span>
+    </div>
+    <button ...>Like</button>               <!-- label doesn't describe these -->
+    <button ...>Edit</button>
+    <button ...>Delete</button>
+  </div>
+
+Two problems: (a) aria-label on a <div> without a role is ignored by screen readers per ARIA spec. (b) Label is on the container that also holds Like/Edit/Delete buttons — "1 like" doesn't describe those. Fix: move to inner count div, add role="status", or use visually-hidden text <span class="sr-only">1 like</span>.
+
+---
+
+6. MODERATE — .navitems > li > a:hover uses hardcoded bg-gray-700 instead of theme variable (Phase 1.3, line 219)
+
+/_ plan line 219 _/
+.navitems > li > a:hover {
+@apply bg-gray-700;
+}
+
+JediNav header (bg-gray-800) uses hardcoded bg-gray-700 for hover — only 1 shade difference in dark context, fine. But this doesn't participate in the theme system. Every other hover state uses --theme-hover-bg. Plan line 76 explicitly exempts JediNav from theming ("JediNav.tsx and Hero.tsx are exceptions to #4 above"), so this is intentional. Flag as design debt — if JediNav ever needs theme support, this is a gap.
+
+---
+
+7. MODERATE — Sidebar collapse uses max-h-0/max-h-screen transition → janky animation (Phase 3, line 1131)
+
+// plan line 1131
+class={`... ${mobileSidebarOpen()
+    ? "opacity-100 max-h-screen"
+    : "opacity-0 max-h-0 overflow-hidden md:overflow-visible"}`}
+
+max-h-screen = 100vh. Transitioning max-height from 0 to a large fixed value causes non-linear perceived speed —
+content appears to "snap" then slow-crawl. CSS grid-template-rows: 0fr → 1fr transition would be smoother. Acceptable for demo scope.
+
+---
+
+8. MINOR — transition-all used in 3 places where specific properties would be more performant (Phase 2/3)
+
+// plan line 731 (JediNav nav)
+transition-all duration-300 ease-out
+// plan line 762 (JediNav dropdown)
+transition-all duration-300 ease-out
+// plan line 1131 (sidebar aside)
+transition-all duration-300 ease-out
+
+transition-all transitions every CSS property including background-color, border, padding, etc. Only opacity and
+transform (and max-height for sidebar) actually change. transition-[opacity,transform] or
+transition-[opacity,max-height] would avoid unnecessary composite layer work. Low impact for demo.
+
+---
+
+9. MINOR — No width/height attributes on <img> elements → CLS risk (Phase 2/3, multiple locations)
+
+<img> elements in JediNav (lines 698, 714, 720, 748-749, 754-755), Author (line 526, 531), and sidebar lists (lines
+1145, 1159, 1164-1165, 1189) lack explicit width/height. Browsers can't reserve space before images load → cumulative
+layout shift. Low priority for demo with small icons.
+
+---
+
+10. MINOR — Typo "sudo" → "pseudo" in plan line 959
+
+All interactive elements: get `*:focus-visible` sudo classes as defined in `app.css`.
+
+Should be "pseudo classes".
+
+---
+
+Summary Table
+
+```pre
+  ┌─────┬──────────┬─────────────────────────┬────────────────────────────────────────────────────────────────┐
+  │  #  │ Severity │        Location         │                                Issue                           │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────────┤
+  │ 1   │ HIGH     │ Author.tsx L525-528     │ <Show> fallback needs <> fragment wrapper — JSX parse error    │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────────┤
+  │ 2   │ HIGH     │ Image.test.tsx L466     │ Assertion expects 'test.jpg' but component renders             │
+  │     │          │                         │ '/images/test.jpg'                                             │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────────┤
+  │ 3   │ HIGH     │ Author.test.tsx         │ Test asserts href="#" link that no longer renders after fix #6 │
+  │     │          │ L559-562                │                                                                │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────────┤
+  │ 4   │ HIGH     │ Author.test.tsx         │ Relative avatarSrc="avatar.jpg" blocked by sanitizer → src     │
+  │     │          │ L549,554                │ undefined                                                      │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────────┤
+  │ 5   │ MODERATE │ jedi.tsx L1103          │ aria-label="1 like" on wrong div & missing role — screen       │
+  │     │          │                         │ readers ignore                                                 │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────────┤
+  │ 6   │ MODERATE │ jedi.css L219           │ Hardcoded bg-gray-700 hover doesn't use theme variables        │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────────┤
+  │ 7   │ MODERATE │ jedi.tsx L1131          │ max-h-0→max-h-screen transition produces janky animation       │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────────┤
+  │ 8   │ MINOR    │ JediNav/jedi.tsx        │ transition-all where specific properties suffice               │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────────┤
+  │ 9   │ MINOR    │ Multiple                │ <img> missing width/height → layout shift                      │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────────┤
+  │ 10  │ MINOR    │ Plan L959               │ Typo "sudo" → "pseudo"                                         │
+  └─────┴──────────┴─────────────────────────┴────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+Positive Observations
+
+- sanitizeImageUrl design — blocks javascript:, data: URIs, and CSS breakout chars (', ", (, ), \). Regex-based, no external deps. Console warnings aid debugging.
+- FOUC prevention via external theme-init.js — CSP-compliant approach, avoids inline script. The plan explicitly
+  explains WHY (line 1237) over the Tanstack reference's inline pattern.
+- ThemeToggle createEffect early return — correct use of SolidJS cleanup semantics with accurate comment. onCleanup only registered when mode() === "auto", avoiding stale listener leaks.
+- 20th cycle fixes #2, #4, #8 correctly integrated — br-grey-700 → bg-gray-700, dropdown test now asserts class/aria state, md:z-0 present in JediNav nav class string.
+- useDismiss / useListbox / useIsMobile hooks — clean, SSR-safe (isServer guard), proper onCleanup for event
+  listeners. useListbox implements full ARIA listbox spec (ArrowUp/Down, Home/End, Enter/Space, aria-activedescendant).
+- Idiomatic SolidJS throughout — signals not destructured from props, <For> for list rendering, <Show> for conditional rendering, classList for dynamic classes, splitProps pattern followed where needed.
+- Tailwind v4 syntax correct — text-(--theme-accent) custom property syntax, bg-gray-800/40 opacity, @theme for
+  tokens. No v3 residue detected in plan code.
+- Static data arrays (CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS) outside component — prevents re-creation on reactive
+  updates, per plan requirements.
+- Dark mode architecture — :root[data-theme="dark"] + @media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) } cleanly separates explicit choice from OS auto-detection.
+- Test coverage breadth — unit tests for sanitizer, component tests for all 6 components, E2E tests including theme persistence and responsive layout. JediNav tests assert class/aria state (not just element presence) per 20th cycle fix #4.
