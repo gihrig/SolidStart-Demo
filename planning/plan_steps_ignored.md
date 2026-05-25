@@ -5182,7 +5182,11 @@ With-href branch:
 
 br-grey-700 is not a valid Tailwind class. Two errors: br (not bg) and grey (Tailwind uses gray).
 
-Fix: Change br-grey-700 → bg-gray-700 on line 443.
+Fix:
+
+- Change br-grey-700 → bg-gray-700 on line 443.
+
+**Updated per Fix**
 
 ---
 

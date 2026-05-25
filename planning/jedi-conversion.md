@@ -440,7 +440,7 @@ export default function Image(props: ImageProps) {
 
   return (
     <figure class={props.class ?? ""}>
-      <Show when={props.href} fallback={<img class="w-full br-grey-700" src={imgSrc()} alt={props.alt} loading={props.loading} />}>
+      <Show when={props.href} fallback={<img class="w-full bg-gray-700" src={imgSrc()} alt={props.alt} loading={props.loading} />}>
         {(href) => (
           <a href={href()}>
             <img class="w-full bg-gray-700" src={imgSrc()} alt={props.alt} loading={props.loading} />
