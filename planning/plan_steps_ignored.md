@@ -5164,7 +5164,11 @@ expect(img).toHaveAttribute('src', 'test.jpg') // ❌ FAILS - src is undefined
 
 All 6 Image tests pass "test.jpg" → console.warn fires 6 times (noise). Primary assertion in test 1 fails outright.
 
-Fix: Use safe paths in all Image tests: src="/images/test.jpg" or src="https://example.com/test.jpg".
+Fix:
+
+- Replace "test.jpg" with "/images/test.jpg"
+
+**Updated per Fix**
 
 ---
 
