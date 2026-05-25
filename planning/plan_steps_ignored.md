@@ -5263,7 +5263,12 @@ Fix:
 
 Always renders <a> even without meaningful destination. Screen readers announce it as a link that goes nowhere. Image component conditionally renders <a> via <Show when={props.href}> — better pattern.
 
-Fix: Wrap in <Show when={props.href}> to only render link when href provided, with fallback rendering just avatar + name span.
+Fix:
+
+- Wrap in <Show when={props.href}> to only render link when href provided, with fallback rendering just avatar + name span.
+- See `Image` for example
+
+**Updated per Fix**
 
 ---
 

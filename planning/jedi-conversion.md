@@ -507,6 +507,7 @@ describe('<Image />', () => {
 **Component**:
 
 ```typescript
+import { Show } from "solid-js";
 import { sanitizeImageUrl } from "~/lib/sanitizeImageUrl";
 
 export interface AuthorProps {
@@ -520,10 +521,18 @@ export default function Author(props: AuthorProps) {
   const imgSrc = () => sanitizeImageUrl(props.avatarSrc);
 
   return (
-    <a class="flex items-center gap-1 mb-4 hover:underline" href={props.href ?? "#"}>
+
+    <Show when={props.href} fallback={
       <img class="w-8 h-8 rounded-full" src={imgSrc()} alt={props.name} loading="lazy" />
       <span class="font-bold">{props.name}</span>
-    </a>
+    }>
+      {(href) => (
+        <a class="flex items-center gap-1 mb-4 hover:underline" href={href()}>
+          <img class="w-8 h-8 rounded-full" src={imgSrc()} alt={props.name} loading="lazy" />
+          <span class="font-bold">{props.name}</span>
+        </a>
+      )}
+    </Show>
   );
 }
 ```
