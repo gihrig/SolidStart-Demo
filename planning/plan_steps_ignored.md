@@ -5062,10 +5062,13 @@ Organize `import`s first @lines 336, 426 & 565
 
 class={`card-style ${props.class ?? ""}`}
 
-Plan acknowledges this (line 558-559) and references backlog item. No twMerge/clsx/cn. Conflicting Tailwind classes
-from props.class won't override card-style base utilities.
+Plan acknowledges this (line 558-560) and references backlog item. No twMerge/clsx/cn. Conflicting Tailwind classes from props.class won't override card-style base utilities.
 
 Already tracked — no action beyond awareness.
+
+Fix:
+
+**Noted - No change**
 
 ---
 
