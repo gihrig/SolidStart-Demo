@@ -5134,3 +5134,172 @@ Positive Observations
 - Static data outside component — CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS declared outside Jedi(). Avoids re-creating arrays on every render
 - Clean Alpine.js conversion — x-data → createSignal, x-show → <Show>, @click.away → useDismiss with ref. Mapping
   table (lines 629-645) is accurate and complete
+
+===================================================================================
+
+❯ Review `planning/jedi-conversion.md`
+
+- Reference `planning/plan_steps_ignored.md` - 19th cycle @lines 4958-5088
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- List Positive Observations in a bulleted list at end of results
+
+⏺ Jedi Conversion Plan Review - 20th cycle.
+
+1. CRITICAL — Image component tests use relative paths blocked by sanitizer (Phase 2, lines 463-466)
+
+sanitizeImageUrl regex:
+const SAFE_URL_PATTERN = /^(?:https?:\/\/|\/[\w])/i; // line 265
+
+Test 1 uses src="test.jpg" — doesn't match https?:// or /\w → returns undefined → src attribute removed from DOM.
+
+// line 463-466
+render(() => <Image src="test.jpg" alt="Test Image" />)
+expect(img).toHaveAttribute('src', 'test.jpg') // ❌ FAILS - src is undefined
+
+All 6 Image tests pass "test.jpg" → console.warn fires 6 times (noise). Primary assertion in test 1 fails outright.
+
+Fix: Use safe paths in all Image tests: src="/images/test.jpg" or src="https://example.com/test.jpg".
+
+---
+
+2. HIGH — Image component typo br-grey-700 (Phase 2, line 443)
+
+Fallback branch (no href):
+<img class="w-full br-grey-700" src={imgSrc()} .../> // line 443
+
+With-href branch:
+<img class="w-full bg-gray-700" src={imgSrc()} .../> // line 446
+
+br-grey-700 is not a valid Tailwind class. Two errors: br (not bg) and grey (Tailwind uses gray).
+
+Fix: Change br-grey-700 → bg-gray-700 on line 443.
+
+---
+
+3. MODERATE — Plan references Jedi.tsx (PascalCase) but actual file is jedi.tsx (lowercase)
+
+Plan line 5: "Convert... to src/routes/Jedi.tsx"
+Actual filesystem: src/routes/jedi.tsx (confirmed)
+
+SolidStart file-based routing is case-sensitive. References throughout plan (lines 5, 192, 235, 948) say Jedi.tsx. URL verifications correctly say /jedi. Execution confusion risk: someone might create Jedi.tsx alongside existing jedi.tsx.
+
+Fix: Change all plan references from src/routes/Jedi.tsx → src/routes/jedi.tsx.
+
+---
+
+4. MODERATE — JediNav dropdown test asserts items present but they're always in DOM (Phase 2, lines 820-826)
+
+Component renders dropdown items permanently — hidden via CSS (opacity-0 scale-90 pointer-events-none), not <Show>:
+// line 748 - always rendered, just visually hidden
+class={`... ${dropdownOpen() ? "opacity-100 scale-100 ..." : "opacity-0 scale-90 ... pointer-events-none"}`}
+
+Test:
+// line 823-826
+await user.click(trigger);
+expect(screen.getByText("My Profile")).toBeInTheDocument(); // ← passes WITHOUT click too
+
+getByText("My Profile") finds the element regardless of toggle state. Test proves nothing about toggle behavior.
+
+Fix: Assert class changes like hamburger tests do:
+const dropdown = screen.getByText("My Profile").closest("div[aria-hidden]");
+expect(dropdown).not.toHaveClass("pointer-events-none");
+
+---
+
+5. MINOR — Author component doesn't sanitize avatarSrc (Phase 2, line 519)
+
+Hero uses sanitizeImageUrl(props.backgroundImage) (CSS injection vector).
+Image uses sanitizeImageUrl(props.src) (added in 19th cycle fix #7).
+Author passes props.avatarSrc directly:
+<img class="w-8 h-8 rounded-full" src={props.avatarSrc} ... /> // line 519
+
+Low risk — all URLs are constants, <img src> can't execute JS in modern browsers. But design asymmetry if Author is reused with dynamic data.
+
+---
+
+6. MINOR — Author href="#" default creates non-functional link (Phase 2, line 518)
+
+<a ... href={props.href ?? "#"}> // line 518
+
+Always renders <a> even without meaningful destination. Screen readers announce it as a link that goes nowhere. Image component conditionally renders <a> via <Show when={props.href}> — better pattern.
+
+Fix: Wrap in <Show when={props.href}> to only render link when href provided, with fallback rendering just avatar + name span.
+
+---
+
+7. MINOR — Like count "1" lacks screen reader context (Phase 3, lines 1083-1091)
+
+  <div class="flex items-center gap-1">
+    <img class="w-5 -mt-1" src="..." alt="" loading="lazy" />
+    1
+  </div>
+
+Icon is decorative (alt=""). Screen reader announces bare "1" with no context. Other elements have semantic roles
+(buttons, links).
+
+Fix: Add aria-label="1 like" to container div, or use visually-hidden text.
+
+---
+
+8. MINOR — JediNav nav element uses -z-1 that persists on desktop (Phase 2, line 717)
+
+class="... absolute md:relative -z-1 ..."
+
+No md:z-auto or md:z-0 to reset z-index on desktop. On desktop (md:relative), the element still has z-index: -1. Works currently because flex children don't overlap, but fragile — adding any positioned sibling could occlude the nav.
+
+Fix: Add md:z-auto or md:z-0 to reset on desktop.
+
+---
+
+Summary Table
+
+```pre
+  ┌─────┬──────────┬────────────────────────────────────────────┬──────────────┬───────────────────────────────┐
+  │  #  │ Severity │                   Issue                    │  Phase/Line  │              Impact           │
+  ├─────┼──────────┼────────────────────────────────────────────┼──────────────┼───────────────────────────────┤
+  │ 1   │ CRITICAL │ Image tests use relative paths blocked by  │ P2, 463-466  │ Test 1 fails; all tests emit  │
+  │     │          │ sanitizer                                  │              │ warn                          │
+  ├─────┼──────────┼────────────────────────────────────────────┼──────────────┼───────────────────────────────┤
+  │ 2   │ HIGH     │ Typo br-grey-700 → bg-gray-700 in Image    │ P2, 443      │ Invalid class, no fallback    │
+  │     │          │ fallback                                   │              │ background                    │
+  ├─────┼──────────┼────────────────────────────────────────────┼──────────────┼───────────────────────────────┤
+  │ 3   │ MODERATE │ Plan says Jedi.tsx but file is jedi.tsx    │ Throughout   │ Execution confusion           │
+  ├─────┼──────────┼────────────────────────────────────────────┼──────────────┼───────────────────────────────┤
+  │ 4   │ MODERATE │ Dropdown test asserts items that are       │ P2, 820-826  │ Test doesn't verify toggle    │
+  │     │          │ always in DOM                              │              │ behavior                      │
+  ├─────┼──────────┼────────────────────────────────────────────┼──────────────┼───────────────────────────────┤
+  │ 5   │ MINOR    │ Author doesn't sanitize avatarSrc          │ P2, 519      │ Inconsistency with Hero/Image │
+  ├─────┼──────────┼────────────────────────────────────────────┼──────────────┼───────────────────────────────┤
+  │ 6   │ MINOR    │ Author always renders link even without    │ P2, 518      │ Accessibility: non-functional │
+  │     │          │ href                                       │              │ link                          │
+  ├─────┼──────────┼────────────────────────────────────────────┼──────────────┼───────────────────────────────┤
+  │ 7   │ MINOR    │ Bare "1" like count has no aria context    │ P3,          │ Screen reader announces       │
+  │     │          │                                            │ 1083-1091    │ orphan                        │
+  ├─────┼──────────┼────────────────────────────────────────────┼──────────────┼───────────────────────────────┤
+  │ 8   │ MINOR    │ -z-1 not reset on desktop breakpoint       │ P2, 717      │ Fragile stacking context      │
+  └─────┴──────────┴────────────────────────────────────────────┴──────────────┴───────────────────────────────┘
+```
+
+---
+
+Positive Observations
+
+- sanitizeImageUrl utility is well-designed — blocks javascript:, data:, CSS breakout chars, and relative paths; unit test coverage thorough
+- useDismiss hook signature in plan matches actual implementation perfectly (handler, active accessor, optional ref getter)
+- useListbox integration correct — plan's listboxProps spread and getOptionProps usage matches the hook's return shape exactly
+- classList with compound keys ("ring-2 ring-(--theme-accent)") is safe — SolidJS 1.9.12's toggleClassKey splits on whitespace via .trim().split(/\s+/)
+- Theme toggle FOUC prevention pattern solid — external theme-init.js is CSP-compliant, onMount + createEffect +
+  onCleanup lifecycle management idiomatic SolidJS
+- Custom @theme spacing tokens (--spacing-5pct, --spacing-10pct, --spacing-20pct) enable mx-5pct naturally in Tailwind v4 — clean approach to percentage margins
+- color-mix(in oklch, ...) for dark-mode highlight transparency is modern CSS best practice — avoids Tailwind-only /50 opacity syntax outside @theme
+- Accessibility baseline comprehensive from the start — aria-expanded, aria-hidden, role="listbox", focus-visible
+  rings, semantic buttons throughout
+- Static data arrays correctly outside component function — prevents re-allocation on every render
+- E2E theme persistence test validates full round-trip: click → localStorage → reload → theme-init.js → correct
+  data-theme
