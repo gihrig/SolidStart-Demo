@@ -5197,7 +5197,11 @@ Actual filesystem: src/routes/jedi.tsx (confirmed)
 
 SolidStart file-based routing is case-sensitive. References throughout plan (lines 5, 192, 235, 948) say Jedi.tsx. URL verifications correctly say /jedi. Execution confusion risk: someone might create Jedi.tsx alongside existing jedi.tsx.
 
-Fix: Change all plan references from src/routes/Jedi.tsx → src/routes/jedi.tsx.
+Fix:
+
+- Change all plan references from src/routes/Jedi.tsx → src/routes/jedi.tsx.
+
+**Updated per Fix**
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/Jedi.tsx` (SolidStart v1.3.2 + TailwindCSS v4.2.2) with component extraction. Replace the existing `Jedi.tsx` placeholder.
+Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.tsx` (SolidStart v1.3.2 + TailwindCSS v4.2.2) with component extraction. Replace the existing `jedi.tsx` placeholder.
 
 ## Source Analysis Summary
 
@@ -188,7 +188,7 @@ Existing hooks used in Step 2.5 and Phase 3
 vp i @fontsource/lobster
 ```
 
-**File**: `src/routes/Jedi.tsx` (not `app.tsx` — Lobster only used on Jedi page)
+**File**: `src/routes/jedi.tsx` (not `app.tsx` — Lobster only used on Jedi page)
 
 ```tsx
 import "@fontsource/lobster";
@@ -202,7 +202,7 @@ import "@fontsource/lobster";
 
 **File**: `src/routes/jedi.css`
 
-**Action**: Create route-specific CSS for descendant-selector patterns that can't be expressed as Tailwind utilities. Import in `Jedi.tsx`.
+**Action**: Create route-specific CSS for descendant-selector patterns that can't be expressed as Tailwind utilities. Import in `jedi.tsx`.
 
 ```css
 @layer components {
@@ -232,7 +232,7 @@ import "@fontsource/lobster";
 }
 ```
 
-**Import** in `src/routes/Jedi.tsx`:
+**Import** in `src/routes/jedi.tsx`:
 
 ```tsx
 import "./jedi.css";
@@ -917,7 +917,7 @@ describe("<JediNav />", () => {
 
 ## [ ] Phase 3: Create Jedi Route Page with Metadata
 
-**File**: `src/routes/Jedi.tsx`
+**File**: `src/routes/jedi.tsx`
 
 **Requirements**:
 
@@ -1888,7 +1888,7 @@ Scan changed files for v3 residue:
 
 ```bash
 grep -rn -E "!important|bg-opacity-|text-opacity-|md:![a-z]|\[&>" \
-  src/routes/Jedi.tsx src/routes/jedi.css src/components/Hero.tsx src/components/Image.tsx \
+  src/routes/jedi.tsx src/routes/jedi.css src/components/Hero.tsx src/components/Image.tsx \
   src/components/Author.tsx src/components/Card.tsx src/components/JediNav.tsx \
   src/components/ThemeToggle.tsx src/components/Nav.tsx src/app.css
 ```
@@ -2036,7 +2036,7 @@ When the above passes, the conversion is **complete**. Commit any final fixes an
 
 1. 6 Solid JS components created with TypeScript (Hero, Image, Author, Card, JediNav, ThemeToggle)
 2. 4 Solid JS components accept props and have exported TypeScript interfaces (Hero, Image, Author, Card)
-3. `src/routes/Jedi.tsx` functional with all sections; no duplicate `<Nav />` import
+3. `src/routes/jedi.tsx` functional with all sections; no duplicate `<Nav />` import
 4. All component tests pass.
 5. All E2E tests pass.
 6. Visual appearance matches **Jedi Project** `Awesome.png`
