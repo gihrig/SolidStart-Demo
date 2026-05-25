@@ -1100,7 +1100,7 @@ export default function Jedi() {
                   Comments
                   <span class="font-light text-(--theme-card-fg) ml-2">3</span>
                 </a>
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-4" aria-label="1 like">
                   <div class="flex items-center gap-1">
                     <img
                       class="w-5 -mt-1"
@@ -1108,7 +1108,7 @@ export default function Jedi() {
                       alt=""
                       loading="lazy"
                     />
-                    1
+                    <span class="font-light text-(--theme-card-fg) ml-2">1</span>
                   </div>
                   <button type="button" onClick={() => {}} class="theme-button">
                     Like

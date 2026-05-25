@@ -5244,7 +5244,7 @@ Low risk — all URLs are constants, <img src> can't execute JS in modern browse
 
 Backlog:
 
-Add to backlog as items 4 and 5
+Add to backlog as items "## 4. Use meaningful avatars" and "## 5. Standardize data structures"
 
 - Implement `sanitizeImageUrl` for Top Photos avatars
 - Implement `sanitizeImageUrl` for Top Captions avatars
@@ -5272,7 +5272,7 @@ Fix:
 
 ---
 
-7. MINOR — Like count "1" lacks screen reader context (Phase 3, lines 1083-1091)
+7. MINOR — Like count "1" lacks screen reader context (Phase 3, lines 1103-1112)
 
   <div class="flex items-center gap-1">
     <img class="w-5 -mt-1" src="..." alt="" loading="lazy" />
@@ -5282,7 +5282,15 @@ Fix:
 Icon is decorative (alt=""). Screen reader announces bare "1" with no context. Other elements have semantic roles
 (buttons, links).
 
-Fix: Add aria-label="1 like" to container div, or use visually-hidden text.
+Backlog:
+
+Add note re: comment and like #'s to backlog "## 5. Standardize data structures"
+
+Fix:
+
+- Add aria-label="1 like" to container div.
+
+**Updated per Fix**
 
 ---
 

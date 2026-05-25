@@ -48,6 +48,7 @@
 ## 5. Standardize data structures
 
 - Refactor data into blocks for Top Photos and Top Captions
+  - Include comments (#) and likes (#) from DB
   - See `Card` for example
   - Consider data will be pulled from DB
 - Sanitize all external urls
