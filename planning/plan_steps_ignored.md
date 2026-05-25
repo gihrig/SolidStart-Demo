@@ -5079,6 +5079,14 @@ props.src and props.href unsanitized.
 
 Low risk in current usage — all URLs are hardcoded constants. But design asymmetry: if Image is reused with dynamic URLs, <a href="javascript:..."> would be unprotected.
 
+Fix:
+
+- Update `Image` component to implement `sanitizeImageUrl(props.src)` on the pattern of `Hero`
+- Simplify `sanitizeImageUrl()` call to `const imgSrc = () => sanitizeImageUrl(props.src);`
+- Add `bg-gray-700` as neutral placeholder (2 places) in case image fails sanity check
+
+**Updated per Fix**
+
 ---
 
 Summary Table

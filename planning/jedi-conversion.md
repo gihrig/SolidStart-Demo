@@ -424,6 +424,7 @@ describe('<Hero />', () => {
 
 ```typescript
 import { Show } from "solid-js";
+import { sanitizeImageUrl } from "~/lib/sanitizeImageUrl";
 
 export interface ImageProps {
   src: string;
@@ -434,12 +435,15 @@ export interface ImageProps {
 }
 
 export default function Image(props: ImageProps) {
+
+  const imgSrc = () => sanitizeImageUrl(props.src);
+
   return (
     <figure class={props.class ?? ""}>
-      <Show when={props.href} fallback={<img class="w-full" src={props.src} alt={props.alt} loading={props.loading} />}>
+      <Show when={props.href} fallback={<img class="w-full br-grey-700" src={imgSrc()} alt={props.alt} loading={props.loading} />}>
         {(href) => (
           <a href={href()}>
-            <img class="w-full" src={props.src} alt={props.alt} loading={props.loading} />
+            <img class="w-full bg-gray-700" src={imgSrc()} alt={props.alt} loading={props.loading} />
           </a>
         )}
       </Show>
