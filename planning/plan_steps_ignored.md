@@ -5294,13 +5294,19 @@ Fix:
 
 ---
 
-8. MINOR — JediNav nav element uses -z-1 that persists on desktop (Phase 2, line 717)
+8. MINOR — JediNav nav element uses -z-1 that persists on desktop (Phase 2, line 731)
 
 class="... absolute md:relative -z-1 ..."
 
-No md:z-auto or md:z-0 to reset z-index on desktop. On desktop (md:relative), the element still has z-index: -1. Works currently because flex children don't overlap, but fragile — adding any positioned sibling could occlude the nav.
+- No md:z-auto or md:z-0 to reset z-index on desktop. On desktop (md:relative), the element still has z-index: -1.
+- Works currently because flex children don't overlap, but fragile
+  — adding any positioned sibling could occlude the nav.
 
-Fix: Add md:z-auto or md:z-0 to reset on desktop.
+Fix:
+
+Add md:z-0 to reset on desktop.
+
+**Updated per Fix**
 
 ---
 
