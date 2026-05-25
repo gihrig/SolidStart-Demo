@@ -5218,9 +5218,18 @@ expect(screen.getByText("My Profile")).toBeInTheDocument(); // ← passes WITHOU
 
 getByText("My Profile") finds the element regardless of toggle state. Test proves nothing about toggle behavior.
 
-Fix: Assert class changes like hamburger tests do:
-const dropdown = screen.getByText("My Profile").closest("div[aria-hidden]");
+Fix:
+
+Assert class and attribute changes rather than element presence
+e.g.
+
+```ts
 expect(dropdown).not.toHaveClass("pointer-events-none");
+expect(dropdown).toHaveClass("opacity-100");
+expect(dropdown).toHaveAttribute("aria-hidden", "false");
+```
+
+**Updated per Fix - Co-authored by Claude Opus 4.6**
 
 ---
 

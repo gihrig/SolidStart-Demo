@@ -821,9 +821,16 @@ describe("<JediNav />", () => {
     const user = userEvent.setup();
     render(() => <JediNav />);
     const trigger = screen.getByRole("button", { name: /profile menu/i });
+    const dropdown = screen.getByText("My Profile").closest("[aria-hidden]")!;
+
+    expect(dropdown).toHaveClass("pointer-events-none");
+    expect(dropdown).toHaveAttribute("aria-hidden", "true");
+
     await user.click(trigger);
-    expect(screen.getByText("My Profile")).toBeInTheDocument();
-    expect(screen.getByText("Log Out")).toBeInTheDocument();
+
+    expect(dropdown).not.toHaveClass("pointer-events-none");
+    expect(dropdown).toHaveClass("opacity-100");
+    expect(dropdown).toHaveAttribute("aria-hidden", "false");
   });
 
   describe("hamburger menu", () => {
