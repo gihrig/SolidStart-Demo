@@ -5242,6 +5242,19 @@ Author passes props.avatarSrc directly:
 
 Low risk — all URLs are constants, <img src> can't execute JS in modern browsers. But design asymmetry if Author is reused with dynamic data.
 
+Backlog:
+
+Add to backlog as items 4 and 5
+
+- Implement `sanitizeImageUrl` for Top Photos avatars
+- Implement `sanitizeImageUrl` for Top Captions avatars
+
+Fix:
+
+- Implement `sanitizeImageUrl` for `Author > <img>` avatar
+
+**Updated per Fix**
+
 ---
 
 6. MINOR — Author href="#" default creates non-functional link (Phase 2, line 518)

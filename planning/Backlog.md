@@ -33,6 +33,21 @@
 
 ## 2. Download `https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg` read from /pubic
 
+- Consider model for EAGems > site_content > catalog_images
+
 ## 3. MODERATE — Card class concatenation has no conflict resolution
 
 - Detail `planning/plan_steps_ignored.md` @line 4058
+
+## 4. Use meaningful avatars
+
+- "https://img.icons8.com/doodle/96/null/bart-simpson.png"
+- "https://img.icons8.com/doodle/96/null/lisa-simpson.png"
+- "https://img.icons8.com/doodle/96/null/homer-simpson.png"
+
+## 5. Standardize data structures
+
+- Refactor data into blocks for Top Photos and Top Captions
+  - See `Card` for example
+  - Consider data will be pulled from DB
+- Sanitize all external urls
