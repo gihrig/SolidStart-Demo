@@ -523,8 +523,10 @@ export default function Author(props: AuthorProps) {
   return (
 
     <Show when={props.href} fallback={
-      <img class="w-8 h-8 rounded-full" src={imgSrc()} alt={props.name} loading="lazy" />
-      <span class="font-bold">{props.name}</span>
+      <>
+        <img class="w-8 h-8 rounded-full" src={imgSrc()} alt={props.name} loading="lazy" />
+        <span class="font-bold">{props.name}</span>
+      </>
     }>
       {(href) => (
         <a class="flex items-center gap-1 mb-4 hover:underline" href={href()}>

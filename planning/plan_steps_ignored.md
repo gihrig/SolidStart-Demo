@@ -5387,10 +5387,20 @@ Cross-referenced with 20th cycle fixes (lines 5154-5309 of plan_steps_ignored.md
 
 JSX prop value {} expects a single expression. Two adjacent JSX elements is a parse error. Needs <>...</> fragment:
 
-fallback={<>
-<img class="w-8 h-8 rounded-full" src={imgSrc()} alt={props.name} loading="lazy" />
-<span class="font-bold">{props.name}</span>
-</>}
+FIX:
+
+- Update <Show> @line 525
+  ```jsx
+  fallback={
+  <>
+    <img class="w-8 h-8 rounded-full" src={imgSrc()} alt={props.name} loading="lazy" />
+    <span class="font-bold">{props.name}</span>
+  </>}
+  ```
+
+````
+
+**Updated per Fix**
 
 ---
 
@@ -5531,7 +5541,7 @@ Summary Table
   ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────────┤
   │ 10  │ MINOR    │ Plan L959               │ Typo "sudo" → "pseudo"                                         │
   └─────┴──────────┴─────────────────────────┴────────────────────────────────────────────────────────────────┘
-```
+````
 
 ---
 
