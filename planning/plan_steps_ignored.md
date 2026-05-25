@@ -5030,7 +5030,12 @@ Main article uses <h3> (line 1042) for content title ("Little Jedi").
 
 Sidebar headings outranking main content heading is semantically backwards. Screen readers and SEO tools flag this.
 
-Fix: either promote article title to <h2> or demote Card headings to <h3>.
+Fix:
+
+- Promote article title to <h2>
+- Increase article title size to `text-2xl` (matching sidebar headings)
+
+**Updated per Fix**
 
 ---
 

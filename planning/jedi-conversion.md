@@ -1039,7 +1039,7 @@ export default function Jedi() {
           <article class="card-style">
             {/* Title bar */}
             <div class="flex items-center justify-between px-4 h-14">
-              <h3 class="text-lg font-bold w-1/2 truncate">Little Jedi</h3>
+              <h2 class="text-2xl font-bold w-1/2 truncate">Little Jedi</h2>
               <div class="text-sm text-(--theme-muted)">
                 flickr @{" "}
                 <a href="#" class="hover:underline rounded" target="_blank" rel="noreferrer">
