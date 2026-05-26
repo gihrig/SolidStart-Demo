@@ -29,7 +29,7 @@ Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.ts
 - Responsive grid: mobile (full-width) → desktop (2-col main + 1-col sidebar)
 - Hover states on all interactive elements
 - Mobile-first breakpoints (md:768px)
-- The completed **Target Project** `/jedi` page must match **Jedi Project** `Awesome.png`
+- The completed **Target Project** `/jedi` page must match **Jedi Project** `Awesome.png`, with minor style and positioning adjustments excepted.
 
 ### Visual Features to Create
 
