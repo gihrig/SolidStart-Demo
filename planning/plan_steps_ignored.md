@@ -44,13 +44,13 @@ In Plan section: Visual Features to Create
 - Review the current session transcript
 - Recommend changes in plan wording or organization to correct the above mentioned problems
 
-⏺ (Claude reviewed session)
+## ⏺ (Claude reviewed session)
 
 ---
 
 Analysis & Recommended Fixes
 
-Issue 1: Commit messages missing step numbers
+### 1: Commit messages missing step numbers
 
 What happened: Phase 1 used one combined commit for two steps. Phase 3 Step 3.2 and all of Phase 4 had commits without
 step numbers.
@@ -65,7 +65,7 @@ Fix: Add an explicit commit message format to the Workflow:
 
 ---
 
-Issue 2: Checkboxes not updated
+### 2: Checkboxes not updated
 
 What happened: The plan file's [ ] checkboxes were never changed to [x].
 
@@ -76,7 +76,7 @@ Fix: Replace "Check off the step" with an explicit file-edit instruction (shown 
 
 ---
 
-Issue 3: /compact not run
+### 3: /compact not run
 
 What happened: Claude cannot invoke /compact — it's a user-invoked command. Claude silently skipped it every time.
 
@@ -96,7 +96,7 @@ Option A matches the original intent. Option B drops compaction between steps.
 
 ---
 
-Issue 4: Phase-complete prompt not given
+### 4: Phase-complete prompt not given
 
 What happened: Claude didn't check off the phase checkbox or prompt user to clear context at phase end.
 
@@ -116,7 +116,7 @@ The explicit "Stop. Do not continue" is important — without it Claude treats t
 
 ---
 
-Issue 5: Dark/light mode toggle not implemented
+### 5: Dark/light mode toggle not implemented
 
 What happened: It appears in "Visual Features to Create" (a reference section) but has no corresponding step in any
 phase.
@@ -217,9 +217,9 @@ FOUC prevention
 
 Manual: Move project global statements from `jedi-conversion-md` to .claude/CLAUDE.md
 
----
+===================================================================================
 
-❯ Review `planning/jedi-conversion.md` for accuracy and efficiency report any recommended improvements
+## ❯ Review `planning/jedi-conversion.md` for accuracy and efficiency report any recommended improvements
 
 ⏺ Agent "Check project dependencies and config" completed
 ⏺ Agent "Verify plan accuracy against sources" completed
@@ -227,12 +227,13 @@ Manual: Move project global statements from `jedi-conversion-md` to .claude/CLAU
 
 ---
 
-Critical Issues (will cause bugs or broken UI)
+## Critical Issues (will cause bugs or broken UI)
 
-1. Duplicate Nav rendering
+### 1. Duplicate Nav rendering
 
 src/app.tsx already renders <Nav /> globally in the Router root:
 
+```tsx
 root={(props) => (
 <>
 <MetaProvider>
@@ -243,6 +244,7 @@ root={(props) => (
 </MetaProvider>
 </>
 )}
+```
 
 Step 3.1 imports and renders <Nav /> again inside jedi.tsx. The page will show two Nav bars.
 
@@ -250,37 +252,39 @@ Fix: Remove the <Nav /> import/render from jedi.tsx.
 
 ---
 
-2. Global CSS will override Jedi styles
+### 2. Global CSS will override Jedi styles
 
 src/app.css lines 22-34 have global @apply rules that will break the Jedi page:
 
+```css
 main {
-@apply mx-auto p-4 text-center text-xl text-(--theme-foreground);
+  @apply mx-auto p-4 text-center text-xl text-(--theme-foreground);
 }
 h1 {
-@apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase;
+  @apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase;
 }
 h2 {
-@apply ml-8 text-left text-2xl font-thin text-(--theme-accent) uppercase;
+  @apply ml-8 text-left text-2xl font-thin text-(--theme-accent) uppercase;
 }
 p {
-@apply mx-8 mb-6 text-justify;
+  @apply mx-8 mb-6 text-justify;
 }
+```
 
 These will override:
 
-- Hero <h1> — global forces font-thin text-(--theme-accent) uppercase, but Jedi needs font-bold text-white with
+- Hero `<h1>` — global forces font-thin text-(--theme-accent) uppercase, but Jedi needs font-bold text-white with
   Lobster font
-- <main> — global forces text-center text-xl p-4, but Jedi needs left-aligned article layout
-- Card <h2> titles — global forces ml-8 font-thin uppercase text-(--theme-accent)
-- Article <p> — global forces mx-8 text-justify
+- `<main>` — global forces text-center text-xl p-4, but Jedi needs left-aligned article layout
+- Card `<h2`> titles — global forces ml-8 font-thin uppercase text-(--theme-accent)
+- Article `<p>` — global forces mx-8 text-justify
 
 Fix: The plan needs a step to scope these globals (e.g., wrap them in a :where() or move them to route-specific CSS)
 or override them explicitly in Jedi components.
 
 ---
 
-3. Missing Jedi header conversion
+### 3. Missing Jedi header conversion
 
 The Jedi source index.html has a complex header (lines 37-120) with:
 
@@ -298,7 +302,7 @@ it (and remove requirement #2).
 
 ---
 
-4. style attribute contradiction
+### 4. style attribute contradiction
 
 Step 3.1 requirement #4 says: "Avoid using the <style=...> element."
 
@@ -314,7 +318,7 @@ requirement #4 to allow style where Tailwind can't express the value.
 
 Accuracy Errors
 
-5. Hero h1 font-size is wrong
+### 5. Hero h1 font-size is wrong
 
 Plan says text-6xl in the Hero component. The Jedi source style.css defines:
 h1 {
@@ -326,14 +330,14 @@ text-[4rem].
 
 ---
 
-6. E2E test count is wrong
+### 6. E2E test count is wrong
 
 Plan claims "~13 tests: 9 existing + 4 theme toggle". The existing e2e/jedi.spec.ts has 8 tests, not 9. The plan's
 replacement adds 9 Jedi tests + 4 theme tests = 13 total (correct total, wrong breakdown).
 
 ---
 
-7. Card dark mode not addressed
+### 7. Card dark mode not addressed
 
 The Jedi source style.css .card class sets background-color: white. The Card component in Step 2.4 has no background
 color at all — and the plan adds dark mode support in Step 3.2 but never gives cards a dark-mode-aware background.
@@ -345,14 +349,14 @@ Fix: Add bg-white dark:bg-gray-800 (or similar) to the Card component.
 
 Efficiency Improvements
 
-8. Font loaded globally but used on one page
+### 8. Font loaded globally but used on one page
 
 Step 1.2 adds import "@fontsource/lobster" to app.tsx, loading the Lobster font on every page. Only the Jedi page uses
 it. Move the import to jedi.tsx for better code splitting.
 
 ---
 
-9. ThemeToggle placement is page-specific but effect is global
+### 9. ThemeToggle placement is page-specific but effect is global
 
 Step 3.2.5 places <ThemeToggle /> inside the Jedi page header only. But the CSS variables and init script are global
 (affecting all pages). Users who toggle theme on /jedi will see the effect on other pages — but have no toggle to
@@ -360,14 +364,14 @@ change it back. The toggle belongs in the global <Nav /> component.
 
 ---
 
-10. Footer e2e assertions dropped silently
+### 10. Footer e2e assertions dropped silently
 
 The existing 8 e2e tests include 4 that verify footer links and structure. The plan replaces all tests without
 mentioning this. The global <Footer /> from app.tsx will still render on the Jedi page — those assertions may still be valid and should either be preserved or explicitly noted as dropped.
 
 ---
 
-11. plan_steps_ignored.md lessons not fully applied
+### 11. plan_steps_ignored.md lessons not fully applied
 
 That file documents prior execution failures (checkboxes not updated, phase-complete prompts skipped). The current
 plan does include phase-complete commit/stop instructions — good. But it still has the structural issue of
@@ -389,22 +393,21 @@ Summary
 └────────────────────────────┴───────┘
 ```
 
-The three highest-impact fixes: (1) remove duplicate Nav from jedi.tsx, (2) scope or override the global CSS rules in
-app.css, and (3) decide on the Jedi header — either convert the Alpine.js source header into a component or drop
+The three highest-impact fixes: (1) remove duplicate Nav from jedi.tsx, (2) scope or override the global CSS rules in app.css, and (3) decide on the Jedi header — either convert the Alpine.js source header into a component or drop
 requirement #2.
 
 claude-max --resume 574da5f3-6783-4b97-b650-ad1a0756bf8c
 
-❯ Solutions to previously listed issues:
+===================================================================================
+
+## ❯ Solutions to previously listed issues:
 
 - Continue session 574da5f3-6783-4b97-b650-ad1a0756bf8c
 - Apply the following Fixes to `planning/jedi-conversion.md`
 
-# Critical Issues (will cause bugs or broken UI)
+## Critical Issues (will cause bugs or broken UI)
 
-## 1. Duplicate Nav rendering
-
-### Problem:
+### 1. Duplicate Nav rendering
 
 - src/app.tsx already renders <Nav /> globally in the Router root:
 
@@ -412,7 +415,7 @@ claude-max --resume 574da5f3-6783-4b97-b650-ad1a0756bf8c
 
 - Reference ### 3 below
 
-## 2. Global CSS will override Jedi styles
+### 2 Global CSS will override Jedi styles
 
 ### Problem
 
@@ -422,16 +425,16 @@ claude-max --resume 574da5f3-6783-4b97-b650-ad1a0756bf8c
 
 - Create route specific CSS files that will inherit from and override global styles
 - Place Jedi styles for the following in a `/jedi` route specific CSS file `jedi.css`
-  - Hero <h1> Jedi needs
+  - Hero `<h1>` Jedi needs
     - font-bold
     - text-white
     - Lobster font
     - font-size: 4rem
-  - <main> Jedi needs left-aligned article layout
-  - Card <h2> Jedi inherits from `<section>`
-  - Article <p> Jedi uses utility classes `text-5xl mb-10 px-4 font1`
+  - `<main>` Jedi needs left-aligned article layout
+  - Card `<h2>` Jedi inherits from `<section>`
+  - Article `<p>` Jedi uses utility classes `text-5xl mb-10 px-4 font1`
 
-## 3. Missing Jedi header conversion
+### 3. Missing Jedi header conversion
 
 ### Problem:
 
@@ -444,7 +447,7 @@ claude-max --resume 574da5f3-6783-4b97-b650-ad1a0756bf8c
 - Include `jedi_nav` in `jedi.jsx`
 - The Jedi page should show two nav bars. One for the root route `/jedi` and a second in `jedi.jsx`
 
-## 4. style attribute contradiction
+### 4. style attribute contradiction
 
 ### Problem:
 
@@ -455,9 +458,9 @@ claude-max --resume 574da5f3-6783-4b97-b650-ad1a0756bf8c
 
 - Convert these to Tailwind utilities (e.g., bg-[url(...)], font-(--font-lobster), bg-(--primary))
 
-# Accuracy Errors
+## Accuracy Errors
 
-## 5. Hero h1 font-size is wrong
+### 5. Hero h1 font-size is wrong
 
 ### Problem:
 
@@ -474,7 +477,7 @@ h1 {
 
 - Corrected in ## 2 above
 
-## 6. E2E test count is wrong
+### 6. E2E test count is wrong
 
 ### Problem:
 
@@ -485,7 +488,7 @@ h1 {
 - Consider new tests created in various steps
 - Update plan to reflect the correct numbers
 
-## 7. Card dark mode not addressed
+### 7. Card dark mode not addressed
 
 ### Problem:
 
@@ -498,7 +501,7 @@ h1 {
 
 # Efficiency Improvements
 
-## 8. Font loaded globally but used on one page
+### 8. Font loaded globally but used on one page
 
 ### Problem:
 
@@ -508,7 +511,7 @@ h1 {
 
 - Move the import to jedi.tsx
 
-## 9. ThemeToggle placement is page-specific but effect is global
+### 9. ThemeToggle placement is page-specific but effect is global
 
 - Step 3.2.5 places <ThemeToggle /> inside the Jedi page header only.
 
@@ -516,7 +519,7 @@ h1 {
 
 - Move <ThemeToggle /> to the global <Nav /> component.
 
-## 10. Footer e2e assertions dropped silently
+### 10. Footer e2e assertions dropped silently
 
 ### Problem:
 
@@ -527,7 +530,7 @@ h1 {
 - Existing tests must be maintained
 - New tests for the Jedi page must be created following established patterns
 
-## 11. plan_steps_ignored.md lessons not fully applied
+### 11. plan_steps_ignored.md lessons not fully applied
 
 ### Problem:
 
@@ -539,9 +542,11 @@ h1 {
 - Apply the Fixes listed above
 - Review the updated plan for accuracy and efficiency report any recommended improvements
 
-❯ Read and apply`planning/plan_steps_next.md`
+===================================================================================
 
-⏺ All 11 fixes applied. Summary of changes to planning/jedi-conversion.md:
+## ❯ Read and apply`planning/plan_steps_next.md`
+
+## ⏺ All 11 fixes applied. Summary of changes to planning/jedi-conversion.md:
 
 ```pre
   ┌──────┬───────────────────────┬─────────────────────────────────────────────────────────┐
@@ -575,28 +580,25 @@ h1 {
   └──────┴───────────────────────┴─────────────────────────────────────────────────────────┘
 ```
 
-New plan structure: 5 phases, 14 steps (was 11). Component count: 6 (added JediNav). Success criteria updated to 13
-items.
+===================================================================================
 
-❯ Review `planning/jedi-conversion.md` for accuracy and efficiency report any recommended improvements
+## New plan structure: 5 phases, 14 steps (was 11). Component count: 6 (added JediNav). Success criteria updated to 13 items.
 
-⏺ All source files verified. Here's my review.
+## ❯ Review `planning/jedi-conversion.md` for accuracy and efficiency report any recommended improvements
 
----
-
-Plan Review: planning/jedi-conversion.md
+## ⏺ Plan Review: planning/jedi-conversion.md - original cycle.
 
 ACCURACY ISSUES
 
 Critical (will cause bugs)
 
-1. TW v4 dark: variant won't work with manual toggle
+### 1. TW v4 dark: variant won't work with manual toggle
 
 Plan's ThemeToggle uses dark:hover:bg-gray-700 (line 1029), and applyThemeMode() sets class="dark" on <html>. But TW v4 defaults dark: to @media (prefers-color-scheme: dark) — not class-based. Plan never configures TW v4 dark mode selector strategy. Result: dark: utilities only respond to OS preference, not manual toggle.
 
 Fix: Add @custom-variant dark (&:where(.dark, .dark \*)); to app.css (TW v4 syntax for class-based dark mode).
 
-2. font-(--font-lobster) likely wrong TW v4 syntax
+### 2. font-(--font-lobster) likely wrong TW v4 syntax
 
 Hero component line 269: font-(--font-lobster). In TW v4, font- prefix is ambiguous between font-weight and
 font-family. font-(--var) would attempt font-weight, not font-family.
@@ -604,15 +606,15 @@ font-family. font-(--var) would attempt font-weight, not font-family.
 Fix: Use [font-family:var(--font-lobster)] or define via @theme { --font-lobster: "Lobster", sans-serif; } and use
 font-lobster.
 
-3. Hero CTA missing hover state
+### 3. Hero CTA missing hover state
 
 Source .button:hover (style.css line 1038): background-color: var(--primary-hover). Plan's Hero CTA (line 273) has no
 hover class. Phase 5 validation explicitly checks "CTA darkens to --primary-hover" (line 1596) — but implementation
 doesn't deliver it.
 
-Fix: Add hover:bg-(--primary-hover) to CTA <a> classes.
+Fix: Add hover:bg-(--primary-hover) to CTA `<a>` classes.
 
-4. Nav.tsx tests will break — not addressed
+### 4. Nav.tsx tests will break — not addressed
 
 Step 3.2.5 adds <ThemeToggle /> inside <Nav />, changing DOM structure. 6 existing Nav tests at
 src/components/Nav.test.tsx don't mock ThemeToggle. Plan says nothing about updating Nav tests.
@@ -620,7 +622,7 @@ src/components/Nav.test.tsx don't mock ThemeToggle. Plan says nothing about upda
 Actual existing Nav tests:
 Nav.test.tsx: 6 tests (renders links, active styling × 5, inactive)
 
-5. Existing component test count wrong
+### 5. Existing component test count wrong
 
 Plan claims "2 existing" component tests (line 691, Success Criteria line 1643). Actual existing component test files:
 
@@ -651,31 +653,31 @@ base.
 
 Moderate
 
-6. Card dark mode — invisible against page background
+### 6. Card dark mode — invisible against page background
 
 Source .card (style.css line 1068): background-color: white. Plan's Card uses bg-(--theme-background) (line 465) —
 same variable as page body. In dark mode, cards will blend into page. No visual separation.
 
 Fix: Use a distinct surface variable like --theme-surface or hardcode bg-white dark:bg-gray-700.
 
-7. .highlight class on first Category missing
+### 7. .highlight class on first Category missing
 
 Source line 246-247: <li class="highlight"> on Landscape category. Source style.css line 1092: .highlight {
 background-color: rgb(224 231 255) !important; } (indigo-100). Plan's CATEGORIES data and rendering don't mention this visual indicator.
 
-8. animate-fade-in placed outside @layer
+### 8. animate-fade-in placed outside @layer
 
 Plan's app.css puts .animate-fade-in outside any layer (line 165). This gives it higher specificity than @layer
 utilities classes. Should be in @layer utilities or use @utility animate-fade-in { ... } (TW v4).
 
 Minor
 
-9. Source sidebar data counts exaggerated
+### 9. Source sidebar data counts exaggerated
 
 Plan shows // ... more entries for TOP_PHOTOS and TOP_CAPTIONS. Source index.html has exactly 2 entries each (all
 Homer). Plan should match source.
 
-10. [&>a:hover]:underline for article actions not converted
+### 10. [&>a:hover]:underline for article actions not converted
 
 Source line 219: class="flex items-center gap-4 [&>a:hover]:underline" on Like/Edit/Delete container. Plan's Step 3.1 outline ({/_ ...article body... _/}) doesn't explicitly address this v3 → v4 conversion.
 
@@ -713,7 +715,7 @@ WHAT'S CORRECT
 - Tanstack ThemeToggle reference verified — THEME_INIT_SCRIPT matches actual code at \_\_root.tsx:16 ✓
 - entry-server.tsx correct location for SolidStart theme init (vs Tanstack's \_\_root.tsx) ✓
 - app.tsx confirms Nav rendered globally — plan correctly avoids duplicate Nav import ✓
-- Source <a> for mobile toggle → plan's <button type="button"> — good a11y fix ✓
+- Source `<a>` for mobile toggle → plan's <button type="button"> — good a11y fix ✓
 - jedi.css descendant selectors match source style.css patterns ✓
 - E2E test structure: 8 existing tests, 4 footer + 4 placeholder — count verified ✓
 
@@ -773,7 +775,7 @@ Update `jedi-conversion.md` to use theme variables for light and dark mode
 
 ### Fix:
 
-- Add hover:bg-(--primary-hover) to CTA <a> classes.
+- Add hover:bg-(--primary-hover) to CTA `<a>` classes.
 
 ## [√] 4. Nav.tsx tests will break — not addressed
 
@@ -909,9 +911,9 @@ Update plan to include updates to `Nav.test.tsx` in support of <ThemeToggle /> i
 
 ---
 
-❯ Review `planning/jedi-conversion.md` for accuracy and efficiency report any recommended improvements
+## ❯ Review `planning/jedi-conversion.md` for accuracy and efficiency report any recommended improvements
 
-⏺ Review complete. Here are findings, organized by severity.
+## ⏺ Review complete. - 1st cycle.
 
 ---
 
@@ -926,10 +928,13 @@ Manually corrected
 Plan Step 1.1 shows a "Before" with var(--color-zinc-200) syntax and no dark-mode infrastructure. But actual file
 already has:
 
-// actual app.css lines 4-5, 6-7, 15-21:
+actual app.css lines 4-5, 6-7, 15-21:
+
+```css
 --theme-font-hero: "Lobster", sans-serif;
 --theme-btn-primary: rgb(88, 40, 244);
 :root[data-theme="dark"] { ... }
+```
 
 Plan proposes adding --font-lobster, --primary, --primary-hover — but these already exist under different names.
 Implementor will be confused whether to use plan names or existing names.
@@ -974,10 +979,13 @@ Manually corrected
 "Visual Features to Create" (line 42): "Selected item must have highlight class applied"
 
 Source style.css line 1092:
+
+```css
 .highlight {
---tw-bg-opacity: 1 !important;
-background-color: rgb(224 231 255 / var(--tw-bg-opacity)) !important;
+  --tw-bg-opacity: 1 !important;
+  background-color: rgb(224 231 255 / var(--tw-bg-opacity)) !important;
 }
+```
 
 No step creates this class in jedi.css or applies it to first category item. Plan has a gap.
 
@@ -1047,9 +1055,9 @@ Plan Phase 1 Step 1.1 (was step 3.2.1) shows adding vars to this block, but actu
 Fix: Plan should note this block exists but needs dark vars added (not that it needs the selector changed from :root
 to :root:not([data-theme="light"])).
 
-## [√] 8. Keyboard navigation: requirement without implementation
+### [√] 8. Keyboard navigation: requirement without implementation
 
-## Step completed
+### Step completed
 
 Requirement 10 expanded + Component Structure revised in `jedi-conversion.md`:
 
@@ -1172,7 +1180,7 @@ Conversions applied:
   shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg))
 - font1 → font-(--theme-font-hero) (Tailwind v4 custom property syntax)
 - text-5xl → text-6xl (matches Phase 7 "Caption uses Lobster at text-6xl")
-- [&>a:hover]:underline → hover:underline on each individual <a>
+- [&>a:hover]:underline → hover:underline on each individual `<a>`
 - target="blank" → target="\_blank" rel="noreferrer" (security)
 - <Image /> and <Author /> components used as specified in Phase 2
 
@@ -1194,32 +1202,37 @@ Component Structure (lines 753-935):
 
 - Added selectedCategory signal
 - Button: onKeyDown Escape + focus-visible ring
-- All <a> links: focus-visible ring (flickr, tag pills, Comments, Like/Edit/Delete)
+- All `<a`links: focus-visible ring (flickr, tag pills, Comments, Like/Edit/Delete)
 - <aside>: onKeyDown Escape handler
 - Categories: role="listbox", items with tabIndex={0}, role="option", aria-selected, click + keyboard handlers
 - Fixed text-(--theme-highlight) → bg-(--theme-highlight) (source uses background-color, not text color)
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
+## ❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
 
-⏺ Review complete. - 2nd cycle.
+## ⏺ Review complete. - 2nd cycle.
 
-3 critical test issues — all plan tests import from 'vitest' instead of "vite-plus/test" (won't run), use fireEvent
-instead of project's userEvent.setup() pattern.
+### 1, 3 critical test issues
 
-3 critical visual bugs — global @layer base h1/h2/p/main styles leak into Jedi components (Hero title gets sky-700 +
+— all plan tests import from 'vitest' instead of "vite-plus/test" (won't run), use fireEvent instead of project's userEvent.setup() pattern.
+
+### 2. 3 critical visual bugs
+
+— global @layer base h1/h2/p/main styles leak into Jedi components (Hero title gets sky-700 +
 uppercase + wrong margins instead of white Lobster text; Card h2 gets ml-8 + uppercase; caption gets text-justify).
 Dropdown and sidebar transitions missing (source has 300ms animations, plan has instant show/hide).
 
-4 important accuracy gaps — Step 4.1 "Before" doesn't match post-Step-1.1 state, font-(family-name:...) syntax
+### 3. 4 important accuracy gaps
+
+— Step 4.1 "Before" doesn't match post-Step-1.1 state, font-(family-name:...) syntax
 unverified, Nav.test.tsx update has no code, E2E uses waitForTimeout anti-pattern.
 
 ===================================================================================
 
-❯ Review: planning/jedi-conversion.md — Accuracy, Correctness, Efficiency
+## ❯ Review: planning/jedi-conversion.md — Accuracy, Correctness, Efficiency
 
-⏺ Review complete. - 3rd cycle.
+## ⏺ Review complete. - 3rd cycle.
 
 Context
 
@@ -1231,7 +1244,7 @@ This review verifies the current plan state against actual source files in all t
 
 CRITICAL — Will Cause Test Failures
 
-1.  All test imports use wrong module
+### 1. All test imports use wrong module
 
 Every test file in the plan imports from 'vitest'. Project uses "vite-plus/test".
 
@@ -1245,7 +1258,7 @@ import { describe, it, expect } from "vite-plus/test";
 Fix: Replace 'vitest' with "vite-plus/test" in all 6 test files. ThemeToggle test also needs vi imported: import {
 describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test".
 
-2.  Tests use fireEvent — project convention is userEvent.setup()
+### 2. Tests use fireEvent — project convention is userEvent.setup()
 
 Plan's JediNav test (line 679) and ThemeToggle test (line 1249):
 import { render, screen, fireEvent } from "@solidjs/testing-library";
@@ -1266,13 +1279,15 @@ Fix: Use userEvent.setup() pattern in JediNav and ThemeToggle tests.
 
 CRITICAL — Will Cause Visual Bugs
 
-3.  Global @layer base element styles leak into Jedi components
+### 3. Global @layer base element styles leak into Jedi components
 
 app.css wraps global rules in @layer base (good — utilities override base). But components don't override EVERY base property, so leftovers leak through.
 
-Hero <h1> (plan line 295):
+Hero `<h1>` (plan line 295):
 
+```tsx
  <h1 class="text-6xl leading-[1.2] font-bold mb-4 animate-fade-in font-(family-name:--theme-font-hero)">
+```
 
 From @layer base (app.css:31):
 h1 { @apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase; }
@@ -1286,19 +1301,29 @@ Leaking properties NOT overridden by Hero h1:
 
 Result: Hero title renders sky-700, uppercase, with wrong margins. Not white Lobster text.
 
-Card <h2> (plan line 494):
+Card `<h2>` (plan line 494):
 
- <h2 class="text-2xl font-bold px-4 pt-4 pb-2">
- Leaking from base h2: ml-8, text-(--theme-accent), uppercase. Card titles will be indented, sky-700, uppercase.
+```tsx
+  <h2 class="text-2xl font-bold px-4 pt-4 pb-2">
+```
+
+Leaking from base h2: ml-8, text-(--theme-accent), uppercase. Card titles will be indented, sky-700, uppercase.
 
 Caption <p> (plan line 867):
 
+```tsx
  <p class="text-6xl mb-10 px-4 font-(--theme-font-hero)">
- Leaking from base p: mx-8 (horizontal margin stacks with px-4), text-justify (caption shouldn't justify).
+```
 
- <main> (plan line 842):
+Leaking from base p: mx-8 (horizontal margin stacks with px-4), text-justify (caption shouldn't justify).
+
+plan line 842:
+
+```tsx
  <main class="col-span-full md:col-span-2 mx-[5%] md:mx-[10%] order-2 md:order-1">
- Leaking from base main: text-center, text-xl, p-4. Article text will center, have wrong size.
+```
+
+Leaking from base main: text-center, text-xl, p-4. Article text will center, have wrong size.
 
 Fix: Two options:
 
@@ -1307,7 +1332,7 @@ Fix: Two options:
 
 Option B is cleaner long-term. Global element selectors are fragile.
 
-4.  Dropdown transition missing
+### 4. Dropdown transition missing
 
 Source index.html lines 106-108:
 x-transition:enter="duration-300 ease-out"
@@ -1323,7 +1348,7 @@ Bare <Show> — dropdown pops in/out instantly. Source has 300ms opacity + trans
 
 Fix: Add CSS transition classes to dropdown div, or use Transition from solid-transition-group.
 
-5.  Sidebar transition incomplete
+### 5. Sidebar transition incomplete
 
 Phase 7 validation (line 1743) expects: "Cards slide in, arrow icon rotates."
 
@@ -1344,7 +1369,7 @@ ease-out with opacity/translate toggling).
 
 IMPORTANT — Accuracy Issues
 
-6.  Step 4.1 "Before" CSS doesn't match post-Step-1.1 state
+### 6. Step 4.1 "Before" CSS doesn't match post-Step-1.1 state
 
 Step 4.1 (marked [√]) shows "Before" with dark vars inside @media (prefers-color-scheme: dark) { :root { ... } } (plan
 line 976-987).
@@ -1356,7 +1381,7 @@ Both steps are [√] and end state is correct, but documentation is confusing if
 
 Fix: Note in Step 4.1 that this was a no-op relative to Step 1.1 (dark mode structure already established there).
 
-7.  font-(family-name:--theme-font-hero) syntax unverified
+### 7. font-(family-name:--theme-font-hero) syntax unverified
 
 Used in Hero (line 295) and caption (line 867). In TW v4, font-() maps to font-family, so font-(--theme-font-hero) should work. The family-name: modifier is non-standard.
 
@@ -1372,7 +1397,7 @@ Fix: Replaced with:
 <h1 class=" ... theme-font-hero)"></h1>
 ```
 
-8.  Nav.test.tsx update (Step 4.6) has no test code
+### 8. Nav.test.tsx update (Step 4.6) has no test code
 
 Step 4.6 (line 1412-1419) says "Update Nav.test.tsx" with bullet requirements but shows NO test code. Existing
 Nav.test.tsx uses MemoryRouter + createMemoryHistory wrapper (7 tests, 138 lines). Adding ThemeToggle to Nav changes
@@ -1384,7 +1409,7 @@ Fix: Add explicit test code for Step 4.6 showing:
 - ThemeToggle button exists in nav
 - Click cycling test within router context
 
-9.  E2E page.waitForTimeout(300) is Playwright anti-pattern
+### 9. E2E page.waitForTimeout(300) is Playwright anti-pattern
 
 Plan line 1489:
 await page.waitForTimeout(300);
@@ -1399,20 +1424,20 @@ await expect(aside).toBeVisible();
 
 MINOR — Style/Efficiency
 
-10. Plan uses mx-[5%] and md:mx-[10%] arbitrary values
+### 10. Plan uses mx-[5%] and md:mx-[10%] arbitrary values
 
 Lines 842, 904. While CLAUDE.md's arbitrary-value rule targets [var(--x)] specifically, the plan's own TW v3->v4
 section (line 18) aims to eliminate [&>*] arbitrary patterns. These are inconsistent with that goal.
 
 Won't fix: Ok as is.
 
-11. Card class concatenation not idiomatic SolidJS
+### 11. Card class concatenation not idiomatic SolidJS
 
 Line 492: class={`...${props.class || ""}`}
 
 SolidJS convention: use classList or splitProps. Minor but inconsistent with framework patterns.
 
-12. Empty @media (prefers-color-scheme: dark) block
+### 12. Empty @media (prefers-color-scheme: dark) block
 
 Lines 98-99 of current app.css. If JS fails, system dark mode doesn't work. THEME_INIT_SCRIPT handles it client-side,
 but no graceful degradation for no-JS. Acceptable for demo project, but worth noting.
@@ -1427,7 +1452,7 @@ What's Correct
 - JediNav component correctly converts all 3 Alpine.js patterns (mobile nav, dropdown, click-away)
 - ThemeToggle THEME_INIT_SCRIPT matches Tanstack project pattern
 - Nav rendered globally in app.tsx — plan correctly avoids duplicate import
-- Source <a> for mobile toggle -> plan's <button type="button"> (good a11y)
+- Source `<a>`for mobile toggle -> plan's <button type="button"> (good a11y)
 - E2E tests preserve existing footer tests in separate describe block
 - Phase gating with commit/stop between phases
 - Static data arrays outside component functions
@@ -1472,7 +1497,7 @@ passed clean.
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
+## ❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
 
 ⏺ All source files verified against plan. - 4th cycle.
 
@@ -1480,7 +1505,7 @@ passed clean.
 
 Critical — Will Cause Bugs
 
-1. Broken font class syntax (2 locations)
+### 1. Broken font class syntax (2 locations)
 
 Hero h1 (line 311) and caption p (line 891) both have malformed class:
 
@@ -1490,11 +1515,11 @@ Missing prefix. Should be font-(--theme-font-hero).
 
 Evidence — plan line 311:
 
-  <h1 class="text-6xl font-bold mb-4 mx-0 mt-0 normal-case text-white animate-fade-in theme-font-hero)">
+  <h1 class="text-6xl font-bold mb-4 mx-0 mt-0 normal-case text-white animate-fade-in theme-font-hero)"></h1>
 
 Plan line 891:
 
-  <p class="text-6xl mb-10 px-4 mx-0 text-left theme-font-hero)">
+  <p class="text-6xl mb-10 px-4 mx-0 text-left theme-font-hero)"></p>
 
 Fix: Define Tailwind @theme property:
 
@@ -1514,7 +1539,7 @@ Then:
 
 ---
 
-2. Caption font size deviates from source
+### 2. Caption font size deviates from source
 
 Plan uses text-6xl (3.75rem). Source index.html line 192 uses text-5xl (3rem):
 
@@ -1531,7 +1556,7 @@ Fix: Change caption to text-5xl. Update Phase 7 validation line 1778.
 
 Important — Accuracy/Consistency
 
-3. Phase 3 CSS override note is stale
+### 3. Phase 3 CSS override note is stale
 
 Line 776:
 
@@ -1562,7 +1587,7 @@ ml-0) from Hero h1, Card h2, caption p, and main — only keep classes needed fo
 
 ---
 
-4. Phase 4 step formatting inconsistent
+### 4. Phase 4 step formatting inconsistent
 
 Steps 4.3–4.6 missing [ ] checkboxes and Step prefix. Compare:
 
@@ -1584,7 +1609,7 @@ Fix: Rename to ### [ ] Step 4.3:, ### [ ] Step 4.4:, ### [ ] Step 4.5:, ### [ ] 
 
 ---
 
-5. @theme font namespace may not auto-generate utility
+### 5. @theme font namespace may not auto-generate utility
 
 Plan defines:
 @theme {
@@ -1602,7 +1627,7 @@ font-hero class directly.
 
 Minor — Style/Efficiency
 
-6. Sidebar max-h-[2000px] arbitrary value
+### 6. Sidebar max-h-[2000px] arbitrary value
 
 Line 928:
 mobileSidebarOpen() ? "opacity-100 max-h-[2000px]" : "opacity-0 max-h-0 overflow-hidden"
@@ -1613,7 +1638,7 @@ Fix: Use max-h-screen (100vh) — sidebar won't exceed viewport height.
 
 **Updated per Fix**
 
-7. Card class concatenation not idiomatic SolidJS
+### 7. Card class concatenation not idiomatic SolidJS
 
 Line 508:
 class={`...${props.class || ""}`}
@@ -1669,7 +1694,7 @@ text-5xl — visual mismatch with Awesome.png reference image.
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
+## ❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
 
 ⏺ Review complete. Verified plan against all 3 project source files + actual codebase state.
 
@@ -1697,7 +1722,7 @@ Verified Correct
 
 Critical — Will Cause Visible Bugs
 
-1. font-hero) — trailing parenthesis (2 locations)
+### 1. font-hero) — trailing parenthesis (2 locations)
 
 Plan lines 311 and 891:
 
@@ -1712,7 +1737,7 @@ Fix: font-hero) → font-hero
 
 ---
 
-2. Mobile nav transition won't animate
+### 2. Mobile nav transition won't animate
 
 Plan line 643, JediNav <nav>:
 
@@ -1736,7 +1761,7 @@ ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 poi
 
 Important — Accuracy
 
-3. Unnecessary override classes (stale fix)
+### 3. Unnecessary override classes (stale fix)
 
 plan_steps_ignored.md says "Remove unnecessary override classes (mx-0, mt-0, normal-case)" and marks "Updated per Fix"
 — but they're still present.
@@ -1755,14 +1780,14 @@ Fix:
 
 Affected lines:
 
-- Line 311: mx-0 mt-0 normal-case on Hero <h1> — remove
-- Line 866: text-base on <main> — remove (source has no text-base)
+- Line 311: mx-0 mt-0 normal-case on Hero `<h1>` — remove
+- Line 866: text-base on `<main>` — remove (source has no text-base)
 
 **Updated per Fix**
 
 ---
 
-4. Phase 7 validation: wrong color family
+### 4. Phase 7 validation: wrong color family
 
 Line 1807:
 
@@ -1780,7 +1805,7 @@ Fix: stone-800 → zinc-800, stone-300 → zinc-300
 
 Minor
 
-5. z-[-1] arbitrary value
+### 5. z-[-1] arbitrary value
 
 Works but not idiomatic v4.
 
@@ -1792,7 +1817,7 @@ Replace `z-[-1]` > `-z-1`
 
 **Updated per Fix**
 
-6. JediNav dropdown hardcoded bg-white text-black
+### 6. JediNav dropdown hardcoded bg-white text-black
 
 Won't adapt to dark mode. Matches source (source has no dark mode). Faithful conversion but profile dropdown will look odd in dark theme. Note for Phase 7 validation.
 
@@ -1823,27 +1848,27 @@ Biggest risks: (1) font-hero → Lobster font missing on hero + caption, (2) mob
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
+## ❯ Review `planning/jedi-conversion.md` for accuracy, correctness and efficiency report any recommended improvements
 
-⏺ Verified plan against all source files. - 6th cycle.
-
----
-
-Review: planning/jedi-conversion.md
+## ⏺ Review: planning/jedi-conversion.md - 6th cycle.
 
 CRITICAL — Blocks Correct Execution
 
 ❯ In the recent plan review, Claude mentioned:
 "
 
-1. Phase 3 sidebar content never specified
+### 1. Phase 3 sidebar content never specified
 
 Lines 941, 949, 952 all have {/_ item _/} placeholder comments. No subsequent phase fills these in. Source rendering for categories (Jedi Project index.html:246-301):
 
-  <li><a href="">
+```tsx
+<li>
+  <a href="">
     <img class="w-8 h-8 object-cover mr-2" src="..." />
     <span class="font-bold text-sm">Landscape</span>
-  </a></li>
+  </a>
+</li>
+```
 
 Same gap for Top Photos (source lines 306-344) and Top Captions (source lines 348-379). Three sidebar cards would
 render empty.
@@ -1885,7 +1910,7 @@ Review `jedi-conversion.md` @line 641, 671, and 954.
 
 IMPORTANT — Visual/Behavioral Bugs
 
-3. jedi.css .hoverlist hover hardcodes light color
+### 3. jedi.css .hoverlist hover hardcodes light color
 
 Plan jedi.css:249:
 .hoverlist > \*:hover {
@@ -1901,7 +1926,7 @@ Use theme variable like bg-(--theme-hover-bg).
 
 ---
 
-4. --theme-highlight has no dark mode override
+### 4. --theme-highlight has no dark mode override
 
 app.css:10: --theme-highlight: --color-indigo-100 — defined in :root only. Not overridden in data-theme="dark" or
 prefers-color-scheme: dark. indigo-100 (very pale blue) on gray-700 card bg might be intentional as a high-contrast highlight, but should be a deliberate decision, not an oversight.
@@ -1912,7 +1937,7 @@ Won't fix - Color decisions deferred too visible page
 
 ---
 
-5. w-[50%] → use w-1/2
+### 5. w-[50%] → use w-1/2
 
 Plan line 868: w-[50%] — standard Tailwind utility w-1/2 exists. Unnecessary arbitrary value.
 
@@ -1924,7 +1949,7 @@ Replace w-[50%] > w-1/2
 
 ---
 
-6. Existing E2E test silently dropped
+### 6. Existing E2E test silently dropped
 
 - Current e2e/jedi.spec.ts:65-77 has "should have proper page structure" test checking footer.locator("p").toHaveCount(2).
 - Plan says "keep existing footer tests" but this test isn't in Phase 5's replacement set and not called out as intentionally removed.
@@ -1946,7 +1971,7 @@ Update `jedi.spec.ts`
 
 MINOR — Efficiency/Style
 
-7. Card splitProps unnecessary
+### 7. Card splitProps unnecessary
 
 Plan Card.tsx:505:
 const [local, rest] = splitProps(props, ["class", "title", "children"]);
@@ -1958,7 +1983,7 @@ Fix: Manual application of splitProps/mergeProps in Solid JS/SolidStart idiomati
 ❯ Examine `jedi-conversion.md` @lines 500-527 of this code block for idiomatic Solid JS/SolidStart, accuracy,
 correctness and efficiency report any recommended improvements
 
-⏺ 4 fixes applied:
+### ⏺ 4 fixes applied:
 
 1. ParentProps — replaced manual CardProps with ParentProps<CardOwnProps>, dropped JSX import
 2. <Show> — replaced && with <Show when={local.title}>
@@ -1969,7 +1994,7 @@ correctness and efficiency report any recommended improvements
 
 ---
 
-8. ThemeToggle: three hidden SVGs vs <Switch>/<Match>
+### 8. ThemeToggle: three hidden SVGs vs <Switch>/<Match>
 
 ❯ Show a Solid JS/SolidStart idiomatic implementation of this concept
 
@@ -1985,7 +2010,7 @@ Fix: Replace 3 hidden SVGs with `<Switch>/<Match>` in `jedi-conversion.md` Step 
 
 ---
 
-9. entry-server.tsx "Before" omits existing code
+### 9. entry-server.tsx "Before" omits existing code
 
 - Current file has // @refresh reload (line 1) and import { createHandler, StartServer } (line 2).
 - Plan's "Before" (line 1020) and "After" (line 1046) omit both. Could confuse implementer into losing them.
@@ -2003,7 +2028,7 @@ import { createHandler, StartServer } from "@solidjs/start/server";
 
 ---
 
-10. Hero text-6xl vs source 4rem
+### 10. Hero text-6xl vs source 4rem
 
 Source style.css:999: font-size: 4rem. Tailwind text-6xl = 3.75rem. Close but 4px smaller. No standard utility for 4rem (text-7xl = 4.5rem, too big). Acceptable tradeoff given arbitrary value restriction.
 
@@ -2015,9 +2040,9 @@ Replace `text-6xl` with an arbitrary value `text-[4rem]`
 
 ---
 
-11. Hero text-white redundant
+### 11. Hero text-white redundant
 
-Plan line 313: <h1 class="... text-white ..."> inside <section class="... text-white ...">. Inherits from parent. Harmless but redundant.
+Plan line 313: <h1 class="... text-white ..."></h1> inside <section class="... text-white ..."></section>. Inherits from parent. Harmless but redundant.
 
 Fix:
 
@@ -2029,7 +2054,7 @@ Remove redundant `text-white`
 
 ADDED
 
-12. Apply idiomatic SolidJS pattern to other components
+### 12. Apply idiomatic SolidJS pattern to other components
 
 ❯ update `jedi-conversion.md` as according to the `Fix:` below
 
@@ -2083,7 +2108,7 @@ Recommendation Summary
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
+## ❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
 
 ⏺ Review: planning/jedi-conversion.md — 7th Cycle.
 
@@ -2109,7 +2134,7 @@ Verified Correct
 
 CRITICAL — Will Cause Dark Mode Bug
 
-1. jedi.css navitems hover uses theme variable that inverts in dark mode
+### 1. jedi.css navitems hover uses theme variable that inverts in dark mode
 
 Plan line 243-244:
 .navitems > li > a:hover {
@@ -2132,7 +2157,7 @@ Fix: @apply bg-gray-700; — header doesn't theme, hover shouldn't either.
 
 IMPORTANT — Visual Mismatch
 
-2. CTA button shadow too weak
+### 2. CTA button shadow too weak
 
 Plan line 325: shadow-sm
 
@@ -2147,7 +2172,7 @@ Fix: shadow-md closer match (0 4px 6px -1px rgba(0,0,0,0.1)) or accept as delibe
 
 ---
 
-3. md:block! redundant on both nav and sidebar — vestige of Alpine.js
+### 3. md:block! redundant on both nav and sidebar — vestige of Alpine.js
 
 Plan lines 685 and 1008 both use md:block!.
 
@@ -2165,7 +2190,7 @@ Fix: Remove md:block! from both locations. md:opacity-100 and md:max-h-none alre
 
 MINOR
 
-4. CTA button missing flex-wrap and shrink-0 from source
+### 4. CTA button missing flex-wrap and shrink-0 from source
 
 Source .button (style.css:1019-1020): flex-wrap: wrap; flex-shrink: 0;
 
@@ -2179,7 +2204,7 @@ Apply flex-wrap and shrink-0 to Hero @line 325
 
 ---
 
-5. Card h2 bottom spacing differs from source
+### 5. Card h2 bottom spacing differs from source
 
 - Plan Card h2: pb-2 (0.5rem).
 - Source h2 rule (style.css:1011): margin-bottom: 0.75rem. 4px difference.
@@ -2191,7 +2216,7 @@ Fix:
 
 ---
 
-6. text-[4rem] arbitrary value on Hero h1
+### 6. text-[4rem] arbitrary value on Hero h1
 
 - CLAUDE.md rule targets text-[var(--css-variable)] specifically.
 - text-[4rem] is a fixed value, not a CSS variable.
@@ -2222,7 +2247,7 @@ Plan is in good shape after 6 cycles. Only blocker: navitems hover variable — 
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
+## ❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
 
 ⏺ Review: planning/jedi-conversion.md — 8th Cycle.
 
@@ -2249,7 +2274,7 @@ Verified Correct
 
 CRITICAL — Desktop Nav Invisible
 
-1. JediNav <nav> missing md: desktop override classes
+### 1. JediNav <nav> missing md: desktop override classes
 
 Plan line 685:
 class={`bg-gray-800 h-screen w-screen md:h-auto md:w-auto -mt-20 md:mt-0 absolute md:relative -z-1 transition-all duration-300 ease-out ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`
@@ -2266,7 +2291,7 @@ Fix: Add to static classes: md:opacity-100 md:translate-y-0 md:pointer-events-au
 
 ---
 
-2. JediNav <nav aria-hidden={!mobileNavOpen()}> — desktop a11y bug
+### 2. JediNav <nav aria-hidden={!mobileNavOpen()}> — desktop a11y bug
 
 Plan line 684:
 aria-hidden={!mobileNavOpen()}
@@ -2313,7 +2338,7 @@ Fix:
 
 IMPORTANT — Visual Mismatch
 
-3. Hero h1 missing leading-[1.2]
+### 3. Hero h1 missing leading-[1.2]
 
 Source style.css:998-1001:
 h1 {
@@ -2323,7 +2348,7 @@ line-height: 1.2;
 
 Plan line 322:
 
-  <h1 class="text-[4rem] font-bold mb-4 animate-fade-in font-hero">
+  <h1 class="text-[4rem] font-bold mb-4 animate-fade-in font-hero"></h1>
 
 - text-[4rem] sets only font-size.
 - No leading-\* class.
@@ -2338,7 +2363,7 @@ Fix: Add leading-tight (1.25, close) or leading-[1.2] (exact match).
 
 MINOR — Code Style
 
-4. Hero/Image/Author splitProps rest always empty
+### 4. Hero/Image/Author splitProps rest always empty
 
 - HeroProps, ImageProps, AuthorProps are closed interfaces — don't extend HTML attributes.
 - splitProps extracts all props → rest = {} → {...rest} is no-op.
@@ -2361,14 +2386,17 @@ Apply option 'C'
 
 ---
 
-5. Image conditional — ternary vs <Show>
+### 5. Image conditional — ternary vs <Show>
 
 Plan line 404-410:
+
+```tsx
 {local.href ? (
 <a href={local.href}><img ... /></a>
 ) : (
 <img ... />
 )}
+```
 
 - SolidJS idiomatic: <Show> for conditional rendering.
 - Ternary works, but <Show> signals intent more clearly.
@@ -2423,13 +2451,13 @@ git push --force-with-lease origin integrate_jedi_ii
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
+## ❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
 
 ⏺ Review: planning/jedi-conversion.md — 9th Cycle.
 
 Critical Issues (will cause errors)
 
-1. Image.tsx — missing Show import (line 389)
+### 1. Image.tsx — missing Show import (line 389)
 
 Plan imports:
 import { splitProps, mergeProps } from "solid-js";
@@ -2441,7 +2469,7 @@ Fix: import { splitProps, mergeProps, Show } from "solid-js";
 
 ---
 
-2. jedi.css — unlayered CSS overrides Tailwind utilities (lines 237-258)
+### 2. jedi.css — unlayered CSS overrides Tailwind utilities (lines 237-258)
 
 Step 1.1 explains why @layer base is needed:
 
@@ -2458,7 +2486,7 @@ Fix: wrap in @layer components { ... }.
 
 SolidJS Idiom Issues
 
-3. Hero/Image/Author — splitProps with always-empty \_rest (lines 306, 400, 466)
+### 3. Hero/Image/Author — splitProps with always-empty \_rest (lines 306, 400, 466)
 
 All props listed in the split array -> \_rest always {}. Git log 400972b already flagged this.
 
@@ -2472,7 +2500,7 @@ TypeScript interface enforces required props at compile time; splitProps adds no
 
 ---
 
-4. Jedi route — inconsistent SSR guard (line 861)
+### 4. Jedi route — inconsistent SSR guard (line 861)
 
 JediNav uses isServer from solid-js/web (line 623):
 const [isMobile, setIsMobile] = createSignal(isServer ? false : window.innerWidth < 768);
@@ -2498,7 +2526,7 @@ guard at top, mql?.matches ?? false for SSR-safe initial value.
 
 ---
 
-5. Duplicate isMobile signal — both JediNav (line 624) and jedi.tsx (line 864)
+### 5. Duplicate isMobile signal — both JediNav (line 624) and jedi.tsx (line 864)
 
 Same `const [isMobile, setIsMobile] = createSignal(mql?.matches ?? false);` pattern duplicated. Extract to src/lib/useIsMobile.ts:
 
@@ -2526,7 +2554,7 @@ Fix:
 
 Accessibility Issues
 
-6. role="listbox" missing arrow key navigation (line 805 and 994)
+### 6. role="listbox" missing arrow key navigation (line 805 and 994)
 
 Plan adds role="listbox" + role="option" + Enter/Space handling. WAI-ARIA listbox pattern requires ArrowUp/ArrowDown to move focus between options, Home/End to jump to first/last. Without them, screen reader users expect arrow nav and get nothing.
 
@@ -2538,7 +2566,7 @@ Add arrow key handlers (full listbox pattern) as hook
 
 ---
 
-7. Escape key on <aside> only fires when focus is inside (line 994-998)
+### 7. Escape key on <aside> only fires when focus is inside (line 994-998)
 
   <aside onKeyDown={(e) => {
     if (e.key === "Escape" && mobileSidebarOpen()) setMobileSidebarOpen(false);
@@ -2558,7 +2586,7 @@ Fix:
 
 Tailwind v4 Issues
 
-8. Hero h1 — arbitrary value syntax (line 327)
+### 8. Hero h1 — arbitrary value syntax (line 327)
 
 class="text-[4rem] leading-[1.2] font-bold mb-4 animate-fade-in font-hero"
 
@@ -2576,7 +2604,7 @@ Fix:
 
 ---
 
-9. Nav.test.tsx theme toggle tests — wrong cycle order (lines 1250-1262)
+### 9. Nav.test.tsx theme toggle tests — wrong cycle order (lines 1250-1262)
 
 Plan test expects:
 system → click → light → click → dark → click → system
@@ -2595,7 +2623,7 @@ auto → click → light → click → dark → click → auto
 
 ---
 
-10. E2E aside visibility — fragile Playwright check (line 1636-1638)
+### 10. E2E aside visibility — fragile Playwright check (line 1636-1638)
 
 await expect(aside).not.toBeVisible();
 
@@ -2614,7 +2642,7 @@ Fix:
 
 Minor / Style Issues
 
-11. Card — string concatenation for class merging (line 539)
+### 11. Card — string concatenation for class merging (line 539)
 
 class={`...base classes...${local.class ? ` ${local.class}` : ""}`}
 
@@ -2631,7 +2659,7 @@ Fix:
 
 ---
 
-12. ThemeToggle — createEffect for media listener vs onMount (lines 1242-1248)
+### 12. ThemeToggle — createEffect for media listener vs onMount (lines 1242-1248)
 
 createEffect(() => {
 if (mode() !== "auto") return;
@@ -2694,7 +2722,7 @@ Items 1-2 will cause runtime/styling bugs. Items 3-7 are idiomatic improvements.
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
+## ❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
 
 ⏺ Review: planning/jedi-conversion.md - 10th cycle.
 
@@ -2704,7 +2732,7 @@ Overall: well-structured, mostly idiomatic. Found 8 items worth flagging — 2 b
 
 BUGS (will cause failures)
 
-1. E2E aside visibility check may be fragile (line 1632)
+### 1. E2E aside visibility check may be fragile (line 1632)
 
 await expect(aside).toBeHidden();
 
@@ -2725,7 +2753,7 @@ Fix:
 
 ---
 
-2. Nav.test.tsx theme toggle cycle order is wrong (lines 1540-1552)
+### 2. Nav.test.tsx theme toggle cycle order is wrong (lines 1540-1552)
 
 Plan shows:
 expect(toggle.getAttribute("aria-label")).toContain("system"); // initial await user.click(toggle);
@@ -2747,7 +2775,7 @@ Move "Auto" row to the top of table @1336
 
 IMPROVEMENTS (idiomatic/correctness)
 
-3. Card class merging via string concatenation (line 539)
+### 3. Card class merging via string concatenation (line 539)
 
 class={`flex flex-col overflow-hidden ... ${local.class}`}
 
@@ -2766,7 +2794,7 @@ Apply change as above (note class={`... vs class="...)
 
 ---
 
-4. ThemeToggle: createEffect for media listener vs onMount (lines 1223-1245)
+### 4. ThemeToggle: createEffect for media listener vs onMount (lines 1223-1245)
 
 createEffect(() => {
 if (mode() !== "auto") return;
@@ -2802,8 +2830,9 @@ Fix:
 
 ---
 
-5. theme-init.js CSP note is good (line 1132), but the <script> tag in entry-server.tsx (line 1172) should include
-   a closing </script> tag.
+### 5. theme-init.js CSP note is good (line 1132), but the <script> tag in entry-server.tsx (line 1172) should include
+
+a closing </script> tag.
 
   <script src="/theme-init.js"></script>
 
@@ -2824,7 +2853,7 @@ Add closing script tags to
 
 MINOR (style/nit)
 
-6. animate-fade-in could use TW4 @theme animation tokens
+### 6. animate-fade-in could use TW4 @theme animation tokens
 
 Minor — current approach works.
 
@@ -2848,7 +2877,7 @@ Then use animate-fade-in as a native TW utility (no manual @layer utilities need
 
 ---
 
-7. useIsMobile default breakpoint 767 vs Tailwind md:768px
+### 7. useIsMobile default breakpoint 767 vs Tailwind md:768px
 
 useIsMobile.ts line 4: breakpoint = 767 → max-width: 767px. Tailwind md: triggers at min-width: 768px. These are
 complementary (767 is mobile, 768+ is desktop). Correct. ✓ Just noting for clarity.
@@ -2861,12 +2890,18 @@ Add explanatory note ~/lib/useIsMobile.ts
 
 ---
 
-8. Hero component: XSS surface via backgroundImage prop (line 309)
+### 8. Hero component: XSS surface via backgroundImage prop (line 309)
 
+```tsx
 style={{ "background-image": `url('${props.backgroundImage}')` }}
+```
 
 If backgroundImage ever comes from user input, a value like
+
+```tsx
 '); background-image: url('http://evil.com/track.png )
+```
+
 breaks out. For this demo (static hardcoded URLs), it's fine. For production, sanitize or validate URL format.
 
 Fix:
@@ -2908,7 +2943,7 @@ Architecture, phasing, test strategy, accessibility approach — all good. Solid
 
 claude --resume d9edc5f0-4211-4504-8c4d-faf17f6ffdf5
 
-❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
+## ❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
 
 ⏺ Reviewed plan against actual project state. Here's my findings:
 
@@ -2918,7 +2953,7 @@ Review: planning/jedi-conversion.md
 
 Issues Found
 
-1. Step 1.1 animate-fade-in — Plan Outdated vs Actual Implementation
+### 1. Step 1.1 animate-fade-in — Plan Outdated vs Actual Implementation
 
 Plan shows (line 193-207):
 @layer utilities {
@@ -2943,7 +2978,7 @@ animate-fade-in utility — no manual @layer utilities needed.
 
 ---
 
-2. Image Component — Unnecessary mergeProps Pattern
+### 2. Image Component — Unnecessary mergeProps Pattern
 
 Plan line 469:
 const merged = mergeProps({ href: "", class: "" }, props);
@@ -2977,7 +3012,7 @@ Update the `Image` component as shown above
 
 ---
 
-3. Card Component — Pointless splitProps + Spread
+### 3. Card Component — Pointless splitProps + Spread
 
 Plan line 610-624:
 const [local, rest] = splitProps(defaulted, ["title", "class", "children"]);
@@ -2997,7 +3032,7 @@ Fix:
 
 ---
 
-4. Dead .dark/.light Classes on <html>
+### 4. Dead .dark/.light Classes on <html>
 
 theme-init.js (line 1210-1226) adds root.classList.add(resolved) — sets .dark or .light on <html>. ThemeToggle
 applyThemeMode (line 1282-1293) does the same.
@@ -3019,7 +3054,7 @@ Fix:
 
 ---
 
-5. Hero Test toHaveStyle — Potentially Flaky in jsdom
+### 5. Hero Test toHaveStyle — Potentially Flaky in jsdom
 
 Plan line 423:
 expect(container.querySelector('section')).toHaveStyle({ backgroundImage: "url('/images/test-bg.jpg')" })
@@ -3034,12 +3069,12 @@ Update line 423: `expect(container.querySelector('section')!.style.backgroundIma
 
 ---
 
-6. sanitizeImageUrl — Doesn't Block Backslash
+### 6. sanitizeImageUrl — Doesn't Block Backslash
 
 Plan line 284:
 const BREAK_CHARS = /['\"()]/;
 
-A URL like https://evil.com/img\ could cause issues in some CSS parsers (backslash is an escape char in CSS).
+A URL like `https://evil.com/img\` could cause issues in some CSS parsers (backslash is an escape char in CSS).
 
 Fix:
 
@@ -3049,7 +3084,7 @@ Update line 284: `const BREAK_CHARS = /['\"()\\]/;`
 
 ---
 
-7. JediNav — onMount for Click-Outside Not SSR-Safe by Default
+### 7. JediNav — onMount for Click-Outside Not SSR-Safe by Default
 
 Plan line 798-706:
 onMount(() => {
@@ -3070,7 +3105,7 @@ Add explanatory comment before `onMount` @line 698
 
 ---
 
-8. E2E Test — aside Visibility Check May Be Fragile
+### 8. E2E Test — aside Visibility Check May Be Fragile
 
 Plan line 1703:
 await expect(aside).toBeHidden();
@@ -3087,7 +3122,7 @@ Added explanatory note to `test("should toggle mobile sidebar when button clicke
 
 ---
 
-9. Minor: Nav Test Cycle Assertion Order
+### 9. Minor: Nav Test Cycle Assertion Order
 
 Plan Step 4.6 (line 1593-1622) has the toggle cycle starting from "system" → "light" → "dark" → "system". This matches toggleMode() logic: auto → light → dark → auto. ✓ Correct.
 
@@ -3106,7 +3141,7 @@ Positive Observations
 - useIsMobile, useListbox, useEscapeKey hooks already exist and are correctly referenced
 - Proper @layer base scoping for global CSS (lower than utilities)
 - sanitizeImageUrl XSS protection for dynamic background-image — good security practice
-- FOUC prevention via blocking <script> in <head> — correct approach
+- FOUC prevention via blocking `<script> in <head>` — correct approach
 - Static data outside component functions — avoids re-allocation
 - createEffect + onCleanup for media listener in ThemeToggle — idiomatic Solid reactive cleanup
 
@@ -3132,11 +3167,11 @@ Plan is solid overall. Main fixes: update Step 1.1 to match actual @theme approa
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
+## ❯ Review `planning/jedi-conversion.md` for idiomatic Solid JS/SolidStart and Tailwind, accuracy, correctness and efficiency report any recommended improvements
 
-⏺ Jedi Conversion Plan Review - 12th Cycle.
+## ⏺ Jedi Conversion Plan Review - 12th Cycle.
 
-1. BUG: Card.tsx uses undeclared rest variable and no children
+### 1. BUG: Card.tsx uses undeclared rest variable and no children
 
 See @line 1951 of this document - previous erroneous change
 
@@ -3164,7 +3199,7 @@ Fix:
 
 ---
 
-2. BUG: Image.tsx has JSX comment syntax error
+### 2. BUG: Image.tsx has JSX comment syntax error
 
 Step 2.2 — line 466:
 // Solid wraps `props.href` in an accessor...
@@ -3178,7 +3213,7 @@ Remove comment
 
 ---
 
-3. ISSUE: onMount + onCleanup pattern in JediNav — comment is misleading
+### 3. ISSUE: onMount + onCleanup pattern in JediNav — comment is misleading
 
 Step 2.5 — lines 698-709 — large comment block explaining onCleanup inside onMount. Per CLAUDE.md rules: "Do not add
 comments. Only add when WHY is non-obvious." The behavior is standard Solid — onCleanup inside onMount works because
@@ -3197,7 +3232,7 @@ Remove comment (done in 2 above)
 
 ---
 
-4. MISSING: Three hooks referenced but never created by plan
+### 4. MISSING: Three hooks referenced but never created by plan
 
 useIsMobile, useListbox, useEscapeKey — used in Phase 2/3 but no plan step creates them. They exist in codebase already (verified), so plan is executable. But plan should note these as prerequisites or mark Step 1.1 as having created them. Otherwise confusing if someone reads plan fresh.
 
@@ -3211,7 +3246,7 @@ Mention exiting hooks
 
 ---
 
-5. ISSUE: Hero.test.tsx — toHaveStyle with expect.stringContaining is wrong API
+### 5. ISSUE: Hero.test.tsx — toHaveStyle with expect.stringContaining is wrong API
 
 Step 2.1 — line 439:
 expect(container.querySelector('section')).not.toHaveStyle({ backgroundImage: expect.stringContaining("javascript") })
@@ -3233,7 +3268,7 @@ expect(style).not.toContain("javascript");
 
 ---
 
-6. ISSUE: ThemeToggle createEffect with onCleanup — reactivity concern
+### 6. ISSUE: ThemeToggle createEffect with onCleanup — reactivity concern
 
 Step 4.3 — lines 1314-1320:
 
@@ -3269,7 +3304,7 @@ createEffect(() => {
 
 ---
 
-7. ISSUE: Nav.test.tsx theme toggle cycle assertion order wrong
+### 7. ISSUE: Nav.test.tsx theme toggle cycle assertion order wrong
 
 Step 4.6 — lines 1614-1629:
 expect "system" first
@@ -3289,7 +3324,7 @@ Fix:
 
 ---
 
-8. ISSUE: E2E test aside visibility check may be fragile
+### 8. ISSUE: E2E test aside visibility check may be fragile
 
 Step 5 — line 1712:
 
@@ -3319,15 +3354,15 @@ Remove comment
 
 ---
 
-9.  MINOR: Author component — hover underline on wrong element
+### 9. MINOR: Author component — hover underline on wrong element
 
-Step 2.3 — <span class="font-bold hover:underline">.
-Hover underline on <span> inside <a> works but semantically the
-<a> should carry hover state.
+Step 2.3 — `<span class="font-bold hover:underline">`.
+Hover underline on `<span>` inside `<a>`works but semantically the
+`<a>`should carry hover state.
 
 Fix:
 
-Move `hover:underline` to the `<a class=""> element
+Move `hover:underline` to the `<a class="">` element
 
 **Updated per Fix**
 
@@ -3370,7 +3405,7 @@ claude-max --resume e4df9a16-c50f-479f-b6ca-c783d27bc00
 
 ---
 
-❯ Review `planning/jedi-conversion.md`
+## ❯ Review `planning/jedi-conversion.md`
 
 - Check for idiomatic Solid JS/SolidStart syntax
 - Check for idiomatic Tailwind syntax
@@ -3383,11 +3418,11 @@ claude-max --resume e4df9a16-c50f-479f-b6ca-c783d27bc00
 
 ===================================================================================
 
-⏺ Jedi Conversion Plan Review - 13th cycle.
+## ⏺ Jedi Conversion Plan Review - 13th cycle.
 
 Issues (Critical → Minor)
 
-1. CRITICAL — Image.tsx: JS comment inside JSX (line 475-476)
+### 1. CRITICAL — Image.tsx: JS comment inside JSX (line 475-476)
 
 <figure class={props.class ?? ""}>
   // Solid wraps `props.href` in an accessor `href()` to maintain fine-grained reactivity.
@@ -3403,7 +3438,7 @@ Remove comment
 
 ---
 
-2. CRITICAL — E2E test: double invocation (line 1709)
+### 2. CRITICAL — E2E test: double invocation (line 1709)
 
 await expect(aside).not.toBeVisible()();
 
@@ -3415,7 +3450,7 @@ Fix: await expect(aside).not.toBeVisible();
 
 ---
 
-3. CRITICAL — ThemeToggle getInitialMode: TS compile errors (lines 1283-1286)
+### 3. CRITICAL — ThemeToggle getInitialMode: TS compile errors (lines 1283-1286)
 
 const stored = window.localStorage.getItem("theme"); // string | null
 if (["light", "dark", "auto"].includes(stored)) return stored;
@@ -3437,7 +3472,7 @@ Equality checks naturally narrow type to ThemeMode.
 
 ---
 
-4. MODERATE — Phase 3 requirement #10 contradicts useListbox code (line 883)
+### 4. MODERATE — Phase 3 requirement #10 contradicts useListbox code (line 883)
 
 Requirement says:
 
@@ -3464,26 +3499,30 @@ Update line 883 `tabIndex={0}` -> `tabIndex={-1}`
 
 ---
 
-5. MODERATE — Author hover:underline on wrong element (line 549)
+### 5. MODERATE — Author hover:underline on wrong element (line 549)
 
+```tsx
 <a class="flex items-center gap-1 mb-4 hover:underline" href={merged.href}>
   <img class="w-8 h-8 rounded-full" ... />
   <span class="font-bold">{merged.name}</span>
 </a>
+```
 
-hover:underline on <a> applies underline to all children including avatar image.
+hover:underline on `<a>`applies underline to all children including avatar image.
 
-Move to <span>:
+Move to `<span>`:
 
+```tsx
 <a class="flex items-center gap-1 mb-4" href={merged.href}>
   <img class="w-8 h-8 rounded-full" ... />
   <span class="font-bold hover:underline">{merged.name}</span>
 </a>
+```
 
 12th -Cycle Step 9:
 
-Hover underline on <span> inside <a> works but semantically the
-<a> should carry hover state.
+Hover underline on <span> inside `<a>`works but semantically the
+`<a>`should carry hover state.
 
 Fix:
 
@@ -3495,7 +3534,7 @@ Move `hover:underline` back to <span>
 
 ---
 
-6. MODERATE — E2E instructions contradictory (lines 1655-1657)
+### 6. MODERATE — E2E instructions contradictory (lines 1655-1657)
 
 ▎ - Keep all existing tests
 ▎ - Replace placeholder tests with new Jedi page tests
@@ -3517,7 +3556,7 @@ Clarify:
 
 ---
 
-7. MODERATE — Card mergeProps for title serves no purpose (lines 609-622)
+### 7. MODERATE — Card mergeProps for title serves no purpose (lines 609-622)
 
 const defaulted = mergeProps({ title: "", class: "" }, props);
 // ...
@@ -3540,7 +3579,7 @@ Fix:
 
 ---
 
-8. MODERATE — JediNav <nav> missing aria-label (line 753)
+### 8. MODERATE — JediNav <nav> missing aria-label (line 753)
 
 <nav aria-hidden={isMobile() && !mobileNavOpen()} class={...}>
 
@@ -3558,7 +3597,7 @@ Fix:
 
 ---
 
-9. MINOR — Typo in hook reference (line 47)
+### 9. MINOR — Typo in hook reference (line 47)
 
 lib.useListbox.ts
 
@@ -3570,7 +3609,7 @@ Should be lib/useListbox.ts (period → slash).
 
 ---
 
-10. MINOR — E2E test title misleading (line 1705)
+### 10. MINOR — E2E test title misleading (line 1705)
 
 test("should have working navigation in header", async ({ page }) => {
 const nav = page.locator('nav[role="navigation"]');
@@ -3636,7 +3675,7 @@ Positive Observations
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md`
+## ❯ Review `planning/jedi-conversion.md`
 
 - Check for idiomatic Solid JS/SolidStart syntax
 - Check for idiomatic Tailwind syntax
@@ -3647,16 +3686,17 @@ Positive Observations
 - Present a summary of issues found in table format after the list of issues
 - List Positive Observations in a bulleted list at end of results
 
-⏺ Jedi Conversion Plan Review - 14th cycle.
+## ⏺ Jedi Conversion Plan Review - 14th cycle.
 
-1. MODERATE — Hero font size contradicts Phase 7 validation checklist
+### 1. MODERATE — Hero font size contradicts Phase 7 validation checklist
 
 Code at line 393:
 
-<h1 class="text-7xl leading-tight font-bold mb-4 animate-fade-in font-hero">
+`<h1 class="text-7xl leading-tight font-bold mb-4 animate-fade-in font-hero">`
 Validation checklist at line 1936:
+
 - [ ] Hero title uses Lobster font 6xl
-text-7xl vs 6xl — one wrong. Implement whichever, other needs update.
+      text-7xl vs 6xl — one wrong. Implement whichever, other needs update.
 
 Fix:
 
@@ -3666,20 +3706,20 @@ Standardize on 7xl
 
 ---
 
-2. MODERATE — JediNav missing focus-visible on ALL interactive elements
+### 2. MODERATE — JediNav missing focus-visible on ALL interactive elements
 
 Phase 3 requirement 10 (line 865):
 All interactive elements: `focus-visible:ring-2 focus-visible:ring-(--theme-accent) focus-visible:outline-none`
 
 JediNav `focus-visible` code missing this on 7 elements:
 
-- Logo link (line 708): <a class="flex items-center gap-1" href="#">
-- Hamburger button (716): <button class="md:hidden h-12 w-12 flex items-center...">
-- Nav link Home (line 748): <a href="#">Home</a>
-- Nav link Create Post (line 751): <a href="#">Create Post</a>
-- Profile button (line 756): <button class="flex items-center gap-2 cursor-pointer...">
-- Dropdown My Profile link (line 779): <a class="justify-end" href="#"> Profile </a>
-- Dropdown Log Out link 784: <a class="justify-end" href="#">Log Out</a>
+- Logo link (line 708): `<a class="flex items-center gap-1" href="#">`
+- Hamburger button (716): `<button class="md:hidden h-12 w-12 flex items-center...">`
+- Nav link Home (line 748): `<a href="#">Home</a>`
+- Nav link Create Post (line 751): `<a href="#">Create Post</a>`
+- Profile button (line 756): `<button class="flex items-center gap-2 cursor-pointer...">`
+- Dropdown My Profile link (line 779): `<a class="justify-end" href="#"> Profile </a>`
+- Dropdown Log Out link 784: `<a class="justify-end" href="#">Log Out</a>`
 
 jedi.css .navitems rules (line 241-249) lack focus-visible styles.
 
@@ -3706,7 +3746,7 @@ textarea:focus-visible {
 
 ---
 
-3. MODERATE — ThemeToggle test localStorage mock returns undefined not null
+### 3. MODERATE — ThemeToggle test localStorage mock returns undefined not null
 
 Line 1409-1410:
 vi.spyOn(Storage.prototype, "getItem").mockImplementation(
@@ -3732,7 +3772,7 @@ with
 
 ---
 
-4. MINOR — Phase 7 validation typo "Tile Case"
+### 4. MINOR — Phase 7 validation typo "Tile Case"
 
 Line 1917:
 
@@ -3746,7 +3786,7 @@ Should be "Title Case".
 
 ---
 
-5. MINOR — JediNav test missing mobile nav toggle show/hide behavior
+### 5. MINOR — JediNav test missing mobile nav toggle show/hide behavior
 
 Test file `jedi-conversion.md` (lines 798-838) tests:
 
@@ -3800,7 +3840,7 @@ All 14 tests are RED. The next step (Phase 2, Step 2.5) is to create JediNav.tsx
 
 ---
 
-6. MINOR — Image component test missing class prop coverage
+### 6. MINOR — Image component test missing class prop coverage
 
 ImageProps interface (line 467-471):
 interface ImageProps {
@@ -3825,7 +3865,7 @@ exercising the props.class ?? "" expression in <figure class={props.class ?? ""}
 
 ---
 
-7. MINOR — Props interfaces not exported
+### 7. MINOR — Props interfaces not exported
 
 - HeroProps (line 373)
 - ImageProps (line 467)
@@ -3843,7 +3883,7 @@ Fix:
 
 ---
 
-8. MINOR — JediNav aria-label="jedi-site" too terse
+### 8. MINOR — JediNav aria-label="jedi-site" too terse
 
 Line 747:
 
@@ -3861,7 +3901,7 @@ Replace <nav aria-label="jedi-site" ...> with <nav aria-label="Jedi site navigat
 
 ---
 
-9. MINOR — JediNav click-outside listener always active
+### 9. MINOR — JediNav click-outside listener always active
 
 Lines 699-707 register listener in onMount — fires on every document click even when dropdown closed.
 
@@ -3891,7 +3931,7 @@ false — no document clicks processed while the dropdown is closed.
 
 ---
 
-10. MINOR — Card class concatenation lacks conflict resolution
+### 10. MINOR — Card class concatenation lacks conflict resolution
 
 Line 600-601:
 class={`flex flex-col overflow-hidden ... ${props.class ?? ""}`}
@@ -3977,7 +4017,7 @@ Positive Observations
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md`
+## ❯ Review `planning/jedi-conversion.md`
 
 - Check for idiomatic Solid JS/SolidStart syntax
 - Check for idiomatic Tailwind syntax
@@ -3988,11 +4028,11 @@ Positive Observations
 - Present a summary of issues found in table format after the list of issues
 - List Positive Observations in a bulleted list at end of results
 
-⏺ Jedi Conversion Plan Review - 15th cycle.
+## ⏺ Jedi Conversion Plan Review - 15th cycle.
 
 Numbered Issues (Critical → Minor)
 
-1. CRITICAL — JediNav tests will fail: aria-label regex mismatch
+### 1. CRITICAL — JediNav tests will fail: aria-label regex mismatch
 
 Component defines aria-label="Jedi site navigation" (space) but 3 tests query with /jedi-site/i (hyphen). Regex won't match.
 
@@ -4008,7 +4048,7 @@ Fix: change regex to /jedi site/i in all 3 test cases.
 
 ---
 
-2. HIGH — Article content not dark-mode-aware
+### 2. HIGH — Article content not dark-mode-aware
 
 Several elements inside the main article use hardcoded light-mode colors. In dark mode (card bg resolves to
 --color-gray-700), these break visually:
@@ -4030,7 +4070,7 @@ Fix:
 
 ---
 
-3. HIGH — Icons invisible in dark mode
+### 3. HIGH — Icons invisible in dark mode
 
 External icons use hardcoded 000000 (black) color in URL path. On dark backgrounds, black icons vanish.
 
@@ -4055,7 +4095,7 @@ contrast for both modes.
 
 ---
 
-4. MODERATE — Card class concatenation has no conflict resolution
+### 4. MODERATE — Card class concatenation has no conflict resolution
 
 Card uses template literal concatenation:
 
@@ -4071,7 +4111,7 @@ Update comment at potential issue location
 
 ---
 
-5. MODERATE — Sidebar toggle hover hardcoded for light mode
+### 5. MODERATE — Sidebar toggle hover hardcoded for light mode
 
 Line 1007:
 class="flex items-center font-bold hover:bg-gray-200 rounded-lg p-3"
@@ -4089,7 +4129,7 @@ No changes here
 
 ---
 
-6. MODERATE — JediNav (line 650) dropdown not dismissible via Escape
+### 6. MODERATE — JediNav (line 650) dropdown not dismissible via Escape
 
 useEscapeKey hook exists and is used for the mobile sidebar (line 1035), but the JediNav dropdown menu has no Escape
 handler. Users can click-outside to close, but keyboard-only users can't dismiss the profile dropdown without tabbing away.
@@ -4133,7 +4173,7 @@ Fix:
 
 ---
 
-7. MINOR — Plan "Before" CSS snapshot wrong for Step 1.1
+### 7. MINOR — Plan "Before" CSS snapshot wrong for Step 1.1
 
 Plan's "Before" block (line 128) shows .demo h1 with text-7xl:
 .demo h1 {
@@ -4155,7 +4195,7 @@ Fix:
 
 ---
 
-8. MINOR — Article duplicates Card component styling
+### 8. MINOR — Article duplicates Card component styling
 
 Main article (line 1024) manually repeats Card's full base utility string:
 class="flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg)"
@@ -4172,7 +4212,7 @@ Fix:
 
 ---
 
-9. MINOR — Author hover target too narrow
+### 9. MINOR — Author hover target too narrow
 
 <a class="flex items-center gap-1 mb-4" href={props.href ?? "#"}>
 <img class="w-8 h-8 rounded-full" src={props.avatarSrc} alt={props.name} />
@@ -4180,7 +4220,7 @@ Fix:
 </a>
 
 hover:underline on <span> — underline only activates when hovering the name text, not the avatar portion of the
-anchor. Move hover:underline to the <a> or apply a group-hover pattern.
+anchor. Move hover:underline to the `<a>`or apply a group-hover pattern.
 
 Fix:
 
@@ -4194,7 +4234,7 @@ Fix:
 
 ---
 
-10. MINOR — Props + Component split across separate code blocks
+### 10. MINOR — Props + Component split across separate code blocks
 
 For all 4 prop-bearing components (Hero, Image, Author, Card), the export interface and component code appear in
 separate markdown code blocks. Implementer must combine them into one file. Not explicit in the plan — risk of missed merge.
@@ -4258,7 +4298,7 @@ Positive Observations
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md`
+## ❯ Review `planning/jedi-conversion.md`
 
 - Reference `planning/plan_steps_ignored.md` @lines 3999-4214
 - Check for idiomatic Solid JS/SolidStart syntax
@@ -4270,11 +4310,11 @@ Positive Observations
 - Present a summary of issues found in table format after the list of issues
 - List Positive Observations in a bulleted list at end of results
 
-⏺ Jedi Conversion Plan Review - 16th cycle.
+## ⏺ Jedi Conversion Plan Review - 16th cycle.
 
 Issues (Critical → Minor)
 
-1. HIGH — useDismiss ref type mismatch in JediNav (Step 2.5)
+### 1. HIGH — useDismiss ref type mismatch in JediNav (Step 2.5)
 
 Click-outside dismissal for profile dropdown will not work. Plan passes bare variable; hook expects getter function.
 
@@ -4299,7 +4339,7 @@ Fix: useDismiss(() => setDropdownOpen(false), dropdownOpen, () => dropdownRef)
 
 ---
 
-2. MODERATE — Image component missing loading="lazy" (Step 2.2)
+### 2. MODERATE — Image component missing loading="lazy" (Step 2.2)
 
 Plan jedi-conversion.md:431:
 <img class="w-full" src={props.src} alt={props.alt} />
@@ -4323,26 +4363,29 @@ Add `loading="lazy"` to Jedi.tsx `main > img`
 
 ---
 
-3. MODERATE — Action links use <a href="#"> for non-navigation actions (Phase 3)
+### 3. MODERATE — Action links use `<a href="#">` for non-navigation actions (Phase 3)
 
 Plan jedi-conversion.md:1063-1079:
+
+```tsx
 <a class="text-(--theme-card-fg) hover:underline rounded" href="#">Like</a>
 <a class="text-(--theme-card-fg) hover:underline rounded" href="#">Edit</a>
 <a class="text-(--theme-card-fg) hover:underline rounded" href="#">Delete</a>
+```
 
-Like/Edit/Delete are actions, not navigation. Semantic HTML = <button type="button">. Using <a href="#"> breaks screen reader action semantics (announces "link" instead of "button") and creates scroll-to-top on click. Source project uses anchors — faithful conversion, but accessibility requirement (Phase 3 point 10) conflicts.
+Like/Edit/Delete are actions, not navigation. Semantic HTML `<button type="button">`. Using `<a href="#">` breaks screen reader action semantics (announces "link" instead of "button") and creates scroll-to-top on click. Source project uses anchors — faithful conversion, but accessibility requirement (Phase 3 point 10) conflicts.
 
 Fix:
 
 - Standardize Animals, Cute, Lke, Edit and Delete button appearance
-- Convert <a> tags to <button>
+- Convert `<a>`tags to <button>
 - Apply `theme-button` style to all
 
 **Updated per Fix - Co-authored by Claude Sonnet 4.6**
 
 ---
 
-4. MINOR — E2E nav link test omits FullStack (Phase 5)
+### 4. MINOR — E2E nav link test omits FullStack (Phase 5)
 
 Plan jedi-conversion.md:1701-1708 checks Home, About, Readme, Jedi but skips FullStack.
 
@@ -4359,7 +4402,7 @@ Add test for fullstack link
 
 ---
 
-5. MINOR — TOP_PHOTOS entries have identical generic alt text (Phase 3)
+### 5. MINOR — TOP_PHOTOS entries have identical generic alt text (Phase 3)
 
 Plan jedi-conversion.md:939-941:
 { src: "...", alt: "Top photo", author: "Lisa", likes: 5 },
@@ -4376,7 +4419,7 @@ Fix:
 
 ---
 
-6. MINOR — jedi.css comment violates Code Output Rules (Step 1.3)
+### 6. MINOR — jedi.css comment violates Code Output Rules (Step 1.3)
 
 Plan jedi-conversion.md:196:
 /_ Jedi page — descendant-selector patterns from source style.css _/
@@ -4435,7 +4478,7 @@ Positive Observations
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md`
+## ❯ Review `planning/jedi-conversion.md`
 
 - Reference `planning/plan_steps_ignored.md` - 16th cycle @lines 4282-4443
 - Check for idiomatic Solid JS/SolidStart syntax
@@ -4447,19 +4490,21 @@ Positive Observations
 - Present a summary of issues found in table format after the list of issues
 - List Positive Observations in a bulleted list at end of results
 
-⏺ Jedi Conversion Plan Review - 17th cycle.
+## ⏺ Jedi Conversion Plan Review - 17th cycle.
 
 ---
 
 Issues Found (Critical → Minor)
 
-1. CRITICAL — onClick="#" invalid on buttons (Phase 3, lines 1078-1086)
+### 1. CRITICAL — onClick="#" invalid on buttons (Phase 3, lines 1078-1086)
 
 SolidJS onClick expects function, not string. TypeScript will reject, runtime will error.
 
-  <button type="button" onClick="#" class="theme-button">
-    Like
-  </button>
+```tsx
+<button type="button" onClick="#" class="theme-button">
+  Like
+</button>
+```
 
 Fix:
 
@@ -4470,17 +4515,19 @@ Fix:
 
 ---
 
-2. CRITICAL — href="#" on <button> elements (Phase 3, lines 1081-1086)
+### 2. CRITICAL — href="#" on `<button>` elements (Phase 3, lines 1081-1086)
 
-Edit/Delete buttons carry href attribute — invalid on <button>.
-Browsers ignore it silently, but signals incomplete <a> → <button> conversion.
+Edit/Delete buttons carry href attribute — invalid on `<button>`.
+Browsers ignore it silently, but signals incomplete `<a>`→ `<button>` conversion.
 
+```tsx
   <button type="button" onClick="#" class="theme-button" href="#">
     Edit
   </button>
   <button type="button" onClick="#" class="theme-button" href="#">
     Delete
   </button>
+```
 
 Fix:
 
@@ -4490,13 +4537,15 @@ Remove href="#" from both.
 
 ---
 
-3. HIGH — E2E test expects link role for Like/Edit/Delete (Phase 5, lines 1717-1719)
+### 3. HIGH — E2E test expects link role for Like/Edit/Delete (Phase 5, lines 1717-1719)
 
-16th cycle converted these to <button>, but e2e test still queries getByRole("link") → will fail.
+16th cycle converted these to `<button>`, but e2e test still queries getByRole("link") → will fail.
 
+```tsx
 await expect(article.getByRole("link", { name: /^Like$/i })).toBeVisible();
 await expect(article.getByRole("link", { name: /Edit/i })).toBeVisible();
 await expect(article.getByRole("link", { name: /Delete/i })).toBeVisible();
+```
 
 Fix:
 
@@ -4506,17 +4555,19 @@ Fix:
 
 ---
 
-4. HIGH — Animals/Cute still <a href="#"> despite fix claim (Phase 3, lines 1057-1060)
+### 4. HIGH — Animals/Cute still `<a href="#">` despite fix claim (Phase 3, lines 1057-1060)
 
 16th cycle fix says "Convert tags to " and lists "Animals, Cute, Like, Edit and Delete"
 — marked "Updated per Fix". But plan code still shows:
 
+```tsx
   <a class="theme-button" href="#">
     Animals
   </a>
   <a class="theme-button" href="#">
     Cute
   </a>
+```
 
 Like/Edit/Delete converted; Animals/Cute were not. Fix partially applied.
 
@@ -4529,7 +4580,7 @@ Fix:
 
 ---
 
-5. MODERATE — --theme-highlight no dark-mode override → contrast issue (Step 1.1, lines 103-104 vs 116-124)
+### 5. MODERATE — --theme-highlight no dark-mode override → contrast issue (Step 1.1, lines 103-104 vs 116-124)
 
 :root defines --theme-highlight: --color-indigo-100; (very light blue).
 Dark-mode block has no override.
@@ -4555,7 +4606,7 @@ Fix:
 
 ---
 
-6. MODERATE — Card.tsx JSDoc comment violates Code Output Rules (Step 2.4, lines 558-559)
+### 6. MODERATE — Card.tsx JSDoc comment violates Code Output Rules (Step 2.4, lines 558-559)
 
 /\*_ Add classes only — May not override base utilities. Consider tailwind-merge + clsx = cn see iCrumz_/
 class?: string;
@@ -4573,7 +4624,7 @@ Fix:
 
 ---
 
-7. MINOR — Jedi.tsx has 6 structural WHAT-comments (Phase 3, lines 1010-1093)
+### 7. MINOR — Jedi.tsx has 6 structural WHAT-comments (Phase 3, lines 1010-1093)
 
 {/_ Mobile sidebar toggle _/}
 {/_ Main article _/}
@@ -4595,7 +4646,7 @@ Fix:
 
 ---
 
-8. MINOR — getInitialMode() SSR guard redundant inside onMount (Step 4.2, lines 1260-1265, 1287-1291)
+### 8. MINOR — getInitialMode() SSR guard redundant inside onMount (Step 4.2, lines 1260-1265, 1287-1291)
 
 function getInitialMode(): ThemeMode {
 if (typeof window === "undefined") return "auto"; // SSR guard
@@ -4629,13 +4680,12 @@ Fix:
 
 - Won't fix
 - Add Comment explaining reasoning for defensive SSR guard code.
-- ```ts
-  // onMount (only call site) doesn't run server-side.
-  // `typeof window...` crashes server-side. Defensive code in case
-  // `getInitialMode` is called from server-active code
-  ```
 
-````
+```ts
+// onMount (only call site) doesn't run server-side.
+// `typeof window...` crashes server-side. Defensive code in case
+// `getInitialMode` is called from server-active code
+```
 
 **Updated per Fix**
 
@@ -4669,7 +4719,7 @@ Summary Table
   ├─────┼──────────┼────────────────────────────┼─────────────────────────────────────┼─────────────────────────┤
   │ 8   │ MINOR    │ Step 4.2 ThemeToggle:1258  │ SSR guard unreachable inside onMount│ Dead code               │
   └─────┴──────────┴────────────────────────────┴─────────────────────────────────────┴─────────────────────────┘
-````
+```
 
 ---
 
@@ -4699,7 +4749,7 @@ Positive Observations
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md`
+## ❯ Review `planning/jedi-conversion.md`
 
 - Reference `planning/plan_steps_ignored.md` - 17th cycle @lines 4459-4647
 - Check for idiomatic Solid JS/SolidStart syntax
@@ -4711,41 +4761,47 @@ Positive Observations
 - Present a summary of issues found in table format after the list of issues
 - List Positive Observations in a bulleted list at end of results
 
-⏺ Jedi Conversion Plan Review - 18th cycle.
+## ⏺ Jedi Conversion Plan Review - 18th cycle.
 
-1. CRITICAL — "Cute" tag mismatch: <button> opens, </a> closes (Phase 3, line 1065)
+### 1. CRITICAL — "Cute" tag mismatch: `<button>` opens, `</a>` closes (Phase 3, line 1065)
 
-17th cycle fix #4 converted Animals/Cute opening tags from <a> to <button> but missed the closing tag on Cute.
+17th cycle fix #4 converted Animals/Cute opening tags from `<a>`to `<button>` but missed the closing tag on Cute.
 TSX compiler rejects mismatched tags → build fails.
 
+```tsx
 <button type="button" onClick={() => {}} class="theme-button">
 Cute
 </a>
+```
 
 Fix:
 
-- Change </a> → </button> on line 1065.
+- Change `</a>` → `</button>` on line 1065.
 
 **Updated per Fix**
 
 ---
 
-2. CRITICAL — E2E test queries Lisa as button but Author renders <a> (Phase 5, line 1719)
+### 2. CRITICAL — E2E test queries Lisa as button but Author renders `<a>`(Phase 5, line 1719)
 
-Author component (line 509-515) wraps content in <a>:
+Author component (line 509-515) wraps content in `<a>`:
 
+```tsx
 export default function Author(props: AuthorProps) {
-return (
-<a class="flex items-center gap-1 mb-4 hover:underline" href={props.href ?? "#"}>
-<img class="w-8 h-8 rounded-full" src={props.avatarSrc} alt={props.name} />
-<span class="font-bold">{props.name}</span>
-</a>
-);
+  return (
+    <a class="flex items-center gap-1 mb-4 hover:underline" href={props.href ?? "#"}>
+      <img class="w-8 h-8 rounded-full" src={props.avatarSrc} alt={props.name} />
+      <span class="font-bold">{props.name}</span>
+    </a>
+  );
 }
+```
 
 E2E test expects button:
 
+```tsx
 await expect(article.getByRole("button").filter({ hasText: "Lisa" })).toBeVisible();
+```
 
 Fix:
 
@@ -4755,21 +4811,23 @@ Fix:
 
 ---
 
-3. HIGH — E2E test queries Cute as link but 17th cycle converted to <button> (Phase 5, line 1721)
+### 3. HIGH — E2E test queries Cute as link but 17th cycle converted to `<button>` (Phase 5, line 1721)
 
-17th cycle fix #4 says "Convert to <button>" and marks "Updated per Fix", but E2E test still queries:
+17th cycle fix #4 says "Convert to `<button>`" and marks "Updated per Fix", but E2E test still queries:
 
+```tsx
 await expect(article.getByRole("link", { name: /cute/i })).toBeVisible();
+```
 
 Fix:
 
-- Change to getByRole("button", { name: /cute/i }).
+- Change to `getByRole("button", { name: /cute/i })`.
 
 **Updated per Fix**
 
 ---
 
-4. MODERATE — Sidebar toggle arrow icon black → invisible in dark mode (Phase 3, line 1025)
+### 4. MODERATE — Sidebar toggle arrow icon black → invisible in dark mode (Phase 3, line 1025)
 
 Sidebar Categories toggle uses /000000/ (black) arrow:
 
@@ -4787,7 +4845,7 @@ Fix:
 
 ---
 
-5. MODERATE — Nav.test.tsx ThemeToggle tests missing matchMedia mock (Phase 4, Step 4.5)
+### 5. MODERATE — Nav.test.tsx ThemeToggle tests missing matchMedia mock (Phase 4, Step 4.5)
 
 ThemeToggle component test (Step 4.3, lines 1433-1445) sets up matchMedia mock:
 
@@ -4839,7 +4897,7 @@ describe("<Nav />", () => {
 
 ---
 
-6. MINOR — Arbitrary value syntax mx-[5%], mx-[10%], md:mr-[20%] (Phase 3, lines 1032, 1099)
+### 6. MINOR — Arbitrary value syntax mx-[5%], mx-[10%], md:mr-[20%] (Phase 3, lines 1032, 1099)
 
 Code Output Rules prohibit Tailwind arbitrary value syntax for CSS variables (text-[var(--x)]). These use percentage values, not CSS variables — technically different from the stated rule. But still bracket syntax in a plan that otherwise avoids it.
 
@@ -4882,7 +4940,7 @@ Fix:
 
 ---
 
-7. MINOR — Sidebar images missing loading="lazy" (Phase 3, lines 1113-1154)
+### 7. MINOR — Sidebar images missing loading="lazy" (Phase 3, lines 1113-1154)
 
 Main article Image uses loading="lazy" (line 1051), but sidebar images (category icons, top photo thumbs, top caption avatars) all omit it. These are below-the-fold on desktop. Minor performance gain.
 
@@ -4943,7 +5001,7 @@ Positive Observations
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md`
+## ❯ Review `planning/jedi-conversion.md`
 
 - Reference `planning/plan_steps_ignored.md` - 18th cycle @lines 4714-4900
 - Check for idiomatic Solid JS/SolidStart syntax
@@ -4955,9 +5013,9 @@ Positive Observations
 - Present a summary of issues found in table format after the list of issues
 - List Positive Observations in a bulleted list at end of results
 
-⏺ Jedi Conversion Plan Review - 19th cycle.
+## ⏺ Jedi Conversion Plan Review - 19th cycle.
 
-1. CRITICAL — CATEGORIES icon URLs malformed (Phase 3, lines 958-962)
+### 1. CRITICAL — CATEGORIES icon URLs malformed (Phase 3, lines 958-962)
 
 All 5 category icon URLs missing / separator between size and color segments. Images won't load.
 
@@ -4977,7 +5035,7 @@ Replace `96777777` with `96/777777`
 
 ---
 
-2. HIGH — CSS custom properties use bare Tailwind tokens, not var() (Phase 1, lines 22-55)
+### 2. HIGH — CSS custom properties use bare Tailwind tokens, not var() (Phase 1, lines 22-55)
 
 :root in @layer base uses bare Tailwind token names as values:
 
@@ -5009,7 +5067,7 @@ Fix:
 
 ---
 
-3. MODERATE — Fire-heart icon 000000 invisible in dark mode (Phase 3, line 1082)
+### 3. MODERATE — Fire-heart icon 000000 invisible in dark mode (Phase 3, line 1082)
 
 Article action bar fire-heart icon uses black:
 src="https://img.icons8.com/small/24/000000/fire-heart.png"
@@ -5017,29 +5075,30 @@ src="https://img.icons8.com/small/24/000000/fire-heart.png"
 Same class of bug as 18th cycle fix #4 (sidebar arrow 000000 → 777777). Dark mode --theme-card-bg = near-black →
 black-on-black = invisible.
 
-Fix: change /000000/ → /777777/.
+Fix: change `/000000/` → `/777777/`.
 
 **Updated per Fix**
 
 ---
 
-4. MODERATE — Heading hierarchy inverted (Phase 2 + Phase 3)
+### 4. MODERATE — Heading hierarchy inverted (Phase 2 + Phase 3)
 
-Card component uses <h2> (line 576) for sidebar sections ("Categories", "Top Photos", "Top Captions").
-Main article uses <h3> (line 1042) for content title ("Little Jedi").
+Card component uses `<h2>` (line 576) for sidebar sections ("Categories", "Top Photos", "Top Captions").
+
+Main article uses `<h3`> (line 1042) for content title ("Little Jedi").
 
 Sidebar headings outranking main content heading is semantically backwards. Screen readers and SEO tools flag this.
 
 Fix:
 
-- Promote article title to <h2>
+- Promote article title to `<h2>`
 - Increase article title size to `text-2xl` (matching sidebar headings)
 
 **Updated per Fix**
 
 ---
 
-5. MODERATE — Hero.tsx import after interface declaration Phase 2, lines 336-565
+### 5. MODERATE — Hero.tsx import after interface declaration Phase 2, lines 336-565
 
 export interface HeroProps { // ← interface first
 title: string;
@@ -5058,7 +5117,7 @@ Organize `import`s first @lines 336, 426 & 565
 
 ---
 
-6. MINOR — Card class concatenation lacks conflict resolution (Phase 2, line 574)
+### 6. MINOR — Card class concatenation lacks conflict resolution (Phase 2, line 574)
 
 class={`card-style ${props.class ?? ""}`}
 
@@ -5072,12 +5131,12 @@ Fix:
 
 ---
 
-7. MINOR — Image component lacks URL sanitization unlike Hero (Phase 2, lines 436-448)
+### 7. MINOR — Image component lacks URL sanitization unlike Hero (Phase 2, lines 436-448)
 
 Hero sanitizes backgroundImage via sanitizeImageUrl() (CSS url() injection prevention). Image component passes
 props.src and props.href unsanitized.
 
-Low risk in current usage — all URLs are hardcoded constants. But design asymmetry: if Image is reused with dynamic URLs, <a href="javascript:..."> would be unprotected.
+Low risk in current usage — all URLs are hardcoded constants. But design asymmetry: if Image is reused with dynamic URLs, `<a href="javascript:...">` would be unprotected.
 
 Fix:
 
@@ -5137,7 +5196,7 @@ Positive Observations
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md`
+## ❯ Review `planning/jedi-conversion.md`
 
 - Reference `planning/plan_steps_ignored.md` - 19th cycle @lines 4958-5088
 - Check for idiomatic Solid JS/SolidStart syntax
@@ -5149,18 +5208,21 @@ Positive Observations
 - Present a summary of issues found in table format after the list of issues
 - List Positive Observations in a bulleted list at end of results
 
-⏺ Jedi Conversion Plan Review - 20th cycle.
+## ⏺ Jedi Conversion Plan Review - 20th cycle.
 
-1. CRITICAL — Image component tests use relative paths blocked by sanitizer (Phase 2, lines 463-466)
+### 1. CRITICAL — Image component tests use relative paths blocked by sanitizer (Phase 2, lines 463-466)
 
 sanitizeImageUrl regex:
-const SAFE_URL_PATTERN = /^(?:https?:\/\/|\/[\w])/i; // line 265
+`const SAFE_URL_PATTERN = /^(?:https?:\/\/|\/[\w])/i;` line 265
 
-Test 1 uses src="test.jpg" — doesn't match https?:// or /\w → returns undefined → src attribute removed from DOM.
+Test 1 uses `src="test.jpg"` — doesn't match `https?://` or `/\w` → returns `undefined` → `src` attribute removed from DOM.
 
-// line 463-466
-render(() => <Image src="test.jpg" alt="Test Image" />)
-expect(img).toHaveAttribute('src', 'test.jpg') // ❌ FAILS - src is undefined
+line 463-466
+
+```tsx
+render(() => <Image src="test.jpg" alt="Test Image" />);
+expect(img).toHaveAttribute("src", "test.jpg"); // ❌ FAILS - src is undefined
+```
 
 All 6 Image tests pass "test.jpg" → console.warn fires 6 times (noise). Primary assertion in test 1 fails outright.
 
@@ -5172,7 +5234,7 @@ Fix:
 
 ---
 
-2. HIGH — Image component typo br-grey-700 (Phase 2, line 443)
+### 2. HIGH — Image component typo br-grey-700 (Phase 2, line 443)
 
 Fallback branch (no href):
 <img class="w-full br-grey-700" src={imgSrc()} .../> // line 443
@@ -5190,7 +5252,7 @@ Fix:
 
 ---
 
-3. MODERATE — Plan references Jedi.tsx (PascalCase) but actual file is jedi.tsx (lowercase)
+### 3. MODERATE — Plan references Jedi.tsx (PascalCase) but actual file is jedi.tsx (lowercase)
 
 Plan line 5: "Convert... to src/routes/Jedi.tsx"
 Actual filesystem: src/routes/jedi.tsx (confirmed)
@@ -5205,7 +5267,7 @@ Fix:
 
 ---
 
-4. MODERATE — JediNav dropdown test asserts items present but they're always in DOM (Phase 2, lines 820-826)
+### 4. MODERATE — JediNav dropdown test asserts items present but they're always in DOM (Phase 2, lines 820-826)
 
 Component renders dropdown items permanently — hidden via CSS (opacity-0 scale-90 pointer-events-none), not <Show>:
 // line 748 - always rendered, just visually hidden
@@ -5233,7 +5295,7 @@ expect(dropdown).toHaveAttribute("aria-hidden", "false");
 
 ---
 
-5. MINOR — Author component doesn't sanitize avatarSrc (Phase 2, line 519)
+### 5. MINOR — Author component doesn't sanitize avatarSrc (Phase 2, line 519)
 
 Hero uses sanitizeImageUrl(props.backgroundImage) (CSS injection vector).
 Image uses sanitizeImageUrl(props.src) (added in 19th cycle fix #7).
@@ -5257,11 +5319,11 @@ Fix:
 
 ---
 
-6. MINOR — Author href="#" default creates non-functional link (Phase 2, line 518)
+### 6. MINOR — Author href="#" default creates non-functional link (Phase 2, line 518)
 
 <a ... href={props.href ?? "#"}> // line 518
 
-Always renders <a> even without meaningful destination. Screen readers announce it as a link that goes nowhere. Image component conditionally renders <a> via <Show when={props.href}> — better pattern.
+Always renders `<a>`even without meaningful destination. Screen readers announce it as a link that goes nowhere. Image component conditionally renders `<a>`via <Show when={props.href}> — better pattern.
 
 Fix:
 
@@ -5272,7 +5334,7 @@ Fix:
 
 ---
 
-7. MINOR — Like count "1" lacks screen reader context (Phase 3, lines 1103-1112)
+### 7. MINOR — Like count "1" lacks screen reader context (Phase 3, lines 1103-1112)
 
   <div class="flex items-center gap-1">
     <img class="w-5 -mt-1" src="..." alt="" loading="lazy" />
@@ -5294,7 +5356,7 @@ Fix:
 
 ---
 
-8. MINOR — JediNav nav element uses -z-1 that persists on desktop (Phase 2, line 731)
+### 8. MINOR — JediNav nav element uses -z-1 that persists on desktop (Phase 2, line 731)
 
 class="... absolute md:relative -z-1 ..."
 
@@ -5359,7 +5421,7 @@ Positive Observations
 
 ===================================================================================
 
-❯ Review `planning/jedi-conversion.md`
+## ❯ Review `planning/jedi-conversion.md`
 
 - Reference `planning/plan_steps_ignored.md` - 20th cycle @lines 5154-5309
 - Check for idiomatic Solid JS/SolidStart syntax
@@ -5371,26 +5433,29 @@ Positive Observations
 - Present a summary of issues found in table format after the list of issues
 - List Positive Observations in a bulleted list at end of results
 
-⏺ Jedi Conversion Plan Review - 21st cycle.
+## ⏺ Jedi Conversion Plan Review - 21st cycle.
 
 Cross-referenced with 20th cycle fixes (lines 5154-5309 of plan_steps_ignored.md).
 
 ---
 
-1. HIGH — Author <Show> fallback has two sibling JSX elements without fragment wrapper (Phase 2, lines 525-528)
+### 1. HIGH — Author <Show> fallback has two sibling JSX elements without fragment wrapper (Phase 2, lines 525-528)
 
 // plan line 525-528
+
+```tsx
 <Show when={props.href} fallback={
 <img class="w-8 h-8 rounded-full" src={imgSrc()} alt={props.name} loading="lazy" />
 <span class="font-bold">{props.name}</span>
 }>
+```
 
-JSX prop value {} expects a single expression. Two adjacent JSX elements is a parse error. Needs <>...</> fragment:
+JSX prop value `{}` expects a single expression. Two adjacent JSX elements is a parse error. Needs `<>...</>` fragment:
 
 FIX:
 
-- Update <Show> @line 525
-  ```jsx
+- Update `<Show>` @line 525
+- ```jsx
   fallback={
   <>
     <img class="w-8 h-8 rounded-full" src={imgSrc()} alt={props.name} loading="lazy" />
@@ -5398,20 +5463,21 @@ FIX:
   </>}
   ```
 
-````
+  **Updated per Fix**
 
-**Updated per Fix**
+  ***
 
----
+### 2. HIGH — Image test assertion checks wrong src value (Phase 2, line 466)
 
-2. HIGH — Image test assertion checks wrong src value (Phase 2, line 466)
+plan line 464 — input was fixed to `/images/test.jpg` (20th cycle fix #1)
 
-// plan line 464 — input was fixed to /images/test.jpg (20th cycle fix #1)
-render(() => <Image src="/images/test.jpg" alt="Test Image" />)
+```tsx
+render(() => <Image src="/images/test.jpg" alt="Test Image" />);
 // plan line 466 — assertion NOT updated
-expect(img).toHaveAttribute('src', 'test.jpg') // ← should be '/images/test.jpg'
+expect(img).toHaveAttribute("src", "test.jpg"); // ← should be '/images/test.jpg'
+```
 
-20th cycle fix #1 updated the input from "test.jpg" to "/images/test.jpg" but the assertion still expects 'test.jpg'. sanitizeImageUrl("/images/test.jpg") returns "/images/test.jpg" → test fails.
+20th cycle fix #1 updated the input from `"test.jpg"` to `"/images/test.jpg"` but the assertion still expects `'test.jpg'`. `sanitizeImageUrl("/images/test.jpg")` returns `"/images/test.jpg"` → test fails.
 
 Fix:
 
@@ -5421,19 +5487,23 @@ Fix:
 
 ---
 
-3. HIGH — Author test asserts href="#" link after <Show when={props.href}> fix removed it (Phase 2, lines 561-564)
+### 3. HIGH — Author test asserts href="#" link after <Show when={props.href}> fix removed it (Phase 2, lines 561-564)
 
-// plan line 561-564
-it('defaults to # when href not provided', () => {
-render(() => <Author avatarSrc="avatar.jpg" name="Test" />)
-expect(screen.getByRole('link')).toHaveAttribute('href', '#')
-})
+plan line 561-564
 
-20th cycle fix #6 changed Author to <Show when={props.href}> — no href means no <a> rendered. getByRole('link') throws → test crashes. This entire test case now validates a removed behavior and must be rewritten to assert the fallback (no link).
+```tsx
+it("defaults to # when href not provided", () => {
+  render(() => <Author avatarSrc="avatar.jpg" name="Test" />);
+  expect(screen.getByRole("link")).toHaveAttribute("href", "#");
+});
+```
+
+20th cycle fix #6 changed Author to `<Show when={props.href}>` — no href means no `<a>`rendered. getByRole('link') throws → test crashes. This entire test case now validates a removed behavior and must be rewritten to assert the fallback (no link).
 
 Fix:
 
 - Replace test @line 561 with:
+
 ```ts
   it('renders without link when href not provided', () => {
     render(() => <Author avatarSrc="/images/avatar.jpg" name="Test" />)
@@ -5445,21 +5515,31 @@ Fix:
 
 ---
 
-4. HIGH — Author tests use relative avatarSrc="avatar.jpg" → sanitizer blocks it (Phase 2, lines 551, 557)
+### 4. HIGH — Author tests use relative avatarSrc="avatar.jpg" → sanitizer blocks it (Phase 2, lines 551, 557)
 
-// plan line 551
-render(() => <Author avatarSrc="avatar.jpg" name="Test Author" />)
-expect(screen.getByRole('img')).toHaveAttribute('src', 'avatar.jpg')
+plan line 551
 
-20th cycle fix #5 added sanitizeImageUrl to Author. sanitizeImageUrl("avatar.jpg") → doesn't match
-^(?:https?:\/\/|\/[\w]) → returns undefined → src attribute absent from DOM. Same class of bug as the Image test fix #1, but Author tests not updated. Both tests at lines 549 and 554 need avatarSrc="/images/avatar.jpg".
+```tsx
+render(() => <Author avatarSrc="avatar.jpg" name="Test Author" />);
+expect(screen.getByRole("img")).toHaveAttribute("src", "avatar.jpg");
+```
+
+20th cycle fix #5 added `sanitizeImageUrl` to `Author`. `sanitizeImageUrl("avatar.jpg"`) → doesn't match
+`^(?:https?:\/\/|\/[\w])` → returns `undefined` → `src` attribute absent from DOM. Same class of bug as the `Image` test fix #1, but `Author` tests not updated. Both tests at lines 549 and 554 need `avatarSrc="/images/avatar.jpg"`.
+
+Fix:
+
+Update @line 551 `avatar.jpg` -> `/images/avatar.jpg`
+
+**Update per Fix**
 
 ---
 
-5. MODERATE — aria-label="1 like" placed on wrong element and lacks role (Phase 3, line 1103)
+### 5. MODERATE — aria-label="1 like" placed on wrong element and lacks role (Phase 3, line 1103)
 
-// plan line 1103 — outer div gets the label
+plan line 1103 — outer div gets the label
 
+```tsx
   <div class="flex items-center gap-4" aria-label="1 like">
     <div class="flex items-center gap-1">    <!-- ← label belongs here -->
       <img ... alt="" />
@@ -5469,58 +5549,75 @@ expect(screen.getByRole('img')).toHaveAttribute('src', 'avatar.jpg')
     <button ...>Edit</button>
     <button ...>Delete</button>
   </div>
+```
 
-Two problems: (a) aria-label on a <div> without a role is ignored by screen readers per ARIA spec. (b) Label is on the container that also holds Like/Edit/Delete buttons — "1 like" doesn't describe those. Fix: move to inner count div, add role="status", or use visually-hidden text <span class="sr-only">1 like</span>.
+Two problems:
+
+- (a) aria-label on a `<div>` without a role is ignored by screen readers per ARIA spec.
+- (b) Label is on the container that also holds Like/Edit/Delete buttons — "1 like" doesn't describe those.
+
+Fix:
+
+- Move to inner count div
+- Add role="status"
+- Or use visually-hidden text <span class="sr-only">1 like</span>.
 
 ---
 
-6. MODERATE — .navitems > li > a:hover uses hardcoded bg-gray-700 instead of theme variable (Phase 1.3, line 219)
+### 6. MODERATE — .navitems > li > a:hover uses hardcoded bg-gray-700 instead of theme variable (Phase 1.3, line 219)
 
-/_ plan line 219 _/
+plan line 219
+
+```tsx
 .navitems > li > a:hover {
 @apply bg-gray-700;
 }
+```
 
 JediNav header (bg-gray-800) uses hardcoded bg-gray-700 for hover — only 1 shade difference in dark context, fine. But this doesn't participate in the theme system. Every other hover state uses --theme-hover-bg. Plan line 76 explicitly exempts JediNav from theming ("JediNav.tsx and Hero.tsx are exceptions to #4 above"), so this is intentional. Flag as design debt — if JediNav ever needs theme support, this is a gap.
 
 ---
 
-7. MODERATE — Sidebar collapse uses max-h-0/max-h-screen transition → janky animation (Phase 3, line 1131)
+### 7. MODERATE — Sidebar collapse uses max-h-0/max-h-screen transition → janky animation (Phase 3, line 1131)
 
-// plan line 1131
+plan line 1131
+
+```tsx
 class={`... ${mobileSidebarOpen()
     ? "opacity-100 max-h-screen"
     : "opacity-0 max-h-0 overflow-hidden md:overflow-visible"}`}
+```
 
-max-h-screen = 100vh. Transitioning max-height from 0 to a large fixed value causes non-linear perceived speed —
-content appears to "snap" then slow-crawl. CSS grid-template-rows: 0fr → 1fr transition would be smoother. Acceptable for demo scope.
-
----
-
-8. MINOR — transition-all used in 3 places where specific properties would be more performant (Phase 2/3)
-
-// plan line 731 (JediNav nav)
-transition-all duration-300 ease-out
-// plan line 762 (JediNav dropdown)
-transition-all duration-300 ease-out
-// plan line 1131 (sidebar aside)
-transition-all duration-300 ease-out
-
-transition-all transitions every CSS property including background-color, border, padding, etc. Only opacity and
-transform (and max-height for sidebar) actually change. transition-[opacity,transform] or
-transition-[opacity,max-height] would avoid unnecessary composite layer work. Low impact for demo.
+- `max-h-screen` = `100vh`. Transitioning max-height from 0 to a large fixed value causes non-linear perceived speed
+- content appears to "snap" then slow-crawl.
+- CSS `grid-template-rows: 0fr → 1fr` transition would be smoother.
 
 ---
 
-9. MINOR — No width/height attributes on <img> elements → CLS risk (Phase 2/3, multiple locations)
+### 8. MINOR — transition-all used in 3 places where specific properties would be more performant (Phase 2/3)
 
-<img> elements in JediNav (lines 698, 714, 720, 748-749, 754-755), Author (line 526, 531), and sidebar lists (lines
-1145, 1159, 1164-1165, 1189) lack explicit width/height. Browsers can't reserve space before images load → cumulative
-layout shift. Low priority for demo with small icons.
+plan line 731 (JediNav nav)
+`transition-all duration-300 ease-out`
+
+plan line 762 (JediNav dropdown)
+`transition-all duration-300 ease-out`
+
+plan line 1131 (sidebar aside)
+`transition-all duration-300 ease-out`
+
+- `transition-all` transitions every CSS property including `background-color`, `border`, `padding`, etc.
+- Only opacity and transform (and max-height for sidebar) actually change.
+- `transition-[opacity,transform]` or `transition-[opacity,max-height]` would avoid unnecessary composite layer work.
 
 ---
 
-10. MINOR — Typo "sudo" → "pseudo" in plan line 959
+### 9. MINOR — No width/height attributes on `<img>` elements → CLS risk (Phase 2/3, multiple locations)
+
+`<img>` elements in JediNav (lines 698, 714, 720, 748-749, 754-755), Author (line 526, 531), and sidebar lists (lines 1145, 1159, 1164-1165, 1189) lack explicit width/height. Browsers can't reserve space before images load → cumulative layout shift. Low priority for demo with small icons.
+
+---
+
+### 10. MINOR — Typo "sudo" → "pseudo" in plan line 959
 
 All interactive elements: get `*:focus-visible` sudo classes as defined in `app.css`.
 
@@ -5558,7 +5655,7 @@ Summary Table
   ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────────┤
   │ 10  │ MINOR    │ Plan L959               │ Typo "sudo" → "pseudo"                                         │
   └─────┴──────────┴─────────────────────────┴────────────────────────────────────────────────────────────────┘
-````
+```
 
 ---
 
@@ -5579,3 +5676,27 @@ Positive Observations
 - Dark mode architecture — :root[data-theme="dark"] + @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) } cleanly separates explicit choice from OS auto-detection.
 - Test coverage breadth — unit tests for sanitizer, component tests for all 6 components, E2E tests including theme persistence and responsive layout. JediNav tests assert class/aria state (not just element presence) per 20th cycle fix #4.
+
+===================================================================================
+
+## ❯ Review `planning/jedi-conversion.md`
+
+- Reference `planning/plan_steps_ignored.md` - 21st cycle @lines 5436 - <<<>>>
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for security, accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Use backticks e.g. `code` for simple one-line code snippets in issues
+- Use code fencing for multi-line code snippets in issues. eg.
+
+```tsx
+code;
+```
+
+- Provide a recommended `Fix:` section at the end of each issue
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- List Positive Observations in a bulleted list at end of results
+
+## ⏺ Jedi Conversion Plan Review - 22nd cycle.
