@@ -5445,9 +5445,9 @@ Fix:
 
 ---
 
-4. HIGH — Author tests use relative avatarSrc="avatar.jpg" → sanitizer blocks it (Phase 2, lines 549, 554)
+4. HIGH — Author tests use relative avatarSrc="avatar.jpg" → sanitizer blocks it (Phase 2, lines 551, 557)
 
-// plan line 549
+// plan line 551
 render(() => <Author avatarSrc="avatar.jpg" name="Test Author" />)
 expect(screen.getByRole('img')).toHaveAttribute('src', 'avatar.jpg')
 

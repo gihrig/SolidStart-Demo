@@ -548,13 +548,13 @@ import Author from './Author'
 
 describe('<Author />', () => {
   it('renders avatar and name', () => {
-    render(() => <Author avatarSrc="avatar.jpg" name="Test Author" />)
-    expect(screen.getByRole('img')).toHaveAttribute('src', 'avatar.jpg')
+    render(() => <Author avatarSrc="/images/avatar.jpg" name="Test Author" />)
+    expect(screen.getByRole('img')).toHaveAttribute('src', '/images/avatar.jpg')
     expect(screen.getByText('Test Author')).toBeInTheDocument()
   })
 
   it('uses custom href when provided', () => {
-    render(() => <Author avatarSrc="avatar.jpg" name="Test" href="/author" />)
+    render(() => <Author avatarSrc="/images/avatar.jpg" name="Test" href="/author" />)
     expect(screen.getByRole('link')).toHaveAttribute('href', '/author')
   })
 
