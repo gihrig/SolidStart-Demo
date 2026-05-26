@@ -5421,16 +5421,27 @@ Fix:
 
 ---
 
-3. HIGH — Author test asserts href="#" link after <Show when={props.href}> fix removed it (Phase 2, lines 559-562)
+3. HIGH — Author test asserts href="#" link after <Show when={props.href}> fix removed it (Phase 2, lines 561-564)
 
-// plan line 559-562
+// plan line 561-564
 it('defaults to # when href not provided', () => {
 render(() => <Author avatarSrc="avatar.jpg" name="Test" />)
 expect(screen.getByRole('link')).toHaveAttribute('href', '#')
 })
 
-20th cycle fix #6 changed Author to <Show when={props.href}> — no href means no <a> rendered. getByRole('link') throws
-→ test crashes. This entire test case now validates a removed behavior and must be rewritten to assert the fallback (no link).
+20th cycle fix #6 changed Author to <Show when={props.href}> — no href means no <a> rendered. getByRole('link') throws → test crashes. This entire test case now validates a removed behavior and must be rewritten to assert the fallback (no link).
+
+Fix:
+
+- Replace test @line 561 with:
+```ts
+  it('renders without link when href not provided', () => {
+    render(() => <Author avatarSrc="/images/avatar.jpg" name="Test" />)
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+  })
+```
+
+**Updated per Fix - Co-authored by Claude Opus 4.6**
 
 ---
 

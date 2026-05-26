@@ -558,9 +558,9 @@ describe('<Author />', () => {
     expect(screen.getByRole('link')).toHaveAttribute('href', '/author')
   })
 
-  it('defaults to # when href not provided', () => {
-    render(() => <Author avatarSrc="avatar.jpg" name="Test" />)
-    expect(screen.getByRole('link')).toHaveAttribute('href', '#')
+  it('renders without link when href not provided', () => {
+    render(() => <Author avatarSrc="/images/avatar.jpg" name="Test" />)
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 })
 ```
