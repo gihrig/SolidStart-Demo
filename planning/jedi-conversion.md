@@ -463,7 +463,7 @@ describe('<Image />', () => {
   it('renders image with src and alt', () => {
     render(() => <Image src="/images/test.jpg" alt="Test Image" />)
     const img = screen.getByRole('img')
-    expect(img).toHaveAttribute('src', 'test.jpg')
+    expect(img).toHaveAttribute('src', '/images/test.jpg')
     expect(img).toHaveAttribute('alt', 'Test Image')
   })
 

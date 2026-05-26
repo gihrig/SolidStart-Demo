@@ -5413,6 +5413,12 @@ expect(img).toHaveAttribute('src', 'test.jpg') // ← should be '/images/test.jp
 
 20th cycle fix #1 updated the input from "test.jpg" to "/images/test.jpg" but the assertion still expects 'test.jpg'. sanitizeImageUrl("/images/test.jpg") returns "/images/test.jpg" → test fails.
 
+Fix:
+
+- Update @line 466 to `<Image src="/images/test.jpg" alt="Test" href="/test" />`
+
+**Updated per Fix**
+
 ---
 
 3. HIGH — Author test asserts href="#" link after <Show when={props.href}> fix removed it (Phase 2, lines 559-562)
