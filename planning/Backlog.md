@@ -1,6 +1,6 @@
 ## 1. Convert .png icons to svg image sprite
 
-### HIGH — Icons invisible in dark mode
+"### HIGH — Icons invisible in dark mode"
 
 - Detail `planning/plan_steps_ignored.md`
 - HIGH — Icons invisible in dark mode @line 4033
@@ -35,7 +35,7 @@
 
 - Consider model for EAGems > site_content > catalog_images
 
-## 3. MODERATE — Card class concatenation has no conflict resolution
+## 3. Card class concatenation has no conflict resolution
 
 - Detail `planning/plan_steps_ignored.md` @line 4058
 
@@ -52,3 +52,11 @@
   - Replace all hard coded data with variables from external data blocks
   - Consider data will be pulled from DB
 - Sanitize all external urls
+
+## 6. Add image dimensions
+
+From `plan_steps_ignored.md` "9. MINOR — No width/height attributes on `<img>` elements → CLS risk (Phase 2/3, multiple locations)"
+
+"`<img>` elements in Image (451, 454) Author (line 535, 541), JediNav (lines 706, 722, 729, 763), Jedi (1062, 1123) and sidebar lists (lines 1182, 1195, 1201, 1223) lack explicit width/height. Browsers can't reserve space before images load → cumulative layout shift. Low priority for demo with small icons."
+
+Implement in conjunction with above items.

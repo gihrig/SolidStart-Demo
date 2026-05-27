@@ -5649,7 +5649,14 @@ Fix:
 
 ### 9. MINOR — No width/height attributes on `<img>` elements → CLS risk (Phase 2/3, multiple locations)
 
-`<img>` elements in JediNav (lines 698, 714, 720, 748-749, 754-755), Author (line 526, 531), and sidebar lists (lines 1145, 1159, 1164-1165, 1189) lack explicit width/height. Browsers can't reserve space before images load → cumulative layout shift. Low priority for demo with small icons.
+`<img>` elements in Image (451, 454) Author (line 535, 541), JediNav (lines 706, 722, 729, 763), Jedi (1062, 1123) and sidebar lists (lines 1182, 1195, 1201, 1223) lack explicit width/height. Browsers can't reserve space before images load → cumulative layout shift. Low priority for demo with small icons.
+
+Fix:
+
+- Add to `backlog.md`
+- One of several factors in improved data handling
+
+**Update per Fix - Add to backlog**
 
 ---
 
