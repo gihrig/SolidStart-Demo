@@ -5556,11 +5556,20 @@ Two problems:
 - (a) aria-label on a `<div>` without a role is ignored by screen readers per ARIA spec.
 - (b) Label is on the container that also holds Like/Edit/Delete buttons — "1 like" doesn't describe those.
 
+Note: A Refactor to move hard coded data into external data blocks was added to `Backlog.md` "5. Standardize data structures"
+
 Fix:
 
-- Move to inner count div
-- Add role="status"
-- Or use visually-hidden text <span class="sr-only">1 like</span>.
+- Add appropriate `aria-label="..."` values to
+  - Comments enclosing `<a>
+  - Comments number
+  - Likes image (hidden)
+  - Like number
+  - Likes `<button>` (aria-pressed="false")
+  - Edit `<button>`
+  - Delete `<button>`
+
+**Update per Fix**
 
 ---
 

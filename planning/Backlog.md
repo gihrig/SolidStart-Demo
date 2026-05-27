@@ -47,8 +47,8 @@
 
 ## 5. Standardize data structures
 
-- Refactor data into blocks for Top Photos and Top Captions
-  - Include comments (#) and likes (#) from DB
-  - See `Card` for example
+- Refactor Jedi component data into external blocks for Posts, Categories, Top Photos and Top Captions
+  - Include comments (#) and likes (#) in data blocks
+  - Replace all hard coded data with variables from external data blocks
   - Consider data will be pulled from DB
 - Sanitize all external urls

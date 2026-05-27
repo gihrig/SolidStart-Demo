@@ -1098,27 +1098,54 @@ export default function Jedi() {
                 </button>
               </div>
               <div class="flex items-center justify-between text-sm px-2">
-                <a class="font-bold hover:underline rounded" href="#">
+                <a
+                  class="font-bold hover:underline rounded"
+                  href="#"
+                  aria-label="Open Comments page"
+                >
                   Comments
-                  <span class="font-light text-(--theme-card-fg) ml-2">3</span>
+                  <span
+                    class="font-light text-(--theme-card-fg) ml-2"
+                    aria-label="Comments on this post"
+                  >
+                    3
+                  </span>
                 </a>
-                <div class="flex items-center gap-4" aria-label="1 like">
+                <div class="flex items-center gap-4">
                   <div class="flex items-center gap-1">
                     <img
                       class="w-5 -mt-1"
                       src="https://img.icons8.com/small/24/777777/fire-heart.png"
                       alt=""
+                      aria-hidden="true"
                       loading="lazy"
                     />
-                    <span class="font-light text-(--theme-card-fg) ml-2">1</span>
+                    <span class="font-light text-(--theme-card-fg) ml-2" aria-label="Likes">
+                      1
+                    </span>
                   </div>
-                  <button type="button" onClick={() => {}} class="theme-button">
+                  <button
+                    type="button"
+                    onClick={() => {}}
+                    class="theme-button"
+                    aria-pressed="false"
+                  >
                     Like
                   </button>
-                  <button type="button" onClick={() => {}} class="theme-button">
+                  <button
+                    type="button"
+                    onClick={() => {}}
+                    class="theme-button"
+                    aria-label="Edit Post by {author}"
+                  >
                     Edit
                   </button>
-                  <button type="button" onClick={() => {}} class="theme-button">
+                  <button
+                    type="button"
+                    onClick={() => {}}
+                    class="theme-button"
+                    aria-label="Delete Post by {author}"
+                  >
                     Delete
                   </button>
                 </div>
