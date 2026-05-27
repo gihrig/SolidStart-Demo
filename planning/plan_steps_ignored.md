@@ -5748,3 +5748,338 @@ code;
 - List Positive Observations in a bulleted list at end of results
 
 ## ⏺ Jedi Conversion Plan Review - 22nd cycle.
+
+Cross-referenced with 21st cycle fixes (lines 5436-5671 of plan_steps_ignored.md).
+
+---
+
+1. CRITICAL — classList key contains space-separated class names → runtime DOMTokenList error (Phase 3, line 1178)
+
+plan line 1176-1179
+
+classList={{
+    "bg-(--theme-highlight)": selectedCategory() === index(),
+    "ring-2 ring-(--theme-accent)": focusedIndex() === index(),
+  }}
+
+SolidJS classList directive calls element.classList.toggle(key, value) for each key. Per DOM spec,
+DOMTokenList.toggle() throws SyntaxError if the token argument contains ASCII whitespace. "ring-2
+ring-(--theme-accent)" has a space → throws at runtime when focusedIndex() changes.
+
+Fix:
+
+- Split multi-class key into separate entries @line 1178:
+
+classList={{
+    "bg-(--theme-highlight)": selectedCategory() === index(),
+    "ring-2": focusedIndex() === index(),
+    "ring-(--theme-accent)": focusedIndex() === index(),
+  }}
+
+---
+
+2. HIGH — aria-label contains literal {author} string, not interpolated (Phase 3, lines 1147-1153)
+
+plan line 1147
+
+<button
+type="button"
+onClick={() => {}}
+class="theme-button"
+aria-label="Edit Post by {author}"
+
+>
+
+    Edit
+
+  </button>
+
+- In JSX, aria-label="Edit Post by {author}" is a plain string
+  — Curly braces are literal text.
+- Screen reader announces "Edit Post by open-brace author close-brace".
+- Same bug on Delete button @line 1153. Author is hardcoded as "Lisa" in this article.
+
+Fix:
+
+- Update @line 1147 to aria-label="Edit Post by Lisa"
+- Update @line 1153 to aria-label="Delete Post by Lisa"
+
+---
+
+3. HIGH — Unscoped header element selector in jedi.css leaks to all pages (Phase 1.3, lines 209-215)
+
+plan line 209-215
+
+@layer components {
+header {
+@apply md:flex items-center justify-between bg-gray-800 h-20 text-white sticky top-0 z-50;
+}
+
+    header > button {
+      @apply md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg;
+    }
+
+- header is a bare element selector.
+- In SolidStart + Vite, CSS imported by a route component is injected globally into the DOM when the route loads and may persist during SPA navigation.
+- Any <header> on any page gets bg-gray-800 h-20 text-white sticky top-0 z-50 after visiting /jedi.
+- No other page currently uses <header>, but this is a fragile assumption
+- adding one anywhere breaks.
+
+21st cycle fix #6 moved these styles to jedi.css from inline.
+The scoping issue was introduced by that move.
+
+Fix:
+
+- Scope selector with a class. In JediNav.tsx, add class jedi-header to <header>:
+
+  <header class="jedi-header">
+
+- In jedi.css, scope selectors:
+
+@layer components {
+.jedi-header {
+@apply md:flex items-center justify-between bg-gray-800 h-20 text-white sticky top-0 z-50;
+}
+
+    .jedi-header > button {
+      @apply md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg;
+    }
+
+}
+
+---
+
+4. MODERATE — Dead transition-colors duration-150 on sidebar <li> elements (Phase 3, lines 1193, 1221)
+
+plan line 1193
+
+  <li class="rounded-md transition-colors duration-150">
+    <a href="#" class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg)">
+
+- transition-colors duration-150 on <li> transitions nothing
+  — The <li> has no hover/focus/active states that change color.
+- The hover:bg-(--theme-hover-bg) is on the child <a>.
+- Same pattern at line 1221 (Top Captions list).
+- Compare with .hoverlist in jedi.css (lines 229-235) where hover IS on the <li> via CSS
+- These sidebar lists use a different inline approach but the transition landed on the wrong element.
+
+Fix:
+
+- Move transition classes from <li> to <a> @lines 1193-1194 and 1221-1222:
+
+  <li class="rounded-md">
+    <a href="#" class="flex items-center p-2 rounded transition-colors duration-150 hover:bg-(--theme-hover-bg)">
+
+---
+
+5. MODERATE — target="\_blank" on placeholder href="#" link (Phase 3, line 1079)
+
+plan line 1079
+
+  <a href="#" class="hover:underline rounded" target="_blank" rel="noreferrer">
+    John Doe
+  </a>
+
+- target="\_blank" on href="#" opens a new blank tab pointing to the same page anchor
+- confusing UX. This is a placeholder link, so target="\_blank" should be omitted until a real URL is assigned.
+- The rel="noreferrer" is also unnecessary without target="\_blank".
+
+Fix:
+
+- Remove target="\_blank" and rel="noreferrer" @line 1079:
+
+  <a href="#" class="hover:underline rounded">
+    John Doe
+  </a>
+
+---
+
+6. MODERATE — JediNav <Show> uses negated condition — less idiomatic (Phase 2, lines 719-734)
+
+plan line 719-734
+
+<Show
+when={!mobileNavOpen()}
+fallback={
+<img class="w-6 h-6 select-none" src="...delete-sign.png" alt="" />
+}
+
+>
+
+    <img class="w-6 h-6 select-none" src="...menu.png" alt="" />
+
+  </Show>
+
+- when={!mobileNavOpen()} inverts the natural reading: "Show menu when NOT open" with close icon as fallback. - - Idiomatic SolidJS puts the truthy (active) state in when and the default state in fallback:
+
+Fix:
+
+- Swap when and fallback @line 719:
+
+<Show
+when={mobileNavOpen()}
+fallback={
+<img class="w-6 h-6 select-none" src="https://img.icons8.com/small/64/ffffff/menu.png" alt="" />
+}
+
+>
+
+    <img class="w-6 h-6 select-none" src="https://img.icons8.com/small/64/ffffff/delete-sign.png" alt="" />
+
+  </Show>
+
+---
+
+7. MINOR — JediNav tests lack mobile mode, Escape dismiss, and click-outside coverage (Phase 2, lines 796-932)
+
+plan line 812-931
+
+```ts
+describe("<JediNav />", () => {
+  beforeEach(() => {
+    setupMatchMedia(false); // ← always desktop
+  });
+  // ...only desktop tests, hamburger visual tests
+});
+```
+
+All tests run with setupMatchMedia(false) (desktop). No tests for:
+
+- Mobile mode (setupMatchMedia(true)) — aria-hidden behavior on nav differs
+- Escape key closing mobile nav (via useDismiss)
+- Click-outside closing dropdown (via useDismiss with ref)
+- Dropdown Escape dismiss
+
+These are core interactive behaviors. Missing coverage means regressions go undetected.
+
+Fix:
+
+- Add describe("mobile mode") block with setupMatchMedia(true) in beforeEach
+- Add Escape key test: open nav → press Escape → verify nav closes
+- Add click-outside test: open dropdown → click outside dropdownRef → verify dropdown closes
+
+---
+
+8. MINOR — E2E test title mismatches test behavior (Phase 5, line 1865)
+
+plan line 1865
+
+`test("should cycle through light → dark → auto modes", async ({ page }) => {`
+
+- Test starts from auto (default), clicks through auto → light → dark → auto.
+- Title says "light → dark → auto" which skips the starting state.
+- Misleading when reading test results.
+
+Fix:
+
+- Update title @line 1865:
+
+`test("should cycle through auto → light → dark → auto modes", async ({ page }) => {`
+
+---
+
+9. MINOR — class="" rendered when no class prop passed to Image/Card (Phase 2, lines 450, 602)
+
+plan line 450
+
+`<figure class={props.class ?? ""}>`
+
+When props.class is undefined, renders class=""
+— empty attribute in DOM
+
+- Harmless but unnecessary.
+- SolidJS removes attributes set to undefined.
+
+Fix:
+
+- @line 450 and @line 602, use props.class directly:
+
+`<figure class={props.class}>`
+
+---
+
+Issues Summary
+
+```pre
+  ┌─────┬──────────┬─────────────────────────┬────────────────────────────────────────────────────────────┐
+  │  #  │ Severity │        Location         │                                Issue                       │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ 1   │ CRITICAL │ Phase 3, line 1178      │ classList key has space → DOMTokenList.toggle() throws     │
+  │     │          │                         │ SyntaxError                                                │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ 2   │ HIGH     │ Phase 3, lines          │ aria-label has literal {author} string, not interpolated   │
+  │     │          │ 1147/1153               │                                                            │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ 3   │ HIGH     │ Phase 1.3, lines        │ Unscoped header element selector leaks to all pages via    │
+  │     │          │ 209-215                 │ SPA                                                        │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ 4   │ MODERATE │ Phase 3, lines          │ transition-colors on <li> transitions nothing — hover is   │
+  │     │          │ 1193/1221               │ on child <a>                                               │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ 5   │ MODERATE │ Phase 3, line 1079      │ target="_blank" on placeholder href="#" opens confusing    │
+  │     │          │                         │ blank tab                                                  │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ 6   │ MODERATE │ Phase 2, line 719       │ <Show when={!mobileNavOpen()}> negated condition — less    │
+  │     │          │                         │ idiomatic                                                  │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ 7   │ MINOR    │ Phase 2, lines 796-932  │ JediNav tests missing mobile, Escape, and click-outside    │
+  │     │          │                         │ coverage                                                   │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ 8   │ MINOR    │ Phase 5, line 1865      │ E2E test title says "light → dark → auto" but test starts  │
+  │     │          │                         │ from auto                                                  │
+  ├─────┼──────────┼─────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ 9   │ MINOR    │ Phase 2, lines 450/602  │ props.class ?? "" emits empty class="" attribute;          │
+  │     │          │                         │ undefined cleaner                                          │
+  └─────┴──────────┴─────────────────────────┴────────────────────────────────────────────────────────────┘
+```
+
+---
+
+Positive Observations
+
+- sanitizeImageUrl — solid security implementation. Regex + BREAK_CHARS blocks protocol injection AND CSS breakout via
+  url(). Protocol-relative //evil.com correctly blocked since / is not \w.
+- Theme toggle architecture — external theme-init.js for FOUC prevention is CSP-compliant. The data-theme +
+  prefers-color-scheme cascade in app.css is clean and matches the Tanstack reference correctly.
+- Hook reuse — useDismiss, useIsMobile, useListbox are used correctly with proper signatures. useDismiss with and
+  without ref correctly differentiates Escape-only vs Escape+click-outside.
+- Static data outside component — CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS declared at module scope per requirement #11.
+  No re-allocation on render.
+- Grid-based sidebar collapse — grid-rows-[0fr]/grid-rows-[1fr] transition is smoother than the max-h-0/max-h-screen
+  it replaced (21st cycle fix #7). Inner <div> with overflow-hidden min-h-0 is the correct companion pattern.
+- Tailwind v4 syntax — consistent use of text-(--theme-var) / bg-(--theme-var) custom property syntax. No v3 residue
+  (bg-opacity-_, md:!block, [&>_]) in component code.
+- SolidJS idioms — <Show when={...}> with callback narrowing {(href) => ...} in Image/Author is idiomatic. <For> /
+  <Index> choice correct (keyed items). createSignal naming convention [value, setValue] consistent.
+- Accessibility baseline — aria-expanded, aria-hidden, aria-label, aria-pressed, role="listbox" / role="option" all
+  present. \*:focus-visible global rule in app.css covers all interactive elements. useListbox provides keyboard nav
+  (ArrowUp/Down, Home/End, Enter/Space).
+- 21st cycle fixes properly integrated — fragment wrapper in Author fallback (#1), /images/ prefixed test URLs (#2,
+  #4), queryByRole for removed behavior (#3), aria-labels on action buttons (#5), transition-[opacity,transform]
+  replacing transition-all (#8).
+
+===================================================================================
+
+## ❯ Review `planning/jedi-conversion.md`
+
+- Reference `planning/plan_steps_ignored.md` - 22nd cycle @lines 5750 - <<<<>>>>
+- Follow layout and style in document referenced above
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for issues affecting security, accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Use backticks e.g. `code` for simple one-line code snippets in issues
+- Use code fencing for multi-line code snippets in issues. eg.
+
+```tsx
+code;
+```
+
+- Provide a recommended `Fix:` section at the end of each issue
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- Limit table width to 110 columns
+- List Positive Observations in a bulleted list at end of results
+
+## ⏺ Jedi Conversion Plan Review - 23nd cycle.
