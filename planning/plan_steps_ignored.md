@@ -5728,11 +5728,11 @@ Positive Observations
 
 ## ❯ Review `planning/jedi-conversion.md`
 
-- Reference `planning/plan_steps_ignored.md` - 21st cycle @lines 5436 - <<<>>>
-- Follow layout and style referenced above
+- Reference `planning/plan_steps_ignored.md` - 21st cycle @lines 5436 - 5671
+- Follow layout and style in document referenced above
 - Check for idiomatic Solid JS/SolidStart syntax
 - Check for idiomatic Tailwind syntax
-- Check code for security, accuracy, correctness and efficiency
+- Check code for issues affecting security, accuracy, correctness and efficiency
 - Report any recommended improvements
 - List issues found in a numbered list
 - Use backticks e.g. `code` for simple one-line code snippets in issues
