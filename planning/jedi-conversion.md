@@ -206,6 +206,14 @@ import "@fontsource/lobster";
 
 ```css
 @layer components {
+  header {
+    @apply md:flex items-center justify-between bg-gray-800 h-20 text-white sticky top-0 z-50;
+  }
+
+  header > button {
+    @apply md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg;
+  }
+
   .card-style {
     @apply flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg);
   }
@@ -692,7 +700,7 @@ export default function JediNav() {
   );
 
   return (
-    <header class="md:flex items-center justify-between bg-gray-800 h-20 text-white sticky top-0 z-50">
+    <header>
       <div class="flex items-center justify-between h-20 px-8">
         <a class="flex items-center gap-1" href="#">
           <img
@@ -704,7 +712,6 @@ export default function JediNav() {
         </a>
         <button
           type="button"
-          class="md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg"
           aria-label="Toggle navigation"
           aria-expanded={mobileNavOpen()}
           onClick={() => setMobileNavOpen(!mobileNavOpen())}

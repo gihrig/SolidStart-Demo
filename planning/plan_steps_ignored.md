@@ -5585,6 +5585,13 @@ plan line 219
 
 JediNav header (bg-gray-800) uses hardcoded bg-gray-700 for hover — only 1 shade difference in dark context, fine. But this doesn't participate in the theme system. Every other hover state uses --theme-hover-bg. Plan line 76 explicitly exempts JediNav from theming ("JediNav.tsx and Hero.tsx are exceptions to #4 above"), so this is intentional. Flag as design debt — if JediNav ever needs theme support, this is a gap.
 
+Fix:
+
+- Move `<header>` styles to `jedi.css`
+- Move `<header> > <button>` styles to `jedi.css`
+
+**Update per Fix**
+
 ---
 
 ### 7. MODERATE — Sidebar collapse uses max-h-0/max-h-screen transition → janky animation (Phase 3, line 1131)
