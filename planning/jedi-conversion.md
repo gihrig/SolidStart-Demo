@@ -1175,7 +1175,8 @@ export default function Jedi() {
                       {...getOptionProps(index())}
                       classList={{
                         "bg-(--theme-highlight)": selectedCategory() === index(),
-                        "ring-2 ring-(--theme-accent)": focusedIndex() === index(),
+                        "ring-2": focusedIndex() === index(),
+                        "ring-(--theme-accent)": focusedIndex() === index(),
                       }}
                       class="flex items-center cursor-pointer px-2 py-1 rounded outline-none"
                     >

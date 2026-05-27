@@ -5776,6 +5776,8 @@ classList={{
     "ring-(--theme-accent)": focusedIndex() === index(),
   }}
 
+**Updated per Fix**
+
 ---
 
 2. HIGH — aria-label contains literal {author} string, not interpolated (Phase 3, lines 1147-1153)
