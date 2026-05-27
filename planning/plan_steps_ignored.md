@@ -5753,7 +5753,7 @@ Cross-referenced with 21st cycle fixes (lines 5436-5671 of plan_steps_ignored.md
 
 ---
 
-1. CRITICAL — classList key contains space-separated class names → runtime DOMTokenList error (Phase 3, line 1178)
+### 1. CRITICAL — classList key contains space-separated class names → runtime DOMTokenList error (Phase 3, line 1178)
 
 plan line 1176-1179
 
@@ -5780,7 +5780,7 @@ classList={{
 
 ---
 
-2. HIGH — aria-label contains literal {author} string, not interpolated (Phase 3, lines 1147-1153)
+### 2. HIGH — aria-label contains literal {author} string, not interpolated (Phase 3, lines 1147-1153)
 
 plan line 1146
 
@@ -5804,7 +5804,7 @@ Fix:
 
 ---
 
-3. HIGH — Unscoped header element selector in jedi.css leaks to all pages (Phase 1.3, lines 209-215)
+### 3. HIGH — Unscoped header element selector in jedi.css leaks to all pages (Phase 1.3, lines 209-215)
 
 plan line 209-215
 
@@ -5855,7 +5855,7 @@ Fix:
 
 ---
 
-4. MODERATE — Dead transition-colors duration-150 on sidebar `<li>` elements (Phase 3, lines 1194, 1222)
+### 4. MODERATE — Dead transition-colors duration-150 on sidebar `<li>` elements (Phase 3, lines 1194, 1222)
 
 plan line 1194
 
@@ -5889,7 +5889,7 @@ Fix:
 
 ---
 
-5. MODERATE — target="\_blank" on placeholder href="#" link (Phase 3, line 1079)
+### 5. MODERATE — target="\_blank" on placeholder href="#" link (Phase 3, line 1079)
 
 plan line 1079
 
@@ -5911,7 +5911,7 @@ Fix:
 
 ---
 
-6. MODERATE — JediNav `<Show>` uses negated condition — less idiomatic (Phase 2, lines 719-734)
+### 6. MODERATE — JediNav `<Show>` uses negated condition — less idiomatic (Phase 2, lines 719-734)
 
 plan line 719-734
 
@@ -5947,7 +5947,7 @@ Fix:
 
 ---
 
-7. MINOR — JediNav tests lack mobile mode, Escape dismiss, and click-outside coverage (Phase 2, lines 796-932)
+### 7. MINOR — JediNav tests lack mobile mode, Escape dismiss, and click-outside coverage (Phase 2, lines 796-932)
 
 plan line 812-931
 
@@ -5977,7 +5977,7 @@ Fix:
 
 ---
 
-8. MINOR — E2E test title mismatches test behavior (Phase 5, line 1865)
+### 8. MINOR — E2E test title mismatches test behavior (Phase 5, line 1865)
 
 plan line 1865
 
@@ -5995,7 +5995,7 @@ Fix:
 
 ---
 
-9. MINOR — class="" rendered when no class prop passed to Image/Card (Phase 2, lines 450, 602)
+### 9. MINOR — class="" rendered when no class prop passed to Image/Card (Phase 2, lines 450, 602)
 
 plan line 450
 
