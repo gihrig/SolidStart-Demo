@@ -5855,9 +5855,9 @@ Fix:
 
 ---
 
-4. MODERATE — Dead transition-colors duration-150 on sidebar `<li>` elements (Phase 3, lines 1193, 1221)
+4. MODERATE — Dead transition-colors duration-150 on sidebar `<li>` elements (Phase 3, lines 1194, 1222)
 
-plan line 1193
+plan line 1194
 
 ```html
 <li class="rounded-md transition-colors duration-150">
@@ -5865,11 +5865,11 @@ plan line 1193
 </li>
 ```
 
-- transition-colors duration-150 on `<li>` transitions nothing
-  — The `<li>` has no hover/focus/active states that change color.
-- The hover:bg-(--theme-hover-bg) is on the child `<a>`.
-- Same pattern at line 1221 (Top Captions list).
-- Compare with .hoverlist in jedi.css (lines 229-235) where hover IS on the `<li>` via CSS
+- `transition-colors duration-150` on `<li>` transitions nothing
+  — The `<li>` has no `hover`/`focus`/`active` states that change color.
+- The `hover:bg-(--theme-hover-bg)` is on the child `<a>`.
+- Same pattern at line 1222 (Top Captions list).
+- Compare with `.hoverlist` in `jedi.css` (lines 229-235) where hover IS on the `<li>` via CSS
 - These sidebar lists use a different inline approach but the transition landed on the wrong element.
 
 Fix:
@@ -5884,6 +5884,8 @@ Fix:
   ></a>
 </li>
 ```
+
+**Updated per Fix**
 
 ---
 

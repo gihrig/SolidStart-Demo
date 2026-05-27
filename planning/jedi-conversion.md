@@ -1191,8 +1191,11 @@ export default function Jedi() {
               <ul class="space-y-1">
                 <For each={TOP_PHOTOS}>
                   {(p) => (
-                    <li class="rounded-md transition-colors duration-150">
-                      <a href="#" class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg)">
+                    <li class="rounded-md">
+                      <a
+                        href="#"
+                        class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg) transition-colors duration-150"
+                      >
                         <img
                           class="w-10 h-10 rounded-lg object-cover mr-3"
                           src={p.src}
@@ -1219,8 +1222,11 @@ export default function Jedi() {
               <ul class="space-y-1">
                 <For each={TOP_CAPTIONS}>
                   {(c) => (
-                    <li class="rounded-md transition-colors duration-150">
-                      <a href="#" class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg)">
+                    <li class="rounded-md">
+                      <a
+                        href="#"
+                        class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg) transition-colors duration-150"
+                      >
                         <img
                           class="w-8 h-8 rounded-full object-cover mr-1"
                           src={c.avatar}
