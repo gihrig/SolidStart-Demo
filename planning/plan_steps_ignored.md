@@ -3080,7 +3080,7 @@ Fix:
 
 Update line 284: `const BREAK_CHARS = /['\"()\\]/;`
 
-**Update per Fix**
+**Updated per Fix**
 
 ---
 
@@ -5531,7 +5531,7 @@ Fix:
 
 Update @line 551 `avatar.jpg` -> `/images/avatar.jpg`
 
-**Update per Fix**
+**Updated per Fix**
 
 ---
 
@@ -5569,7 +5569,7 @@ Fix:
   - Edit `<button>`
   - Delete `<button>`
 
-**Update per Fix**
+**Updated per Fix**
 
 ---
 
@@ -5590,7 +5590,7 @@ Fix:
 - Move `<header>` styles to `jedi.css`
 - Move `<header> > <button>` styles to `jedi.css`
 
-**Update per Fix**
+**Updated per Fix**
 
 ---
 
@@ -5643,7 +5643,7 @@ Fix:
 
 - Update @lines 740 and 771 `transition-all` -> `transition-[opacity,transform]`
 
-**Update per Fix**
+**Updated per Fix**
 
 ---
 
@@ -5656,15 +5656,19 @@ Fix:
 - Add to `backlog.md`
 - One of several factors in improved data handling
 
-**Update per Fix - Add to backlog**
+**Updated per Fix - Add to backlog**
 
 ---
 
-### 10. MINOR — Typo "sudo" → "pseudo" in plan line 959
+### 10. MINOR — Typo "sudo" → "pseudo" in plan line 968
 
 All interactive elements: get `*:focus-visible` sudo classes as defined in `app.css`.
 
-Should be "pseudo classes".
+Fix:
+
+- Change "sudo classes" -> "pseudo classes".
+
+**Updated per Fix**
 
 ---
 
