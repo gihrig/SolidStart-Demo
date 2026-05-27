@@ -1143,7 +1143,7 @@ export default function Jedi() {
                     type="button"
                     onClick={() => {}}
                     class="theme-button"
-                    aria-label="Edit Post by {author}"
+                    aria-label="Edit Post by Lisa"
                   >
                     Edit
                   </button>
@@ -1151,7 +1151,7 @@ export default function Jedi() {
                     type="button"
                     onClick={() => {}}
                     class="theme-button"
-                    aria-label="Delete Post by {author}"
+                    aria-label="Delete Post by Lisa"
                   >
                     Delete
                   </button>

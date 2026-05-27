@@ -5782,29 +5782,25 @@ classList={{
 
 2. HIGH — aria-label contains literal {author} string, not interpolated (Phase 3, lines 1147-1153)
 
-plan line 1147
+plan line 1146
 
-<button
-type="button"
-onClick={() => {}}
-class="theme-button"
-aria-label="Edit Post by {author}"
+```tsx
+<button type="button" onClick={() => {}} class="theme-button" aria-label="Edit Post by {author}">
+  Edit
+</button>
+```
 
->
-
-    Edit
-
-  </button>
-
-- In JSX, aria-label="Edit Post by {author}" is a plain string
+- In JSX, `aria-label="Edit Post by {author}"` is a plain string
   — Curly braces are literal text.
 - Screen reader announces "Edit Post by open-brace author close-brace".
-- Same bug on Delete button @line 1153. Author is hardcoded as "Lisa" in this article.
+- Same bug on Delete button @line 1154. Author is hardcoded as "Lisa" in this article.
 
 Fix:
 
-- Update @line 1147 to aria-label="Edit Post by Lisa"
-- Update @line 1153 to aria-label="Delete Post by Lisa"
+- Update @line 1146 to aria-label="Edit Post by Lisa"
+- Update @line 1154 to aria-label="Delete Post by Lisa"
+
+**Updated per Fix**
 
 ---
 
