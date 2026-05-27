@@ -989,7 +989,7 @@ Source style.css line 1092:
 
 No step creates this class in jedi.css or applies it to first category item. Plan has a gap.
 
-Fix: Add .highlight to jedi.css (Step 1.3) and apply it to first item in CATEGORIES <For> loop (Step 3.1).
+Fix: Add .highlight to jedi.css (Step 1.3) and apply it to first item in CATEGORIES `<For>` loop (Step 3.1).
 
 ---
 
@@ -1344,7 +1344,7 @@ Plan's JediNav (line 650):
 
    <div class="absolute right-0 bg-white text-black shadow rounded-lg w-40 p-2 z-20">
 
-Bare <Show> — dropdown pops in/out instantly. Source has 300ms opacity + translate + scale animation.
+Bare `<Show>` — dropdown pops in/out instantly. Source has 300ms opacity + translate + scale animation.
 
 Fix: Add CSS transition classes to dropdown div, or use Transition from solid-transition-group.
 
@@ -1986,7 +1986,7 @@ correctness and efficiency report any recommended improvements
 ### ⏺ 4 fixes applied:
 
 1. ParentProps — replaced manual CardProps with ParentProps<CardOwnProps>, dropped JSX import
-2. <Show> — replaced && with <Show when={local.title}>
+2. `<Show>` — replaced && with <Show when={local.title}>
 3. Redundant color — dropped text-(--theme-card-fg) from h2
 4. Trailing space — conditional class join instead of bare interpolation
 
@@ -1994,17 +1994,17 @@ correctness and efficiency report any recommended improvements
 
 ---
 
-### 8. ThemeToggle: three hidden SVGs vs <Switch>/<Match>
+### 8. ThemeToggle: three hidden SVGs vs `<Switch>`/`<Match>`
 
 ❯ Show a Solid JS/SolidStart idiomatic implementation of this concept
 
-Plan renders all three SVGs, hides two via class="hidden". SolidJS idiomatic approach: <Switch>/<Match> — smaller DOM, no unnecessary nodes.
+Plan renders all three SVGs, hides two via class="hidden". SolidJS idiomatic approach: `<Switch>`/`<Match>` — smaller DOM, no unnecessary nodes.
 
-Fix: Replace 3 hidden SVGs with `<Switch>/<Match>` in `jedi-conversion.md` Step 4.3. Import updated to include `Match, Switch` from "solid-js". Only matching SVG renders — no hidden DOM nodes.
+Fix: Replace 3 hidden SVGs with ``<Switch>`/`<Match>`` in `jedi-conversion.md` Step 4.3. Import updated to include `Match, Switch` from "solid-js". Only matching SVG renders — no hidden DOM nodes.
 
 - jedi-conversion.md Step 4.3:
 - import now includes Match, Switch;
-- JSX replaced 3 hidden SVGs with <Switch>/<Match> control flow
+- JSX replaced 3 hidden SVGs with `<Switch>`/`<Match>` control flow
 
 **Updated per Fix**
 
@@ -2122,7 +2122,7 @@ Verified Correct
 - Alpine.js → SolidJS mapping verified against source index.html lines 37-117
 - TW v3→v4 conversions all correct (bg-opacity-40 → /40, md:!block → md:block!, z-[-1] → -z-1)
 - splitProps/mergeProps pattern on Hero, Image, Author, Card — idiomatic SolidJS
-- <Switch>/<Match> in ThemeToggle — idiomatic SolidJS (no hidden DOM nodes)
+- `<Switch>`/`<Match>` in ThemeToggle — idiomatic SolidJS (no hidden DOM nodes)
 - All tests import "vite-plus/test" and use userEvent.setup() pattern
 - THEME_INIT_SCRIPT handles data-theme + classList + colorScheme for all 3 modes
 - Source target="blank" (missing \_) correctly fixed to target="\_blank" rel="noreferrer"
@@ -2261,7 +2261,7 @@ Verified Correct
 - Alpine.js → SolidJS mapping verified against source index.html:37-117 ✓
 - TW v3→v4 conversions correct (bg-opacity-40 → /40, z-[-1] → -z-1) ✓
 - splitProps/mergeProps pattern on Image, Author, Card — idiomatic ✓
-- <Switch>/<Match> in ThemeToggle — idiomatic (no hidden DOM nodes) ✓
+- `<Switch>`/`<Match>` in ThemeToggle — idiomatic (no hidden DOM nodes) ✓
 - All tests import "vite-plus/test", use userEvent.setup() ✓
 - THEME_INIT_SCRIPT handles data-theme + classList + colorScheme ✓
 - ThemeToggle cycle (auto→light→dark→auto) consistent across component, unit tests, E2E ✓
@@ -2386,7 +2386,7 @@ Apply option 'C'
 
 ---
 
-### 5. Image conditional — ternary vs <Show>
+### 5. Image conditional — ternary vs `<Show>`
 
 Plan line 404-410:
 
@@ -2398,8 +2398,8 @@ Plan line 404-410:
 )}
 ```
 
-- SolidJS idiomatic: <Show> for conditional rendering.
-- Ternary works, but <Show> signals intent more clearly.
+- SolidJS idiomatic: `<Show>` for conditional rendering.
+- Ternary works, but `<Show>` signals intent more clearly.
 - Not blocking.
 
 Fix:
@@ -2939,7 +2939,7 @@ Plan is solid. Recommended actions before execution:
 └──────────┴──────┴────────────────────────────────────────────────────────────────┘
 ```
 
-Architecture, phasing, test strategy, accessibility approach — all good. SolidJS idioms are correct (no destructured props, proper <Show>/<For>, signals outside components, SSR guards). TW4 syntax is valid throughout.
+Architecture, phasing, test strategy, accessibility approach — all good. SolidJS idioms are correct (no destructured props, proper `<Show>`/`<For>`, signals outside components, SSR guards). TW4 syntax is valid throughout.
 
 claude --resume d9edc5f0-4211-4504-8c4d-faf17f6ffdf5
 
@@ -3002,7 +3002,7 @@ export default function Image(props: ImageProps) {
 }
 ```
 
-Why: mergeProps with href: "" creates an intermediate object just to exploit falsy empty-string in <Show>. Direct prop access + <Show> callback form is cleaner and avoids allocating merged object.
+Why: mergeProps with href: "" creates an intermediate object just to exploit falsy empty-string in `<Show>`. Direct prop access + `<Show>` callback form is cleaner and avoids allocating merged object.
 
 Fix:
 
@@ -3562,7 +3562,7 @@ const defaulted = mergeProps({ title: "", class: "" }, props);
 // ...
 <Show when={defaulted.title}>
 
-Default "" is falsy → <Show> never renders it → same behavior as no default. Simpler:
+Default "" is falsy → `<Show>` never renders it → same behavior as no default. Simpler:
 
 <Show when={props.title}>
   <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{props.title}</h2>
@@ -3999,7 +3999,7 @@ Positive Observations
 - Security-conscious sanitizeImageUrl — blocks javascript:, data:, CSS breakout chars (', ", (, ), \). Covers real
   attack vectors for CSS url() injection. Good that it's scoped to Hero (where CSS context exists) and not over-applied to <img src>
 - Correct SolidJS reactivity patterns throughout — no props destructuring, derived values use functions not effects,
-  onCleanup inside onMount/createEffect for listener cleanup, <Show> callback form {(href) => ...} for type narrowing
+  onCleanup inside onMount/createEffect for listener cleanup, `<Show>` callback form {(href) => ...} for type narrowing
 - Proper useListbox integration — signal accessors passed correctly (selectedCategory as Accessor<number>,
   setSelectedCategory as onSelect), classList for dynamic highlight + focus ring, ARIA listbox/option roles via hook
 - Theme FOUC prevention well-architected — external theme-init.js (CSP-safe) in <head> before {assets}, var for max
@@ -4462,7 +4462,7 @@ Summary Table
 
 Positive Observations
 
-- Correct SolidJS idioms throughout — createSignal, <Show>, <For>, <Switch>/<Match>, classList directive, onCleanup in createEffect all used properly
+- Correct SolidJS idioms throughout — createSignal, `<Show>`, `<For>`, `<Switch>`/`<Match>`, classList directive, onCleanup in createEffect all used properly
 - ThemeToggle createEffect early-return pattern — correctly relies on SolidJS cleanup semantics; comment at line 1275 accurately explains behavior
 - useListbox API consumption is precise — reactive accessors (selectedCategory, () => CATEGORIES.length) match hook's Accessor<number> interface exactly
 - FOUC prevention architecture is sound — external theme-init.js in <head> before {assets} render-blocks correctly;
@@ -5191,7 +5191,7 @@ Positive Observations
 - Test quality — JediNav tests cover full toggle lifecycle (8 granular hamburger tests). ThemeToggle tests mock both
   localStorage and matchMedia. E2E tests verify persistence across reload and system preference emulation
 - Static data outside component — CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS declared outside Jedi(). Avoids re-creating arrays on every render
-- Clean Alpine.js conversion — x-data → createSignal, x-show → <Show>, @click.away → useDismiss with ref. Mapping
+- Clean Alpine.js conversion — x-data → createSignal, x-show → `<Show>`, @click.away → useDismiss with ref. Mapping
   table (lines 629-645) is accurate and complete
 
 ===================================================================================
@@ -5269,7 +5269,7 @@ Fix:
 
 ### 4. MODERATE — JediNav dropdown test asserts items present but they're always in DOM (Phase 2, lines 820-826)
 
-Component renders dropdown items permanently — hidden via CSS (opacity-0 scale-90 pointer-events-none), not <Show>:
+Component renders dropdown items permanently — hidden via CSS (opacity-0 scale-90 pointer-events-none), not `<Show>`:
 // line 748 - always rendered, just visually hidden
 class={`... ${dropdownOpen() ? "opacity-100 scale-100 ..." : "opacity-0 scale-90 ... pointer-events-none"}`}
 
@@ -5439,7 +5439,7 @@ Cross-referenced with 20th cycle fixes (lines 5154-5309 of plan_steps_ignored.md
 
 ---
 
-### 1. HIGH — Author <Show> fallback has two sibling JSX elements without fragment wrapper (Phase 2, lines 525-528)
+### 1. HIGH — Author `<Show>` fallback has two sibling JSX elements without fragment wrapper (Phase 2, lines 525-528)
 
 // plan line 525-528
 
@@ -5561,7 +5561,7 @@ Note: A Refactor to move hard coded data into external data blocks was added to 
 Fix:
 
 - Add appropriate `aria-label="..."` values to
-  - Comments enclosing `<a>
+  - Comments enclosing `<a>`
   - Comments number
   - Likes image (hidden)
   - Like number
@@ -5615,7 +5615,7 @@ Fix:
 
 - max-h-0/max-h-screen/max-h-none -> grid-rows-[0fr]/grid-rows-[1fr]
 - transition-all -> transition-[grid-template-rows,opacity] (explicit props)
-- overflow-hidden moves to inner <div> with min-h-0
+- overflow-hidden moves to inner `<div>` with min-h-0
 - Aside gets grid — parent grid layout untouched (col-span/order still work)
 
 Why better: max-h-screen overshoots real height -> animation has dead time. grid-rows 0fr→1fr matches actual content height exactly -> smooth.
@@ -5715,7 +5715,7 @@ Positive Observations
 - 20th cycle fixes #2, #4, #8 correctly integrated — br-grey-700 → bg-gray-700, dropdown test now asserts class/aria state, md:z-0 present in JediNav nav class string.
 - useDismiss / useListbox / useIsMobile hooks — clean, SSR-safe (isServer guard), proper onCleanup for event
   listeners. useListbox implements full ARIA listbox spec (ArrowUp/Down, Home/End, Enter/Space, aria-activedescendant).
-- Idiomatic SolidJS throughout — signals not destructured from props, <For> for list rendering, <Show> for conditional rendering, classList for dynamic classes, splitProps pattern followed where needed.
+- Idiomatic SolidJS throughout — signals not destructured from props, `<For>` for list rendering, `<Show>` for conditional rendering, classList for dynamic classes, splitProps pattern followed where needed.
 - Tailwind v4 syntax correct — text-(--theme-accent) custom property syntax, bg-gray-800/40 opacity, @theme for
   tokens. No v3 residue detected in plan code.
 - Static data arrays (CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS) outside component — prevents re-creation on reactive
@@ -5849,26 +5849,35 @@ Fix:
 
 ---
 
-4. MODERATE — Dead transition-colors duration-150 on sidebar <li> elements (Phase 3, lines 1193, 1221)
+4. MODERATE — Dead transition-colors duration-150 on sidebar `<li>` elements (Phase 3, lines 1193, 1221)
 
 plan line 1193
 
-  <li class="rounded-md transition-colors duration-150">
-    <a href="#" class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg)">
+```html
+<li class="rounded-md transition-colors duration-150">
+  <a href="#" class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg)"></a>
+</li>
+```
 
-- transition-colors duration-150 on <li> transitions nothing
-  — The <li> has no hover/focus/active states that change color.
-- The hover:bg-(--theme-hover-bg) is on the child <a>.
+- transition-colors duration-150 on `<li>` transitions nothing
+  — The `<li>` has no hover/focus/active states that change color.
+- The hover:bg-(--theme-hover-bg) is on the child `<a>`.
 - Same pattern at line 1221 (Top Captions list).
-- Compare with .hoverlist in jedi.css (lines 229-235) where hover IS on the <li> via CSS
+- Compare with .hoverlist in jedi.css (lines 229-235) where hover IS on the `<li>` via CSS
 - These sidebar lists use a different inline approach but the transition landed on the wrong element.
 
 Fix:
 
-- Move transition classes from <li> to <a> @lines 1193-1194 and 1221-1222:
+- Move transition classes from `<li>` to `<a>` @lines 1193-1194 and 1221-1222:
 
-  <li class="rounded-md">
-    <a href="#" class="flex items-center p-2 rounded transition-colors duration-150 hover:bg-(--theme-hover-bg)">
+```html
+<li class="rounded-md">
+  <a
+    href="#"
+    class="flex items-center p-2 rounded transition-colors duration-150 hover:bg-(--theme-hover-bg)"
+  ></a>
+</li>
+```
 
 ---
 
@@ -5876,9 +5885,9 @@ Fix:
 
 plan line 1079
 
-  <a href="#" class="hover:underline rounded" target="_blank" rel="noreferrer">
-    John Doe
-  </a>
+```html
+<a href="#" class="hover:underline rounded" target="_blank" rel="noreferrer"> John Doe </a>
+```
 
 - target="\_blank" on href="#" opens a new blank tab pointing to the same page anchor
 - confusing UX. This is a placeholder link, so target="\_blank" should be omitted until a real URL is assigned.
@@ -5888,45 +5897,45 @@ Fix:
 
 - Remove target="\_blank" and rel="noreferrer" @line 1079:
 
-  <a href="#" class="hover:underline rounded">
-    John Doe
-  </a>
+```html
+<a href="#" class="hover:underline rounded"> John Doe </a>
+```
 
 ---
 
-6. MODERATE — JediNav <Show> uses negated condition — less idiomatic (Phase 2, lines 719-734)
+6. MODERATE — JediNav `<Show>` uses negated condition — less idiomatic (Phase 2, lines 719-734)
 
 plan line 719-734
 
+```tsx
 <Show
-when={!mobileNavOpen()}
-fallback={
-<img class="w-6 h-6 select-none" src="...delete-sign.png" alt="" />
-}
-
+  when={!mobileNavOpen()}
+  fallback={<img class="w-6 h-6 select-none" src="...delete-sign.png" alt="" />}
 >
+  <img class="w-6 h-6 select-none" src="...menu.png" alt="" />
+</Show>
+```
 
-    <img class="w-6 h-6 select-none" src="...menu.png" alt="" />
-
-  </Show>
-
-- when={!mobileNavOpen()} inverts the natural reading: "Show menu when NOT open" with close icon as fallback. - - Idiomatic SolidJS puts the truthy (active) state in when and the default state in fallback:
+- `when={!mobileNavOpen()}` inverts the natural reading: "Show menu when NOT open" with close icon as fallback. - - Idiomatic SolidJS puts the truthy (active) state in when and the default state in fallback:
 
 Fix:
 
 - Swap when and fallback @line 719:
 
+```tsx
 <Show
-when={mobileNavOpen()}
-fallback={
-<img class="w-6 h-6 select-none" src="https://img.icons8.com/small/64/ffffff/menu.png" alt="" />
-}
-
+  when={mobileNavOpen()}
+  fallback={
+    <img class="w-6 h-6 select-none" src="https://img.icons8.com/small/64/ffffff/menu.png" alt="" />
+  }
 >
-
-    <img class="w-6 h-6 select-none" src="https://img.icons8.com/small/64/ffffff/delete-sign.png" alt="" />
-
-  </Show>
+  <img
+    class="w-6 h-6 select-none"
+    src="https://img.icons8.com/small/64/ffffff/delete-sign.png"
+    alt=""
+  />
+</Show>
+```
 
 ---
 
@@ -6045,18 +6054,16 @@ Positive Observations
   without ref correctly differentiates Escape-only vs Escape+click-outside.
 - Static data outside component — CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS declared at module scope per requirement #11.
   No re-allocation on render.
-- Grid-based sidebar collapse — grid-rows-[0fr]/grid-rows-[1fr] transition is smoother than the max-h-0/max-h-screen
-  it replaced (21st cycle fix #7). Inner <div> with overflow-hidden min-h-0 is the correct companion pattern.
+- Grid-based sidebar collapse — `grid-rows-[0fr]`/`grid-rows-[1fr]` transition is smoother than the max-h-0/max-h-screen
+  it replaced (21st cycle fix #7). Inner `<div>` with overflow-hidden min-h-0 is the correct companion pattern.
 - Tailwind v4 syntax — consistent use of text-(--theme-var) / bg-(--theme-var) custom property syntax. No v3 residue
-  (bg-opacity-_, md:!block, [&>_]) in component code.
-- SolidJS idioms — <Show when={...}> with callback narrowing {(href) => ...} in Image/Author is idiomatic. <For> /
-  <Index> choice correct (keyed items). createSignal naming convention [value, setValue] consistent.
-- Accessibility baseline — aria-expanded, aria-hidden, aria-label, aria-pressed, role="listbox" / role="option" all
-  present. \*:focus-visible global rule in app.css covers all interactive elements. useListbox provides keyboard nav
-  (ArrowUp/Down, Home/End, Enter/Space).
+  `(bg-opacity-_, md:!block, [&>_])` in component code.
+- SolidJS idioms — `<Show when={...}>` with callback narrowing `{(href) => ...}` in Image/Author is idiomatic. `<For>` /
+  `<Index>` choice correct (keyed items). `createSignal` naming convention `[value, setValue]` consistent.
+- Accessibility baseline — `aria-expanded`, `aria-hidden`, `aria-label`, `aria-pressed`, `role="listbox"` / `role="option"` all
+  present. `focus-visible` global rule in `app.css` covers all interactive elements. useListbox provides keyboard nav (`ArrowUp`/`Down`, `Home`/`End`, `Enter`/`Space`).
 - 21st cycle fixes properly integrated — fragment wrapper in Author fallback (#1), /images/ prefixed test URLs (#2,
-  #4), queryByRole for removed behavior (#3), aria-labels on action buttons (#5), transition-[opacity,transform]
-  replacing transition-all (#8).
+  #4), `queryByRole` for removed behavior (#3), aria-labels on action buttons (#5), `transition-[opacity,transform]` replacing `transition-all` (#8).
 
 ===================================================================================
 
@@ -6069,12 +6076,15 @@ Positive Observations
 - Check code for issues affecting security, accuracy, correctness and efficiency
 - Report any recommended improvements
 - List issues found in a numbered list
-- Use backticks e.g. `code` for simple one-line code snippets in issues
-- Use code fencing for multi-line code snippets in issues. eg.
-
-```tsx
-code;
-```
+- Must use backticks e.g. <pre>`code;`</pre> for simple one-line code snippets in issues
+- Must use code fencing for multi-line code snippets in issues. eg.
+  <pre>
+  
+  ```tsx
+  code;
+  ```
+  
+  </pre>
 
 - Provide a recommended `Fix:` section at the end of each issue
 - Sort the list from critical to minor in order of most impacting first
