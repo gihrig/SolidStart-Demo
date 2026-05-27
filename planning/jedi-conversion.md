@@ -206,11 +206,11 @@ import "@fontsource/lobster";
 
 ```css
 @layer components {
-  header {
+  .jedi-header {
     @apply md:flex items-center justify-between bg-gray-800 h-20 text-white sticky top-0 z-50;
   }
 
-  header > button {
+  .jedi-header > button {
     @apply md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg;
   }
 
@@ -700,7 +700,7 @@ export default function JediNav() {
   );
 
   return (
-    <header>
+    <header class="jedi-header">
       <div class="flex items-center justify-between h-20 px-8">
         <a class="flex items-center gap-1" href="#">
           <img

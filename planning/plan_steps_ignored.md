@@ -5808,19 +5808,22 @@ Fix:
 
 plan line 209-215
 
+```css
 @layer components {
-header {
-@apply md:flex items-center justify-between bg-gray-800 h-20 text-white sticky top-0 z-50;
+  header {
+    @apply md:flex items-center justify-between bg-gray-800 h-20 text-white sticky top-0 z-50;
+  }
+
+  header > button {
+    @apply md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg;
+  }
 }
+```
 
-    header > button {
-      @apply md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg;
-    }
-
-- header is a bare element selector.
+- `header` is a bare element selector.
 - In SolidStart + Vite, CSS imported by a route component is injected globally into the DOM when the route loads and may persist during SPA navigation.
-- Any <header> on any page gets bg-gray-800 h-20 text-white sticky top-0 z-50 after visiting /jedi.
-- No other page currently uses <header>, but this is a fragile assumption
+- Any `<header>` on any page gets `bg-gray-800 h-20 text-white sticky top-0 z-50` after visiting `/jedi`.
+- No other page currently uses `<header>`, but this is a fragile assumption
 - adding one anywhere breaks.
 
 21st cycle fix #6 moved these styles to jedi.css from inline.
@@ -5828,22 +5831,27 @@ The scoping issue was introduced by that move.
 
 Fix:
 
-- Scope selector with a class. In JediNav.tsx, add class jedi-header to <header>:
+- Add class `jedi-header` in `JediNav` @line 703
 
+```TSX
   <header class="jedi-header">
+```
 
-- In jedi.css, scope selectors:
+- Change `header` to `.jedi-header` in `jedi.css` @line 209
 
+```css
 @layer components {
-.jedi-header {
-@apply md:flex items-center justify-between bg-gray-800 h-20 text-white sticky top-0 z-50;
-}
+  .jedi-header {
+    @apply md:flex items-center justify-between bg-gray-800 h-20 text-white sticky top-0 z-50;
+  }
 
-    .jedi-header > button {
-      @apply md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg;
-    }
-
+  .jedi-header > button {
+    @apply md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg;
+  }
 }
+```
+
+**Updated per Fix**
 
 ---
 
