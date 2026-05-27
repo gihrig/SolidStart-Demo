@@ -5594,9 +5594,9 @@ Fix:
 
 ---
 
-### 7. MODERATE — Sidebar collapse uses max-h-0/max-h-screen transition → janky animation (Phase 3, line 1131)
+### 7. MODERATE — Sidebar collapse uses max-h-0/max-h-screen transition → janky animation (Phase 3, line 1167)
 
-plan line 1131
+plan line 1167
 
 ```tsx
 class={`... ${mobileSidebarOpen()
@@ -5607,6 +5607,20 @@ class={`... ${mobileSidebarOpen()
 - `max-h-screen` = `100vh`. Transitioning max-height from 0 to a large fixed value causes non-linear perceived speed
 - content appears to "snap" then slow-crawl.
 - CSS `grid-template-rows: 0fr → 1fr` transition would be smoother.
+
+❯ In the code block below, how would a change from transition `max-h-0 → max-h-screen` to `grid-template-rows: 0fr → 1fr` be implemented?
+(example code)
+
+Fix:
+
+- max-h-0/max-h-screen/max-h-none -> grid-rows-[0fr]/grid-rows-[1fr]
+- transition-all -> transition-[grid-template-rows,opacity] (explicit props)
+- overflow-hidden moves to inner <div> with min-h-0
+- Aside gets grid — parent grid layout untouched (col-span/order still work)
+
+Why better: max-h-screen overshoots real height -> animation has dead time. grid-rows 0fr→1fr matches actual content height exactly -> smooth.
+
+**Updated per Fix - Co-authored by Claude Opus 4.6**
 
 ---
 
@@ -5698,6 +5712,7 @@ Positive Observations
 ## ❯ Review `planning/jedi-conversion.md`
 
 - Reference `planning/plan_steps_ignored.md` - 21st cycle @lines 5436 - <<<>>>
+- Follow layout and style referenced above
 - Check for idiomatic Solid JS/SolidStart syntax
 - Check for idiomatic Tailwind syntax
 - Check code for security, accuracy, correctness and efficiency

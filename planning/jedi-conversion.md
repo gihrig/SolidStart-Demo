@@ -1161,80 +1161,82 @@ export default function Jedi() {
           </article>
         </main>
 
-        {/* Sidebar */}
+        {/* Sidebar — grid-rows collapse: aside is nested grid inside parent grid-cols-3 */}
         <aside
           aria-hidden={isMobile() && !mobileSidebarOpen()}
-          class={`col-span-full md:col-span-1 mx-5pct md:mr-20pct order-1 md:order-2 transition-all duration-300 ease-out md:opacity-100 md:max-h-none ${mobileSidebarOpen() ? "opacity-100 max-h-screen" : "opacity-0 max-h-0 overflow-hidden md:overflow-visible"}`}
+          class={`col-span-full md:col-span-1 mx-5pct md:mr-20pct order-1 md:order-2 grid transition-[grid-template-rows,opacity] duration-300 ease-out md:opacity-100 md:grid-rows-[1fr] ${mobileSidebarOpen() ? "opacity-100 grid-rows-[1fr]" : "opacity-0 grid-rows-[0fr]"}`}
         >
-          <Card title="Categories">
-            <ul class="space-y-1" {...listboxProps}>
-              <For each={CATEGORIES}>
-                {(c, index) => (
-                  <li
-                    {...getOptionProps(index())}
-                    classList={{
-                      "bg-(--theme-highlight)": selectedCategory() === index(),
-                      "ring-2 ring-(--theme-accent)": focusedIndex() === index(),
-                    }}
-                    class="flex items-center cursor-pointer px-2 py-1 rounded outline-none"
-                  >
-                    <img class="w-8 h-8 object-cover mr-2" src={c.icon} alt="" loading="lazy" />
-                    <span class="font-bold text-sm">{c.name}</span>
-                  </li>
-                )}
-              </For>
-            </ul>
-          </Card>
-          <Card title="Top Photos">
-            <ul class="space-y-1">
-              <For each={TOP_PHOTOS}>
-                {(p) => (
-                  <li class="rounded-md transition-colors duration-150">
-                    <a href="#" class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg)">
-                      <img
-                        class="w-10 h-10 rounded-lg object-cover mr-3"
-                        src={p.src}
-                        alt={p.alt}
-                        loading="lazy"
-                      />
-                      <img
-                        class="w-6 h-6 rounded-full object-cover mr-0.5"
-                        src={p.avatar}
-                        alt=""
-                        loading="lazy"
-                      />
-                      <span class="font-bold text-sm mr-1">{p.author}</span>
-                      <span class="text-sm font-light text-(--theme-card-fg)">
-                        ({p.likes} Likes)
-                      </span>
-                    </a>
-                  </li>
-                )}
-              </For>
-            </ul>
-          </Card>
-          <Card title="Top Captions">
-            <ul class="space-y-1">
-              <For each={TOP_CAPTIONS}>
-                {(c) => (
-                  <li class="rounded-md transition-colors duration-150">
-                    <a href="#" class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg)">
-                      <img
-                        class="w-8 h-8 rounded-full object-cover mr-1"
-                        src={c.avatar}
-                        alt=""
-                        loading="lazy"
-                      />
-                      <span class="font-bold text-sm mr-1">{c.author}</span>
-                      <span class="text-sm font-light text-(--theme-card-fg)">
-                        ({c.likes} Likes)
-                      </span>
-                    </a>
-                  </li>
-                )}
-              </For>
-            </ul>
-          </Card>
+          <div class="overflow-hidden min-h-0 md:overflow-visible">
+            <Card title="Categories">
+              <ul class="space-y-1" {...listboxProps}>
+                <For each={CATEGORIES}>
+                  {(c, index) => (
+                    <li
+                      {...getOptionProps(index())}
+                      classList={{
+                        "bg-(--theme-highlight)": selectedCategory() === index(),
+                        "ring-2 ring-(--theme-accent)": focusedIndex() === index(),
+                      }}
+                      class="flex items-center cursor-pointer px-2 py-1 rounded outline-none"
+                    >
+                      <img class="w-8 h-8 object-cover mr-2" src={c.icon} alt="" loading="lazy" />
+                      <span class="font-bold text-sm">{c.name}</span>
+                    </li>
+                  )}
+                </For>
+              </ul>
+            </Card>
+            <Card title="Top Photos">
+              <ul class="space-y-1">
+                <For each={TOP_PHOTOS}>
+                  {(p) => (
+                    <li class="rounded-md transition-colors duration-150">
+                      <a href="#" class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg)">
+                        <img
+                          class="w-10 h-10 rounded-lg object-cover mr-3"
+                          src={p.src}
+                          alt={p.alt}
+                          loading="lazy"
+                        />
+                        <img
+                          class="w-6 h-6 rounded-full object-cover mr-0.5"
+                          src={p.avatar}
+                          alt=""
+                          loading="lazy"
+                        />
+                        <span class="font-bold text-sm mr-1">{p.author}</span>
+                        <span class="text-sm font-light text-(--theme-card-fg)">
+                          ({p.likes} Likes)
+                        </span>
+                      </a>
+                    </li>
+                  )}
+                </For>
+              </ul>
+            </Card>
+            <Card title="Top Captions">
+              <ul class="space-y-1">
+                <For each={TOP_CAPTIONS}>
+                  {(c) => (
+                    <li class="rounded-md transition-colors duration-150">
+                      <a href="#" class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg)">
+                        <img
+                          class="w-8 h-8 rounded-full object-cover mr-1"
+                          src={c.avatar}
+                          alt=""
+                          loading="lazy"
+                        />
+                        <span class="font-bold text-sm mr-1">{c.author}</span>
+                        <span class="text-sm font-light text-(--theme-card-fg)">
+                          ({c.likes} Likes)
+                        </span>
+                      </a>
+                    </li>
+                  )}
+                </For>
+              </ul>
+            </Card>
+          </div>
         </aside>
       </div>
     </>
