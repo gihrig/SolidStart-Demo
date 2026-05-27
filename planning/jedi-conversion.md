@@ -737,7 +737,7 @@ export default function JediNav() {
       <nav
         aria-hidden={isMobile() && !mobileNavOpen()}
         aria-label="Jedi site navigation"
-        class={`bg-gray-800 h-screen w-screen md:h-auto md:w-auto -mt-20 md:mt-0 md:opacity-100 md:translate-y-0 md:pointer-events-auto absolute md:relative -z-1 md:z-0 transition-all duration-300 ease-out ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`}
+        class={`bg-gray-800 h-screen w-screen md:h-auto md:w-auto -mt-20 md:mt-0 md:opacity-100 md:translate-y-0 md:pointer-events-auto absolute md:relative -z-1 md:z-0 transition-[opacity,transform] duration-300 ease-out ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`}
       >
         <ul class="navitems flex items-center flex-col md:flex-row gap-8 md:gap-0 justify-center h-full -translate-y-10 md:translate-y-0 px-8">
           <li>
@@ -768,7 +768,7 @@ export default function JediNav() {
             </button>
             <div
               aria-hidden={!dropdownOpen()}
-              class={`absolute right-0 bg-(--theme-card-bg) text-(--theme-card-fg) shadow rounded-lg w-40 p-2 z-20 transition-all duration-300 ease-out origin-top ${dropdownOpen() ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 -translate-y-5 pointer-events-none"}`}
+              class={`absolute right-0 bg-(--theme-card-bg) text-(--theme-card-fg) shadow rounded-lg w-40 p-2 z-20 transition-[opacity,transform] duration-300 ease-out origin-top ${dropdownOpen() ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 -translate-y-5 pointer-events-none"}`}
             >
               <ul class="hoverlist">
                 <li>

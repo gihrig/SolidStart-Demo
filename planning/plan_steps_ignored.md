@@ -5626,18 +5626,24 @@ Why better: max-h-screen overshoots real height -> animation has dead time. grid
 
 ### 8. MINOR — transition-all used in 3 places where specific properties would be more performant (Phase 2/3)
 
-plan line 731 (JediNav nav)
+plan line 740 (JediNav nav)
 `transition-all duration-300 ease-out`
 
-plan line 762 (JediNav dropdown)
+plan line 771 (JediNav dropdown)
 `transition-all duration-300 ease-out`
 
-plan line 1131 (sidebar aside)
+plan line 1167 (sidebar aside) <- handled in step 7 above
 `transition-all duration-300 ease-out`
 
 - `transition-all` transitions every CSS property including `background-color`, `border`, `padding`, etc.
 - Only opacity and transform (and max-height for sidebar) actually change.
 - `transition-[opacity,transform]` or `transition-[opacity,max-height]` would avoid unnecessary composite layer work.
+
+Fix:
+
+- Update @lines 740 and 771 `transition-all` -> `transition-[opacity,transform]`
+
+**Update per Fix**
 
 ---
 
