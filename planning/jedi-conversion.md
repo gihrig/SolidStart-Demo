@@ -744,7 +744,7 @@ export default function JediNav() {
             <a href="#">Home</a>
           </li>
           <li>
-            <a href="#">Create Post</a>
+            <a href="javascript:alert(`Not implemented`)">Create Post</a>
           </li>
           <li ref={dropdownRef} class="relative">
             <button
@@ -772,12 +772,12 @@ export default function JediNav() {
             >
               <ul class="hoverlist">
                 <li>
-                  <a class="justify-end" href="#">
+                  <a class="justify-end" href="javascript:alert(`Not implemented`)">
                     My Profile
                   </a>
                 </li>
                 <li>
-                  <a class="justify-end" href="#">
+                  <a class="justify-end" href="javascript:alert(`Not implemented`)">
                     Log Out
                   </a>
                 </li>
@@ -999,7 +999,7 @@ const CATEGORIES = [
 const TOP_PHOTOS = [
   {
     src: "https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg",
-    alt: "Jedi Kitty",
+    alt: "Little Jedi",
     avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
     author: "Lisa",
     likes: 5,
@@ -1076,8 +1076,13 @@ export default function Jedi() {
               <h2 class="text-2xl font-bold w-1/2 truncate">Little Jedi</h2>
               <div class="text-sm text-(--theme-muted)">
                 flickr @{" "}
-                <a href="#" class="hover:underline rounded" target="_blank" rel="noreferrer">
-                  John Doe
+                <a
+                  href="https://www.flickr.com/photos/felicefelines/"
+                  class="hover:underline rounded"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Felicity Berkleef
                 </a>
               </div>
             </div>
@@ -1085,7 +1090,7 @@ export default function Jedi() {
             <Image
               src="https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg"
               alt="Little Jedi cat"
-              href="#"
+              href="https://www.flickr.com/photos/felicefelines/50618365686/"
               loading="lazy"
             />
             {/* Body: author, caption, tags, actions */}
@@ -1093,7 +1098,7 @@ export default function Jedi() {
               <Author
                 avatarSrc="https://img.icons8.com/small/96/A9A9A9/happy.png"
                 name="Lisa"
-                href="#"
+                href="https://img.icons8.com/doodle/96/null/lisa-simpson.png"
               />
               <p class="text-5xl mb-10 px-4 font-hero">Jedi Kitty protects the street</p>
               <div class="flex items-center gap-2 text-sm mb-5">
@@ -1107,7 +1112,7 @@ export default function Jedi() {
               <div class="flex items-center justify-between text-sm px-2">
                 <a
                   class="font-bold hover:underline rounded"
-                  href="#"
+                  href="javascript:alert(`Not implemented`)"
                   aria-label="Open Comments page"
                 >
                   Comments
@@ -1193,7 +1198,7 @@ export default function Jedi() {
                   {(p) => (
                     <li class="rounded-md">
                       <a
-                        href="#"
+                        href="javascript:alert(`Not implemented`)"
                         class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg) transition-colors duration-150"
                       >
                         <img
@@ -1224,7 +1229,7 @@ export default function Jedi() {
                   {(c) => (
                     <li class="rounded-md">
                       <a
-                        href="#"
+                        href="javascript:alert(`Not implemented`)"
                         class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg) transition-colors duration-150"
                       >
                         <img

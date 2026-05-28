@@ -5897,17 +5897,29 @@ plan line 1079
 <a href="#" class="hover:underline rounded" target="_blank" rel="noreferrer"> John Doe </a>
 ```
 
-- target="\_blank" on href="#" opens a new blank tab pointing to the same page anchor
-- confusing UX. This is a placeholder link, so target="\_blank" should be omitted until a real URL is assigned.
-- The rel="noreferrer" is also unnecessary without target="\_blank".
+- `target="_blank"` on `href="#"` opens a new blank tab pointing to the same page anchor
+- confusing UX. This is a placeholder link, so `target="_blank"` should be omitted until a real URL is assigned.
+- The `rel="noreferrer"` is also unnecessary without `target="_blank"`.
 
-Fix:
+Recommendation:
 
-- Remove target="\_blank" and rel="noreferrer" @line 1079:
+- Remove `target="_blank"` and `rel="noreferrer"` @line 1079:
 
 ```html
 <a href="#" class="hover:underline rounded"> John Doe </a>
 ```
+
+Fix:
+
+Address this and other instances of `href="#"`
+
+- Keep `target="_blank"` and `rel="noreferrer"` @line 1079
+- Update `href="#"` -> href="https://www.flickr.com/photos/felicefelines/" @line 1080,
+- Update `href="#"` -> href="javascript:alert(`Not implemented`)" @lines 775, 780, 1115, 1201, 1232
+- Update `href="#"` -> href="https://www.flickr.com/photos/felicefelines/50618365686/" @line 1093
+- Update `href="#"` -> href="https://img.icons8.com/doodle/96/null/lisa-simpson.png" @line 1101
+
+**Updated per Fix**
 
 ---
 
