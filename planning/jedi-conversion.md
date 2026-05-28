@@ -599,7 +599,7 @@ export interface CardProps extends ParentProps {
 
 export default function Card(props: CardProps) {
   return (
-    <section class={`card-style ${props.class}`}>
+    <section class={props.class ? `card-style ${props.class}` : "card-style"}>
       <Show when={props.title}>
         <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{props.title}</h2>
       </Show>

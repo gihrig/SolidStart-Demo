@@ -6256,13 +6256,15 @@ Plan line 602:
 `<section class={`card-style ${props.class}`}>`
 
 22nd cycle fix #9 addressed Image (line 450 → class={props.class}) but Card still uses template literal concatenation.
-When no class prop passed (e.g., `<Card title="Categories">` at line 1209), renders `<section class="card-style undefined">` — literal "undefined" as CSS class.
+When no class prop passed (e.g., `<Card title="Categories">` at line 1232), renders `<section class="card-style undefined">` — literal "undefined" as CSS class.
 
 Fix:
 
 Conditional join at line 602:
 
 `<section class={props.class ? `card-style ${props.class}` : "card-style"}>`
+
+**Updated per Fix**
 
 ---
 
