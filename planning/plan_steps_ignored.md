@@ -6405,6 +6405,8 @@ Wrap fallback in a `<div>` with matching layout classes:
   }>
 ```
 
+**Updated per Fix**
+
 ---
 
 ### 7. MINOR — Author href points to avatar image URL, not profile page (Phase 3, line 1136)
