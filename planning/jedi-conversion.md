@@ -264,73 +264,73 @@ import "./jedi.css";
 
 ### [ ] Step 2.1: Create Hero Component + Tests
 
-**File**: `src/lib/sanitizeImageUrl.ts`
+**File**: `src/lib/sanitizeUrl.ts`
 
 ```typescript
-const SAFE_URL_PATTERN = /^(?:https?:\/\/|\/[\w])/i;
+const SAFE_URL_PATTERN = /^(?:https?:\/\/|\/[\w]|#)/i;
 const BREAK_CHARS = /['\"()\\]/;
 
-export function sanitizeImageUrl(url: string): string | undefined {
+export function sanitizeUrl(url: string): string | undefined {
   if (!SAFE_URL_PATTERN.test(url) || BREAK_CHARS.test(url)) {
-    console.warn(`[sanitizeImageUrl] Blocked unsafe URL: ${url}`);
+    console.warn(`[sanitizeUrl] Blocked unsafe URL: ${url}`);
     return undefined;
   }
   return url;
 }
 ```
 
-**Test**: `src/lib/sanitizeImageUrl.unit.test.ts`
+**Test**: `src/lib/sanitizeUrl.unit.test.ts`
 
 ```typescript
 import { describe, it, expect, vi } from "vite-plus/test";
-import { sanitizeImageUrl } from "./sanitizeImageUrl";
+import { sanitizeUrl } from "./sanitizeUrl";
 
-describe("sanitizeImageUrl", () => {
+describe("sanitizeUrl", () => {
   it("allows https URLs", () => {
-    expect(sanitizeImageUrl("https://example.com/img.jpg")).toBe("https://example.com/img.jpg");
+    expect(sanitizeUrl("https://example.com/img.jpg")).toBe("https://example.com/img.jpg");
   });
 
   it("allows http URLs", () => {
-    expect(sanitizeImageUrl("http://example.com/img.jpg")).toBe("http://example.com/img.jpg");
+    expect(sanitizeUrl("http://example.com/img.jpg")).toBe("http://example.com/img.jpg");
   });
 
   it("allows absolute paths", () => {
-    expect(sanitizeImageUrl("/images/hero.jpg")).toBe("/images/hero.jpg");
+    expect(sanitizeUrl("/images/hero.jpg")).toBe("/images/hero.jpg");
   });
 
   it("blocks javascript: protocol", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(sanitizeImageUrl("javascript:alert(1)")).toBeUndefined();
+    expect(sanitizeUrl("javascript:alert(1)")).toBeUndefined();
     warn.mockRestore();
   });
 
   it("blocks data: URIs", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(sanitizeImageUrl("data:image/svg+xml,<svg></svg>")).toBeUndefined();
+    expect(sanitizeUrl("data:image/svg+xml,<svg></svg>")).toBeUndefined();
     warn.mockRestore();
   });
 
   it("blocks URLs with single quotes (CSS breakout)", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(sanitizeImageUrl("https://evil.com/img'.jpg")).toBeUndefined();
+    expect(sanitizeUrl("https://evil.com/img'.jpg")).toBeUndefined();
     warn.mockRestore();
   });
 
   it("blocks URLs with parentheses (CSS breakout)", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(sanitizeImageUrl("https://evil.com/img).jpg")).toBeUndefined();
+    expect(sanitizeUrl("https://evil.com/img).jpg")).toBeUndefined();
     warn.mockRestore();
   });
 
   it("blocks relative paths", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(sanitizeImageUrl("../images/hack.jpg")).toBeUndefined();
+    expect(sanitizeUrl("../images/hack.jpg")).toBeUndefined();
     warn.mockRestore();
   });
 });
 ```
 
-**Verification**: `vpr test:unit -t "sanitizeImageUrl"` — all sanitizer tests pass.
+**Verification**: `vpr test:unit -t "sanitizeUrl"` — all sanitizer tests pass.
 
 ---
 
@@ -341,7 +341,7 @@ describe("sanitizeImageUrl", () => {
 **Component**:
 
 ```typescript
-import { sanitizeImageUrl } from "~/lib/sanitizeImageUrl";
+import { sanitizeUrl } from "~/lib/sanitizeUrl";
 
 export interface HeroProps {
   title: string;
@@ -353,7 +353,7 @@ export interface HeroProps {
 
 export default function Hero(props: HeroProps) {
   const bgImage = () => {
-    const url = sanitizeImageUrl(props.backgroundImage);
+    const url = sanitizeUrl(props.backgroundImage);
     return url ? `url('${url}')` : undefined;
   };
 
@@ -380,7 +380,7 @@ export default function Hero(props: HeroProps) {
 }
 ```
 
-> **Note**: `style={{ "background-image": ... }}` remains — dynamic prop URL can't use Tailwind `bg-[url(...)]`. This is the sole exception to requirement #4. The URL is sanitized via `sanitizeImageUrl` — blocks non-http(s) protocols and CSS breakout characters. When blocked, `bg-gray-700` shows through as the fallback.
+> **Note**: `style={{ "background-image": ... }}` remains — dynamic prop URL can't use Tailwind `bg-[url(...)]`. This is the sole exception to requirement #4. The URL is sanitized via `sanitizeUrl` — blocks non-http(s) protocols and CSS breakout characters. When blocked, `bg-gray-700` shows through as the fallback.
 
 **Test**: `src/components/Hero.test.tsx`
 
@@ -432,7 +432,7 @@ describe('<Hero />', () => {
 
 ```typescript
 import { Show } from "solid-js";
-import { sanitizeImageUrl } from "~/lib/sanitizeImageUrl";
+import { sanitizeUrl } from "~/lib/sanitizeUrl";
 
 export interface ImageProps {
   src: string;
@@ -444,13 +444,13 @@ export interface ImageProps {
 
 export default function Image(props: ImageProps) {
 
-  const imgSrc = () => sanitizeImageUrl(props.src);
+  const imgSrc = () => sanitizeUrl(props.src);
 
   return (
     <figure class={props.class}>
       <Show when={props.href} fallback={<img class="w-full bg-gray-700" src={imgSrc()} alt={props.alt} loading={props.loading} />}>
         {(href) => (
-          <a href={href()}>
+          <a href={sanitizeUrl(href())}>
             <img class="w-full bg-gray-700" src={imgSrc()} alt={props.alt} loading={props.loading} />
           </a>
         )}
@@ -516,7 +516,7 @@ describe('<Image />', () => {
 
 ```typescript
 import { Show } from "solid-js";
-import { sanitizeImageUrl } from "~/lib/sanitizeImageUrl";
+import { sanitizeUrl } from "~/lib/sanitizeUrl";
 
 export interface AuthorProps {
   avatarSrc: string;
@@ -526,7 +526,7 @@ export interface AuthorProps {
 
 export default function Author(props: AuthorProps) {
 
-  const imgSrc = () => sanitizeImageUrl(props.avatarSrc);
+  const imgSrc = () => sanitizeUrl(props.avatarSrc);
 
   return (
 
@@ -537,7 +537,7 @@ export default function Author(props: AuthorProps) {
       </>
     }>
       {(href) => (
-        <a class="flex items-center gap-1 mb-4 hover:underline" href={href()}>
+        <a class="flex items-center gap-1 mb-4 hover:underline" href={sanitizeUrl(href())}>
           <img class="w-8 h-8 rounded-full" src={imgSrc()} alt={props.name} loading="lazy" />
           <span class="font-bold">{props.name}</span>
         </a>

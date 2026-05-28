@@ -6122,13 +6122,11 @@ Positive Observations
 - List issues found in a numbered list
 - Must use backticks e.g. <pre>`code;`</pre> for simple one-line code snippets in issues
 - Must use code fencing for multi-line code snippets in issues. eg.
-  <pre>
-  
+<pre>
   ```tsx
   code;
   ```
-  
-  </pre>
+</pre>
 
 - Provide a recommended `Fix:` section at the end of each issue
 - Sort the list from critical to minor in order of most impacting first
@@ -6212,29 +6210,42 @@ Author.tsx line 539-541:
 
 sanitizeImageUrl guards src/avatarSrc but href passes through raw. If either component is reused with user-supplied data, javascript: or data: hrefs → XSS.
 
-Fix:
-
-Create a companion sanitizer or reuse existing one for link hrefs. Minimal approach — add sanitizeLinkUrl to
-`src/lib/sanitizeImageUrl.ts`:
+Notes:
 
 ```tsx
-const SAFE_LINK_PATTERN = /^(?:https?:\/\/|\/[\w]|#)/i;
+const SAFE_URL_PATTERN = /^(?:https?:\/\/|\/[\w]|#)/i;
+const BREAK_CHARS = /['\"()\\]/;
 
-export function sanitizeLinkUrl(url: string): string {
-  if (!SAFE_LINK_PATTERN.test(url)) {
-    console.warn(`[sanitizeLinkUrl] Blocked unsafe URL: ${url}`);
-    return "#";
+export function sanitizeUrl(url: string): string | undefined {
+  if (!SAFE_URL_PATTERN.test(url) || BREAK_CHARS.test(url)) {
+    console.warn(`[sanitizeUrl] Blocked unsafe URL: ${url}`);
+    return undefined;
   }
   return url;
 }
 ```
 
-Apply in Image.tsx:
+Apply in `Image.tsx`:
 
 ```tsx
   {(href) => (
-    <a href={sanitizeLinkUrl(href())}>
+    <a href={sanitizeUrl(href())}>
 ```
+
+Apply in `Author.tsx`:
+
+```tsx
+  {(href) => (
+    <a class="flex items-center gap-1 mb-4 hover:underline" href={sanitizeUrl(href())}>
+```
+
+Fix:
+
+- Update `src/lib/sanitizeImageUrl.ts` to support `#`
+- Rename `src/lib/sanitizeImageUrl.ts` -> `src/lib/sanitizeUrl.ts`
+- Apply `src/lib/sanitizeUrl.ts` in `Image.tsx` and `Author.tsx`
+
+**Updated per Fix**
 
 ---
 
