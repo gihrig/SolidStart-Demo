@@ -447,7 +447,7 @@ export default function Image(props: ImageProps) {
   const imgSrc = () => sanitizeImageUrl(props.src);
 
   return (
-    <figure class={props.class ?? ""}>
+    <figure class={props.class}>
       <Show when={props.href} fallback={<img class="w-full bg-gray-700" src={imgSrc()} alt={props.alt} loading={props.loading} />}>
         {(href) => (
           <a href={href()}>
@@ -599,7 +599,7 @@ export interface CardProps extends ParentProps {
 
 export default function Card(props: CardProps) {
   return (
-    <section class={`card-style ${props.class ?? ""}`}>
+    <section class={`card-style ${props.class}`}>
       <Show when={props.title}>
         <h2 class="text-2xl font-bold px-4 pt-4 pb-2">{props.title}</h2>
       </Show>

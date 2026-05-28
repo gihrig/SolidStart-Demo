@@ -6047,6 +6047,8 @@ Fix:
 
 `<figure class={props.class}>`
 
+**Updated per Fix**
+
 ---
 
 Issues Summary
