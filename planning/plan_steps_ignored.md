@@ -6009,7 +6009,7 @@ Add the tests below to `planning/jedi-conversion.md`:
 
 ---
 
-### 8. MINOR — E2E test title mismatches test behavior (Phase 5, line 1865)
+### 8. MINOR — E2E test title mismatches test behavior (Phase 5, line 1911)
 
 plan line 1865
 
@@ -6021,9 +6021,11 @@ plan line 1865
 
 Fix:
 
-- Update title @line 1865:
+- Update title @line 1911:
 
 `test("should cycle through auto → light → dark → auto modes", async ({ page }) => {`
+
+**Updated per Fix**
 
 ---
 

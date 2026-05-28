@@ -1908,7 +1908,7 @@ test.describe("Jedi Page - Theme Toggle", () => {
     await expect(toggle).toBeVisible();
   });
 
-  test("should cycle through light → dark → auto modes", async ({ page }) => {
+  test("should cycle through auto → light → dark → auto modes", async ({ page }) => {
     await page.goto("/jedi");
     const toggle = page.getByRole("button", { name: /theme/i });
 
