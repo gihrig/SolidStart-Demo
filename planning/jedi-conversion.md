@@ -218,11 +218,11 @@ import "@fontsource/lobster";
     @apply flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg);
   }
 
-  .navitems > li > a {
+  .navitems > li > .nav-link {
     @apply flex h-12 items-center gap-2 rounded-lg px-4;
   }
 
-  .navitems > li > a:hover {
+  .navitems > li > .nav-link:hover {
     @apply bg-gray-700;
   }
 
@@ -741,10 +741,19 @@ export default function JediNav() {
       >
         <ul class="navitems flex items-center flex-col md:flex-row gap-8 md:gap-0 justify-center h-full -translate-y-10 md:translate-y-0 px-8">
           <li>
-            <a href="#">Home</a>
+            <a class="nav-link" href="#">
+              Home
+            </a>
           </li>
           <li>
-            <a href="javascript:alert(`Not implemented`)">Create Post</a>
+            <button
+              class="nav-link"
+              type="button"
+              onClick={() => alert("Not implemented")}
+              class="nav-link"
+            >
+              Create Post
+            </button>
           </li>
           <li ref={dropdownRef} class="relative">
             <button
@@ -772,14 +781,24 @@ export default function JediNav() {
             >
               <ul class="hoverlist">
                 <li>
-                  <a class="justify-end" href="javascript:alert(`Not implemented`)">
+                  <button
+                    class="nav-link"
+                    type="button"
+                    onClick={() => alert("Not implemented")}
+                    class="nav-link"
+                  >
                     My Profile
-                  </a>
+                  </button>
                 </li>
                 <li>
-                  <a class="justify-end" href="javascript:alert(`Not implemented`)">
+                  <button
+                    class="nav-link"
+                    type="button"
+                    onClick={() => alert("Not implemented")}
+                    class="nav-link"
+                  >
                     Log Out
-                  </a>
+                  </button>
                 </li>
               </ul>
             </div>
@@ -1146,8 +1165,12 @@ export default function Jedi() {
               <div class="flex items-center justify-between text-sm px-2">
                 <a
                   class="font-bold hover:underline rounded"
-                  href="javascript:alert(`Not implemented`)"
+                  href="#"
                   aria-label="Open Comments page"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    alert("Not implemented");
+                  }}
                 >
                   Comments
                   <span
@@ -1231,8 +1254,9 @@ export default function Jedi() {
                 <For each={TOP_PHOTOS}>
                   {(p) => (
                     <li class="rounded-md">
-                      <a
-                        href="javascript:alert(`Not implemented`)"
+                      <button
+                        type="button"
+                        onClick={() => alert("Not implemented")}
                         class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg) transition-colors duration-150"
                       >
                         <img
@@ -1251,7 +1275,7 @@ export default function Jedi() {
                         <span class="text-sm font-light text-(--theme-card-fg)">
                           ({p.likes} Likes)
                         </span>
-                      </a>
+                      </button>
                     </li>
                   )}
                 </For>
@@ -1262,8 +1286,9 @@ export default function Jedi() {
                 <For each={TOP_CAPTIONS}>
                   {(c) => (
                     <li class="rounded-md">
-                      <a
-                        href="javascript:alert(`Not implemented`)"
+                      <button
+                        type="button"
+                        onClick={() => alert("Not implemented")}
                         class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg) transition-colors duration-150"
                       >
                         <img
@@ -1276,7 +1301,7 @@ export default function Jedi() {
                         <span class="text-sm font-light text-(--theme-card-fg)">
                           ({c.likes} Likes)
                         </span>
-                      </a>
+                      </button>
                     </li>
                   )}
                 </For>

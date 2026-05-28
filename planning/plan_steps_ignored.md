@@ -6165,10 +6165,10 @@ Plan lines 747, 775, 780 (JediNav), 1149, 1234, 1266 (jedi.tsx):
 
 Fix:
 
-Use `<button>` for non-navigation actions, or href="#" + onClick with e.preventDefault():
+Use `<button>` for non-navigation actions, or `<a>` href="#" + onClick with e.preventDefault():
 
 ```tsx
-<button type="button" onClick={() => alert("Not implemented")} class="theme-button">
+<button type="button" onClick={() => alert("Not implemented")} class="nav-link">
   Create Post
 </button>
 ```
@@ -6187,6 +6187,8 @@ For items that must remain `<a>` for styling/layout reasons:
   My Profile
 </a>
 ```
+
+**Updated per Fix**
 
 ---
 
