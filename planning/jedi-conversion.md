@@ -929,6 +929,40 @@ describe("<JediNav />", () => {
       expect(btn.querySelector("img")!.getAttribute("src")).toContain("menu");
     });
   });
+
+  describe("mobile mode", () => {
+    beforeEach(() => {
+      setupMatchMedia(true);
+    });
+
+    it("Escape key closes mobile nav", async () => {
+      const user = userEvent.setup();
+      render(() => <JediNav />);
+      const btn = screen.getByRole("button", { name: /toggle navigation/i });
+      await user.click(btn);
+      const nav = screen.getByRole("navigation", { name: /Jedi site navigation/i });
+      expect(nav).not.toHaveClass("pointer-events-none");
+
+      await user.keyboard("{Escape}");
+
+      expect(nav).toHaveClass("pointer-events-none");
+      expect(btn).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("click outside dropdown closes it", async () => {
+      const user = userEvent.setup();
+      render(() => <JediNav />);
+      const trigger = screen.getByRole("button", { name: /profile menu/i });
+      await user.click(trigger);
+      const dropdown = screen.getByText("My Profile").closest("[aria-hidden]")!;
+      expect(dropdown).toHaveAttribute("aria-hidden", "false");
+
+      await user.click(document.body);
+
+      expect(dropdown).toHaveAttribute("aria-hidden", "true");
+      expect(dropdown).toHaveClass("pointer-events-none");
+    });
+  });
 });
 ```
 

@@ -5990,6 +5990,23 @@ Fix:
 - Add Escape key test: open nav → press Escape → verify nav closes
 - Add click-outside test: open dropdown → click outside dropdownRef → verify dropdown closes
 
+❯ Read `planning/plan_steps_ignored.md` @lines 5965-5991. Also review `planning/jedi-conversion.md` 796-932.
+Add the tests below to `planning/jedi-conversion.md`:
+
+- Add describe("mobile mode") block with setupMatchMedia(true) in beforeEach
+- Add Escape key test: open nav → press Escape → verify nav closes
+- Add click-outside test: open dropdown → click outside dropdownRef → verify dropdown closes
+
+⏺ Three tests added inside a new describe("mobile mode") block (lines 923–956 approx):
+
+- beforeEach calls setupMatchMedia(true) — overrides the outer false
+- Escape key test: clicks hamburger to open nav, fires {Escape}, asserts pointer-events-none restored and
+  aria-expanded="false"
+- Click-outside test: opens dropdown, clicks document.body, asserts aria-hidden="true" and pointer-events-none
+  restored
+
+**Updated per Fix - Co-authored by Claude Sonnet 4.6**
+
 ---
 
 ### 8. MINOR — E2E test title mismatches test behavior (Phase 5, line 1865)
