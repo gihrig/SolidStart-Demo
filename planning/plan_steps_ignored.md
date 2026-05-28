@@ -6409,9 +6409,9 @@ Wrap fallback in a `<div>` with matching layout classes:
 
 ---
 
-### 7. MINOR — Author href points to avatar image URL, not profile page (Phase 3, line 1136)
+### 7. MINOR — Author href points to avatar image URL, not profile page (Phase 3, line 1153-1156)
 
-Plan line 1133-1136:
+Plan line 1153-1166:
 
 ```tsx
 <Author
@@ -6428,13 +6428,27 @@ href navigates to a raw PNG image.
 
 Fix:
 
-Use a placeholder that signals intent:
+- Move `lisa-simpson.png` to `avatarSrc`
+- Change `href` to `href="#"`
+- Add `onClick` handler to an enclosing `<div>`
 
 ```tsx
-<Author avatarSrc="https://img.icons8.com/small/96/A9A9A9/happy.png" name="Lisa" />
+  <div class="p-4 pb-2">
+    <div
+      onClick={(e) => {
+        e.preventDefault();
+        alert("Not implemented");
+      }}
+    >
+      <Author
+        avatarSrc="https://img.icons8.com/doodle/96/null/lisa-simpson.png"
+        name="Lisa"
+        href="#"
+      />
+    </div>
 ```
 
-Remove href until a real profile URL exists, or use href="#" with onClick handler.
+**Updated per Fix**
 
 ---
 

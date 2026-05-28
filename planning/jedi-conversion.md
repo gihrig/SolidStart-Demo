@@ -1150,11 +1150,18 @@ export default function Jedi() {
             />
             {/* Body: author, caption, tags, actions */}
             <div class="p-4 pb-2">
-              <Author
-                avatarSrc="https://img.icons8.com/small/96/A9A9A9/happy.png"
-                name="Lisa"
-                href="https://img.icons8.com/doodle/96/null/lisa-simpson.png"
-              />
+              <div
+                onClick={(e) => {
+                  e.preventDefault();
+                  alert("Not implemented");
+                }}
+              >
+                <Author
+                  avatarSrc="https://img.icons8.com/doodle/96/null/lisa-simpson.png"
+                  name="Lisa"
+                  href="#"
+                />
+              </div>
               <p class="text-5xl mb-10 px-4 font-hero">Jedi Kitty protects the street</p>
               <div class="flex items-center gap-2 text-sm mb-5">
                 <button type="button" onClick={() => {}} class="theme-button">
