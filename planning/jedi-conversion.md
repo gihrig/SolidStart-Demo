@@ -735,7 +735,7 @@ export default function JediNav() {
         </button>
       </div>
       <nav
-        aria-hidden={isMobile() && !mobileNavOpen()}
+        inert={isMobile() && !mobileSidebarOpen()}
         aria-label="Jedi site navigation"
         class={`bg-gray-800 h-screen w-screen md:h-auto md:w-auto -mt-20 md:mt-0 md:opacity-100 md:translate-y-0 md:pointer-events-auto absolute md:relative -z-1 md:z-0 transition-[opacity,transform] duration-300 ease-out ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`}
       >
@@ -1225,7 +1225,7 @@ export default function Jedi() {
 
         {/* Sidebar — grid-rows collapse: aside is nested grid inside parent grid-cols-3 */}
         <aside
-          aria-hidden={isMobile() && !mobileSidebarOpen()}
+          inert={isMobile() && !mobileSidebarOpen()}
           class={`col-span-full md:col-span-1 mx-5pct md:mr-20pct order-1 md:order-2 grid transition-[grid-template-rows,opacity] duration-300 ease-out md:opacity-100 md:grid-rows-[1fr] ${mobileSidebarOpen() ? "opacity-100 grid-rows-[1fr]" : "opacity-0 grid-rows-[0fr]"}`}
         >
           <div class="overflow-hidden min-h-0 md:overflow-visible">

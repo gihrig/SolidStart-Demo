@@ -6268,46 +6268,52 @@ Conditional join at line 602:
 
 ---
 
-### 4. MODERATE — Hidden sidebar/nav still keyboard-tabbable on mobile (Phases 2+3, lines 740, 1205)
+### 4. MODERATE — Hidden sidebar/nav still keyboard-tabbable on mobile (Phases 2+3, lines 738, 1228)
 
-JediNav nav line 740:
+JediNav nav line 738:
 
 ```tsx
   class={`... ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`}
 ```
 
-Aside line 1205-1206:
+Aside line 1228:
 
 ```tsx
   aria-hidden={isMobile() && !mobileSidebarOpen()}
   class={`... ${mobileSidebarOpen() ? "opacity-100 grid-rows-[1fr]" : "opacity-0 grid-rows-[0fr]"}`}
 ```
 
-- aria-hidden + opacity-0 hides from screen readers and visually. But Tab key still reaches interactive elements inside
-- listbox tabIndex={0} (from useListbox line 16), nav links, dropdown button. Users can Tab into invisible content.
-- Fix:
+- aria-hidden + opacity-0 hides from screen readers and visually. But Tab key still reaches interactive elements inside listbox tabIndex={0} (from useListbox line 16), nav links, dropdown button.
+- Users can Tab into invisible content.
+- `inert` prevents `focus`, `click`, and `AT` access in one attribute. Supported in all modern browsers:
+- aria-hidden becomes redundant.
 
-Add inert attribute when hidden. Supported in all modern browsers:
+Fix:
+
+- Jedi `<aside>` @line 1228
+- Remove aria-hidden
+- Add inert attribute when hidden
 
 ```tsx
   <aside
-    aria-hidden={isMobile() && !mobileSidebarOpen()}
     inert={isMobile() && !mobileSidebarOpen()}
     class={...}
   >
 ```
 
-Same for JediNav `<nav>`:
+- JediNav `<nav>` @line 738
+- Remove aria-hidden
+- Add inert attribute when hidden
 
 ```tsx
   <nav
-    aria-hidden={isMobile() && !mobileNavOpen()}
     inert={isMobile() && !mobileNavOpen()}
-    ...
+    aria-label="Jedi site navigation"
+    class={...}
   >
 ```
 
-inert prevents focus, click, and AT access in one attribute — aria-hidden becomes redundant but harmless to keep.
+**Updated per Fix**
 
 ---
 
