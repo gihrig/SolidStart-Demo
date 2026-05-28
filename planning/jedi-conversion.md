@@ -717,18 +717,18 @@ export default function JediNav() {
           onClick={() => setMobileNavOpen(!mobileNavOpen())}
         >
           <Show
-            when={!mobileNavOpen()}
+            when={mobileNavOpen()}
             fallback={
               <img
                 class="w-6 h-6 select-none"
-                src="https://img.icons8.com/small/64/ffffff/delete-sign.png"
+                src="https://img.icons8.com/small/64/ffffff/menu.png"
                 alt=""
               />
             }
           >
             <img
               class="w-6 h-6 select-none"
-              src="https://img.icons8.com/small/64/ffffff/menu.png"
+              src="https://img.icons8.com/small/64/ffffff/delete-sign.png"
               alt=""
             />
           </Show>

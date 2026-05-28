@@ -5936,7 +5936,8 @@ plan line 719-734
 </Show>
 ```
 
-- `when={!mobileNavOpen()}` inverts the natural reading: "Show menu when NOT open" with close icon as fallback. - - Idiomatic SolidJS puts the truthy (active) state in when and the default state in fallback:
+- `when={!mobileNavOpen()}` inverts the natural reading: "Show menu when NOT open" with close icon as fallback.
+- Idiomatic SolidJS puts the truthy (active) state in when and the default state in fallback:
 
 Fix:
 
@@ -5956,6 +5957,8 @@ Fix:
   />
 </Show>
 ```
+
+**Updated per Fix**
 
 ---
 
