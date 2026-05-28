@@ -6113,7 +6113,7 @@ Positive Observations
 
 ## ❯ Review `planning/jedi-conversion.md`
 
-- Reference `planning/plan_steps_ignored.md` - 22nd cycle @lines 5750 - <<<<>>>>
+- Reference `planning/plan_steps_ignored.md` - 22nd cycle @lines 5750 - 6050
 - Follow layout and style in document referenced above
 - Check for idiomatic Solid JS/SolidStart syntax
 - Check for idiomatic Tailwind syntax
@@ -6133,7 +6133,355 @@ Positive Observations
 - Provide a recommended `Fix:` section at the end of each issue
 - Sort the list from critical to minor in order of most impacting first
 - Present a summary of issues found in table format after the list of issues
-- Limit table width to 110 columns
+- Limit table width to 100 columns
 - List Positive Observations in a bulleted list at end of results
 
-## ⏺ Jedi Conversion Plan Review - 23nd cycle.
+## ⏺ Jedi Conversion Plan Review - 23rd cycle.
+
+Cross-referenced with 22nd cycle fixes (lines 5750-6097 of plan_steps_ignored.md).
+
+---
+
+### 1. HIGH — javascript: protocol hrefs violate CSP and establish XSS pattern (Phases 2+3, 6 instances)
+
+Plan lines 747, 775, 780 (JediNav), 1149, 1234, 1266 (jedi.tsx):
+
+```tsx
+  <a href="javascript:alert(`Not implemented`)">Create Post</a>
+
+  <a href="javascript:alert(`Not implemented`)">My Profile</a>
+
+  <a href="javascript:alert(`Not implemented`)">Log Out</a>
+
+  <a class="font-bold hover:underline rounded"
+     href="javascript:alert(`Not implemented`)"
+     aria-label="Open Comments page">
+
+  <a href="javascript:alert(`Not implemented`)"
+     class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg) ...">
+```
+
+22nd cycle fix #5 introduced these as replacements for href="#". javascript: URLs are blocked by any script-src CSP policy, trigger console warnings in strict environments, and establish an XSS-adjacent pattern. Worse than original href="#".
+
+Fix:
+
+Use `<button>` for non-navigation actions, or href="#" + onClick with e.preventDefault():
+
+```tsx
+<button type="button" onClick={() => alert("Not implemented")} class="theme-button">
+  Create Post
+</button>
+```
+
+For items that must remain `<a>` for styling/layout reasons:
+
+```tsx
+<a
+  href="#"
+  onClick={(e) => {
+    e.preventDefault();
+    alert("Not implemented");
+  }}
+  class="flex items-center p-2 rounded ..."
+>
+  My Profile
+</a>
+```
+
+---
+
+### 2. HIGH — Image/Author href prop bypasses URL sanitization (Phase 2, lines 453, 541)
+
+Image.tsx line 451-453:
+
+```tsx
+  <Show when={props.href} fallback={<img ... src={imgSrc()} ... />}>
+    {(href) => (
+      <a href={href()}>
+```
+
+Author.tsx line 539-541:
+
+```tsx
+  <Show when={props.href} fallback={...}>
+    {(href) => (
+      <a class="flex items-center gap-1 mb-4 hover:underline" href={href()}>
+```
+
+sanitizeImageUrl guards src/avatarSrc but href passes through raw. If either component is reused with user-supplied data, javascript: or data: hrefs → XSS.
+
+Fix:
+
+Create a companion sanitizer or reuse existing one for link hrefs. Minimal approach — add sanitizeLinkUrl to
+`src/lib/sanitizeImageUrl.ts`:
+
+```tsx
+const SAFE_LINK_PATTERN = /^(?:https?:\/\/|\/[\w]|#)/i;
+
+export function sanitizeLinkUrl(url: string): string {
+  if (!SAFE_LINK_PATTERN.test(url)) {
+    console.warn(`[sanitizeLinkUrl] Blocked unsafe URL: ${url}`);
+    return "#";
+  }
+  return url;
+}
+```
+
+Apply in Image.tsx:
+
+```tsx
+  {(href) => (
+    <a href={sanitizeLinkUrl(href())}>
+```
+
+---
+
+### 3. MODERATE — Card renders literal string "undefined" in class attribute (Phase 2, line 602)
+
+Plan line 602:
+
+`<section class={`card-style ${props.class}`}>`
+
+22nd cycle fix #9 addressed Image (line 450 → class={props.class}) but Card still uses template literal concatenation.
+When no class prop passed (e.g., `<Card title="Categories">` at line 1209), renders `<section class="card-style undefined">` — literal "undefined" as CSS class.
+
+Fix:
+
+Conditional join at line 602:
+
+`<section class={props.class ? `card-style ${props.class}` : "card-style"}>`
+
+---
+
+### 4. MODERATE — Hidden sidebar/nav still keyboard-tabbable on mobile (Phases 2+3, lines 740, 1205)
+
+JediNav nav line 740:
+
+```tsx
+  class={`... ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`}
+```
+
+Aside line 1205-1206:
+
+```tsx
+  aria-hidden={isMobile() && !mobileSidebarOpen()}
+  class={`... ${mobileSidebarOpen() ? "opacity-100 grid-rows-[1fr]" : "opacity-0 grid-rows-[0fr]"}`}
+```
+
+- aria-hidden + opacity-0 hides from screen readers and visually. But Tab key still reaches interactive elements inside
+- listbox tabIndex={0} (from useListbox line 16), nav links, dropdown button. Users can Tab into invisible content.
+- Fix:
+
+Add inert attribute when hidden. Supported in all modern browsers:
+
+```tsx
+  <aside
+    aria-hidden={isMobile() && !mobileSidebarOpen()}
+    inert={isMobile() && !mobileSidebarOpen()}
+    class={...}
+  >
+```
+
+Same for JediNav `<nav>`:
+
+```tsx
+  <nav
+    aria-hidden={isMobile() && !mobileNavOpen()}
+    inert={isMobile() && !mobileNavOpen()}
+    ...
+  >
+```
+
+inert prevents focus, click, and AT access in one attribute — aria-hidden becomes redundant but harmless to keep.
+
+---
+
+### 5. MODERATE — aria-label on non-interactive `<span>` is invalid ARIA (Phase 3, lines 1156, 1169)
+
+Plan lines 1154-1158:
+
+```tsx
+<span class="font-light text-(--theme-card-fg) ml-2" aria-label="Comments on this post">
+  3
+</span>
+```
+
+Plan lines 1167-1171:
+
+```tsx
+<span class="font-light text-(--theme-card-fg) ml-2" aria-label="Likes">
+  1
+</span>
+```
+
+Per WAI-ARIA spec, aria-label applies only to interactive elements or elements with explicit roles. A bare `<span>` has no implicit role — assistive tech ignores the label.
+
+Fix:
+
+Use visually-hidden text for screen readers:
+
+```tsx
+  <span class="font-light text-(--theme-card-fg) ml-2">
+    <span class="sr-only">Comments: </span>3
+  </span>
+
+  <span class="font-light text-(--theme-card-fg) ml-2">
+    <span class="sr-only">Likes: </span>1
+  </span>
+```
+
+Tailwind sr-only provides screen-reader-only text without ARIA constraint violations.
+
+---
+
+### 6. MODERATE — Author fallback renders inconsistent DOM structure (Phase 2, lines 533-546)
+
+Plan lines 533-546:
+
+```tsx
+<Show
+  when={props.href}
+  fallback={
+    <>
+      <img class="w-8 h-8 rounded-full" src={imgSrc()} alt={props.name} loading="lazy" />
+      <span class="font-bold">{props.name}</span>
+    </>
+  }
+>
+  {(href) => (
+    <a class="flex items-center gap-1 mb-4 hover:underline" href={href()}>
+      <img class="w-8 h-8 rounded-full" src={imgSrc()} alt={props.name} loading="lazy" />
+      <span class="font-bold">{props.name}</span>
+    </a>
+  )}
+</Show>
+```
+
+With href: content wrapped in `<a class="flex items-center gap-1 mb-4 hover:underline">`
+
+- flex layout + margin-bottom + underline.
+- Without href: bare fragment — no flex, no gap, no margin. Parent layout shifts depending on branch.
+
+Fix:
+
+Wrap fallback in a `<div>` with matching layout classes:
+
+```tsx
+  <Show when={props.href} fallback={
+    <div class="flex items-center gap-1 mb-4">
+      <img class="w-8 h-8 rounded-full" src={imgSrc()} alt={props.name} loading="lazy" />
+      <span class="font-bold">{props.name}</span>
+    </div>
+  }>
+```
+
+---
+
+### 7. MINOR — Author href points to avatar image URL, not profile page (Phase 3, line 1136)
+
+Plan line 1133-1136:
+
+```tsx
+<Author
+  avatarSrc="https://img.icons8.com/small/96/A9A9A9/happy.png"
+  name="Lisa"
+  href="https://img.icons8.com/doodle/96/null/lisa-simpson.png"
+/>
+```
+
+href navigates to a raw PNG image.
+
+- User clicking "Lisa" sees an image file in the browser, not a profile page.
+- Likely intended as a profile link placeholder.
+
+Fix:
+
+Use a placeholder that signals intent:
+
+```tsx
+<Author avatarSrc="https://img.icons8.com/small/96/A9A9A9/happy.png" name="Lisa" />
+```
+
+Remove href until a real profile URL exists, or use href="#" with onClick handler.
+
+---
+
+### 8. MINOR — "Like" button lacks contextual aria-label (Phase 3, line 1178)
+
+Plan line 1176-1180:
+
+```tsx
+<button type="button" onClick={() => {}} class="theme-button" aria-pressed="false">
+  Like
+</button>
+```
+
+aria-pressed="false" is good for toggle semantics. But screen readers announce only "Like, toggle button, not pressed"
+— no context about WHAT is being liked.
+
+Fix:
+
+```tsx
+<button
+  type="button"
+  onClick={() => {}}
+  class="theme-button"
+  aria-pressed="false"
+  aria-label="Like post by Lisa"
+>
+  Like
+</button>
+```
+
+---
+
+Issues Summary
+
+```pre
+  ┌─────┬──────────┬─────────────────────┬──────────────────────────────────────────────────┐
+  │  #  │ Severity │      Location       │                     Issue                        │
+  ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+  │ 1   │ HIGH     │ Phase 2+3, lines    │ javascript: hrefs violate CSP, establish XSS     │
+  │     │          │ 747,775,780,1149,   │ pattern (introduced by 22nd cycle fix #5)        │
+  │     │          │ 1234,1266           │                                                  │
+  ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+  │ 2   │ HIGH     │ Phase 2, lines      │ Image/Author href prop bypasses URL              │
+  │     │          │ 453, 541            │ sanitization — XSS if reused with user data      │
+  ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+  │ 3   │ MODERATE │ Phase 2, line 602   │ Card template literal renders "card-style        │
+  │     │          │                     │ undefined" (22nd cycle fix #9 incomplete)        │
+  ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+  │ 4   │ MODERATE │ Phases 2+3, lines   │ Hidden sidebar/nav still keyboard-tabbable on    │
+  │     │          │ 740, 1205           │ mobile — inert attribute needed                  │
+  ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+  │ 5   │ MODERATE │ Phase 3, lines      │ aria-label on non-interactive <span> invalid     │
+  │     │          │ 1156, 1169          │ per ARIA spec — use sr-only text instead         │
+  ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+  │ 6   │ MODERATE │ Phase 2, lines      │ Author fallback renders bare fragment — no       │
+  │     │          │ 533-546             │ flex/gap/margin vs href branch with <a>          │
+  ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+  │ 7   │ MINOR    │ Phase 3, line 1136  │ Author href links to raw PNG image, not          │
+  │     │          │                     │ profile page                                     │
+  ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+  │ 8   │ MINOR    │ Phase 3, line 1178  │ "Like" button has aria-pressed but no            │
+  │     │          │                     │ contextual aria-label                            │
+  └─────┴──────────┴─────────────────────┴──────────────────────────────────────────────────┘
+```
+
+---
+
+Positive Observations
+
+- Hook architecture solid — useDismiss, useIsMobile, useListbox have proper SSR guards (isServer), cleanup via
+  onCleanup, and correct SolidJS reactive patterns. useDismiss with/without ref cleanly differentiates Escape-only vs Escape+click-outside.
+- Theme toggle CSP compliance — External theme-init.js avoids inline script injection. The data-theme +
+  prefers-color-scheme CSS cascade in app.css correctly handles light/dark/auto with :root[data-theme="dark"] and
+  :root:not([data-theme="light"]) selectors.
+- sanitizeImageUrl well-constructed — Regex + BREAK_CHARS blocks protocol injection AND CSS breakout via url().
+  Protocol-relative //evil.com correctly blocked since second char / doesn't match \w.
+- ThemeToggle createEffect cleanup pattern correct — Comment "Solid calls only cleanups registered in the prior run" is accurate. Early return path skips onCleanup registration; prior run's cleanup still fires.
+- Tailwind v4 syntax consistent — Custom property syntax text-(--var) used throughout per project rules. Arbitrary
+  values only where no built-in utility exists (transition-[opacity,transform], grid-rows-[0fr]).
+- Static data outside components — CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS declared as module-level constants, preventing re-creation per render.
+- 22nd cycle fixes well-integrated — 8 of 9 fixes properly applied: classList split, aria-label hardcoded,
+  .jedi-header scoping, transition moved to `<a>`, `<Show>` condition swapped, mobile tests added, E2E title corrected. Only fix #9 (Card class) incomplete.
