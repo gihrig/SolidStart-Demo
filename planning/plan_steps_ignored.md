@@ -6317,9 +6317,9 @@ Fix:
 
 ---
 
-### 5. MODERATE — aria-label on non-interactive `<span>` is invalid ARIA (Phase 3, lines 1156, 1169)
+### 5. MODERATE — aria-label on non-interactive `<span>` is invalid ARIA (Phase 3, lines 1178, 1192)
 
-Plan lines 1154-1158:
+Plan lines 1178:
 
 ```tsx
 <span class="font-light text-(--theme-card-fg) ml-2" aria-label="Comments on this post">
@@ -6327,7 +6327,7 @@ Plan lines 1154-1158:
 </span>
 ```
 
-Plan lines 1167-1171:
+Plan lines 1192:
 
 ```tsx
 <span class="font-light text-(--theme-card-fg) ml-2" aria-label="Likes">
@@ -6335,23 +6335,32 @@ Plan lines 1167-1171:
 </span>
 ```
 
-Per WAI-ARIA spec, aria-label applies only to interactive elements or elements with explicit roles. A bare `<span>` has no implicit role — assistive tech ignores the label.
+- Per WAI-ARIA spec, aria-label applies only to interactive elements or elements with explicit roles.
+- A bare `<span>` has no implicit role
+- assistive tech ignores the label.
+- Tailwind sr-only provides screen-reader-only text without ARIA constraint violations.
 
 Fix:
 
-Use visually-hidden text for screen readers:
+- Remove aria-label @line 1178
+- Use visually-hidden text for screen readers
 
 ```tsx
-  <span class="font-light text-(--theme-card-fg) ml-2">
-    <span class="sr-only">Comments: </span>3
-  </span>
-
-  <span class="font-light text-(--theme-card-fg) ml-2">
-    <span class="sr-only">Likes: </span>1
-  </span>
+<span class="font-light text-(--theme-card-fg) ml-2">
+  <span class="sr-only">Comments: </span>3
+</span>
 ```
 
-Tailwind sr-only provides screen-reader-only text without ARIA constraint violations.
+- Remove aria-label @line 1192
+- Use visually-hidden text for screen readers
+
+```tsx
+<span class="font-light text-(--theme-card-fg) ml-2">
+  <span class="sr-only">Likes: </span>1
+</span>
+```
+
+**Updated per Fix**
 
 ---
 

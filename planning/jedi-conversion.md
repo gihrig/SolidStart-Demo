@@ -1177,7 +1177,7 @@ export default function Jedi() {
                     class="font-light text-(--theme-card-fg) ml-2"
                     aria-label="Comments on this post"
                   >
-                    3
+                    <span class="sr-only">Comments: </span>3
                   </span>
                 </a>
                 <div class="flex items-center gap-4">
@@ -1189,8 +1189,8 @@ export default function Jedi() {
                       aria-hidden="true"
                       loading="lazy"
                     />
-                    <span class="font-light text-(--theme-card-fg) ml-2" aria-label="Likes">
-                      1
+                    <span class="font-light text-(--theme-card-fg) ml-2">
+                      <span class="sr-only">Likes: </span>1
                     </span>
                   </div>
                   <button
