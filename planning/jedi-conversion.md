@@ -1595,7 +1595,6 @@ describe("<ThemeToggle />", () => {
       value: mockMatchMedia,
     });
 
-    document.documentElement.classList.remove("light", "dark");
     document.documentElement.removeAttribute("data-theme");
     document.documentElement.style.colorScheme = "";
   });

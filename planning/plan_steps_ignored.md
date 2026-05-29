@@ -6722,7 +6722,7 @@ it("allows root path", () => {
 
 ---
 
-### 6. MINOR — ThemeToggle test cleans up classes never used by component (Phase 4, line 1609)
+### 6. MINOR — ThemeToggle test cleans up classes never used by component (Phase 4, line 1598)
 
 Plan line 1609 (beforeEach):
 
@@ -6734,7 +6734,8 @@ Plan line 1609 (beforeEach):
 
 Fix:
 
-Remove the classList cleanup line at 1609. The removeAttribute("data-theme") at line 1611 is the correct cleanup:
+- Remove the classList cleanup line at 1598.
+- The removeAttribute("data-theme") at line 1599 is the correct cleanup:
 
 ```js
 beforeEach(() => {
@@ -6743,6 +6744,8 @@ beforeEach(() => {
   document.documentElement.style.colorScheme = "";
 });
 ```
+
+**Updated per Fix**
 
 ---
 
