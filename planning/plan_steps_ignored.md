@@ -6872,9 +6872,9 @@ Remove lines 213–215 from jedi.css:
 
 ---
 
-### 2. MODERATE — class="nav-link" on dropdown buttons is dead CSS (Phase 2, lines 785, 790)
+### 2. MODERATE — class="nav-link" on dropdown buttons is dead CSS (Phase 2, lines 780, 790)
 
-Plan lines 785–793 (dropdown inside .hoverlist):
+Plan lines 780–794 (dropdown inside .hoverlist):
 
 ```tsx
   <ul class="hoverlist">
@@ -6898,12 +6898,12 @@ CSS selectors in jedi.css (lines 221–226):
 
 - .nav-link has no standalone CSS rule — only matches inside compound selector .navitems > li > .nav-link.
 - Dropdown buttons are inside .hoverlist, not .navitems → selector never matches.
-- Actual styling comes from .hoverlist > \* > :is(a, button) → flex items-center p-2.
+- Actual styling comes from `.hoverlist > * > :is(a, button) → flex items-center p-2`.
 - class="nav-link" is dead code left over from `<a>` → `<button>` conversion in 23rd cycle fix #1.
 
 Fix:
 
-- Remove class="nav-link" from both dropdown buttons at lines 785 and 790:
+- Remove class="nav-link" from both dropdown buttons at lines 782 and 787:
 
 ```tsx
   <button type="button" onClick={() => alert("Not implemented")}>
@@ -6914,6 +6914,8 @@ Fix:
     Log Out
   </button>
 ```
+
+**Updated per Fix**
 
 ---
 
