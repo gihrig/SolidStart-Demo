@@ -7085,9 +7085,9 @@ Fix:
 
 ---
 
-### 7. MINOR — Author fallback has unnecessary fragment wrapper (Phase 2, lines 538–544)
+### 7. MINOR — Author fallback has unnecessary fragment wrapper (Phase 2, lines 535–540)
 
-Plan lines 538–544:
+Plan lines 535–540:
 
 ```tsx
   <Show when={props.href} fallback={
@@ -7115,6 +7115,8 @@ Fix:
     </div>
   }>
 ```
+
+**Updated per Fix**
 
 ---
 
