@@ -7155,9 +7155,9 @@ Fix:
 
 ---
 
-### 9. MINOR — E2E mobile sidebar not.toBeVisible() assertion may be flaky (Phase 5, line 1846)
+### 9. MINOR — E2E mobile sidebar not.toBeVisible() assertion may be flaky (Phase 5, line 1835)
 
-Plan line 1846:
+Plan line 1835:
 
 `await expect(aside).not.toBeVisible();`
 
@@ -7165,20 +7165,18 @@ Plan line 1846:
 - Playwright `toBeVisible()` checks bounding box dimensions
 - Element must have zero width OR height to be "not visible".
 - `opacity: 0` alone does NOT make an element invisible to Playwright.
-
 - The `grid-rows-[0fr] + overflow-hidden` should collapse content to zero height.
 - But the aside itself may retain non-zero height from its own padding, borders, or the grid container's gap.
 - If the aside has even 1px height, Playwright considers it "visible" and assertion fails.
 
 Fix:
 
-Use a more explicit assertion that doesn't depend on bounding box collapse:
-
+- Use a more explicit assertion that doesn't depend on bounding box collapse:
 - Check inert attribute instead
 - Semantically correct for "hidden from interaction"
-- `await expect(aside).toHaveAttribute("inert", "");`
-- Or check opacity class
-  `await expect(aside).toHaveClass(/opacity-0/);`
+- `await expect(aside).toHaveAttribute("inert");`
+
+**Updated per Fix**
 
 ---
 
