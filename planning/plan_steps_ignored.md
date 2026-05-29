@@ -7323,7 +7323,7 @@ Add closing } after href() at line 542:
 
 ---
 
-### 2. MODERATE — E2E responsive layout test uses not.toBeVisible() on aside (Phase 5, line 1882)
+### 2. MODERATE — E2E responsive layout test uses not.toBeVisible() on aside (Phase 5, line 1872)
 
 Plan line 1872–1882:
 
@@ -7337,14 +7337,16 @@ test("should have responsive layout", async ({ page }) => {
 });
 ```
 
-25th cycle fix #9 identified this exact flakiness pattern at line 1836 and replaced it with toHaveAttribute("inert").
-Line 1882 has the same issue — opacity-0 grid-rows-[0fr] aside may retain non-zero bounding box from padding/gap → Playwright considers it "visible" → assertion fails.
+- 25th cycle fix #9 identified this exact flakiness pattern at line 1836 and replaced it with toHaveAttribute("inert").
+- Line 1881 has the same issue — opacity-0 grid-rows-[0fr] aside may retain non-zero bounding box from padding/gap → Playwright considers it "visible" → assertion fails.
 
 Fix:
 
-Apply same pattern as fix #9 at line 1882:
+Apply same pattern as fix #9 at line 1881:
 
 `await expect(page.locator("aside")).toHaveAttribute("inert");`
+
+**Updated per Fix**
 
 ---
 

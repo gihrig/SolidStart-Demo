@@ -1878,7 +1878,7 @@ test.describe("Jedi Page", () => {
     // Gate on toggle button — proves isMobile() signal updated after matchMedia fired
     await expect(page.getByRole("button", { name: /toggle sidebar/i })).toBeVisible();
     await expect(page.locator("main")).toBeVisible();
-    await expect(page.locator("aside")).not.toBeVisible();
+    await expect(page.locator("aside")).toHaveAttribute("inert");
   });
 });
 
