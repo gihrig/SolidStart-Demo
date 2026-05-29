@@ -552,8 +552,9 @@ export default function Author(props: AuthorProps) {
 **Test**: `src/components/Author.test.tsx`
 
 ```typescript
-import { describe, it, expect } from "vite-plus/test"
+import { describe, it, expect, vi } from "vite-plus/test"
 import { render, screen } from '@solidjs/testing-library'
+import userEvent from "@testing-library/user-event";
 import Author from './Author'
 
 describe('<Author />', () => {
@@ -571,6 +572,14 @@ describe('<Author />', () => {
   it('renders without link when href not provided', () => {
     render(() => <Author avatarSrc="/images/avatar.jpg" name="Test" />)
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
+  })
+
+  it('calls onClick handler when link clicked', async () => {
+    const handler = vi.fn((e: MouseEvent) => e.preventDefault());
+    const user = userEvent.setup();
+    render(() => <Author avatarSrc="/images/avatar.jpg" name="Test" href="#" onClick={handler} />);
+    await user.click(screen.getByRole('link'));
+    expect(handler).toHaveBeenCalledOnce();
   })
 })
 ```

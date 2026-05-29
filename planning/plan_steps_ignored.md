@@ -7423,6 +7423,8 @@ Add onClick test to Author describe block:
   })
 ```
 
+**Updated per Fix**
+
 ---
 
 ### 5. MINOR — E2E nav link assertions use unscoped nav locator matching both navs (Phase 5, lines 1850–1858)
