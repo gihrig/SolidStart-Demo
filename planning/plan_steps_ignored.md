@@ -6452,9 +6452,9 @@ Fix:
 
 ---
 
-### 8. MINOR — "Like" button lacks contextual aria-label (Phase 3, line 1178)
+### 8. MINOR — "Like" button lacks contextual aria-label (Phase 3, line 1209)
 
-Plan line 1176-1180:
+Plan line 1205-1212:
 
 ```tsx
 <button type="button" onClick={() => {}} class="theme-button" aria-pressed="false">
@@ -6462,8 +6462,9 @@ Plan line 1176-1180:
 </button>
 ```
 
-aria-pressed="false" is good for toggle semantics. But screen readers announce only "Like, toggle button, not pressed"
-— no context about WHAT is being liked.
+- aria-pressed="false" is good for toggle semantics.
+- Screen readers announce only "Like, toggle button, not pressed"
+  — No context about WHAT is being liked.
 
 Fix:
 
@@ -6478,6 +6479,8 @@ Fix:
   Like
 </button>
 ```
+
+**Updated per Fix**
 
 ---
 

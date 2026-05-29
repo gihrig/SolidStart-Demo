@@ -1207,6 +1207,7 @@ export default function Jedi() {
                     onClick={() => {}}
                     class="theme-button"
                     aria-pressed="false"
+                    aria-label="Like post by Lisa"
                   >
                     Like
                   </button>
