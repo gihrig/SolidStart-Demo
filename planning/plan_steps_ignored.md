@@ -7532,7 +7532,7 @@ Cross-referenced with 26th cycle fixes (lines 7294–7457 of plan_steps_ignored.
 
 ---
 
-### 1. CRITICAL — Author.tsx stray } reintroduces JSX SyntaxError (Phase 2, line 542)
+### 1. CRITICAL — Author.tsx stray `}` reintroduces JSX SyntaxError (Phase 2, line 542)
 
 Plan line 542 (current state):
 
@@ -7540,19 +7540,23 @@ Plan line 542 (current state):
   <a class="flex items-center gap-1 mb-4 hover:underline" href={sanitizeUrl(href())} onClick={props.onClick}}>
 ```
 
-The 26th-cycle fix #1 added the missing } after sanitizeUrl(href()) but left the original trailing brace in place, producing onClick={props.onClick}}. The attribute onClick={props.onClick} is balanced; the extra } then sits between the last attribute and >. The JSX parser, expecting an attribute / / / >, hits an unexpected } token → compile-time SyntaxError.
+- The 26th-cycle fix #1 added the missing `}` after sanitizeUrl(href()) but left the original trailing brace in place, producing `onClick={props.onClick}}`.
+- The attribute onClick={props.onClick} is balanced; the extra `}` then sits between the last attribute and >.
+- The JSX parser, expecting an attribute >, hits an unexpected `}` token → compile-time SyntaxError.
 
 - Component cannot build.
-- The new onClick test (lines 577–583) and every <Author> usage on the route (lines 1149–1157) are blocked until this compiles.
+- The new onClick test (lines 577–583) and every `<Author>` usage on the route (lines 1149–1157) are blocked until this compiles.
 - Net effect: the 26th-cycle fix relocated the brace error rather than removing it.
 
 Fix:
 
-Delete the stray } at line 542:
+Delete the stray `}` at line 542:
 
 ```tsx
   <a class="flex items-center gap-1 mb-4 hover:underline" href={sanitizeUrl(href())} onClick={props.onClick}>
 ```
+
+**Updated per Fix**
 
 ---
 
