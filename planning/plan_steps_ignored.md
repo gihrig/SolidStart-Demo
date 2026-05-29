@@ -6983,18 +6983,22 @@ Existing Nav.test.tsx (lines 28–34) has beforeEach but no afterEach:
     });
 ```
 
-ThemeToggle (added via Step 4.4) calls applyThemeMode() during onMount, which mutates document.documentElement:
+`ThemeToggle` (added via Step 4.4) calls `applyThemeMode()` during `onMount`, which mutates `document.documentElement`:
 
+```js
 document.documentElement.setAttribute("data-theme", mode);
 document.documentElement.style.colorScheme = resolved;
+```
 
-- No afterEach to restore data-theme attribute or style.colorScheme.
-- No localStorage mock or cleanup — tests relying on empty localStorage could break if run order changes.
-- ThemeToggle's own tests (Step 4.3 lines 1597–1599) do this cleanup correctly — Nav tests should match.
+- No afterEach to restore `data-theme` attribute or `style.colorScheme`.
+- No localStorage mock or cleanup
+- Tests relying on empty localStorage could break if run order changes.
+- ThemeToggle's own tests (Step 4.3 lines 1594–1601) do this cleanup correctly
+- Nav tests should match.
 
 Fix:
 
-Add afterEach and localStorage mock to Nav.test.tsx:
+- Add afterEach and localStorage mock to `Nav.test.tsx`:
 
 ```js
   import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
@@ -7016,6 +7020,8 @@ Add afterEach and localStorage mock to Nav.test.tsx:
     });
     // ...tests...
 ```
+
+**Updated per Fix**
 
 ---
 

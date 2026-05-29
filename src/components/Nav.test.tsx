@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { render, screen } from "@solidjs/testing-library";
 import { MemoryRouter, Route, createMemoryHistory } from "@solidjs/router";
 import Nav from "./Nav";
@@ -32,6 +32,13 @@ describe("<Nav />", () => {
       value: mockMatchMedia,
     });
   });
+  document.documentElement.removeAttribute("data-theme");
+  document.documentElement.style.colorScheme = "";
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("renders navigation with Home, About, Readme, FullStack and Jedi links", () => {
     renderWithRouter();
 
