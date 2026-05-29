@@ -7352,36 +7352,25 @@ Apply same pattern as fix #9 at line 1881:
 
 ### 3. MODERATE — Nav.test.tsx theme toggle tests lack localStorage isolation (Phase 4, Step 4.5)
 
-Plan lines 1735–1756 (new Nav tests) and 25th cycle fix #4 (lines 7000–7024):
+`Nav.test.tsx` line 28-36
 
-Fix #4 added DOM cleanup:
-
-```js
-beforeEach(() => {
-  // ...matchMedia mock...
+```tsx
+describe("<Nav />", () => {
+  beforeEach(() => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: mockMatchMedia,
+    });
+  });
   document.documentElement.removeAttribute("data-theme");
   document.documentElement.style.colorScheme = "";
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 ```
-
-- ThemeToggle's toggleMode() at line 1454 calls `window.localStorage.setItem("theme", next)` directly
-- real localStorage, not mocked.
-- The cycle test (line 1745) clicks through light → dark → auto, writing to localStorage each time.
-- vi.restoreAllMocks() doesn't clear localStorage
-- it only restores spied/mocked functions.
-- Next test's onMount → `getInitialMode()` → reads stale localStorage value → mode mismatch.
-- ThemeToggle's own tests (Step 4.3 line 1569) solve this by mocking `Storage.prototype.getItem/setItem` completely.
-- Nav tests use real ThemeToggle with real localStorage.
 
 Fix:
 
-Add `localStorage.removeItem("theme")` to Nav beforeEach:
+Add `localStorage.removeItem("theme")` to `Nav.test.tsx` beforeEach line 29
 
-```js
+```tsx
 beforeEach(() => {
   localStorage.removeItem("theme");
   Object.defineProperty(window, "matchMedia", {
@@ -7392,6 +7381,8 @@ beforeEach(() => {
   document.documentElement.style.colorScheme = "";
 });
 ```
+
+**Updated per Fix**
 
 ---
 

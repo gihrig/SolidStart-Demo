@@ -27,6 +27,7 @@ const mockMatchMedia = vi.fn().mockReturnValue({
 
 describe("<Nav />", () => {
   beforeEach(() => {
+    localStorage.removeItem("theme");
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: mockMatchMedia,
