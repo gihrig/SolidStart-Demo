@@ -267,7 +267,7 @@ import "./jedi.css";
 **File**: `src/lib/sanitizeUrl.ts`
 
 ```typescript
-const SAFE_URL_PATTERN = /^(?:https?:\/\/|\/[\w]|#)/i;
+const SAFE_URL_PATTERN = /^(?:https?:\/\/|\/(?:[\w]|$)|#)/i;
 const BREAK_CHARS = /['\"()\\]/;
 
 export function sanitizeUrl(url: string): string | undefined {
@@ -296,6 +296,10 @@ describe("sanitizeUrl", () => {
 
   it("allows absolute paths", () => {
     expect(sanitizeUrl("/images/hero.jpg")).toBe("/images/hero.jpg");
+  });
+
+  it("allows root path", () => {
+    expect(sanitizeUrl("/")).toBe("/");
   });
 
   it("blocks javascript: protocol", () => {

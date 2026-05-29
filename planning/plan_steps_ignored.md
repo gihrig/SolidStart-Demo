@@ -6706,17 +6706,19 @@ The path alternative `\/[\w]` requires a word character after `/`. A bare "/" (r
 
 Fix:
 
-Allow root path by adding `\/$` alternative or relaxing the word-char requirement:
+Allow root path by adding `\/$` alternative @line 270
 
 `const SAFE_URL_PATTERN = /^(?:https?:\/\/|\/(?:[\w]|$)|#)/i;`
 
-Add test case:
+Add test case @line 301
 
 ```js
 it("allows root path", () => {
   expect(sanitizeUrl("/")).toBe("/");
 });
 ```
+
+**Updated per Fix**
 
 ---
 
