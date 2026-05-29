@@ -7264,3 +7264,235 @@ Positive Observations
 - CSP-compliant theme init via external public/theme-init.js instead of inline script — better security posture than the Tanstack reference implementation
 - E2E test coverage is thorough — theme persistence across reload, system preference emulation, responsive layout
   transitions
+
+===================================================================================
+
+## ❯ Review `planning/jedi-conversion.md`
+
+- Reference `planning/plan_steps_ignored.md` 25th cycle @lines 5811 - 7210
+- Follow layout and style in document referenced above
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for issues affecting security, accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Must use backticks e.g. <pre>`code;`</pre> for simple one-line code snippets in issues
+- Must use code fencing for multi-line code snippets in issues. eg.
+  <pre>
+    ```tsx
+    code;
+    ```
+  </pre>
+
+- Provide a recommended `Fix:` section at the end of each issue
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- Use the table layout and character format from the previous cycle as listed above
+- Limit table width to 100 columns
+- List Positive Observations in a bulleted list at end of results
+
+## Jedi Conversion Plan Review — 26th Cycle
+
+Cross-referenced with 25th cycle fixes (lines 6811–7210 of plan_steps_ignored.md).
+
+---
+
+### 1. CRITICAL — Author.tsx JSX syntax error: missing } closes href expression into onClick (Phase 2, line 542)
+
+Plan line 542:
+
+```tsx
+  <a class="flex items-center gap-1 mb-4 hover:underline" href={sanitizeUrl(href()) onClick={props.onClick}}>
+```
+
+Missing closing } after sanitizeUrl(href()). JSX parser sees href={sanitizeUrl(href()) onClick={props.onClick}} — One expression containing invalid JavaScript (onClick is not an operator). Compile-time SyntaxError.
+
+- Component cannot build.
+
+25th cycle fix #5 added onClick prop forwarding but the closing brace was dropped during the edit.
+
+Fix:
+
+Add closing } after href() at line 542:
+
+```tsx
+  <a class="flex items-center gap-1 mb-4 hover:underline" href={sanitizeUrl(href())} onClick={props.onClick}>
+```
+
+---
+
+### 2. MODERATE — E2E responsive layout test uses not.toBeVisible() on aside (Phase 5, line 1882)
+
+Plan line 1872–1882:
+
+```js
+test("should have responsive layout", async ({ page }) => {
+  // ...
+  await page.setViewportSize({ width: 375, height: 667 });
+  await expect(page.getByRole("button", { name: /toggle sidebar/i })).toBeVisible();
+  await expect(page.locator("main")).toBeVisible();
+  await expect(page.locator("aside")).not.toBeVisible();
+});
+```
+
+25th cycle fix #9 identified this exact flakiness pattern at line 1836 and replaced it with toHaveAttribute("inert").
+Line 1882 has the same issue — opacity-0 grid-rows-[0fr] aside may retain non-zero bounding box from padding/gap → Playwright considers it "visible" → assertion fails.
+
+Fix:
+
+Apply same pattern as fix #9 at line 1882:
+
+`await expect(page.locator("aside")).toHaveAttribute("inert");`
+
+---
+
+### 3. MODERATE — Nav.test.tsx theme toggle tests lack localStorage isolation (Phase 4, Step 4.5)
+
+Plan lines 1735–1756 (new Nav tests) and 25th cycle fix #4 (lines 7000–7024):
+
+Fix #4 added DOM cleanup:
+
+```js
+beforeEach(() => {
+  // ...matchMedia mock...
+  document.documentElement.removeAttribute("data-theme");
+  document.documentElement.style.colorScheme = "";
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+```
+
+- ThemeToggle's toggleMode() at line 1454 calls `window.localStorage.setItem("theme", next)` directly
+- real localStorage, not mocked.
+- The cycle test (line 1745) clicks through light → dark → auto, writing to localStorage each time.
+- vi.restoreAllMocks() doesn't clear localStorage
+- it only restores spied/mocked functions.
+- Next test's onMount → `getInitialMode()` → reads stale localStorage value → mode mismatch.
+- ThemeToggle's own tests (Step 4.3 line 1569) solve this by mocking `Storage.prototype.getItem/setItem` completely.
+- Nav tests use real ThemeToggle with real localStorage.
+
+Fix:
+
+Add `localStorage.removeItem("theme")` to Nav beforeEach:
+
+```js
+beforeEach(() => {
+  localStorage.removeItem("theme");
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: mockMatchMedia,
+  });
+  document.documentElement.removeAttribute("data-theme");
+  document.documentElement.style.colorScheme = "";
+});
+```
+
+---
+
+### 4. MODERATE — Author.test.tsx has no test for onClick prop (Phase 2, lines 554–576)
+
+Plan lines 554–576 (Author test suite):
+
+```js
+  describe('<Author />', () => {
+    it('renders avatar and name', () => { ... })
+    it('uses custom href when provided', () => { ... })
+    it('renders without link when href not provided', () => { ... })
+  })
+```
+
+- 25th cycle fix #5 added onClick?: (e: MouseEvent) => void to AuthorProps and forwarded it to the `<a>` element.
+- No corresponding test was added.
+- If the onClick forwarding is broken (it IS — see issue #1's syntax error), tests pass with no signal.
+
+Fix:
+
+Add imports:
+
+```js
+import { describe, it, expect, vi } from "vite-plus/test";
+import userEvent from "@testing-library/user-event";
+```
+
+Add onClick test to Author describe block:
+
+```js
+  it('calls onClick handler when link clicked', async () => {
+    const handler = vi.fn((e: MouseEvent) => e.preventDefault());
+    const user = userEvent.setup();
+    render(() => <Author avatarSrc="/images/avatar.jpg" name="Test" href="#" onClick={handler} />);
+    await user.click(screen.getByRole('link'));
+    expect(handler).toHaveBeenCalledOnce();
+  })
+```
+
+---
+
+### 5. MINOR — E2E nav link assertions use unscoped nav locator matching both navs (Phase 5, lines 1850–1858)
+
+Plan lines 1850–1858:
+
+```js
+test("should have global nav links on jedi page", async ({ page }) => {
+  await page.goto("/jedi");
+  const nav = page.locator('nav[role="navigation"]');
+  await expect(nav.getByRole("link", { name: /home/i })).toBeVisible();
+  // ...
+  await expect(nav.getByRole("link", { name: /jedi/i })).toBeVisible();
+});
+```
+
+- Page has two nav[role="navigation"] elements: `global Nav (aria-label="Main")` and `JediNav (aria-label="Jedi site navigation")`.
+- Locator matches both.
+- getByRole searches across all matched elements.
+- Currently works because JediNav links have different text ("Home", "Create Post", "Bart").
+- But fragile
+- if JediNav adds any link text matching `/home/i`, `/about/i`, etc., test breaks with "strict mode violation."
+
+Fix:
+
+Scope to global Nav via aria-label at line 1852:
+
+`const nav = page.getByRole("navigation", { name: /^Main$/i });`
+
+---
+
+Issues Summary
+
+```pre
+  ┌────┬──────────┬────────────────────┬──────────────────────────────────────────────────────────┐
+  │ #  │ Severity │       Location     │                        Issue                             │
+  ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
+  │ 1  │ CRITICAL │ Phase 2, line 542  │ Missing } in Author href expression — JSX SyntaxError,   │
+  │    │          │                    │ component cannot compile                                 │
+  ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
+  │ 2  │ MODERATE │ Phase 5, line 1882 │ E2E responsive test not.toBeVisible() on aside — same    │
+  │    │          │                    │ flakiness as 25th cycle fix #9                           │
+  ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
+  │ 3  │ MODERATE │ Phase 4, Step 4.5  │ Nav.test.tsx theme toggle tests write real localStorage  │
+  │    │          │                    │ with no cleanup — order-dependent failures               │
+  ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
+  │ 4  │ MODERATE │ Phase 2,           │ Author.test.tsx missing onClick prop test — won't catch  │
+  │    │          │ lines 554–576      │ broken forwarding from fix #5                            │
+  ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
+  │ 5  │ MINOR    │ Phase 5, lines     │ E2E nav test locator matches both navs — fragile if      │
+  │    │          │ 1850–1858          │ JediNav adds overlapping link text                       │
+  └────┴──────────┴────────────────────┴──────────────────────────────────────────────────────────┘
+```
+
+---
+
+Positive Observations
+
+- 25th cycle fixes all properly integrated — .jedi-header > button rule removed with styles moved inline, dropdown class="nav-link" removed, Comments aria-label includes count, Author onClick prop added, logo href changed to /jedi, fragment wrapper removed, Hero aria-label="Hero" added, toHaveAttribute("inert") replaces not.toBeVisible() at line 1836, isLiked() signal placeholder added
+- sanitizeUrl comprehensive — regex ^(?:https?:\/\/|\/(?:[\w]|$)|#) + BREAK_CHARS covers protocol injection, CSS
+  breakout, path traversal. Root / allowed per 24th cycle fix #5. Applied consistently on Hero bgImage, Image src/href, Author avatarSrc/href
+- inert attribute used correctly on both JediNav `<nav>` (line 741) and sidebar `<aside>` (line 1217) — prevents Tab/AT access into hidden content, cleaner than aria-hidden + pointer-events-none
+- Tailwind v4 syntax clean — text-(--theme-var), bg-(--theme-var), ring-(--theme-accent) custom property syntax
+  throughout. No v3 residue (bg-opacity-_, md:!block, [&>_]). Arbitrary values only where no built-in utility exists (transition-[opacity,transform], grid-rows-[0fr])
+- Theme architecture correct — @layer base :root / :root[data-theme="dark"] / @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) } cascade handles all three modes. External theme-init.js prevents FOUC without CSP violations
+- ThemeToggle createEffect cleanup pattern correct — early return when mode !== "auto" skips onCleanup registration; prior run's cleanup still fires. Comment at line 1441 accurately documents this SolidJS behavior
+- .hoverlist > \* > :is(a, button) selector (jedi.css line 233) correctly handles both `<a>` and `<button>` children after 23rd/24th cycle `<a>` → `<button>` conversions
+- Grid-based sidebar collapse (grid-rows-[0fr]/grid-rows-[1fr] + overflow-hidden min-h-0) provides smooth CSS-only animation without JavaScript height calculation
