@@ -7120,9 +7120,9 @@ Fix:
 
 ---
 
-### 8. MINOR — Hero <section> lacks aria-label for screen reader disambiguation (Phase 3, line 1088)
+### 8. MINOR — Hero <section> lacks aria-label for screen reader disambiguation (Phase 3, line 1083)
 
-Plan line 1088:
+Plan line 1083:
 
 ```tsx
   <Hero
@@ -7131,17 +7131,17 @@ Plan line 1088:
   />
 ```
 
-Hero renders (Phase 2 line 364):
+Hero renders (Phase 2 line 361):
 
 `<section class="grid bg-gray-700 text-white text-center bg-cover relative" ...>`
 
 - Page has 4+ `<section>` elements (Hero + 3 Cards).
 - Screen readers announce "section" landmarks — unlabeled sections are indistinguishable.
-- Cards get implicit labels from `<h2>` title via Card component, but Hero has no heading landmark inside `<section>` (the `<h1>` is nested in a child div).
+- Cards get implicit labels from `<h2>` title via Card component, but Hero has no heading landmark inside `<section>` (the `<h1>` is nested in a child `<div>`).
 
 Fix:
 
-- Add aria-label to Hero section element
+- Add aria-label to Hero section element line 361
 
 ```tsx
   <section
@@ -7150,6 +7150,8 @@ Fix:
     style={{ "background-image": bgImage() }}
   >
 ```
+
+**Updated per Fix**
 
 ---
 

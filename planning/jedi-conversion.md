@@ -359,6 +359,7 @@ export default function Hero(props: HeroProps) {
 
   return (
     <section
+      aria-label="Hero"
       class="grid bg-gray-700 text-white text-center bg-cover relative"
       style={{ "background-image": bgImage() }}
     >
