@@ -6669,9 +6669,9 @@ Fix:
 
 ---
 
-### 4. MODERATE — E2E test Like button regex won't match updated aria-label (Phase 5, line 1889)
+### 4. MODERATE — E2E test Like button regex won't match updated aria-label (Phase 5, line 1874)
 
-Plan line 1889 (E2E test):
+Plan line 1874 (E2E test):
 
 `await expect(article.getByRole("button", { name: /^Like$/i })).toBeVisible();`
 
@@ -6683,17 +6683,15 @@ Plan line 1210 (button in Phase 3, updated by 23rd cycle fix #8):
 - Playwright getByRole matches against accessible name.
 - Anchored regex `/^Like$/i` does not match "Like post by Lisa"
 - The $ anchor fails after "Like".
-- The Edit (/Edit/i) and Delete (/Delete/i) assertions at lines 1890–1891 are unanchored and work correctly.
+- The Edit (/Edit/i) and Delete (/Delete/i) assertions at lines 1875–1876 are unanchored and work correctly.
 
 Fix:
 
-Remove anchors from Like button regex at line 1889:
+Remove anchors from Like button regex at line 1874:
 
 `await expect(article.getByRole("button", { name: /Like/i })).toBeVisible();`
 
-Or match full label:
-
-`await expect(article.getByRole("button", { name: /like post by lisa/i })).toBeVisible();`
+**Updated per Fix**
 
 ---
 
