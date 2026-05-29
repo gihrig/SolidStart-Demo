@@ -7319,6 +7319,8 @@ Add closing } after href() at line 542:
   <a class="flex items-center gap-1 mb-4 hover:underline" href={sanitizeUrl(href())} onClick={props.onClick}>
 ```
 
+**Updated per Fix**
+
 ---
 
 ### 2. MODERATE — E2E responsive layout test uses not.toBeVisible() on aside (Phase 5, line 1882)
