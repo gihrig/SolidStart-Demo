@@ -748,12 +748,7 @@ export default function JediNav() {
             </a>
           </li>
           <li>
-            <button
-              class="nav-link"
-              type="button"
-              onClick={() => alert("Not implemented")}
-              class="nav-link"
-            >
+            <button type="button" onClick={() => alert("Not implemented")} class="nav-link">
               Create Post
             </button>
           </li>
@@ -783,22 +778,12 @@ export default function JediNav() {
             >
               <ul class="hoverlist">
                 <li>
-                  <button
-                    class="nav-link"
-                    type="button"
-                    onClick={() => alert("Not implemented")}
-                    class="nav-link"
-                  >
+                  <button type="button" onClick={() => alert("Not implemented")} class="nav-link">
                     My Profile
                   </button>
                 </li>
                 <li>
-                  <button
-                    class="nav-link"
-                    type="button"
-                    onClick={() => alert("Not implemented")}
-                    class="nav-link"
-                  >
+                  <button type="button" onClick={() => alert("Not implemented")} class="nav-link">
                     Log Out
                   </button>
                 </li>

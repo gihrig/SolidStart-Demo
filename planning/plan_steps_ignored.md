@@ -6598,7 +6598,7 @@ Line 740 — replace mobileSidebarOpen with mobileNavOpen:
 
 ---
 
-### 2. HIGH — Duplicate class prop on 3 <button> elements (Phase 2, lines 752/755, 788/791, 795/798)
+### 2. HIGH — Duplicate class prop on 3 `<button>` elements (Phase 2, lines 752/755, 788/791, 795/798)
 
 Plan lines 751–757 ("Create Post" button):
 
@@ -6617,7 +6617,8 @@ Plan lines 751–757 ("Create Post" button):
 
 Fix:
 
-Remove the first `class="nav-link"` from each button, keeping only one:
+- Remove the first `class="nav-link"` from each button, keeping only one:
+- @line 751, 782, 787
 
 ```tsx
 <button type="button" onClick={() => alert("Not implemented")} class="nav-link">
@@ -6625,7 +6626,7 @@ Remove the first `class="nav-link"` from each button, keeping only one:
 </button>
 ```
 
-Apply same fix at lines 787–793 and 794–801.
+**Updated per Fix**
 
 ---
 
