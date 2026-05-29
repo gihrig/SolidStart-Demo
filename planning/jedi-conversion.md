@@ -705,7 +705,7 @@ export default function JediNav() {
   return (
     <header class="jedi-header">
       <div class="flex items-center justify-between h-20 px-8">
-        <a class="flex items-center gap-1" href="#">
+        <a class="flex items-center gap-1" href="/jedi">
           <img
             class="h-8 -mt-1"
             src="https://img.icons8.com/small/64/ffffff/fire-heart.png"

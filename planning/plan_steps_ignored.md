@@ -7067,7 +7067,7 @@ Fix:
 
 ---
 
-### 6. MINOR — JediNav logo `<a href="#">` goes nowhere useful (Phase 2, line 711)
+### 6. MINOR — JediNav logo `<a href="#">` goes nowhere useful (Phase 2, line 708)
 
 Plan line 711:
 
@@ -7080,6 +7080,8 @@ Plan line 711:
 Fix:
 
 - `<a class="flex items-center gap-1" href="/jedi">`
+
+**Updated per Fix**
 
 ---
 
