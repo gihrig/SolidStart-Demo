@@ -7495,3 +7495,197 @@ Positive Observations
 - ThemeToggle createEffect cleanup pattern correct — early return when mode !== "auto" skips onCleanup registration; prior run's cleanup still fires. Comment at line 1441 accurately documents this SolidJS behavior
 - .hoverlist > \* > :is(a, button) selector (jedi.css line 233) correctly handles both `<a>` and `<button>` children after 23rd/24th cycle `<a>` → `<button>` conversions
 - Grid-based sidebar collapse (grid-rows-[0fr]/grid-rows-[1fr] + overflow-hidden min-h-0) provides smooth CSS-only animation without JavaScript height calculation
+
+===================================================================================
+
+## ❯ Review `planning/jedi-conversion.md`
+
+- Reference `planning/plan_steps_ignored.md` 26th cycle @lines 7294 - 7457
+- Follow layout and style in document referenced above
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for issues affecting security, accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Must use backticks e.g. <pre>`code;`</pre> for simple one-line code snippets in issues
+- Must use code fencing for multi-line code snippets in issues. eg.
+  <pre>
+    ```tsx
+    code;
+    ```
+  </pre>
+
+- Provide a recommended `Fix:` section at the end of each issue
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- Use the table layout and character format from the previous cycle as listed above
+- Limit table width to 100 columns
+- List Positive Observations in a bulleted list at end of results
+
+## Jedi Conversion Plan Review — 27th Cycle - used Opus 4.8 with max effort
+
+Note: Opus 4.8 completed with 13% context. In the previous cycle Opus 4.6 used 48%
+
+⏺ I've completed a full review. app.tsx has no `<main>` wrapper (route's `<main>` is the sole landmark — fine), and existing routes (index, about, fullstack, 404) all use class="demo", so the .demo-scoped rules in Step 1.1 don't break them.
+
+Cross-referenced with 26th cycle fixes (lines 7294–7457 of plan_steps_ignored.md).
+
+---
+
+### 1. CRITICAL — Author.tsx stray } reintroduces JSX SyntaxError (Phase 2, line 542)
+
+Plan line 542 (current state):
+
+```tsx
+  <a class="flex items-center gap-1 mb-4 hover:underline" href={sanitizeUrl(href())} onClick={props.onClick}}>
+```
+
+The 26th-cycle fix #1 added the missing } after sanitizeUrl(href()) but left the original trailing brace in place, producing onClick={props.onClick}}. The attribute onClick={props.onClick} is balanced; the extra } then sits between the last attribute and >. The JSX parser, expecting an attribute / / / >, hits an unexpected } token → compile-time SyntaxError.
+
+- Component cannot build.
+- The new onClick test (lines 577–583) and every <Author> usage on the route (lines 1149–1157) are blocked until this compiles.
+- Net effect: the 26th-cycle fix relocated the brace error rather than removing it.
+
+Fix:
+
+Delete the stray } at line 542:
+
+```tsx
+  <a class="flex items-center gap-1 mb-4 hover:underline" href={sanitizeUrl(href())} onClick={props.onClick}>
+```
+
+---
+
+### 2. MODERATE — Profile dropdown uses aria-hidden but not inert; hidden buttons stay keyboard-focusable (Phase 2, lines 785–788)
+
+Plan lines 785–788:
+
+```tsx
+  <div
+    aria-hidden={!dropdownOpen()}
+    class={`absolute right-0 bg-(--theme-card-bg) text-(--theme-card-fg) shadow rounded-lg w-40 p-2 z-20
+      transition-[opacity,transform] duration-300 ease-out origin-top ${dropdownOpen() ? "opacity-100 scale-100
+      translate-y-0" : "opacity-0 scale-90 -translate-y-5 pointer-events-none"}`
+    }
+  >
+```
+
+- The `<nav>` (line 750) and the sidebar `<aside>` (line 1226) both use inert to pull hidden content out of the tab order.
+- The profile dropdown only sets aria-hidden + pointer-events-none. pointer-events-none blocks the mouse, not keyboard Tab.
+- On desktop isMobile() is false, so the parent <nav> is never inert. The closed dropdown's My Profile and Log Out buttons (lines 791–799) therefore stay in the tab order while the container is aria-hidden="true".
+- That is an aria-hidden-focus violation (focusable controls inside an aria-hidden subtree) — Phase 7 line 2145 runs axe DevTools, which flags exactly this.
+- Inconsistent with the inert pattern the 26th cycle praised on nav/aside.
+
+Fix:
+
+Add `inert` to the dropdown, mirroring the nav/aside pattern. Keep aria-hidden so JediNav.test.tsx lines 866/872/974/978 still assert against it:
+
+```tsx
+  <div
+    inert={!dropdownOpen()}
+    aria-hidden={!dropdownOpen()}
+    class={`absolute right-0 bg-(--theme-card-bg) text-(--theme-card-fg) shadow rounded-lg w-40 p-2 z-20
+      transition-[opacity,transform] duration-300 ease-out origin-top ${dropdownOpen() ? "opacity-100 scale-100
+      translate-y-0" : "opacity-0 scale-90 -translate-y-5 pointer-events-none"}`
+    }
+  >
+```
+
+---
+
+### 3. MINOR — Hero ctaHref rendered without sanitizeUrl (Phase 2, lines 372–375)
+
+Plan lines 372–375:
+
+```tsx
+  <a
+    class="inline-flex flex-wrap shrink-0 items-center justify-center px-4 min-h-13 font-semibold rounded-lg
+      text-white transition-transform active:scale-95 bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover)
+      shadow-md"
+    href={props.ctaHref}
+  >
+```
+
+- Image (line 454) and Author (line 542) both route href through sanitizeUrl
+- Hero already sanitizes backgroundImage (line 356).
+- The CTA anchor, however, passes `props.ctaHref` straight through.
+- The current call site uses a literal `ctaHref="#"` (line 1098)
+- There is no live exploit — but the component-level sanitization model is inconsistent:
+- A javascript: value handed to Hero would render an executable link,
+- The same value is blocked by Image/Author.
+
+Fix:
+
+Reuse the already-imported sanitizeUrl (line 344):
+
+```tsx
+  <a
+    class="inline-flex flex-wrap shrink-0 items-center justify-center px-4 min-h-13 font-semibold rounded-lg
+      text-white transition-transform active:scale-95 bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover)
+      shadow-md"
+    href={sanitizeUrl(props.ctaHref)}
+  >
+```
+
+---
+
+### 4. MINOR — Phase 7 manual checklist theme colors don't match app.css (Phase 7, lines 2126–2127)
+
+Plan lines 2126–2127:
+
+- [ ] Light mode: zinc-200 background, zinc-800 text, sky-700 accents
+- [ ] Dark mode: zinc-800 background, zinc-300 text, sky-700 accents
+
+These contradict the Step 1.1 CSS:
+
+- Light --theme-background is var(--color-zinc-100) (line 111), not zinc-200 — zinc-200 is --theme-card-bg (line 115).
+- Dark --theme-foreground is var(--color-zinc-100) (line 121), not zinc-300.
+
+A human validator following the checklist in Phase 7 would be looking for the wrong values.
+
+Fix:
+
+- [ ] Light mode: zinc-100 background, zinc-800 text, sky-700 accents
+- [ ] Dark mode: zinc-800 background, zinc-100 text, sky-700 accents
+
+---
+
+Issues Summary
+
+```pre
+    ┌────┬──────────┬────────────────────┬──────────────────────────────────────────────────────────┐
+    │ #  │ Severity │       Location     │                        Issue                             │
+    ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
+    │ 1  │ CRITICAL │ Phase 2, line 542  │ Stray } : onClick={props.onClick}} — JSX SyntaxError,    │
+    │    │          │                    │ build-breaking; 26th-cycle fix #1 left a double brace    │
+    ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
+    │ 2  │ MODERATE │ Phase 2, line 786  │ Profile dropdown sets aria-hidden but not inert; its     │
+    │    │          │                    │ hidden buttons stay keyboard-focusable on desktop        │
+    ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
+    │ 3  │ MINOR    │ Phase 2, line 374  │ Hero ctaHref rendered without sanitizeUrl, unlike        │
+    │    │          │                    │ Image/Author hrefs — inconsistent javascript: guard      │
+    ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
+    │ 4  │ MINOR    │ Phase 7, 2126-2127 │ Manual checklist theme colors mismatch app.css:          │
+    │    │          │                    │ light bg zinc-100 not 200; dark text zinc-100 not 300    │
+    └────┴──────────┴────────────────────┴──────────────────────────────────────────────────────────┘
+```
+
+---
+
+Positive Observations
+
+- 26th-cycle fixes #2, #4, #5 correctly applied: E2E responsive test now uses toHaveAttribute("inert") on the aside (line 1890), Author onClick test added (lines 577–583), E2E global-nav locator scoped to getByRole("navigation", { name: /^Main$/i }) (line 1860). Fix #3 (localStorage isolation) lives in Nav.test.tsx, outside this plan.
+- sanitizeUrl regex is robust — ^(?:https?:\/\/|\/(?:[\w]|$)|#) plus BREAK_CHARS blocks protocol injection,
+  protocol-relative //, path traversal, and CSS breakout; root / allowed. Applied on Hero backgroundImage, Image
+  src/href, Author avatarSrc/href.
+- inert correctly applied on the mobile `<nav>` (line 750) and `<aside>` (line 1226) — cleaner than aria-hidden +
+  pointer-events-none for those two.
+- Theme cascade is correct — :root / :root[data-theme="dark"] / @media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) } resolves all three modes; external theme-init.js prevents FOUC without a CSP
+  unsafe-inline.
+- ThemeToggle is SSR-safe — signal starts "auto", onMount reads localStorage so server and client agree at hydration; the auto-mode createEffect registers/cleans up the matchMedia listener correctly (comment at line 1450 is accurate).
+- .demo scoping verified against the repo — index, about, fullstack, [...404] routes all carry class="demo", and the jedi route omits it, so the @layer base element rules don't leak onto the converted page (Step 1.1 "renders unchanged" holds).
+- Tailwind v4 syntax clean — text-(--var), bg-(--var), ring-(--var) custom-property syntax throughout;
+  --spacing-5pct/10pct/20pct and --font-hero theme tokens; arbitrary values used only where no utility exists
+  (grid-rows-[0fr], transition-[grid-template-rows,opacity]).
+- SolidJS idioms correct — static arrays (CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS) declared outside the component, no destructured props, `<For>`/`<Show>`/`classList` used appropriately.
