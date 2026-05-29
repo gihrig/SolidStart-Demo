@@ -1070,6 +1070,7 @@ export default function Jedi() {
     label: "Categories",
     idPrefix: "category",
   });
+  const isLiked = () => false;
   useDismiss(() => setMobileSidebarOpen(false), mobileSidebarOpen);
 
   return (
@@ -1184,7 +1185,7 @@ export default function Jedi() {
                     type="button"
                     onClick={() => {}}
                     class="theme-button"
-                    aria-pressed="false"
+                    aria-pressed={isLiked()}
                     aria-label="Like post by Lisa"
                   >
                     Like
@@ -2131,6 +2132,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 - [ ] Focus indicators visible
 - [ ] Screen-reader basic navigation works
 - [ ] Ctrl-Home moves to top
+- [ ] Like button `aria-pressed` becomes dynamic signal when like state is implemented
 - [ ] (Optional) Run axe DevTools, see Brave browser — no critical issues
 
 ### Browser Compatibility

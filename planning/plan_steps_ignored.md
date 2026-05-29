@@ -7180,9 +7180,9 @@ Fix:
 
 ---
 
-### 10. MINOR — aria-pressed="false" hardcoded as string on Like button (Phase 3, line 1198)
+### 10. MINOR — aria-pressed="false" hardcoded as string on Like button (Phase 3, line 1187)
 
-Plan line 1194–1202:
+Plan line 1183–1191:
 
 ```tsx
 <button
@@ -7202,9 +7202,12 @@ Plan line 1194–1202:
 
 Fix:
 
-No code change needed now. Add a tracking comment to Phase 7 checklist:
-
+- Create `const isLiked = () => false;` line 1073
+- Update to `aria-pressed={isLiked()}` line 1188
+- Add a tracking comment to Phase 7 checklist:
 - [ ] Like button `aria-pressed` becomes dynamic signal when like state is implemented
+
+**Updated per Fix**
 
 ---
 
