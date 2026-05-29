@@ -6812,7 +6812,7 @@ Positive Observations
 
 Cross-referenced with 24th cycle fixes (lines 6564–6748 of plan_steps_ignored.md).
 
-### 1. HIGH — .jedi-header > button CSS rule never matches hamburger button (Phase 1, line 213 / Phase 2, line 708)
+### 1. HIGH — .jedi-header > button CSS rule never matches hamburger button (Phase 1, line 213 / Phase 2, line 709)
 
 Plan jedi.css line 213:
 
@@ -6822,7 +6822,7 @@ Plan jedi.css line 213:
 }
 ```
 
-JediNav component DOM structure (lines 708–742):
+JediNav component DOM structure (lines 709–799):
 
 ```tsx
   <header class="jedi-header">
@@ -6837,7 +6837,7 @@ JediNav component DOM structure (lines 708–742):
 ```
 
 - .jedi-header > button requires a direct child button of the header.
-- The hamburger <button> is a child of the inner <div>, making it a grandchild of .jedi-header.
+- The hamburger `<button>` is a child of the inner `<div>`, making it a grandchild of .jedi-header.
 - Selector never matches → hamburger gets zero dedicated styling:
   - Visible on desktop (md:hidden not applied)
   - No dimensions (h-12 w-12 not applied) — renders at icon size ~24x24
@@ -6846,7 +6846,7 @@ JediNav component DOM structure (lines 708–742):
 
 Fix:
 
-- Move styles to inline classes on the button at Phase 2 line 719
+- Move styles from jedi.css line 213 to inline classes on the button at Phase 2 line 719
 - remove the .jedi-header > button CSS rule from jedi.css:
 
 ```tsx
@@ -6867,6 +6867,8 @@ Remove lines 213–215 from jedi.css:
   @apply md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg;
 }
 ```
+
+**Updated per Fix**
 
 ---
 

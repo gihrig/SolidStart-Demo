@@ -210,10 +210,6 @@ import "@fontsource/lobster";
     @apply md:flex items-center justify-between bg-gray-800 h-20 text-white sticky top-0 z-50;
   }
 
-  .jedi-header > button {
-    @apply md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg;
-  }
-
   .card-style {
     @apply flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg);
   }
@@ -721,6 +717,7 @@ export default function JediNav() {
           aria-label="Toggle navigation"
           aria-expanded={mobileNavOpen()}
           onClick={() => setMobileNavOpen(!mobileNavOpen())}
+          class="md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg"
         >
           <Show
             when={mobileNavOpen()}
