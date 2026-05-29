@@ -7025,9 +7025,9 @@ Fix:
 
 ---
 
-### 5. MODERATE — Author wrapper div e.preventDefault() pattern is fragile and non-obvious (Phase 3, lines 1142–1153)
+### 5. MODERATE — Author wrapper div e.preventDefault() pattern is fragile and non-obvious (Phase 3, lines 1139–1150)
 
-Plan lines 1142–1153:
+Plan lines 1139–1150:
 
 ```tsx
 <div
@@ -7047,7 +7047,9 @@ Plan lines 1142–1153:
 
 Fix:
 
-- Add onClick prop to Author and handle preventDefault there. Alternatively, use `<button>` wrapper:
+- Add onClick prop to Author and handle preventDefault there.
+- Add `onClick?: (e: MouseEvent) => void` to AuthorProps and forward to the `<a>` element.
+- Remove wrapper `<div>` around `Author` line 1140
 
 ```tsx
 <Author
@@ -7061,7 +7063,7 @@ Fix:
 />
 ```
 
-(Requires adding onClick?: (e: MouseEvent) => void to AuthorProps and forwarding to the `<a>` element.)
+**Updated per Fix**
 
 ---
 

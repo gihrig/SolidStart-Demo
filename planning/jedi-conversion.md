@@ -522,6 +522,7 @@ export interface AuthorProps {
   avatarSrc: string;
   name: string;
   href?: string;
+  onClick?: (e: MouseEvent) => void;
 }
 
 export default function Author(props: AuthorProps) {
@@ -539,7 +540,7 @@ export default function Author(props: AuthorProps) {
       </>
     }>
       {(href) => (
-        <a class="flex items-center gap-1 mb-4 hover:underline" href={sanitizeUrl(href())}>
+        <a class="flex items-center gap-1 mb-4 hover:underline" href={sanitizeUrl(href()) onClick={props.onClick}}>
           <img class="w-8 h-8 rounded-full" src={imgSrc()} alt={props.name} loading="lazy" />
           <span class="font-bold">{props.name}</span>
         </a>
@@ -1136,18 +1137,15 @@ export default function Jedi() {
             />
             {/* Body: author, caption, tags, actions */}
             <div class="p-4 pb-2">
-              <div
+              <Author
+                avatarSrc="https://img.icons8.com/doodle/96/null/lisa-simpson.png"
+                name="Lisa"
+                href="#"
                 onClick={(e) => {
                   e.preventDefault();
                   alert("Not implemented");
                 }}
-              >
-                <Author
-                  avatarSrc="https://img.icons8.com/doodle/96/null/lisa-simpson.png"
-                  name="Lisa"
-                  href="#"
-                />
-              </div>
+              />
               <p class="text-5xl mb-10 px-4 font-hero">Jedi Kitty protects the street</p>
               <div class="flex items-center gap-2 text-sm mb-5">
                 <button type="button" onClick={() => {}} class="theme-button">
