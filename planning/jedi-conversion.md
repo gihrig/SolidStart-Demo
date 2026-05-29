@@ -1857,7 +1857,7 @@ test.describe("Jedi Page", () => {
 
   test("should have global nav links on jedi page", async ({ page }) => {
     await page.goto("/jedi");
-    const nav = page.locator('nav[role="navigation"]');
+    const nav = page.getByRole("navigation", { name: /^Main$/i });
     await expect(nav).toBeVisible();
     await expect(nav.getByRole("link", { name: /home/i })).toBeVisible();
     await expect(nav.getByRole("link", { name: /about/i })).toBeVisible();

@@ -7427,9 +7427,9 @@ Add onClick test to Author describe block:
 
 ---
 
-### 5. MINOR — E2E nav link assertions use unscoped nav locator matching both navs (Phase 5, lines 1850–1858)
+### 5. MINOR — E2E nav link assertions use unscoped nav locator matching both navs (Phase 5, lines 1858–1867)
 
-Plan lines 1850–1858:
+Plan lines 1858-1867:
 
 ```js
 test("should have global nav links on jedi page", async ({ page }) => {
@@ -7453,6 +7453,8 @@ Fix:
 Scope to global Nav via aria-label at line 1852:
 
 `const nav = page.getByRole("navigation", { name: /^Main$/i });`
+
+**Updated per Fix**
 
 ---
 
