@@ -6534,3 +6534,252 @@ Positive Observations
 - Static data outside components — CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS declared as module-level constants, preventing re-creation per render.
 - 22nd cycle fixes well-integrated — 8 of 9 fixes properly applied: classList split, aria-label hardcoded,
   .jedi-header scoping, transition moved to `<a>`, `<Show>` condition swapped, mobile tests added, E2E title corrected. Only fix #9 (Card class) incomplete.
+
+===================================================================================
+
+## ❯ Review `planning/jedi-conversion.md`
+
+- Reference `planning/plan_steps_ignored.md` - 23rd cycle @lines 6137 - 6483
+- Follow layout and style in document referenced above
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for issues affecting security, accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Must use backticks e.g. <pre>`code;`</pre> for simple one-line code snippets in issues
+- Must use code fencing for multi-line code snippets in issues. eg.
+<pre>
+  ```tsx
+  code;
+  ```
+</pre>
+
+- Provide a recommended `Fix:` section at the end of each issue
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- Use the table character format from the previous cycle as listed above
+- Limit table width to 100 columns
+- List Positive Observations in a bulleted list at end of results
+
+## Jedi Conversion Plan Review — 24th Cycle
+
+Cross-referenced with 23rd cycle fixes (lines 6137–6483 of plan_steps_ignored.md).
+
+---
+
+### 1. CRITICAL — mobileSidebarOpen is undefined in JediNav component (Phase 2, line 740)
+
+Plan line 740:
+
+inert={isMobile() && !mobileSidebarOpen()}
+
+JediNav defines mobileNavOpen at line 692:
+
+const [mobileNavOpen, setMobileNavOpen] = createSignal(false);
+
+- mobileSidebarOpen is a different signal defined in jedi.tsx (line 1077), not in JediNav.
+- This is a ReferenceError at runtime
+- The component crashes on mount.
+- The 23rd cycle fix #4 specified !mobileNavOpen() (correct) but the plan was updated with the wrong signal name.
+
+Fix:
+
+Line 740 — replace mobileSidebarOpen with mobileNavOpen:
+
+```tsx
+  <nav
+    inert={isMobile() && !mobileNavOpen()}
+    aria-label="Jedi site navigation"
+    class={...}
+  >
+```
+
+---
+
+### 2. HIGH — Duplicate class prop on 3 <button> elements (Phase 2, lines 752/755, 788/791, 795/798)
+
+Plan lines 751–757 ("Create Post" button):
+
+```tsx
+  <button
+    class="nav-link"
+    type="button"
+    onClick={() => alert("Not implemented")}
+    class="nav-link"
+  >
+```
+
+- Same pattern at lines 787–793 ("My Profile") and 794–801 ("Log Out"). Each button has class="nav-link" declared twice.
+- In SolidJS JSX, the compiler processes props sequentially — last value wins silently.
+- While both values are identical here, duplicate props are a compile-time red flag and indicate a copy-paste error from the `<a>` → `<button>` conversion in 23rd cycle fix #1.
+
+Fix:
+
+Remove the first `class="nav-link"` from each button, keeping only one:
+
+```tsx
+<button type="button" onClick={() => alert("Not implemented")} class="nav-link">
+  Create Post
+</button>
+```
+
+Apply same fix at lines 787–793 and 794–801.
+
+---
+
+### 3. HIGH — Dropdown buttons lose all styling after `<a>` → `<button>` conversion (Phase 2, lines 784–805)
+
+Plan line 784 — dropdown `<ul>` has class hoverlist:
+
+`<ul class="hoverlist">`
+
+Main nav `<ul>` at line 744 has class navitems:
+
+`<ul class="navitems flex items-center flex-col md:flex-row ...">`
+
+CSS rules in jedi.css (lines 221–239):
+
+```tsx
+  .navitems > li > .nav-link {
+    @apply flex h-12 items-center gap-2 rounded-lg px-4;
+  }
+  .hoverlist > * > a {
+    @apply flex items-center p-2;
+  }
+```
+
+- `.navitems > li > .nav-link requires .navitems parent` — dropdown parent is `.hoverlist, no match. .hoverlist > * > a` requires `<a>` element
+- 23rd cycle fix #1 converted these to `<button>`, no match.
+- Dropdown buttons get zero CSS layout rules → render as unstyled browser-default buttons (no flex, no padding, no sizing).
+
+Fix:
+
+Either update CSS rule to match buttons, or use inline Tailwind classes on dropdown buttons:
+
+Option A — Update CSS (simpler, one change):
+
+```css
+.hoverlist > * > :is(a, button) {
+  @apply flex items-center p-2;
+}
+```
+
+Option B — Inline classes on each dropdown button (no CSS dependency):
+
+```tsx
+<button type="button" onClick={() => alert("Not implemented")} class="flex items-center p-2 w-full">
+  My Profile
+</button>
+```
+
+---
+
+### 4. MODERATE — E2E test Like button regex won't match updated aria-label (Phase 5, line 1889)
+
+Plan line 1889 (E2E test):
+
+`await expect(article.getByRole("button", { name: /^Like$/i })).toBeVisible();`
+
+Plan line 1210 (button in Phase 3, updated by 23rd cycle fix #8):
+
+`aria-label="Like post by Lisa"`
+
+- aria-label overrides text content as accessible name.
+- Playwright getByRole matches against accessible name.
+- Anchored regex `/^Like$/i` does not match "Like post by Lisa"
+- The $ anchor fails after "Like".
+- The Edit (/Edit/i) and Delete (/Delete/i) assertions at lines 1890–1891 are unanchored and work correctly.
+
+Fix:
+
+Remove anchors from Like button regex at line 1889:
+
+`await expect(article.getByRole("button", { name: /Like/i })).toBeVisible();`
+
+Or match full label:
+
+`await expect(article.getByRole("button", { name: /like post by lisa/i })).toBeVisible();`
+
+---
+
+### 5. MODERATE — sanitizeUrl blocks root path / (Phase 2, line 270)
+
+Plan line 270:
+
+`const SAFE_URL_PATTERN = /^(?:https?:\/\/|\/[\w]|#)/i;`
+
+The path alternative `\/[\w]` requires a word character after `/`. A bare "/" (root path) fails the test →
+`sanitizeUrl("/")` returns undefined. No component currently uses `href="/"`, but `"/"` is a valid safe URL and blocking it is incorrect behavior.
+
+Fix:
+
+Allow root path by adding `\/$` alternative or relaxing the word-char requirement:
+
+`const SAFE_URL_PATTERN = /^(?:https?:\/\/|\/(?:[\w]|$)|#)/i;`
+
+Add test case:
+
+```js
+it("allows root path", () => {
+  expect(sanitizeUrl("/")).toBe("/");
+});
+```
+
+---
+
+### 6. MINOR — ThemeToggle test cleans up classes never used by component (Phase 4, line 1609)
+
+Plan line 1609 (beforeEach):
+
+`document.documentElement.classList.remove("light", "dark");`
+
+- ThemeToggle uses data-theme attribute (via setAttribute/removeAttribute), never adds "light" or "dark" as CSS classes.
+- This cleanup line is dead code — harmless but misleading. Could cause confusion if a future reader assumes the
+  component uses class-based theming.
+
+Fix:
+
+Remove the classList cleanup line at 1609. The removeAttribute("data-theme") at line 1611 is the correct cleanup:
+
+```js
+beforeEach(() => {
+  // ...localStorage mocks...
+  document.documentElement.removeAttribute("data-theme");
+  document.documentElement.style.colorScheme = "";
+});
+```
+
+---
+
+Summary
+
+```pre
+  ┌────┬──────────┬──────────────────────────────────────────────────────┬───────┬───────────┐
+  │ #  │ Severity │ Summary                                              │ Phase │ Lines     │
+  ├────┼──────────┼──────────────────────────────────────────────────────┼───────┼───────────┤
+  │ 1  │ CRITICAL │ mobileSidebarOpen undefined in JediNav — crashes     │ 2     │ 740       │
+  ├────┼──────────┼──────────────────────────────────────────────────────┼───────┼───────────┤
+  │ 2  │ HIGH     │ Duplicate class prop on 3 buttons in JediNav         │ 2     │ 752–800   │
+  ├────┼──────────┼──────────────────────────────────────────────────────┼───────┼───────────┤
+  │ 3  │ HIGH     │ Dropdown buttons unstyled — CSS/selector mismatch    │ 2     │ 784–805   │
+  ├────┼──────────┼──────────────────────────────────────────────────────┼───────┼───────────┤
+  │ 4  │ MODERATE │ E2E Like regex anchored — won't match aria-label     │ 5     │ 1889      │
+  ├────┼──────────┼──────────────────────────────────────────────────────┼───────┼───────────┤
+  │ 5  │ MODERATE │ sanitizeUrl blocks root "/" path                     │ 2     │ 270       │
+  ├────┼──────────┼──────────────────────────────────────────────────────┼───────┼───────────┤
+  │ 6  │ MINOR    │ ThemeToggle test cleans up unused CSS classes        │ 4     │ 1609      │
+  └────┴──────────┴──────────────────────────────────────────────────────┴───────┴───────────┘
+```
+
+Positive Observations
+
+- URL sanitization via sanitizeUrl() applied consistently across Hero, Image, and Author components — blocks
+  javascript:, data:, and CSS breakout characters
+- Theme toggle follows established Tanstack Project pattern; CSP-compliant external theme-init.js avoids inline
+  scripts
+- inert attribute used correctly on nav and sidebar for accessibility — prevents Tab/AT access into hidden content
+- Proper SolidJS idioms throughout: classList for dynamic classes, `<For>` for lists, `<Show>` for conditionals, no destructured props
+- Static data arrays (CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS) placed outside component function per project convention
+- CSS layers (@layer base, @layer components) correctly structured for Tailwind v4 precedence ordering
+- E2E tests cover theme persistence across reload, system preference emulation, and responsive layout transitions
+- useDismiss hook reused across 3 locations (JediNav nav, JediNav dropdown, sidebar) for consistent escape/click-away behavior
