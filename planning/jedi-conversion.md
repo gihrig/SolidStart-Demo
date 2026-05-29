@@ -234,7 +234,7 @@ import "@fontsource/lobster";
     @apply bg-(--theme-hover-bg);
   }
 
-  .hoverlist > * > a {
+  .hoverlist > * > :is(a, button) {
     @apply flex items-center p-2;
   }
 }

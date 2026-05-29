@@ -6630,9 +6630,9 @@ Fix:
 
 ---
 
-### 3. HIGH — Dropdown buttons lose all styling after `<a>` → `<button>` conversion (Phase 2, lines 784–805)
+### 3. HIGH — Dropdown buttons lose all styling after `<a>` → `<button>` conversion (Phase 2, lines 779–790)
 
-Plan line 784 — dropdown `<ul>` has class hoverlist:
+Plan line 779 — dropdown `<ul>` has class hoverlist:
 
 `<ul class="hoverlist">`
 
@@ -6657,9 +6657,7 @@ CSS rules in jedi.css (lines 221–239):
 
 Fix:
 
-Either update CSS rule to match buttons, or use inline Tailwind classes on dropdown buttons:
-
-Option A — Update CSS (simpler, one change):
+— Update `jedi.css` @line 237
 
 ```css
 .hoverlist > * > :is(a, button) {
@@ -6667,13 +6665,7 @@ Option A — Update CSS (simpler, one change):
 }
 ```
 
-Option B — Inline classes on each dropdown button (no CSS dependency):
-
-```tsx
-<button type="button" onClick={() => alert("Not implemented")} class="flex items-center p-2 w-full">
-  My Profile
-</button>
-```
+**Updated per Fix**
 
 ---
 
