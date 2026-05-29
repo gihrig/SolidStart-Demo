@@ -6781,3 +6781,465 @@ Positive Observations
 - CSS layers (@layer base, @layer components) correctly structured for Tailwind v4 precedence ordering
 - E2E tests cover theme persistence across reload, system preference emulation, and responsive layout transitions
 - useDismiss hook reused across 3 locations (JediNav nav, JediNav dropdown, sidebar) for consistent escape/click-away behavior
+
+===================================================================================
+
+## ❯ Review `planning/jedi-conversion.md`
+
+- Reference `planning/plan_steps_ignored.md` 24th cycle @lines 6564 - 6748
+- Follow layout and style in document referenced above
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for issues affecting security, accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Must use backticks e.g. <pre>`code;`</pre> for simple one-line code snippets in issues
+- Must use code fencing for multi-line code snippets in issues. eg.
+  <pre>
+    ```tsx
+    code;
+    ```
+  </pre>
+
+- Provide a recommended `Fix:` section at the end of each issue
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- Use the table character format from the previous cycle as listed above
+- Limit table width to 100 columns
+- List Positive Observations in a bulleted list at end of results
+
+## Jedi Conversion Plan Review — 25th Cycle
+
+Cross-referenced with 24th cycle fixes (lines 6564–6748 of plan_steps_ignored.md).
+
+### 1. HIGH — .jedi-header > button CSS rule never matches hamburger button (Phase 1, line 213 / Phase 2, line 708)
+
+Plan jedi.css line 213:
+
+```css
+.jedi-header > button {
+  @apply md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg;
+}
+```
+
+JediNav component DOM structure (lines 708–742):
+
+```tsx
+  <header class="jedi-header">
+    <div class="flex items-center justify-between h-20 px-8">   ← intervening div
+      <a>...logo...</a>
+      <button type="button" aria-label="Toggle navigation" ...>  ← hamburger
+        ...
+      </button>
+    </div>
+    <nav>...</nav>
+  </header>
+```
+
+- .jedi-header > button requires a direct child button of the header.
+- The hamburger <button> is a child of the inner <div>, making it a grandchild of .jedi-header.
+- Selector never matches → hamburger gets zero dedicated styling:
+  - Visible on desktop (md:hidden not applied)
+  - No dimensions (h-12 w-12 not applied) — renders at icon size ~24x24
+  - No hover effect
+  - No cursor/centering
+
+Fix:
+
+- Move styles to inline classes on the button at Phase 2 line 719
+- remove the .jedi-header > button CSS rule from jedi.css:
+
+```tsx
+  <button
+    type="button"
+    class="md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg"
+    aria-label="Toggle navigation"
+    aria-expanded={mobileNavOpen()}
+    onClick={() => setMobileNavOpen(!mobileNavOpen())}
+  >
+```
+
+Remove lines 213–215 from jedi.css:
+
+```css
+/* DELETE this rule */
+.jedi-header > button {
+  @apply md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg;
+}
+```
+
+---
+
+### 2. MODERATE — class="nav-link" on dropdown buttons is dead CSS (Phase 2, lines 785, 790)
+
+Plan lines 785–793 (dropdown inside .hoverlist):
+
+```tsx
+  <ul class="hoverlist">
+    <li>
+      <button type="button" onClick={() => alert("Not implemented")} class="nav-link">
+        My Profile
+      </button>
+    </li>
+```
+
+CSS selectors in jedi.css (lines 221–226):
+
+```css
+.navitems > li > .nav-link {
+  @apply flex h-12 items-center gap-2 rounded-lg px-4;
+}
+.navitems > li > .nav-link:hover {
+  @apply bg-gray-700;
+}
+```
+
+- .nav-link has no standalone CSS rule — only matches inside compound selector .navitems > li > .nav-link.
+- Dropdown buttons are inside .hoverlist, not .navitems → selector never matches.
+- Actual styling comes from .hoverlist > \* > :is(a, button) → flex items-center p-2.
+- class="nav-link" is dead code left over from `<a>` → `<button>` conversion in 23rd cycle fix #1.
+
+Fix:
+
+- Remove class="nav-link" from both dropdown buttons at lines 785 and 790:
+
+```tsx
+  <button type="button" onClick={() => alert("Not implemented")}>
+    My Profile
+  </button>
+
+  <button type="button" onClick={() => alert("Not implemented")}>
+    Log Out
+  </button>
+```
+
+---
+
+### 3. MODERATE — Comments link aria-label hides comment count from screen readers (Phase 3, lines 1164–1179)
+
+Plan lines 1164–1179:
+
+```tsx
+<a
+  class="font-bold hover:underline rounded"
+  href="#"
+  aria-label="Open Comments page"
+  onClick={(e) => {
+    e.preventDefault();
+    alert("Not implemented");
+  }}
+>
+  Comments
+  <span class="font-light text-(--theme-card-fg) ml-2" aria-label="Comments on this post">
+    <span class="sr-only">Comments: </span>3
+  </span>
+</a>
+```
+
+- aria-label="Open Comments page" on `<a>` overrides all child content as the accessible name.
+- Screen readers announce "Open Comments page" — never read the count "3".
+- The `<span class="sr-only">Comments: </span>3` pattern is correct but unreachable because the parent's aria-label takes precedence.
+- Same pattern affects Like count at lines 1189–1192.
+
+Fix:
+
+- Incorporate count into aria-label.
+- Remove inner aria-label and sr-only span (now redundant):
+
+```tsx
+<a
+  class="font-bold hover:underline rounded"
+  href="#"
+  aria-label="Open Comments page, 3 comments"
+  onClick={(e) => {
+    e.preventDefault();
+    alert("Not implemented");
+  }}
+>
+  Comments
+  <span class="font-light text-(--theme-card-fg) ml-2">3</span>
+</a>
+```
+
+---
+
+### 4. MODERATE — Nav.test.tsx missing afterEach cleanup for ThemeToggle side effects (Phase 4, Step 4.5)
+
+Existing Nav.test.tsx (lines 28–34) has beforeEach but no afterEach:
+
+```js
+  describe("<Nav />", () => {
+    beforeEach(() => {
+      Object.defineProperty(window, "matchMedia", {
+        writable: true,
+        value: mockMatchMedia,
+      });
+    });
+```
+
+ThemeToggle (added via Step 4.4) calls applyThemeMode() during onMount, which mutates document.documentElement:
+
+document.documentElement.setAttribute("data-theme", mode);
+document.documentElement.style.colorScheme = resolved;
+
+- No afterEach to restore data-theme attribute or style.colorScheme.
+- No localStorage mock or cleanup — tests relying on empty localStorage could break if run order changes.
+- ThemeToggle's own tests (Step 4.3 lines 1597–1599) do this cleanup correctly — Nav tests should match.
+
+Fix:
+
+Add afterEach and localStorage mock to Nav.test.tsx:
+
+```js
+  import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
+  import userEvent from "@testing-library/user-event";
+  // ...existing imports...
+
+  describe("<Nav />", () => {
+    beforeEach(() => {
+      Object.defineProperty(window, "matchMedia", {
+        writable: true,
+        value: mockMatchMedia,
+      });
+      document.documentElement.removeAttribute("data-theme");
+      document.documentElement.style.colorScheme = "";
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+    // ...tests...
+```
+
+---
+
+### 5. MODERATE — Author wrapper div e.preventDefault() pattern is fragile and non-obvious (Phase 3, lines 1142–1153)
+
+Plan lines 1142–1153:
+
+```tsx
+<div
+  onClick={(e) => {
+    e.preventDefault();
+    alert("Not implemented");
+  }}
+>
+  <Author avatarSrc="..." name="Lisa" href="#" />
+</div>
+```
+
+- `e.preventDefault()` on a parent `<div>` during event bubbling does prevent the child `<a>`'s default navigation — this works.
+- But the pattern is non-obvious: a `<div>` onClick handler silently intercepting all child clicks.
+- If Author later adds more interactive children (edit button, avatar overlay), they all trigger the alert.
+- Author component already accepts href prop — adding an onClick prop to Author would be more idiomatic.
+
+Fix:
+
+- Add onClick prop to Author and handle preventDefault there. Alternatively, use `<button>` wrapper:
+
+```tsx
+<Author
+  avatarSrc="https://img.icons8.com/doodle/96/null/lisa-simpson.png"
+  name="Lisa"
+  href="#"
+  onClick={(e) => {
+    e.preventDefault();
+    alert("Not implemented");
+  }}
+/>
+```
+
+(Requires adding onClick?: (e: MouseEvent) => void to AuthorProps and forwarding to the `<a>` element.)
+
+---
+
+### 6. MINOR — JediNav logo `<a href="#">` goes nowhere useful (Phase 2, line 711)
+
+Plan line 711:
+
+`<a class="flex items-center gap-1" href="#">`
+
+- href="#" scrolls to page top — not useful as a brand/logo link.
+- The Jedi source site likely intended this as a home link.
+- Using href="/" or href="/jedi" is more meaningful.
+
+Fix:
+
+- `<a class="flex items-center gap-1" href="/jedi">`
+
+---
+
+### 7. MINOR — Author fallback has unnecessary fragment wrapper (Phase 2, lines 538–544)
+
+Plan lines 538–544:
+
+```tsx
+  <Show when={props.href} fallback={
+    <>
+      <div class="flex items-center gap-1 mb-4">
+        <img ... />
+        <span ...>{props.name}</span>
+      </div>
+    </>
+  }>
+```
+
+- Fragment <>...</> wraps a single `<div>` — adds no value.
+- SolidJS fragments are virtual (no DOM node), so no runtime cost, but unnecessary code.
+
+Fix:
+
+- Remove fragment wrapper:
+
+```tsx
+  <Show when={props.href} fallback={
+    <div class="flex items-center gap-1 mb-4">
+      <img ... />
+      <span ...>{props.name}</span>
+    </div>
+  }>
+```
+
+---
+
+### 8. MINOR — Hero <section> lacks aria-label for screen reader disambiguation (Phase 3, line 1088)
+
+Plan line 1088:
+
+```tsx
+  <Hero
+    title="Awesome Photos & Captions"
+    ...
+  />
+```
+
+Hero renders (Phase 2 line 364):
+
+`<section class="grid bg-gray-700 text-white text-center bg-cover relative" ...>`
+
+- Page has 4+ `<section>` elements (Hero + 3 Cards).
+- Screen readers announce "section" landmarks — unlabeled sections are indistinguishable.
+- Cards get implicit labels from `<h2>` title via Card component, but Hero has no heading landmark inside `<section>` (the `<h1>` is nested in a child div).
+
+Fix:
+
+- Add aria-label to Hero section element
+
+```tsx
+  <section
+    aria-label="Hero"
+    class="grid bg-gray-700 text-white text-center bg-cover relative"
+    style={{ "background-image": bgImage() }}
+  >
+```
+
+---
+
+### 9. MINOR — E2E mobile sidebar not.toBeVisible() assertion may be flaky (Phase 5, line 1846)
+
+Plan line 1846:
+
+`await expect(aside).not.toBeVisible();`
+
+- The aside when collapsed has `opacity-0 grid-rows-[0fr] + child overflow-hidden min-h-0`.
+- Playwright `toBeVisible()` checks bounding box dimensions
+- Element must have zero width OR height to be "not visible".
+- `opacity: 0` alone does NOT make an element invisible to Playwright.
+
+- The `grid-rows-[0fr] + overflow-hidden` should collapse content to zero height.
+- But the aside itself may retain non-zero height from its own padding, borders, or the grid container's gap.
+- If the aside has even 1px height, Playwright considers it "visible" and assertion fails.
+
+Fix:
+
+Use a more explicit assertion that doesn't depend on bounding box collapse:
+
+- Check inert attribute instead
+- Semantically correct for "hidden from interaction"
+- `await expect(aside).toHaveAttribute("inert", "");`
+- Or check opacity class
+  `await expect(aside).toHaveClass(/opacity-0/);`
+
+---
+
+### 10. MINOR — aria-pressed="false" hardcoded as string on Like button (Phase 3, line 1198)
+
+Plan line 1194–1202:
+
+```tsx
+<button
+  type="button"
+  onClick={() => {}}
+  class="theme-button"
+  aria-pressed="false"
+  aria-label="Like post by Lisa"
+>
+  Like
+</button>
+```
+
+- aria-pressed="false" is a static string, not a reactive signal.
+- When Like functionality is implemented, this must become dynamic: `aria-pressed={isLiked()}`.
+- For placeholder phase, acceptable — but should be tracked as a Phase 7 follow-up item.
+
+Fix:
+
+No code change needed now. Add a tracking comment to Phase 7 checklist:
+
+- [ ] Like button `aria-pressed` becomes dynamic signal when like state is implemented
+
+---
+
+Summary Table
+
+```pre
+    ┌─────┬──────────┬─────────────────────┬──────────────────────────────────────────────────┐
+    │  #  │ Severity │      Location       │                     Issue                        │
+    ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+    │ 1   │ HIGH     │ Phase 1/2, lines    │ .jedi-header > button CSS never matches          │
+    │     │          │ 213, 708            │ hamburger (wrong nesting level)                  │
+    ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+    │ 2   │ MODERATE │ Phase 2, lines      │ class="nav-link" on dropdown buttons is          │
+    │     │          │ 785, 790            │ dead CSS, no matching selector                   │
+    ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+    │ 3   │ MODERATE │ Phase 3, lines      │ Comments aria-label hides comment count          │
+    │     │          │ 1164-1179           │ from screen readers                              │
+    ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+    │ 4   │ MODERATE │ Phase 4, Step 4.5   │ Nav.test.tsx missing afterEach cleanup for       │
+    │     │          │                     │ ThemeToggle side effects                         │
+    ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+    │ 5   │ MODERATE │ Phase 3, lines      │ Author wrapper div preventDefault pattern        │
+    │     │          │ 1142-1153           │ is fragile and non-obvious                       │
+    ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+    │ 6   │ MINOR    │ Phase 2, line 711   │ Logo <a href="#"> scrolls to top, not a          │
+    │     │          │                     │ meaningful navigation target                     │
+    ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+    │ 7   │ MINOR    │ Phase 2, lines      │ Unnecessary fragment wrapper in Author           │
+    │     │          │ 538-544             │ fallback branch                                  │
+    ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+    │ 8   │ MINOR    │ Phase 3, lines      │ Hero <section> lacks aria-label for screen       │
+    │     │          │ 1088, 364           │ reader landmark disambiguation                   │
+    ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+    │ 9   │ MINOR    │ Phase 5, line 1846  │ E2E aside not.toBeVisible() assertion may        │
+    │     │          │                     │ be flaky (grid-rows-[0fr] collapse)              │
+    ├─────┼──────────┼─────────────────────┼──────────────────────────────────────────────────┤
+    │ 10  │ MINOR    │ Phase 3, line 1198  │ aria-pressed="false" hardcoded on Like           │
+    │     │          │                     │ button, not a reactive signal                    │
+    └─────┴──────────┴─────────────────────┴──────────────────────────────────────────────────┘
+```
+
+---
+
+Positive Observations
+
+- All 24th cycle fixes correctly incorporated — mobileNavOpen signal name (line 744), duplicate class props removed, .hoverlist > \* > :is(a, button) selector updated, sanitizeUrl root path fix, E2E Like regex unanchored, ThemeToggle test cleanup corrected
+- Static data arrays (CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS) correctly placed outside component function
+- sanitizeUrl implementation is solid — blocks javascript:, data:, relative paths, and CSS breakout characters ('"()\)
+- Tailwind v4 syntax used consistently: text-(--theme-vars), md:block!, bg-gray-800/40 (no v3 residue found)
+- Theme system architecture (init script + CSS variables + localStorage + createEffect listener) handles all three modes correctly with no FOUC
+- useDismiss hook usage is correct — Escape-only for mobile nav, Escape + click-outside for dropdown
+- useListbox integration follows the hook's API exactly — listboxProps spread on `<ul>`, getOptionProps(index()) on `<li>`, classList for dynamic highlighting
+- createEffect + onCleanup pattern for media query listener in ThemeToggle is idiomatic SolidJS — early return without registering cleanup is safe per Solid's cleanup semantics
+- CSP-compliant theme init via external public/theme-init.js instead of inline script — better security posture than the Tanstack reference implementation
+- E2E test coverage is thorough — theme persistence across reload, system preference emulation, responsive layout
+  transitions
