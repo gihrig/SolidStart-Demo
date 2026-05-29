@@ -6571,11 +6571,11 @@ Cross-referenced with 23rd cycle fixes (lines 6137–6483 of plan_steps_ignored.
 
 Plan line 740:
 
-inert={isMobile() && !mobileSidebarOpen()}
+`inert={isMobile() && !mobileSidebarOpen()}`
 
 JediNav defines mobileNavOpen at line 692:
 
-const [mobileNavOpen, setMobileNavOpen] = createSignal(false);
+`const [mobileNavOpen, setMobileNavOpen] = createSignal(false);`
 
 - mobileSidebarOpen is a different signal defined in jedi.tsx (line 1077), not in JediNav.
 - This is a ReferenceError at runtime
@@ -6593,6 +6593,8 @@ Line 740 — replace mobileSidebarOpen with mobileNavOpen:
     class={...}
   >
 ```
+
+**Updated per Fix**
 
 ---
 
