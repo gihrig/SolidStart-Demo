@@ -1161,19 +1161,14 @@ export default function Jedi() {
                 <a
                   class="font-bold hover:underline rounded"
                   href="#"
-                  aria-label="Open Comments page"
+                  aria-label="Open Comments page, 3 comments"
                   onClick={(e) => {
                     e.preventDefault();
                     alert("Not implemented");
                   }}
                 >
                   Comments
-                  <span
-                    class="font-light text-(--theme-card-fg) ml-2"
-                    aria-label="Comments on this post"
-                  >
-                    <span class="sr-only">Comments: </span>3
-                  </span>
+                  <span class="font-light text-(--theme-card-fg) ml-2">3</span>
                 </a>
                 <div class="flex items-center gap-4">
                   <div class="flex items-center gap-1">

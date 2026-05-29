@@ -6943,12 +6943,12 @@ Plan lines 1164–1179:
 - aria-label="Open Comments page" on `<a>` overrides all child content as the accessible name.
 - Screen readers announce "Open Comments page" — never read the count "3".
 - The `<span class="sr-only">Comments: </span>3` pattern is correct but unreachable because the parent's aria-label takes precedence.
-- Same pattern affects Like count at lines 1189–1192.
 
 Fix:
 
-- Incorporate count into aria-label.
-- Remove inner aria-label and sr-only span (now redundant):
+- Incorporate count into aria-label line 1165
+- Remove inner aria-label line 1173
+- Remove sr-only span line 1175
 
 ```tsx
 <a
@@ -6964,6 +6964,8 @@ Fix:
   <span class="font-light text-(--theme-card-fg) ml-2">3</span>
 </a>
 ```
+
+**Updated per Fix**
 
 ---
 
