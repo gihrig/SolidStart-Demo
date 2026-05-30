@@ -783,6 +783,7 @@ export default function JediNav() {
               />
             </button>
             <div
+              inert={!dropdownOpen()}
               aria-hidden={!dropdownOpen()}
               class={`absolute right-0 bg-(--theme-card-bg) text-(--theme-card-fg) shadow rounded-lg w-40 p-2 z-20 transition-[opacity,transform] duration-300 ease-out origin-top ${dropdownOpen() ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 -translate-y-5 pointer-events-none"}`}
             >

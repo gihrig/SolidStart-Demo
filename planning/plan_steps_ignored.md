@@ -7576,13 +7576,20 @@ Plan lines 785–788:
 
 - The `<nav>` (line 750) and the sidebar `<aside>` (line 1226) both use inert to pull hidden content out of the tab order.
 - The profile dropdown only sets aria-hidden + pointer-events-none. pointer-events-none blocks the mouse, not keyboard Tab.
-- On desktop isMobile() is false, so the parent <nav> is never inert. The closed dropdown's My Profile and Log Out buttons (lines 791–799) therefore stay in the tab order while the container is aria-hidden="true".
-- That is an aria-hidden-focus violation (focusable controls inside an aria-hidden subtree) — Phase 7 line 2145 runs axe DevTools, which flags exactly this.
+- On desktop isMobile() is false, so the parent `<nav>` is never inert.
+- The closed dropdown's My Profile and Log Out buttons (lines 791–799) therefore stay in the tab order while the container is aria-hidden="true".
+- That is an aria-hidden-focus violation (focusable controls inside an aria-hidden subtree)
+- Phase 7 line 2145 runs axe DevTools, which flags exactly this.
 - Inconsistent with the inert pattern the 26th cycle praised on nav/aside.
+- aria-hidden is a real content attribute (string), so the existing toHaveAttribute("aria-hidden","true"/"false")
+  assertions keep passing in jsdom with zero test churn.
+- inert (the property) delivers the actual focus/AT fix in the real browser, and the E2E layer can assert it.
+- The redundancy is harmless.
 
 Fix:
 
-Add `inert` to the dropdown, mirroring the nav/aside pattern. Keep aria-hidden so JediNav.test.tsx lines 866/872/974/978 still assert against it:
+- Add `inert` to the dropdown, mirroring the nav/aside pattern.
+- Keep aria-hidden so JediNav.test.tsx lines 866/872/974/978 still assert against it:
 
 ```tsx
   <div
@@ -7594,6 +7601,8 @@ Add `inert` to the dropdown, mirroring the nav/aside pattern. Keep aria-hidden s
     }
   >
 ```
+
+**Updated per Fix**
 
 ---
 
