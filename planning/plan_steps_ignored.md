@@ -7825,12 +7825,13 @@ The Hero heading and the article caption both render in Lobster (font-hero), but
 Hero `<h1>` (lines 368–370):
 
 ```tsx
+
+  // Heading <h1> (line 368)
   <h1 class="text-7xl leading-tight font-bold mb-4 animate-fade-in font-hero">
     {props.title}
   </h1>
 
-  Caption <p> (line 1159):
-
+  // Caption <p> (line 1159):
   <p class="text-5xl mb-10 px-4 font-hero">Jedi Kitty protects the street</p>
 ```
 
@@ -7841,7 +7842,7 @@ Hero `<h1>` (lines 368–370):
 
 Fix:
 
-Drop font-bold from the Hero `<h1>` so it matches the caption's natural Lobster weight:
+Drop font-bold from the Hero `<h1>` (line 368) so it matches the caption's natural Lobster weight:
 
 ```tsx
 <h1 class="text-7xl leading-tight mb-4 animate-fade-in font-hero">{props.title}</h1>
@@ -7849,6 +7850,8 @@ Drop font-bold from the Hero `<h1>` so it matches the caption's natural Lobster 
 
 (If a genuinely heavier title is intended, switch --font-hero to "Lobster Two" and install @fontsource/lobster-two,
 which ships real 400/700 weights — keep both headings consistent either way.)
+
+**Updated per Fix**
 
 ---
 

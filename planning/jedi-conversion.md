@@ -365,7 +365,7 @@ export default function Hero(props: HeroProps) {
     >
       <div class="col-start-1 row-start-1 bg-gray-800/40 w-full h-full" />
       <div class="col-start-1 row-start-1 py-24 px-10">
-        <h1 class="text-7xl leading-tight font-bold mb-4 animate-fade-in font-hero">
+        <h1 class="text-7xl leading-tight mb-4 animate-fade-in font-hero">
           {props.title}
         </h1>
         <p class="text-lg font-bold mb-5">{props.subtitle}</p>
