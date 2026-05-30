@@ -7364,6 +7364,8 @@ describe("<Nav />", () => {
   });
   document.documentElement.removeAttribute("data-theme");
   document.documentElement.style.colorScheme = "";
+  ...
+}
 ```
 
 Fix:
@@ -7711,3 +7713,246 @@ Positive Observations
   --spacing-5pct/10pct/20pct and --font-hero theme tokens; arbitrary values used only where no utility exists
   (grid-rows-[0fr], transition-[grid-template-rows,opacity]).
 - SolidJS idioms correct — static arrays (CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS) declared outside the component, no destructured props, `<For>`/`<Show>`/`classList` used appropriately.
+
+===================================================================================
+
+## ❯ Review `planning/jedi-conversion.md`
+
+- Reference `planning/plan_steps_ignored.md` 27th cycle @lines 7537 - 7673
+- Follow layout and style in document referenced above
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for issues affecting security, accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Must use backticks e.g. <pre>`code;`</pre> for simple one-line code snippets in issues
+- Must use code fencing for multi-line code snippets in issues. eg.
+  <pre>
+    ```tsx
+    code;
+    ```
+  </pre>
+
+- Provide a recommended `Fix:` section at the end of each issue
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- Use the table layout and character format from the previous cycle as listed above
+- Limit table width to 100 columns
+- List Positive Observations in a bulleted list at end of results
+
+## Jedi Conversion Plan Review — 28th Cycle - used Opus 4.8 with max effort
+
+Cross-referenced with 27th cycle fixes (lines 7537–7673 of plan_steps_ignored.md);
+
+No CRITICAL/MODERATE defects remain — the items below are MINOR.
+
+---
+
+### 1. MINOR — Theme-toggle aria-label assertions match 2 of 3 states (Phase 4–5, lines 1750–1765, 1934–1957)
+
+The label function returns strings that share substrings across modes (lines 1467–1472):
+
+```tsx
+const label = () =>
+  mode() === "auto"
+    ? "Theme: system. Click for light."
+    : mode() === "light"
+      ? "Theme: light. Click for dark."
+      : "Theme: dark. Click for system.";
+```
+
+- /light/i matches auto ("Click for light") and light ("Theme: light").
+- /dark/i matches light ("Click for dark") and dark ("Theme: dark").
+- /system/i matches dark ("Click for system") and auto ("Theme: system").
+- So each assertion individually proves only 2-of-3, not the exact state. The Step 4.5 Nav integration test (lines
+  1755–1764) relies solely on these substrings with no data-theme/localStorage backstop:
+
+```js
+await user.click(toggle);
+expect(toggle.getAttribute("aria-label")).toContain("light");
+await user.click(toggle);
+expect(toggle.getAttribute("aria-label")).toContain("dark");
+```
+
+- The 4-step system→light→dark→system cycle happens to be self-protecting (no single stuck state satisfies all four), so today's tests pass correctly — but the assertions are fragile: reorder or shorten them and a regression can pass green. The unit test (lines 1630–1642) and e2e (lines 1940–1956) are saved only by their mockLocalStorage/data-theme checks.
+
+Fix:
+
+Anchor the match to the leading Theme: `<mode>` token so each assertion proves exactly one state:
+
+```js
+await user.click(toggle);
+expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: light\b/);
+await user.click(toggle);
+expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: dark\b/);
+await user.click(toggle);
+expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: system\b/);
+```
+
+Apply the same anchoring to the e2e regexes (/^Theme: light/i, etc.) at lines 1940/1947/1954.
+
+---
+
+### 2. MINOR — Hero title font-bold on Lobster yields synthetic bold; inconsistent with caption (Phase 2, line 368; Phase 3, line 1159)
+
+The Hero heading and the article caption both render in Lobster (font-hero), but only the heading adds font-bold.
+
+Hero `<h1>` (lines 368–370):
+
+```tsx
+  <h1 class="text-7xl leading-tight font-bold mb-4 animate-fade-in font-hero">
+    {props.title}
+  </h1>
+
+  Caption <p> (line 1159):
+
+  <p class="text-5xl mb-10 px-4 font-hero">Jedi Kitty protects the street</p>
+```
+
+- --font-hero: "Lobster", sans-serif; (app.css line 4). Lobster is a single-weight (400) display face, and
+  @fontsource/lobster (Step 1.2) imports only that weight.
+- With no 700 file loaded, font-bold forces the browser to synthesize bold (faux-bold), which distorts a script face.
+- The two Lobster headings therefore render at different weights for no stated reason — an inconsistency against the "match Awesome.png" goal (line 32) and the Phase 7 check "Hero title uses Lobster font 7xl" (line 2087).
+
+Fix:
+
+Drop font-bold from the Hero `<h1>` so it matches the caption's natural Lobster weight:
+
+```tsx
+<h1 class="text-7xl leading-tight mb-4 animate-fade-in font-hero">{props.title}</h1>
+```
+
+(If a genuinely heavier title is intended, switch --font-hero to "Lobster Two" and install @fontsource/lobster-two,
+which ships real 400/700 weights — keep both headings consistent either way.)
+
+---
+
+### 3. MINOR — Escape closes the mobile nav and the profile dropdown simultaneously (Phase 2, lines 706–711)
+
+Both dismiss hooks register an independent document-level Escape listener:
+
+```tsx
+useDismiss(() => setMobileNavOpen(false), mobileNavOpen);
+useDismiss(
+  () => setDropdownOpen(false),
+  dropdownOpen,
+  () => dropdownRef,
+);
+```
+
+useDismiss fires whenever its own active() is true (src/lib/useDismiss.ts lines 12–13):
+
+```tsx
+function onKeyDown(e: KeyboardEvent) {
+  if (e.key === "Escape" && active()) onDismiss();
+}
+```
+
+- On mobile, the profile dropdown lives inside the open hamburger nav, so both signals can be true at once.
+- One Escape press then satisfies both guards, collapsing the dropdown and the whole nav together. The expected
+  layered behavior is "Escape closes the top-most layer first" (dropdown), leaving the nav open for a second Escape.
+- Not build/test-breaking (no test exercises the both-open state), but it is a real keyboard-UX regression versus
+  typical dismiss semantics.
+
+Fix:
+
+Gate the nav's dismiss so it ignores Escape while the dropdown is open — the existing active accessor parameter is the natural place:
+
+```tsx
+useDismiss(
+  () => setMobileNavOpen(false),
+  () => mobileNavOpen() && !dropdownOpen(),
+);
+```
+
+First Escape closes the dropdown; a second closes the nav. This leaves the existing "Escape closes mobile nav" tests (lines 955–967) green, since the dropdown is closed in those cases.
+
+---
+
+### 4. MINOR — Step 1.1 "Why @layer base" rationale is inaccurate (Phase 1, line 78)
+
+The justification claims global element selectors and a Jedi-component override need:
+
+**Why `@layer base`**: Global `main {}`, `h1 {}`, etc. rules in unlayered CSS have higher
+precedence than Tailwind utility classes ... Wrapping in `@layer base` lets utility classes
+on Jedi components override these defaults without needing `!important`.
+
+But the rules the step actually emits are .demo-scoped, not bare element selectors (lines 148–162):
+
+```css
+.demo main {
+  @apply mx-auto p-4 text-center text-xl text-(--theme-foreground);
+}
+.demo h1 {
+  @apply mx-6 my-16 text-6xl font-thin text-(--theme-accent) uppercase;
+}
+.demo h2 {
+  @apply ml-8 text-left text-2xl font-thin text-(--theme-accent) uppercase;
+}
+.demo p {
+  @apply mx-8 mb-6 text-justify;
+}
+```
+
+- The Jedi route returns a bare fragment with no class="demo" wrapper (Phase 3, lines 1086–1093), and app.tsx adds
+  none. Verified in-repo: index.tsx, about.tsx, fullstack.tsx, [...404].tsx all wrap in <div class="demo">; the Jedi route does not.
+- Therefore these rules never apply to Jedi components regardless of layering — the stated "lets utility classes on
+  Jedi components override these defaults" reasoning does not hold for this page. (The mechanism itself is sound: @layer base does sit below @layer utilities; the value is for the existing .demo pages plus the global body and
+  :focus-visible rules.)
+- No functional impact — purely a misleading rationale that could send an implementer hunting for a conflict that
+  cannot occur here.
+
+Fix:
+
+Reword to reflect reality (no code change):
+
+**Why `@layer base`**: The `.demo`-scoped element rules and the global `body` /
+`:focus-visible` rules are wrapped in `@layer base` so Tailwind utilities (in
+`@layer utilities`) win by layer order — without `!important` — on the existing
+`.demo` pages. The Jedi route intentionally omits `.demo`, so these element rules
+never reach it; only `body` and `:focus-visible` apply globally.
+
+---
+
+Issues Summary
+
+```pre
+      ┌────┬──────────┬────────────────────┬────────────────────────────────────────────────────────┐
+      │ #  │ Severity │      Location      │                         Issue                          │
+      ├────┼──────────┼────────────────────┼────────────────────────────────────────────────────────┤
+      │ 1  │ MINOR    │ Phase 4-5, 1750+   │ Theme-toggle aria-label assertions match 2 of 3        │
+      │    │          │                    │ states (light label has both 'light'+'dark')           │
+      ├────┼──────────┼────────────────────┼────────────────────────────────────────────────────────┤
+      │ 2  │ MINOR    │ Phase 2, line 368  │ Hero h1 uses font-bold with Lobster (font-hero) ->     │
+      │    │          │                    │ synthetic bold; caption omits it - inconsistent        │
+      ├────┼──────────┼────────────────────┼────────────────────────────────────────────────────────┤
+      │ 3  │ MINOR    │ Phase 2, 706-711   │ Escape fires both useDismiss handlers: mobile nav      │
+      │    │          │                    │ and profile dropdown close together when both open     │
+      ├────┼──────────┼────────────────────┼────────────────────────────────────────────────────────┤
+      │ 4  │ MINOR    │ Phase 1, line 78   │ Step 1.1 @layer base rationale cites global main{}/    │
+      │    │          │                    │ Jedi; rules are .demo-scoped, Jedi not under .demo     │
+      └────┴──────────┴────────────────────┴────────────────────────────────────────────────────────┘
+```
+
+---
+
+Positive Observations
+
+- All four 27th-cycle fixes are correctly applied: Author anchor closes with a single brace (onClick={props.onClick}>, line 542), the profile dropdown carries inert={!dropdownOpen()} + aria-hidden (lines 786–787), Hero CTA is href={sanitizeUrl(props.ctaHref)} (line 374), and Phase 7 colors read zinc-100/zinc-800 (lines 2127–2128).
+- inert is genuinely safe here — verified solid-js@1.9.12 lists inert in its BooleanAttributes set, so inert={false} removes the attribute (no "always-inert on desktop" trap); the nav, aside, and dropdown usages are correct.
+- useListbox uses the proper aria-activedescendant listbox pattern (focus stays on the `<ul>`, options are
+  tabIndex:-1/role:option/aria-selected); its getter-based props survive Solid's {...spread} and remain reactive on
+  focusedIndex/selectedIndex.
+- sanitizeUrl is robust — ^(?:https?:\/\/|\/(?:[\w]|$)|#) plus BREAK_CHARS blocks javascript:/data:, protocol-relative //, path traversal, and CSS url() breakout; applied to Hero backgroundImage/ctaHref, Image src/href, Author avatarSrc/href.
+- Theme system is correct and CSP-safe — :root / :root[data-theme="dark"] / @media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) } resolves all three modes, and the external public/theme-init.js (already wired into entry-server.tsx) prevents FOUC without unsafe-inline.
+- SSR hygiene holds — useIsMobile and useDismiss short-circuit on isServer; getInitialMode guards typeof window;
+  ThemeToggle's auto-mode createEffect registers/cleans up the matchMedia listener and only runs client-side.
+- Test infra is ready for Step 4.5 — the existing Nav.test.tsx already mocks window.matchMedia and resets
+  data-theme/localStorage, so dropping `<ThemeToggle>` into the global Nav won't crash in jsdom.
+- .demo isolation verified against the repo — the Jedi route omits class="demo", so only body and the :focus-visible ring leak in globally; the .demo-scoped element rules cannot affect the converted page.
+- Tailwind v4 syntax is clean — custom-property syntax (text-(--var), bg-(--var), ring-(--var)) throughout,
+  --spacing-5pct/10pct/20pct and --font-hero theme tokens, important modifier as suffix (md:block!), and arbitrary
+  values only where no utility exists (grid-rows-[0fr], transition-[grid-template-rows,opacity]).
+- SolidJS idioms are sound — static arrays (CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS) live outside the component, no
+  destructured props, and `<Show>`/`<For>`/classList are used appropriately.
