@@ -7859,6 +7859,8 @@ which ships real 400/700 weights — keep both headings consistent either way.)
 
 Both dismiss hooks register an independent document-level Escape listener:
 
+Plan line 706-711
+
 ```tsx
 useDismiss(() => setMobileNavOpen(false), mobileNavOpen);
 useDismiss(
@@ -7868,7 +7870,9 @@ useDismiss(
 );
 ```
 
-useDismiss fires whenever its own active() is true (src/lib/useDismiss.ts lines 12–13):
+useDismiss fires whenever its own active() is true
+
+src/lib/useDismiss.ts lines 12–13)
 
 ```tsx
 function onKeyDown(e: KeyboardEvent) {
@@ -7884,7 +7888,10 @@ function onKeyDown(e: KeyboardEvent) {
 
 Fix:
 
-Gate the nav's dismiss so it ignores Escape while the dropdown is open — the existing active accessor parameter is the natural place:
+- Gate the nav's dismiss so it ignores Escape while the dropdown is open
+- The existing active accessor parameter is the natural place:
+
+Change plan lines 706-711:
 
 ```tsx
 useDismiss(
@@ -7894,6 +7901,8 @@ useDismiss(
 ```
 
 First Escape closes the dropdown; a second closes the nav. This leaves the existing "Escape closes mobile nav" tests (lines 955–967) green, since the dropdown is closed in those cases.
+
+**Updated per Fix**
 
 ---
 

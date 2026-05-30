@@ -703,11 +703,9 @@ export default function JediNav() {
   const isMobile = useIsMobile();
   let dropdownRef: HTMLLIElement | undefined;
 
-  useDismiss(() => setMobileNavOpen(false), mobileNavOpen);
   useDismiss(
-    () => setDropdownOpen(false),
-    dropdownOpen,
-    () => dropdownRef,
+    () => setMobileNavOpen(false),
+    () => mobileNavOpen() && !dropdownOpen(),
   );
 
   return (
