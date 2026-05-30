@@ -7914,7 +7914,9 @@ The justification claims global element selectors and a Jedi-component override 
 precedence than Tailwind utility classes ... Wrapping in `@layer base` lets utility classes
 on Jedi components override these defaults without needing `!important`.
 
-But the rules the step actually emits are .demo-scoped, not bare element selectors (lines 148–162):
+But the rules the step actually emits are .demo-scoped, not bare element selectors.
+
+Plan lines 148–162:
 
 ```css
 .demo main {
@@ -7941,13 +7943,15 @@ But the rules the step actually emits are .demo-scoped, not bare element selecto
 
 Fix:
 
-Reword to reflect reality (no code change):
+Reword to reflect reality @line 78 (no code change):
 
 **Why `@layer base`**: The `.demo`-scoped element rules and the global `body` /
 `:focus-visible` rules are wrapped in `@layer base` so Tailwind utilities (in
 `@layer utilities`) win by layer order — without `!important` — on the existing
 `.demo` pages. The Jedi route intentionally omits `.demo`, so these element rules
 never reach it; only `body` and `:focus-visible` apply globally.
+
+**Updated per Fix**
 
 ---
 

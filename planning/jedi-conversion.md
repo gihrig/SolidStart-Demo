@@ -75,7 +75,10 @@ Existing hooks used in Step 2.5 and Phase 3
 4. Use `text-(--theme-vars)` and `bg-(--theme-vars)` for page elements.
 5. JediNav.tsx and Hero.tsx are exceptions to #4 above. They do not change for dark/light mode.
 
-**Why `@layer base`**: Global `main {}`, `h1 {}`, etc. rules in unlayered CSS have higher precedence than Tailwind utility classes (which live in `@layer utilities`). Wrapping in `@layer base` lets utility classes on Jedi components override these defaults without needing `!important`.
+**Why `@layer base`**: The `.demo`-scoped element rules and the global `body` / `:focus-visible` rules are
+wrapped in `@layer base` so Tailwind utilities (in `@layer utilities`) win by layer order — without
+`!important` — on the existing `.demo` pages. The Jedi route intentionally omits `.demo`, so these element
+rules never reach it; only `body` and `:focus-visible` apply globally.
 
 **Action**: Add a `:root[data-theme="dark"]` block for explicit dark mode, and modify the existing `@media (prefers-color-scheme: dark)` selector to `:root:not([data-theme="light"])` so auto mode (OS preference) dark works but is overridden when the user explicitly selects light.
 
