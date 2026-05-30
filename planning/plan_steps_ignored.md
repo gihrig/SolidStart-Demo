@@ -7644,24 +7644,31 @@ Reuse the already-imported sanitizeUrl (line 344) at line 374
 
 ---
 
-### 4. MINOR — Phase 7 manual checklist theme colors don't match app.css (Phase 7, lines 2126–2127)
+### 4. MINOR — Phase 7 manual checklist theme colors don't match app.css (Phase 7, lines 2127–2128)
 
-Plan lines 2126–2127:
+Plan lines 2127–2128:
 
 - [ ] Light mode: zinc-200 background, zinc-800 text, sky-700 accents
 - [ ] Dark mode: zinc-800 background, zinc-300 text, sky-700 accents
 
 These contradict the Step 1.1 CSS:
 
-- Light --theme-background is var(--color-zinc-100) (line 111), not zinc-200 — zinc-200 is --theme-card-bg (line 115).
-- Dark --theme-foreground is var(--color-zinc-100) (line 121), not zinc-300.
+- Light --theme-foreground is var(--color-zinc-800) (line 110)
+- Light --theme-background is var(--color-zinc-100) (line 111), not zinc-200
+
+- Dark --theme-foreground is var(--color-zinc-100) (line 121)
+- Dark --theme-background is var(--color-zinc-800) (line 122), not zinc-200
 
 A human validator following the checklist in Phase 7 would be looking for the wrong values.
 
 Fix:
 
+lines 2127–2128:
+
 - [ ] Light mode: zinc-100 background, zinc-800 text, sky-700 accents
 - [ ] Dark mode: zinc-800 background, zinc-100 text, sky-700 accents
+
+**Updated per Fix**
 
 ---
 
