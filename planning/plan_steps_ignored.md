@@ -7629,7 +7629,7 @@ Plan lines 372–375:
 
 Fix:
 
-Reuse the already-imported sanitizeUrl (line 344):
+Reuse the already-imported sanitizeUrl (line 344) at line 374
 
 ```tsx
   <a
@@ -7639,6 +7639,8 @@ Reuse the already-imported sanitizeUrl (line 344):
     href={sanitizeUrl(props.ctaHref)}
   >
 ```
+
+**Updated per Fix**
 
 ---
 

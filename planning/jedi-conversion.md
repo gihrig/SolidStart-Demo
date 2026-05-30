@@ -371,7 +371,7 @@ export default function Hero(props: HeroProps) {
         <p class="text-lg font-bold mb-5">{props.subtitle}</p>
         <a
           class="inline-flex flex-wrap shrink-0 items-center justify-center px-4 min-h-13 font-semibold rounded-lg text-white transition-transform active:scale-95 bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover) shadow-md"
-          href={props.ctaHref}
+          href={sanitizeUrl(props.ctaHref)}
         >
           {props.ctaText}
         </a>
