@@ -7750,7 +7750,9 @@ No CRITICAL/MODERATE defects remain — the items below are MINOR.
 
 ### 1. MINOR — Theme-toggle aria-label assertions match 2 of 3 states (Phase 4–5, lines 1750–1765, 1934–1957)
 
-The label function returns strings that share substrings across modes (lines 1467–1472):
+The label function returns strings that share substrings across modes
+
+Plan lines 1467–1472:
 
 ```tsx
 const label = () =>
@@ -7761,11 +7763,27 @@ const label = () =>
       : "Theme: dark. Click for system.";
 ```
 
+The critical detail: every label contains two mode words — the current mode (leading, after Theme:) and the next mode (trailing, after Click for). So each substring is shared by exactly two states:
+
+```pre
+  ┌───────────┬───────────────────────┬───────────────────────────────────┐
+  │ substring │ appears as leading in │      appears as trailing in       │
+  ├───────────┼───────────────────────┼───────────────────────────────────┤
+  │ system    │ Theme: system. …      │ … Click for system. (dark label)  │
+  ├───────────┼───────────────────────┼───────────────────────────────────┤
+  │ light     │ Theme: light. …       │ … Click for light. (system label) │
+  ├───────────┼───────────────────────┼───────────────────────────────────┤
+  │ dark      │ Theme: dark. …        │ … Click for dark. (light label)   │
+  └───────────┴───────────────────────┴───────────────────────────────────┘
+```
+
 - /light/i matches auto ("Click for light") and light ("Theme: light").
 - /dark/i matches light ("Click for dark") and dark ("Theme: dark").
 - /system/i matches dark ("Click for system") and auto ("Theme: system").
-- So each assertion individually proves only 2-of-3, not the exact state. The Step 4.5 Nav integration test (lines
-  1755–1764) relies solely on these substrings with no data-theme/localStorage backstop:
+- So each assertion individually proves only 2-of-3, not the exact state.
+- The Step 4.5 Nav integration test (lines 1755–1764) relies solely on these substrings with no data-theme/localStorage backstop:
+
+Plan lines 1758-1761:
 
 ```js
 await user.click(toggle);
@@ -7774,13 +7792,18 @@ await user.click(toggle);
 expect(toggle.getAttribute("aria-label")).toContain("dark");
 ```
 
-- The 4-step system→light→dark→system cycle happens to be self-protecting (no single stuck state satisfies all four), so today's tests pass correctly — but the assertions are fragile: reorder or shorten them and a regression can pass green. The unit test (lines 1630–1642) and e2e (lines 1940–1956) are saved only by their mockLocalStorage/data-theme checks.
+- The 4-step system→light→dark→system cycle happens to be self-protecting (no single stuck state satisfies all four), so today's tests pass correctly — but the assertions are fragile: reorder or shorten them and a regression can pass green.
+- The unit test (lines 1630–1642) and e2e (lines 1940–1956) are saved only by their mockLocalStorage/data-theme checks.
 
 Fix:
+
+At lines 1753-1764:
 
 Anchor the match to the leading Theme: `<mode>` token so each assertion proves exactly one state:
 
 ```js
+const toggle = screen.getByRole("button", { name: /theme/i });
+expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: system\b/);
 await user.click(toggle);
 expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: light\b/);
 await user.click(toggle);
@@ -7789,7 +7812,9 @@ await user.click(toggle);
 expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: system\b/);
 ```
 
-Apply the same anchoring to the e2e regexes (/^Theme: light/i, etc.) at lines 1940/1947/1954.
+Apply the same anchoring (full line as above `expect...`) to the e2e regexes (/^Theme: light/i, etc.) at lines 1940/1947/1954.
+
+**Updated per Fix**
 
 ---
 

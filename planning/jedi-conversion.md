@@ -1752,16 +1752,16 @@ it("theme toggle cycles through modes on click", async () => {
   renderWithRouter();
   const toggle = screen.getByRole("button", { name: /theme/i });
 
-  expect(toggle.getAttribute("aria-label")).toContain("system");
+  expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: system\b/);
 
   await user.click(toggle);
-  expect(toggle.getAttribute("aria-label")).toContain("light");
+  expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: light\b/);
 
   await user.click(toggle);
-  expect(toggle.getAttribute("aria-label")).toContain("dark");
+  expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: dark\b/);
 
   await user.click(toggle);
-  expect(toggle.getAttribute("aria-label")).toContain("system");
+  expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: system\b/);
 });
 ```
 
@@ -1937,21 +1937,21 @@ test.describe("Jedi Page - Theme Toggle", () => {
 
     // Start at auto (default), click to light
     await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-label", /light/i);
+    await expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: light\b/);
     const htmlLight = page.locator("html");
     await expect(htmlLight).toHaveAttribute("data-theme", "light");
     expect(await htmlLight.evaluate((el) => el.style.colorScheme)).toBe("light");
 
     // Click to dark
     await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-label", /dark/i);
+    await expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: dark\b/);
     const htmlDark = page.locator("html");
     await expect(htmlDark).toHaveAttribute("data-theme", "dark");
     expect(await htmlDark.evaluate((el) => el.style.colorScheme)).toBe("dark");
 
     // Click to auto (aria-label shows "system" — user-facing term for auto mode)
     await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-label", /system/i);
+    await expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: system\b/);
     const htmlAuto = page.locator("html");
     expect(await htmlAuto.getAttribute("data-theme")).toBeNull();
   });
