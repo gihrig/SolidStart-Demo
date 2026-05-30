@@ -710,6 +710,11 @@ export default function JediNav() {
     () => setMobileNavOpen(false),
     () => mobileNavOpen() && !dropdownOpen(),
   );
+  useDismiss(
+    () => setDropdownOpen(false),
+    dropdownOpen,
+    () => dropdownRef,
+  );
 
   return (
     <header class="jedi-header">

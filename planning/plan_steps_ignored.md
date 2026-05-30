@@ -8033,9 +8033,13 @@ Remaining items are MINOR.
 
 ---
 
-### 1. CRITICAL — 28th-cycle fix #3 deleted the profile dropdown's useDismiss; dropdown can no longer be dismissed and a
+Note: Since switching to Opus 4.8 and with this 29th Cycle in particular, Claude's writing style has become overly verbose. A more concise, but still informative style is preferred.
 
-component test now fails (Phase 2, lines 707–712, 766; test lines 970–982)
+---
+
+### 1. CRITICAL — 28th-cycle fix #3 deleted the profile dropdown's useDismiss; (Phase 2, lines 707–712, 766; test lines 970–982)
+
+dropdown can no longer be dismissed and a component test now fails
 
 The 28th cycle (issue #3) intended "First Escape closes the dropdown; a second closes the nav." Its Fix told the
 implementer to "Change plan lines 706–711" — but those lines held both useDismiss calls, and the replacement shows only the gated mobile-nav call. The dropdown's own dismiss was dropped entirely.
@@ -8081,6 +8085,8 @@ Consequences:
 - The dropdown has no Escape dismiss and no click-away dismiss at all — setDropdownOpen(false) is now only reachable by clicking the trigger a second time.
 - A component test in this very plan fails. Lines 970–982 ("click outside dropdown closes it") click document.body and assert the panel closes:
 
+Plan line 980
+
 ```ts
 await user.click(document.body);
 expect(dropdown).toHaveAttribute("aria-hidden", "true");
@@ -8094,7 +8100,9 @@ expect(dropdown).toHaveClass("pointer-events-none");
 
 Fix:
 
-Restore the dropdown's useDismiss alongside the gated nav one (this re-consumes dropdownRef, restores click-away + Escape, and makes the existing gate behave as the 28th cycle intended). Plan lines 709–712:
+Restore the dropdown's useDismiss alongside the gated nav one (this re-consumes dropdownRef, restores click-away + Escape, and makes the existing gate behave as the 28th cycle intended).
+
+Plan lines 709–712:
 
 ```tsx
 useDismiss(
@@ -8110,6 +8118,8 @@ useDismiss(
 
 dropdownRef is HTMLLIElement | undefined, assignable to the () => HTMLElement | undefined parameter, so this is
 type-safe. The "Escape key closes mobile nav" test (lines 956–968, dropdown closed) stays green, and "click outside dropdown closes it" (lines 970–982) now passes.
+
+**Updated per Fix**
 
 ---
 
