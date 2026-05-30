@@ -3,6 +3,16 @@
     "CLAUDE_CODE_FORK_SUBAGENT": "1"
   },
   "permissions": {
-    "allow": ["Bash(vpr *)", "Bash(vp test *)", "Bash(vp check *)", "Bash(vp lint *)"]
+    "allow": [
+      "Read",
+      "Glob",
+      "Edit",
+      "Bash(git status)",
+      "Bash(vpr *)",
+      "Bash(vp test *)",
+      "Bash(vp check *)",
+      "Bash(vp lint *)"
+    ],
+    "deny": ["Read(**/.env*)", "Read(**/.ssh/**)", "Bash(sudo *)"]
   }
 }
