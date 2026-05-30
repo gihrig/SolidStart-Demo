@@ -7997,3 +7997,298 @@ Positive Observations
   values only where no utility exists (grid-rows-[0fr], transition-[grid-template-rows,opacity]).
 - SolidJS idioms are sound — static arrays (CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS) live outside the component, no
   destructured props, and `<Show>`/`<For>`/classList are used appropriately.
+
+===================================================================================
+
+## ❯ Review `planning/jedi-conversion.md`
+
+- Reference `planning/plan_steps_ignored.md` 28th cycle @lines 7751 - 7954
+- Follow layout and style in document referenced above
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for issues affecting security, accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Must use backticks e.g. <pre>`code;`</pre> for simple one-line code snippets in issues
+- Must use code fencing for multi-line code snippets in issues. eg.
+  <pre>
+    ```tsx
+    code;
+    ```
+  </pre>
+
+- Provide a recommended `Fix:` section at the end of each issue
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- Use the table layout and character format from the previous cycle as listed above
+- Limit table width to 100 columns
+- List Positive Observations in a bulleted list at end of results
+
+## Jedi Conversion Plan Review — 29th Cycle - used Opus 4.8 with max effort
+
+Cross-referenced with 28th cycle fixes (lines 7751–7954 of plan_steps_ignored.md).
+
+One CRITICAL and one MODERATE defect found — both are regressions introduced by 28th-cycle fixes.
+Remaining items are MINOR.
+
+---
+
+### 1. CRITICAL — 28th-cycle fix #3 deleted the profile dropdown's useDismiss; dropdown can no longer be dismissed and a
+
+component test now fails (Phase 2, lines 707–712, 766; test lines 970–982)
+
+The 28th cycle (issue #3) intended "First Escape closes the dropdown; a second closes the nav." Its Fix told the
+implementer to "Change plan lines 706–711" — but those lines held both useDismiss calls, and the replacement shows only the gated mobile-nav call. The dropdown's own dismiss was dropped entirely.
+
+Current plan, lines 707–712:
+
+```tsx
+let dropdownRef: HTMLLIElement | undefined;
+
+useDismiss(
+  () => setMobileNavOpen(false),
+  () => mobileNavOpen() && !dropdownOpen(),
+);
+```
+
+- There is only one useDismiss. The dropdown's was removed, yet dropdownRef is still declared (line 707) and attached (line 766 `<li ref={dropdownRef} class="relative">`)
+- It is now assigned but never read (dead code).
+
+`useDismiss` only provides click-away when given a third ref argument:
+
+src/lib/useDismiss.ts lines 5–26:
+
+```ts
+export function useDismiss(
+  onDismiss: () => void,
+  active: Accessor<boolean>,
+  ref?: () => HTMLElement | undefined,
+) {
+  if (isServer) return;
+  function onKeyDown(e: KeyboardEvent) {
+    if (e.key === "Escape" && active()) onDismiss();
+  }
+  // ...
+  if (!ref) return; // ← no ref ⇒ no click-away
+  function onClick(e: MouseEvent) {
+    /* dismiss on outside click */
+  }
+}
+```
+
+Consequences:
+
+- The dropdown has no Escape dismiss and no click-away dismiss at all — setDropdownOpen(false) is now only reachable by clicking the trigger a second time.
+- A component test in this very plan fails. Lines 970–982 ("click outside dropdown closes it") click document.body and assert the panel closes:
+
+```ts
+await user.click(document.body);
+expect(dropdown).toHaveAttribute("aria-hidden", "true");
+expect(dropdown).toHaveClass("pointer-events-none");
+```
+
+- With no dropdown useDismiss, dropdownOpen() stays true, so aria-hidden stays "false" and the assertion throws. Phase 2's rule "Tests must pass before the step is marked complete" means Step 2.5 cannot complete as written.
+- The nav gate now creates an Escape dead-zone. With both layers open, () => mobileNavOpen() && !dropdownOpen()
+  correctly suppresses the nav's Escape.
+- Because the dropdown's handler is gone, nothing responds to Escape: the dropdown can't close it, and the nav refuses to.
+
+Fix:
+
+Restore the dropdown's useDismiss alongside the gated nav one (this re-consumes dropdownRef, restores click-away + Escape, and makes the existing gate behave as the 28th cycle intended). Plan lines 709–712:
+
+```tsx
+useDismiss(
+  () => setMobileNavOpen(false),
+  () => mobileNavOpen() && !dropdownOpen(),
+);
+useDismiss(
+  () => setDropdownOpen(false),
+  dropdownOpen,
+  () => dropdownRef,
+);
+```
+
+dropdownRef is HTMLLIElement | undefined, assignable to the () => HTMLElement | undefined parameter, so this is
+type-safe. The "Escape key closes mobile nav" test (lines 956–968, dropdown closed) stays green, and "click outside dropdown closes it" (lines 970–982) now passes.
+
+---
+
+### 2. MODERATE — 28th-cycle fix #1 copied a synchronous matcher into Playwright; .toMatch() runs on an un-awaited
+
+Locator.getAttribute() Promise and the e2e theme-cycle test throws (Phase 5, lines 1941, 1948, 1955)
+
+28th-cycle fix #1 said "Apply the same anchoring … to the e2e regexes." That anchoring pattern
+(expect(toggle.getAttribute(...)).toMatch(...)) is correct in the component test (Nav.test.tsx, lines 1756–1765)
+because there toggle is a DOM element and getAttribute returns a string. In Playwright, toggle is a Locator and
+getAttribute() returns a Promise.
+
+Plan lines 1941 / 1948 / 1955:
+
+```ts
+await expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: light\b/);
+// ...
+await expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: dark\b/);
+// ...
+await expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: system\b/);
+```
+
+- `toggle.getAttribute(...)` is never awaited, so `expect()` receives a Promise, not a string.
+- Playwright's generic toMatch requires a string and throws `received value must be a string` synchronously
+- The await only wraps the thrown error.
+- Every one of these three assertions fails, taking down "should cycle through auto → light → dark → auto modes" and Phase 5.
+
+Note the same file already uses the correct idioms elsewhere — `expect(await html...getAttribute(...))` (line 1957) and the auto-retrying `await expect(toggle).toHaveAttribute(...)` (line 1966) — so this is an isolated copy-paste slip.
+
+Fix:
+
+Use the auto-retrying web-first matcher (consistent with line 1966), which accepts a RegExp value:
+
+```ts
+await toggle.click();
+await expect(toggle).toHaveAttribute("aria-label", /^Theme: light\b/);
+// ...
+await expect(toggle).toHaveAttribute("aria-label", /^Theme: dark\b/);
+// ...
+await expect(toggle).toHaveAttribute("aria-label", /^Theme: system\b/);
+```
+
+(Equivalent minimal change: `expect(await toggle.getAttribute("aria-label")).toMatch(/^Theme: light\b/)` — but
+toHaveAttribute is preferred for its auto-wait.)
+
+---
+
+### 3. MINOR — Phase 3 requirement attributes onKeyDown to category list items, but useListbox handles keys at the container via aria-activedescendant (Phase 3, line 1021)
+
+Plan line 1021:
+
+▎ Category list items: `tabIndex={-1}`, `role="option"`, `aria-selected`, `onKeyDown` (Enter/Space selects item, updates
+▎ selectedCategory signal and highlight).
+
+The hook the page actually uses puts no `onKeyDown` on the options. `getOptionProps` returns only `id`, `role`, `tabIndex`, `aria-selected`, `onClick`:
+
+src/lib/useListbox.ts lines 67–80:
+
+```tsx
+function getOptionProps(index: number) {
+  return {
+    id: `${prefix}-option-${index}`,
+    role: "option" as const,
+    tabIndex: -1 as const,
+    get "aria-selected"() {
+      return options.selectedIndex() === index;
+    },
+    onClick() {
+      options.onSelect(index);
+      setFocusedIndex(index);
+    },
+  };
+}
+```
+
+- Keyboard handling (Arrow/Home/End/Enter/Space) lives on the listbox container (`listboxProps.onKeyDown`, lines 25–55).
+- Using the single-tab-stop aria-activedescendant roving pattern — which is the more correct ARIA listbox
+  implementation. No functional impact; the spec text just misdescribes where the handler lives and could send an
+  implementer looking for per-item `onKeyDown`.
+
+Fix:
+
+Reword line 1021 to match the hook (no code change):
+
+▎ Category `<ul>` (listbox): `role="listbox"`, `tabIndex={0}`, `onKeyDown` (Arrow/Home/End move the active option; Enter/Space
+▎ select via `aria-activedescendant`). Category items: `role="option"`, `tabIndex={-1}`, `aria-selected`, `onClick`; `ring` follows `focusedIndex`, `highlight` follows `selectedCategory`.
+
+---
+
+### 4. MINOR — Profile dropdown trigger advertises expansion but not that it controls a popup; missing aria-haspopup / aria-controls (Phase 2, lines 767–789)
+
+The trigger exposes `aria-expanded` but nothing tells assistive tech that activating it opens a menu, and the panel has no id the trigger can reference.
+
+Plan lines 767–789 (abridged):
+
+```tsx
+  <button
+    type="button"
+    class="flex items-center gap-2 cursor-pointer select-none"
+    aria-label="Profile menu"
+    aria-expanded={dropdownOpen()}
+    onClick={() => setDropdownOpen(!dropdownOpen())}
+  >
+    {/* ...avatar / caret... */}
+  </button>
+  <div inert={!dropdownOpen()} aria-hidden={!dropdownOpen()} class={`absolute right-0 ...`}>
+```
+
+Per the WAI-ARIA `menu-button` pattern, a control that expands a popup should expose `aria-haspopup` and associate the popup via `aria-controls`. No test or build impact — purely an accessibility completeness gap.
+
+Fix:
+
+Add `aria-haspopup` + `aria-controls` to the trigger and a matching id on the panel:
+
+```tsx
+  <button
+    type="button"
+    class="flex items-center gap-2 cursor-pointer select-none"
+    aria-label="Profile menu"
+    aria-haspopup="true"
+    aria-controls="jedi-profile-menu"
+    aria-expanded={dropdownOpen()}
+    onClick={() => setDropdownOpen(!dropdownOpen())}
+  >
+    {/* ... */}
+  </button>
+  <div
+    id="jedi-profile-menu"
+    inert={!dropdownOpen()}
+    aria-hidden={!dropdownOpen()}
+    class={`absolute right-0 ...`}
+  >
+```
+
+---
+
+Issues Summary
+
+```pre
+  ┌────┬──────────┬────────────────────┬──────────────────────────────────────────────────────────┐
+  │ #  │ Severity │       Location     │                        Issue                             │
+  ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
+  │ 1  │ CRITICAL │ Phase 2, 707-712   │ Profile dropdown lost useDismiss (Escape +               │
+  │    │          │                    │ click-away); breaks test, dropdownRef now dead           │
+  ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
+  │ 2  │ MODERATE │ Phase 5, 1941-1955 │ .toMatch() called on un-awaited Locator                  │
+  │    │          │                    │ .getAttribute() Promise — theme-cycle e2e fails          │
+  ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
+  │ 3  │ MINOR    │ Phase 3, line 1021 │ Req. lists item-level onKeyDown, but useListbox          │
+  │    │          │                    │ handles keys at container (activedescendant)             │
+  ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
+  │ 4  │ MINOR    │ Phase 2, 767-789   │ Dropdown trigger lacks aria-haspopup and                 │
+  │    │          │                    │ aria-controls for the menu panel it toggles              │
+  └────┴──────────┴────────────────────┴──────────────────────────────────────────────────────────┘
+```
+
+---
+
+Positive Observations
+
+- 28th-cycle fix #2 correctly applied — font-bold is gone from the Hero `<h1>` (line 371: class="text-7xl leading-tight mb-4 animate-fade-in font-hero"), so it now matches the caption's natural Lobster weight.
+- 28th-cycle fix #4 correctly applied — the @layer base rationale (lines 78–81) now accurately credits the
+  .demo-scoped element rules plus global body/:focus-visible, not bare element selectors.
+- 28th-cycle fix #1 correctly applied in the component test — Nav.test.tsx anchors each state with `toMatch(/^Theme: <mode>\b/`) (lines 1756–1765); only its e2e sibling regressed (Issue 2).
+- 28th-cycle fix #3's gate expression () => mobileNavOpen() && !dropdownOpen() (line 711) is itself correct
+  layered-dismiss logic — it only fails because its companion dropdown dismiss was dropped (Issue 1).
+- sanitizeUrl is robust and applied consistently to every dynamic URL — Hero backgroundImage/ctaHref, Image src/href, Author avatarSrc/href; ^(?:https?:\/\/|\/(?:[\w]|$)|#) plus BREAK_CHARS blocks javascript:/data:, protocol-relative, traversal, and CSS breakout.
+- useListbox integration is the correct single-tab-stop ARIA listbox — aria-activedescendant on the `<ul>`,
+  role="option"/tabIndex={-1} on items, and ids align (idPrefix: "category" → category-option-N matches the hook's
+  ${prefix}-option-${idx}).
+- Theme cascade is sound — :root / :root[data-theme="dark"] / @media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) } resolves all three modes; the external public/theme-init.js (lines 1352–1368, loaded at line 1384) prevents FOUC without needing CSP unsafe-inline.
+- ThemeToggle is SSR-safe — signal starts "auto", onMount reads localStorage, and the auto-mode createEffect
+  registers/cleans the matchMedia listener via onCleanup (lines 1453–1459).
+- Tailwind v4 syntax is clean — text-(--var)/bg-(--var)/ring-(--var) custom-property utilities throughout;
+  --spacing-5pct/10pct/20pct and --font-hero tokens; arbitrary values used only where no utility exists
+  (grid-rows-[0fr], transition-[grid-template-rows,opacity]); no dark: class, no [var(...)] arbitrary syntax.
+- SolidJS idioms are correct — static arrays (CATEGORIES, TOP_PHOTOS, TOP_CAPTIONS) declared outside the component, no destructured props, `<Show>`-with-accessor for href, classList for conditional classes, inert on the mobile `<nav>` (line 751) and `<aside>` (line 1228), imports ordered external → internal → components.
+
+---
+
+A note on process: per the global directive I (Claude AI) verified every cross-file claim against the actual hooks (useDismiss.ts / useListbox.ts), and I kept this in the prior cycles' analytical-prose format rather than caveman, since the task says to follow the referenced document's layout/style.
