@@ -8402,8 +8402,13 @@ names; screen-reader users are told "menu" but get a disclosure. No functional o
 
 Fix:
 
-Pick one pattern. Simplest is to treat it as a disclosure — keep `aria-expanded` + `aria-controls` (valid once
-Issue 1 lands) and drop the menu claim:
+Pick one pattern.
+
+1. keep `aria-expanded` + `aria-controls` (valid once Issue 1 lands) and drop the menu claim:
+2. keep `aria-haspopup` and make it a real menu: `role="menu"` on the panel, `role="menuitem"` on each
+   button, plus arrow-key navigation.
+
+Plan @line 772
 
 ```tsx
 <button
@@ -8415,8 +8420,10 @@ Issue 1 lands) and drop the menu claim:
 >
 ```
 
-Otherwise keep `aria-haspopup` and make it a real menu: `role="menu"` on the panel, `role="menuitem"` on each
-button, plus arrow-key navigation.
+- Implement option 1.
+- Add option 2 to Backlog.md
+
+**Updated per Fix**
 
 ---
 

@@ -771,12 +771,11 @@ export default function JediNav() {
           <li ref={dropdownRef} class="relative">
             <button
               type="button"
-              class="flex items-center gap-2 cursor-pointer select-none"
               aria-label="Profile menu"
-              aria-haspopup="true"
               aria-controls="jedi-profile-menu"
               aria-expanded={dropdownOpen()}
               onClick={() => setDropdownOpen(!dropdownOpen())}
+              class="flex items-center gap-2 cursor-pointer select-none"
             >
               <img
                 class="h-8 rounded-full object-cover bg-teal-200"
