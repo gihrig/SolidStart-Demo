@@ -8448,11 +8448,13 @@ passes today, but it is a weak guard inconsistent with its anchored siblings.
 
 Fix:
 
-Anchor it like the others:
+Anchor it like the others (line 1974):
 
 ```ts
 await expect(toggle).toHaveAttribute("aria-label", /^Theme: light\b/);
 ```
+
+**Updated per Fix**
 
 ---
 

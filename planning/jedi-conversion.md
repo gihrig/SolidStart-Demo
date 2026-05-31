@@ -1971,7 +1971,7 @@ test.describe("Jedi Page - Theme Toggle", () => {
 
     // Set to light explicitly: auto -> light
     await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-label", /light/i);
+    await expect(toggle).toHaveAttribute("aria-label", /^Theme: light\b/);
 
     // Verify localStorage was set
     const stored = await page.evaluate(() => window.localStorage.getItem("theme"));
