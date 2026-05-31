@@ -8367,7 +8367,7 @@ incomplete — and issue #4 reads **Updated per Fix**, masking the gap.
 
 Fix:
 
-Add the `id` the trigger already advertises:
+Add the `id` the trigger already advertises (Line 793):
 
 ```tsx
 <div
@@ -8377,6 +8377,8 @@ Add the `id` the trigger already advertises:
   class={`absolute right-0 ...`}
 >
 ```
+
+**Updated per Fix**
 
 ---
 
