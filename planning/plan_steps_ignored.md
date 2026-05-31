@@ -8530,8 +8530,11 @@ prior cycles' analytical-prose style rather than caveman, per the task's "follow
 and "concise but explanatory."
 
 ===================================================================================
-At this point the plan is considered to be "finished" in that it is ready for execution.
-Refactoring, debugging and other improvements may be done after the plan has been executed.
+
+## At this point the plan is considered to be "finished" in that it is ready for execution.
+
+### Refactoring, debugging and other improvements may be done after the plan has been executed.
+
 ===================================================================================
 
 Using Claude opus 4.8 with max effort
@@ -8561,5 +8564,43 @@ feat(jedi): Phase 1 complete - CSS foundation, Lobster font, jedi.css
 
 Verified: vpr check passes (0 errors, 64 files); vpr build succeeds, emitting
 jedi-_.css + lobster-_.woff2 to client and server bundles.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+
+## ❯ On `vpr dev` a warning is displayed
+
+```zsh
+  $ vinxi build ⊘ cache disabled
+  vinxi v0.5.11
+Found 1 warning while optimizing generated
+  CSS:
+
+  │   }
+  │   .text-\[var\(\.\.\.\)\] {
+  │     color: var(...);
+  ┆                ^-- Unexpected token Delim('.')
+  ┆
+  │   }
+```
+
+⏺
+
+```css
+/* Restrict Tailwind's automatic class scanning to ./src (path is relative to
+   this file). All class names live in src/components and src/routes, so
+   scanning anything outside src/ (planning notes, .claude, config, README)
+   only risks phantom utilities from prose examples — e.g. `text-[var(...)]`
+   -> invalid `color: var(...)`. Add `@source "<path>"` if a class-bearing
+   source ever lives outside src/. */
+@import "tailwindcss" source(none);
+@source "../src";
+```
+
+```zsh
+  @import "tailwindcss" source("../src");
+  - Path is relative to the CSS file → ../src = the src/ dir.
+  - Replaces the @source not "../planning" blocklist (removed — redundant now).
+  - Bonus: the harmless phantom from .claude/CLAUDE.md's text-[var(--css-variable)] is gone too, since .claude/ is no longer scanned.
+```
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>

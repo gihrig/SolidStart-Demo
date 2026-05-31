@@ -1,4 +1,11 @@
-@import "tailwindcss";
+/* Restrict Tailwind's automatic class scanning to ./src (path is relative to
+   this file). All class names live in src/components and src/routes, so
+   scanning anything outside src/ (planning notes, .claude, config, README)
+   only risks phantom utilities from prose examples — e.g. `text-[var(...)]`
+   -> invalid `color: var(...)`. Add `@source "<path>"` if a class-bearing
+   source ever lives outside src/. */
+@import "tailwindcss" source(none);
+@source "../src";
 
 @theme {
   --font-hero: "Lobster", sans-serif;
