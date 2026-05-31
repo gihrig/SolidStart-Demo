@@ -8483,8 +8483,9 @@ for residue (`md:![a-z]`) that was never introduced.
 
 Fix:
 
-Update the table/audit to match the implemented approach (opacity/translate/pointer-events for nav visibility;
-`justify-center`), or remove the two stale rows.
+Remove the stale `md:block!` and `justify-end`.
+
+**Updated per Fix**
 
 ---
 

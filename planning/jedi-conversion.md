@@ -16,10 +16,9 @@ Convert the Jedi Project (Alpine.js + TailwindCSS v3.2.7) to `src/routes/jedi.ts
 ### TailwindCSS v3 → v4 Key Changes
 
 1. **Arbitrary values**: `[&>*]:px-8` → standard v4 utilities or custom classes
-2. **Important modifiers**: `md:!block` → `md:block!`
-3. **Color opacity**: `bg-opacity-40` → `bg-gray-800/40`
-4. **Custom properties**: `text-(--theme-accent)` pattern already used in **Target Project**
-5. **Font family**: Google Fonts 'Lobster' integration required
+2. **Color opacity**: `bg-opacity-40` → `bg-gray-800/40`
+3. **Custom properties**: `text-(--theme-accent)` pattern already used in **Target Project**
+4. **Font family**: Google Fonts 'Lobster' integration required
 
 ### Visual Features to Preserve
 
@@ -682,7 +681,6 @@ describe('<Card />', () => {
 | `x-transition:enter="duration-300 ease-out"`         | Tailwind `transition-all duration-300 ease-out`       |
 | `x-bind:class="dropdownOpen && 'rotate-180           | Template literal class                                |
 |  duration-300'"`                                     |                                                       |
-| `md:!block`                                          | `md:block!` (TailwindCSS v4 syntax)                   |
 | `[&>*]:px-8`                                         | Direct `px-8` on each child element                   |
 └──────────────────────────────────────────────────────┴───────────────────────────────────────────────────────┘
 ```
@@ -690,8 +688,6 @@ describe('<Card />', () => {
 **TailwindCSS v3 → v4 conversions**:
 
 - `[&>*]:px-8` → `px-8` applied directly to child divs
-- `md:!block` → `md:block!`
-- `[&>li>a]:justify-end` → direct `justify-end` class on each `<a>`
 
 **Component**:
 
@@ -2032,7 +2028,6 @@ grep -rn -E "!important|bg-opacity-|text-opacity-|md:![a-z]|\[&>" \
 
 Fix any hits:
 
-- `md:!block` → `md:block!`
 - `bg-opacity-40` → `bg-gray-800/40`
 - Unsupported `[&>*]` → `space-y-*` utility or scoped CSS
 - Use `text-(--theme-accent)` pattern for custom properties
