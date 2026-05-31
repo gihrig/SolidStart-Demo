@@ -773,6 +773,8 @@ export default function JediNav() {
               type="button"
               class="flex items-center gap-2 cursor-pointer select-none"
               aria-label="Profile menu"
+              aria-haspopup="true"
+              aria-controls="jedi-profile-menu"
               aria-expanded={dropdownOpen()}
               onClick={() => setDropdownOpen(!dropdownOpen())}
             >

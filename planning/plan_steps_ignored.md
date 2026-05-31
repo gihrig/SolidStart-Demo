@@ -8211,7 +8211,7 @@ Reword line 1026 to match the hook (no code change):
 
 The trigger exposes `aria-expanded` but nothing tells assistive tech that activating it opens a menu, and the panel has no id the trigger can reference.
 
-Plan lines 767–789 (abridged):
+Plan lines 772–790 (abridged):
 
 ```tsx
   <button
@@ -8252,26 +8252,28 @@ Add `aria-haspopup` + `aria-controls` to the trigger and a matching id on the pa
   >
 ```
 
+**Updated per Fix**
+
 ---
 
 Issues Summary
 
 ```pre
-  ┌────┬──────────┬────────────────────┬──────────────────────────────────────────────────────────┐
-  │ #  │ Severity │       Location     │                        Issue                             │
-  ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
-  │ 1  │ CRITICAL │ Phase 2, 707-712   │ Profile dropdown lost useDismiss (Escape +               │
-  │    │          │                    │ click-away); breaks test, dropdownRef now dead           │
-  ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
-  │ 2  │ MODERATE │ Phase 5, 1941-1955 │ .toMatch() called on un-awaited Locator                  │
-  │    │          │                    │ .getAttribute() Promise — theme-cycle e2e fails          │
-  ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
-  │ 3  │ MINOR    │ Phase 3, line 1021 │ Req. lists item-level onKeyDown, but useListbox          │
-  │    │          │                    │ handles keys at container (activedescendant)             │
-  ├────┼──────────┼────────────────────┼──────────────────────────────────────────────────────────┤
-  │ 4  │ MINOR    │ Phase 2, 767-789   │ Dropdown trigger lacks aria-haspopup and                 │
-  │    │          │                    │ aria-controls for the menu panel it toggles              │
-  └────┴──────────┴────────────────────┴──────────────────────────────────────────────────────────┘
+  ┌────┬──────────┬────────────────────┬─────────────────────────────────────────────────┐
+  │ #  │ Severity │       Location     │                        Issue                    │
+  ├────┼──────────┼────────────────────┼─────────────────────────────────────────────────┤
+  │ 1  │ CRITICAL │ Phase 2, 707-712   │ Profile dropdown lost useDismiss (Escape +      │
+  │    │          │                    │ click-away); breaks test, dropdownRef now dead  │
+  ├────┼──────────┼────────────────────┼─────────────────────────────────────────────────┤
+  │ 2  │ MODERATE │ Phase 5, 1941-1955 │ .toMatch() called on un-awaited Locator         │
+  │    │          │                    │ .getAttribute() Promise — theme-cycle e2e fails │
+  ├────┼──────────┼────────────────────┼─────────────────────────────────────────────────┤
+  │ 3  │ MINOR    │ Phase 3, line 1021 │ Req. lists item-level onKeyDown, but useListbox │
+  │    │          │                    │ handles keys at container (activedescendant)    │
+  ├────┼──────────┼────────────────────┼─────────────────────────────────────────────────┤
+  │ 4  │ MINOR    │ Phase 2, 767-789   │ Dropdown trigger lacks aria-haspopup and        │
+  │    │          │                    │ aria-controls for the menu panel it toggles     │
+  └────┴──────────┴────────────────────┴─────────────────────────────────────────────────┘
 ```
 
 ---
