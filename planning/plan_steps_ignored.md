@@ -2473,8 +2473,7 @@ Fix: import { splitProps, mergeProps, Show } from "solid-js";
 
 Step 1.1 explains why @layer base is needed:
 
-▎ "Global rules in unlayered CSS have higher precedence than Tailwind utility classes (which live in @layer
-▎ utilities)"
+- "Global rules in unlayered CSS have higher precedence than Tailwind utility classes (which live in @layer utilities)"
 
 But jedi.css doesn't follow its own rule. .navitems > li > a and .hoverlist > \* are unlayered -> can't be overridden by Tailwind utilities on those elements.
 
@@ -3476,7 +3475,7 @@ Equality checks naturally narrow type to ThemeMode.
 
 Requirement says:
 
-▎ Category list items: tabIndex={0}
+- Category list items: tabIndex={0}
 
 But useListbox.ts correctly returns tabIndex: -1 on options (line 72):
 
@@ -3536,8 +3535,8 @@ Move `hover:underline` back to <span>
 
 ### 6. MODERATE — E2E instructions contradictory (lines 1655-1657)
 
-▎ - Keep all existing tests
-▎ - Replace placeholder tests with new Jedi page tests
+- Keep all existing tests
+- Replace placeholder tests with new Jedi page tests
 
 - Existing tests should display page heading
 - should display h2 page headings
@@ -8164,12 +8163,11 @@ await expect(toggle).toHaveAttribute("aria-label", /^Theme: system\b/);
 
 ---
 
-### 3. MINOR — Phase 3 requirement attributes onKeyDown to category list items, but useListbox handles keys at the container via aria-activedescendant (Phase 3, line 1021)
+### 3. MINOR — Phase 3 requirement attributes onKeyDown to category list items, but useListbox handles keys at the container via aria-activedescendant (Phase 3, line 1026)
 
-Plan line 1021:
+Plan line 1026:
 
-▎ Category list items: `tabIndex={-1}`, `role="option"`, `aria-selected`, `onKeyDown` (Enter/Space selects item, updates
-▎ selectedCategory signal and highlight).
+- Category list items: `tabIndex={-1}`, `role="option"`, `aria-selected`, `onKeyDown` (Enter/Space selects item, updates selectedCategory signal and highlight).
 
 The hook the page actually uses puts no `onKeyDown` on the options. `getOptionProps` returns only `id`, `role`, `tabIndex`, `aria-selected`, `onClick`:
 
@@ -8194,15 +8192,18 @@ function getOptionProps(index: number) {
 
 - Keyboard handling (Arrow/Home/End/Enter/Space) lives on the listbox container (`listboxProps.onKeyDown`, lines 25–55).
 - Using the single-tab-stop aria-activedescendant roving pattern — which is the more correct ARIA listbox
-  implementation. No functional impact; the spec text just misdescribes where the handler lives and could send an
+  implementation (line 21).
+- No functional impact; the spec text just misdescribes where the handler lives and could send an
   implementer looking for per-item `onKeyDown`.
 
 Fix:
 
-Reword line 1021 to match the hook (no code change):
+Reword line 1026 to match the hook (no code change):
 
-▎ Category `<ul>` (listbox): `role="listbox"`, `tabIndex={0}`, `onKeyDown` (Arrow/Home/End move the active option; Enter/Space
-▎ select via `aria-activedescendant`). Category items: `role="option"`, `tabIndex={-1}`, `aria-selected`, `onClick`; `ring` follows `focusedIndex`, `highlight` follows `selectedCategory`.
+- Category <ul> (listbox): role="listbox", tabIndex={0}, onKeyDown (Arrow/Home/End move the active option; Enter/Space select via aria-activedescendant). Category items: role="option", tabIndex={-1}, aria-selected, onClick; ring
+  follows focusedIndex, highlight follows selectedCategory.
+
+**Updated per Fix**
 
 ---
 
