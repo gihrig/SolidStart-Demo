@@ -8528,3 +8528,19 @@ A note on process: per the global directive, every cross-file claim was grep-ver
 code (the missing panel `id`, the `/light/i` regex, and the `md:block!`/`justify-end` absence). Kept in the
 prior cycles' analytical-prose style rather than caveman, per the task's "follow the referenced layout/style"
 and "concise but explanatory."
+
+===================================================================================
+At this point the plan is considered to be "finished" in that it is ready for execution.
+Refactoring, debugging and other improvements may be done after the plan has been executed.
+===================================================================================
+
+Using Claude opus 4.8 with max effort
+
+## ❯ Review `planning/jedi-conversion.md` [ ] Phase 1: CSS Foundation Setup (Claude)
+
+- Read @lines 63-254
+- The steps are designed to be executed sequentially
+- "[√] Step 1.1: Update `src/app.css` — Layer Scoping, Custom Properties, Animation" was previously completed.
+- Review the work to be done and confirm all requirements for this Phase have been met.
+- When ready, complete and mark, [√], the remaining steps in Phase 1.
+- Stop for review.
