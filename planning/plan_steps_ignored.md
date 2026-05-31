@@ -8123,9 +8123,9 @@ type-safe. The "Escape key closes mobile nav" test (lines 956–968, dropdown cl
 
 ---
 
-### 2. MODERATE — 28th-cycle fix #1 copied a synchronous matcher into Playwright; .toMatch() runs on an un-awaited
+### 2. MODERATE — 28th-cycle fix #1 copied a synchronous matcher into Playwright; (Phase 5, lines 1941, 1948, 1955)
 
-Locator.getAttribute() Promise and the e2e theme-cycle test throws (Phase 5, lines 1941, 1948, 1955)
+.toMatch() runs on an un-awaited Locator.getAttribute() Promise and the e2e theme-cycle test throws
 
 28th-cycle fix #1 said "Apply the same anchoring … to the e2e regexes." That anchoring pattern
 (expect(toggle.getAttribute(...)).toMatch(...)) is correct in the component test (Nav.test.tsx, lines 1756–1765)
@@ -8143,11 +8143,9 @@ await expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: system\b/);
 ```
 
 - `toggle.getAttribute(...)` is never awaited, so `expect()` receives a Promise, not a string.
-- Playwright's generic toMatch requires a string and throws `received value must be a string` synchronously
-- The await only wraps the thrown error.
+- Playwright's generic toMatch requires a string and throws `received value must be a string`
+- Synchronously the await only wraps the thrown error.
 - Every one of these three assertions fails, taking down "should cycle through auto → light → dark → auto modes" and Phase 5.
-
-Note the same file already uses the correct idioms elsewhere — `expect(await html...getAttribute(...))` (line 1957) and the auto-retrying `await expect(toggle).toHaveAttribute(...)` (line 1966) — so this is an isolated copy-paste slip.
 
 Fix:
 
@@ -8162,8 +8160,7 @@ await expect(toggle).toHaveAttribute("aria-label", /^Theme: dark\b/);
 await expect(toggle).toHaveAttribute("aria-label", /^Theme: system\b/);
 ```
 
-(Equivalent minimal change: `expect(await toggle.getAttribute("aria-label")).toMatch(/^Theme: light\b/)` — but
-toHaveAttribute is preferred for its auto-wait.)
+**Updated per Fix**
 
 ---
 
