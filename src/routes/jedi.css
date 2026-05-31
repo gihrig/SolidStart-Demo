@@ -1,0 +1,31 @@
+@reference "../app.css";
+
+@layer components {
+  .jedi-header {
+    @apply md:flex items-center justify-between bg-gray-800 h-20 text-white sticky top-0 z-50;
+  }
+
+  .card-style {
+    @apply flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg);
+  }
+
+  .navitems > li > .nav-link {
+    @apply flex h-12 items-center gap-2 rounded-lg px-4;
+  }
+
+  .navitems > li > .nav-link:hover {
+    @apply bg-gray-700;
+  }
+
+  .hoverlist > * {
+    @apply rounded-md transition-colors duration-150;
+  }
+
+  .hoverlist > *:hover {
+    @apply bg-(--theme-hover-bg);
+  }
+
+  .hoverlist > * > :is(a, button) {
+    @apply flex items-center p-2;
+  }
+}

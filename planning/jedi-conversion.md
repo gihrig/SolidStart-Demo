@@ -60,7 +60,7 @@ Existing hooks used in Step 2.5 and Phase 3
 
 ---
 
-## [ ] Phase 1: CSS Foundation Setup (Claude)
+## [√] Phase 1: CSS Foundation Setup (Claude)
 
 ### [√] Step 1.1: Update `src/app.css` — Layer Scoping, Custom Properties, Animation
 
@@ -184,7 +184,7 @@ rules never reach it; only `body` and `:focus-visible` apply globally.
 
 ---
 
-### [ ] Step 1.2: Install and Import Lobster Font
+### [√] Step 1.2: Install and Import Lobster Font
 
 ```zsh
 vp i @fontsource/lobster
@@ -196,17 +196,25 @@ vp i @fontsource/lobster
 import "@fontsource/lobster";
 ```
 
-**Verification**: `vpr dev` → http://localhost:3000/jedi renders; DevTools shows Lobster font loaded.
+**Type declaration**: `@fontsource/*` packages ship CSS only (no `.d.ts`), so `vp check`'s type-aware lint rejects the bare side-effect import with TS2882. Add `src/types/fontsource.d.ts` (mirrors `src/types/mdx.d.ts`):
+
+```ts
+declare module "@fontsource/*";
+```
+
+**Verification**: `vpr dev` → http://localhost:3000/jedi renders; DevTools shows Lobster font loaded. `vpr check` passes (requires the type declaration above).
 
 ---
 
-### [ ] Step 1.3: Create Jedi Route CSS File
+### [√] Step 1.3: Create Jedi Route CSS File
 
 **File**: `src/routes/jedi.css`
 
 **Action**: Create route-specific CSS for descendant-selector patterns that can't be expressed as Tailwind utilities. Import in `jedi.tsx`.
 
 ```css
+@reference "../app.css";
+
 @layer components {
   .jedi-header {
     @apply md:flex items-center justify-between bg-gray-800 h-20 text-white sticky top-0 z-50;
@@ -244,7 +252,7 @@ import "@fontsource/lobster";
 import "./jedi.css";
 ```
 
-**Verification**: `vpr check` passes.
+**Verification**: `vpr check` passes **and** `vpr build` succeeds. Lint/format alone does not compile Tailwind — only `vpr build` catches a missing `@reference` or invalid `@apply`. Without the `@reference "../app.css";` above, the build fails: "Cannot apply utility class `md:flex` because the `md` variant does not exist".
 
 ---
 

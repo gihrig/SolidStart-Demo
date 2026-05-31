@@ -1,4 +1,6 @@
 import { Title } from "@solidjs/meta";
+import "@fontsource/lobster";
+import "./jedi.css";
 
 export default function Jedi() {
   return (

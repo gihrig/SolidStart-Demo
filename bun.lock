@@ -4,6 +4,9 @@
   "workspaces": {
     "": {
       "name": "solidstart-demo",
+      "dependencies": {
+        "@fontsource/lobster": "^5.2.8",
+      },
       "devDependencies": {
         "@mdx-js/mdx": "3.1.1",
         "@playwright/test": "1.59.1",
@@ -190,6 +193,8 @@
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.18.7", "", { "os": "win32", "cpu": "x64" }, "sha512-6RENfAwwL6dxQk/V1PxO/ejYRiOUVUaHi99hP3Dso/38jfNKFzU6YSSR/haJGNV/2wAHIgBMROQodna0IejAuA=="],
 
     "@exodus/bytes": ["@exodus/bytes@1.15.0", "", { "peerDependencies": { "@noble/hashes": "^1.8.0 || ^2.0.0" }, "optionalPeers": ["@noble/hashes"] }, "sha512-UY0nlA+feH81UGSHv92sLEPLCeZFjXOuHhrIo0HQydScuQc8s0A7kL/UdgwgDq8g8ilksmuoF35YVTNphV2aBQ=="],
+
+    "@fontsource/lobster": ["@fontsource/lobster@5.2.8", "", {}, "sha512-5xlo4rcvefhac1tnwingFR9OT9wZYUVwlm4Iemx21flMCH8Z7mS4bNHosUtoRodPB8KLLFgywfjUbyt5rNRLng=="],
 
     "@ioredis/commands": ["@ioredis/commands@1.4.0", "", {}, "sha512-aFT2yemJJo+TZCmieA7qnYGQooOS7QfNmYrzGtsYd3g9j5iDP8AimYYAesf79ohjbLG12XxC4nG5DyEnC88AsQ=="],
 

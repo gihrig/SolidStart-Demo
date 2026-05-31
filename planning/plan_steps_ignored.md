@@ -8544,3 +8544,22 @@ Using Claude opus 4.8 with max effort
 - Review the work to be done and confirm all requirements for this Phase have been met.
 - When ready, complete and mark, [√], the remaining steps in Phase 1.
 - Stop for review.
+
+## ⏺ Commit message (per Phase Complete — not committed)
+
+feat(jedi): Phase 1 complete - CSS foundation, Lobster font, jedi.css
+
+- app.css (Step 1.1, pre-done): @layer base scoping, theme custom props
+  (--theme-btn-primary[-hover] etc.), :root[data-theme="dark"] + auto-mode
+  :root:not([data-theme="light"]), fadeIn/animate-fade-in.
+- Install @fontsource/lobster 5.2.8; import in src/routes/jedi.tsx.
+- Add src/types/fontsource.d.ts (declare module "@fontsource/\*") so the
+  type-aware lint accepts the CSS-only side-effect import (fixes TS2882).
+- Add src/routes/jedi.css with @reference "../app.css" (required for @apply
+  in a separate v4 file) + .jedi-header/.card-style/.navitems/.hoverlist
+  classes; import in jedi.tsx.
+
+Verified: vpr check passes (0 errors, 64 files); vpr build succeeds, emitting
+jedi-_.css + lobster-_.woff2 to client and server bundles.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
