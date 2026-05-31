@@ -60,3 +60,13 @@ From `plan_steps_ignored.md` "9. MINOR — No width/height attributes on `<img>`
 "`<img>` elements in Image (451, 454) Author (line 535, 541), JediNav (lines 706, 722, 729, 763), Jedi (1062, 1123) and sidebar lists (lines 1182, 1195, 1201, 1223) lack explicit width/height. Browsers can't reserve space before images load → cumulative layout shift. Low priority for demo with small icons."
 
 Implement in conjunction with above items.
+
+## 7. Extract profile dropdown into a reusable `useMenu` hook (deferred)
+
+- Full executable plan: `planning/useMenu-plan.md`
+- From the 30th-cycle design discussion in `planning/plan_steps_ignored.md` (Issue 2 follow-up)
+- **Deferred (YAGNI)**: a single two-item menu doesn't justify the abstraction. Build when a **second** menu appears, or when full menu semantics are wanted for consistency with `useListbox`.
+- Resolves 30th-cycle review Issues 1 (`aria-controls` with no matching panel `id`) and 2 (`aria-haspopup="true"` without `role="menu"`) by making the panel a real WAI-ARIA menu.
+- New: `src/lib/useMenu.ts` + `src/lib/useMenu.unit.test.ts`. Modify: `src/components/JediNav.tsx` + `JediNav.test.tsx`.
+- Mirrors `useListbox` (aria-activedescendant, prop-getter style) and composes `useDismiss` for click-away.
+- Until then, the cheap alternative is the disclosure fix: add the panel `id`, drop `aria-haspopup`.
