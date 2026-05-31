@@ -8302,3 +8302,217 @@ Positive Observations
 ---
 
 A note on process: per the global directive I (Claude AI) verified every cross-file claim against the actual hooks (useDismiss.ts / useListbox.ts), and I kept this in the prior cycles' analytical-prose format rather than caveman, since the task says to follow the referenced document's layout/style.
+
+===================================================================================
+
+## ❯ Review `planning/jedi-conversion.md`
+
+- Reference `planning/plan_steps_ignored.md` 29th cycle @lines 8039 - 8255
+- Follow layout and style in document referenced above
+- Keep response concise but explanatory
+- Check for idiomatic Solid JS/SolidStart syntax
+- Check for idiomatic Tailwind syntax
+- Check code for issues affecting security, accuracy, correctness and efficiency
+- Report any recommended improvements
+- List issues found in a numbered list
+- Must use backticks e.g. <pre>`code;`</pre> for simple one-line code snippets in issues
+- Must use code fencing for multi-line code snippets in issues. eg.
+  <pre>
+    ```tsx
+    code;
+    ```
+  </pre>
+
+- Provide a recommended `Fix:` section at the end of each issue
+- Sort the list from critical to minor in order of most impacting first
+- Present a summary of issues found in table format after the list of issues
+- Use the table layout and character format from the previous cycle as listed above
+- Limit table width to 100 columns
+- List Positive Observations in a bulleted list at end of results
+
+## Jedi Conversion Plan Review — 30th Cycle - used Opus 4.8 with max effort
+
+Cross-referenced with the 29th-cycle fixes (lines 8039–8255).
+
+All four 29th-cycle items read **Updated per Fix**, but fix #4 landed only half — the trigger gained `aria-controls`, the panel never gained the `id` it points at. No CRITICAL or test/build-breaking defects this cycle;
+
+One MODERATE accessibility defect, the rest MINOR.
+
+---
+
+### 1. MODERATE — 29th-cycle fix #4 added `aria-controls` but not the matching `id`; the reference dangles (Phase 2, lines 777, 793–797)
+
+Fix #4 (29th cycle, lines 8233–8252) specified the trigger get `aria-haspopup`/`aria-controls` **and** the
+panel get `id="jedi-profile-menu"`. Only the trigger half landed — `jedi-profile-menu` occurs exactly once
+in the plan:
+
+```tsx
+aria-controls="jedi-profile-menu"        // line 777
+```
+
+The panel it targets has no `id` (the only `id=` in the file is `<div id="app">`, line 1396):
+
+```tsx
+<div
+  inert={!dropdownOpen()}
+  aria-hidden={!dropdownOpen()}
+  class={`absolute right-0 ...`}          // lines 793–797
+>
+```
+
+So `aria-controls` points at a non-existent element. That is an invalid IDREF: axe-core's
+`aria-valid-attr-value` rule reports it as _serious_, and Phase 7's axe pass (line 2155) would catch it. The
+dropdown still works (hence not CRITICAL), but the markup is now objectively wrong where pre-fix it was merely
+incomplete — and issue #4 reads **Updated per Fix**, masking the gap.
+
+Fix:
+
+Add the `id` the trigger already advertises:
+
+```tsx
+<div
+  id="jedi-profile-menu"
+  inert={!dropdownOpen()}
+  aria-hidden={!dropdownOpen()}
+  class={`absolute right-0 ...`}
+>
+```
+
+---
+
+### 2. MINOR — `aria-haspopup="true"` promises a menu the panel isn't (Phase 2, lines 776, 793–809)
+
+`aria-haspopup="true"` is equivalent to `aria-haspopup="menu"`: it tells assistive tech the trigger opens a
+`role="menu"` to be arrowed through. The panel is a plain list of Tab-navigated buttons — `role="menu"`
+appears nowhere in the plan:
+
+```tsx
+aria-haspopup="true"                      // line 776
+// ...panel...
+<ul class="hoverlist">
+  <li><button type="button" ...>My Profile</button></li>
+  <li><button type="button" ...>Log Out</button></li>
+</ul>
+```
+
+This is the half of the WAI-ARIA menu-button pattern the 29th cycle invoked (line 8229) without the menu it
+names; screen-reader users are told "menu" but get a disclosure. No functional or test impact.
+
+Fix:
+
+Pick one pattern. Simplest is to treat it as a disclosure — keep `aria-expanded` + `aria-controls` (valid once
+Issue 1 lands) and drop the menu claim:
+
+```tsx
+<button
+  type="button"
+  aria-label="Profile menu"
+  aria-controls="jedi-profile-menu"
+  aria-expanded={dropdownOpen()}
+  onClick={() => setDropdownOpen(!dropdownOpen())}
+>
+```
+
+Otherwise keep `aria-haspopup` and make it a real menu: `role="menu"` on the panel, `role="menuitem"` on each
+button, plus arrow-key navigation.
+
+---
+
+### 3. MINOR — Theme-persist e2e uses an unanchored `/light/i` that also matches the "system" label (Phase 5, line 1974)
+
+29th-cycle fix #2 anchored the theme regexes to `/^Theme: <mode>\b/`; the cycle test now does (lines
+1949/1956/1963). The persistence test was missed:
+
+```ts
+await expect(toggle).toHaveAttribute("aria-label", /light/i); // line 1974
+```
+
+Both labels it sits between contain "light" (lines 1478, 1480):
+
+```ts
+"Theme: system. Click for light."; // auto
+"Theme: light. Click for dark."; // light
+```
+
+So `/light/i` passes even if the auto→light click never advanced — it cannot distinguish the two states. It
+passes today, but it is a weak guard inconsistent with its anchored siblings.
+
+Fix:
+
+Anchor it like the others:
+
+```ts
+await expect(toggle).toHaveAttribute("aria-label", /^Theme: light\b/);
+```
+
+---
+
+### 4. MINOR — Mapping table and Phase 6.1 audit cite conversions the component never makes (Phase 2, lines 685, 693–694; Phase 6, line 2035)
+
+The conversion table (line 685), the conversions list (lines 693–694), and the 6.1 audit (line 2035) list these
+v3→v4 rewrites:
+
+```
+- `md:!block` → `md:block!`
+- `[&>li>a]:justify-end` → direct `justify-end` class on each `<a>`
+```
+
+But `<JediNav>` toggles the nav with opacity/transform/pointer-events, not `display`, and uses
+`justify-center`:
+
+```tsx
+class={`... md:opacity-100 md:translate-y-0 md:pointer-events-auto ... ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`}   // line 758
+// ...
+<ul class="navitems flex ... justify-center ...">     // line 760
+```
+
+`md:block!` and `justify-end` appear in no component. The docs describe a strategy the code dropped for smoother
+transitions — harmless to the build, but it misleads an implementer reading the table, and the 6.1 grep hunts
+for residue (`md:![a-z]`) that was never introduced.
+
+Fix:
+
+Update the table/audit to match the implemented approach (opacity/translate/pointer-events for nav visibility;
+`justify-center`), or remove the two stale rows.
+
+---
+
+Issues Summary
+
+```pre
+  ┌────┬──────────┬────────────────────┬─────────────────────────────────────────────────┐
+  │ #  │ Severity │      Location      │                      Issue                      │
+  ├────┼──────────┼────────────────────┼─────────────────────────────────────────────────┤
+  │ 1  │ MODERATE │ Phase 2, 777,793   │ aria-controls="jedi-profile-menu" has no        │
+  │    │          │                    │ matching id; dangling IDREF; 29th fix #4 half   │
+  ├────┼──────────┼────────────────────┼─────────────────────────────────────────────────┤
+  │ 2  │ MINOR    │ Phase 2, 776       │ aria-haspopup="true" names a menu, but the      │
+  │    │          │                    │ panel has no role="menu"/"menuitem"             │
+  ├────┼──────────┼────────────────────┼─────────────────────────────────────────────────┤
+  │ 3  │ MINOR    │ Phase 5, 1974      │ Persist e2e uses /light/i, which matches        │
+  │    │          │                    │ both the light and "system" labels — weak       │
+  ├────┼──────────┼────────────────────┼─────────────────────────────────────────────────┤
+  │ 4  │ MINOR    │ Phase 2/6, 685+    │ Docs/audit cite md:block! & justify-end         │
+  │    │          │                    │ conversions absent from the component           │
+  └────┴──────────┴────────────────────┴─────────────────────────────────────────────────┘
+```
+
+---
+
+Positive Observations
+
+- 29th-cycle fix #1 correctly applied — the dropdown's `useDismiss(() => setDropdownOpen(false), dropdownOpen, () => dropdownRef)` is restored alongside the gated nav dismiss (lines 709–717), so `dropdownRef` is live again and "click outside dropdown closes it" (lines 977–989) passes.
+- 29th-cycle fix #2 correctly applied — the three cycle-test assertions use the auto-retrying web-first matcher `toHaveAttribute("aria-label", /^Theme: …\b/)` (lines 1949/1956/1963); only the persist sibling lagged (Issue 3).
+- 29th-cycle fix #3 correctly applied — line 1028 now describes container-level `onKeyDown` with `aria-activedescendant`, matching `useListbox`.
+- `aria-haspopup`/`aria-controls` were genuinely added to the trigger (lines 776–777); the only gap is the missing panel `id` (Issue 1).
+- sanitizeUrl stays robust and is applied to every dynamic URL — Hero `backgroundImage`/`ctaHref`, Image `src`/`href`, Author `avatarSrc`/`href`; `BREAK_CHARS` blocks CSS breakout and the pattern blocks `javascript:`/`data:`/traversal.
+- Theme stack is sound — external `public/theme-init.js` (CSP-safe, no `unsafe-inline`) plus `:root` / `[data-theme="dark"]` / `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) }` resolves all three modes with no FOUC; ThemeToggle is SSR-safe (signal starts "auto", `onMount` reads storage, the auto-mode `createEffect` cleans its matchMedia listener via `onCleanup`).
+- Tailwind v4 is clean — `text-(--var)`/`bg-(--var)`/`ring-(--var)` throughout, `--spacing-*`/`--font-hero` tokens, arbitrary values only where no utility exists (`grid-rows-[0fr]`, `transition-[grid-template-rows,opacity]`); no `dark:` class, no `[var(...)]`.
+- SolidJS idioms are correct — static arrays declared outside the component, no destructured props, `<Show>`-with-accessor for `href`, `class`+`classList` on the option `<li>`, `inert` on the mobile `<nav>` (line 756) and `<aside>` (line 1236).
+
+---
+
+A note on process: per the global directive, every cross-file claim was grep-verified against the plan's actual
+code (the missing panel `id`, the `/light/i` regex, and the `md:block!`/`justify-end` absence). Kept in the
+prior cycles' analytical-prose style rather than caveman, per the task's "follow the referenced layout/style"
+and "concise but explanatory."
