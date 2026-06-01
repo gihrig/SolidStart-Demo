@@ -8673,4 +8673,4 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
   9 │ let dropdownRef: HTMLLIElement | undefined;
   · ───────────
   ╰────
-- [ ] 3. `vpr test:e2e` terminate without running tests.
+- [√] 3. `vpr test:e2e` terminate without running tests.

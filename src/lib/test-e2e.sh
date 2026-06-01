@@ -21,7 +21,7 @@ trap cleanup EXIT
 # Confirm RPC endpoint returns `401` with `NO_AUTH` error (unauthenticated):
 RESPONSE=$(curl -s -w "\n%{http_code}" -X POST http://localhost:8080/api/rpc \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"test","params":{}}')
+  -d '{"jsonrpc":"2.0","id":1,"method":"test","params":{}}') || true
 HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
 BODY=$(echo "$RESPONSE" | head -n1)
 
