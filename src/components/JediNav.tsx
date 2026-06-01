@@ -70,7 +70,7 @@ export default function JediNav() {
               Create Post
             </button>
           </li>
-          <li ref={dropdownRef} class="relative">
+          <li ref={(el) => (dropdownRef = el)} class="relative">
             <button
               type="button"
               aria-label="Profile menu"
