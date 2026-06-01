@@ -263,12 +263,12 @@ import "./jedi.css";
 
 ---
 
-## [ ] Phase 2: Component Development (Claude)
+## [√] Phase 2: Component Development (Claude)
 
 1. Each component ships with its tests.
 2. Tests must pass before the step is marked complete.
 
-### [ ] Step 2.1: Create Hero Component + Tests
+### [√] Step 2.1: Create Hero Component + Tests
 
 **File**: `src/lib/sanitizeUrl.ts`
 
@@ -439,7 +439,7 @@ describe('<Hero />', () => {
 
 ---
 
-### [ ] Step 2.2: Create Image Component + Tests
+### [√] Step 2.2: Create Image Component + Tests
 
 **File**: `src/components/Image.tsx`
 
@@ -526,7 +526,7 @@ describe('<Image />', () => {
 
 ---
 
-### [ ] Step 2.3: Create Author Component + Tests
+### [√] Step 2.3: Create Author Component + Tests
 
 **File**: `src/components/Author.tsx`
 
@@ -610,7 +610,7 @@ describe('<Author />', () => {
 
 ---
 
-### [ ] Step 2.4: Create Card Component + Tests
+### [√] Step 2.4: Create Card Component + Tests
 
 **File**: `src/components/Card.tsx`
 
@@ -676,7 +676,7 @@ describe('<Card />', () => {
 
 ---
 
-### [ ] Step 2.5: Create JediNav Component + Tests
+### [√] Step 2.5: Create JediNav Component + Tests
 
 **File**: `src/components/JediNav.tsx`
 

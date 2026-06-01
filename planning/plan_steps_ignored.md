@@ -8616,3 +8616,50 @@ Using Claude Opus 4.8 with 'high' effort
 - Review the work to be done and confirm all requirements for this Phase have been met.
 - When ready, complete and mark, [√], the remaining steps in Phase 2.
 - Stop for review.
+
+### ⏺ Phase 2 complete. Marked [√]: Phase 2 header + all 5 steps.
+
+Built 12 files (5 components + tests, 1 lib util + test):
+
+```pre
+  ┌──────┬────────────────────────────────────────────┬─────────────────┐
+  │ Step │                   Files                    │      Tests      │
+  ├──────┼────────────────────────────────────────────┼─────────────────┤
+  │ 2.1  │ src/lib/sanitizeUrl.ts + .unit.test.ts,    │ 9 unit + 3 comp │
+  │      │ src/components/Hero.tsx + .test.tsx        │                 │
+  ├──────┼────────────────────────────────────────────┼─────────────────┤
+  │ 2.2  │ Image.tsx + .test.tsx                      │ 6               │
+  ├──────┼────────────────────────────────────────────┼─────────────────┤
+  │ 2.3  │ Author.tsx + .test.tsx                     │ 4               │
+  ├──────┼────────────────────────────────────────────┼─────────────────┤
+  │ 2.4  │ Card.tsx + .test.tsx                       │ 4               │
+  ├──────┼────────────────────────────────────────────┼─────────────────┤
+  │ 2.5  │ JediNav.tsx + .test.tsx                    │ 16              │
+  └──────┴────────────────────────────────────────────┴─────────────────┘
+```
+
+Verification — all green:
+
+- vpr test:unit -t "sanitizeUrl" → 9 passed
+- vpr test:comp → 13 files, 74 tests passed
+- vpr build → exit 0, Nitro Server built
+- vp check → 0 errors, formatting auto-fixed, 1 false-positive warning (documented above)
+
+One non-blocking warning — `no-unassigned-vars` on `dropdownRef` in JediNav. False positive from Solid's `ref={var}` compile-time transform; proven false by the passing "click outside dropdown closes it" test (relies on `dropdownRef` being populated). Code left as plan specifies.
+
+Commit message:
+
+feat(jedi): Phase 2 complete - Hero, Image, Author, Card, JediNav components
+
+Add five Jedi-page components with co-located tests, plus a sanitizeUrl
+lib helper guarding image/href URLs against unsafe protocols and CSS
+breakout chars. JediNav reuses existing useDismiss/useIsMobile hooks for
+hamburger + profile-dropdown behavior (Alpine.js -> SolidJS conversion).
+
+- sanitizeUrl: SAFE_URL_PATTERN + BREAK_CHARS allowlist (9 tests)
+- Hero: sanitized bg-image + CTA (3 tests)
+- Image/Author: optional link wrap, sanitized src/href (6 + 4 tests)
+- Card: card-style base + class passthrough (4 tests)
+- JediNav: mobile nav + profile dropdown, dismiss-on-Escape/outside (16 tests)
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
