@@ -340,7 +340,10 @@ describe("sanitizeUrl", () => {
 });
 ```
 
-**Verification**: `vpr test:unit -t "sanitizeUrl"` — all sanitizer tests pass.
+**Verification**:
+
+- `vpr test:unit -t "sanitizeUrl"` — all sanitizer tests pass.
+- `vpr build` - Build completes error free.
 
 ---
 
@@ -429,7 +432,10 @@ describe('<Hero />', () => {
 })
 ```
 
-**Verification**: `vpr test:comp -t "Hero"` — Hero tests pass.
+**Verification**:
+
+- `vpr test:comp -t "Hero"` — Hero tests pass.
+- `vpr build` - Build completes error free.
 
 ---
 
@@ -513,7 +519,10 @@ describe('<Image />', () => {
 })
 ```
 
-**Verification**: `vpr test:comp -t "Image"` — Image tests pass.
+**Verification**:
+
+- `vpr test:comp -t "Image"` — Image tests pass.
+- `vpr build` - Build completes error free.
 
 ---
 
@@ -594,7 +603,10 @@ describe('<Author />', () => {
 })
 ```
 
-**Verification**: `vpr test:comp -t "Author"` — Author tests pass.
+**Verification**:
+
+- `vpr test:comp -t "Author"` — Author tests pass.
+- `vpr build` - Build completes error free.
 
 ---
 
@@ -1001,7 +1013,10 @@ describe("<JediNav />", () => {
 
 **Phase Complete**:
 
-**Verification**: `vpr test:comp` — all component tests pass.
+**Verification**:
+
+- `vpr test:comp` — all component tests pass.
+- `vpr build` - Build completes error free.
 
 - Write a commit message in "Conventional Commit" format `feat(jedi): Phase 2 complete - <summary>` summarizing the changes in this phase.
 - Stop.
@@ -1327,7 +1342,10 @@ export default function Jedi() {
 }
 ```
 
-**Verification**: `vpr dev` → http://localhost:3000/jedi renders without console errors.
+**Verification**:
+
+- `vpr dev` → http://localhost:3000/jedi renders without console errors.
+- `vpr build` - Build completes error free.
 
 ---
 
@@ -1406,7 +1424,11 @@ export default createHandler(() => (
 ));
 ```
 
-**Verification**: `vpr check:type` passes. `vpr dev` → no console errors, no FOUC on page load.
+**Verification**:
+
+- `vpr check:type` passes.
+- `vpr dev` → no console errors, no FOUC on page load.
+- `vpr build` - Build completes error free.
 
 ---
 
@@ -1569,7 +1591,10 @@ export default function ThemeToggle() {
 
 **Toggle cycle**: `light → dark → auto → light` (matches **Tanstack Project** `ThemeToggle.tsx` line 44).
 
-**Verification**: `vpr check` passes.
+**Verification**:
+
+- `vpr check` passes.
+- `vpr build` - Build completes error free.
 
 ---
 
@@ -1678,7 +1703,10 @@ describe("<ThemeToggle />", () => {
 });
 ```
 
-**Verification**: `vpr test:comp -t "ThemeToggle"` — ThemeToggle tests pass.
+**Verification**:
+
+- `vpr test:comp -t "ThemeToggle"` — ThemeToggle tests pass.
+- `vpr build` - Build completes error free.
 
 ---
 
@@ -1740,7 +1768,10 @@ export default function Nav() {
 }
 ```
 
-**Verification**: `vpr check` passes.
+**Verification**:
+
+- `vpr check` passes.
+- `vpr build` - Build completes error free.
 
 ---
 
@@ -1784,13 +1815,19 @@ it("theme toggle cycles through modes on click", async () => {
 import userEvent from "@testing-library/user-event";
 ```
 
-**Verification** `vpr test:comp -t "Nav"` — all tests pass.
+**Verification**
+
+- `vpr test:comp -t "Nav"` — all tests pass.
+- `vpr build` - Build completes error free.
 
 ---
 
 **Phase Complete**:
 
-**Verification**: `vpr test:comp` — all component tests pass.
+**Verification**:
+
+- `vpr test:comp` — all component tests pass.
+- `vpr build` - Build completes error free.
 
 - Write a commit message in "Conventional Commit" format `feat(jedi): Phase 4 complete - <summary>` summarizing the changes in this phase.
 - Stop.
@@ -2008,7 +2045,10 @@ test.describe("Jedi Page - Theme Toggle", () => {
 });
 ```
 
-**Verification**: `vpr test:e2e ./e2e/jedi.spec.ts` — all e2e tests pass.
+**Verification**:
+
+- `vpr test:e2e ./e2e/jedi.spec.ts` — all e2e tests pass.
+- `vpr build` - Build completes error free.
 
 ---
 
@@ -2054,6 +2094,10 @@ vpr test:e2e      # e2e tests (including theme toggle tests)
 
 All must pass with no errors and no warnings. Fix any failures before continuing.
 
+**If modifications required for tests to pass**
+
+- `vpr build` - Build completes error free.
+
 ---
 
 ### [ ] Step 6.3: Production Build
@@ -2076,6 +2120,7 @@ vpr start
   - page loads
   - no console errors.
   - theme toggle cycles correctly in production build
+- Success Criteria @line 2220 are achieved
 
 ---
 
