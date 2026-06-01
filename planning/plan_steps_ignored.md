@@ -8666,11 +8666,11 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 
 ### ❯ Issues at this stage
 
-1. `/readme` page is lacking style.
-2. ⚠ eslint(no-unassigned-vars): 'dropdownRef' is always 'undefined' because it's never assigned.
-   ╭─[src/components/JediNav.tsx:9:7]
-   8 │ const isMobile = useIsMobile();
-   9 │ let dropdownRef: HTMLLIElement | undefined;
-   · ───────────
-   ╰────
-3. `vpr test:e2e` terminate without running tests.
+- [√] 1. `/readme` page is lacking style.
+- [ ] 2. ⚠ eslint(no-unassigned-vars): 'dropdownRef' is always 'undefined' because it's never assigned.
+     ╭─[src/components/JediNav.tsx:9:7]
+     8 │ const isMobile = useIsMobile();
+     9 │ let dropdownRef: HTMLLIElement | undefined;
+     · ───────────
+     ╰────
+- [ ] 3. `vpr test:e2e` terminate without running tests.
