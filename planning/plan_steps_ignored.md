@@ -8876,3 +8876,18 @@ feat(jedi): Phase 6 complete - code quality audit pass
 - success criteria 1-5,9-11,14 verified
 
 Stopped for review. Visual + browser-console criteria left for User validation phase.
+
+===================================================================================
+
+## [ ] Phase 7: User Validation (User — Manual)
+
+### Overall the project is a resounding success.
+
+## There are a few issues to be addressed before Phase 7 can be signed off
+
+- See plan doc
+
+## Workflow summary
+
+- Description...
+-

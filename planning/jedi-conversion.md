@@ -2139,76 +2139,77 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 
 ### Desktop View Jedi page (1280px+)
 
-- [ ] Hero displays background image with 40% overlay (bg-gray-800/40)
-- [ ] Hero title uses Lobster font 7xl
-- [ ] Hero title uses Title Case
-- [ ] Hero title uses white text color
-- [ ] "Get Started" button uses `--btn-primary` color
-- [ ] Global Nav visible (from `app.tsx`)
-- [ ] JediNav (converted Jedi header) visible above Hero on Jedi page
-- [ ] Main Jedi article image centered in column (2/3 width), full-width within card
-- [ ] Caption uses Lobster at text-5xl
-- [ ] Tags are rounded pills; hover → bg-gray-500 + white text
-- [ ] Sidebar in right column (1/3); three cards: Categories, Top Photos, Top Captions
-- [ ] Category items show icons and labels; hover states on list items
-- [ ] Top Category item has `--theme-highlight` applied
-- [ ] Overall uses Tailwind classes, not `style` attribute (exception: Hero background-image with dynamic URL)
+- [√] Hero displays background image with 40% overlay (bg-gray-800/40)
+- [√] Hero title uses Lobster font 7xl
+- [√] Hero title uses Title Case
+- [√] Hero title uses white text color
+- [√] "Get Started" button uses `--btn-primary` color
+- [√] Global Nav visible (from `app.tsx`)
+- [√] JediNav (converted Jedi header) visible above Hero on Jedi page
+- [√] Main Jedi article image centered in column (2/3 width), full-width within card
+- [√] Caption uses Lobster at text-5xl
+- [√] Tags are rounded pills; hover → bg-gray-500 + white text
+- [√] Sidebar in right column (1/3); three cards: Categories, Top Photos, Top Captions
+- [√] Category items show icons and labels; hover states on list items
+- [√] Top Category item has `--theme-highlight` applied
+- [√] Overall uses Tailwind classes, not `style` attribute (exception: Hero background-image with dynamic URL)
 
 ### Mobile View (375px)
 
-- [ ] Header menu collapsed under "hamburger" icon
-- [ ] Hero stacks vertically
-- [ ] Mobile "Categories" toggle button appears
-- [ ] Clicking "Categories" toggle shows/hides cards; cards slide in, arrow icon rotates
-- [ ] Main article full width; no horizontal scroll
-- [ ] Interactive elements touch-friendly (min 44px)
+- [√] Header menu collapsed under "hamburger" icon
+- [√] Hero stacks vertically
+- [√] Mobile "Categories" toggle button appears
+- [√] Clicking "Categories" toggle shows/hides cards; cards slide in, arrow icon rotates
+- [ ] Main article full width; no horizontal scroll <--- Small scroll, but article full
+- [√] Interactive elements touch-friendly (min 44px)
 
 ### Tablet (768px)
 
-- [ ] Smooth transition mobile → desktop
-- [ ] Sidebar always visible; mobile toggle hidden
+- [√] Smooth transition mobile → desktop
+- [√] Sidebar always visible; mobile toggle hidden
 
 ### Hover / Animation
 
-- [ ] Nav links change bg on hover to match **Jedi Project**
-- [ ] CTA (Get Started) darkens to `--btn-primary-hover`
-- [ ] Author and avatar link underlines on hover
-- [ ] Animals, Cute, Like, Edit and Delete buttons animate to inverse on hover
-- [ ] Hero title fades in on page load
-- [ ] Mobile category cards transition smoothly; arrow rotation smooth (300ms)
+- [ ] Jedi Nav links change bg on hover to match **Jedi Project** <--- Change but dark bg is too bright
+- [√] CTA (Get Started) darkens to `--btn-primary-hover`
+- [√] Author and avatar link underlines on hover
+- [√] Animals, Cute, Like, Edit and Delete buttons animate to inverse on hover
+- [√] Hero title fades in on page load
+- [√] Mobile category cards transition smoothly; arrow rotation smooth (300ms)
 
 ### Theme Toggle
 
-- [ ] Toggle button visible in global Nav all pages (not within Jedi page)
-- [ ] Click cycles: sun (light) → moon (dark) → monitor (auto)
-- [ ] Light mode: zinc-100 background, zinc-800 text, sky-700 accents
-- [ ] Dark mode: zinc-800 background, zinc-100 text, sky-700 accents
-- [ ] Auto mode: follows OS `prefers-color-scheme` setting
-- [ ] Reload preserves selected mode (stored in localStorage)
-- [ ] No flash of wrong theme on page load (FOUC prevention)
-- [ ] Toggle works on all pages (CSS + init script are global)
-- [ ] Jedi drop-down visible in light and dark mode
+- [√] Toggle button visible in global Nav all pages (not within Jedi page)
+- [√] Click cycles: sun (light) → moon (dark) → monitor (auto)
+- [√] Light mode: zinc-100 background, zinc-800 text, sky-700 accents
+- [√] Dark mode: zinc-800 background, zinc-100 text, sky-700 accents
+- [√] Auto mode: follows OS `prefers-color-scheme` setting
+- [√] Reload preserves selected mode (stored in localStorage)
+- [√] No flash of wrong theme on page load (FOUC prevention)
+- [√] Toggle works on all pages (CSS + init script are global)
+- [√] Jedi drop-down visible in light and dark mode
 
 ### Accessibility
 
-- [ ] Keyboard Tab reaches all actionable elements
-- [ ] Tab navigation reaches "Categories" toggle in small-screen mode
-- [ ] Tab navigation reaches theme toggle button
-- [ ] Theme toggle has descriptive `aria-label` indicating current mode and next action
-- [ ] Space toggles theme toggle button
-- [ ] Focus indicators visible
-- [ ] Screen-reader basic navigation works
-- [ ] Ctrl-Home moves to top
-- [ ] Like button `aria-pressed` becomes dynamic signal when like state is implemented
-- [ ] (Optional) Run axe DevTools, see Brave browser — no critical issues
+- [√] Keyboard Tab reaches all actionable elements
+- [√] Tab navigation reaches "Categories" toggle in small-screen mode
+- [ ] Tab navigation reaches theme toggle button <--- Yes but focus ring has poor contrast
+- [√] Theme toggle has dynamic`aria-label` indicating current mode and next action
+- [ ] Theme toggle position (right end of global nav) all screen sizes. <--- Jerky, stuck
+- [√] Space toggles theme toggle button
+- [ ] Focus indicators visible <--- visible but need better contrast
+- [ ] Screen-reader basic navigation works <--- Not tested
+- [√] Ctrl-Home moves to top
+- [ ] Like button `aria-pressed` dynamic signal <--- Action dialog not working
+- [√] (Optional) Run axe DevTools, see Brave browser — no critical issues
 
 ### Browser Compatibility
 
-- [ ] Chrome / Edge / Brave (latest)
-- [ ] Firefox (latest)
-- [ ] Safari (latest)
-- [ ] Mobile Safari (iOS)
-- [ ] Chrome Mobile (Android)
+- [√] Chrome / Edge / Brave (latest)
+- [√] Firefox (latest)
+- [√] Safari (latest)
+- [ ] Mobile Safari (iOS) <--- Not tested
+- [ ] Chrome Mobile (Android) <--- Not tested
 
 Check in each: layout, Lobster font rendering, animation smoothness, touch, image loading, theme toggle.
 
