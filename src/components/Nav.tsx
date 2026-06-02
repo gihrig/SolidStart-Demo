@@ -1,4 +1,5 @@
 import { useLocation } from "@solidjs/router";
+import ThemeToggle from "~/components/ThemeToggle";
 
 export default function Nav() {
   const location = useLocation();
@@ -31,6 +32,9 @@ export default function Nav() {
           <a class={`border-b-4 ${active("/jedi")} mx-1.5 sm:mx-6`} href="/jedi">
             Jedi
           </a>
+        </li>
+        <li class="ml-auto">
+          <ThemeToggle />
         </li>
       </ul>
     </nav>

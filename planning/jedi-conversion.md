@@ -1432,7 +1432,7 @@ export default createHandler(() => (
 
 ---
 
-### [ ] Step 4.2: Create ThemeToggle Component
+### [√] Step 4.2: Create ThemeToggle Component
 
 **File**: `src/components/ThemeToggle.tsx`
 
@@ -1598,7 +1598,7 @@ export default function ThemeToggle() {
 
 ---
 
-### [ ] Step 4.3: Create ThemeToggle Component Test
+### [√] Step 4.3: Create ThemeToggle Component Test
 
 **File**: `src/components/ThemeToggle.test.tsx`
 
@@ -1710,7 +1710,7 @@ describe("<ThemeToggle />", () => {
 
 ---
 
-### [ ] Step 4.4: Integrate ThemeToggle into Global Nav
+### [√] Step 4.4: Integrate ThemeToggle into Global Nav
 
 **File**: `src/components/Nav.tsx`
 
@@ -1775,7 +1775,7 @@ export default function Nav() {
 
 ---
 
-### [ ] Step 4.5: Update Global Nav test `Nav.test.tsx`
+### [√] Step 4.5: Update Global Nav test `Nav.test.tsx`
 
 **File**: `src/components/Nav.test.tsx`
 
@@ -1829,7 +1829,7 @@ import userEvent from "@testing-library/user-event";
 - `vpr test:comp` — all component tests pass.
 - `vpr build` - Build completes error free.
 
-- Write a commit message in "Conventional Commit" format `feat(jedi): Phase 4 complete - <summary>` summarizing the changes in this phase.
+- Write a commit message in "Conventional Commit" format `feat(jedi): Phase 4 complete - <summary>` summarizing the changes in this phase. use caveman skill. Keep it concise.
 - Stop.
 
 ---

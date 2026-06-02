@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { render, screen } from "@solidjs/testing-library";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, createMemoryHistory } from "@solidjs/router";
 import Nav from "./Nav";
 
@@ -154,5 +155,27 @@ describe("<Nav />", () => {
     expect(readmeLink).toHaveClass("border-transparent");
     expect(fullstackLink).toHaveClass("border-transparent");
     expect(jediLink).toHaveClass("border-transparent");
+  });
+
+  it("renders theme toggle button in nav", () => {
+    renderWithRouter();
+    expect(screen.getByRole("button", { name: /theme/i })).toBeInTheDocument();
+  });
+
+  it("theme toggle cycles through modes on click", async () => {
+    const user = userEvent.setup();
+    renderWithRouter();
+    const toggle = screen.getByRole("button", { name: /theme/i });
+
+    expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: system\b/);
+
+    await user.click(toggle);
+    expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: light\b/);
+
+    await user.click(toggle);
+    expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: dark\b/);
+
+    await user.click(toggle);
+    expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: system\b/);
   });
 });

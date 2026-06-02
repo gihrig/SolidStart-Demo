@@ -8702,3 +8702,33 @@ Marked [√] Phase 3 in planning/jedi-conversion.md.
 Suggested message:
 
 feat(jedi): Phase 3 complete - convert /jedi route to Tailwind v4 with a11y sidebar listbox
+
+===================================================================================
+
+Using Claude Opus 4.8 with 'high' effort
+
+## ❯ Review `planning/jedi-conversion.md` [ ] Phase 4: Create Light/Dark/Auto Theme Toggle
+
+- Read @lines 1366-1833
+- Note dependencies between components and tests
+- Step 4.1: Add Theme Init Script to `src/entry-server.tsx` was previously completed
+- Review the work to be done and confirm all requirements for this Phase have been met.
+- Communicate using /caveman skill. Be concise but accurate.
+- When complete mark, [√], the remaining steps in Phase 4.
+- Stop for review.
+
+### ⏺ Phase 4 complete. [√] Phase 4: Create Light/Dark/Auto Theme Toggle
+
+Created:
+
+- src/components/ThemeToggle.tsx — button cycle light→dark→auto, SVG sun/moon/monitor, onMount init, createEffect
+  watches prefers-color-scheme in auto, writes localStorage.theme, sets data-theme + colorScheme.
+- src/components/ThemeToggle.test.tsx — 6 tests.
+- Nav.tsx — import + <li class="ml-auto"><ThemeToggle /></li>.
+- Nav.test.tsx — userEvent import + 2 toggle tests.
+
+Verified:
+
+- vpr check → pass, 0 warn/lint/type err.
+- vpr test:comp → 82/82 pass (ThemeToggle 6, Nav 25).
+- vpr build → done, no err.
