@@ -8777,3 +8777,22 @@ Verify:
 - vpr build → done, no err. vpr check → 0 warn/lint/type err.
 
 Plan marked [√] Phase 5. NOT committed — plan Phase-Complete, waiting review. Stopped.
+
+### ❯ build project `vpr build`. Run e2e tests `vpr test:e2e`. I see 6 e2e test failures.
+
+⏺ Build, then full e2e suite (not just jedi.spec).
+
+18 failures (6 unique × 3 browsers), all in navigation.spec.ts — stale expectations referencing OLD Jedi page
+
+Root cause was pre-existing test drift from Phase 3 (Jedi route conversion) + Phase 4 (nav), surfaced once full suite ran. No app code touched this round — only stale specs. Not committed.
+
+⏺ All 228 e2e pass. Build done earlier (✓).
+
+6 failures = stale navigation.spec.ts tests, 2 causes:
+
+1. Stale Jedi title/heading (4 tests: lines 57, 295, 384, 518) — referenced old Jedi Kitty. Phase 3 renamed → heading
+   Awesome Photos & Captions, title Little Jedi - .... Updated assertions.
+2. Strict-mode violation (2 tests: lines 97, 210) — used generic page.locator("nav"), which on /jedi matches BOTH
+   global Main nav AND Phase-3 JediNav (aria-label "Jedi site navigation", has `<a class="nav-link">Home</a>`) → ambiguous. Scoped to getByRole("navigation", { name: /^Main$/i }).
+
+Verify: vpr test:e2e → 228/228 pass. vpr build → no err.

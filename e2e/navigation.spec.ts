@@ -54,7 +54,7 @@ test("should navigate via nav bar links to expected pages", async ({ page }) => 
   // Navigate to Jedi via nav
   await nav.getByRole("link", { name: "Jedi" }).click();
   await expect(page).toHaveURL("http://localhost:3000/jedi");
-  await expect(page.getByRole("heading", { name: /^Jedi Kitty$/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Awesome Photos & Captions/i })).toBeVisible();
 
   // Navigate back to Home via nav
   await nav.getByRole("link", { name: "Home" }).click();
@@ -97,15 +97,25 @@ test("should maintain nav bar across all pages", async ({ page }) => {
 test("should show active state for direct URL navigation", async ({ page }) => {
   // Start at Home page
   await page.goto("/");
-  const homeLink = page.locator("nav").getByRole("link", { name: /^Home$/i });
+  const homeLink = page
+    .getByRole("navigation", { name: /^Main$/i })
+    .getByRole("link", { name: /^Home$/i });
   await expect(homeLink).toBeVisible();
-  const aboutLink = page.locator("nav").getByRole("link", { name: /^About$/i });
+  const aboutLink = page
+    .getByRole("navigation", { name: /^Main$/i })
+    .getByRole("link", { name: /^About$/i });
   await expect(aboutLink).toBeVisible();
-  const readmeLink = page.locator("nav").getByRole("link", { name: /^Readme$/i });
+  const readmeLink = page
+    .getByRole("navigation", { name: /^Main$/i })
+    .getByRole("link", { name: /^Readme$/i });
   await expect(readmeLink).toBeVisible();
-  const fullstackLink = page.locator("nav").getByRole("link", { name: /^FullStack$/i });
+  const fullstackLink = page
+    .getByRole("navigation", { name: /^Main$/i })
+    .getByRole("link", { name: /^FullStack$/i });
   await expect(fullstackLink).toBeVisible();
-  const jediLink = page.locator("nav").getByRole("link", { name: /^Jedi$/i });
+  const jediLink = page
+    .getByRole("navigation", { name: /^Main$/i })
+    .getByRole("link", { name: /^Jedi$/i });
   await expect(jediLink).toBeVisible();
 
   // Initial state Home active
@@ -210,15 +220,25 @@ test("should show active state for direct URL navigation", async ({ page }) => {
 test("should update active state for nav bar navigation", async ({ page }) => {
   // Start at Home page
   await page.goto("/");
-  const homeLink = page.locator("nav").getByRole("link", { name: /^Home$/i });
+  const homeLink = page
+    .getByRole("navigation", { name: /^Main$/i })
+    .getByRole("link", { name: /^Home$/i });
   await expect(homeLink).toBeVisible();
-  const aboutLink = page.locator("nav").getByRole("link", { name: /^About$/i });
+  const aboutLink = page
+    .getByRole("navigation", { name: /^Main$/i })
+    .getByRole("link", { name: /^About$/i });
   await expect(aboutLink).toBeVisible();
-  const readmeLink = page.locator("nav").getByRole("link", { name: /^Readme$/i });
+  const readmeLink = page
+    .getByRole("navigation", { name: /^Main$/i })
+    .getByRole("link", { name: /^Readme$/i });
   await expect(readmeLink).toBeVisible();
-  const fullstackLink = page.locator("nav").getByRole("link", { name: /^FullStack$/i });
+  const fullstackLink = page
+    .getByRole("navigation", { name: /^Main$/i })
+    .getByRole("link", { name: /^FullStack$/i });
   await expect(fullstackLink).toBeVisible();
-  const jediLink = page.locator("nav").getByRole("link", { name: /^Jedi$/i });
+  const jediLink = page
+    .getByRole("navigation", { name: /^Main$/i })
+    .getByRole("link", { name: /^Jedi$/i });
   await expect(jediLink).toBeVisible();
 
   // Initial state Home active
@@ -292,7 +312,7 @@ test("should handle direct URL access to each route", async ({ page }) => {
 
   // Test direct access to jedi
   await page.goto("http://localhost:3000/jedi");
-  await expect(page.getByRole("heading", { name: /^Jedi Kitty$/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Awesome Photos & Captions/i })).toBeVisible();
 
   // Test direct access to 404
   await page.goto("http://localhost:3000/xxx");
@@ -381,7 +401,7 @@ test.describe("Footer Navigation Integration", () => {
       .getByRole("link", { name: /^Jedi$/i })
       .click();
     await expect(page).toHaveURL("http://localhost:3000/jedi");
-    await expect(page.getByRole("heading", { name: /^Jedi Kitty$/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Awesome Photos & Captions/i })).toBeVisible();
 
     // Navigate back to Home using footer link
     await page
@@ -515,7 +535,7 @@ test.describe("Footer Navigation Integration", () => {
       .locator("footer")
       .getByRole("link", { name: /^Jedi$/i })
       .click();
-    await expect(page).toHaveTitle(/Jedi Kitty/);
+    await expect(page).toHaveTitle(/Little Jedi/);
 
     // Use direct link to 404 page
     await page.goto("/notfound");
