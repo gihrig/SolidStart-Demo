@@ -8796,3 +8796,83 @@ Root cause was pre-existing test drift from Phase 3 (Jedi route conversion) + Ph
    global Main nav AND Phase-3 JediNav (aria-label "Jedi site navigation", has `<a class="nav-link">Home</a>`) → ambiguous. Scoped to getByRole("navigation", { name: /^Main$/i }).
 
 Verify: vpr test:e2e → 228/228 pass. vpr build → no err.
+
+===================================================================================
+
+Using Claude Opus 4.8 with 'high' effort
+
+## ❯ Review `planning/jedi-conversion.md` [ ] Phase 6: Code Quality Audit (Claude)
+
+- Read @lines 2062-2132
+- Review the work to be done and confirm all requirements for this Phase have been met.
+- Communicate using /caveman skill, but modern technical.
+  - Not this: "Steps 4.2–4.5 were NOT pre-built — me create them now."
+  - Do this: "Creating steps 4.2–4.5 now."
+  - Not this: "Plan marked [√] 4.2–4.5. NOT committed — plan Phase-Complete step wants commit, but you said stop for review. Stopped."
+  - Do this: "Plan marked [√] 4.2–4.5. NOT committed — plan Phase-Complete - waiting review. Stopped."
+  - etc.
+  - Be concise but accurate without personality.
+- When complete mark, [√], the steps in this Phase.
+- Stop for review.
+
+### ⏺ Phase 6 complete. [√] Phase 6: Code Quality Audit (Claude)
+
+⏺ Plan marked [√] 6.1–6.3 + Phase 6 header. Done.
+
+Phase 6 Result — All Pass
+
+Step 6.1 — v4 Syntax Audit
+
+- Plan grep (!important, bg-opacity-, text-opacity-, md:!, [&>): no hits.
+- Extra grep ([var(--, dark:): no hits. CLAUDE.md syntax rules clean.
+
+Step 6.2 — Lint/Type/Tests
+
+```pre
+  ┌────────────────┬──────────────────────────────────────────┐
+  │     Check      │                  Result                  │
+  ├────────────────┼──────────────────────────────────────────┤
+  │ vpr check      │ pass — 0 warn/lint/type errors, 78 files │
+  ├────────────────┼──────────────────────────────────────────┤
+  │ vpr check:type │ exit 0                                   │
+  ├────────────────┼──────────────────────────────────────────┤
+  │ vpr test:comp  │ 82 pass (14 files)                       │
+  ├────────────────┼──────────────────────────────────────────┤
+  │ vpr test:unit  │ 87 pass (7 files)                        │
+  ├────────────────┼──────────────────────────────────────────┤
+  │ vpr test:e2e   │ 228 pass (chromium+firefox+webkit)       │
+  └────────────────┴──────────────────────────────────────────┘
+```
+
+Step 6.3 — Prod Build
+
+- vpr build exit 0. Bundle small: jedi.js 12.81kB, jedi.css 5.36kB.
+- vpr start -> /jedi HTTP 200. Title Little Jedi - Awesome Photos & Captions. No error markers in HTML.
+- FOUC: blocking /theme-init.js in `<head>` (HTTP 200) reads localStorage + prefers-color-scheme, sets
+  data-theme/colorScheme before paint. Crit 9 met.
+
+Success Criteria (line 2221) — verified:
+
+- 1/2: 6 components exist; 4 export \*Props interfaces (Hero/Image/Author/Card) ✓
+- 3: jedi.tsx imports only JediNav, no dup Nav ✓
+- 4/5: comp+e2e green ✓
+- 10: no Alpine refs; only inline style = dynamic background-image in Hero.tsx:21 ✓
+- 11: @layer base in app.css:27 ✓
+- 14: check:type + build exit 0 ✓
+
+Limits — NOT machine-verifiable here (belong to User phase):
+
+- Crit 6 visual match to Awesome.png — manual eye.
+- Crit 13 live browser console — e2e in 3 real browsers passed (strong proxy), but no devtools console driven.
+- Cross-browser/mobile matrix — manual.
+
+Commit message ready (NOT committed — waiting review):
+
+feat(jedi): Phase 6 complete - code quality audit pass
+
+- v4 syntax audit clean: no !important/opacity utils, no [var()]/dark: classes
+- check/type-check/comp(82)/unit(87)/e2e(228) all green
+- prod build exit 0, /jedi 200, theme-init.js blocking head -> no FOUC
+- success criteria 1-5,9-11,14 verified
+
+Stopped for review. Visual + browser-console criteria left for User validation phase.
