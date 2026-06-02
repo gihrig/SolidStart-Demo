@@ -5,9 +5,12 @@ import { isServer } from "solid-js/web";
 // These are complementary (767 is mobile, 768+ is desktop).
 export function useIsMobile(breakpoint = 767) {
   const mql = isServer ? null : window.matchMedia(`(max-width: ${breakpoint}px)`);
-  const [isMobile, setIsMobile] = createSignal(mql?.matches ?? false);
+  // Init false to match SSR output. Reconcile in onMount so the post-hydration
+  // change triggers Solid to patch markup (hydration trusts SSR + patches on change).
+  const [isMobile, setIsMobile] = createSignal(false);
   onMount(() => {
     if (!mql) return;
+    setIsMobile(mql.matches);
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mql.addEventListener("change", handler);
     onCleanup(() => mql.removeEventListener("change", handler));

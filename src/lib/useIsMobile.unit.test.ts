@@ -34,11 +34,17 @@ describe("useIsMobile", () => {
 
   test("returns true when viewport is mobile", () => {
     mockMatchMedia(true);
-    createRoot((dispose) => {
-      const isMobile = useIsMobile();
-      expect(isMobile()).toBe(true);
-      dispose();
+    let dispose!: () => void;
+    let isMobile!: () => boolean;
+
+    createRoot((d) => {
+      dispose = d;
+      isMobile = useIsMobile();
     });
+
+    // Signal inits false to match SSR; onMount reconciles to mql.matches after createRoot returns
+    expect(isMobile()).toBe(true);
+    dispose();
   });
 
   test("uses default 767px breakpoint", () => {

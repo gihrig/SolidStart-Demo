@@ -1834,7 +1834,7 @@ import userEvent from "@testing-library/user-event";
 
 ---
 
-## [ ] Phase 5: Write E2E Tests
+## [√] Phase 5: Write E2E Tests
 
 **File**: `e2e/jedi.spec.ts`
 

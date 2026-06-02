@@ -8732,3 +8732,48 @@ Verified:
 - vpr check → pass, 0 warn/lint/type err.
 - vpr test:comp → 82/82 pass (ThemeToggle 6, Nav 25).
 - vpr build → done, no err.
+
+===================================================================================
+
+Using Claude Opus 4.8 with 'high' effort
+
+## ❯ Review `planning/jedi-conversion.md` [ ] Phase 5: Write E2E Tests
+
+- Read @lines 1837-2060
+- Review the work to be done and confirm all requirements for this Phase have been met.
+- Communicate using /caveman skill, but modern technical.
+  - Not this: "Steps 4.2–4.5 were NOT pre-built — me create them now."
+  - Do this: "Creating steps 4.2–4.5 now."
+  - Not this: "Plan marked [√] 4.2–4.5. NOT committed — plan Phase-Complete step wants commit, but you said stop for review. Stopped."
+  - Do this: "Plan marked [√] 4.2–4.5. NOT committed — plan Phase-Complete - waiting review. Stopped."
+  - etc.
+  - Be concise but accurate without personality.
+- When complete mark, [√], the remaining steps in Phase 5.
+- Stop for review.
+
+### ⏺ Phase 5 complete. [√] Phase 5: Write E2E Tests
+
+Status: NOT pre-built — current e2e/jedi.spec.ts was old placeholder. Replaced w/ Phase 5 spec.
+
+Completed:
+
+- e2e/jedi.spec.ts
+  — replaced placeholders.
+  - 3 describe blocks: Jedi Page (9 detailed tests)
+  - Footer (preserved) (4 tests)
+  - Theme Toggle (4 tests).
+  - Verified all selectors vs real Jedi.tsx DOM first (title /Little Jedi/, h2 "Little
+    Jedi", "Toggle sidebar", inert, Like/Edit/Delete — all match).
+- First e2e run: 48 pass, 3 fail (mobile-sidebar inert, all browsers) → exposed real hydration bug in useIsMobile.ts, NOT a test bug. Direct mobile load left sidebar non-inert (a11y defect).
+- src/lib/useIsMobile.ts - fix: init signal false (match SSR) + reconcile in onMount → post-hydration change triggers
+  Solid to patch inert.
+- src/lib/useIsMobile.unit.test.ts
+  - updated "returns true when viewport is mobile" to read isMobile() after createRoot returns (onMount flush), matching corrected semantics.
+
+Verify:
+
+- vpr test:e2e ./e2e/jedi.spec.ts → 51/51 pass.
+- vpr test:unit → 87/87. vpr test:comp → 82/82.
+- vpr build → done, no err. vpr check → 0 warn/lint/type err.
+
+Plan marked [√] Phase 5. NOT committed — plan Phase-Complete, waiting review. Stopped.
