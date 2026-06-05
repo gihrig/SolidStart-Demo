@@ -1356,7 +1356,7 @@ export default function Jedi() {
 
 ---
 
-## [ ] Phase 4: Create Light/Dark/Auto Theme Toggle
+## [√] Phase 4: Create Light/Dark/Auto Theme Toggle
 
 **Requirements**
 
@@ -2160,7 +2160,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 - [√] Hero stacks vertically
 - [√] Mobile "Categories" toggle button appears
 - [√] Clicking "Categories" toggle shows/hides cards; cards slide in, arrow icon rotates
-- [ ] Main article full width; no horizontal scroll <--- Small scroll, but article full
+- [√] Main article full width; no horizontal scroll
 - [√] Interactive elements touch-friendly (min 44px)
 
 ### Tablet (768px)
@@ -2170,7 +2170,7 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 
 ### Hover / Animation
 
-- [ ] Jedi Nav links change bg on hover to match **Jedi Project** <--- Change but dark bg is too bright
+- [ ] Jedi Nav links change bg on hover to match **Jedi Project** <--- Added to Backlog.md
 - [√] CTA (Get Started) darkens to `--btn-primary-hover`
 - [√] Author and avatar link underlines on hover
 - [√] Animals, Cute, Like, Edit and Delete buttons animate to inverse on hover
@@ -2193,14 +2193,14 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 
 - [√] Keyboard Tab reaches all actionable elements
 - [√] Tab navigation reaches "Categories" toggle in small-screen mode
-- [ ] Tab navigation reaches theme toggle button <--- Yes but focus ring has poor contrast
+- [√] Tab navigation reaches theme toggle button
 - [√] Theme toggle has dynamic`aria-label` indicating current mode and next action
-- [ ] Theme toggle position (right end of global nav) all screen sizes. <--- Jerky, stuck
+- [ ] Theme toggle position (right end of global nav) all screen sizes. <--- Added to Backlog.md
 - [√] Space toggles theme toggle button
-- [ ] Focus indicators visible <--- visible but need better contrast
-- [ ] Screen-reader basic navigation works <--- Not tested
+- [ ] Focus indicators visible <--- Added to Backlog.md
+- [ ] Screen-reader basic navigation works <--- Added to Backlog.md
 - [√] Ctrl-Home moves to top
-- [ ] Like button `aria-pressed` dynamic signal <--- Action dialog not working
+- [ ] Like button `aria-pressed` dynamic signal <--- Added to Backlog.md
 - [√] (Optional) Run axe DevTools, see Brave browser — no critical issues
 
 ### Browser Compatibility
@@ -2208,8 +2208,8 @@ Run `vpr dev` and navigate to http://localhost:3000/jedi.
 - [√] Chrome / Edge / Brave (latest)
 - [√] Firefox (latest)
 - [√] Safari (latest)
-- [ ] Mobile Safari (iOS) <--- Not tested
-- [ ] Chrome Mobile (Android) <--- Not tested
+- [ ] Mobile Safari (iOS) <--- Added to Backlog.md
+- [ ] Chrome Mobile (Android) <--- Added to Backlog.md
 
 Check in each: layout, Lobster font rendering, animation smoothness, touch, image loading, theme toggle.
 

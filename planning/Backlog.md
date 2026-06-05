@@ -1,9 +1,53 @@
-## 1. Convert .png icons to svg image sprite
+## 0. Adjust light mode page contrast.
+
+- Compare to original planning/awesome.png
+
+## 1. Jedi Nav links change bg on hover to match **Jedi Project**
+
+bg Changes but dark bg is too bright
+
+## 2. Tab navigation reaches active links and buttons
+
+focus ring has poor contrast and inconsistent shape
+
+## 3. Theme toggle position (right end of global nav) all screen sizes.
+
+Smooth then jerky, stuck too far from right margin?
+
+## 4. Use meaningful avatars
+
+- "https://img.icons8.com/doodle/96/null/bart-simpson.png"
+- "https://img.icons8.com/doodle/96/null/lisa-simpson.png"
+- "https://img.icons8.com/doodle/96/null/homer-simpson.png"
+
+## 5. Add image dimensions
+
+`<img>` elements in Image, Author, JediNav, Jedi and sidebar lists lack explicit width/height. Browsers can't reserve space before images load → cumulative layout shift.
+
+## 6. Screen-reader basic navigation works?
+
+See Brave browser Dev tools (inspect) > Lighthouse
+
+## 7. Like button `aria-pressed` dynamic signal
+
+Action dialog not working
+
+## 8. Check on mobile browsers
+
+- Mobile Safari and mobile Chrome/brave/firefox
+- Layout
+- Lobster font rendering
+- Animation smoothness
+- touch controls
+- image loading
+- theme toggle
+
+## 9. Convert .png icons to svg image sprite
 
 "### HIGH — Icons invisible in dark mode"
 
 - Detail `planning/plan_steps_ignored.md`
-- HIGH — Icons invisible in dark mode @line 4033
+- HIGH — Icons invisible in dark mode @line 4072
 - Temp - Change icon color to 777777
 
 - Create a comparable svg icon sprite
@@ -12,7 +56,6 @@
   - "https://img.icons8.com/small/64/ffffff/fire-heart.png"
   - "https://img.icons8.com/small/64/ffffff/delete-sign.png"
   - "https://img.icons8.com/small/64/ffffff/menu.png"
-  - "https://img.icons8.com/doodle/96/null/bart-simpson.png"
   - "https://img.icons8.com/small/32/777777/expand-arrow.png"
 - `src/routes/jedi.tsx`
   - "https://img.icons8.com/small/96/null/landscape.png"
@@ -20,7 +63,6 @@
   - "https://img.icons8.com/small/96/null/dog.png"
   - "https://img.icons8.com/small/96/null/collage.png"
   - "https://img.icons8.com/small/96/null/180-degrees.png"
-  - "https://img.icons8.com/small/96/A9A9A9/happy.png"
   - "https://img.icons8.com/small/24/777777/fire-heart.png"
 
 - Update instances of icon usage `https://img.icons8
@@ -31,21 +73,11 @@
   </svg>
   ```
 
-## 2. Download `https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg` read from /pubic
+## 10. Card class concatenation has no conflict resolution
 
-- Consider model for EAGems > site_content > catalog_images
+- Detail `planning/plan_steps_ignored.md` @line 4097
 
-## 3. Card class concatenation has no conflict resolution
-
-- Detail `planning/plan_steps_ignored.md` @line 4058
-
-## 4. Use meaningful avatars
-
-- "https://img.icons8.com/doodle/96/null/bart-simpson.png"
-- "https://img.icons8.com/doodle/96/null/lisa-simpson.png"
-- "https://img.icons8.com/doodle/96/null/homer-simpson.png"
-
-## 5. Standardize data structures
+## 11. Standardize data structures
 
 - Refactor Jedi component data into external blocks for Posts, Categories, Top Photos and Top Captions
   - Include comments (#) and likes (#) in data blocks
@@ -53,15 +85,7 @@
   - Consider data will be pulled from DB
 - Sanitize all external urls
 
-## 6. Add image dimensions
-
-From `plan_steps_ignored.md` "9. MINOR — No width/height attributes on `<img>` elements → CLS risk (Phase 2/3, multiple locations)"
-
-"`<img>` elements in Image (451, 454) Author (line 535, 541), JediNav (lines 706, 722, 729, 763), Jedi (1062, 1123) and sidebar lists (lines 1182, 1195, 1201, 1223) lack explicit width/height. Browsers can't reserve space before images load → cumulative layout shift. Low priority for demo with small icons."
-
-Implement in conjunction with above items.
-
-## 7. Extract profile dropdown into a reusable `useMenu` hook (deferred)
+## 12. Extract profile dropdown into a reusable `useMenu` hook (deferred)
 
 - Full executable plan: `planning/useMenu-plan.md`
 - From the 30th-cycle design discussion in `planning/plan_steps_ignored.md` (Issue 2 follow-up)

@@ -4098,13 +4098,11 @@ contrast for both modes.
 
 Card uses template literal concatenation:
 
-class={`flex flex-col overflow-hidden ... rounded-2xl ... ${props.class ?? ""}`}
+class={props.class ? `card-style ${props.class}` : "card-style"} (plan line 635)
 
 If consumer passes class="rounded-none", both rounded-2xl and rounded-none appear. Last-in-source-order wins in TW4, but this is fragile. No twMerge or cn() utility used. (Previously flagged at commit 5ff7f33.)
 
 Fix:
-
-Update comment at potential issue location
 
 **Added to `/planning/Backlog.md**
 
