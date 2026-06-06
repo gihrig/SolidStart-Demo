@@ -8883,9 +8883,9 @@ Stopped for review. Visual + browser-console criteria left for User validation p
 
 ## There are a few issues to be addressed before Phase 7 can be signed off
 
-- See plan doc
+- Plan doc open issues added to Backlog.md
 
 ## Workflow summary
 
-- Description...
+- Description of project and process added to Backlog.md
 -
