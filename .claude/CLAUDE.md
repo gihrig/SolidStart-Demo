@@ -2,8 +2,6 @@
 
 SolidJS + SolidStart app with TailwindCSS v4, MDX, TypeScript, and Playwright e2e tests. Runtime: Bun.
 
-**Jedi Project** `/Users/glen/Documents/Development/Study/Tailwind4/frontend-tutorial-v3/`
-**Tanstack Project** `/Users/glen/Documents/Development/Study/Javascript/TanStack/tanstack-solid-cc/`
 **Target Project** `/Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo/`
 
 ---
@@ -11,6 +9,8 @@ SolidJS + SolidStart app with TailwindCSS v4, MDX, TypeScript, and Playwright e2
 ## Execution Notes (for Claude AI)
 
 Read this section before starting any phase.
+
+When reporting information to me, be extremely concise and sacrifice grammar for the sake of concision.
 
 ### Workflow
 
@@ -90,7 +90,9 @@ src/
   routes/           # SolidStart file-based routes
   components/       # UI components (co-located .test.tsx)
   lib/              # Shared utilities (co-located .unit.test.ts)
+                    #   backend-rpc.ts (JSON-RPC client), websocket.ts (live updates)
   types/            # Shared TypeScript types
+                    #   backend.ts (RPC/WS/auth contract types)
   app.tsx           # Root app component
   app.css           # Global styles (Tailwind)
   entry-client.tsx  # Client-side hydration entry (SolidStart)
@@ -115,6 +117,7 @@ Test naming: lib utilities use `.unit.test.ts`, components use `.test.tsx`, End 
 
 ## Gotchas
 
+- **App depends on an external backend at `:8080` (NOT in this repo)**: `src/lib/backend-rpc.ts` posts JSON-RPC to `http://localhost:8080/api/rpc` (`credentials: "include"` cookie auth); `src/lib/websocket.ts` connects to `ws://localhost:8080/ws`. Auth state lives in `src/components/AuthContext.tsx` (`AuthProvider`/`useAuth`). The backend must be running for auth, conversations, and the `jedi` route to work — same backend the e2e probe checks.
 - **e2e tests require a running back-end (NOT auto-started)**: `vpr test:e2e` runs `./src/lib/test-e2e.sh`, which probes `http://localhost:8080/api/rpc` (expects HTTP 401 + `NO_AUTH`) and **exits with FAIL if the back-end is not already up**. The script DOES start the front-end (`bun run dev` on port 3000) and stops it on exit.
 - **`update`/`update:latest` scripts call `bun` directly**: Bypassing `vp` invoking `bun update` directly for dependency management. It's an exception to the "don't use bun directly" rule.
 - **`check` script adds `--fix`**: `vpr check` runs `vp check --fix` (auto-fixes formatting/lint). Use `vp check` directly to avoid mutations.
