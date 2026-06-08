@@ -35,7 +35,10 @@ Action dialog not working
 
 ## 9. Update About and Readme pages
 
-- About to describe tech stack, tooling, workflow, inspiration sources attribution, etc.
+- About should describe tech stack, tooling, workflow, inspiration sources attribution, etc.
+  - https://github.com/andyjud/frontend-tutorial/tree/main/Tailwind%20with%20Node
+  - https://www.youtube.com/watch?v=mZn5kkgPi6M&t=10s
+  - https://www.youtube.com/watch?v=GG7jucU4hxk
 - Readme should import existing front-end and back-end README.md docs
 
 ## 10. Update workflow
