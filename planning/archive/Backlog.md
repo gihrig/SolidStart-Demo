@@ -1,3 +1,7 @@
+# This Backlog file is obsolete
+
+## Backlog items have moved to the Github repository
+
 ## 1. Adjust light mode page contrast.
 
 - Compare to original planning/awesome.png
@@ -138,7 +142,7 @@ Tools: See iCrumz 'Code Quality` & 'Security'
 - Code Rabbit
 - Search 'code security vulnerability checker'
 
-## 18. Develop deployment pattern
+## 19. Develop deployment pattern
 
 Research
 
@@ -148,7 +152,7 @@ Research
 
 Deploy to https://demo.arkadias.net
 
-## 19. Check on mobile browsers
+## 20. Check on mobile browsers
 
 - Mobile Safari and mobile Chrome/brave/firefox
 - Layout
