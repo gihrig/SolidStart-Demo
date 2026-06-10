@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — SolidStart-Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+    </script>
+    <style>
+      .seam {
+        stroke-dasharray: 5 4;
+      }
+      .leak {
+        color: #dc2626;
+      }
+      .deep {
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+      }
+      .faded {
+        opacity: 0.42;
+      }
+      .grain {
+        background-image: radial-gradient(#0000000a 1px, transparent 1px);
+        background-size: 14px 14px;
+      }
+      code,
+      pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .label {
+        letter-spacing: 0.12em;
+      }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans antialiased grain">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-14">
+      <!-- ───────────────────────── Header ───────────────────────── -->
+      <header class="border-b border-slate-300 pb-8">
+        <p class="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Architecture review</p>
+        <h1 class="font-serif text-4xl text-slate-900">SolidStart-Demo</h1>
+        <p class="mt-2 text-slate-600">
+          Deepening opportunities — turning shallow modules into deep ones for testability and
+          AI-navigability. <span class="text-slate-400">2026-06-09</span>
+        </p>
+
+        <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-6 h-5 border-2 border-slate-700 bg-white"></span>
+            <span class="text-slate-600">module</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <svg width="26" height="14">
+              <line x1="0" y1="7" x2="26" y2="7" stroke="#475569" stroke-width="2" class="seam" />
+            </svg>
+            <span class="text-slate-600">seam</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <svg width="26" height="14">
+              <line x1="0" y1="7" x2="22" y2="7" stroke="#dc2626" stroke-width="2" />
+              <path d="M22 3 L26 7 L22 11 Z" fill="#dc2626" />
+            </svg>
+            <span class="text-slate-600">leak</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-6 h-5 deep rounded-sm"></span>
+            <span class="text-slate-600">deep module</span>
+          </div>
+        </div>
+
+        <div
+          class="mt-6 rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-xs text-amber-800"
+        >
+          No <code>CONTEXT.md</code> and no <code>docs/adr/</code> in the repo — domain nouns below
+          (Agent, Conversation, Message, RPC seam) are taken straight from the code. No ADR is
+          contradicted because none exist yet.
+        </div>
+      </header>
+
+      <!-- ───────────────────────── Candidates ───────────────────────── -->
+      <section id="candidates" class="space-y-16">
+        <!-- ========== CANDIDATE 1 ========== -->
+        <article id="c1" class="scroll-mt-8">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <span class="text-xs font-mono text-slate-400">01</span>
+            <span
+              class="rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-0.5"
+              >Strong</span
+            >
+            <span class="rounded-full bg-slate-200 text-slate-600 text-xs px-3 py-0.5"
+              >in-process · internal seams</span
+            >
+          </div>
+          <h2 class="font-serif text-2xl mb-1">Collapse the live Message stream into one module</h2>
+          <p class="font-mono text-sm text-slate-500 mb-6">
+            src/components/MessagePanel.tsx · src/lib/websocket.ts · src/lib/backend-rpc.ts
+          </p>
+
+          <!-- before / after -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- BEFORE -->
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="text-xs uppercase label text-slate-400 mb-3">
+                Before — shallow seams, orchestration in the caller
+              </p>
+              <div class="relative h-[320px] rounded-md border border-slate-300 bg-slate-50 p-3">
+                <p class="text-[10px] uppercase label text-slate-500 mb-2">MessagePanel</p>
+
+                <!-- scattered internals -->
+                <div class="space-y-1.5 text-[11px]">
+                  <div class="rounded border border-slate-300 bg-white px-2 py-1">
+                    createEffect — subscribe + list history
+                  </div>
+                  <div class="rounded border border-slate-300 bg-white px-2 py-1">
+                    createEffect — unsubscribe on change
+                  </div>
+                  <div class="rounded border border-slate-300 bg-white px-2 py-1">
+                    createEffect — scroll
+                  </div>
+                  <div class="rounded border border-red-300 bg-red-50 px-2 py-1 leak">
+                    let listStale = false&nbsp;&nbsp;<span class="text-[9px]"
+                      >mutable race-guard</span
+                    >
+                  </div>
+                  <div class="rounded border border-red-300 bg-red-50 px-2 py-1 leak">
+                    dedupe (in onConvMsg)
+                  </div>
+                  <div class="rounded border border-red-300 bg-red-50 px-2 py-1 leak">
+                    dedupe (in handleSend) — duplicated
+                  </div>
+                </div>
+
+                <!-- two leaking seams -->
+                <div class="absolute bottom-3 left-3 right-3 flex gap-2">
+                  <div
+                    class="flex-1 rounded border-2 border-dashed border-slate-400 text-center text-[10px] py-1 bg-white"
+                  >
+                    useWebSocket
+                    <div class="text-[9px] text-slate-500">subscribe/unsubscribe/onConvMsg</div>
+                  </div>
+                  <div
+                    class="flex-1 rounded border-2 border-dashed border-slate-400 text-center text-[10px] py-1 bg-white"
+                  >
+                    backendRpc.convMsg
+                    <div class="text-[9px] text-slate-500">list / add</div>
+                  </div>
+                </div>
+                <svg class="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+                  <path
+                    d="M120 150 C 140 220, 90 230, 80 258"
+                    stroke="#dc2626"
+                    stroke-width="1.5"
+                    fill="none"
+                  />
+                  <path
+                    d="M200 150 C 220 220, 250 230, 255 258"
+                    stroke="#dc2626"
+                    stroke-width="1.5"
+                    fill="none"
+                  />
+                </svg>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-2">
+                Interface of each seam is nearly as wide as the work; the caller wires the protocol.
+              </p>
+            </div>
+
+            <!-- AFTER -->
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="text-xs uppercase label text-slate-400 mb-3">
+                After — one deep module, two internal seams
+              </p>
+              <div
+                class="relative h-[320px] rounded-md flex flex-col items-center justify-center p-3"
+              >
+                <!-- thin caller -->
+                <div
+                  class="w-full rounded border border-slate-300 bg-slate-50 px-3 py-2 text-[11px] text-center mb-3"
+                >
+                  MessagePanel <span class="text-slate-400">— render messages(), call send()</span>
+                </div>
+                <svg width="20" height="22">
+                  <line x1="10" y1="0" x2="10" y2="18" stroke="#475569" stroke-width="2" />
+                  <path d="M6 14 L10 20 L14 14 Z" fill="#475569" />
+                </svg>
+
+                <!-- deep module -->
+                <div class="w-full deep rounded-lg p-3 text-white mt-2">
+                  <p class="text-[10px] uppercase label text-emerald-300">
+                    createConvMessages(conv)
+                  </p>
+                  <p class="text-[11px] mt-1 text-slate-200">
+                    { messages, send, connected, error }
+                  </p>
+                  <div class="mt-3 grid grid-cols-2 gap-1.5 text-[10px] faded">
+                    <div class="rounded bg-slate-700 px-2 py-1">subscribe / unsubscribe</div>
+                    <div class="rounded bg-slate-700 px-2 py-1">load history</div>
+                    <div class="rounded bg-slate-700 px-2 py-1">merge + dedupe (once)</div>
+                    <div class="rounded bg-slate-700 px-2 py-1">stale-guard</div>
+                  </div>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-3">
+                  ws + rpc become internal seams — still mockable, no longer the caller's job
+                </p>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-2">
+                Small interface, large behaviour behind it. The interface is now the test surface.
+              </p>
+            </div>
+          </div>
+
+          <!-- prose -->
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-3 mt-6 text-sm">
+            <div>
+              <p class="text-xs uppercase label text-slate-400 mb-1">Problem</p>
+              <p class="text-slate-700">
+                The merge/dedupe/stale-guard logic — where the real bugs live — has no locality: it
+                is spread across three effects, a mutable <code>listStale</code> flag, and two
+                copies of the dedupe check.
+              </p>
+            </div>
+            <div>
+              <p class="text-xs uppercase label text-slate-400 mb-1">Solution</p>
+              <p class="text-slate-700">
+                Move the live-stream protocol behind one module,
+                <code>createConvMessages(conv)</code>, exposing
+                <code>messages / send / connected / error</code>; the WebSocket and RPC become
+                internal seams.
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-4 rounded-md border border-slate-200 bg-white p-3">
+            <p class="text-xs uppercase label text-slate-400 mb-2">
+              The bug-prone logic, quoted — dedupe written twice
+            </p>
+            <pre
+              class="text-[11px] text-slate-700 overflow-x-auto"
+            ><span class="text-slate-400">// MessagePanel.tsx:26  (inside onConvMsg)</span>
+if (prev.some((m) => Number(m.id) === Number(msg.id))) { return prev; }
+
+<span class="text-slate-400">// MessagePanel.tsx:86  (inside handleSend)</span>
+setMessages((prev) => prev.some((m) => Number(m.id) === Number(msg.id)) ? prev : [...prev, msg]);
+
+<span class="text-slate-400">// MessagePanel.tsx:16  — mutable race-guard, untestable except through the DOM</span>
+let listStale = false;</pre>
+          </div>
+
+          <div class="mt-4">
+            <p class="text-xs uppercase label text-slate-400 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm text-slate-700">
+              <li class="flex gap-2">
+                <span class="text-emerald-600">▸</span> locality: dedupe + stale-guard in one place
+              </li>
+              <li class="flex gap-2">
+                <span class="text-emerald-600">▸</span> interface becomes the test surface
+              </li>
+              <li class="flex gap-2">
+                <span class="text-emerald-600">▸</span> tests stop mocking two seams to reach merge
+                logic
+              </li>
+              <li class="flex gap-2">
+                <span class="text-emerald-600">▸</span> leverage: one stream module, reusable per
+                conversation
+              </li>
+            </ul>
+          </div>
+
+          <div
+            class="mt-4 rounded-md bg-slate-100 border border-slate-200 p-3 text-[12px] text-slate-600"
+          >
+            <span class="font-semibold text-slate-700">Deletion test:</span> delete the module and
+            the subscribe / list / dedupe / stale choreography reappears in <em>every</em> place
+            that shows a live conversation. It concentrates complexity — it earns its keep.
+          </div>
+        </article>
+
+        <!-- ========== CANDIDATE 2 ========== -->
+        <article id="c2" class="scroll-mt-8">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <span class="text-xs font-mono text-slate-400">02</span>
+            <span class="rounded-full bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-0.5"
+              >Worth exploring</span
+            >
+            <span class="rounded-full bg-slate-200 text-slate-600 text-xs px-3 py-0.5"
+              >in-process</span
+            >
+          </div>
+          <h2 class="font-serif text-2xl mb-1">Extract the RPC-mutation state machine</h2>
+          <p class="font-mono text-sm text-slate-500 mb-6">
+            src/components/AgentManager.tsx · ConversationManager.tsx · MessagePanel.tsx
+          </p>
+
+          <!-- before/after: cross-section triple stack -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- BEFORE -->
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="text-xs uppercase label text-slate-400 mb-3">
+                Before — same band copied into three callers
+              </p>
+              <div class="h-[320px] grid grid-cols-3 gap-2">
+                <!-- three identical stacks -->
+                <div class="flex flex-col">
+                  <p class="text-[9px] text-center text-slate-500 mb-1">AgentManager</p>
+                  <div
+                    class="flex-1 rounded border border-amber-300 bg-amber-50 p-1.5 text-[9px] space-y-1"
+                  >
+                    <div class="rounded bg-white border border-amber-200 px-1 py-0.5">
+                      setError(null)
+                    </div>
+                    <div class="rounded bg-white border border-amber-200 px-1 py-0.5">
+                      setCreating(true)
+                    </div>
+                    <div class="rounded bg-white border border-amber-200 px-1 py-0.5">
+                      try await…
+                    </div>
+                    <div class="rounded bg-white border border-amber-200 px-1 py-0.5">
+                      catch setError
+                    </div>
+                    <div class="rounded bg-white border border-amber-200 px-1 py-0.5">
+                      finally false
+                    </div>
+                  </div>
+                </div>
+                <div class="flex flex-col">
+                  <p class="text-[9px] text-center text-slate-500 mb-1">ConvManager</p>
+                  <div
+                    class="flex-1 rounded border border-amber-300 bg-amber-50 p-1.5 text-[9px] space-y-1"
+                  >
+                    <div class="rounded bg-white border border-amber-200 px-1 py-0.5">
+                      setError(null)
+                    </div>
+                    <div class="rounded bg-white border border-amber-200 px-1 py-0.5">
+                      setCreating(true)
+                    </div>
+                    <div class="rounded bg-white border border-amber-200 px-1 py-0.5">
+                      try await…
+                    </div>
+                    <div class="rounded bg-white border border-amber-200 px-1 py-0.5">
+                      catch setError
+                    </div>
+                    <div class="rounded bg-white border border-amber-200 px-1 py-0.5">
+                      finally false
+                    </div>
+                  </div>
+                </div>
+                <div class="flex flex-col">
+                  <p class="text-[9px] text-center text-slate-500 mb-1">MessagePanel</p>
+                  <div
+                    class="flex-1 rounded border border-amber-300 bg-amber-50 p-1.5 text-[9px] space-y-1"
+                  >
+                    <div class="rounded bg-white border border-amber-200 px-1 py-0.5">
+                      setError(null)
+                    </div>
+                    <div class="rounded bg-white border border-amber-200 px-1 py-0.5">
+                      setSending(true)
+                    </div>
+                    <div class="rounded bg-white border border-amber-200 px-1 py-0.5">
+                      try await…
+                    </div>
+                    <div class="rounded bg-white border border-amber-200 px-1 py-0.5">
+                      catch setError
+                    </div>
+                    <div class="rounded bg-white border border-amber-200 px-1 py-0.5">
+                      finally false
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-2">
+                Pending + error semantics live in three places; fix once = edit three.
+              </p>
+            </div>
+
+            <!-- AFTER -->
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="text-xs uppercase label text-slate-400 mb-3">
+                After — one module, three thin call sites
+              </p>
+              <div class="h-[320px] flex flex-col">
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                  <div
+                    class="rounded border border-slate-300 bg-slate-50 text-[9px] text-center py-2"
+                  >
+                    AgentManager<br /><span class="text-slate-400">run(create)</span>
+                  </div>
+                  <div
+                    class="rounded border border-slate-300 bg-slate-50 text-[9px] text-center py-2"
+                  >
+                    ConvManager<br /><span class="text-slate-400">run(create)</span>
+                  </div>
+                  <div
+                    class="rounded border border-slate-300 bg-slate-50 text-[9px] text-center py-2"
+                  >
+                    MessagePanel<br /><span class="text-slate-400">run(add)</span>
+                  </div>
+                </div>
+                <div class="flex justify-center gap-8 mb-2">
+                  <svg width="14" height="20">
+                    <line x1="7" y1="0" x2="7" y2="16" stroke="#475569" stroke-width="1.5" />
+                    <path d="M4 12 L7 18 L10 12 Z" fill="#475569" />
+                  </svg>
+                  <svg width="14" height="20">
+                    <line x1="7" y1="0" x2="7" y2="16" stroke="#475569" stroke-width="1.5" />
+                    <path d="M4 12 L7 18 L10 12 Z" fill="#475569" />
+                  </svg>
+                  <svg width="14" height="20">
+                    <line x1="7" y1="0" x2="7" y2="16" stroke="#475569" stroke-width="1.5" />
+                    <path d="M4 12 L7 18 L10 12 Z" fill="#475569" />
+                  </svg>
+                </div>
+                <div class="deep rounded-lg p-4 text-white flex-1 flex flex-col justify-center">
+                  <p class="text-[10px] uppercase label text-amber-300">createRpcAction(fn)</p>
+                  <p class="text-[11px] mt-1 text-slate-200">{ run, pending, error }</p>
+                  <div class="mt-3 text-[10px] faded space-y-1">
+                    <div class="rounded bg-slate-700 px-2 py-1">
+                      reset error → pending true → try → catch → finally
+                    </div>
+                    <div class="rounded bg-slate-700 px-2 py-1">tested in isolation, no DOM</div>
+                  </div>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-2">
+                Each caller keeps only its bespoke success step (refetch, onSelect).
+              </p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-3 mt-6 text-sm">
+            <div>
+              <p class="text-xs uppercase label text-slate-400 mb-1">Problem</p>
+              <p class="text-slate-700">
+                The reset-error / set-pending / try / catch / finally choreography is copied
+                verbatim into three submit handlers; only the success step differs.
+              </p>
+            </div>
+            <div>
+              <p class="text-xs uppercase label text-slate-400 mb-1">Solution</p>
+              <p class="text-slate-700">
+                A small <code>createRpcAction(fn)</code> module owning
+                <code>run / pending / error</code>; callers pass the RPC and their own success step.
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-4 rounded-md border border-slate-200 bg-white p-3">
+            <p class="text-xs uppercase label text-slate-400 mb-2">The repeated shape, quoted</p>
+            <pre
+              class="text-[11px] text-slate-700 overflow-x-auto"
+            ><span class="text-slate-400">// AgentManager.tsx:16 / ConversationManager.tsx:39 / MessagePanel.tsx:73 — same five moves</span>
+setError(null);
+setCreating(true);          <span class="text-slate-400">// setSending(true) in MessagePanel</span>
+try { const x = await backendRpc.…; form.reset(); /* bespoke success */ }
+catch (e) { setError(e instanceof Error ? e.message : "Failed …"); }
+finally { setCreating(false); }</pre>
+          </div>
+
+          <div class="mt-4">
+            <p class="text-xs uppercase label text-slate-400 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm text-slate-700">
+              <li class="flex gap-2">
+                <span class="text-amber-600">▸</span> locality: pending/error policy fixed once
+              </li>
+              <li class="flex gap-2">
+                <span class="text-amber-600">▸</span> leverage: one module, three call sites
+              </li>
+              <li class="flex gap-2">
+                <span class="text-amber-600">▸</span> module testable without rendering a form
+              </li>
+              <li class="flex gap-2">
+                <span class="text-amber-600">▸</span> callers shrink to their real difference
+              </li>
+            </ul>
+          </div>
+
+          <div
+            class="mt-4 rounded-md bg-amber-50 border border-amber-200 p-3 text-[12px] text-amber-900"
+          >
+            <span class="font-semibold">Honest caveat:</span> the three handlers diverge in their
+            success step (one <code>refetch</code>s, one fires <code>onConvSelect</code>, one sets a
+            stale flag). The module must capture only the shared state machine and leave the success
+            step to the caller — otherwise it adds shape without adding depth. Grill this before
+            committing.
+          </div>
+        </article>
+
+        <!-- ========== CANDIDATE 3 ========== -->
+        <article id="c3" class="scroll-mt-8">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <span class="text-xs font-mono text-slate-400">03</span>
+            <span class="rounded-full bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-0.5"
+              >Worth exploring</span
+            >
+            <span class="rounded-full bg-slate-200 text-slate-600 text-xs px-3 py-0.5"
+              >ports &amp; adapters</span
+            >
+          </div>
+          <h2 class="font-serif text-2xl mb-1">Own entity identity at the RPC seam</h2>
+          <p class="font-mono text-sm text-slate-500 mb-6">
+            src/lib/backend-rpc.ts · src/types/backend/*.d.ts · every component that compares ids
+          </p>
+
+          <!-- before/after: type-vs-runtime + scatter -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- BEFORE -->
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="text-xs uppercase label text-slate-400 mb-3">
+                Before — the type lies; callers pay the tax
+              </p>
+              <div class="h-[320px] flex flex-col">
+                <div class="flex items-center gap-2 text-[11px]">
+                  <div
+                    class="rounded border border-slate-300 bg-slate-50 px-2 py-1 flex-1 text-center"
+                  >
+                    declared type<br /><code class="text-slate-700">id: bigint</code>
+                  </div>
+                  <span class="text-slate-400">vs</span>
+                  <div
+                    class="rounded border border-red-300 bg-red-50 px-2 py-1 flex-1 text-center leak"
+                  >
+                    runtime over JSON<br /><code>number</code>
+                  </div>
+                </div>
+                <div class="text-[10px] text-slate-500 text-center my-2">
+                  JSON.parse never yields bigint → divergence at the seam
+                </div>
+
+                <p class="text-[10px] uppercase label text-slate-400 mt-1 mb-2">
+                  Number(id) coercion scattered downstream
+                </p>
+                <div class="grid grid-cols-2 gap-1.5 text-[10px] flex-1 content-start">
+                  <div class="rounded border border-red-200 bg-red-50 px-2 py-1 leak">
+                    backend-rpc · Number(id) ×10
+                  </div>
+                  <div class="rounded border border-red-200 bg-red-50 px-2 py-1 leak">
+                    MessagePanel · Number(m.id)===Number(msg.id)
+                  </div>
+                  <div class="rounded border border-red-200 bg-red-50 px-2 py-1 leak">
+                    websocket · Number(msg.conv_id)
+                  </div>
+                  <div class="rounded border border-red-200 bg-red-50 px-2 py-1 leak">
+                    convMsg.list · Number(convId)
+                  </div>
+                  <div class="rounded border border-red-200 bg-red-50 px-2 py-1 leak">
+                    serializeWithBigInt · bigint→Number
+                  </div>
+                  <div class="rounded border border-red-200 bg-red-50 px-2 py-1 leak">
+                    String(conv.id) in render
+                  </div>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-2">
+                No module owns identity — every caller re-coerces defensively.
+              </p>
+            </div>
+
+            <!-- AFTER -->
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="text-xs uppercase label text-slate-400 mb-3">
+                After — one seam normalizes; coercion vanishes
+              </p>
+              <div class="h-[320px] flex flex-col items-center">
+                <div
+                  class="w-full rounded border-2 border-dashed border-slate-400 bg-white text-center text-[11px] py-2 mb-1"
+                >
+                  external backend <span class="text-slate-400">(JSON over :8080)</span>
+                </div>
+                <svg width="16" height="20">
+                  <line
+                    x1="8"
+                    y1="0"
+                    x2="8"
+                    y2="16"
+                    stroke="#475569"
+                    stroke-width="1.5"
+                    class="seam"
+                  />
+                  <path d="M5 12 L8 18 L11 12 Z" fill="#475569" />
+                </svg>
+                <div class="w-full deep rounded-lg p-3 text-white mt-1">
+                  <p class="text-[10px] uppercase label text-indigo-300">
+                    RPC adapter — the one identity seam
+                  </p>
+                  <p class="text-[11px] mt-1 text-slate-200">
+                    parse + normalize id once at the edge
+                  </p>
+                  <div class="mt-2 text-[10px] faded rounded bg-slate-700 px-2 py-1">
+                    decide: id is number (or branded Id) — type matches runtime
+                  </div>
+                </div>
+                <svg width="16" height="20">
+                  <line x1="8" y1="0" x2="8" y2="16" stroke="#475569" stroke-width="1.5" />
+                  <path d="M5 12 L8 18 L11 12 Z" fill="#475569" />
+                </svg>
+                <div class="w-full grid grid-cols-3 gap-2 mt-1">
+                  <div
+                    class="rounded border border-emerald-300 bg-emerald-50 text-[9px] text-center py-2 text-emerald-800"
+                  >
+                    AgentManager<br />id === id
+                  </div>
+                  <div
+                    class="rounded border border-emerald-300 bg-emerald-50 text-[9px] text-center py-2 text-emerald-800"
+                  >
+                    ConvManager<br />id === id
+                  </div>
+                  <div
+                    class="rounded border border-emerald-300 bg-emerald-50 text-[9px] text-center py-2 text-emerald-800"
+                  >
+                    MessagePanel<br />id === id
+                  </div>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-3">
+                  downstream compares ids directly — no Number() tax
+                </p>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-2">
+                Identity duality concentrated at the adapter; types tell the truth.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-3 mt-6 text-sm">
+            <div>
+              <p class="text-xs uppercase label text-slate-400 mb-1">Problem</p>
+              <p class="text-slate-700">
+                Generated types declare <code>id: bigint</code>, but
+                <code>response.json()</code> yields <code>number</code> — so every caller sprinkles
+                <code>Number(id)</code> to paper over a divergence the seam never resolved.
+              </p>
+            </div>
+            <div>
+              <p class="text-xs uppercase label text-slate-400 mb-1">Solution</p>
+              <p class="text-slate-700">
+                Make the RPC adapter the single seam that normalizes identity (decide on
+                <code>number</code> or a branded <code>Id</code>); downstream compares ids directly.
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-4 rounded-md border border-slate-200 bg-white p-3">
+            <p class="text-xs uppercase label text-slate-400 mb-2">Type vs runtime, quoted</p>
+            <pre
+              class="text-[11px] text-slate-700 overflow-x-auto"
+            ><span class="text-slate-400">// types/backend/Agent.d.ts:4  — generated, declares bigint</span>
+id: bigint;
+
+<span class="text-slate-400">// lib/backend-rpc.ts:46  — JSON.parse yields number, not bigint</span>
+const json: JsonRpcResponse&lt;T&gt; = await response.json();
+
+<span class="text-slate-400">// lib/backend-rpc.ts:87  — defensive coercion, one of ~10</span>
+get: (id) => rpcCall&lt;Agent&gt;("get_agent", { id: Number(id) }),</pre>
+          </div>
+
+          <div class="mt-4">
+            <p class="text-xs uppercase label text-slate-400 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm text-slate-700">
+              <li class="flex gap-2">
+                <span class="text-amber-600">▸</span> locality: identity duality lives at one seam
+              </li>
+              <li class="flex gap-2">
+                <span class="text-amber-600">▸</span> types match runtime — fewer silent lies
+              </li>
+              <li class="flex gap-2">
+                <span class="text-amber-600">▸</span> dedupe/compare logic drops the Number() tax
+              </li>
+              <li class="flex gap-2">
+                <span class="text-amber-600">▸</span> leverage: one decision, every call site
+                benefits
+              </li>
+            </ul>
+          </div>
+
+          <div
+            class="mt-4 rounded-md bg-amber-50 border border-amber-200 p-3 text-[12px] text-amber-900"
+          >
+            <span class="font-semibold">Constraint:</span> the <code>.d.ts</code> files are
+            <em>generated by ts-rs — “Do not edit this file manually.”</em> The fix belongs at the
+            adapter (parse/normalize on the way in), or in a ts-rs override, not by hand-editing the
+            bindings. That constraint is the whole reason this is
+            <span class="font-semibold">Worth exploring</span>, not Strong.
+          </div>
+        </article>
+      </section>
+
+      <!-- ───────────────────────── Top recommendation ───────────────────────── -->
+      <section id="top-recommendation">
+        <div class="rounded-xl deep text-white p-8">
+          <p class="text-xs uppercase label text-emerald-300 mb-2">Top recommendation</p>
+          <h2 class="font-serif text-3xl mb-3">
+            <a href="#c1" class="hover:underline decoration-emerald-400"
+              >01 · Collapse the live Message stream</a
+            >
+          </h2>
+          <p class="text-slate-300 max-w-3xl">
+            It is the one place where the bug-prone logic — dedupe, stale-guard, subscribe lifecycle
+            — has no locality and no honest test surface: today the merge logic is reachable only by
+            mocking two seams and driving the DOM. Deepening it into
+            <code>createConvMessages(conv)</code>
+            gives the largest gain in both leverage and locality, and it passes the deletion test
+            cleanly. Candidates 02 and 03 are real but each carries a caveat worth grilling first.
+          </p>
+        </div>
+        <p class="text-center text-xs text-slate-400 mt-6">
+          Architecture review · SolidStart-Demo · generated 2026-06-09
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
