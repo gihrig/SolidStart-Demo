@@ -137,3 +137,19 @@ This project uses Vite+ (`vp`). Run `vp help` for all commands.
 - `vp lint --type-aware` works out of the box; no extra packages needed
 - Run `vp install` after pulling remote changes; run `vp check` and `vp test` to validate changes
 <!--VITE PLUS END-->
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs live as GitHub issues on `gihrig/SolidStart-Demo`, managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical triage roles, each mapped to a like-named GitHub label. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
