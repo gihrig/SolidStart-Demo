@@ -30,10 +30,10 @@ If this repo later merges into a monorepo (e.g. alongside the Rust back-end), sw
 ├── CONTEXT-MAP.md
 ├── docs/adr/                          ← system-wide decisions
 └── src/
-    ├── ordering/
+    ├── frontend/
     │   ├── CONTEXT.md
     │   └── docs/adr/                  ← context-specific decisions
-    └── billing/
+    └── backend/
         ├── CONTEXT.md
         └── docs/adr/
 ```
