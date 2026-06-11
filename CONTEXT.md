@@ -35,7 +35,7 @@ by the issue tracker.
 **Conversation**:
 A thread of Messages within one Agent, owned by the Standard user who created it.
 Ownership is fixed — a Conversation and its Messages never transfer to another
-User. Each Conversation has an access kind that scopes who may take part.
+User. Each Conversation has an access `kind` that scopes who may take part.
 _Avoid_: chat, room.
 
 **Owner**:
