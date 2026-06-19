@@ -49,7 +49,7 @@
     "tailwindcss": "4.2.2",
     "typescript": "6.0.3",
     "vinxi": "0.5.11",
-    "vite": "8.0.8",
+    "vite": "8.0.16",
     "vite-plugin-solid": "2.11.12",
     "vite-plus": "0.1.24"
   },
