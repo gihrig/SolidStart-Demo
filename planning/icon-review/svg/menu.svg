@@ -1,0 +1,14 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="64"
+  height="64"
+  viewBox="0 0 68 68"
+  fill="currentColor"
+  stroke="none"
+  stroke-width="2"
+  aria-hidden="true"
+>
+<path d="M0 0 C17.16 0 34.32 0 52 0 C52 1.32 52 2.64 52 4 C34.84 4 17.68 4 0 4 C0 2.68 0 1.36 0 0 Z " transform="translate(4,48)"/>
+<path d="M0 0 C17.16 0 34.32 0 52 0 C52 1.32 52 2.64 52 4 C34.84 4 17.68 4 0 4 C0 2.68 0 1.36 0 0 Z " transform="translate(4,28)"/>
+<path d="M0 0 C17.16 0 34.32 0 52 0 C52 1.32 52 2.64 52 4 C34.84 4 17.68 4 0 4 C0 2.68 0 1.36 0 0 Z " transform="translate(4,8)"/>
+</svg>
