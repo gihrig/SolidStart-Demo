@@ -114,3 +114,232 @@ Usage:
   <use xlink:href="#icon-180-degrees" href="#icon-180-degrees"></use>
 </svg>
 ```
+
+--- Discussion with Grok
+
+❯ I am concerned the array index, a "magic number", may get confused and break the page by selecting the wrong icon. What is a more robust way to make use of this array?
+
+⏺ **Yes, using a magic number like `[5]` is fragile** — reordering the array, adding/removing items, or refactoring will silently break your icon.
+
+### Best Solution: Find by a stable property
+
+```tsx
+const CATEGORIES = [
+  { name: "Landscape", icon: "#icon-landscape" },
+  { name: "People", icon: "#icon-portrait" },
+  { name: "Animals", icon: "#icon-dog" },
+  { name: "Abstract", icon: "#icon-collage" },
+  { name: "Black & White", icon: "#icon-180-degrees" },
+  { name: "Categories", icon: "#icon-expand-arrow" },
+] as const;
+
+// Helper (you can put this near the array)
+const getCategory = (name: string) => CATEGORIES.find((cat) => cat.name === name);
+```
+
+Then use it like this:
+
+```tsx
+const categoriesItem = getCategory("Categories");
+
+<span>{categoriesItem?.name}</span>
+<svg class={`w-4 h-4 ml-1.5 transition-transform ${mobileSidebarOpen() ? "rotate-180" : ""}`}>
+  <use href={categoriesItem?.icon} />
+</svg>
+```
+
+### Even cleaner: Pre-computed constant
+
+```tsx
+const CATEGORIES = [ ... ] as const;
+
+// Export the specific one directly
+export const CATEGORIES_CATEGORY = CATEGORIES.find(cat => cat.name === "Categories")!;
+
+// Or make a lookup object (very fast + type-safe)
+export const CATEGORY_ICON_MAP = Object.fromEntries(
+  CATEGORIES.map(cat => [cat.name, cat.icon])
+) as Record<string, string>;
+```
+
+Usage:
+
+```tsx
+<span>{CATEGORIES_CATEGORY.name}</span>
+<use href={CATEGORIES_CATEGORY.icon} />
+```
+
+Or with the map:
+
+```tsx
+<use href={CATEGORY_ICON_MAP["Categories"]} />
+```
+
+### Alternative: Make the array itself a lookup-friendly structure
+
+You can keep the array for rendering the full list, while having a strongly-typed lookup:
+
+```tsx
+type Category = { name: string; icon: string };
+
+const CATEGORIES = [
+  // ...
+] as const satisfies Category[];
+
+const categoryByName = (name: string) =>
+  CATEGORIES.find((c) => c.name === name) as Category | undefined;
+```
+
+### Recommendation Summary
+
+```pre
+| Approach                 | Robustness | Performance | When to use                          |
+|--------------------------|------------|-------------|--------------------------------------|
+| `find()` by name         | Excellent  | Fine        | Most cases (recommended)             |
+| Pre-computed constant    | Excellent  | Best        | When you access it in many places    |
+| `Object.fromEntries` map | Excellent  | Best        | When you need many different lookups |
+| Magic index              | Poor       | Best        | Never (current code)                 |
+```
+
+I strongly recommend the **pre-computed constant** (`CATEGORIES_CATEGORY`) — it's the most explicit and performant while staying very readable.
+
+---
+
+❯ Show a refactored version using a pre-computed lookup object as shown above under the "Pre-computed constant" heading. Show the table and a usage example
+
+⏺ **Refactored Version (Recommended)**
+
+```tsx
+// categories.ts (or wherever you define your constants)
+export type Category = {
+  name: string;
+  icon: string;
+};
+
+export const CATEGORIES = [
+  { name: "Landscape", icon: "#icon-landscape" },
+  { name: "People", icon: "#icon-portrait" },
+  { name: "Animals", icon: "#icon-dog" },
+  { name: "Abstract", icon: "#icon-collage" },
+  { name: "Black & White", icon: "#icon-180-degrees" },
+  { name: "Categories", icon: "#icon-expand-arrow" },
+] as const satisfies Category[];
+
+// Pre-computed lookup object (stable, fast, type-safe)
+export const CATEGORY_ICON_MAP = Object.fromEntries(
+  CATEGORIES.map((cat) => [cat.name, cat.icon]),
+) as Record<string, string>;
+
+// Optional: Export the specific category object if you also need the name
+export const CATEGORIES_CATEGORY = CATEGORIES.find((cat) => cat.name === "Categories")!;
+```
+
+### Usage Example
+
+```tsx
+import { CATEGORIES, CATEGORY_ICON_MAP, CATEGORIES_CATEGORY } from './categories';
+
+// In your component:
+<span>{CATEGORIES_CATEGORY.name}</span>
+
+<svg
+  class={`w-4 h-4 ml-1.5 transition-transform ${mobileSidebarOpen() ? "rotate-180" : ""}`}
+  alt=""
+>
+  <use href={CATEGORIES_CATEGORY.icon} />
+</svg>
+```
+
+Or using the map directly (very convenient if you only need the icon):
+
+```tsx
+<use href={CATEGORY_ICON_MAP["Categories"]} />
+```
+
+### Updated Comparison Table
+
+```pre
+| Approach                         | Robustness    | Performance | Type Safety   | Recommended For              |
+|----------------------------------|---------------|-------------|---------------|------------------------------|
+| Magic index (`[5]`)              | Poor          | Best        | None          | Never                        |
+| `find()` by name                 | Excellent     | Good        | Good          | Occasional lookups           |
+| **Pre-computed constant**        | **Excellent** | **Best**    | **Excellent** | **Most cases (recommended)** |
+| Lookup Map (`CATEGORY_ICON_MAP`) | Excellent     | Best        | Excellent     | Frequent icon lookups        |
+```
+
+This approach is clean, maintainable, and completely safe from array reordering or index shifts. The `CATEGORY_ICON_MAP` gives you fast O(1) access while `CATEGORIES` remains available for rendering the full list elsewhere.
+
+⏺ **Here's a cleaner, more scalable version:**
+
+### Final Recommended Implementation
+
+```tsx
+// icons.ts (or system-icons.ts)
+
+export type SystemIcon = {
+  name: string;
+  icon: string;
+};
+
+export const ICONS = [
+  { name: "Categories", icon: "#icon-expand-arrow" },
+  { name: "Delete", icon: "#icon-delete-sign" },
+  { name: "Menu", icon: "#icon-menu" },
+  // Add more here without changing anything else
+] as const satisfies SystemIcon[];
+
+// Fast lookup map (name → icon string)
+export const SYSTEM_ICON_MAP = Object.fromEntries(
+  ICONS.map((icon) => [icon.name, icon.icon]),
+) as Record<string, string>;
+
+// === Scalable Helper ===
+export const getSystemIcon = (name: string): SystemIcon => {
+  const icon = ICONS.find((i) => i.name === name);
+  if (!icon) {
+    throw new Error(`System icon not found: "${name}"`);
+  }
+  return icon;
+};
+
+// Optional: For even better DX with autocomplete
+export const getSystemIconIcon = (name: string): string => {
+  const icon = SYSTEM_ICON_MAP[name];
+  if (!icon) {
+    throw new Error(`System icon not found: "${name}"`);
+  }
+  return icon;
+};
+```
+
+---
+
+### Usage Examples
+
+```tsx
+// Full object (recommended when you need both name and icon)
+const categoriesIcon = getSystemIcon("Categories");
+
+<span>{categoriesIcon.name}</span>
+<svg class={`w-4 h-4 ml-1.5 transition-transform ${mobileSidebarOpen() ? "rotate-180" : ""}`}>
+  <use href={categoriesIcon.icon} />
+</svg>
+
+// Or just the icon string
+<use href={getSystemIconIcon("Categories")} />
+
+// Or using the map directly (fastest for icons only)
+<use href={SYSTEM_ICON_MAP["Categories"]} />
+```
+
+---
+
+### Benefits of this approach
+
+- **Scalable**: Just add new items to `ICONS` — no new exports needed.
+- **Type-safe**: Full autocomplete and type checking.
+- **Safe**: Throws clear error if you typo a name (fail-fast).
+- **Clean**: Only three main exports: `ICONS`, `SYSTEM_ICON_MAP`, and `getSystemIcon`.
+- **Performant**: `find()` on a small array is negligible; map gives O(1) for icons.
+
+---

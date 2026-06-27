@@ -10,13 +10,16 @@ import JediNav from "~/components/JediNav";
 import Image from "~/components/Image";
 import Author from "~/components/Author";
 import Card from "~/components/Card";
+import { getSystemIcon } from "~/lib/system-icons";
+
+const CATICON = getSystemIcon("Categories");
 
 const CATEGORIES = [
-  { name: "Landscape", icon: "https://img.icons8.com/small/96/777777/landscape.png" },
-  { name: "People", icon: "https://img.icons8.com/small/96/777777/portrait.png" },
-  { name: "Animals", icon: "https://img.icons8.com/small/96/777777/dog.png" },
-  { name: "Abstract", icon: "https://img.icons8.com/small/96/777777/collage.png" },
-  { name: "Black & White", icon: "https://img.icons8.com/small/96/777777/180-degrees.png" },
+  { name: "Landscape", icon: "#icon-landscape" },
+  { name: "People", icon: "#icon-portrait" },
+  { name: "Animals", icon: "#icon-dog" },
+  { name: "Abstract", icon: "#icon-collage" },
+  { name: "Black & White", icon: "#icon-180-degrees" },
 ];
 
 const TOP_PHOTOS = [
@@ -82,13 +85,12 @@ export default function Jedi() {
             onClick={() => setMobileSidebarOpen(!mobileSidebarOpen())}
             class="flex items-center font-bold text-(--theme-card-fg) bg-(--theme-card-bg) hover:text-(--theme-hover-fg) hover:bg-(--theme-hover-bg) rounded-lg p-3"
           >
-            <span>Categories</span>
-            <img
-              class={`w-4 ml-1.5 transition-transform ${mobileSidebarOpen() ? "rotate-180" : ""}`}
-              src="https://img.icons8.com/small/32/777777/expand-arrow.png"
-              alt=""
-              loading="lazy"
-            />
+            <span>{CATICON.name}</span>
+            <svg
+              class={`w-4 h-4 ml-1.5 transition-transform ${mobileSidebarOpen() ? "rotate-180" : ""}`}
+            >
+              <use href={CATICON.icon}></use>
+            </svg>
           </button>
         </div>
 
@@ -213,7 +215,9 @@ export default function Jedi() {
                       }}
                       class="flex items-center cursor-pointer px-2 py-1 rounded outline-none"
                     >
-                      <img class="w-8 h-8 object-cover mr-2" src={c.icon} alt="" loading="lazy" />
+                      <svg class="w-8 h-8 object-cover mr-2">
+                        <use href={c.icon}></use>
+                      </svg>
                       <span class="font-bold text-sm">{c.name}</span>
                     </li>
                   )}
