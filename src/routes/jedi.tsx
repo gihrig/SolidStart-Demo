@@ -12,7 +12,7 @@ import Author from "~/components/Author";
 import Card from "~/components/Card";
 import { getSystemIcon } from "~/lib/system-icons";
 
-const CATICON = getSystemIcon("Categories");
+const CAT_ICON = getSystemIcon("Categories");
 
 const CATEGORIES = [
   { name: "Landscape", icon: "#icon-landscape" },
@@ -85,11 +85,11 @@ export default function Jedi() {
             onClick={() => setMobileSidebarOpen(!mobileSidebarOpen())}
             class="flex items-center font-bold text-(--theme-card-fg) bg-(--theme-card-bg) hover:text-(--theme-hover-fg) hover:bg-(--theme-hover-bg) rounded-lg p-3"
           >
-            <span>{CATICON.name}</span>
+            <span>{CAT_ICON.name}</span>
             <svg
               class={`w-4 h-4 ml-1.5 transition-transform ${mobileSidebarOpen() ? "rotate-180" : ""}`}
             >
-              <use href={CATICON.icon}></use>
+              <use href={CAT_ICON.icon}></use>
             </svg>
           </button>
         </div>
