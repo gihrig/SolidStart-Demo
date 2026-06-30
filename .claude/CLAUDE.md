@@ -18,7 +18,7 @@ When reporting information to me, be extremely concise and sacrifice grammar for
 - Use `superpowers` (systematic-debugging, TDD, verification-before-completion)
 - Use `solidjs-solidstart-expert` skills
 - Use `tailwind-design-system` when creating styles
-- Use `caveman` to communicate
+- Use `concise` to communicate
 - Phases labeled **(Claude)** are executed by Claude AI.
 - Skip completed phases: `[√] Phase...`.
 - Execute first incomplete phase: `[ ] Phase...`.
