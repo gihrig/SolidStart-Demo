@@ -9,7 +9,7 @@ Here's the decision tree I'll walk you down, in dependency order:
 2. Scope — avatars in or out?
 3. Delivery — external public/icons.svg (issue's pick) vs. inline-bundled
 4. Generation — hand-authored vs. build-tool pipeline
-5. Consumption — raw <svg><use> vs. an <Icon> component
+5. Consumption — raw `<svg><use>` vs. an `<Icon>` component
 6. Theming — currentColor + dropping the 777777 temp hack
 7. Sizing API
 8. Accessibility — aria-hidden
@@ -106,6 +106,12 @@ Claude seems to be unable to evaluate images for exact match vs similarity.
 3. Edit properties using `180-degrees` and `collage` as examples
 4. Generate image sprite (https://codeshack.io/svg-sprite-generator/)
 5. Place `icon-sprite.svg` in site root/public
+6. For images with complex curves:
+   - Convert .png to .svg using inkscape
+   - Exported .svg will contain bas64 encode png
+   - Use Claude (Opus 4.8 high effort) to convert b64 png to svg path
+     - Goal: Convert this base 64 png string to svg path d string
+     - xlink:href="data:image/png;base64,iVBO...
 
 Usage:
 
