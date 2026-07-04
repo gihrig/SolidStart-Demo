@@ -154,13 +154,9 @@ export default function Jedi() {
                 </a>
                 <div class="flex items-center gap-4">
                   <div class="flex items-center gap-1">
-                    <img
-                      class="w-5 -mt-1"
-                      src="https://img.icons8.com/small/24/777777/fire-heart.png"
-                      alt=""
-                      aria-hidden="true"
-                      loading="lazy"
-                    />
+                    <svg class="w-5 -mt-1">
+                      <use href="#icon-fire-heart"></use>
+                    </svg>
                     <span class="font-light text-(--theme-card-fg) ml-2">
                       <span class="sr-only">Likes: </span>1
                     </span>
