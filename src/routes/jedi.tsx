@@ -26,22 +26,22 @@ const TOP_PHOTOS = [
   {
     src: "https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg",
     alt: "Little Jedi",
-    avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
+    avatar: "https://img.icons8.com/doodle/96/null/lisa-simpson.png",
     author: "Lisa",
     likes: 5,
   },
   {
     src: "https://live.staticflickr.com/7374/9311425598_46cfda9977_c.jpg",
     alt: "Brilliant tree",
-    avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png",
+    avatar: "https://img.icons8.com/doodle/96/null/homer-simpson.png",
     author: "Homer",
     likes: 4,
   },
 ];
 
 const TOP_CAPTIONS = [
-  { avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png", author: "Lisa", likes: 8 },
-  { avatar: "https://img.icons8.com/small/96/A9A9A9/happy.png", author: "Bart", likes: 5 },
+  { avatar: "https://img.icons8.com/doodle/96/null/lisa-simpson.png", author: "Lisa", likes: 8 },
+  { avatar: "https://img.icons8.com/doodle/96/null/bart-simpson.png", author: "Bart", likes: 5 },
 ];
 
 export default function Jedi() {
