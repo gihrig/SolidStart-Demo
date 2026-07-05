@@ -4,7 +4,7 @@ export type SystemIcon = {
 };
 
 export const ICONS = [
-  { name: "Categories", icon: "#icon-expand-arrow" },
+  { name: "Expand", icon: "#icon-expand-arrow" },
   { name: "Delete", icon: "#icon-delete-sign" },
   { name: "Menu", icon: "#icon-menu" },
   // Add more here without changing anything else
