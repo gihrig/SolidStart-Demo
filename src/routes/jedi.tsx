@@ -10,17 +10,15 @@ import JediNav from "~/components/JediNav";
 import Image from "~/components/Image";
 import Author from "~/components/Author";
 import Card from "~/components/Card";
-import { getSystemIcon } from "~/lib/system-icons";
-
-const EXPAND_ICON = getSystemIcon("Expand");
+import Icon, { type IconName } from "~/components/Icon";
 
 const CATEGORIES = [
-  { name: "Landscape", icon: "#icon-landscape" },
-  { name: "People", icon: "#icon-portrait" },
-  { name: "Animals", icon: "#icon-dog" },
-  { name: "Abstract", icon: "#icon-collage" },
-  { name: "Black & White", icon: "#icon-180-degrees" },
-];
+  { name: "Landscape", icon: "landscape" },
+  { name: "People", icon: "portrait" },
+  { name: "Animals", icon: "dog" },
+  { name: "Abstract", icon: "collage" },
+  { name: "Black & White", icon: "180-degrees" },
+] as const satisfies { name: string; icon: IconName }[];
 
 const TOP_PHOTOS = [
   {
@@ -86,11 +84,10 @@ export default function Jedi() {
             class="flex items-center font-bold text-(--theme-card-fg) bg-(--theme-card-bg) hover:text-(--theme-hover-fg) hover:bg-(--theme-hover-bg) rounded-lg p-3"
           >
             <span>Categories</span>
-            <svg
+            <Icon
+              name="expand-arrow"
               class={`w-4 h-4 ml-1.5 transition-transform ${mobileSidebarOpen() ? "rotate-180" : ""}`}
-            >
-              <use href={EXPAND_ICON.icon}></use>
-            </svg>
+            />
           </button>
         </div>
 
@@ -154,9 +151,7 @@ export default function Jedi() {
                 </a>
                 <div class="flex items-center gap-4">
                   <div class="flex items-center gap-1">
-                    <svg class="w-5 -mt-1">
-                      <use href="#icon-fire-heart"></use>
-                    </svg>
+                    <Icon name="fire-heart" class="w-5 -mt-1" />
                     <span class="font-light text-(--theme-card-fg) ml-2">
                       <span class="sr-only">Likes: </span>1
                     </span>
@@ -211,9 +206,7 @@ export default function Jedi() {
                       }}
                       class="flex items-center cursor-pointer px-2 py-1 rounded outline-none"
                     >
-                      <svg class="w-8 h-8 object-cover mr-2">
-                        <use href={c.icon}></use>
-                      </svg>
+                      <Icon name={c.icon} class="w-8 h-8 object-cover mr-2" />
                       <span class="font-bold text-sm">{c.name}</span>
                     </li>
                   )}

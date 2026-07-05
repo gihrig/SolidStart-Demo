@@ -1,7 +1,7 @@
 import { createSignal, Show } from "solid-js";
 import { useIsMobile } from "~/lib/useIsMobile";
 import { useDismiss } from "~/lib/useDismiss";
-import { getSystemIcon } from "~/lib/system-icons";
+import Icon from "~/components/Icon";
 
 export default function JediNav() {
   const [mobileNavOpen, setMobileNavOpen] = createSignal(false);
@@ -19,17 +19,11 @@ export default function JediNav() {
     () => dropdownRef,
   );
 
-  const EXPAND_ICON = getSystemIcon("Expand");
-  const MENU_ICON = getSystemIcon("Menu");
-  const DELETE_ICON = getSystemIcon("Delete");
-
   return (
     <header class="jedi-header">
       <div class="flex items-center justify-between h-20 px-8">
         <a class="flex items-center gap-1" href="/jedi">
-          <svg class="w-8 h-8 -mt-1">
-            <use href="#icon-fire-heart"></use>
-          </svg>
+          <Icon name="fire-heart" class="w-8 h-8 -mt-1" />
           <span class="text-lg font-bold">Awesome</span>
         </a>
         <button
@@ -39,17 +33,8 @@ export default function JediNav() {
           onClick={() => setMobileNavOpen(!mobileNavOpen())}
           class="md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg"
         >
-          <Show
-            when={mobileNavOpen()}
-            fallback={
-              <svg class="w-6 h-6 select-none">
-                <use href={MENU_ICON.icon}></use>
-              </svg>
-            }
-          >
-            <svg class="w-6 h-6 select-none">
-              <use href={DELETE_ICON.icon}></use>
-            </svg>
+          <Show when={mobileNavOpen()} fallback={<Icon name="menu" class="w-6 h-6 select-none" />}>
+            <Icon name="delete-sign" class="w-6 h-6 select-none" />
           </Show>
         </button>
       </div>
@@ -84,11 +69,10 @@ export default function JediNav() {
                 alt="Bart avatar"
               />
               Bart
-              <svg
+              <Icon
+                name="expand-arrow"
                 class={`w-4 h-4 transition-transform duration-300 ${dropdownOpen() ? "rotate-180" : ""}`}
-              >
-                <use href={EXPAND_ICON.icon}></use>
-              </svg>
+              />
             </button>
             <div
               id="jedi-profile-menu"

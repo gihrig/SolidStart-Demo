@@ -76,7 +76,7 @@ describe("<JediNav />", () => {
     it("shows menu icon when nav closed", () => {
       render(() => <JediNav />);
       const btn = screen.getByRole("button", { name: /toggle navigation/i });
-      expect(btn.querySelector("img")!.getAttribute("src")).toContain("menu");
+      expect(btn.querySelector("use")!.getAttribute("href")).toContain("menu");
     });
 
     it("click sets aria-expanded true", async () => {
@@ -102,7 +102,7 @@ describe("<JediNav />", () => {
       render(() => <JediNav />);
       const btn = screen.getByRole("button", { name: /toggle navigation/i });
       await user.click(btn);
-      expect(btn.querySelector("img")!.getAttribute("src")).toContain("delete-sign");
+      expect(btn.querySelector("use")!.getAttribute("href")).toContain("delete-sign");
     });
 
     it("second click sets aria-expanded false", async () => {
@@ -130,7 +130,7 @@ describe("<JediNav />", () => {
       const btn = screen.getByRole("button", { name: /toggle navigation/i });
       await user.click(btn);
       await user.click(btn);
-      expect(btn.querySelector("img")!.getAttribute("src")).toContain("menu");
+      expect(btn.querySelector("use")!.getAttribute("href")).toContain("menu");
     });
   });
 
