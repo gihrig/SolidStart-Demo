@@ -1,6 +1,7 @@
 import { createSignal, Show } from "solid-js";
 import { useIsMobile } from "~/lib/useIsMobile";
 import { useDismiss } from "~/lib/useDismiss";
+import { getSystemIcon } from "~/lib/system-icons";
 
 export default function JediNav() {
   const [mobileNavOpen, setMobileNavOpen] = createSignal(false);
@@ -17,6 +18,9 @@ export default function JediNav() {
     dropdownOpen,
     () => dropdownRef,
   );
+
+  const MENU_ICON = getSystemIcon("Menu");
+  const DELETE_ICON = getSystemIcon("Delete");
 
   return (
     <header class="jedi-header">
@@ -37,18 +41,14 @@ export default function JediNav() {
           <Show
             when={mobileNavOpen()}
             fallback={
-              <img
-                class="w-6 h-6 select-none"
-                src="https://img.icons8.com/small/64/ffffff/menu.png"
-                alt=""
-              />
+              <svg class="w-6 h-6 select-none">
+                <use href={MENU_ICON.icon}></use>
+              </svg>
             }
           >
-            <img
-              class="w-6 h-6 select-none"
-              src="https://img.icons8.com/small/64/ffffff/delete-sign.png"
-              alt=""
-            />
+            <svg class="w-6 h-6 select-none">
+              <use href={DELETE_ICON.icon}></use>
+            </svg>
           </Show>
         </button>
       </div>
