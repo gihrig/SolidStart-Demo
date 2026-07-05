@@ -19,6 +19,7 @@ export default function JediNav() {
     () => dropdownRef,
   );
 
+  const EXPAND_ICON = getSystemIcon("Expand");
   const MENU_ICON = getSystemIcon("Menu");
   const DELETE_ICON = getSystemIcon("Delete");
 
@@ -83,11 +84,11 @@ export default function JediNav() {
                 alt="Bart avatar"
               />
               Bart
-              <img
-                class={`w-4 transition-transform duration-300 ${dropdownOpen() ? "rotate-180" : ""}`}
-                src="https://img.icons8.com/small/32/777777/expand-arrow.png"
-                alt=""
-              />
+              <svg
+                class={`w-4 h-4 transition-transform duration-300 ${dropdownOpen() ? "rotate-180" : ""}`}
+              >
+                <use href={EXPAND_ICON.icon}></use>
+              </svg>
             </button>
             <div
               id="jedi-profile-menu"
