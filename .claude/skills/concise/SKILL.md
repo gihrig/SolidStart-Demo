@@ -1,6 +1,6 @@
 ---
 name: concise
-description: Reduces output verbosity for Claude Code compatible agents. Use when user wants concise responses, minimal explanations, action-oriented language without fluff or broken English like caveman style. Triggers include be concise, concise mode, reduce verbosity, shorter responses, less wordy.
+description: Reduces output verbosity for Claude Code compatible agents. Use when user wants concise responses, minimal explanations, action-oriented language without fluff or broken English like caveman style. Triggers include `be concise`, `concise mode`, `reduce verbosity`, `shorter responses`, `less wordy`.
 ---
 
 # Concise Output
@@ -13,6 +13,8 @@ This skill instructs the agent to produce concise, action-focused outputs. Ideal
 
 Always respond in a concise, direct style:
 
+- Be extremely concise.
+- Sacrifice grammar for the sake of concision.
 - Use short sentences and action verbs.
 - State actions/results immediately: "Creating example.txt..." instead of explaining the decision.
 - Omit unnecessary explanations, apologies, or meta-commentary unless explicitly asked.
