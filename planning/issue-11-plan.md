@@ -349,3 +349,39 @@ const categoriesIcon = getSystemIcon("Categories");
 - **Performant**: `find()` on a small array is negligible; map gives O(1) for icons.
 
 ---
+
+## >>>>> Refactor <<<<<<
+
+❯ /improve-codebase-architecture Issue #11 is complete and the current branch is ready to merge. Are there any architectural improvements to be made in this code?
+
+⏺ file:///Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo/docs/architecture-review-icons.html#c1
+
+...
+
+⏺ Committed on #11-png-icons-sprite as ee35d6f (a pre-commit hook ran vp check --fix — passed). 7 files changed, system-icons.ts deleted, Icon.tsx/Icon.test.tsx added.
+
+Candidate 1 is closed out:
+
+- (a) Issue #11 updated with the completion summary.
+- (b) Committed as approved.
+
+docs/architecture-review-icons.html remains untracked as intended. Candidate 2 (ThemeToggle ↔ sprite reconciliation) is queued whenever you want it.
+
+Resume this session with:
+claude --resume c5dc350e-7fb2-48b2-bbe4-29092a7c15ec
+claude --model claude-opus-4-8 --effort high 362.72s user 51.30s system 3% cpu 2:57:02.81 total
+
+❯ Now do candidate 2: Use `Icon.tsx` in place of inline svg. Ensure `Icon` and `ThemeToggle` maintain their original dimensions.
+
+⏺ Committed as 7e4fa86 on #11-png-icons-sprite (pre-commit vp check --fix passed). 4 files, +43/-64. planning/issue-11-plan.md left unstaged as requested.
+
+Candidate 2 closed out. Every inline SVG in the app now routes through `<Icon>` — only Icon.tsx itself contains one, by design.
+
+## >>>>> Complete <<<<<<
+
+1 · Deepen icons into a single <Icon> module
+2 · Reconcile ThemeToggle with the sprite
+
+From `architecture-review-icons-20260704.html` completed
+
+3 · Avatar URLs are scattered stand-in data not addressed here will be done in #13 Jedi: Standardize data structures.

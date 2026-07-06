@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — SolidStart-Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+    </script>
+    <style>
+      .seam {
+        stroke-dasharray: 4 4;
+      }
+      .deep {
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+      }
+      pre.code {
+        background: #0f172a;
+        color: #e2e8f0;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        overflow-x: auto;
+        font-size: 0.72rem;
+        line-height: 1.5;
+      }
+      pre.code .c {
+        color: #64748b;
+      }
+      pre.code .k {
+        color: #7dd3fc;
+      }
+      pre.code .s {
+        color: #fca5a5;
+      }
+      pre.code .g {
+        color: #86efac;
+      }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+      <header class="space-y-4">
+        <p class="text-xs uppercase tracking-widest text-slate-500">Architecture review</p>
+        <h1 class="text-4xl font-serif">SolidStart-Demo — the icon system after issue&nbsp;#11</h1>
+        <p class="text-sm text-slate-600">
+          2026-07-04 · branch <code class="font-mono">#11-png-icons-sprite</code> · scope: the
+          sprite migration touched <code class="font-mono">system-icons.ts</code>,
+          <code class="font-mono">jedi.tsx</code>, <code class="font-mono">JediNav.tsx</code>,
+          <code class="font-mono">icon-sprite.svg</code>.
+        </p>
+        <div class="flex flex-wrap gap-4 text-xs text-slate-600 border-t border-slate-200 pt-4">
+          <span class="flex items-center gap-2"
+            ><span class="inline-block w-5 h-4 border border-slate-400 bg-white"></span>
+            module</span
+          >
+          <span class="flex items-center gap-2"
+            ><svg width="34" height="10">
+              <line x1="0" y1="5" x2="34" y2="5" class="seam" stroke="#475569" stroke-width="2" />
+            </svg>
+            seam</span
+          >
+          <span class="flex items-center gap-2"
+            ><svg width="34" height="10">
+              <line x1="0" y1="5" x2="34" y2="5" stroke="#dc2626" stroke-width="2" />
+            </svg>
+            duplication / leak</span
+          >
+          <span class="flex items-center gap-2"
+            ><span class="inline-block w-5 h-4 deep"></span> deep module</span
+          >
+        </div>
+        <p class="text-sm text-slate-700 bg-white border border-slate-200 rounded-lg p-4">
+          The migration is sound, but it left
+          <strong>four parallel ways to render one sprite icon</strong>. Understanding "how do I
+          show an icon here" now means bouncing between four modules. Every candidate below is about
+          restoring <em>locality</em> to the icon system and <em>deepening</em> one interface over
+          it.
+        </p>
+      </header>
+
+      <!-- ===================== CANDIDATE 1 ===================== -->
+      <section id="candidates" class="space-y-12">
+        <article
+          id="c1"
+          class="bg-white border border-slate-200 rounded-2xl p-8 space-y-6 shadow-sm"
+        >
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="text-2xl font-serif">
+              1 · Deepen icons into a single
+              <code class="font-mono text-xl">&lt;Icon&gt;</code> module
+            </h2>
+            <div class="flex gap-2 flex-shrink-0">
+              <span
+                class="text-xs font-semibold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full"
+                >Strong</span
+              >
+              <span
+                class="text-xs font-semibold uppercase tracking-wider bg-slate-100 text-slate-600 px-3 py-1 rounded-full"
+                >in-process</span
+              >
+            </div>
+          </div>
+
+          <div class="font-mono text-sm text-slate-500">
+            src/lib/system-icons.ts · src/routes/jedi.tsx · src/components/JediNav.tsx ·
+            src/components/ThemeToggle.tsx · src/icon-sprite.svg
+          </div>
+
+          <!-- Before / After -->
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="rounded-xl border border-slate-200 p-4 space-y-3">
+              <p class="text-xs uppercase tracking-wider text-slate-500">
+                Before — four mechanisms, one job
+              </p>
+              <div class="rounded-lg border border-slate-200 bg-white p-2">
+                <pre class="mermaid">
+flowchart TD
+  S["icon-sprite.svg<br/>13 symbols"]
+  R["system-icons.ts<br/>registry: 3 icons"]
+  L1["#quot;#icon-fire-heart#quot;<br/>inline literal ×2"]
+  L2["CATEGORIES[]<br/>5 #icon- strings"]
+  T["ThemeToggle<br/>inline &lt;svg&gt; ×3"]
+  call["render an icon"]
+  call --> R
+  call --> L1
+  call --> L2
+  call --> T
+  R -.-> S
+  L1 -.-> S
+  L2 -.-> S
+  T -.dup.-> S
+  classDef leak stroke:#dc2626,stroke-width:2px,color:#dc2626;
+  class T leak
+                </pre>
+              </div>
+              <p class="text-xs text-slate-500">
+                Four routes to the same sprite. The
+                <span class="text-red-600 font-semibold">red</span> one doesn't even reach it — it
+                re-draws symbols the sprite already holds.
+              </p>
+            </div>
+
+            <div class="rounded-xl border-2 border-slate-900 p-4 space-y-3">
+              <p class="text-xs uppercase tracking-wider text-slate-500">After — one deep module</p>
+              <div
+                class="rounded-lg deep p-4 text-slate-200 space-y-3 min-h-[210px] flex flex-col justify-center"
+              >
+                <div class="text-center">
+                  <p class="text-xs uppercase tracking-wider text-slate-400 mb-1">interface</p>
+                  <code class="text-emerald-300 text-sm">&lt;Icon name="fire-heart" /&gt;</code>
+                </div>
+                <div class="border-t border-slate-700 pt-3 text-center space-y-1 opacity-70">
+                  <p class="text-xs uppercase tracking-wider text-slate-400">
+                    implementation (hidden)
+                  </p>
+                  <p class="text-[11px] text-slate-400">svg + use + <code>#icon-</code> prefix</p>
+                  <p class="text-[11px] text-slate-400">IconName union derived from sprite</p>
+                  <p class="text-[11px] text-slate-400">class passthrough</p>
+                </div>
+              </div>
+              <p class="text-xs text-slate-500">
+                Narrow interface, everything else absorbed. Every call site names an icon and
+                nothing else.
+              </p>
+            </div>
+          </div>
+
+          <!-- Mass diagram: shallowness of the registry it replaces -->
+          <div class="grid md:grid-cols-2 gap-6 items-end">
+            <div class="space-y-2">
+              <p class="text-xs uppercase tracking-wider text-slate-500">
+                Registry today — interface ≈ implementation (shallow)
+              </p>
+              <div class="flex items-end gap-2 h-40">
+                <div class="flex-1 flex flex-col justify-end">
+                  <div
+                    class="bg-amber-200 border border-amber-400 rounded-t text-[10px] text-center py-1"
+                    style="height: 88%"
+                  >
+                    interface: 5 exports
+                  </div>
+                </div>
+                <div class="flex-1 flex flex-col justify-end">
+                  <div
+                    class="bg-slate-300 border border-slate-400 rounded-t text-[10px] text-center py-1"
+                    style="height: 100%"
+                  >
+                    impl: lookup + map + 2 throwers
+                  </div>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-500">
+                <code>getSystemIconIcon</code> &amp; <code>SYSTEM_ICON_MAP</code> are dead — used
+                only by each other.
+              </p>
+            </div>
+            <div class="space-y-2">
+              <p class="text-xs uppercase tracking-wider text-slate-500">
+                &lt;Icon&gt; — short interface, deep impl
+              </p>
+              <div class="flex items-end gap-2 h-40">
+                <div class="flex-1 flex flex-col justify-end">
+                  <div
+                    class="bg-emerald-200 border border-emerald-500 rounded-t text-[10px] text-center py-1"
+                    style="height: 22%"
+                  >
+                    interface: name
+                  </div>
+                </div>
+                <div class="flex-1 flex flex-col justify-end">
+                  <div
+                    class="deep border border-slate-700 rounded-t text-[10px] text-center py-1 text-slate-200"
+                    style="height: 100%"
+                  >
+                    impl: svg/use/prefix/types
+                  </div>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-500">
+                Callers stop knowing about <code>#icon-</code> prefixes and
+                <code>&lt;use&gt;</code> markup.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div class="space-y-3">
+              <p>
+                <span class="font-semibold text-slate-500 uppercase text-xs tracking-wider"
+                  >Problem</span
+                ><br />
+                Rendering an icon means picking one of four mechanisms; the sprite has no single
+                module that owns "which icons exist."
+              </p>
+              <p>
+                <span class="font-semibold text-slate-500 uppercase text-xs tracking-wider"
+                  >Solution</span
+                ><br />
+                One <code class="font-mono">&lt;Icon name /&gt;</code> component owns the
+                <code>&lt;svg&gt;&lt;use&gt;</code> markup and the <code>#icon-</code> prefix;
+                <code>name</code> is a union derived from the sprite ids.
+              </p>
+            </div>
+            <div>
+              <p class="font-semibold text-slate-500 uppercase text-xs tracking-wider mb-2">Wins</p>
+              <ul class="space-y-1 list-disc list-inside text-slate-700">
+                <li>leverage: one interface, 7+ call sites</li>
+                <li>locality: icon bugs land in one module</li>
+                <li>typos caught at compile time, not blank render</li>
+                <li>delete the whole shallow registry</li>
+                <li>the interface is the test surface — one test</li>
+              </ul>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">
+              Evidence — the boilerplate repeats, the registry half-serves its callers
+            </p>
+            <pre
+              class="code"
+            ><span class="c">// JediNav.tsx — 3 lookups, only .icon is ever read</span>
+<span class="k">const</span> EXPAND_ICON = getSystemIcon(<span class="s">"Expand"</span>);
+...
+&lt;svg class="w-6 h-6 select-none"&gt;&lt;use href={MENU_ICON.<span class="g">icon</span>}&gt;&lt;/use&gt;&lt;/svg&gt;
+
+<span class="c">// jedi.tsx — same job, but a raw literal instead of the registry</span>
+&lt;svg class="w-5 -mt-1"&gt;&lt;use href=<span class="s">"#icon-fire-heart"</span>&gt;&lt;/use&gt;&lt;/svg&gt;
+
+<span class="c">// jedi.tsx — same job again, but a local array of #icon- strings</span>
+CATEGORIES = [{ name: <span class="s">"Landscape"</span>, icon: <span class="s">"#icon-landscape"</span> }, ...]
+
+<span class="c">// system-icons.ts — getSystemIcon returns {name, icon}; grep for _ICON.name is empty</span>
+<span class="k">export const</span> getSystemIcon = (name) =&gt; ICONS.find((i) =&gt; i.name === name) ...</pre>
+          </div>
+        </article>
+
+        <!-- ===================== CANDIDATE 2 ===================== -->
+        <article
+          id="c2"
+          class="bg-white border border-slate-200 rounded-2xl p-8 space-y-6 shadow-sm"
+        >
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="text-2xl font-serif">
+              2 · Reconcile <code class="font-mono text-xl">ThemeToggle</code> with the sprite
+            </h2>
+            <div class="flex gap-2 flex-shrink-0">
+              <span
+                class="text-xs font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 px-3 py-1 rounded-full"
+                >Worth exploring</span
+              >
+              <span
+                class="text-xs font-semibold uppercase tracking-wider bg-slate-100 text-slate-600 px-3 py-1 rounded-full"
+                >duplication</span
+              >
+            </div>
+          </div>
+
+          <div class="font-mono text-sm text-slate-500">
+            src/components/ThemeToggle.tsx · src/icon-sprite.svg
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="rounded-xl border border-slate-200 p-4 space-y-3">
+              <p class="text-xs uppercase tracking-wider text-slate-500">
+                Before — same three icons, defined twice
+              </p>
+              <div class="rounded-lg border border-slate-200 bg-white p-2">
+                <pre class="mermaid">
+flowchart LR
+  subgraph sprite["icon-sprite.svg"]
+    m1["icon-sun"]
+    m2["icon-moon"]
+    m3["icon-system"]
+  end
+  subgraph tt["ThemeToggle.tsx"]
+    i1["inline &lt;svg&gt; sun"]
+    i2["inline &lt;svg&gt; moon"]
+    i3["inline &lt;svg&gt; system"]
+  end
+  i1 -. duplicates .-> m1
+  i2 -. duplicates .-> m2
+  i3 -. duplicates .-> m3
+  classDef dead fill:#fee2e2,stroke:#dc2626,color:#991b1b;
+  class m1,m2,m3 dead
+                </pre>
+              </div>
+              <p class="text-xs text-slate-500">
+                The three sprite symbols are
+                <span class="text-red-600 font-semibold">never <code>&lt;use&gt;</code>d</span> —
+                nobody references them.
+              </p>
+            </div>
+            <div class="rounded-xl border border-slate-200 p-4 space-y-3">
+              <p class="text-xs uppercase tracking-wider text-slate-500">
+                After — one definition, one source of truth
+              </p>
+              <div class="rounded-lg border border-slate-200 bg-white p-2">
+                <pre class="mermaid">
+flowchart LR
+  subgraph sprite["icon-sprite.svg"]
+    m1["icon-sun"]
+    m2["icon-moon"]
+    m3["icon-system"]
+  end
+  tt["ThemeToggle.tsx<br/>&lt;Icon name=... /&gt;"]
+  tt --> m1
+  tt --> m2
+  tt --> m3
+  classDef live fill:#d1fae5,stroke:#059669,color:#065f46;
+  class m1,m2,m3 live
+                </pre>
+              </div>
+              <p class="text-xs text-slate-500">
+                ThemeToggle <code>&lt;use&gt;</code>s the sprite (or the
+                <code>&lt;Icon&gt;</code> of candidate&nbsp;1). Symbols stop being dead.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div class="space-y-3">
+              <p>
+                <span class="font-semibold text-slate-500 uppercase text-xs tracking-wider"
+                  >Problem</span
+                ><br />
+                The sun/moon/system glyphs live in two places; the sprite copies are dead weight and
+                can silently drift from the inline ones.
+              </p>
+              <p>
+                <span class="font-semibold text-slate-500 uppercase text-xs tracking-wider"
+                  >Solution</span
+                ><br />
+                Pick one home. Either ThemeToggle <code>&lt;use&gt;</code>s the sprite symbols, or
+                drop them from the sprite. Candidate&nbsp;1 makes the first choice free.
+              </p>
+            </div>
+            <div>
+              <p class="font-semibold text-slate-500 uppercase text-xs tracking-wider mb-2">Wins</p>
+              <ul class="space-y-1 list-disc list-inside text-slate-700">
+                <li>locality: one definition per glyph</li>
+                <li>no drift between sprite and inline copy</li>
+                <li>sprite becomes the single source of truth</li>
+              </ul>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">
+              Evidence — sprite defines them (viewBox 0 0 24 24); ThemeToggle re-draws them (same
+              viewBox)
+            </p>
+            <pre
+              class="code"
+            ><span class="c">// icon-sprite.svg — present, but grep "#icon-sun|#icon-moon|#icon-system" in src/ = 0 uses</span>
+&lt;symbol id="icon-moon"   viewBox="0 0 24 24" ...&gt;
+&lt;symbol id="icon-sun"    viewBox="0 0 24 24" ...&gt;
+&lt;symbol id="icon-system" viewBox="0 0 24 24" ...&gt;
+
+<span class="c">// ThemeToggle.tsx — the moon, hand-inlined instead of used</span>
+&lt;svg xmlns="..." viewBox="0 0 24 24" ...&gt;
+  &lt;path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /&gt;
+&lt;/svg&gt;</pre>
+          </div>
+        </article>
+
+        <!-- ===================== CANDIDATE 3 ===================== -->
+        <article
+          id="c3"
+          class="bg-white border border-slate-200 rounded-2xl p-8 space-y-6 shadow-sm"
+        >
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="text-2xl font-serif">3 · Avatar URLs are scattered stand-in data</h2>
+            <div class="flex gap-2 flex-shrink-0">
+              <span
+                class="text-xs font-semibold uppercase tracking-wider bg-slate-200 text-slate-700 px-3 py-1 rounded-full"
+                >Speculative</span
+              >
+              <span
+                class="text-xs font-semibold uppercase tracking-wider bg-slate-100 text-slate-600 px-3 py-1 rounded-full"
+                >data, not module</span
+              >
+            </div>
+          </div>
+
+          <div class="font-mono text-sm text-slate-500">
+            src/routes/jedi.tsx · src/components/JediNav.tsx
+          </div>
+
+          <div class="rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-sm p-4">
+            <strong>Aligns with CONTEXT.md, not against it.</strong> The Jedi glossary is
+            deliberately deferred until the content is database-backed. These literals are
+            placeholder <em>data</em>, not a shallow module — so the honest recommendation is
+            <strong>leave it until the User/avatar model lands</strong>. Listed only so a future
+            explorer doesn't mistake the scattering for an oversight.
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div class="space-y-3">
+              <p>
+                <span class="font-semibold text-slate-500 uppercase text-xs tracking-wider"
+                  >Observation</span
+                ><br />
+                Six <code>img.icons8.com/doodle/…</code> avatar URLs repeat across
+                <code>TOP_PHOTOS</code>, <code>TOP_CAPTIONS</code>, the <code>Author</code> avatar,
+                and JediNav's Bart avatar.
+              </p>
+              <p>
+                <span class="font-semibold text-slate-500 uppercase text-xs tracking-wider"
+                  >Why defer</span
+                ><br />
+                Extracting an avatar seam now would model a User that CONTEXT.md says isn't pinned
+                yet — premature modularization. The real seam arrives with the DB-backed model.
+              </p>
+            </div>
+            <div>
+              <p class="font-semibold text-slate-500 uppercase text-xs tracking-wider mb-2">
+                If revisited later
+              </p>
+              <ul class="space-y-1 list-disc list-inside text-slate-700">
+                <li>avatar belongs to the future User/author model</li>
+                <li>one seam when the data is real</li>
+                <li>not a two-adapter situation yet</li>
+              </ul>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">
+              Evidence — same URL literal, four call sites
+            </p>
+            <pre
+              class="code"
+            >TOP_PHOTOS  → avatar: <span class="s">"…/doodle/96/null/lisa-simpson.png"</span>
+TOP_CAPTIONS→ avatar: <span class="s">"…/doodle/96/null/bart-simpson.png"</span>
+&lt;Author avatarSrc=<span class="s">"…/doodle/96/null/lisa-simpson.png"</span> ... /&gt;
+JediNav     → &lt;img src=<span class="s">"…/doodle/96/null/bart-simpson.png"</span> ... /&gt;</pre>
+          </div>
+        </article>
+      </section>
+
+      <!-- ===================== TOP RECOMMENDATION ===================== -->
+      <section id="top-recommendation">
+        <div class="rounded-2xl deep text-slate-100 p-8 space-y-4">
+          <p class="text-xs uppercase tracking-widest text-emerald-300">Top recommendation</p>
+          <h2 class="text-2xl font-serif">
+            Start with candidate 1 — the <code class="font-mono">&lt;Icon&gt;</code> module.
+          </h2>
+          <p class="text-sm text-slate-300 max-w-3xl">
+            It has the strongest deletion test: an
+            <code class="font-mono">&lt;Icon name /&gt;</code> component absorbs the
+            <code>&lt;svg&gt;&lt;use&gt;</code> boilerplate and the <code>#icon-</code> prefix, lets
+            the sprite ids become a compile-checked union, and lets the entire shallow
+            <code>system-icons.ts</code> registry — including its two dead exports — be deleted.
+            Candidate&nbsp;2 then falls out for free, because ThemeToggle simply names its icons.
+          </p>
+          <a
+            href="#c1"
+            class="inline-block text-sm font-semibold text-emerald-300 hover:text-emerald-200"
+            >→ Jump to candidate 1</a
+          >
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
