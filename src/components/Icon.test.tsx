@@ -25,4 +25,12 @@ describe("<Icon />", () => {
     const spriteIds = [...spriteRaw.matchAll(/id="icon-([^"]+)"/g)].map((m) => m[1]);
     expect(new Set(ICON_NAMES)).toEqual(new Set(spriteIds));
   });
+
+  // ThemeToggle's sun/moon/system are outline glyphs. When referenced via <use>
+  // they must stay outlined (fill:none + stroke-width:2), not fill as blobs.
+  it.each(["sun", "moon", "system"])("keeps the %s symbol an outline glyph", (name) => {
+    const openTag = spriteRaw.match(new RegExp(`<symbol id="icon-${name}"[^>]*>`))![0];
+    expect(openTag).toContain('fill="none"');
+    expect(openTag).toContain('stroke-width="2"');
+  });
 });
