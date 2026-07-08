@@ -88,6 +88,54 @@ test.describe("Jedi Page", () => {
   });
 });
 
+test.describe("Jedi Page - Nav slide transitions (regression #28)", () => {
+  test("mobile nav menu slides via `translate` (not just opacity) on close", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("/jedi");
+    const navBtn = page.getByRole("button", { name: /toggle navigation/i });
+    const nav = page.getByRole("navigation", { name: /jedi site navigation/i });
+
+    // Tailwind v4 keeps the menu's motion in the `translate` property; it must be
+    // in transition-property or the menu jumps (abrupt) instead of sliding (#28).
+    const tp = await nav.evaluate((el) => getComputedStyle(el).transitionProperty);
+    expect(tp).toContain("opacity");
+    expect(tp).toContain("translate");
+
+    // Behavioral guard: closing must animate `translate` to completion, not jump.
+    await navBtn.click(); // open
+    await expect(nav).toHaveCSS("opacity", "1"); // wait for the open transition to settle
+    const translateAnimated = await nav.evaluate(
+      (el) =>
+        new Promise<boolean>((resolve) => {
+          const timer = setTimeout(() => resolve(false), 1000);
+          el.addEventListener("transitionend", (e) => {
+            if ((e as TransitionEvent).propertyName === "translate") {
+              clearTimeout(timer);
+              resolve(true);
+            }
+          });
+          document
+            .querySelector<HTMLButtonElement>('button[aria-label="Toggle navigation"]')!
+            .click();
+        }),
+    );
+    expect(translateAnimated).toBe(true);
+  });
+
+  test("profile dropdown transitions `translate` and `scale`, not just opacity", async ({
+    page,
+  }) => {
+    await page.goto("/jedi");
+    // Same v4 fix: scale-90 / -translate-y-5 live in the `scale` / `translate` props.
+    const tp = await page
+      .locator("#jedi-profile-menu")
+      .evaluate((el) => getComputedStyle(el).transitionProperty);
+    expect(tp).toContain("opacity");
+    expect(tp).toContain("translate");
+    expect(tp).toContain("scale");
+  });
+});
+
 test.describe("Jedi Page - Footer (preserved from existing tests)", () => {
   test("should have working external link to solidjs.com in footer", async ({ page }) => {
     await page.goto("/jedi");
