@@ -21,14 +21,6 @@
 
 ---
 
-## ⚠️ DECISION POINT — icon for the new "Cute" category
-
-The sidebar renders an `<Icon>` per category, and `IconName` is a **strict union kept in sync with the sprite by a drift test** (`src/components/Icon.tsx` → `ICON_NAMES`). The sprite has **no "cute" glyph** (available: `180-degrees, collage, delete-sign, dog, expand-arrow, fire-heart, landscape, menu, moon, portrait, sun, system`).
-
-**This plan defaults `Cute`'s icon to `fire-heart`** (zero sprite work; keeps #13 data-focused). It is the single value `categories[5].icon` in `data.json` — change it there if you prefer. Alternative (out of scope): add a dedicated glyph to the sprite via the #11 process (sprite + `ICON_NAMES` + drift test).
-
----
-
 ## Decisions locked (grilling)
 
 - **Post IS the photo** — no separate Photo entity; "Top Photos" = Posts ranked by `likeCount`.
@@ -220,9 +212,9 @@ Expected: PASS (no errors). `src/types/jedi.ts` compiles standalone.
       "title": "Brilliant tree",
       "imageSrc": "https://live.staticflickr.com/7374/9311425598_46cfda9977_c.jpg",
       "imageAlt": "Brilliant tree",
-      "photographer": "Flickr",
-      "photographerUrl": "https://www.flickr.com/photo.gne?id=9311425598",
-      "sourceUrl": "https://www.flickr.com/photo.gne?id=9311425598",
+      "photographer": "Sunsword & Moonsabre",
+      "photographerUrl": "https://www.flickr.com/photos/sunsward7/",
+      "sourceUrl": "https://www.flickr.com/photos/sunsward7/9311425598/",
       "category_ids": [1],
       "likeCount": 4
     }
@@ -855,7 +847,7 @@ Automated Claude phases cannot run e2e (needs the back-end at `:8080`). Validate
 - [ ] **Run e2e:** `vpr test:e2e` → all `e2e/jedi.spec.ts` cases pass (title, article `Little Jedi` + `Jedi Kitty protects`, sidebar `Landscape`/`Animals`, chips `Animals`/`Cute`, three sidebar cards, nav/footer/theme).
 - [ ] **Visual check** (`vpr dev`, open `/jedi`, light **and** dark):
   - Article renders Little Jedi photo, winning caption, `Lisa`, `Animals`+`Cute` chips, comment count `3`, like count `5`.
-  - Sidebar Categories now lists **Cute** (6th) — confirm the `fire-heart` icon reads acceptably, or change `data.json` `categories[5].icon` (see Decision Point).
+  - Sidebar Categories now lists **Cute** (6th) — confirm the `fire-heart` icon reads acceptably, or change `data.json` `categories[5].icon`.
   - Top Photos (Little Jedi/Lisa, Brilliant tree/Homer) and Top Captions (Lisa 8, Bart 5) render.
   - Mobile (<768px): sidebar toggle works; `aside` inert when closed.
 - [ ] **Confirm scope**: decide whether the Hero content and `JediNav` profile avatar should be externalized in a follow-up (intentionally deferred here).
