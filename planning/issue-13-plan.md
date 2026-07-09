@@ -856,10 +856,22 @@ Automated Claude phases cannot run e2e (needs the back-end at `:8080`). Validate
 
 ## Coverage check (plan vs. issue #13)
 
-| #13 requirement                                               | Where                                                                               |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| External JSON for Posts, Categories, Top Photos, Top Captions | Task 1.2 `data.json` + Task 1.3 derived views (`posts.list`/`captions.listForPost`) |
-| Include comments (#) and likes (#)                            | `likeCount` fields + derived `commentCount` (Task 1.2/1.3)                          |
-| Replace **all** hard-coded data                               | Task 2.2 rewrite + Task 2.2 Step 3 grep guard                                       |
-| DB-anticipating; external for dev w/o back-end                | RPC-shaped `jedi-api` seam (Task 1.3) + ADR-0002                                    |
-| Sanitize all external URLs                                    | `safe()` boundary in `jedi-api` (Task 1.3) + spy test                               |
+```pre
+| -------------------------------------| --------------------------------------------- |
+| #13 requirement                      | Where                                         |
+| -------------------------------------| --------------------------------------------- |
+| External JSON for Posts, Categories, | Task 1.2 `data.json` + Task 1.3 derived views |
+| Top Photos, Top Captions             | (`posts.list`/`captions.listForPost`)         |
+| -------------------------------------| --------------------------------------------- |
+| Include comments (#) and likes (#)   | `likeCount` fields + derived `commentCount`   |
+|                                      | (Task 1.2/1.3)                                |
+| -------------------------------------| --------------------------------------------- |
+| Replace **all** hard-coded data      | Task 2.2 rewrite + Task 2.2 Step 3 grep guard |
+| -------------------------------------| --------------------------------------------- |
+| DB-anticipating; external for dev    | RPC-shaped `jedi-api` seam (Task 1.3) +       |
+| w/o back-end                         | ADR-0002                                      |
+| -------------------------------------| --------------------------------------------- |
+| Sanitize all external URLs           | `safe()` boundary in `jedi-api` (Task 1.3)    |
+|                                      | + spy test                                    |
+| -------------------------------------| --------------------------------------------- |
+```
