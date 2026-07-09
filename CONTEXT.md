@@ -79,7 +79,41 @@ code; these are the names a future back-end refactor is expected to adopt.
 ## Jedi
 
 A responsive, accessible photo-and-caption sub-application with its own style and
-navigation. Its content will be database-backed (work in progress); the glossary
-is deferred until that model lands. The first term to pin will be **Caption** — an
-independently-liked entity, ranked separately from Photos, not merely a Photo's
-caption text.
+navigation. Users share Flickr photos as Posts and compete to caption them; both
+Posts and Captions accrue Likes. Content is served today by a back-end-faithful
+mock (see [ADR-0002](docs/adr/0002-jedi-mock-data-contract.md)) that doubles as
+the data contract a future back-end implements.
+
+**Post**:
+The core feed entity — a shared Flickr photo with its owner, Categories, caption
+competition, and like/comment counts. The Post _is_ the photo; **Top Photos** is
+Posts ranked by likes, not a separate entity.
+_Avoid_: Photo (as a distinct entity), Image, feed item.
+
+**Caption**:
+An independently-liked line of text a User submits for a Post. Many Captions
+compete per Post, each ranked by its own Likes; the top one is shown on the Post.
+A first-class entity — never merely a Post's "caption text".
+_Avoid_: title; caption text (as a Post field).
+
+**Category**:
+A classification a Post carries; a Post's on-card "tags" _are_ its Categories
+(many-to-many). The single-select sidebar filters Posts by one Category.
+_Avoid_: Tag, Label (as concepts separate from Category).
+
+**Comment**:
+A User's remark on a Post; today only its count is surfaced. Distinct from a
+Conversations **Message**.
+_Avoid_: post, reply.
+
+**Author**:
+The User who owns a Post, Caption, or Comment (`owner_id`); the UI renders the
+author's name and avatar. Distinct from the photo's original **photographer**
+(the external Flickr attribution), who is not a User.
+_Avoid_: user (when the owning role is meant); poster.
+
+**Top Photos** / **Top Captions**:
+Ranked _views_, not stored lists. Top Photos = Posts ordered by like count (within
+the selected Category once filtering lands, #29); Top Captions = the
+selected/featured Post's Captions ordered by like count.
+_Avoid_: featured/popular list, best captions (as stored data).
