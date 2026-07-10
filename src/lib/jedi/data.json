@@ -1,0 +1,69 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Lisa",
+      "avatarUrl": "https://img.icons8.com/doodle/96/null/lisa-simpson.png"
+    },
+    {
+      "id": 2,
+      "name": "Homer",
+      "avatarUrl": "https://img.icons8.com/doodle/96/null/homer-simpson.png"
+    },
+    {
+      "id": 3,
+      "name": "Bart",
+      "avatarUrl": "https://img.icons8.com/doodle/96/null/bart-simpson.png"
+    }
+  ],
+  "categories": [
+    { "id": 1, "name": "Landscape", "icon": "landscape" },
+    { "id": 2, "name": "People", "icon": "portrait" },
+    { "id": 3, "name": "Animals", "icon": "dog" },
+    { "id": 4, "name": "Abstract", "icon": "collage" },
+    { "id": 5, "name": "Black & White", "icon": "180-degrees" },
+    { "id": 6, "name": "Cute", "icon": "fire-heart" }
+  ],
+  "posts": [
+    {
+      "id": 1,
+      "owner_id": 1,
+      "title": "Little Jedi",
+      "imageSrc": "https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg",
+      "imageAlt": "Little Jedi cat",
+      "photographer": "Felicity Berkleef",
+      "photographerUrl": "https://www.flickr.com/photos/felicefelines/",
+      "sourceUrl": "https://www.flickr.com/photos/felicefelines/50618365686/",
+      "category_ids": [3, 6],
+      "likeCount": 5
+    },
+    {
+      "id": 2,
+      "owner_id": 2,
+      "title": "Brilliant tree",
+      "imageSrc": "https://live.staticflickr.com/7374/9311425598_46cfda9977_c.jpg",
+      "imageAlt": "Brilliant tree",
+      "photographer": "Sunsword & Moonsabre",
+      "photographerUrl": "https://www.flickr.com/photos/sunsward7/",
+      "sourceUrl": "https://www.flickr.com/photos/sunsward7/9311425598/",
+      "category_ids": [1],
+      "likeCount": 4
+    }
+  ],
+  "captions": [
+    {
+      "id": 1,
+      "post_id": 1,
+      "owner_id": 1,
+      "text": "Jedi Kitty protects the street",
+      "likeCount": 8
+    },
+    { "id": 2, "post_id": 1, "owner_id": 3, "text": "May the paws be with you", "likeCount": 5 },
+    { "id": 3, "post_id": 2, "owner_id": 2, "text": "Nature's cathedral", "likeCount": 2 }
+  ],
+  "comments": [
+    { "id": 1, "post_id": 1, "owner_id": 2, "body": "D'oh! Adorable." },
+    { "id": 2, "post_id": 1, "owner_id": 3, "body": "Cowabunga!" },
+    { "id": 3, "post_id": 1, "owner_id": 1, "body": "Thanks everyone!" }
+  ]
+}
