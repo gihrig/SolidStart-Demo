@@ -1,53 +1,34 @@
 import "@fontsource/lobster";
 import "./jedi.css";
 import { Title, Meta } from "@solidjs/meta";
-import { createSignal, For } from "solid-js";
+import { createSignal, createResource, For, Show } from "solid-js";
 import { useIsMobile } from "~/lib/useIsMobile";
 import { useListbox } from "~/lib/useListbox";
 import { useDismiss } from "~/lib/useDismiss";
+import { jediApi } from "~/lib/jedi/jedi-api";
 import Hero from "~/components/Hero";
 import JediNav from "~/components/JediNav";
 import Image from "~/components/Image";
 import Author from "~/components/Author";
 import Card from "~/components/Card";
-import Icon, { type IconName } from "~/components/Icon";
-
-const CATEGORIES = [
-  { name: "Landscape", icon: "landscape" },
-  { name: "People", icon: "portrait" },
-  { name: "Animals", icon: "dog" },
-  { name: "Abstract", icon: "collage" },
-  { name: "Black & White", icon: "180-degrees" },
-] as const satisfies { name: string; icon: IconName }[];
-
-const TOP_PHOTOS = [
-  {
-    src: "https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg",
-    alt: "Little Jedi",
-    avatar: "https://img.icons8.com/doodle/96/null/lisa-simpson.png",
-    author: "Lisa",
-    likes: 5,
-  },
-  {
-    src: "https://live.staticflickr.com/7374/9311425598_46cfda9977_c.jpg",
-    alt: "Brilliant tree",
-    avatar: "https://img.icons8.com/doodle/96/null/homer-simpson.png",
-    author: "Homer",
-    likes: 4,
-  },
-];
-
-const TOP_CAPTIONS = [
-  { avatar: "https://img.icons8.com/doodle/96/null/lisa-simpson.png", author: "Lisa", likes: 8 },
-  { avatar: "https://img.icons8.com/doodle/96/null/bart-simpson.png", author: "Bart", likes: 5 },
-];
+import Icon from "~/components/Icon";
 
 export default function Jedi() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = createSignal(false);
   const [selectedCategory, setSelectedCategory] = createSignal(0);
+
+  const [categories] = createResource(() => jediApi.categories.list());
+  const [posts] = createResource(() => jediApi.posts.list());
+  const [featured] = createResource(() => jediApi.posts.featured());
+  const [topCaptions] = createResource(
+    () => featured()?.id,
+    (postId) => jediApi.captions.listForPost(postId),
+  );
+  const winningCaption = () => topCaptions()?.[0];
+
   const isMobile = useIsMobile();
   const { listboxProps, getOptionProps, focusedIndex } = useListbox({
-    count: () => CATEGORIES.length,
+    count: () => categories()?.length ?? 0,
     selectedIndex: selectedCategory,
     onSelect: setSelectedCategory,
     label: "Categories",
@@ -93,98 +74,106 @@ export default function Jedi() {
 
         {/* Main article */}
         <main class="col-span-full md:col-span-2 mx-5pct md:mx-10pct order-2 md:order-1">
-          <article class="card-style">
-            {/* Title bar */}
-            <div class="flex items-center justify-between px-4 h-14">
-              <h2 class="text-2xl font-bold w-1/2 truncate">Little Jedi</h2>
-              <div class="text-sm text-(--theme-muted)">
-                flickr @{" "}
-                <a
-                  href="https://www.flickr.com/photos/felicefelines/"
-                  class="hover:underline rounded"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Felicity Berkleef
-                </a>
-              </div>
-            </div>
-            {/* Image */}
-            <Image
-              src="https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg"
-              alt="Little Jedi cat"
-              href="https://www.flickr.com/photos/felicefelines/50618365686/"
-              loading="lazy"
-            />
-            {/* Body: author, caption, tags, actions */}
-            <div class="p-4 pb-2">
-              <Author
-                avatarSrc="https://img.icons8.com/doodle/96/null/lisa-simpson.png"
-                name="Lisa"
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  alert("Not implemented");
-                }}
-              />
-              <p class="text-5xl mb-10 px-4 font-hero">Jedi Kitty protects the street</p>
-              <div class="flex items-center gap-2 text-sm mb-5">
-                <button type="button" onClick={() => {}} class="theme-button">
-                  Animals
-                </button>
-                <button type="button" onClick={() => {}} class="theme-button">
-                  Cute
-                </button>
-              </div>
-              <div class="flex items-center justify-between text-sm px-2">
-                <a
-                  class="font-bold hover:underline rounded"
-                  href="#"
-                  aria-label="Open Comments page, 3 comments"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert("Not implemented");
-                  }}
-                >
-                  Comments
-                  <span class="font-light text-(--theme-card-fg) ml-2">3</span>
-                </a>
-                <div class="flex items-center gap-4">
-                  <div class="flex items-center gap-1">
-                    <Icon name="fire-heart" class="w-5 -mt-1" />
-                    <span class="font-light text-(--theme-card-fg) ml-2">
-                      <span class="sr-only">Likes: </span>1
-                    </span>
+          <Show when={featured()} fallback={<article class="card-style p-4">Loading…</article>}>
+            {(post) => (
+              <article class="card-style">
+                {/* Title bar */}
+                <div class="flex items-center justify-between px-4 h-14">
+                  <h2 class="text-2xl font-bold w-1/2 truncate">{post().title}</h2>
+                  <div class="text-sm text-(--theme-muted)">
+                    flickr @{" "}
+                    <a
+                      href={post().photographerUrl}
+                      class="hover:underline rounded"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {post().photographer}
+                    </a>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {}}
-                    class="theme-button"
-                    aria-pressed={isLiked()}
-                    aria-label="Like post by Lisa"
-                  >
-                    Like
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {}}
-                    class="theme-button"
-                    aria-label="Edit Post by Lisa"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {}}
-                    class="theme-button"
-                    aria-label="Delete Post by Lisa"
-                  >
-                    Delete
-                  </button>
                 </div>
-              </div>
-            </div>
-          </article>
+                {/* Image */}
+                <Image
+                  src={post().imageSrc}
+                  alt={post().imageAlt}
+                  href={post().sourceUrl}
+                  loading="lazy"
+                />
+                {/* Body: author, caption, tags, actions */}
+                <div class="p-4 pb-2">
+                  <Author
+                    avatarSrc={post().author.avatarUrl}
+                    name={post().author.name}
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      alert("Not implemented");
+                    }}
+                  />
+                  <p class="text-5xl mb-10 px-4 font-hero">{winningCaption()?.text ?? ""}</p>
+                  <div class="flex items-center gap-2 text-sm mb-5">
+                    <For each={post().categories}>
+                      {(c) => (
+                        <button type="button" onClick={() => {}} class="theme-button">
+                          {c.name}
+                        </button>
+                      )}
+                    </For>
+                  </div>
+                  <div class="flex items-center justify-between text-sm px-2">
+                    <a
+                      class="font-bold hover:underline rounded"
+                      href="#"
+                      aria-label={`Open Comments page, ${post().commentCount} comments`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        alert("Not implemented");
+                      }}
+                    >
+                      Comments
+                      <span class="font-light text-(--theme-card-fg) ml-2">
+                        {post().commentCount}
+                      </span>
+                    </a>
+                    <div class="flex items-center gap-4">
+                      <div class="flex items-center gap-1">
+                        <Icon name="fire-heart" class="w-5 -mt-1" />
+                        <span class="font-light text-(--theme-card-fg) ml-2">
+                          <span class="sr-only">Likes: </span>
+                          {post().likeCount}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {}}
+                        class="theme-button"
+                        aria-pressed={isLiked()}
+                        aria-label={`Like post by ${post().author.name}`}
+                      >
+                        Like
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {}}
+                        class="theme-button"
+                        aria-label={`Edit Post by ${post().author.name}`}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {}}
+                        class="theme-button"
+                        aria-label={`Delete Post by ${post().author.name}`}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            )}
+          </Show>
         </main>
 
         {/* Sidebar — grid-rows collapse: aside is nested grid inside parent grid-cols-3 */}
@@ -195,7 +184,7 @@ export default function Jedi() {
           <div class="overflow-hidden min-h-0 md:overflow-visible">
             <Card title="Categories">
               <ul class="space-y-1" {...listboxProps}>
-                <For each={CATEGORIES}>
+                <For each={categories() ?? []}>
                   {(c, index) => (
                     <li
                       {...getOptionProps(index())}
@@ -215,7 +204,7 @@ export default function Jedi() {
             </Card>
             <Card title="Top Photos">
               <ul class="space-y-1">
-                <For each={TOP_PHOTOS}>
+                <For each={posts() ?? []}>
                   {(p) => (
                     <li class="rounded-md">
                       <button
@@ -225,19 +214,19 @@ export default function Jedi() {
                       >
                         <img
                           class="w-10 h-10 rounded-lg object-cover mr-3"
-                          src={p.src}
-                          alt={p.alt}
+                          src={p.imageSrc}
+                          alt={p.imageAlt}
                           loading="lazy"
                         />
                         <img
                           class="w-6 h-6 rounded-full object-cover mr-0.5"
-                          src={p.avatar}
+                          src={p.author.avatarUrl}
                           alt=""
                           loading="lazy"
                         />
-                        <span class="font-bold text-sm mr-1">{p.author}</span>
+                        <span class="font-bold text-sm mr-1">{p.author.name}</span>
                         <span class="text-sm font-light text-(--theme-card-fg)">
-                          ({p.likes} Likes)
+                          ({p.likeCount} Likes)
                         </span>
                       </button>
                     </li>
@@ -247,7 +236,7 @@ export default function Jedi() {
             </Card>
             <Card title="Top Captions">
               <ul class="space-y-1">
-                <For each={TOP_CAPTIONS}>
+                <For each={topCaptions() ?? []}>
                   {(c) => (
                     <li class="rounded-md">
                       <button
@@ -257,13 +246,13 @@ export default function Jedi() {
                       >
                         <img
                           class="w-8 h-8 rounded-full object-cover mr-1"
-                          src={c.avatar}
+                          src={c.author.avatarUrl}
                           alt=""
                           loading="lazy"
                         />
-                        <span class="font-bold text-sm mr-1">{c.author}</span>
+                        <span class="font-bold text-sm mr-1">{c.author.name}</span>
                         <span class="text-sm font-light text-(--theme-card-fg)">
-                          ({c.likes} Likes)
+                          ({c.likeCount} Likes)
                         </span>
                       </button>
                     </li>
