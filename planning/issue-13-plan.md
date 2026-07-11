@@ -46,7 +46,7 @@ Modify:  tsconfig.json                           # add resolveJsonModule
 
 ---
 
-## [ ] Phase 1 (Claude): Data layer — types, seed, seam, unit-tested
+## [√] Phase 1 (Claude): Data layer — types, seed, seam, unit-tested
 
 **Deliverable:** a fully unit-tested `jediApi`. Gate: `vpr test:unit` green + `vpr check:type` clean.
 
@@ -57,7 +57,7 @@ Modify:  tsconfig.json                           # add resolveJsonModule
 **Interfaces produced (later tasks rely on these exact names):**
 `JediUser, JediCategory, JediPost, JediCaption, JediComment, JediData` (storage) and `AuthorRef, PostView, CaptionView` (response).
 
-- [ ] **Step 1: Enable `resolveJsonModule`** (it is absent today; JSON import won't type-check without it).
+- [√] **Step 1: Enable `resolveJsonModule`** (it is absent today; JSON import won't type-check without it).
 
 In `tsconfig.json`, add the line inside `compilerOptions` (after `"esModuleInterop": true,`):
 
@@ -65,7 +65,7 @@ In `tsconfig.json`, add the line inside `compilerOptions` (after `"esModuleInter
     "resolveJsonModule": true,
 ```
 
-- [ ] **Step 2: Create `src/types/jedi.ts`**
+- [√] **Step 2: Create `src/types/jedi.ts`**
 
 ```ts
 import type { IconName } from "~/components/Icon";
@@ -153,7 +153,7 @@ export interface CaptionView {
 }
 ```
 
-- [ ] **Step 3: Verify types compile**
+- [√] **Step 3: Verify types compile**
 
 Run: `vpr check:type`
 Expected: PASS (no errors). `src/types/jedi.ts` compiles standalone.
@@ -164,7 +164,7 @@ Expected: PASS (no errors). `src/types/jedi.ts` compiles standalone.
 
 **Note:** Post 2's `photographer`/`photographerUrl`/`sourceUrl` are valid-but-stand-in — only the featured Post 1's attribution renders in #13. `commentCount` is **not stored** (derived from `comments`). Seed keeps today's rendered content (`Little Jedi`, `Jedi Kitty protects the street`, `Lisa`, `Animals`, `Cute`, `Landscape`) so e2e stays green, and makes the Top Photos/Captions numbers self-consistent.
 
-- [ ] **Step 1: Create `src/lib/jedi/data.json`**
+- [√] **Step 1: Create `src/lib/jedi/data.json`**
 
 ```json
 {
@@ -249,7 +249,7 @@ Expected: PASS (no errors). `src/types/jedi.ts` compiles standalone.
 - `jediApi.posts.featured(): Promise<PostView>` — the top-ranked post
 - `jediApi.captions.listForPost(postId: number): Promise<CaptionView[]>` — ranked desc (Top Captions)
 
-- [ ] **Step 1: Write the failing test** — `src/lib/jedi/jedi-api.unit.test.ts`
+- [√] **Step 1: Write the failing test** — `src/lib/jedi/jedi-api.unit.test.ts`
 
 ```ts
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
@@ -341,12 +341,12 @@ describe("jediApi.captions", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test — verify it fails**
+- [√] **Step 2: Run the test — verify it fails**
 
 Run: `vpr test:unit -t "jediApi"`
 Expected: FAIL — cannot resolve `./jedi-api` (module not yet created).
 
-- [ ] **Step 3: Write the seam** — `src/lib/jedi/jedi-api.ts`
+- [√] **Step 3: Write the seam** — `src/lib/jedi/jedi-api.ts`
 
 ```ts
 import data from "./data.json";
@@ -436,17 +436,17 @@ export const jediApi = {
 };
 ```
 
-- [ ] **Step 4: Run the test — verify it passes**
+- [√] **Step 4: Run the test — verify it passes**
 
 Run: `vpr test:unit -t "jediApi"`
 Expected: PASS (all cases).
 
-- [ ] **Step 5: Type-check**
+- [√] **Step 5: Type-check**
 
 Run: `vpr check:type`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [√] **Step 6: Commit**
 
 ```bash
 git add tsconfig.json src/types/jedi.ts src/lib/jedi/data.json src/lib/jedi/jedi-api.ts src/lib/jedi/jedi-api.unit.test.ts
@@ -455,7 +455,7 @@ git commit -m "feat(jedi): back-end-faithful mock data + RPC-shaped jedi-api sea
 
 ---
 
-## [ ] Phase 2 (Claude): Rewire the `/jedi` route to consume `jedi-api`
+## [√] Phase 2 (Claude): Rewire the `/jedi` route to consume `jedi-api`
 
 **Deliverable:** `src/routes/jedi.tsx` with **zero hard-coded Post/Category/Top data**, gated by a jsdom component test. Gate: `vpr test:all` green + no data left + `vpr check` + `vpr build`.
 
@@ -467,7 +467,7 @@ git commit -m "feat(jedi): back-end-faithful mock data + RPC-shaped jedi-api sea
 
 The **red** assertion is "Cute in the sidebar": today `Cute` is only an article chip (1 occurrence); after the rewire it is also a sidebar Category row (≥2). The other assertions are regression guards that must stay green across the refactor.
 
-- [ ] **Step 1: Write the test** — `src/routes/jedi.test.tsx`
+- [√] **Step 1: Write the test** — `src/routes/jedi.test.tsx`
 
 ```tsx
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
@@ -519,7 +519,7 @@ describe("Jedi route (data-driven from jedi-api)", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test — verify the RED case fails**
+- [√] **Step 2: Run the test — verify the RED case fails**
 
 Run: `vpr test:all -t "Jedi route"`
 Expected: FAIL on "adds 'Cute' as a sidebar Category" (`length` is 1 against current hard-coded `jedi.tsx`). The other three pass.
@@ -530,7 +530,7 @@ Expected: FAIL on "adds 'Cute' as a sidebar Category" (`length` is 1 against cur
 
 **Consumes:** `jediApi` (Task 1.3). **Preserves** every class, handler, and a11y label from the current file; only the data source changes. The three `const` arrays and all inline Post literals are gone.
 
-- [ ] **Step 1: Replace the entire file contents**
+- [√] **Step 1: Replace the entire file contents**
 
 ```tsx
 import "@fontsource/lobster";
@@ -803,34 +803,34 @@ export default function Jedi() {
 }
 ```
 
-- [ ] **Step 2: Run the component test — verify all pass**
+- [√] **Step 2: Run the component test — verify all pass**
 
 Run: `vpr test:all -t "Jedi route"`
 Expected: PASS (all four, including the previously-red "Cute" case).
 
-- [ ] **Step 3: Prove no hard-coded page data remains**
+- [√] **Step 3: Prove no hard-coded page data remains**
 
 Run: `grep -nE "Jedi Kitty|staticflickr|icons8|felicefelines|TOP_PHOTOS|TOP_CAPTIONS|CATEGORIES" src/routes/jedi.tsx`
 Expected: only the **Hero `backgroundImage`** staticflickr URL (intentionally out of scope). No caption text, no author avatars, no `TOP_*`/`CATEGORIES` consts.
 
 ### Task 2.3: Full-suite verification
 
-- [ ] **Step 1: All unit + component tests**
+- [√] **Step 1: All unit + component tests**
 
 Run: `vpr test:all`
 Expected: PASS (new jedi-api + jedi route tests green; existing suites unaffected).
 
-- [ ] **Step 2: Lint/format/type (mutates)**
+- [√] **Step 2: Lint/format/type (mutates)**
 
 Run: `vpr check`
 Expected: PASS (auto-fixes formatting). Re-run `vpr test:all` if it changed files.
 
-- [ ] **Step 3: Production build**
+- [√] **Step 3: Production build**
 
 Run: `vpr build`
 Expected: build succeeds (JSON import bundles; route compiles under SSR).
 
-- [ ] **Step 4: Commit**
+- [√] **Step 4: Commit**
 
 ```bash
 git add src/routes/jedi.tsx src/routes/jedi.test.tsx
@@ -839,39 +839,39 @@ git commit -m "feat(jedi): render /jedi from jedi-api mock; add Cute category (#
 
 ---
 
-## [ ] Phase 3 (User): Manual validation
+## [√] Phase 3 (User): Manual validation
 
 Automated Claude phases cannot run e2e (needs the back-end at `:8080`). Validate manually:
 
-- [ ] **Start the back-end** at `:8080` (external repo).
-- [ ] **Run e2e:** `vpr test:e2e` → all `e2e/jedi.spec.ts` cases pass (title, article `Little Jedi` + `Jedi Kitty protects`, sidebar `Landscape`/`Animals`, chips `Animals`/`Cute`, three sidebar cards, nav/footer/theme).
-- [ ] **Visual check** (`vpr dev`, open `/jedi`, light **and** dark):
+- [√] **Start the back-end** at `:8080` (external repo).
+- [√] **Run e2e:** `vpr test:e2e` → all `e2e/jedi.spec.ts` cases pass (title, article `Little Jedi` + `Jedi Kitty protects`, sidebar `Landscape`/`Animals`, chips `Animals`/`Cute`, three sidebar cards, nav/footer/theme).
+- [√] **Visual check** (`vpr dev`, open `/jedi`, light **and** dark):
   - Article renders Little Jedi photo, winning caption, `Lisa`, `Animals`+`Cute` chips, comment count `3`, like count `5`.
   - Sidebar Categories now lists **Cute** (6th) — confirm the `fire-heart` icon reads acceptably, or change `data.json` `categories[5].icon`.
   - Top Photos (Little Jedi/Lisa, Brilliant tree/Homer) and Top Captions (Lisa 8, Bart 5) render.
   - Mobile (<768px): sidebar toggle works; `aside` inert when closed.
-- [ ] **Confirm scope**: decide whether the Hero content and `JediNav` profile avatar should be externalized in a follow-up (intentionally deferred here).
+- [√] **Confirm scope**: decision: The Hero content and `JediNav` profile avatar should be externalized in a follow-up (intentionally deferred to #32).
 
 ---
 
 ## Coverage check (plan vs. issue #13)
 
 ```pre
-| -------------------------------------| --------------------------------------------- |
+|--------------------------------------|-----------------------------------------------|
 | #13 requirement                      | Where                                         |
-| -------------------------------------| --------------------------------------------- |
+|--------------------------------------|-----------------------------------------------|
 | External JSON for Posts, Categories, | Task 1.2 `data.json` + Task 1.3 derived views |
 | Top Photos, Top Captions             | (`posts.list`/`captions.listForPost`)         |
-| -------------------------------------| --------------------------------------------- |
+|--------------------------------------|-----------------------------------------------|
 | Include comments (#) and likes (#)   | `likeCount` fields + derived `commentCount`   |
 |                                      | (Task 1.2/1.3)                                |
-| -------------------------------------| --------------------------------------------- |
+|--------------------------------------|-----------------------------------------------|
 | Replace **all** hard-coded data      | Task 2.2 rewrite + Task 2.2 Step 3 grep guard |
-| -------------------------------------| --------------------------------------------- |
+|--------------------------------------|-----------------------------------------------|
 | DB-anticipating; external for dev    | RPC-shaped `jedi-api` seam (Task 1.3) +       |
 | w/o back-end                         | ADR-0002                                      |
-| -------------------------------------| --------------------------------------------- |
+|--------------------------------------|-----------------------------------------------|
 | Sanitize all external URLs           | `safe()` boundary in `jedi-api` (Task 1.3)    |
 |                                      | + spy test                                    |
-| -------------------------------------| --------------------------------------------- |
+|--------------------------------------|-----------------------------------------------|
 ```
