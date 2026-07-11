@@ -69,7 +69,7 @@ Headings above use today's back-end tokens so the glossary matches the current c
 
 ## Jedi
 
-A responsive, accessible photo-and-caption sub-application with its own style and navigation. Users share Flickr photos as Posts and compete to caption them; both Posts and Captions accrue Likes. Content is served today by a back-end-faithful mock (see [ADR-0002](docs/adr/002-jedi-mock-data-contract.md)) that doubles as the data contract a future back-end implements.
+A responsive, accessible photo-and-caption sub-application with its own style and navigation. Users share Flickr photos as Posts and compete to caption them; both Posts and Captions accrue Likes. Content is served today by a back-end-faithful mock (see [ADR-0002](docs/adr/0002-jedi-mock-data-contract.md)) that doubles as the data contract a future back-end implements.
 
 **Post**:
 The core feed entity — a shared Flickr photo with its owner, Categories, caption competition, and like/comment counts. The Post _is_ the photo;
