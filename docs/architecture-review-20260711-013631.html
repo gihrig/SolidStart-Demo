@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — SolidStart-Demo · Jedi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "neutral",
+        securityLevel: "loose",
+        flowchart: { curve: "basis" },
+      });
+    </script>
+    <style>
+      .seam {
+        stroke-dasharray: 6 5;
+      }
+      .deep {
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+      }
+      .faded {
+        opacity: 0.35;
+      }
+      .schematic {
+        font-size: 0.625rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .probe-bad {
+        color: #dc2626;
+      }
+      .probe-good {
+        color: #059669;
+      }
+      body {
+        -webkit-font-smoothing: antialiased;
+      }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+      <!-- ───────────────────────── HEADER ───────────────────────── -->
+      <header class="border-b border-slate-200 pb-8">
+        <p class="schematic text-slate-400 mb-2">Architecture review</p>
+        <h1 class="font-serif text-4xl text-slate-900">SolidStart-Demo — the Jedi route</h1>
+        <p class="mt-2 text-slate-500 text-sm">
+          2026-07-11 · scope: <span class="font-mono">src/routes/jedi.tsx</span> and its cluster ·
+          vocabulary from <span class="italic">codebase-design</span>
+        </p>
+
+        <div class="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-600">
+          <span class="flex items-center gap-2"
+            ><span class="inline-block w-5 h-4 border-2 border-slate-700 rounded-sm"></span>
+            module</span
+          >
+          <span class="flex items-center gap-2"
+            ><svg width="26" height="8">
+              <line x1="0" y1="4" x2="26" y2="4" class="seam" stroke="#64748b" stroke-width="2" />
+            </svg>
+            seam</span
+          >
+          <span class="flex items-center gap-2"
+            ><svg width="26" height="8">
+              <line x1="0" y1="4" x2="22" y2="4" stroke="#dc2626" stroke-width="2" />
+              <path d="M22 1 L26 4 L22 7 Z" fill="#dc2626" />
+            </svg>
+            leakage / DOM-only probe</span
+          >
+          <span class="flex items-center gap-2"
+            ><span class="inline-block w-5 h-4 deep rounded-sm"></span> deep module</span
+          >
+        </div>
+
+        <div
+          class="mt-6 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-900"
+        >
+          <span class="font-semibold">Baseline that already gets it right:</span>
+          <span class="font-mono text-xs">src/lib/jedi/jedi-api.ts</span> is a deep module — a small
+          interface (<span class="font-mono text-xs"
+            >categories.list · posts.list · posts.featured · captions.listForPost</span
+          >) over a deep implementation (author join, category resolve, count derivation, URL
+          sanitize, rank). Its 8 tests cross that one interface, no DOM. Every candidate below pulls
+          the route up to this standard.
+        </div>
+      </header>
+
+      <section id="candidates" class="space-y-14">
+        <!-- ═══════════════ CANDIDATE 1 ═══════════════ -->
+        <article class="scroll-mt-6" id="c1">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <span class="schematic text-slate-400">Candidate 1</span>
+            <span class="rounded-full bg-emerald-600 text-white text-xs font-semibold px-2.5 py-0.5"
+              >Strong</span
+            >
+            <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-2.5 py-0.5 font-mono"
+              >in-process</span
+            >
+            <span class="rounded-full bg-slate-100 text-slate-500 text-xs px-2.5 py-0.5"
+              >atop the existing <span class="font-mono">mock</span> seam</span
+            >
+          </div>
+          <h2 class="font-serif text-2xl mb-3">Give the Jedi feed a view-model seam</h2>
+
+          <p class="font-mono text-sm text-slate-500 mb-6">
+            src/routes/jedi.tsx <span class="text-slate-300">→</span> new
+            src/lib/jedi/createJediFeed.ts
+          </p>
+
+          <!-- BEFORE / AFTER : hand-built cross-section with test probe -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- before -->
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="schematic text-slate-400 mb-3">Before — one 268-line box</p>
+              <div class="relative">
+                <div class="border-2 border-slate-700 rounded-md p-3">
+                  <p class="schematic text-slate-500 mb-2">Jedi route</p>
+                  <div class="space-y-1.5">
+                    <div class="bg-amber-100 border border-amber-300 rounded px-2 py-1 text-xs">
+                      4 × createResource — orchestration
+                    </div>
+                    <div class="bg-amber-100 border border-amber-300 rounded px-2 py-1 text-xs">
+                      winningCaption = topCaptions()[0]
+                    </div>
+                    <div class="bg-amber-100 border border-amber-300 rounded px-2 py-1 text-xs">
+                      selectedCategory (dead — #29 will filter here)
+                    </div>
+                    <div
+                      class="bg-slate-100 border border-slate-300 rounded px-2 py-3 text-xs text-slate-500"
+                    >
+                      ~200 lines of markup<br />featured article · 3 sidebar cards
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-3 flex items-center gap-2 text-xs probe-bad">
+                  <svg width="30" height="10">
+                    <line x1="0" y1="5" x2="24" y2="5" stroke="#dc2626" stroke-width="2" />
+                    <path d="M24 1 L30 5 L24 9 Z" fill="#dc2626" />
+                  </svg>
+                  <span
+                    >test can only reach derivations
+                    <span class="font-semibold">through the DOM</span></span
+                  >
+                </div>
+              </div>
+            </div>
+            <!-- after -->
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="schematic text-slate-400 mb-3">After — a seam splits data from markup</p>
+              <div class="space-y-2">
+                <div class="deep rounded-md p-3 text-white">
+                  <p class="schematic text-slate-300 mb-1">createJediFeed — deep module</p>
+                  <p class="text-[0.7rem] text-slate-300">
+                    holds: resources · winningCaption · selectedCategory · (#29 filtering)
+                  </p>
+                  <div class="mt-2 bg-white/10 rounded px-2 py-1 text-[0.7rem] font-mono">
+                    small accessor interface ▸
+                  </div>
+                </div>
+                <svg width="100%" height="14">
+                  <line
+                    x1="10%"
+                    y1="7"
+                    x2="90%"
+                    y2="7"
+                    class="seam"
+                    stroke="#64748b"
+                    stroke-width="2"
+                  />
+                </svg>
+                <div class="border-2 border-slate-400 rounded-md p-3">
+                  <p class="schematic text-slate-500">presentation — reads accessors, renders</p>
+                </div>
+                <div class="flex items-center gap-2 text-xs probe-good pt-1">
+                  <svg width="30" height="10">
+                    <line x1="0" y1="5" x2="24" y2="5" stroke="#059669" stroke-width="2" />
+                    <path d="M24 1 L30 5 L24 9 Z" fill="#059669" />
+                  </svg>
+                  <span
+                    >test hits the <span class="font-semibold">seam</span> — like jedi-api
+                    does</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 grid md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+            <div>
+              <p class="schematic text-slate-400 mb-1">Problem</p>
+              <p class="text-slate-700">
+                The route's data-orchestration and derivations (<span class="font-mono text-xs"
+                  >winningCaption</span
+                >, the #29-bound <span class="font-mono text-xs">selectedCategory</span>) are
+                entangled with 200 lines of markup, so they are exercisable only by rendering the
+                DOM.
+              </p>
+              <p class="schematic text-slate-400 mt-4 mb-1">Solution</p>
+              <p class="text-slate-700">
+                One <span class="font-mono text-xs">createJediFeed()</span> module owns the four
+                resources plus the derivations behind a small accessor interface; the route reads
+                accessors and renders.
+              </p>
+            </div>
+            <div>
+              <p class="schematic text-slate-400 mb-1">Wins</p>
+              <ul class="space-y-1.5 text-slate-700">
+                <li class="flex gap-2">
+                  <span class="text-emerald-600">▸</span> locality: feed logic in one module
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-emerald-600">▸</span> leverage: derivations testable without DOM
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-emerald-600">▸</span> route tests stop re-checking jedi-api data
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-emerald-600">▸</span> the seam #29 filtering lands behind
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-emerald-600">▸</span> unblocks Candidates 2 &amp; 4
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div
+            class="mt-5 rounded-md bg-amber-50 border border-amber-200 px-4 py-2.5 text-xs text-amber-900"
+          >
+            <span class="font-semibold">Aligns with ADR-0002 &amp; ADR-0001.</span>
+            Selection/filtering stays deferred to #29 — this only names the seam it lands behind.
+            The module lives in <span class="font-mono">src/lib/jedi/</span> beside jedi-api: a
+            within-front-end folder, not a package split.
+          </div>
+        </article>
+
+        <!-- ═══════════════ CANDIDATE 2 ═══════════════ -->
+        <article class="scroll-mt-6" id="c2">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <span class="schematic text-slate-400">Candidate 2</span>
+            <span class="rounded-full bg-amber-500 text-white text-xs font-semibold px-2.5 py-0.5"
+              >Worth exploring</span
+            >
+            <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-2.5 py-0.5 font-mono"
+              >in-process</span
+            >
+            <span class="rounded-full bg-indigo-50 text-indigo-600 text-xs px-2.5 py-0.5"
+              >depends on C1</span
+            >
+          </div>
+          <h2 class="font-serif text-2xl mb-3">
+            Collapse the featured article into a FeaturedPost module
+          </h2>
+
+          <p class="font-mono text-sm text-slate-500 mb-6">
+            src/routes/jedi.tsx:77–176 <span class="text-slate-300">→</span> new
+            src/components/FeaturedPost.tsx
+          </p>
+
+          <!-- call-graph collapse, hand-built -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="schematic text-slate-400 mb-3">Before — ~100 lines inline in the route</p>
+              <div class="border-2 border-slate-700 rounded-md p-3">
+                <p class="schematic text-slate-500 mb-2">Jedi route</p>
+                <div class="pl-2 border-l-2 border-slate-300 space-y-1.5">
+                  <p class="schematic text-slate-400">Show → article</p>
+                  <div class="grid grid-cols-2 gap-1.5">
+                    <div
+                      class="bg-slate-100 border border-slate-300 rounded px-2 py-1 text-[0.7rem]"
+                    >
+                      title bar
+                    </div>
+                    <div
+                      class="bg-slate-100 border border-slate-300 rounded px-2 py-1 text-[0.7rem]"
+                    >
+                      Image
+                    </div>
+                    <div
+                      class="bg-slate-100 border border-slate-300 rounded px-2 py-1 text-[0.7rem]"
+                    >
+                      Author
+                    </div>
+                    <div
+                      class="bg-slate-100 border border-slate-300 rounded px-2 py-1 text-[0.7rem]"
+                    >
+                      caption
+                    </div>
+                    <div
+                      class="bg-slate-100 border border-slate-300 rounded px-2 py-1 text-[0.7rem]"
+                    >
+                      category chips
+                    </div>
+                    <div
+                      class="bg-slate-100 border border-slate-300 rounded px-2 py-1 text-[0.7rem]"
+                    >
+                      actions row
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p class="mt-3 text-xs text-slate-500">
+                Deletion test: remove it and 100 lines reappear in the route — it concentrates
+                rendering.
+              </p>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="schematic text-slate-400 mb-3">After — one module, internals hidden</p>
+              <div class="border-2 border-slate-700 rounded-md p-3 deep text-white">
+                <div class="bg-white/10 rounded px-2 py-1 text-[0.7rem] font-mono mb-2">
+                  interface: { post, caption }
+                </div>
+                <div class="pl-2 border-l-2 border-slate-500 space-y-1.5 faded">
+                  <div class="grid grid-cols-2 gap-1.5">
+                    <div class="bg-white/10 rounded px-2 py-1 text-[0.7rem]">title bar</div>
+                    <div class="bg-white/10 rounded px-2 py-1 text-[0.7rem]">Image</div>
+                    <div class="bg-white/10 rounded px-2 py-1 text-[0.7rem]">Author</div>
+                    <div class="bg-white/10 rounded px-2 py-1 text-[0.7rem]">caption</div>
+                    <div class="bg-white/10 rounded px-2 py-1 text-[0.7rem]">chips</div>
+                    <div class="bg-white/10 rounded px-2 py-1 text-[0.7rem]">actions</div>
+                  </div>
+                </div>
+              </div>
+              <p class="mt-3 text-xs text-slate-500">
+                Small interface only if actions live behind C1's seam — otherwise 5 handler props
+                make it shallow.
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-6 grid md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+            <div>
+              <p class="schematic text-slate-400 mb-1">Problem</p>
+              <p class="text-slate-700">
+                The featured article is ~100 lines of markup inline in the route, mixing post-detail
+                rendering with page layout and the sidebar.
+              </p>
+              <p class="schematic text-slate-400 mt-4 mb-1">Solution</p>
+              <p class="text-slate-700">
+                Extract <span class="font-mono text-xs">FeaturedPost</span> taking
+                <span class="font-mono text-xs">{ post, caption }</span>; keep like/edit/delete
+                behind C1's seam so the interface stays small.
+              </p>
+            </div>
+            <div>
+              <p class="schematic text-slate-400 mb-1">Wins</p>
+              <ul class="space-y-1.5 text-slate-700">
+                <li class="flex gap-2">
+                  <span class="text-amber-600">▸</span> locality: post-detail markup in one place
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-amber-600">▸</span> route shrinks to layout + seam wiring
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-amber-600">▸</span> interface stays small if actions hide
+                </li>
+              </ul>
+              <p class="schematic text-slate-400 mt-4 mb-1">Risk</p>
+              <p class="text-slate-700 text-xs">
+                Without C1, action handlers become props and the module goes shallow — interface as
+                wide as what it renders.
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <!-- ═══════════════ CANDIDATE 3 ═══════════════ -->
+        <article class="scroll-mt-6" id="c3">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <span class="schematic text-slate-400">Candidate 3</span>
+            <span class="rounded-full bg-amber-500 text-white text-xs font-semibold px-2.5 py-0.5"
+              >Worth exploring</span
+            >
+            <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-2.5 py-0.5 font-mono"
+              >in-process</span
+            >
+            <span class="rounded-full bg-slate-100 text-slate-500 text-xs px-2.5 py-0.5"
+              >2 real call sites</span
+            >
+          </div>
+          <h2 class="font-serif text-2xl mb-3">
+            One disclosure module for the mobile open / dismiss / inert pattern
+          </h2>
+
+          <p class="font-mono text-sm text-slate-500 mb-6">
+            src/routes/jedi.tsx:17,38,181 · src/components/JediNav.tsx:7,12,42
+            <span class="text-slate-300">→</span> new src/lib/useDisclosure.ts
+          </p>
+
+          <div class="rounded-lg border border-slate-200 bg-white p-4">
+            <p class="schematic text-slate-400 mb-2">
+              Same four-part wiring, copied into two modules — two adapters justify a real seam
+            </p>
+            <pre class="mermaid">
+flowchart TB
+  subgraph before[" "]
+    direction LR
+    R["Jedi route<br/>signal + isMobile + useDismiss + inert"]:::dup
+    N["JediNav<br/>signal + isMobile + useDismiss + inert"]:::dup
+  end
+  before -->|deepen| after
+  subgraph after[" "]
+    D["useDisclosure()<br/>small interface: { open, toggle, dismissProps }"]:::deep
+    R2["Jedi route"]:::thin --> D
+    N2["JediNav"]:::thin --> D
+  end
+  classDef dup fill:#fee2e2,stroke:#dc2626,stroke-width:1px,color:#7f1d1d;
+  classDef deep fill:#0f172a,stroke:#0f172a,color:#e2e8f0;
+  classDef thin fill:#f8fafc,stroke:#94a3b8,color:#334155;
+            </pre>
+          </div>
+
+          <div class="mt-6 grid md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+            <div>
+              <p class="schematic text-slate-400 mb-1">Problem</p>
+              <p class="text-slate-700">
+                The route's sidebar and JediNav each hand-wire the identical
+                <span class="font-mono text-xs">signal + isMobile() gate + useDismiss + inert</span>
+                disclosure; the knowledge is duplicated, not shared.
+              </p>
+              <p class="schematic text-slate-400 mt-4 mb-1">Solution</p>
+              <p class="text-slate-700">
+                One <span class="font-mono text-xs">useDisclosure()</span> module returns the open
+                state and the inert/dismiss wiring; both call sites consume it.
+              </p>
+            </div>
+            <div>
+              <p class="schematic text-slate-400 mb-1">Wins</p>
+              <ul class="space-y-1.5 text-slate-700">
+                <li class="flex gap-2">
+                  <span class="text-amber-600">▸</span> leverage: one interface, ≥2 call sites
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-amber-600">▸</span> locality: a11y wiring fixed once
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-amber-600">▸</span> two adapters = a real seam, not hypothetical
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ═══════════════ CANDIDATE 4 ═══════════════ -->
+        <article class="scroll-mt-6" id="c4">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <span class="schematic text-slate-400">Candidate 4</span>
+            <span class="rounded-full bg-slate-400 text-white text-xs font-semibold px-2.5 py-0.5"
+              >Speculative</span
+            >
+            <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-2.5 py-0.5 font-mono"
+              >in-process</span
+            >
+          </div>
+          <h2 class="font-serif text-2xl mb-3">
+            Share the author-and-likes row across the two sidebar lists
+          </h2>
+
+          <p class="font-mono text-sm text-slate-500 mb-6">
+            src/routes/jedi.tsx:205–236 (Top Photos) · 237–262 (Top Captions)
+            <span class="text-slate-300">→</span> new src/components/AuthorLikesRow.tsx
+          </p>
+
+          <div class="rounded-lg border border-slate-200 bg-white p-4">
+            <pre class="mermaid">
+flowchart LR
+  TP["Top Photos list"]:::src --> ROW["AuthorLikesRow<br/>avatar · name · (N Likes)"]:::deep
+  TC["Top Captions list"]:::src --> ROW
+  classDef src fill:#f8fafc,stroke:#94a3b8,color:#334155;
+  classDef deep fill:#0f172a,stroke:#0f172a,color:#e2e8f0;
+            </pre>
+          </div>
+
+          <div class="mt-6 grid md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+            <div>
+              <p class="schematic text-slate-400 mb-1">Problem</p>
+              <p class="text-slate-700">
+                Top Photos and Top Captions repeat the
+                <span class="font-mono text-xs">avatar + bold name + (N Likes)</span> button row,
+                each with the same <span class="font-mono text-xs">alert("Not implemented")</span>.
+              </p>
+              <p class="schematic text-slate-400 mt-4 mb-1">Solution</p>
+              <p class="text-slate-700">
+                One <span class="font-mono text-xs">AuthorLikesRow</span> module; both lists render
+                it.
+              </p>
+            </div>
+            <div>
+              <p class="schematic text-slate-400 mb-1">Wins &amp; why only speculative</p>
+              <ul class="space-y-1.5 text-slate-700">
+                <li class="flex gap-2">
+                  <span class="text-slate-500">▸</span> leverage: one row, two call sites
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-slate-500">▸</span> but Top Photos adds a photo thumbnail Top
+                  Captions lacks — the shared surface is thin
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-slate-500">▸</span> real payoff only once the rows become
+                  interactive (post-#29)
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <!-- ───────────────────────── TOP RECOMMENDATION ───────────────────────── -->
+      <section id="top-recommendation" class="pt-4">
+        <div class="rounded-xl deep text-white p-8">
+          <p class="schematic text-slate-400 mb-2">Top recommendation</p>
+          <h2 class="font-serif text-3xl mb-3">
+            Start with Candidate 1 — the feed view-model seam
+          </h2>
+          <p class="text-slate-300 text-sm max-w-2xl">
+            It fixes the one structural problem the others inherit: the route's derivations are
+            testable only through the DOM. Deepen it into
+            <span class="font-mono text-xs text-white">createJediFeed</span> and the route's tests
+            cross a seam like jedi-api's already do, #29 filtering gets a home, and Candidate 2 gets
+            the seam that keeps its interface small.
+            <a href="#c1" class="underline decoration-emerald-400 text-emerald-300"
+              >Jump to Candidate 1 ▸</a
+            >
+          </p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
