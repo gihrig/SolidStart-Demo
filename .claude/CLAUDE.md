@@ -83,23 +83,6 @@ All project-specific scripts must use `vpr <script>` (not `vp <script>`) to avoi
 | `vpr update:latest` | Update dependencies to latest |
 | `vp i <pkg>`        | Install a package via Vite+   |
 
-## Architecture
-
-```
-src/
-  routes/           # SolidStart file-based routes
-  components/       # UI components (co-located .test.tsx)
-  lib/              # Shared utilities (co-located .unit.test.ts)
-                    #   backend-rpc.ts (JSON-RPC client), websocket.ts (live updates)
-  types/            # Shared TypeScript types
-                    #   backend.ts (RPC/WS/auth contract types)
-  app.tsx           # Root app component
-  app.css           # Global styles (Tailwind)
-  entry-client.tsx  # Client-side hydration entry (SolidStart)
-  entry-server.tsx  # SSR entry (SolidStart)
-e2e/                # Playwright test specs
-```
-
 ## Tech Stack
 
 - **Framework**: SolidStart (SSR) + SolidJS/Router
