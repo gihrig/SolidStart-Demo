@@ -38,9 +38,13 @@ fi
 echo "Back-End server OK: RPC unauthenticated request returned HTTP 401 with NO_AUTH"
 echo
 
+# Create project release build
+echo "Creating project release build..."
+vinxi build
+
 # Start Front-End server in the background
 echo "Starting Front-End server..."
-bun run dev &  # or whatever your dev server command is
+vinxi start &
 SERVER_PID=$!
 
 # Wait for server to be ready (with timeout)
@@ -57,6 +61,7 @@ while ! curl -s http://localhost:3000 > /dev/null; do
   sleep 0.5
 done
 
+echo
 echo "Server ready, running tests..."
 echo
 echo "Command: vpx playwright test $@"
