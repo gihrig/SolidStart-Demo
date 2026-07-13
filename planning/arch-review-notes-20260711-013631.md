@@ -85,3 +85,81 @@ Where this routes (ask-matt map)
 │ C4   │ /implement             │ Post-#29                                                      │
 └──────┴────────────────────────┴───────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+❯ /implement `docs/architecture-review-20260711-013631.html` C1
+
+⏺ On branch post-#13-arch-review (not the default). Committing the three C1 files:
+
+Done. C1 implemented, reviewed, committed.
+
+What shipped (d5be192, branch post-#13-arch-review):
+
+- src/lib/jedi/createJediFeed.ts — new view-model module owning the 4 resources (categories/posts/featured/topCaptions), the winningCaption derivation, and selectedCategory state behind a small JediFeed accessor interface.
+- src/lib/jedi/createJediFeed.unit.test.ts — 6 tests that cross the seam via createRoot + accessors, no DOM — the whole point of C1 (mirrors how jedi-api is tested).
+- src/routes/jedi.tsx — now destructures accessors from createJediFeed(); dropped createResource/jediApi imports and inline orchestration.
+
+Process: TDD (RED → GREEN), then two-axis /code-review.
+
+Verification (all green):
+
+- vpr check:type — clean
+- vp check — 139 files formatted, 0 lint/type errors
+- vpr test:all — 198 passed / 25 files (incl. new seam test + existing route test)
+
+Review verdict — ship-quality, no required changes:
+
+- Spec: faithful to C1; #29 selection/filtering correctly deferred (seam named, no filter applied).
+- Standards: no violations. Kept it (matches sibling jedi-api.unit.test.ts/jedi.test.tsx).
+
+Note: the pre-existing planning/arch-review-notes-\*.md edit was out of scope and left uncommitted. C1 also unblocks Candidates 2 & 4, which now have the seam they depend on.
+
+---
+
+❯ /implement #29
+
+After discussion w/ Claude...
+
+⏺ Design — #29 Select Top Photo
+
+Seam (src/lib/jedi/createJediFeed.ts) — the TDD seam:
+
+- Add `selectedPostId` signal (default undefined = follow the featured default).
+- Add derived `selectedPost = () => posts()?.find(p => p.id === selectedPostId()) ?? featured()`.
+- Re-key the topCaptions resource off `selectedPost()?.id` (was `featured()?.id`) — so caption + winningCaption follow the selection.
+- Expose selectedPost: `Accessor<PostView|undefined>` and `selectPost: (id: number) => void`. Keep featured (default) and winningCaption.
+
+Route (src/routes/jedi.tsx):
+
+- Main article renders `selectedPost()` instead of `featured()` — all metadata (author, caption, categories, like/comment counts) follows automatically.
+- Top Photos buttons: `onClick={() => selectPost(p.id)}; selected item gets bg-(--theme-highlight) + aria-current="true"` (mirrors the Categories highlight pattern).
+
+Tests (createJediFeed.unit.test.ts): default `selectedPost = featured (id 1)`; `selectPost(2)` switches selectedPost, re-keys topCaptions, and updates winningCaption. Written test-first at the seam.
+
+Out of scope → new GH issue: full listbox/keyboard-nav for Top Photos + Categories-driven filtering of the list.
+
+⏺ Committed as 31b8497 on post-#13-arch-review.
+
+Done — #29 Select Top Photo
+
+What shipped:
+
+- Seam (createJediFeed.ts): added selectedPostId signal + derived selectedPost (falls back to featured), a selectPost(id) action, and re-keyed topCaptions off the selection so caption/metadata follow.
+- Route (jedi.tsx): main article now renders selectedPost(); Top Photos buttons call selectPost(p.id), with bg-(--theme-highlight) + aria-current="true" on the selected item.
+- Tests: 4 new seam tests, written test-first (RED→GREEN).
+
+Verification:
+
+- Typecheck: clean
+- Full suite: 201/201 pass
+- Lint/format: clean
+- Code review (Standards + Spec, parallel): no hard violations, spec faithful, no scope creep
+
+Follow-up: opened #33 for the two deferred items you called out (full keyboard-nav listbox + Categories-driven filtering of Top Photos). The seam comment that referenced #29 for category filtering was corrected to point at #33.
+
+Not done (out of scope / your call): the parked loading/error + ErrorBoundary comment on #29 is a separate bucket and wasn't touched. Note the commit ran through the vp check --fix pre-commit hook, so the three files are auto-formatted as committed.
+
+Moved to #16 (2026-07-13).
+
+The deferred loading/error states + ErrorBoundary follow-up originally parked here has been relocated to #16, where it is relevant as a prerequisite of swapping jedi-api.ts to the real back-end. See #16 (comment).
