@@ -1,11 +1,11 @@
 import "@fontsource/lobster";
 import "./jedi.css";
 import { Title, Meta } from "@solidjs/meta";
-import { createSignal, createResource, For, Show } from "solid-js";
+import { createSignal, For, Show } from "solid-js";
 import { useIsMobile } from "~/lib/useIsMobile";
 import { useListbox } from "~/lib/useListbox";
 import { useDismiss } from "~/lib/useDismiss";
-import { jediApi } from "~/lib/jedi/jedi-api";
+import { createJediFeed } from "~/lib/jedi/createJediFeed";
 import Hero from "~/components/Hero";
 import JediNav from "~/components/JediNav";
 import Image from "~/components/Image";
@@ -15,16 +15,16 @@ import Icon from "~/components/Icon";
 
 export default function Jedi() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = createSignal(false);
-  const [selectedCategory, setSelectedCategory] = createSignal(0);
 
-  const [categories] = createResource(() => jediApi.categories.list());
-  const [posts] = createResource(() => jediApi.posts.list());
-  const [featured] = createResource(() => jediApi.posts.featured());
-  const [topCaptions] = createResource(
-    () => featured()?.id,
-    (postId) => jediApi.captions.listForPost(postId),
-  );
-  const winningCaption = () => topCaptions()?.[0];
+  const {
+    categories,
+    posts,
+    featured,
+    topCaptions,
+    winningCaption,
+    selectedCategory,
+    setSelectedCategory,
+  } = createJediFeed();
 
   const isMobile = useIsMobile();
   const { listboxProps, getOptionProps, focusedIndex } = useListbox({
