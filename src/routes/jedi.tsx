@@ -19,7 +19,8 @@ export default function Jedi() {
   const {
     categories,
     posts,
-    featured,
+    selectedPost,
+    selectPost,
     topCaptions,
     winningCaption,
     selectedCategory,
@@ -74,7 +75,7 @@ export default function Jedi() {
 
         {/* Main article */}
         <main class="col-span-full md:col-span-2 mx-5pct md:mx-10pct order-2 md:order-1">
-          <Show when={featured()} fallback={<article class="card-style p-4">Loading…</article>}>
+          <Show when={selectedPost()} fallback={<article class="card-style p-4">Loading…</article>}>
             {(post) => (
               <article class="card-style">
                 {/* Title bar */}
@@ -209,8 +210,10 @@ export default function Jedi() {
                     <li class="rounded-md">
                       <button
                         type="button"
-                        onClick={() => alert("Not implemented")}
-                        class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg) transition-colors duration-150"
+                        onClick={() => selectPost(p.id)}
+                        aria-current={selectedPost()?.id === p.id ? "true" : undefined}
+                        classList={{ "bg-(--theme-highlight)": selectedPost()?.id === p.id }}
+                        class="flex items-center w-full p-2 rounded hover:bg-(--theme-hover-bg) transition-colors duration-150"
                       >
                         <img
                           class="w-10 h-10 rounded-lg object-cover mr-3"

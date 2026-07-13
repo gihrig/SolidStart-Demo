@@ -9,13 +9,20 @@ import type { JediCategory, PostView, CaptionView } from "~/types/jedi";
  * derivations are exercisable at this seam without rendering the DOM, the same
  * way `jedi-api` is tested through its interface.
  *
- * `selectedCategory` is the selection state that issue #29's category filtering
+ * `selectedCategory` is the selection state that issue #33's category filtering
  * will read from and filter behind; today it only tracks the sidebar highlight.
+ *
+ * `selectedPost` is the post shown in the main article (#29): it defaults to the
+ * `featured` (top-ranked) post and follows `selectPost(id)` when a Top Photo is
+ * clicked. `topCaptions` re-keys off it, so the caption/winningCaption and the
+ * rest of the article's metadata track the selection.
  */
 export interface JediFeed {
   categories: Accessor<JediCategory[] | undefined>;
   posts: Accessor<PostView[] | undefined>;
   featured: Accessor<PostView | undefined>;
+  selectedPost: Accessor<PostView | undefined>;
+  selectPost: (id: number) => void;
   topCaptions: Accessor<CaptionView[] | undefined>;
   winningCaption: Accessor<CaptionView | undefined>;
   selectedCategory: Accessor<number>;
@@ -24,12 +31,23 @@ export interface JediFeed {
 
 export function createJediFeed(): JediFeed {
   const [selectedCategory, setSelectedCategory] = createSignal(0);
+  const [selectedPostId, setSelectedPostId] = createSignal<number | undefined>();
 
   const [categories] = createResource(() => jediApi.categories.list());
   const [posts] = createResource(() => jediApi.posts.list());
   const [featured] = createResource(() => jediApi.posts.featured());
+
+  // The clicked post from the loaded list, falling back to the featured default.
+  const selectedPost = (): PostView | undefined => {
+    const id = selectedPostId();
+    return posts()?.find((p) => p.id === id) ?? featured();
+  };
+  const selectPost = (id: number): void => {
+    setSelectedPostId(id);
+  };
+
   const [topCaptions] = createResource(
-    () => featured()?.id,
+    () => selectedPost()?.id,
     (postId) => jediApi.captions.listForPost(postId),
   );
   const winningCaption = () => topCaptions()?.[0];
@@ -38,6 +56,8 @@ export function createJediFeed(): JediFeed {
     categories,
     posts,
     featured,
+    selectedPost,
+    selectPost,
     topCaptions,
     winningCaption,
     selectedCategory,

@@ -65,4 +65,30 @@ describe("createJediFeed — the route's view-model seam", () => {
       feed.setSelectedCategory(2);
       expect(feed.selectedCategory()).toBe(2);
     }));
+
+  it("defaults selectedPost to the featured (top-ranked) post", () =>
+    withFeed((feed) => {
+      expect(feed.selectedPost()?.id).toBe(feed.featured()?.id);
+      expect(feed.selectedPost()?.id).toBe(1);
+    }));
+
+  it("selectPost switches the selected post to the clicked one", () =>
+    withFeed((feed) => {
+      feed.selectPost(2);
+      expect(feed.selectedPost()?.id).toBe(2);
+      expect(feed.selectedPost()?.title).toBe("Brilliant tree");
+    }));
+
+  it("re-keys topCaptions and winningCaption to the selected post", () =>
+    withFeed(async (feed) => {
+      // Featured (post 1) captions rank [8, 5].
+      expect(feed.topCaptions()?.map((c) => c.likeCount)).toEqual([8, 5]);
+      feed.selectPost(2);
+      await tick();
+      await tick();
+      // Post 2 has its own captions; winningCaption follows the selection.
+      const caps2 = feed.topCaptions();
+      expect(caps2?.every((c) => c.postId === 2)).toBe(true);
+      expect(feed.winningCaption()).toBe(caps2?.[0]);
+    }));
 });
