@@ -1,6 +1,6 @@
 import { createSignal, Show } from "solid-js";
-import { useIsMobile } from "~/lib/useIsMobile";
 import { useDismiss } from "~/lib/useDismiss";
+import { useDisclosure } from "~/lib/useDisclosure";
 import type { AuthorRef } from "~/types/jedi";
 import Icon from "~/components/Icon";
 
@@ -9,15 +9,12 @@ export interface JediNavProps {
 }
 
 export default function JediNav(props: JediNavProps) {
-  const [mobileNavOpen, setMobileNavOpen] = createSignal(false);
   const [dropdownOpen, setDropdownOpen] = createSignal(false);
-  const isMobile = useIsMobile();
   let dropdownRef: HTMLLIElement | undefined;
 
-  useDismiss(
-    () => setMobileNavOpen(false),
-    () => mobileNavOpen() && !dropdownOpen(),
-  );
+  // The mobile menu stays open while its own profile dropdown is open, so the
+  // dropdown absorbs the first Escape / click-away.
+  const mobileNav = useDisclosure({ dismissWhen: () => !dropdownOpen() });
   useDismiss(
     () => setDropdownOpen(false),
     dropdownOpen,
@@ -34,19 +31,19 @@ export default function JediNav(props: JediNavProps) {
         <button
           type="button"
           aria-label="Toggle navigation"
-          aria-expanded={mobileNavOpen()}
-          onClick={() => setMobileNavOpen(!mobileNavOpen())}
+          aria-expanded={mobileNav.open()}
+          onClick={mobileNav.toggle}
           class="md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg"
         >
-          <Show when={mobileNavOpen()} fallback={<Icon name="menu" class="w-6 h-6 select-none" />}>
+          <Show when={mobileNav.open()} fallback={<Icon name="menu" class="w-6 h-6 select-none" />}>
             <Icon name="delete-sign" class="w-6 h-6 select-none" />
           </Show>
         </button>
       </div>
       <nav
-        inert={isMobile() && !mobileNavOpen()}
+        inert={mobileNav.inert()}
         aria-label="Jedi site navigation"
-        class={`bg-gray-800 h-screen w-screen md:h-auto md:w-auto -mt-20 md:mt-0 md:opacity-100 md:translate-y-0 md:pointer-events-auto absolute md:relative -z-1 md:z-0 transition-[opacity,translate] duration-300 ease-out ${mobileNavOpen() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`}
+        class={`bg-gray-800 h-screen w-screen md:h-auto md:w-auto -mt-20 md:mt-0 md:opacity-100 md:translate-y-0 md:pointer-events-auto absolute md:relative -z-1 md:z-0 transition-[opacity,translate] duration-300 ease-out ${mobileNav.open() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`}
       >
         <ul class="navitems flex items-center flex-col md:flex-row gap-8 md:gap-0 justify-center h-full -translate-y-10 md:translate-y-0 px-8">
           <li>

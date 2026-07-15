@@ -1,10 +1,9 @@
 import "@fontsource/lobster";
 import "./jedi.css";
 import { Title, Meta } from "@solidjs/meta";
-import { createSignal, For, Show } from "solid-js";
-import { useIsMobile } from "~/lib/useIsMobile";
+import { For, Show } from "solid-js";
 import { useListbox } from "~/lib/useListbox";
-import { useDismiss } from "~/lib/useDismiss";
+import { useDisclosure } from "~/lib/useDisclosure";
 import { createJediFeed } from "~/lib/jedi/createJediFeed";
 import Hero from "~/components/Hero";
 import JediNav from "~/components/JediNav";
@@ -14,8 +13,6 @@ import Card from "~/components/Card";
 import Icon from "~/components/Icon";
 
 export default function Jedi() {
-  const [mobileSidebarOpen, setMobileSidebarOpen] = createSignal(false);
-
   const {
     categories,
     posts,
@@ -29,7 +26,7 @@ export default function Jedi() {
     profile,
   } = createJediFeed();
 
-  const isMobile = useIsMobile();
+  const sidebar = useDisclosure();
   const { listboxProps, getOptionProps, focusedIndex } = useListbox({
     count: () => categories()?.length ?? 0,
     selectedIndex: selectedCategory,
@@ -38,7 +35,6 @@ export default function Jedi() {
     idPrefix: "category",
   });
   const isLiked = () => false;
-  useDismiss(() => setMobileSidebarOpen(false), mobileSidebarOpen);
 
   return (
     <>
@@ -57,14 +53,14 @@ export default function Jedi() {
           <button
             type="button"
             aria-label="Toggle sidebar"
-            aria-expanded={mobileSidebarOpen()}
-            onClick={() => setMobileSidebarOpen(!mobileSidebarOpen())}
+            aria-expanded={sidebar.open()}
+            onClick={sidebar.toggle}
             class="flex items-center font-bold text-(--theme-card-fg) bg-(--theme-card-bg) hover:text-(--theme-hover-fg) hover:bg-(--theme-hover-bg) rounded-lg p-3"
           >
             <span>Categories</span>
             <Icon
               name="expand-arrow"
-              class={`w-4 h-4 ml-1.5 transition-transform ${mobileSidebarOpen() ? "rotate-180" : ""}`}
+              class={`w-4 h-4 ml-1.5 transition-transform ${sidebar.open() ? "rotate-180" : ""}`}
             />
           </button>
         </div>
@@ -175,8 +171,8 @@ export default function Jedi() {
 
         {/* Sidebar — grid-rows collapse: aside is nested grid inside parent grid-cols-3 */}
         <aside
-          inert={isMobile() && !mobileSidebarOpen()}
-          class={`col-span-full md:col-span-1 mx-5pct md:mr-20pct order-1 md:order-2 grid transition-[grid-template-rows,opacity] duration-300 ease-out md:opacity-100 md:grid-rows-[1fr] ${mobileSidebarOpen() ? "opacity-100 grid-rows-[1fr]" : "opacity-0 grid-rows-[0fr]"}`}
+          inert={sidebar.inert()}
+          class={`col-span-full md:col-span-1 mx-5pct md:mr-20pct order-1 md:order-2 grid transition-[grid-template-rows,opacity] duration-300 ease-out md:opacity-100 md:grid-rows-[1fr] ${sidebar.open() ? "opacity-100 grid-rows-[1fr]" : "opacity-0 grid-rows-[0fr]"}`}
         >
           <div class="overflow-hidden min-h-0 md:overflow-visible">
             <Card title="Categories">
