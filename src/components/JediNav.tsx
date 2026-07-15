@@ -1,9 +1,14 @@
 import { createSignal, Show } from "solid-js";
 import { useIsMobile } from "~/lib/useIsMobile";
 import { useDismiss } from "~/lib/useDismiss";
+import type { AuthorRef } from "~/types/jedi";
 import Icon from "~/components/Icon";
 
-export default function JediNav() {
+export interface JediNavProps {
+  profile?: AuthorRef;
+}
+
+export default function JediNav(props: JediNavProps) {
   const [mobileNavOpen, setMobileNavOpen] = createSignal(false);
   const [dropdownOpen, setDropdownOpen] = createSignal(false);
   const isMobile = useIsMobile();
@@ -65,10 +70,10 @@ export default function JediNav() {
             >
               <img
                 class="h-8 rounded-full object-cover bg-teal-200"
-                src="https://img.icons8.com/doodle/96/null/bart-simpson.png"
-                alt="Bart avatar"
+                src={props.profile?.avatarUrl}
+                alt={props.profile ? `${props.profile.name} avatar` : ""}
               />
-              Bart
+              {props.profile?.name}
               <Icon
                 name="expand-arrow"
                 class={`w-4 h-4 transition-transform duration-300 ${dropdownOpen() ? "rotate-180" : ""}`}

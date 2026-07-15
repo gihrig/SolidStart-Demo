@@ -73,6 +73,42 @@ describe("jediApi.posts", () => {
   });
 });
 
+describe("jediApi.hero", () => {
+  it("returns the externalized hero content", async () => {
+    const hero = await jediApi.hero.get();
+    expect(hero.title).toBe("Awesome Photos & Captions");
+    expect(hero.subtitle).toBe("Share your favorite Photos from Flickr and add a great caption");
+    expect(hero.ctaText).toBe("Get Started");
+    expect(hero.ctaHref).toBe("#");
+    expect(hero.backgroundImage).toBe(
+      "https://live.staticflickr.com/65535/49909538937_3255dcf9e7_b.jpg",
+    );
+  });
+
+  it("routes hero URL fields through the sanitizer (single boundary)", async () => {
+    const hero = await jediApi.hero.get();
+    const args = sanitizeSpy.mock.calls.flat();
+    expect(args).toContain(hero.ctaHref);
+    expect(args).toContain(hero.backgroundImage);
+  });
+});
+
+describe("jediApi.profile", () => {
+  it("returns the current user's profile (Bart) for the nav avatar", async () => {
+    const profile = await jediApi.profile.get();
+    expect(profile).toEqual({
+      id: 3,
+      name: "Bart",
+      avatarUrl: "https://img.icons8.com/doodle/96/null/bart-simpson.png",
+    });
+  });
+
+  it("routes the profile avatar through the sanitizer (single boundary)", async () => {
+    const profile = await jediApi.profile.get();
+    expect(sanitizeSpy.mock.calls.flat()).toContain(profile.avatarUrl);
+  });
+});
+
 describe("jediApi.captions", () => {
   it("ranks a post's captions by likeCount desc (Top Captions)", async () => {
     const caps = await jediApi.captions.listForPost(1);

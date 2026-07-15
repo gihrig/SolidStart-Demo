@@ -1,6 +1,6 @@
 import { createResource, createSignal, type Accessor, type Setter } from "solid-js";
 import { jediApi } from "~/lib/jedi/jedi-api";
-import type { JediCategory, PostView, CaptionView } from "~/types/jedi";
+import type { JediCategory, PostView, CaptionView, JediHero, AuthorRef } from "~/types/jedi";
 
 /**
  * The Jedi feed's view-model: it owns the route's four data resources and the
@@ -16,6 +16,11 @@ import type { JediCategory, PostView, CaptionView } from "~/types/jedi";
  * `featured` (top-ranked) post and follows `selectPost(id)` when a Top Photo is
  * clicked. `topCaptions` re-keys off it, so the caption/winningCaption and the
  * rest of the article's metadata track the selection.
+ *
+ * `hero` (the header banner content) and `profile` (the nav avatar's current
+ * user) are the externalized header/hero data (#32): the route renders the Hero
+ * from `hero` and hands `profile` to `<JediNav />`, so neither is hard-coded in
+ * the markup.
  */
 export interface JediFeed {
   categories: Accessor<JediCategory[] | undefined>;
@@ -27,6 +32,8 @@ export interface JediFeed {
   winningCaption: Accessor<CaptionView | undefined>;
   selectedCategory: Accessor<number>;
   setSelectedCategory: Setter<number>;
+  hero: Accessor<JediHero | undefined>;
+  profile: Accessor<AuthorRef | undefined>;
 }
 
 export function createJediFeed(): JediFeed {
@@ -52,6 +59,9 @@ export function createJediFeed(): JediFeed {
   );
   const winningCaption = () => topCaptions()?.[0];
 
+  const [hero] = createResource(() => jediApi.hero.get());
+  const [profile] = createResource(() => jediApi.profile.get());
+
   return {
     categories,
     posts,
@@ -62,5 +72,7 @@ export function createJediFeed(): JediFeed {
     winningCaption,
     selectedCategory,
     setSelectedCategory,
+    hero,
+    profile,
   };
 }

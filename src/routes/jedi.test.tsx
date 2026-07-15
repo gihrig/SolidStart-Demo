@@ -44,4 +44,17 @@ describe("Jedi route (data-driven from jedi-api)", () => {
     expect(await screen.findByText(/\(8 Likes\)/)).toBeInTheDocument();
     expect(await screen.findByText(/\(4 Likes\)/)).toBeInTheDocument();
   });
+
+  it("renders the externalized hero content from the mock", async () => {
+    renderJedi();
+    expect(
+      await screen.findByRole("heading", { name: /awesome photos & captions/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the externalized nav profile from the mock", async () => {
+    renderJedi();
+    expect(await screen.findByText("Bart")).toBeInTheDocument();
+    expect(await screen.findByAltText("Bart avatar")).toBeInTheDocument();
+  });
 });

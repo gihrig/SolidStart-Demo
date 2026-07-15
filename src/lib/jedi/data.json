@@ -65,5 +65,13 @@
     { "id": 1, "post_id": 1, "owner_id": 2, "body": "D'oh! Adorable." },
     { "id": 2, "post_id": 1, "owner_id": 3, "body": "Cowabunga!" },
     { "id": 3, "post_id": 1, "owner_id": 1, "body": "Thanks everyone!" }
-  ]
+  ],
+  "hero": {
+    "title": "Awesome Photos & Captions",
+    "subtitle": "Share your favorite Photos from Flickr and add a great caption",
+    "ctaText": "Get Started",
+    "ctaHref": "#",
+    "backgroundImage": "https://live.staticflickr.com/65535/49909538937_3255dcf9e7_b.jpg"
+  },
+  "profile": { "userId": 3 }
 }

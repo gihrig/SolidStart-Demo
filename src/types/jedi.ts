@@ -43,12 +43,26 @@ export interface JediComment {
   body: string;
 }
 
+export interface JediHero {
+  title: string;
+  subtitle: string;
+  ctaText: string;
+  ctaHref: string;
+  backgroundImage: string;
+}
+
+export interface JediProfile {
+  userId: number;
+}
+
 export interface JediData {
   users: JediUser[];
   categories: JediCategory[];
   posts: JediPost[];
   captions: JediCaption[];
   comments: JediComment[];
+  hero: JediHero;
+  profile: JediProfile;
 }
 
 /* ---- Response shapes: what jedi-api returns (author joined, categories

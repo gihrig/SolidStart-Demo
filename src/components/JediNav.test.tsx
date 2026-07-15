@@ -38,10 +38,17 @@ describe("<JediNav />", () => {
     expect(screen.getByText("Create Post")).toBeInTheDocument();
   });
 
-  it("renders profile dropdown trigger", () => {
-    render(() => <JediNav />);
+  it("renders profile dropdown trigger with the passed profile", () => {
+    const profile = {
+      id: 3,
+      name: "Bart",
+      avatarUrl: "https://img.icons8.com/doodle/96/null/bart-simpson.png",
+    };
+    render(() => <JediNav profile={profile} />);
     expect(screen.getByRole("button", { name: /profile menu/i })).toBeInTheDocument();
     expect(screen.getByText("Bart")).toBeInTheDocument();
+    const avatar = screen.getByAltText("Bart avatar") as HTMLImageElement;
+    expect(avatar.src).toBe(profile.avatarUrl);
   });
 
   it("toggles dropdown on profile button click", async () => {

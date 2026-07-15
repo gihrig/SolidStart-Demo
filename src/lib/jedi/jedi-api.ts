@@ -5,6 +5,7 @@ import type {
   JediPost,
   JediCaption,
   JediCategory,
+  JediHero,
   AuthorRef,
   PostView,
   CaptionView,
@@ -61,6 +62,14 @@ const toCaptionView = (c: JediCaption): CaptionView => ({
 
 const rankedPosts = (): PostView[] => db.posts.map(toPostView).sort(byLikesDesc);
 
+const heroContent = (): JediHero => ({
+  title: db.hero.title,
+  subtitle: db.hero.subtitle,
+  ctaText: db.hero.ctaText,
+  ctaHref: safe(db.hero.ctaHref),
+  backgroundImage: safe(db.hero.backgroundImage),
+});
+
 /**
  * RPC-shaped mock. Swapping to the real back-end later replaces each body with a
  * `rpcCall(...)` (see src/lib/backend-rpc.ts); the signatures stay identical.
@@ -81,5 +90,11 @@ export const jediApi = {
           .map(toCaptionView)
           .sort(byLikesDesc),
       ),
+  },
+  hero: {
+    get: (): Promise<JediHero> => Promise.resolve(heroContent()),
+  },
+  profile: {
+    get: (): Promise<AuthorRef> => Promise.resolve(authorOf(db.profile.userId)),
   },
 };

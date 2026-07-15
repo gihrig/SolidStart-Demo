@@ -25,6 +25,8 @@ export default function Jedi() {
     winningCaption,
     selectedCategory,
     setSelectedCategory,
+    hero,
+    profile,
   } = createJediFeed();
 
   const isMobile = useIsMobile();
@@ -45,15 +47,9 @@ export default function Jedi() {
         name="description"
         content="Share your favorite Photos from Flickr and add a great caption"
       />
-      <JediNav />
+      <JediNav profile={profile()} />
 
-      <Hero
-        title="Awesome Photos & Captions"
-        subtitle="Share your favorite Photos from Flickr and add a great caption"
-        ctaText="Get Started"
-        ctaHref="#"
-        backgroundImage="https://live.staticflickr.com/65535/49909538937_3255dcf9e7_b.jpg"
-      />
+      <Show when={hero()}>{(h) => <Hero {...h()} />}</Show>
 
       <div class="grid grid-cols-3 max-w-7xl mx-auto mt-6">
         {/* Mobile sidebar toggle */}
