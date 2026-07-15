@@ -163,3 +163,36 @@ Not done (out of scope / your call): the parked loading/error + ErrorBoundary co
 Moved to #16 (2026-07-13).
 
 The deferred loading/error states + ErrorBoundary follow-up originally parked here has been relocated to #16, where it is relevant as a prerequisite of swapping jedi-api.ts to the real back-end. See #16 (comment).
+
+---
+
+❯ /implement #32
+
+#32 — Externalize Jedi header/hero + nav profile
+
+⏺ What shipped (follows #13 / ADR-0002 mock-data contract):
+
+- data.json — added hero singleton + profile: { userId: 3 } (joined from users, not denormalized).
+- jedi-api.ts — jediApi.hero.get() / jediApi.profile.get(), RPC-shaped, URLs sanitized at the seam boundary.
+- createJediFeed.ts — exposes hero + profile resources.
+- jedi.tsx — <Hero> renders from hero(); profile() passed to <JediNav>.
+- JediNav.tsx — presentational, optional profile prop (was hard-coded "Bart").
+
+TDD at both DOM-free seams (jedi-api, createJediFeed), RED→GREEN, plus component/route tests.
+
+Verification (all green): typecheck clean · vp check clean · vpr test:all 209/209 (+8).
+
+Code review (two-axis, parallel):
+
+- Standards: 1 hard violation — import order in JediNav.tsx → fixed. Rest judgement notes.
+- Spec: core faithful. Notable notes I consciously left, with rationale:
+  - Meta description duplicates hero.subtitle — left synchronous; it's SEO metadata (not "Hero content"), and binding it to the async resource risks it missing from SSR HTML.
+  - Double sanitization (Hero/JediNav re-guard props) — kept as layered defense; Hero's own test asserts it blocks javascript: URLs, so removing it would break standalone safety. The ADR's "single boundary" governs the data seam.
+
+One thing worth your call: the hero.subtitle / <Meta> duplication — leave as-is (my recommendation, for SSR) or accept an async-bound meta? Say the word if you want it wired.
+
+❯ close #32 with a summary comment
+
+⏺ Closed #32 with the summary comment.
+
+❯
