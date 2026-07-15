@@ -195,4 +195,67 @@ One thing worth your call: the hero.subtitle / <Meta> duplication — leave as-i
 
 ⏺ Closed #32 with the summary comment.
 
-❯
+❯ /implement `docs/architecture-review-20260711-013631.html` C3
+
+⏺ Committed as 9c0fff2 on post-#13-arch-review. The pre-existing planning/ edit remains uncommitted (out of scope).
+
+C3 — useDisclosure seam
+
+What shipped:
+
+- src/lib/useDisclosure.ts (new deep module) — useDisclosure(options?): { open, toggle, inert }, wrapping the duplicated signal + useIsMobile() + useDismiss + inert quartet. inert = isMobile() && !open(); optional dismissWhen guard for nested disclosures.
+- src/lib/useDisclosure.unit.test.ts (new) — 7 DOM-free tests at the seam (mirrors useDismiss/useIsMobile style).
+- jedi.tsx sidebar + JediNav.tsx mobile menu now consume it; dropped their local createSignal/useIsMobile/useDismiss wiring.
+- JediNav's profile dropdown (ref-based, different pattern) intentionally left as-is — C3's two real call sites are the sidebar + mobile menu.
+
+TDD: RED (missing module) → GREEN → refactored both call sites, behavior preserved.
+
+Verification (all green): typecheck clean · vp check clean · vpr test:all 216/216 (+7); existing route/JediNav DOM tests unchanged and passing.
+
+Code review (two-axis, parallel):
+
+- Standards: no hard violations. Caught a JSDoc overstatement ("Escape / click-away" — only Escape is wired since no ref is passed to useDismiss) → fixed. dismissWhen flagged as possible Speculative Generality but judged to earn its keep (real requirement + dedicated test).
+- Spec: faithful. Sole deviation — returning inert rather than the sketch's dismissProps — is the correct realization given useDismiss uses document-level listeners (no spreadable props exist). Scope discipline (excluding the dropdown) matches C3 exactly.
+
+Per the review notes, C3 was the one free-standing candidate. Remaining from the arch review: C2 (FeaturedPost) and C4 (AuthorLikesRow), both now unblocked by C1/#29 if you want them next.
+
+❯ /implement `docs/architecture-review-20260711-013631.html` C2
+
+⏺ Committed as 01c024a on main. The pre-existing planning/ edit remains uncommitted (out of scope).
+
+C2 — FeaturedPost module
+
+What shipped:
+
+- src/components/FeaturedPost.tsx (new) — presentational module with a small { post: PostView; caption?: CaptionView } interface, holding the ~100 lines of extracted article markup.
+- src/components/FeaturedPost.test.tsx (new) — 6 tests at the { post, caption } seam (title/caption, photographer link, category chips, author + counts, accessible Like/Edit/Delete actions, empty-caption fallback).
+- jedi.tsx — the article block drops from ~101 lines to {(post) => <FeaturedPost post={post()} caption={winningCaption()} />}; isLiked and the Image/Author imports moved into the component.
+
+TDD: RED (missing component) → GREEN → refactored the route; the existing jedi.test.tsx served as the behavior-preserving safety net.
+
+Verification (all green): typecheck clean · vp check clean · vpr test:all 222/222 (+6); existing route DOM tests unchanged and passing.
+
+Code review (two-axis, parallel):
+
+- Spec: faithful. The load-bearing requirement is met — small {post, caption} interface, route shrinks to layout + seam wiring, and the "handler-props → shallow module" Risk (C2's explicit warning) is avoided by keeping the placeholder actions internal. Wiring actions "behind C1's seam" is a no-op today since they're still unimplemented.
+- Standards: no hard violations. Acted on the one domain-language note — changed caption: string → caption?: CaptionView so the boundary carries the first-class Caption entity (per CONTEXT.md), consistent with the seam's winningCaption. The notImplemented helper also de-duplicated the two identical alert handlers.
+
+The arch review is now fully worked through: C1 (seam) ✓, #29 (selection) ✓, C3 (useDisclosure) ✓, C2 (FeaturedPost) ✓. Only C4 (AuthorLikesRow) remains — rated Speculative, with "real payoff only once the rows become interactive."
+
+❯ /implement `docs/architecture-review-20260711-013631.html` C4
+
+After reconsidering C4 and needed features for Top Captions...
+
+⏺ Current branch state on post-#13-arch-review: C1/#29, C3, C2 shipped; C4 reverted; this spec committed.
+
+#33 expanded.
+
+Title: Jedi: Top Photos/Captions listboxes + filter by Categories + caption selection
+
+Body now has three scope items — the original two (Top Photos listbox; filter by Categories) plus new item 3: select a Top Caption to display it under the post (with the seam mechanism, and noting Top Captions also becomes a listbox). It records that items 1–2 were deferred from #29 and item 3 was added during design, and links planning/issue-33-plan.md as the build plan.
+
+Net state on main: arch-review fully worked through (C1/#29, C3, C2 shipped; C4 rejected/reverted), the #33 design spec committed (cf9c442), and #33 updated to match. The build is queued for when you pick up #33. The only uncommitted change remains the pre-existing planning/arch-review-notes edit.
+
+---
+
+Post #29 review items complete - merge into main.
