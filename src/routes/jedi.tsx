@@ -7,8 +7,7 @@ import { useDisclosure } from "~/lib/useDisclosure";
 import { createJediFeed } from "~/lib/jedi/createJediFeed";
 import Hero from "~/components/Hero";
 import JediNav from "~/components/JediNav";
-import Image from "~/components/Image";
-import Author from "~/components/Author";
+import FeaturedPost from "~/components/FeaturedPost";
 import Card from "~/components/Card";
 import Icon from "~/components/Icon";
 
@@ -34,7 +33,6 @@ export default function Jedi() {
     label: "Categories",
     idPrefix: "category",
   });
-  const isLiked = () => false;
 
   return (
     <>
@@ -68,104 +66,7 @@ export default function Jedi() {
         {/* Main article */}
         <main class="col-span-full md:col-span-2 mx-5pct md:mx-10pct order-2 md:order-1">
           <Show when={selectedPost()} fallback={<article class="card-style p-4">Loading…</article>}>
-            {(post) => (
-              <article class="card-style">
-                {/* Title bar */}
-                <div class="flex items-center justify-between px-4 h-14">
-                  <h2 class="text-2xl font-bold w-1/2 truncate">{post().title}</h2>
-                  <div class="text-sm text-(--theme-muted)">
-                    flickr @{" "}
-                    <a
-                      href={post().photographerUrl}
-                      class="hover:underline rounded"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {post().photographer}
-                    </a>
-                  </div>
-                </div>
-                {/* Image */}
-                <Image
-                  src={post().imageSrc}
-                  alt={post().imageAlt}
-                  href={post().sourceUrl}
-                  loading="lazy"
-                />
-                {/* Body: author, caption, tags, actions */}
-                <div class="p-4 pb-2">
-                  <Author
-                    avatarSrc={post().author.avatarUrl}
-                    name={post().author.name}
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      alert("Not implemented");
-                    }}
-                  />
-                  <p class="text-5xl mb-10 px-4 font-hero">{winningCaption()?.text ?? ""}</p>
-                  <div class="flex items-center gap-2 text-sm mb-5">
-                    <For each={post().categories}>
-                      {(c) => (
-                        <button type="button" onClick={() => {}} class="theme-button">
-                          {c.name}
-                        </button>
-                      )}
-                    </For>
-                  </div>
-                  <div class="flex items-center justify-between text-sm px-2">
-                    <a
-                      class="font-bold hover:underline rounded"
-                      href="#"
-                      aria-label={`Open Comments page, ${post().commentCount} comments`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        alert("Not implemented");
-                      }}
-                    >
-                      Comments
-                      <span class="font-light text-(--theme-card-fg) ml-2">
-                        {post().commentCount}
-                      </span>
-                    </a>
-                    <div class="flex items-center gap-4">
-                      <div class="flex items-center gap-1">
-                        <Icon name="fire-heart" class="w-5 -mt-1" />
-                        <span class="font-light text-(--theme-card-fg) ml-2">
-                          <span class="sr-only">Likes: </span>
-                          {post().likeCount}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {}}
-                        class="theme-button"
-                        aria-pressed={isLiked()}
-                        aria-label={`Like post by ${post().author.name}`}
-                      >
-                        Like
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {}}
-                        class="theme-button"
-                        aria-label={`Edit Post by ${post().author.name}`}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {}}
-                        class="theme-button"
-                        aria-label={`Delete Post by ${post().author.name}`}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            )}
+            {(post) => <FeaturedPost post={post()} caption={winningCaption()} />}
           </Show>
         </main>
 
