@@ -1,7 +1,7 @@
 import "@fontsource/lobster";
 import "./jedi.css";
 import { Title, Meta } from "@solidjs/meta";
-import { Show } from "solid-js";
+import { Show, Switch, Match } from "solid-js";
 import { useDisclosure } from "~/lib/useDisclosure";
 import { createJediFeed } from "~/lib/jedi/createJediFeed";
 import Hero from "~/components/Hero";
@@ -16,6 +16,7 @@ export default function Jedi() {
   const {
     categories,
     visiblePosts,
+    emptyCategoryLabel,
     selectedPost,
     selectPost,
     topCaptions,
@@ -60,9 +61,14 @@ export default function Jedi() {
 
         {/* Main article */}
         <main class="col-span-full md:col-span-2 mx-5pct md:mx-10pct order-2 md:order-1">
-          <Show when={selectedPost()} fallback={<article class="card-style p-4">Loading…</article>}>
-            {(post) => <FeaturedPost post={post()} caption={selectedCaption()} />}
-          </Show>
+          <Switch fallback={<article class="card-style p-4">Loading…</article>}>
+            <Match when={emptyCategoryLabel()}>
+              {(label) => <article class="card-style p-4">No Posts in {label()}</article>}
+            </Match>
+            <Match when={selectedPost()}>
+              {(post) => <FeaturedPost post={post()} caption={selectedCaption()} />}
+            </Match>
+          </Switch>
         </main>
 
         {/* Sidebar — grid-rows collapse: aside is nested grid inside parent grid-cols-3 */}

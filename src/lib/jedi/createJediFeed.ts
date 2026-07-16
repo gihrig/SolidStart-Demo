@@ -35,6 +35,9 @@ export interface JediFeed {
   posts: Accessor<PostView[] | undefined>;
   /** `posts` filtered to `selectedCategory` — what Top Photos renders (#33-b). */
   visiblePosts: Accessor<PostView[] | undefined>;
+  /** The selected category's name when its filter matches no posts, so `<main>`
+   *  can show a "No Posts in …" panel; undefined when posts exist or are loading. */
+  emptyCategoryLabel: Accessor<string | undefined>;
   featured: Accessor<PostView | undefined>;
   selectedPost: Accessor<PostView | undefined>;
   selectPost: (id: number) => void;
@@ -75,11 +78,21 @@ export function createJediFeed(): JediFeed {
   };
 
   // The clicked post, but only while the filter still lists it; otherwise the
-  // top-ranked visible post (`featured` covers load and empty-category states).
+  // top-ranked visible post. `visible === undefined` is the loading state (fall
+  // back to `featured`); an empty array is a real category with no posts, which
+  // stays undefined so `<main>` can show the empty panel instead of a stale post.
   const selectedPost = (): PostView | undefined => {
     const visible = visiblePosts();
+    if (visible === undefined) return featured();
     const id = selectedPostId();
-    return visible?.find((p) => p.id === id) ?? visible?.[0] ?? featured();
+    return visible.find((p) => p.id === id) ?? visible[0];
+  };
+
+  // Truthy only when a real (non-"All") category filters every post away.
+  const emptyCategoryLabel = (): string | undefined => {
+    if (visiblePosts()?.length !== 0) return undefined;
+    const category = categories()?.[selectedCategory()];
+    return category && category.id !== ALL_CATEGORIES.id ? category.name : undefined;
   };
   const selectPost = (id: number): void => {
     setSelectedPostId(id);
@@ -105,6 +118,7 @@ export function createJediFeed(): JediFeed {
     categories,
     posts,
     visiblePosts,
+    emptyCategoryLabel,
     featured,
     selectedPost,
     selectPost,

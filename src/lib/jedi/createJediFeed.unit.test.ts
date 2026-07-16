@@ -150,6 +150,31 @@ describe("createJediFeed — visiblePosts, the category filter (#33-b)", () => {
     }));
 });
 
+describe("createJediFeed — the empty-category state", () => {
+  it("has no empty-category label under the default 'All' row", () =>
+    withFeed((feed) => {
+      expect(feed.emptyCategoryLabel()).toBeUndefined();
+    }));
+
+  it("has no empty-category label for a category that has posts", () =>
+    withFeed((feed) => {
+      feed.setSelectedCategory(3); // Animals — post 1
+      expect(feed.emptyCategoryLabel()).toBeUndefined();
+    }));
+
+  it("exposes the category name when the filter matches no posts", () =>
+    withFeed((feed) => {
+      feed.setSelectedCategory(2); // People — no posts
+      expect(feed.emptyCategoryLabel()).toBe("People");
+    }));
+
+  it("leaves selectedPost undefined for an empty category (no featured fallback)", () =>
+    withFeed((feed) => {
+      feed.setSelectedCategory(2); // People — no posts
+      expect(feed.selectedPost()).toBeUndefined();
+    }));
+});
+
 describe("createJediFeed — selectedCaption, the caption shown in <main>", () => {
   it("defaults to the winning caption of the selected post", () =>
     withFeed((feed) => {

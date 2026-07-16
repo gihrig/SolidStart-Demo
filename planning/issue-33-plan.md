@@ -237,3 +237,55 @@ option, focus tracked by `aria-activedescendant`). The cards reuse it faithfully
 which is what the rest of that same sentence asks for ("reusing `src/lib/useListbox.ts`
 as Categories does"). All three cards do share one a11y pattern — just not the one
 the label names.
+
+---
+
+❯ The above looks good as is, keep it.
+Two out of scope issues to be addressed, could be here or in new gh issue.
+
+1. When a Category having no posts is selected, main continues to show the previous post. It should show a
+   simple text panel "No Posts in (category name)".
+2. When a panel (Categories, Top Photos or Top Captions) is selected by tab, then an item is selected by
+   arrow key and actioned the page reloads and the focus returns to page top. These actions should not cause
+   a page reload/refresh or change of focus.
+   Consider the complexity of these changes and recommend an immediate fix vs creating a new gh issue.
+
+⏺ Diagnosis summary
+
+Issue 2 is not a reload. I reproduced it in a real browser: on Enter/Space, my in-page marker survives, location.href is unchanged, and zero navigation events fire. What actually happens is focus jumps to <body> and the page scrolls — which looks like a reload-to-top. The selection itself works correctly.
+
+The root cause: SolidJS's reconciler detaches and re-attaches the entire top-level <div class="grid grid-cols-3"> (the whole main + sidebar grid) during one specific class of update. Detaching the subtree drops focus from the listbox to <body>. I confirmed the node is moved, not recreated (DOM identity survives), and caught the blur's stack trace landing in Solid's reconcileArrays.
+
+It only fires when a single batched update changes both the Top Photos list membership and the <main> post together — which, with current data, is only Categories→Landscape. Evidence:
+
+```pre
+┌─────────────────────────────┬──────────────┬────────────────┬───────┐
+│           Action            │ list changes │ <main> changes │ focus │
+├─────────────────────────────┼──────────────┼────────────────┼───────┤
+│ Categories → Animals / Cute │ yes (2→1)    │ no             │ kept  │
+├─────────────────────────────┼──────────────┼────────────────┼───────┤
+│ Top Photos → 2nd photo      │ no           │ yes            │ kept  │
+├─────────────────────────────┼──────────────┼────────────────┼───────┤
+│ Top Captions → 2nd caption  │ no           │ yes (caption)  │ kept  │
+├─────────────────────────────┼──────────────┼────────────────┼───────┤
+│ Categories → Landscape      │ yes (2→1)    │ yes            │ LOST  │
+└─────────────────────────────┴──────────────┴────────────────┴───────┘
+```
+
+I ruled out the dynamic `<Show when={hero()}>` sibling as the trigger (removed it, bug persisted).
+
+Recommendation:
+
+Issue 1 (empty-state panel) — do it now. Small, low-risk, well-scoped: `<main>` needs to show "No Posts in {category}" when visiblePosts() is empty instead of falling back to featured(). It touches the seam (selectedPost should surface the empty case) plus a small render branch, and it's cleanly TDD-able. Also cleans up the empty-category gap already logged from #33.
+
+Issue 2 (focus loss) — new GitHub issue. This is a genuine SolidJS reconciliation subtlety, not a one-liner. Every plausible fix carries risk and needs its own verification:
+
+- Restructuring the route's reactive graph so the grid stops being reconciled (behavior-preserving but easy to get subtly wrong), or
+- Restoring focus to the listbox after selection (a workaround that also has to handle the scroll jump), or
+- Changing how `<main>`'s `<Show>` / the Top Photos `<For>` are structured.
+
+Each has to be re-verified across all three listboxes, both click and keyboard paths, and mobile — too much to bolt onto this cleanly. The diagnostic evidence above (differential table, reconcileArrays stack, "grid div moved" finding) belongs in the issue so whoever picks it up starts from root cause, not symptom.
+
+Want me to (a) implement issue 1 now, (b) file the issue-2 bug with these diagnostics, or both?
+
+❯ Do both (a) and (b): (a) implement issue 1 now, (b) file the issue-2 bug with these diagnostics.

@@ -94,4 +94,17 @@ describe("Jedi route (data-driven from jedi-api)", () => {
     within(categories).getAllByRole("option")[0].click(); // All
     await waitFor(() => expect(within(photos).getAllByRole("option")).toHaveLength(2));
   });
+
+  it("shows a 'No Posts in <category>' panel for an empty category", async () => {
+    renderJedi();
+    const categories = await screen.findByRole("listbox", { name: "Categories" });
+    await screen.findByRole("heading", { name: /little jedi/i }); // wait for load
+
+    // Row 2 is "People" — no post is tagged with it.
+    within(categories).getAllByRole("option")[2].click();
+
+    expect(await screen.findByText(/no posts in people/i)).toBeInTheDocument();
+    // The previously-shown featured post is gone, not left stale in <main>.
+    expect(screen.queryByRole("heading", { name: /little jedi/i })).not.toBeInTheDocument();
+  });
 });
