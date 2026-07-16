@@ -317,3 +317,16 @@ I also updated planning/issue-33-plan.md (e163e48) to record the panel fix and c
 One scoping note: issue 1 as you stated it was about `<main>`, which is fixed. The empty Top Photos card still renders bare (no in-card message) — I left that since it wasn't part of your request, but say the word if you want a message there too.
 
 ❯ Yes, the Top Photos card should display the same message as `<main>` when empty. Also the Top Captions card should be empty when there are no photos to display
+
+⏺ Committed clean as 71773ea, working tree empty. Both requested behaviors are done, test-first and verified in the real app.
+
+Top Photos now shows the same "No Posts in {category}" message as `<main>` when a category has no posts, via a new optional emptyLabel prop on TopPhotosCard (it swaps the listbox for the message). Top Captions clears to just its heading when no photo is selected — a new visibleCaptions seam accessor returns [] when selectedPost is undefined, so the previous post's captions no longer linger from the resource's stale value.
+
+Driving the app confirmed all four states: People/empty shows the message in both `<main>` and Top Photos with Top Captions empty; Animals and All restore everything; zero page errors. Full suite is 259 tests green, vpr check clean.
+
+Two small notes on choices I made without asking:
+
+- The Top Photos empty message renders as plain card text (no role="listbox" while empty), matching the "same message" request; the card becomes a listbox again once posts return.
+- I put the caption-clearing logic on the seam (visibleCaptions) rather than in the route markup, keeping the route as wiring and the card presentational — consistent with how visiblePosts already works.
+
+The focus/reload bug (#35) is untouched and still open, as intended.
