@@ -217,7 +217,14 @@ card tests were written once against the end-state props instead of being rewrit
 
 - Categories with no posts (People, Abstract, Black & White — 3 of 6) render an
   empty Top Photos card with no empty-state message, and `<main>` falls back to
-  `featured()`, a post the empty list does not contain. Worth a follow-up.
+  `featured()`, a post the empty list does not contain. **`<main>` half fixed in
+  `4b20534`** — it now shows a "No Posts in <category>" panel via
+  `emptyCategoryLabel`. The empty _Top Photos card_ itself still has no in-card
+  message; leave until it matters.
+- **Keyboard selection in the sidebar listboxes can lose focus to the page top**
+  (looks like a reload but isn't — the top-level grid `<div>` gets reconciled/
+  moved, blurring the focused `<ul>`). Root-caused but not fixed here; filed as
+  **#35** (`ready-for-human`) with full diagnostics.
 - Caption selection resurrects per post: the `selectedCaptionId` signal survives a
   post change, so returning to a post whose caption you had picked re-selects it.
   Falls out of the specified `find(...) ?? winningCaption()` fallback. The same is
