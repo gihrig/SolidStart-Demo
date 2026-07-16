@@ -47,9 +47,10 @@ describe("createJediFeed — the route's view-model seam", () => {
       expect(feed.winningCaption()).toBe(feed.topCaptions()?.[0]);
     }));
 
-  it("lists every category for the sidebar", () =>
+  it("lists every category for the sidebar, behind an 'All' filter row (#33-b)", () =>
     withFeed((feed) => {
       expect(feed.categories()?.map((c) => c.name)).toEqual([
+        "All",
         "Landscape",
         "People",
         "Animals",
@@ -59,7 +60,7 @@ describe("createJediFeed — the route's view-model seam", () => {
       ]);
     }));
 
-  it("owns the selectedCategory selection state (defaults to 0, #29 filters here)", () =>
+  it("owns the selectedCategory selection state (defaults to 0 — the 'All' row)", () =>
     withFeed((feed) => {
       expect(feed.selectedCategory()).toBe(0);
       feed.setSelectedCategory(2);
@@ -104,5 +105,73 @@ describe("createJediFeed — the route's view-model seam", () => {
       const caps2 = feed.topCaptions();
       expect(caps2?.every((c) => c.postId === 2)).toBe(true);
       expect(feed.winningCaption()).toBe(caps2?.[0]);
+    }));
+});
+
+describe("createJediFeed — visiblePosts, the category filter (#33-b)", () => {
+  it("shows every post under the default 'All' row", () =>
+    withFeed((feed) => {
+      expect(feed.selectedCategory()).toBe(0);
+      expect(feed.visiblePosts()).toEqual(feed.posts());
+    }));
+
+  it("filters posts to the selected category", () =>
+    withFeed((feed) => {
+      feed.setSelectedCategory(1); // Landscape — only "Brilliant tree" (post 2)
+      expect(feed.visiblePosts()?.map((p) => p.id)).toEqual([2]);
+      feed.setSelectedCategory(3); // Animals — only "Little Jedi" (post 1)
+      expect(feed.visiblePosts()?.map((p) => p.id)).toEqual([1]);
+    }));
+
+  it("shows no posts for a category nothing is tagged with", () =>
+    withFeed((feed) => {
+      feed.setSelectedCategory(2); // People — no posts
+      expect(feed.visiblePosts()).toEqual([]);
+    }));
+
+  it("keeps visiblePosts ranked by likes", () =>
+    withFeed((feed) => {
+      const likes = feed.visiblePosts()!.map((p) => p.likeCount);
+      expect(likes).toEqual([...likes].sort((a, b) => b - a));
+    }));
+
+  it("moves selectedPost to the first visible post when the filter hides it", () =>
+    withFeed((feed) => {
+      expect(feed.selectedPost()?.id).toBe(1); // featured default
+      feed.setSelectedCategory(1); // Landscape hides post 1
+      expect(feed.selectedPost()?.id).toBe(2);
+    }));
+
+  it("keeps an explicitly selected post while the filter still shows it", () =>
+    withFeed((feed) => {
+      feed.selectPost(2);
+      feed.setSelectedCategory(1); // Landscape still contains post 2
+      expect(feed.selectedPost()?.id).toBe(2);
+    }));
+});
+
+describe("createJediFeed — selectedCaption, the caption shown in <main>", () => {
+  it("defaults to the winning caption of the selected post", () =>
+    withFeed((feed) => {
+      expect(feed.selectedCaption()).toBe(feed.winningCaption());
+      expect(feed.selectedCaption()?.text).toBe("Jedi Kitty protects the street");
+    }));
+
+  it("selectCaption switches the caption shown in <main>", () =>
+    withFeed((feed) => {
+      feed.selectCaption(2);
+      expect(feed.selectedCaption()?.text).toBe("May the paws be with you");
+    }));
+
+  it("self-resets to the new post's winning caption when the post changes", () =>
+    withFeed(async (feed) => {
+      feed.selectCaption(2); // a caption of post 1
+      expect(feed.selectedCaption()?.id).toBe(2);
+      feed.selectPost(2);
+      await tick();
+      await tick();
+      // Caption 2 belongs to post 1, so it falls back to post 2's winner.
+      expect(feed.selectedCaption()).toBe(feed.winningCaption());
+      expect(feed.selectedCaption()?.postId).toBe(2);
     }));
 });

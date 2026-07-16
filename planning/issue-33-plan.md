@@ -34,8 +34,9 @@ in as variant props).
    (roving-tabindex keyboard nav, `role="option"`), reusing `src/lib/useListbox.ts`
    as Categories does, so all three cards share the same a11y pattern.
 3. **#33-b** — filter Top Photos by the current Categories selection, on the seam.
-4. **Caption selection (new)** — selecting a Top Caption displays it under the
-   post in `<main>`. Not in #33's current text; see “Issue tracking” below.
+4. **#33-c** — filter Top Captions by the current Top Photos selection, on the seam.
+5. **Caption selection (new)** — selecting a Top Caption displays it under the
+   post in `<main>`.
 
 ## Non-goals
 
@@ -181,11 +182,58 @@ and `<main>`’s `FeaturedPost` takes `caption={selectedCaption()}`.
    interaction → `<main>` renders `selectedCaption()`.
 3. #33-a: `TopPhotosCard` and `TopCaptionsCard` → full listboxes.
 4. #33-b: `visiblePosts` category filter on the seam.
+5. #33-c: `visibleCaptions` post filter on the seam.
 
 Each step is independently shippable and testable.
 
 ## Issue tracking
 
-Caption selection (Goal 4) is **not** in #33's current text (“Top Photos as full
-listbox + filter by Categories selection”). Before/at build time: either expand
-#33's scope to include it, or open a sibling issue and link it here.
+Issue #33 is used for tracking.
+
+---
+
+## Execution log
+
+❯ /implement #33 be concise
+
+⏺ Built 2026-07-15. All five goals landed; `vpr check` clean, 249 tests pass.
+
+**Build-time decisions** (the plan left filter semantics open):
+
+- **"All" row.** `categories()` on the seam now returns a synthetic
+  `{ id: 0, name: "All", icon: "menu" }` row ahead of the real categories, so
+  `selectedCategory` index 0 means _no filter_ and the default view is unfiltered.
+  Id 0 is unused by the real categories. The seam exposes one accessor, not a raw
+  list plus an options list.
+- **Selection follows the filter.** `selectedPost` falls back to the first
+  _visible_ post (`visible?.find(id) ?? visible?.[0] ?? featured()`), so a filter
+  that hides the selection moves `<main>` to a post the sidebar actually lists.
+
+**Deviation from the suggested sequencing:** steps 1 and 3 were merged — each card
+was extracted _as_ a listbox rather than extracted first and promoted after, so the
+card tests were written once against the end-state props instead of being rewritten.
+
+**Known gaps** (observed by driving the app, out of scope here):
+
+- Categories with no posts (People, Abstract, Black & White — 3 of 6) render an
+  empty Top Photos card with no empty-state message, and `<main>` falls back to
+  `featured()`, a post the empty list does not contain. Worth a follow-up.
+- Caption selection resurrects per post: the `selectedCaptionId` signal survives a
+  post change, so returning to a post whose caption you had picked re-selects it.
+  Falls out of the specified `find(...) ?? winningCaption()` fallback. The same is
+  true of `selectedPostId` across a filter round-trip — select a post, filter it
+  away, return to "All", and it reclaims the selection. Both are inherent to the
+  `find(...) ?? fallback` shape this plan specified; neither is a bug, but neither
+  was designed for either.
+- `winningCaption` now has no production caller — `<main>` reads `selectedCaption`
+  and nothing else reads the winner directly. It stays on the `JediFeed` interface
+  as documented seam vocabulary, exercised only by unit tests. Prune if it is still
+  unread after the next feed change.
+
+**Terminology correction:** this plan and issue #33-a both say the cards get
+"roving-tabindex" keyboard nav. They do not, and should not — `useListbox` is the
+**`aria-activedescendant`** pattern (`tabIndex: 0` on the `<ul>`, `-1` on every
+option, focus tracked by `aria-activedescendant`). The cards reuse it faithfully,
+which is what the rest of that same sentence asks for ("reusing `src/lib/useListbox.ts`
+as Categories does"). All three cards do share one a11y pattern — just not the one
+the label names.

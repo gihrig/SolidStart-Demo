@@ -1,24 +1,26 @@
 import "@fontsource/lobster";
 import "./jedi.css";
 import { Title, Meta } from "@solidjs/meta";
-import { For, Show } from "solid-js";
-import { useListbox } from "~/lib/useListbox";
+import { Show } from "solid-js";
 import { useDisclosure } from "~/lib/useDisclosure";
 import { createJediFeed } from "~/lib/jedi/createJediFeed";
 import Hero from "~/components/Hero";
 import JediNav from "~/components/JediNav";
 import FeaturedPost from "~/components/FeaturedPost";
-import Card from "~/components/Card";
+import CategoriesCard from "~/components/CategoriesCard";
+import TopPhotosCard from "~/components/TopPhotosCard";
+import TopCaptionsCard from "~/components/TopCaptionsCard";
 import Icon from "~/components/Icon";
 
 export default function Jedi() {
   const {
     categories,
-    posts,
+    visiblePosts,
     selectedPost,
     selectPost,
     topCaptions,
-    winningCaption,
+    selectedCaption,
+    selectCaption,
     selectedCategory,
     setSelectedCategory,
     hero,
@@ -26,13 +28,6 @@ export default function Jedi() {
   } = createJediFeed();
 
   const sidebar = useDisclosure();
-  const { listboxProps, getOptionProps, focusedIndex } = useListbox({
-    count: () => categories()?.length ?? 0,
-    selectedIndex: selectedCategory,
-    onSelect: setSelectedCategory,
-    label: "Categories",
-    idPrefix: "category",
-  });
 
   return (
     <>
@@ -66,7 +61,7 @@ export default function Jedi() {
         {/* Main article */}
         <main class="col-span-full md:col-span-2 mx-5pct md:mx-10pct order-2 md:order-1">
           <Show when={selectedPost()} fallback={<article class="card-style p-4">Loading…</article>}>
-            {(post) => <FeaturedPost post={post()} caption={winningCaption()} />}
+            {(post) => <FeaturedPost post={post()} caption={selectedCaption()} />}
           </Show>
         </main>
 
@@ -76,86 +71,17 @@ export default function Jedi() {
           class={`col-span-full md:col-span-1 mx-5pct md:mr-20pct order-1 md:order-2 grid transition-[grid-template-rows,opacity] duration-300 ease-out md:opacity-100 md:grid-rows-[1fr] ${sidebar.open() ? "opacity-100 grid-rows-[1fr]" : "opacity-0 grid-rows-[0fr]"}`}
         >
           <div class="overflow-hidden min-h-0 md:overflow-visible">
-            <Card title="Categories">
-              <ul class="space-y-1" {...listboxProps}>
-                <For each={categories() ?? []}>
-                  {(c, index) => (
-                    <li
-                      {...getOptionProps(index())}
-                      classList={{
-                        "bg-(--theme-highlight)": selectedCategory() === index(),
-                        "ring-2": focusedIndex() === index(),
-                        "ring-(--theme-accent)": focusedIndex() === index(),
-                      }}
-                      class="flex items-center cursor-pointer px-2 py-1 rounded outline-none"
-                    >
-                      <Icon name={c.icon} class="w-8 h-8 object-cover mr-2" />
-                      <span class="font-bold text-sm">{c.name}</span>
-                    </li>
-                  )}
-                </For>
-              </ul>
-            </Card>
-            <Card title="Top Photos">
-              <ul class="space-y-1">
-                <For each={posts() ?? []}>
-                  {(p) => (
-                    <li class="rounded-md">
-                      <button
-                        type="button"
-                        onClick={() => selectPost(p.id)}
-                        aria-current={selectedPost()?.id === p.id ? "true" : undefined}
-                        classList={{ "bg-(--theme-highlight)": selectedPost()?.id === p.id }}
-                        class="flex items-center w-full p-2 rounded hover:bg-(--theme-hover-bg) transition-colors duration-150"
-                      >
-                        <img
-                          class="w-10 h-10 rounded-lg object-cover mr-3"
-                          src={p.imageSrc}
-                          alt={p.imageAlt}
-                          loading="lazy"
-                        />
-                        <img
-                          class="w-6 h-6 rounded-full object-cover mr-0.5"
-                          src={p.author.avatarUrl}
-                          alt=""
-                          loading="lazy"
-                        />
-                        <span class="font-bold text-sm mr-1">{p.author.name}</span>
-                        <span class="text-sm font-light text-(--theme-card-fg)">
-                          ({p.likeCount} Likes)
-                        </span>
-                      </button>
-                    </li>
-                  )}
-                </For>
-              </ul>
-            </Card>
-            <Card title="Top Captions">
-              <ul class="space-y-1">
-                <For each={topCaptions() ?? []}>
-                  {(c) => (
-                    <li class="rounded-md">
-                      <button
-                        type="button"
-                        onClick={() => alert("Not implemented")}
-                        class="flex items-center p-2 rounded hover:bg-(--theme-hover-bg) transition-colors duration-150"
-                      >
-                        <img
-                          class="w-8 h-8 rounded-full object-cover mr-1"
-                          src={c.author.avatarUrl}
-                          alt=""
-                          loading="lazy"
-                        />
-                        <span class="font-bold text-sm mr-1">{c.author.name}</span>
-                        <span class="text-sm font-light text-(--theme-card-fg)">
-                          ({c.likeCount} Likes)
-                        </span>
-                      </button>
-                    </li>
-                  )}
-                </For>
-              </ul>
-            </Card>
+            <CategoriesCard
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelect={setSelectedCategory}
+            />
+            <TopPhotosCard posts={visiblePosts} selectedPost={selectedPost} onSelect={selectPost} />
+            <TopCaptionsCard
+              captions={topCaptions}
+              selectedCaption={selectedCaption}
+              onSelect={selectCaption}
+            />
           </div>
         </aside>
       </div>
