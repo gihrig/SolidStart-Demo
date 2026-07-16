@@ -75,4 +75,30 @@ describe("<TopPhotosCard />", () => {
     ));
     expect(screen.queryAllByRole("option")).toHaveLength(0);
   });
+
+  it("shows a 'No Posts in <category>' message instead of the list when emptyLabel is set", () => {
+    render(() => (
+      <TopPhotosCard
+        posts={() => []}
+        selectedPost={() => undefined}
+        onSelect={vi.fn()}
+        emptyLabel={() => "People"}
+      />
+    ));
+    expect(screen.getByText(/no posts in people/i)).toBeInTheDocument();
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("renders the listbox (no message) when emptyLabel is undefined", () => {
+    render(() => (
+      <TopPhotosCard
+        posts={() => posts}
+        selectedPost={() => posts[0]}
+        onSelect={vi.fn()}
+        emptyLabel={() => undefined}
+      />
+    ));
+    expect(screen.getByRole("listbox", { name: "Top Photos" })).toBeInTheDocument();
+    expect(screen.queryByText(/no posts/i)).not.toBeInTheDocument();
+  });
 });

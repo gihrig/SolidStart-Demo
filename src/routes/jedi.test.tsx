@@ -95,7 +95,7 @@ describe("Jedi route (data-driven from jedi-api)", () => {
     await waitFor(() => expect(within(photos).getAllByRole("option")).toHaveLength(2));
   });
 
-  it("shows a 'No Posts in <category>' panel for an empty category", async () => {
+  it("shows a 'No Posts in <category>' panel in <main> for an empty category", async () => {
     renderJedi();
     const categories = await screen.findByRole("listbox", { name: "Categories" });
     await screen.findByRole("heading", { name: /little jedi/i }); // wait for load
@@ -103,8 +103,28 @@ describe("Jedi route (data-driven from jedi-api)", () => {
     // Row 2 is "People" — no post is tagged with it.
     within(categories).getAllByRole("option")[2].click();
 
-    expect(await screen.findByText(/no posts in people/i)).toBeInTheDocument();
+    const main = screen.getByRole("main");
+    await waitFor(() => expect(within(main).getByText(/no posts in people/i)).toBeInTheDocument());
     // The previously-shown featured post is gone, not left stale in <main>.
-    expect(screen.queryByRole("heading", { name: /little jedi/i })).not.toBeInTheDocument();
+    expect(within(main).queryByRole("heading", { name: /little jedi/i })).not.toBeInTheDocument();
+  });
+
+  it("mirrors the empty message in Top Photos and clears Top Captions", async () => {
+    renderJedi();
+    const categories = await screen.findByRole("listbox", { name: "Categories" });
+    await screen.findByRole("listbox", { name: "Top Photos" }); // loaded
+
+    within(categories).getAllByRole("option")[2].click(); // People — empty
+
+    const photosCard = screen.getByRole("heading", { name: "Top Photos" }).closest("section")!;
+    await waitFor(() =>
+      expect(within(photosCard).getByText(/no posts in people/i)).toBeInTheDocument(),
+    );
+    // Top Photos is no longer a listbox while empty.
+    expect(within(photosCard).queryByRole("listbox")).not.toBeInTheDocument();
+
+    // Top Captions clears — no caption rows for a category with no photo.
+    const captionsCard = screen.getByRole("heading", { name: "Top Captions" }).closest("section")!;
+    expect(within(captionsCard).queryAllByRole("option")).toHaveLength(0);
   });
 });

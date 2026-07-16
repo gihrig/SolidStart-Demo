@@ -156,6 +156,18 @@ describe("createJediFeed — the empty-category state", () => {
       expect(feed.emptyCategoryLabel()).toBeUndefined();
     }));
 
+  it("renders the selected post's captions as visibleCaptions when a post is shown", () =>
+    withFeed((feed) => {
+      expect(feed.visibleCaptions()).toEqual(feed.topCaptions());
+    }));
+
+  it("empties visibleCaptions when the category leaves no photo selected", () =>
+    withFeed((feed) => {
+      feed.setSelectedCategory(2); // People — no posts, no selected photo
+      expect(feed.selectedPost()).toBeUndefined();
+      expect(feed.visibleCaptions()).toEqual([]);
+    }));
+
   it("has no empty-category label for a category that has posts", () =>
     withFeed((feed) => {
       feed.setSelectedCategory(3); // Animals — post 1

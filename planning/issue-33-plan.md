@@ -296,3 +296,24 @@ Each has to be re-verified across all three listboxes, both click and keyboard p
 Want me to (a) implement issue 1 now, (b) file the issue-2 bug with these diagnostics, or both?
 
 ❯ Do both (a) and (b): (a) implement issue 1 now, (b) file the issue-2 bug with these diagnostics.
+
+⏺ Both done.
+
+(a) Empty-category panel — implemented and committed (4b20534)
+
+Selecting a category with no posts now shows a "No Posts in {category}" panel in <main> instead of the stale featured post. Built test-first at both seams:
+
+- Seam: added emptyCategoryLabel() (the category name when its filter matches no posts; undefined under "All" or while loading). Changed selectedPost so an empty visible list stays undefined — featured() now only covers the loading state, not empty categories.
+- Route: <main> became a Switch — empty panel, else the post, else Loading.
+
+Verified in the real browser across all three empty categories (People, Abstract, Black & White) — right name each time, non-empty categories still render their post, zero page errors. Full suite green at 254 tests, vpr check clean.
+
+(b) Focus bug — filed as #35 (bug, ready-for-human)
+
+The issue carries the full diagnosis: it's not a reload (marker survives, no navigation), it's focus dropping to <body> because SolidJS reconciles/moves the whole top-level grid <div>. Included the reconcileArrays blur stack, the MutationObserver "grid div removed/added" capture, the differential table showing it fires only when a list-membership change and a <main> change land in the same batch, and three candidate fix approaches. Labeled ready-for-human because choosing the fix (restructure the reactive graph vs. restore focus) is a design decision.
+
+I also updated planning/issue-33-plan.md (e163e48) to record the panel fix and cross-reference #35.
+
+One scoping note: issue 1 as you stated it was about `<main>`, which is fixed. The empty Top Photos card still renders bare (no in-card message) — I left that since it wasn't part of your request, but say the word if you want a message there too.
+
+❯ Yes, the Top Photos card should display the same message as `<main>` when empty. Also the Top Captions card should be empty when there are no photos to display

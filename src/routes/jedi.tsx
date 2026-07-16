@@ -19,7 +19,7 @@ export default function Jedi() {
     emptyCategoryLabel,
     selectedPost,
     selectPost,
-    topCaptions,
+    visibleCaptions,
     selectedCaption,
     selectCaption,
     selectedCategory,
@@ -82,9 +82,14 @@ export default function Jedi() {
               selectedCategory={selectedCategory}
               onSelect={setSelectedCategory}
             />
-            <TopPhotosCard posts={visiblePosts} selectedPost={selectedPost} onSelect={selectPost} />
+            <TopPhotosCard
+              posts={visiblePosts}
+              selectedPost={selectedPost}
+              onSelect={selectPost}
+              emptyLabel={emptyCategoryLabel}
+            />
             <TopCaptionsCard
-              captions={topCaptions}
+              captions={visibleCaptions}
               selectedCaption={selectedCaption}
               onSelect={selectCaption}
             />

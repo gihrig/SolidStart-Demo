@@ -1,4 +1,4 @@
-import { For, type Accessor } from "solid-js";
+import { For, Show, type Accessor } from "solid-js";
 import { useListbox } from "~/lib/useListbox";
 import type { PostView } from "~/types/jedi";
 import Card from "~/components/Card";
@@ -8,6 +8,9 @@ export interface TopPhotosCardProps {
   posts: Accessor<PostView[] | undefined>;
   selectedPost: Accessor<PostView | undefined>;
   onSelect: (id: number) => void;
+  /** Set to the category name when its filter matches no posts; the card then
+   *  shows a "No Posts in …" message in place of the list (mirrors `<main>`). */
+  emptyLabel?: Accessor<string | undefined>;
 }
 
 export default function TopPhotosCard(props: TopPhotosCardProps) {
@@ -30,37 +33,44 @@ export default function TopPhotosCard(props: TopPhotosCardProps) {
 
   return (
     <Card title="Top Photos">
-      <ul class="space-y-1" {...listboxProps}>
-        <For each={props.posts() ?? []}>
-          {(p, index) => (
-            <li
-              {...getOptionProps(index())}
-              aria-current={props.selectedPost()?.id === p.id ? "true" : undefined}
-              classList={{
-                "bg-(--theme-highlight)": props.selectedPost()?.id === p.id,
-                "ring-2": focusedIndex() === index(),
-                "ring-(--theme-accent)": focusedIndex() === index(),
-              }}
-              class="flex items-center cursor-pointer w-full p-2 rounded outline-none hover:bg-(--theme-hover-bg) transition-colors duration-150"
-            >
-              <img
-                class="w-10 h-10 rounded-lg object-cover mr-3"
-                src={p.imageSrc}
-                alt={p.imageAlt}
-                loading="lazy"
-              />
-              <img
-                class="w-6 h-6 rounded-full object-cover mr-0.5"
-                src={p.author.avatarUrl}
-                alt=""
-                loading="lazy"
-              />
-              <span class="font-bold text-sm mr-1">{p.author.name}</span>
-              <span class="text-sm font-light text-(--theme-card-fg)">({p.likeCount} Likes)</span>
-            </li>
-          )}
-        </For>
-      </ul>
+      <Show
+        when={!props.emptyLabel?.()}
+        fallback={
+          <p class="p-2 text-sm text-(--theme-card-fg)">No Posts in {props.emptyLabel?.()}</p>
+        }
+      >
+        <ul class="space-y-1" {...listboxProps}>
+          <For each={props.posts() ?? []}>
+            {(p, index) => (
+              <li
+                {...getOptionProps(index())}
+                aria-current={props.selectedPost()?.id === p.id ? "true" : undefined}
+                classList={{
+                  "bg-(--theme-highlight)": props.selectedPost()?.id === p.id,
+                  "ring-2": focusedIndex() === index(),
+                  "ring-(--theme-accent)": focusedIndex() === index(),
+                }}
+                class="flex items-center cursor-pointer w-full p-2 rounded outline-none hover:bg-(--theme-hover-bg) transition-colors duration-150"
+              >
+                <img
+                  class="w-10 h-10 rounded-lg object-cover mr-3"
+                  src={p.imageSrc}
+                  alt={p.imageAlt}
+                  loading="lazy"
+                />
+                <img
+                  class="w-6 h-6 rounded-full object-cover mr-0.5"
+                  src={p.author.avatarUrl}
+                  alt=""
+                  loading="lazy"
+                />
+                <span class="font-bold text-sm mr-1">{p.author.name}</span>
+                <span class="text-sm font-light text-(--theme-card-fg)">({p.likeCount} Likes)</span>
+              </li>
+            )}
+          </For>
+        </ul>
+      </Show>
     </Card>
   );
 }

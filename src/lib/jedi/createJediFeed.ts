@@ -42,6 +42,9 @@ export interface JediFeed {
   selectedPost: Accessor<PostView | undefined>;
   selectPost: (id: number) => void;
   topCaptions: Accessor<CaptionView[] | undefined>;
+  /** What Top Captions renders: the selected post's captions, or empty when no
+   *  post is selected (an empty category), so the card clears with `<main>`. */
+  visibleCaptions: Accessor<CaptionView[] | undefined>;
   winningCaption: Accessor<CaptionView | undefined>;
   selectedCaption: Accessor<CaptionView | undefined>;
   selectCaption: (id: number) => void;
@@ -104,6 +107,10 @@ export function createJediFeed(): JediFeed {
   );
   const winningCaption = () => topCaptions()?.[0];
 
+  // Empty when no post is selected (empty category), so Top Captions clears
+  // instead of showing the previous post's captions from the stale resource.
+  const visibleCaptions = (): CaptionView[] | undefined => (selectedPost() ? topCaptions() : []);
+
   // Self-resets on a post change: the old id is absent from the new captions.
   const selectedCaption = (): CaptionView | undefined =>
     topCaptions()?.find((c) => c.id === selectedCaptionId()) ?? winningCaption();
@@ -123,6 +130,7 @@ export function createJediFeed(): JediFeed {
     selectedPost,
     selectPost,
     topCaptions,
+    visibleCaptions,
     winningCaption,
     selectedCaption,
     selectCaption,
