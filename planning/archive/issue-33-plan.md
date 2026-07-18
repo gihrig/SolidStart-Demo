@@ -330,3 +330,7 @@ Two small notes on choices I made without asking:
 - I put the caption-clearing logic on the seam (visibleCaptions) rather than in the route markup, keeping the route as wiring and the card presentational — consistent with how visiblePosts already works.
 
 The focus/reload bug (#35) is untouched and still open, as intended.
+
+---
+
+Issue #33 complete and closed
