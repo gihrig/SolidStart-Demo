@@ -118,9 +118,9 @@ describe("createJediFeed — visiblePosts, the category filter (#33-b)", () => {
   it("filters posts to the selected category", () =>
     withFeed((feed) => {
       feed.setSelectedCategory(1); // Landscape — only "Brilliant tree" (post 2)
-      expect(feed.visiblePosts()?.map((p) => p.id)).toEqual([2]);
+      expect(feed.visiblePosts()?.map((p) => p.id)).toEqual([2, 4]);
       feed.setSelectedCategory(3); // Animals — only "Little Jedi" (post 1)
-      expect(feed.visiblePosts()?.map((p) => p.id)).toEqual([1]);
+      expect(feed.visiblePosts()?.map((p) => p.id)).toEqual([1, 3]);
     }));
 
   it("shows no posts for a category nothing is tagged with", () =>

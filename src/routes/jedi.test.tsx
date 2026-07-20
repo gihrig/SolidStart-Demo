@@ -74,13 +74,16 @@ describe("Jedi route (data-driven from jedi-api)", () => {
     renderJedi();
     const categories = await screen.findByRole("listbox", { name: "Categories" });
     const photos = await screen.findByRole("listbox", { name: "Top Photos" });
-    expect(within(photos).getAllByRole("option")).toHaveLength(2);
+    expect(within(photos).getAllByRole("option")).toHaveLength(4);
 
-    // Row 0 is "All"; row 1 is Landscape — only "Brilliant tree" is tagged with it.
+    // Row 0 is "All"; row 1 is Landscape — "Brilliant tree" and "Serine Beach" are tagged with it.
     within(categories).getAllByRole("option")[1].click();
 
-    await waitFor(() => expect(within(photos).getAllByRole("option")).toHaveLength(1));
-    expect(within(photos).getByRole("option")).toHaveTextContent("Homer");
+    await waitFor(() => expect(within(photos).getAllByRole("option")).toHaveLength(2));
+    // Both Landscape posts are Homer's.
+    for (const opt of within(photos).getAllByRole("option")) {
+      expect(opt).toHaveTextContent("Homer");
+    }
     expect(await screen.findByRole("heading", { name: /brilliant tree/i })).toBeInTheDocument();
   });
 
@@ -90,9 +93,9 @@ describe("Jedi route (data-driven from jedi-api)", () => {
     const photos = await screen.findByRole("listbox", { name: "Top Photos" });
 
     within(categories).getAllByRole("option")[1].click(); // Landscape
-    await waitFor(() => expect(within(photos).getAllByRole("option")).toHaveLength(1));
-    within(categories).getAllByRole("option")[0].click(); // All
     await waitFor(() => expect(within(photos).getAllByRole("option")).toHaveLength(2));
+    within(categories).getAllByRole("option")[0].click(); // All
+    await waitFor(() => expect(within(photos).getAllByRole("option")).toHaveLength(4));
   });
 
   it("shows a 'No Posts in <category>' panel in <main> for an empty category", async () => {
