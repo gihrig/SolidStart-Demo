@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
-import { render, screen, within, waitFor } from "@solidjs/testing-library";
+import { render, screen, within, waitFor, fireEvent } from "@solidjs/testing-library";
 import { MetaProvider } from "@solidjs/meta";
+import { Suspense } from "solid-js";
 import Jedi from "./jedi";
 
 function setupMatchMedia(mobile: boolean) {
@@ -110,6 +111,41 @@ describe("Jedi route (data-driven from jedi-api)", () => {
     await waitFor(() => expect(within(main).getByText(/no posts in people/i)).toBeInTheDocument());
     // The previously-shown featured post is gone, not left stale in <main>.
     expect(within(main).queryByRole("heading", { name: /little jedi/i })).not.toBeInTheDocument();
+  });
+
+  // #35 regression: selecting a category that changes both the Top Photos list
+  // and the <main> post (Landscape) re-keys the caption resource. Reading it via
+  // a suspending call re-triggered Suspense, reconciling the route subtree and
+  // blurring the focused listbox <ul> to <body> — a keyboard user was dumped to
+  // the page top. The route is wrapped in <Suspense> here to mirror SolidStart's
+  // route boundary, where that reconcile happened. Focus must stay on the list.
+  it("keeps keyboard focus on the listbox when a category re-keys the captions (#35)", async () => {
+    render(() => (
+      <MetaProvider>
+        <Suspense>
+          <Jedi />
+        </Suspense>
+      </MetaProvider>
+    ));
+
+    const categories = await screen.findByRole("listbox", { name: "Categories" });
+    await screen.findByRole("heading", { name: /little jedi/i }); // fully loaded
+
+    categories.focus();
+    expect(document.activeElement).toBe(categories);
+
+    // ArrowDown: All (0) → Landscape (1); Enter actions it. Landscape drops the
+    // featured post from the filter, so <main> and Top Photos both change.
+    fireEvent.keyDown(categories, { key: "ArrowDown" });
+    fireEvent.keyDown(categories, { key: "Enter" });
+
+    await screen.findByRole("heading", { name: /brilliant tree/i }); // filter applied
+
+    // The whole point: focus did not fall to <body>...
+    expect(document.activeElement).toBe(categories);
+    // ...and the roving position (Landscape, index 1) is preserved, so keyboard
+    // navigation continues from where it was (spec: keep aria-activedescendant).
+    expect(categories.getAttribute("aria-activedescendant")).toBe("category-option-1");
   });
 
   it("mirrors the empty message in Top Photos and clears Top Captions", async () => {
