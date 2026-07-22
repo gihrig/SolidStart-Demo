@@ -105,15 +105,23 @@ export function createJediFeed(): JediFeed {
     () => selectedPost()?.id,
     (postId) => jediApi.captions.listForPost(postId),
   );
-  const winningCaption = () => topCaptions()?.[0];
+  // Read `.latest`, not `topCaptions()`: a suspending read here re-triggered
+  // Suspense on every post re-key, reconciling the route subtree and blurring
+  // the focused sidebar listbox to <body> (#35). `.latest` is non-suspending —
+  // it shows the previous post's captions for the one microtask the refetch
+  // takes to resolve, so the caption cards stay populated instead of flashing.
+  const winningCaption = () => topCaptions.latest?.[0];
 
-  // Empty when no post is selected (empty category), so Top Captions clears
-  // instead of showing the previous post's captions from the stale resource.
-  const visibleCaptions = (): CaptionView[] | undefined => (selectedPost() ? topCaptions() : []);
+  // `[]` when no post is selected (empty category) so Top Captions clears: the
+  // empty branch, not the resource, drives that clear. When a post *is* selected
+  // `.latest` may briefly show the prior post's captions during a refetch (see
+  // above) — that transient is intended; the empty-category clear is not affected.
+  const visibleCaptions = (): CaptionView[] | undefined =>
+    selectedPost() ? topCaptions.latest : [];
 
   // Self-resets on a post change: the old id is absent from the new captions.
   const selectedCaption = (): CaptionView | undefined =>
-    topCaptions()?.find((c) => c.id === selectedCaptionId()) ?? winningCaption();
+    topCaptions.latest?.find((c) => c.id === selectedCaptionId()) ?? winningCaption();
   const selectCaption = (id: number): void => {
     setSelectedCaptionId(id);
   };
