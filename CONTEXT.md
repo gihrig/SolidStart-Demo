@@ -102,3 +102,19 @@ _Avoid_: user (when the owning role is meant); poster.
 Ranked _views_, not stored lists. Top Photos = Posts ordered by like count (within the selected Category once filtering lands, #29); Top Captions = the
 selected/featured Post's Captions ordered by like count.
 _Avoid_: featured/popular list, best captions (as stored data).
+
+### Sidebar selection & focus
+
+The three sidebar cards (Categories, Top Photos, Top Captions) are single-select **listboxes** with a roving `aria-activedescendant`. Two distinct visual states ride on each option — keep them separate:
+
+**Selection highlight**:
+The persistent mark on the option that _is_ the current selection (`bg-(--theme-highlight)`). It reflects application state (the selected Category / Post / Caption) and must **always** be present on the selected option, regardless of input modality. Losing it when the selection changes is a bug (#37).
+_Avoid_: focus highlight; conflating it with the focus ring.
+
+**Focus ring** (active-option ring):
+The keyboard-navigation indicator on the active option (`ring-2 ring-(--theme-accent)`). It marks where roving keyboard focus sits and is **keyboard-modality only** (see focus visibility, below). Painting it on pointer click — or leaving it on an unfocused listbox — is a bug (#38).
+_Avoid_: selection ring; treating it as a selection cue.
+
+**Focus visibility (`:focus-visible`)**:
+Focus indicators are shown for **keyboard** interaction only, never for pointer clicks. The app's global rule styles focus via `:focus-visible` (keyboard-only, WCAG 2.4.7–compliant), and the sidebar's active-option ring must follow the same modality rule. A focus ring appearing on mouse click is a defect, not desired behavior; the `<main>` action buttons showing no ring on click are correct.
+_Avoid_: always-on focus outlines; showing the ring on pointer interaction.
