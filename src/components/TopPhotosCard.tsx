@@ -45,12 +45,12 @@ export default function TopPhotosCard(props: TopPhotosCardProps) {
               <li
                 {...getOptionProps(index())}
                 aria-current={props.selectedPost()?.id === p.id ? "true" : undefined}
+                class="flex items-center cursor-pointer w-full p-2 rounded outline-none hover:bg-(--theme-hover-bg) transition-colors duration-150"
                 classList={{
                   "bg-(--theme-highlight)": props.selectedPost()?.id === p.id,
                   "ring-2": focusedIndex() === index(),
                   "ring-(--theme-accent)": focusedIndex() === index(),
                 }}
-                class="flex items-center cursor-pointer w-full p-2 rounded outline-none hover:bg-(--theme-hover-bg) transition-colors duration-150"
               >
                 <img
                   class="w-10 h-10 rounded-lg object-cover mr-3"

@@ -148,6 +148,69 @@ describe("Jedi route (data-driven from jedi-api)", () => {
     expect(categories.getAttribute("aria-activedescendant")).toBe("category-option-1");
   });
 
+  // #37 regression: the sidebar cards bind the highlight with `classList` *and* a
+  // static `class`. When `class` was ordered after `classList`, its className write
+  // wiped the freshly-toggled highlight on a row's first paint; only a later
+  // classList update re-applied it — so a default (winning/top-ranked) selection
+  // that never gets a follow-up update rendered with no highlight.
+  const isHighlighted = (el: Element) => el.className.includes("bg-(--theme-highlight)");
+
+  it("highlights the default selection on all three cards at load (#37)", async () => {
+    renderJedi();
+    await screen.findByRole("heading", { name: /little jedi/i }); // loaded
+
+    for (const name of ["Categories", "Top Photos", "Top Captions"]) {
+      const list = await screen.findByRole("listbox", { name });
+      const rows = within(list).getAllByRole("option");
+      // Exactly the default row (index 0: "All" / top-ranked / winning) is highlighted.
+      expect(rows.filter(isHighlighted)).toEqual([rows[0]]);
+    }
+  });
+
+  it("keeps the effective selection highlighted after a Category change (#37)", async () => {
+    renderJedi();
+    const categories = await screen.findByRole("listbox", { name: "Categories" });
+    await screen.findByRole("heading", { name: /little jedi/i });
+
+    within(categories).getAllByRole("option")[1].click(); // Landscape — re-filters + re-keys
+    await screen.findByRole("heading", { name: /brilliant tree/i });
+
+    // Top Photos re-filters; its effective (aria-current) selected row is highlighted.
+    await waitFor(() => {
+      const photos = within(screen.getByRole("listbox", { name: "Top Photos" })).getAllByRole(
+        "option",
+      );
+      const current = photos.filter((r) => r.getAttribute("aria-current") === "true");
+      expect(current).toEqual(photos.filter(isHighlighted));
+      expect(current).toHaveLength(1);
+    });
+
+    // Top Captions re-keys off the new post; the winning caption stays highlighted
+    // and remains so after the refetch settles.
+    await waitFor(() => {
+      const captions = within(screen.getByRole("listbox", { name: "Top Captions" })).getAllByRole(
+        "option",
+      );
+      const current = captions.filter((r) => r.getAttribute("aria-current") === "true");
+      expect(current).toEqual(captions.filter(isHighlighted));
+      expect(current).toHaveLength(1);
+    });
+  });
+
+  it("moves the highlight to a directly-selected Top Caption (#37 no-regression)", async () => {
+    renderJedi();
+    const captions = await screen.findByRole("listbox", { name: "Top Captions" });
+    await screen.findByRole("heading", { name: /little jedi/i });
+
+    const rows = within(captions).getAllByRole("option");
+    rows[1].click(); // pick a non-default caption
+
+    await waitFor(() => {
+      const current = within(captions).getAllByRole("option").filter(isHighlighted);
+      expect(current).toEqual([rows[1]]);
+    });
+  });
+
   it("mirrors the empty message in Top Photos and clears Top Captions", async () => {
     renderJedi();
     const categories = await screen.findByRole("listbox", { name: "Categories" });
