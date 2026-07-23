@@ -27,12 +27,12 @@ export default function CategoriesCard(props: CategoriesCardProps) {
           {(c, index) => (
             <li
               {...getOptionProps(index())}
+              class="flex items-center cursor-pointer px-2 py-1 rounded outline-none"
               classList={{
                 "bg-(--theme-highlight)": props.selectedCategory() === index(),
                 "ring-2": focusedIndex() === index(),
                 "ring-(--theme-accent)": focusedIndex() === index(),
               }}
-              class="flex items-center cursor-pointer px-2 py-1 rounded outline-none"
             >
               <Icon name={c.icon} class="w-8 h-8 object-cover mr-2" />
               <span class="font-bold text-sm">{c.name}</span>
