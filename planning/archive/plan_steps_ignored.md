@@ -2652,7 +2652,7 @@ Empty string produces trailing space — harmless.
 Fix:
 
 - `local.class` defaulted to `""` by `mergeProps`
-- Replace '${local.class ? ` ${local.class}` : ""} with `${local.class}`}'
+- Replace '${local.class ? ` ${local.class}`: ""} with`${local.class}`}'
 
 **Updated per Fix**
 
@@ -6119,6 +6119,7 @@ Positive Observations
 - List issues found in a numbered list
 - Must use backticks e.g. <pre>`code;`</pre> for simple one-line code snippets in issues
 - Must use code fencing for multi-line code snippets in issues. eg.
+
 <pre>
   ```tsx
   code;
@@ -6545,6 +6546,7 @@ Positive Observations
 - List issues found in a numbered list
 - Must use backticks e.g. <pre>`code;`</pre> for simple one-line code snippets in issues
 - Must use code fencing for multi-line code snippets in issues. eg.
+
 <pre>
   ```tsx
   code;

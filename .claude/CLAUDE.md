@@ -119,6 +119,7 @@ This project uses Vite+ (`vp`). Run `vp help` for all commands.
 - Import from `vite-plus` not `vite`/`vitest`: `import { defineConfig } from 'vite-plus'`
 - `vp lint --type-aware` works out of the box; no extra packages needed
 - Run `vp install` after pulling remote changes; run `vp check` and `vp test` to validate changes
+
 <!--VITE PLUS END-->
 
 ---

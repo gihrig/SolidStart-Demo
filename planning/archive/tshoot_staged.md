@@ -45,6 +45,6 @@ Why @types/node is the wrong fix: @types/bun is intentionally used instead of @t
 
 Correct fix: Add playwright.config.ts and e2e/\*_/_ to tsconfig.json's include:
 
-"include": ["src/**/*", "src/types/**/*", "playwright.config.ts", "e2e/**/*"]
+"include": ["src/**/\*", "src/types/**/_", "playwright.config.ts", "e2e/\**/_"]
 
 This brings them into project scope so they get the full tsconfig context (including @types/bun, strict, etc.) during both full checks and staged-file checks. It also ensures e2e test files get proper type coverage.
