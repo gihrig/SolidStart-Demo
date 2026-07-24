@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — SolidStart Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose" });
+    </script>
+    <style>
+      .seam {
+        stroke-dasharray: 5 4;
+      }
+      .deep {
+        background: linear-gradient(135deg, #020617, #1e293b);
+      }
+      body {
+        font-feature-settings: "kern";
+      }
+      .mermaid {
+        display: flex;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-200 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+      <!-- ─────────────── HEADER ─────────────── -->
+      <header class="space-y-5 border-b border-slate-800 pb-8">
+        <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Deep-modules review</p>
+        <h1 class="font-serif text-4xl text-slate-100">Architecture review — SolidStart Demo</h1>
+        <p class="text-sm text-slate-400">
+          2026-07-23 · front-end modular monolith · Realtime Conversations + Jedi
+        </p>
+        <div class="flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-400 pt-2">
+          <span class="flex items-center gap-2"
+            ><span class="inline-block w-5 h-3 border-2 border-slate-400 bg-slate-800"></span>
+            module</span
+          >
+          <span class="flex items-center gap-2"
+            ><svg width="34" height="8">
+              <line x1="0" y1="4" x2="34" y2="4" stroke="#94a3b8" stroke-width="2" class="seam" />
+            </svg>
+            seam</span
+          >
+          <span class="flex items-center gap-2"
+            ><svg width="34" height="8">
+              <line x1="0" y1="4" x2="34" y2="4" stroke="#f87171" stroke-width="2" />
+            </svg>
+            leak</span
+          >
+          <span class="flex items-center gap-2"
+            ><span class="inline-block w-5 h-3 deep border border-slate-700"></span> deep
+            module</span
+          >
+        </div>
+      </header>
+
+      <section id="candidates" class="space-y-16">
+        <!-- ══════════════ CANDIDATE A ══════════════ -->
+        <article class="space-y-6">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h2 class="font-serif text-2xl text-slate-100">A · Delete the accumulator module</h2>
+              <p class="text-sm text-slate-400 mt-1">
+                A shallow module that exists only to be tested.
+              </p>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <span
+                class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30"
+                >Strong</span
+              >
+              <span class="text-xs font-mono px-2.5 py-1 rounded-full bg-slate-800 text-slate-400"
+                >in-process</span
+              >
+            </div>
+          </div>
+
+          <p class="font-mono text-sm text-slate-400">
+            src/lib/accumulator.ts · src/lib/accumulator.unit.test.ts · src/components/Counter.tsx
+          </p>
+
+          <!-- before/after: mass diagram -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                Before — interface ≈ implementation
+              </p>
+              <div class="flex items-end gap-3 h-56">
+                <div class="flex flex-col items-center gap-1 flex-1">
+                  <div class="w-full bg-amber-400/70 rounded-t" style="height: 150px"></div>
+                  <div
+                    class="w-full deep border border-slate-700 rounded-b"
+                    style="height: 40px"
+                  ></div>
+                  <span class="text-[10px] text-slate-400 mt-1">accumulator</span>
+                </div>
+                <div class="flex-1 text-xs text-slate-400 leading-relaxed">
+                  <span class="block text-amber-300 font-semibold">interface (tall)</span>
+                  returns <span class="font-mono">[value, accumulate]</span>;
+                  <span class="font-mono">accumulate</span> returns the <em>pre</em>-existing value
+                  — a quirk you must learn.
+                  <span class="block mt-2 text-slate-200 font-semibold"
+                    >implementation (short)</span
+                  >
+                  6-line body.
+                  <span class="font-semibold text-rose-400">0 production callers.</span>
+                </div>
+              </div>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — deleted</p>
+              <div class="flex items-center justify-center h-56">
+                <div class="text-center">
+                  <div class="text-5xl text-slate-600">∅</div>
+                  <p class="text-xs text-slate-400 mt-3 max-w-[16rem]">
+                    Counter already accumulates with a raw signal. Nothing reappears.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- evidence -->
+          <div
+            class="rounded-lg bg-black/50 ring-1 ring-slate-800 text-slate-100 p-4 font-mono text-xs overflow-x-auto space-y-3"
+          >
+            <div>
+              <span class="text-slate-500">// accumulator.ts:5 — the whole module</span><br />export
+              function createAccumulator(initial = 0) { … return [value, accumulate] as const; }
+            </div>
+            <div>
+              <span class="text-slate-500"
+                >// Counter.tsx:4 — the one place that accumulates, uses a raw signal instead</span
+              ><br />const [count, setCount] = createSignal(0);
+            </div>
+            <div class="text-emerald-300">
+              // grep createAccumulator → matches only its own def + its 82-line test
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div>
+              <span class="text-xs uppercase tracking-wider text-slate-500">Problem</span>
+              <p class="mt-1 text-slate-300">
+                Shallow module with zero call sites; interface as wide as the body.
+              </p>
+            </div>
+            <div>
+              <span class="text-xs uppercase tracking-wider text-slate-500">Solution</span>
+              <p class="mt-1 text-slate-300">Delete both files.</p>
+            </div>
+          </div>
+          <ul class="grid sm:grid-cols-3 gap-2 text-xs text-emerald-200">
+            <li class="rounded bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-2">
+              Deletion test: complexity vanishes
+            </li>
+            <li class="rounded bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-2">
+              No leverage lost: 0 call sites
+            </li>
+            <li class="rounded bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-2">
+              Removes a test that guards nothing
+            </li>
+          </ul>
+        </article>
+
+        <hr class="border-slate-800" />
+
+        <!-- ══════════════ CANDIDATE B ══════════════ -->
+        <article class="space-y-6">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h2 class="font-serif text-2xl text-slate-100">B · Deepen the sidebar option seam</h2>
+              <p class="text-sm text-slate-400 mt-1">
+                Selection-highlight + focus-ring paint is duplicated across three cards.
+              </p>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <span
+                class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30"
+                >Strong</span
+              >
+              <span class="text-xs font-mono px-2.5 py-1 rounded-full bg-slate-800 text-slate-400"
+                >in-process</span
+              >
+            </div>
+          </div>
+
+          <p class="font-mono text-sm text-slate-400">
+            useListbox.ts · CategoriesCard.tsx · TopPhotosCard.tsx · TopCaptionsCard.tsx
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                Before — paint decided in 3 cards
+              </p>
+              <pre class="mermaid">
+flowchart TD
+  UL[useListbox\nringIndex, modality machine]
+  C1[CategoriesCard\nclassList triple]
+  C2[TopPhotosCard\nindex↔id + classList triple]
+  C3[TopCaptionsCard\nindex↔id + classList triple]
+  UL --> C1
+  UL --> C2
+  UL --> C3
+  C1 -. dup paint .- C2
+  C2 -. dup paint .- C3
+  classDef dup fill:#7f1d1d,stroke:#f87171,color:#fecaca;
+  class C1,C2,C3 dup
+              </pre>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                After — paint absorbed by the seam
+              </p>
+              <pre class="mermaid">
+flowchart TD
+  UL2[useListbox\nringIndex + selected + option classList]:::deep
+  C1b[CategoriesCard\ndata only]
+  C2b[TopPhotosCard\ndata only]
+  C3b[TopCaptionsCard\ndata only]
+  UL2 --> C1b
+  UL2 --> C2b
+  UL2 --> C3b
+  classDef deep fill:#020617,stroke:#334155,color:#e2e8f0;
+              </pre>
+            </div>
+          </div>
+
+          <div
+            class="rounded-lg bg-black/50 ring-1 ring-slate-800 text-slate-100 p-4 font-mono text-xs overflow-x-auto space-y-3"
+          >
+            <div>
+              <span class="text-slate-500"
+                >// TopPhotosCard.tsx:18-21 &nbsp;≡&nbsp; TopCaptionsCard.tsx:17-20 — byte-for-byte
+                index↔id adapter</span
+              ><br />const selectedIndex = () => {<br />&nbsp;&nbsp;const id =
+              props.selectedPost()?.id;<br />&nbsp;&nbsp;return props.posts()?.findIndex((p) => p.id
+              === id) ?? -1;<br />};
+            </div>
+            <div>
+              <span class="text-slate-500"
+                >// CategoriesCard.tsx:33-34 · TopPhotosCard.tsx:51-52 · TopCaptionsCard.tsx:44-45 —
+                same triple, 3×</span
+              ><br />"ring-2": ringIndex() === index(),<br />"ring-(--theme-accent)": ringIndex()
+              === index(),
+            </div>
+          </div>
+
+          <div
+            class="rounded-lg border-l-4 border-indigo-400 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-200"
+          >
+            <span class="font-semibold">Locality symptom:</span> CONTEXT.md splits
+            <em>selection highlight</em> (#37) from <em>focus ring</em> (#38) — both bugs. The paint
+            decision lives in three card files, so each fix had to be re-verified three times.
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div>
+              <span class="text-xs uppercase tracking-wider text-slate-500">Problem</span>
+              <p class="mt-1 text-slate-300">
+                The highlight/ring decision is spread across three cards as duplicated
+                <span class="font-mono">classList</span> triples and a duplicated index↔id adapter.
+              </p>
+            </div>
+            <div>
+              <span class="text-xs uppercase tracking-wider text-slate-500">Solution</span>
+              <p class="mt-1 text-slate-300">
+                <span class="font-mono">useListbox</span> returns the option's paint (via
+                <span class="font-mono">getOptionProps</span>) and accepts a keyed
+                <span class="font-mono">selectedId</span>; cards pass data, not classes.
+              </p>
+            </div>
+          </div>
+          <ul class="grid sm:grid-cols-3 gap-2 text-xs text-emerald-200">
+            <li class="rounded bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-2">
+              Locality: ring/highlight bug fixed once
+            </li>
+            <li class="rounded bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-2">
+              Leverage: one paint interface, 3 call sites
+            </li>
+            <li class="rounded bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-2">
+              Interface shrinks; useListbox absorbs the triples
+            </li>
+          </ul>
+        </article>
+
+        <hr class="border-slate-800" />
+
+        <!-- ══════════════ CANDIDATE C ══════════════ -->
+        <article class="space-y-6">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h2 class="font-serif text-2xl text-slate-100">
+                C · Give the Conversations selection a home module
+              </h2>
+              <p class="text-sm text-slate-400 mt-1">
+                Selection state lives twice; the create-refetch-select dance is copy-pasted.
+              </p>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <span
+                class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30"
+                >Worth exploring</span
+              >
+              <span class="text-xs font-mono px-2.5 py-1 rounded-full bg-slate-800 text-slate-400"
+                >in-process</span
+              >
+            </div>
+          </div>
+
+          <p class="font-mono text-sm text-slate-400">
+            fullstack.tsx · AgentManager.tsx · ConversationManager.tsx · MessagePanel.tsx
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                Before — orchestration in the route
+              </p>
+              <pre class="mermaid">
+flowchart TD
+  R[fullstack.tsx\nselectedAgent, selectedConv signals]
+  A[AgentManager\nown selectedAgent]
+  C[ConversationManager\nown selectedConv]
+  M[MessagePanel]
+  R -->|onAgentSelect| A
+  R -->|onConvSelect| C
+  R --> M
+  A -. shadows .- R
+  C -. shadows .- R
+  classDef dup fill:#7f1d1d,stroke:#f87171,color:#fecaca;
+  class A,C dup
+              </pre>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                After — one workspace module
+              </p>
+              <pre class="mermaid">
+flowchart TD
+  W[conversation workspace\nselection + create dance]:::deep
+  A2[AgentManager\npresentational]
+  C2[ConversationManager\npresentational]
+  M2[MessagePanel]
+  W --> A2
+  W --> C2
+  W --> M2
+  classDef deep fill:#020617,stroke:#334155,color:#e2e8f0;
+              </pre>
+            </div>
+          </div>
+
+          <div
+            class="rounded-lg bg-black/50 ring-1 ring-slate-800 text-slate-100 p-4 font-mono text-xs overflow-x-auto space-y-3"
+          >
+            <div>
+              <span class="text-slate-500">// fullstack.tsx:12-13 — route owns selection…</span
+              ><br />const [selectedAgent, setSelectedAgent] = createSignal&lt;Agent |
+              null&gt;(null);<br />const [selectedConv, setSelectedConv] = createSignal&lt;Conv |
+              null&gt;(null);
+            </div>
+            <div class="text-rose-300">
+              // …yet AgentManager.tsx:11 and ConversationManager.tsx:20 each keep their own
+              selectedX — stored twice
+            </div>
+            <div class="text-slate-500">
+              // create → form.reset() → refetch() → setSelected → onXSelect?.(…) duplicated in both
+              managers' handleCreate
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div>
+              <span class="text-xs uppercase tracking-wider text-slate-500">Problem</span>
+              <p class="mt-1 text-slate-300">
+                The three managers emit callbacks the route threads by hand; each also shadows the
+                route's selection, so "which agent is selected" has no single owner.
+              </p>
+            </div>
+            <div>
+              <span class="text-xs uppercase tracking-wider text-slate-500">Solution</span>
+              <p class="mt-1 text-slate-300">
+                A deep workspace module owns selection + the create-refetch-select dance; managers
+                become presentational.
+              </p>
+            </div>
+          </div>
+          <ul class="grid sm:grid-cols-3 gap-2 text-xs text-emerald-200">
+            <li class="rounded bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-2">
+              Locality: selection state in one place
+            </li>
+            <li class="rounded bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-2">
+              Deletes the duplicated create dance
+            </li>
+            <li class="rounded bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-2">
+              Interface: test the flow, not 3 routes
+            </li>
+          </ul>
+        </article>
+
+        <hr class="border-slate-800" />
+
+        <!-- ══════════════ CANDIDATE D ══════════════ -->
+        <article class="space-y-6">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h2 class="font-serif text-2xl text-slate-100">
+                D · Put the MessagePanel seam where it can be tested
+              </h2>
+              <p class="text-sm text-slate-400 mt-1">
+                The reactive core is mocked away — its race guards are never exercised.
+              </p>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <span
+                class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30"
+                >Worth exploring</span
+              >
+              <span class="text-xs font-mono px-2.5 py-1 rounded-full bg-slate-800 text-slate-400"
+                >ports &amp; adapters</span
+              >
+            </div>
+          </div>
+
+          <p class="font-mono text-sm text-slate-400">
+            MessagePanel.tsx · websocket.ts · MessagePanel.test.tsx
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                Before — test skips past the interface
+              </p>
+              <pre class="mermaid">
+sequenceDiagram
+  participant T as MessagePanel.test
+  participant M as MessagePanel
+  participant W as useWebSocket
+  T-&gt;&gt;W: vi.mock → inert vi.fn()
+  Note over W: subscribe / onConvMsg stubbed
+  T-&gt;&gt;M: render, conv fixed
+  Note over M: listStale race,<br/>dedup guard,<br/>unsubscribe effect<br/>NEVER run
+              </pre>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                After — inject a feed adapter
+              </p>
+              <pre class="mermaid">
+sequenceDiagram
+  participant T as MessagePanel.test
+  participant M as MessagePanel
+  participant F as feed adapter (in-mem)
+  T-&gt;&gt;M: render(feed = fake)
+  F--&gt;&gt;M: emit conv_msg (dup, race)
+  M-&gt;&gt;M: dedup + listStale run
+  Note over M: reactive core tested<br/>through the interface
+              </pre>
+            </div>
+          </div>
+
+          <div
+            class="rounded-lg bg-black/50 ring-1 ring-slate-800 text-slate-100 p-4 font-mono text-xs overflow-x-auto space-y-3"
+          >
+            <div>
+              <span class="text-slate-500"
+                >// MessagePanel.test.tsx:21-30 — the whole socket is stubbed out</span
+              ><br />vi.mock("~/lib/websocket", () =&gt; ({<br />&nbsp;&nbsp;useWebSocket: vi.fn(()
+              =&gt; ({ connected: () =&gt; false, subscribe: vi.fn(), onConvMsg: undefined, …
+              })),<br />}));
+            </div>
+            <div class="text-rose-300">
+              // so MessagePanel.tsx:16 listStale · :26-29 dedup · :61-67 unsubscribe-on-conv-change
+              → no test through the interface
+            </div>
+          </div>
+
+          <div
+            class="rounded-lg border-l-4 border-rose-400 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+          >
+            <span class="font-semibold">Two adapters justify the seam:</span> a live socket in prod,
+            an in-memory feed in tests. Today <span class="font-mono">websocket.ts</span> calls
+            <span class="font-mono">onMount(connect)</span> per component — the seam is per-instance
+            and there is no test adapter, so the trickiest reactive logic in the file is
+            unreachable.
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div>
+              <span class="text-xs uppercase tracking-wider text-slate-500">Problem</span>
+              <p class="mt-1 text-slate-300">
+                MessagePanel creates its socket internally; the only integration test replaces the
+                whole module, so dedup and the <span class="font-mono">listStale</span> race guard
+                cross no test seam.
+              </p>
+            </div>
+            <div>
+              <span class="text-xs uppercase tracking-wider text-slate-500">Solution</span>
+              <p class="mt-1 text-slate-300">
+                Accept the feed as a dependency (a small port), pass a live adapter in prod and an
+                in-memory one in tests.
+              </p>
+            </div>
+          </div>
+          <ul class="grid sm:grid-cols-3 gap-2 text-xs text-emerald-200">
+            <li class="rounded bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-2">
+              Interface = test surface again
+            </li>
+            <li class="rounded bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-2">
+              Race guards testable, deterministically
+            </li>
+            <li class="rounded bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-2">
+              One shared socket, not one per panel
+            </li>
+          </ul>
+        </article>
+
+        <hr class="border-slate-800" />
+
+        <!-- ══════════════ CANDIDATE E ══════════════ -->
+        <article class="space-y-6">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h2 class="font-serif text-2xl text-slate-100">
+                E · Stop bigint leaking across the backend-rpc seam
+              </h2>
+              <p class="text-sm text-slate-400 mt-1">
+                Every method re-does <span class="font-mono">Number(id)</span>; callers re-do
+                <span class="font-mono">String(id)</span>.
+              </p>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <span
+                class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30"
+                >Worth exploring</span
+              >
+              <span class="text-xs font-mono px-2.5 py-1 rounded-full bg-slate-800 text-slate-400"
+                >ports &amp; adapters</span
+              >
+            </div>
+          </div>
+
+          <p class="font-mono text-sm text-slate-400">
+            backend-rpc.ts · ConversationManager.tsx · MessagePanel.tsx · AgentManager.tsx
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                Before — coercion leaks both ways
+              </p>
+              <pre class="mermaid">
+flowchart LR
+  CB[callers\nString(id), Number(id)]
+  RPC[backend-rpc\nNumber(id) ×9\nlet rpcId global]
+  BE[(back-end)]
+  CB -->|bigint knowledge| RPC
+  RPC -->|serializeWithBigInt| BE
+  RPC -.leak.-> CB
+  classDef leak stroke:#f87171,stroke-width:2px,fill:#7f1d1d,color:#fecaca;
+  class RPC,CB leak
+              </pre>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                After — id shape hidden inside
+              </p>
+              <pre class="mermaid">
+flowchart LR
+  CB2[callers\npass domain id]
+  RPC2[backend-rpc\nowns id coercion]:::deep
+  BE2[(back-end)]
+  CB2 --> RPC2
+  RPC2 --> BE2
+  classDef deep fill:#020617,stroke:#334155,color:#e2e8f0;
+              </pre>
+            </div>
+          </div>
+
+          <div
+            class="rounded-lg bg-black/50 ring-1 ring-slate-800 text-slate-100 p-4 font-mono text-xs overflow-x-auto space-y-3"
+          >
+            <div>
+              <span class="text-slate-500"
+                >// backend-rpc.ts — the numeric-precision concern re-patched at every method</span
+              ><br />get: (id: bigint | number) =&gt; rpcCall&lt;Agent&gt;("get_agent", { id:
+              Number(id) }), // :87<br />list: (convId) =&gt; rpcCall(…, { filters: [{ conv_id: {
+              $eq: Number(convId) } }] }), // :109
+            </div>
+            <div>
+              <span class="text-slate-500"
+                >// backend-rpc.ts:19 — module-global mutable counter, shared across all
+                callers/tabs</span
+              ><br />let rpcId = 0; // ++rpcId at :30; the test asserts its increment
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div>
+              <span class="text-xs uppercase tracking-wider text-slate-500">Problem</span>
+              <p class="mt-1 text-slate-300">
+                The <span class="font-mono">bigint→Number</span> precision decision leaks: the seam
+                re-coerces at nine call sites and callers must still know ids are
+                <span class="font-mono">bigint</span>. A module-global
+                <span class="font-mono">rpcId</span> couples tests to hidden state.
+              </p>
+            </div>
+            <div>
+              <span class="text-xs uppercase tracking-wider text-slate-500">Solution</span>
+              <p class="mt-1 text-slate-300">
+                Fix the id shape once inside the seam; scope <span class="font-mono">rpcId</span> to
+                the client. Callers pass a domain id and forget precision.
+              </p>
+            </div>
+          </div>
+          <ul class="grid sm:grid-cols-3 gap-2 text-xs text-emerald-200">
+            <li class="rounded bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-2">
+              Locality: coercion in one place
+            </li>
+            <li class="rounded bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-2">
+              Callers drop bigint knowledge
+            </li>
+            <li class="rounded bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-2">
+              Tests stop depending on a global
+            </li>
+          </ul>
+
+          <div
+            class="rounded-lg border-l-4 border-amber-400 bg-amber-500/10 px-4 py-3 text-xs text-amber-200"
+          >
+            Related but held back as <span class="font-semibold">Speculative</span>:
+            <span class="font-mono">jedi-api.ts</span>'s
+            <span class="font-mono">safe = sanitizeUrl(url) ?? ""</span> (:19) silently swaps a
+            blocked URL for <span class="font-mono">src=""</span> at 8 sites, and
+            <span class="font-mono">createJediFeed</span> imports the
+            <span class="font-mono">jediApi</span> singleton directly (:2) with no injection seam.
+            ADR-0002 makes the RPC-shaped async seam deliberate, so this is a testability note, not
+            a re-litigation of the mock.
+          </div>
+        </article>
+      </section>
+
+      <!-- ─────────────── TOP RECOMMENDATION ─────────────── -->
+      <section
+        id="top-recommendation"
+        class="rounded-2xl deep border border-slate-800 text-slate-100 p-8 space-y-4"
+      >
+        <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Top recommendation</p>
+        <h2 class="font-serif text-3xl">B · Deepen the sidebar option seam</h2>
+        <p class="text-sm text-slate-300 max-w-2xl leading-relaxed">
+          The strongest depth-for-effort trade. The selection-highlight-vs-focus-ring distinction is
+          load-bearing in CONTEXT.md and already produced two bugs (#37, #38) — both because the
+          paint decision is duplicated across three cards instead of owned by
+          <span class="font-mono text-slate-100">useListbox</span>. Absorbing the option paint and
+          the index↔id adapter into the seam turns three thin re-wirings into presentational cards,
+          and moves the ring/highlight logic to one place that is tested once. Start here;
+          <span class="font-mono text-slate-100">A</span> (delete accumulator) is a five-minute
+          warm-up alongside it.
+        </p>
+        <a href="#candidates" class="inline-block text-sm text-emerald-300 hover:text-emerald-200"
+          >↑ back to candidate B</a
+        >
+      </section>
+    </main>
+  </body>
+</html>
