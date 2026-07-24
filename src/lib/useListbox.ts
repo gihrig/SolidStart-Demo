@@ -11,6 +11,15 @@ interface UseListboxOptions {
 export function useListbox(options: UseListboxOptions) {
   const prefix = options.idPrefix ?? "listbox";
   const [focusedIndex, setFocusedIndex] = createSignal(-1);
+  // Keyboard-modality gate for the active-option ring (#38): the ring — and the
+  // `aria-activedescendant` that pairs with it — is shown only while the listbox
+  // holds keyboard focus, mirroring the app's global `:focus-visible` rule. This
+  // is decoupled from `focusedIndex`, which keeps tracking the active option on
+  // pointer clicks too so keyboard navigation resumes from where the user clicked.
+  const [focusVisible, setFocusVisible] = createSignal(false);
+  // A pointer press immediately precedes the focus event on a mouse click; this
+  // flag lets `onFocus` tell a click-focus (ring stays hidden) from a Tab-in.
+  let hadPointerDown = false;
 
   const listboxProps = {
     role: "listbox" as const,
@@ -20,7 +29,7 @@ export function useListbox(options: UseListboxOptions) {
     },
     get "aria-activedescendant"() {
       const idx = focusedIndex();
-      return idx >= 0 ? `${prefix}-option-${idx}` : undefined;
+      return focusVisible() && idx >= 0 ? `${prefix}-option-${idx}` : undefined;
     },
     onKeyDown(e: KeyboardEvent) {
       const count = options.count();
@@ -32,19 +41,23 @@ export function useListbox(options: UseListboxOptions) {
           e.preventDefault();
           idx = idx < count - 1 ? idx + 1 : 0;
           setFocusedIndex(idx);
+          setFocusVisible(true);
           break;
         case "ArrowUp":
           e.preventDefault();
           idx = idx > 0 ? idx - 1 : count - 1;
           setFocusedIndex(idx);
+          setFocusVisible(true);
           break;
         case "Home":
           e.preventDefault();
           setFocusedIndex(0);
+          setFocusVisible(true);
           break;
         case "End":
           e.preventDefault();
           setFocusedIndex(count - 1);
+          setFocusVisible(true);
           break;
         case "Enter":
         case " ":
@@ -53,14 +66,26 @@ export function useListbox(options: UseListboxOptions) {
           break;
       }
     },
+    onPointerDown() {
+      hadPointerDown = true;
+      // A pointer press is a non-keyboard interaction: drop the ring immediately,
+      // even when the listbox already held keyboard focus (no `onFocus` re-fires
+      // in that case). Mirrors how `:focus-visible` clears on pointer input.
+      setFocusVisible(false);
+    },
     onFocus() {
       if (focusedIndex() < 0) {
         const sel = options.selectedIndex();
         setFocusedIndex(sel >= 0 ? sel : 0);
       }
+      // Show the ring only when focus arrived via the keyboard (Tab), not a click.
+      setFocusVisible(!hadPointerDown);
+      hadPointerDown = false;
     },
     onBlur() {
       setFocusedIndex(-1);
+      setFocusVisible(false);
+      hadPointerDown = false;
     },
   };
 
@@ -79,5 +104,9 @@ export function useListbox(options: UseListboxOptions) {
     };
   }
 
-  return { listboxProps, getOptionProps, focusedIndex } as const;
+  // The option index that shows the focus ring, or -1 when the listbox is not
+  // being navigated by keyboard. Cards bind the ring to this, not `focusedIndex`.
+  const ringIndex = () => (focusVisible() ? focusedIndex() : -1);
+
+  return { listboxProps, getOptionProps, focusedIndex, ringIndex } as const;
 }

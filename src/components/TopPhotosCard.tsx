@@ -20,7 +20,7 @@ export default function TopPhotosCard(props: TopPhotosCardProps) {
     return props.posts()?.findIndex((p) => p.id === id) ?? -1;
   };
 
-  const { listboxProps, getOptionProps, focusedIndex } = useListbox({
+  const { listboxProps, getOptionProps, ringIndex } = useListbox({
     count: () => props.posts()?.length ?? 0,
     selectedIndex,
     onSelect: (index) => {
@@ -48,8 +48,8 @@ export default function TopPhotosCard(props: TopPhotosCardProps) {
                 class="flex items-center cursor-pointer w-full p-2 rounded outline-none hover:bg-(--theme-hover-bg) transition-colors duration-150"
                 classList={{
                   "bg-(--theme-highlight)": props.selectedPost()?.id === p.id,
-                  "ring-2": focusedIndex() === index(),
-                  "ring-(--theme-accent)": focusedIndex() === index(),
+                  "ring-2": ringIndex() === index(),
+                  "ring-(--theme-accent)": ringIndex() === index(),
                 }}
               >
                 <img

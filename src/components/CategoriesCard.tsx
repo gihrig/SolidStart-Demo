@@ -12,7 +12,7 @@ export interface CategoriesCardProps {
 }
 
 export default function CategoriesCard(props: CategoriesCardProps) {
-  const { listboxProps, getOptionProps, focusedIndex } = useListbox({
+  const { listboxProps, getOptionProps, ringIndex } = useListbox({
     count: () => props.categories()?.length ?? 0,
     selectedIndex: () => props.selectedCategory(),
     onSelect: (index) => props.onSelect(index),
@@ -30,8 +30,8 @@ export default function CategoriesCard(props: CategoriesCardProps) {
               class="flex items-center cursor-pointer px-2 py-1 rounded outline-none"
               classList={{
                 "bg-(--theme-highlight)": props.selectedCategory() === index(),
-                "ring-2": focusedIndex() === index(),
-                "ring-(--theme-accent)": focusedIndex() === index(),
+                "ring-2": ringIndex() === index(),
+                "ring-(--theme-accent)": ringIndex() === index(),
               }}
             >
               <Icon name={c.icon} class="w-8 h-8 object-cover mr-2" />
