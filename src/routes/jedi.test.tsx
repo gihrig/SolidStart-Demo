@@ -211,6 +211,31 @@ describe("Jedi route (data-driven from jedi-api)", () => {
     });
   });
 
+  // #38: the active-option focus ring is keyboard-modality only. Each card owns
+  // its own listbox; clicking options across cards must never leave rings behind,
+  // since a pointer click carries no keyboard focus.
+  const hasRing = (el: Element) => el.className.includes("ring-2");
+
+  it("paints no focus ring when clicking options across two cards (#38)", async () => {
+    renderJedi();
+    const categories = await screen.findByRole("listbox", { name: "Categories" });
+    const captions = await screen.findByRole("listbox", { name: "Top Captions" });
+    await screen.findByRole("heading", { name: /little jedi/i }); // loaded
+
+    within(categories).getAllByRole("option")[0].click(); // click a Category
+    within(captions).getAllByRole("option")[1].click(); // then a Caption
+
+    await waitFor(() => {
+      const rings = screen.getAllByRole("option").filter(hasRing);
+      expect(rings).toHaveLength(0);
+    });
+    // Neither listbox advertises an active descendant without keyboard focus.
+    expect(categories.getAttribute("aria-activedescendant")).toBeNull();
+    expect(
+      screen.getByRole("listbox", { name: "Top Captions" }).getAttribute("aria-activedescendant"),
+    ).toBeNull();
+  });
+
   it("mirrors the empty message in Top Photos and clears Top Captions", async () => {
     renderJedi();
     const categories = await screen.findByRole("listbox", { name: "Categories" });

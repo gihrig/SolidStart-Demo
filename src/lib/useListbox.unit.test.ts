@@ -191,6 +191,96 @@ describe("useListbox", () => {
     });
   });
 
+  // #38: the active-option focus ring is keyboard-modality only. `ringIndex` is
+  // the ring's source of truth — it points at an option only while the listbox
+  // holds keyboard focus, never on pointer interaction.
+  describe("ring visibility (keyboard modality, #38)", () => {
+    test("ringIndex is -1 with no keyboard focus", () => {
+      createRoot((dispose) => {
+        const { ringIndex } = setup();
+        expect(ringIndex()).toBe(-1);
+        dispose();
+      });
+    });
+
+    test("keyboard focus shows the ring on the active option", () => {
+      createRoot((dispose) => {
+        const { listboxProps, ringIndex } = setup({ selected: 2 });
+        listboxProps.onFocus();
+        expect(ringIndex()).toBe(2);
+        listboxProps.onKeyDown(keyEvent("ArrowDown"));
+        expect(ringIndex()).toBe(3);
+        dispose();
+      });
+    });
+
+    test("onClick selects but never shows the ring (no keyboard focus)", () => {
+      createRoot((dispose) => {
+        const { getOptionProps, ringIndex, focusedIndex, onSelect } = setup();
+        getOptionProps(3).onClick();
+        expect(onSelect).toHaveBeenCalledWith(3);
+        // active index tracked (so keyboard resumes here) but ring stays hidden
+        expect(focusedIndex()).toBe(3);
+        expect(ringIndex()).toBe(-1);
+        dispose();
+      });
+    });
+
+    test("a pointer press before focus keeps the ring hidden", () => {
+      createRoot((dispose) => {
+        const { listboxProps, ringIndex } = setup();
+        // browser order on a mouse click: pointerdown, then the listbox focuses
+        listboxProps.onPointerDown();
+        listboxProps.onFocus();
+        expect(ringIndex()).toBe(-1);
+        dispose();
+      });
+    });
+
+    test("a pointer press on an already keyboard-focused listbox clears the ring", () => {
+      createRoot((dispose) => {
+        const { listboxProps, ringIndex } = setup();
+        listboxProps.onFocus(); // Tab in — ring visible
+        expect(ringIndex()).toBe(0);
+        listboxProps.onPointerDown(); // mouse click while focus stays put
+        expect(ringIndex()).toBe(-1);
+        dispose();
+      });
+    });
+
+    test("blur removes the ring", () => {
+      createRoot((dispose) => {
+        const { listboxProps, ringIndex } = setup();
+        listboxProps.onFocus();
+        expect(ringIndex()).toBe(0);
+        listboxProps.onBlur();
+        expect(ringIndex()).toBe(-1);
+        dispose();
+      });
+    });
+
+    test("keyboard navigation resumes from a clicked option", () => {
+      createRoot((dispose) => {
+        const { listboxProps, getOptionProps, ringIndex } = setup();
+        getOptionProps(3).onClick(); // pointer: no ring, but index tracked
+        expect(ringIndex()).toBe(-1);
+        listboxProps.onFocus(); // Tab in (no pointerdown) — keyboard modality
+        listboxProps.onKeyDown(keyEvent("ArrowDown"));
+        expect(ringIndex()).toBe(4);
+        dispose();
+      });
+    });
+
+    test("aria-activedescendant is not advertised after a pointer click", () => {
+      createRoot((dispose) => {
+        const { listboxProps, getOptionProps } = setup();
+        getOptionProps(2).onClick();
+        expect(listboxProps["aria-activedescendant"]).toBeUndefined();
+        dispose();
+      });
+    });
+  });
+
   describe("getOptionProps", () => {
     test("returns correct static attributes", () => {
       createRoot((dispose) => {

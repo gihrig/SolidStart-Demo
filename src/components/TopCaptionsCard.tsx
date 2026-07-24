@@ -19,7 +19,7 @@ export default function TopCaptionsCard(props: TopCaptionsCardProps) {
     return props.captions()?.findIndex((c) => c.id === id) ?? -1;
   };
 
-  const { listboxProps, getOptionProps, focusedIndex } = useListbox({
+  const { listboxProps, getOptionProps, ringIndex } = useListbox({
     count: () => props.captions()?.length ?? 0,
     selectedIndex,
     onSelect: (index) => {
@@ -41,8 +41,8 @@ export default function TopCaptionsCard(props: TopCaptionsCardProps) {
               class="flex items-center cursor-pointer w-full p-2 rounded outline-none hover:bg-(--theme-hover-bg) transition-colors duration-150"
               classList={{
                 "bg-(--theme-highlight)": props.selectedCaption()?.id === c.id,
-                "ring-2": focusedIndex() === index(),
-                "ring-(--theme-accent)": focusedIndex() === index(),
+                "ring-2": ringIndex() === index(),
+                "ring-(--theme-accent)": ringIndex() === index(),
               }}
             >
               <img
