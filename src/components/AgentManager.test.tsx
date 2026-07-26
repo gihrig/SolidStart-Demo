@@ -1,73 +1,86 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
-import { render, screen, waitFor } from "@solidjs/testing-library";
+import { render, screen } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
+import type { Agent } from "~/types/backend";
+import {
+  makeAgent,
+  makeWorkspaceStub,
+  readyResource,
+  loadingResource,
+} from "~/lib/conversationWorkspace.stub";
 import AgentManager from "./AgentManager";
 
-vi.mock("~/lib/backend-rpc", () => ({
-  backendRpc: {
-    agent: {
-      list: vi.fn().mockResolvedValue([
-        { id: BigInt(1), name: "Test Agent 1", owner_id: BigInt(1) },
-        { id: BigInt(2), name: "Test Agent 2", owner_id: BigInt(1) },
-      ]),
-      create: vi.fn().mockResolvedValue({
-        id: BigInt(3),
-        name: "New Agent",
-        owner_id: BigInt(1),
-      }),
-    },
-  },
-}));
+const agents = [makeAgent(1, "Test Agent 1"), makeAgent(2, "Test Agent 2")];
 
-describe("<AgentManager />", () => {
+describe("<AgentManager /> (presentational)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renders agent list heading", () => {
-    render(() => <AgentManager />);
+  it("renders the Agents heading", () => {
+    render(() => <AgentManager ws={makeWorkspaceStub()} />);
     expect(screen.getByRole("heading", { name: /agents/i })).toBeInTheDocument();
   });
 
-  it("displays loading state initially", () => {
-    render(() => <AgentManager />);
+  it("shows the loading state while the agents resource is pending", () => {
+    render(() => <AgentManager ws={makeWorkspaceStub({ agents: loadingResource<Agent[]>() })} />);
     expect(screen.getByText(/loading agents/i)).toBeInTheDocument();
   });
 
-  it("displays agents after loading", async () => {
-    render(() => <AgentManager />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Test Agent 1")).toBeInTheDocument();
-      expect(screen.getByText("Test Agent 2")).toBeInTheDocument();
-    });
+  it("lists the agents from the workspace", () => {
+    render(() => <AgentManager ws={makeWorkspaceStub({ agents: readyResource(agents) })} />);
+    expect(screen.getByText("Test Agent 1")).toBeInTheDocument();
+    expect(screen.getByText("Test Agent 2")).toBeInTheDocument();
   });
 
-  it("calls onAgentSelect when agent is clicked", async () => {
-    const onSelect = vi.fn();
+  it("calls ws.selectAgent with the clicked agent", async () => {
+    const ws = makeWorkspaceStub({ agents: readyResource(agents) });
     const user = userEvent.setup();
-    render(() => <AgentManager onAgentSelect={onSelect} />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Test Agent 1")).toBeInTheDocument();
-    });
+    render(() => <AgentManager ws={ws} />);
 
     await user.click(screen.getByText("Test Agent 1"));
 
-    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ name: "Test Agent 1" }));
+    expect(ws.selectAgent).toHaveBeenCalledWith(expect.objectContaining({ name: "Test Agent 1" }));
   });
 
-  it("creates new agent when form is submitted", async () => {
-    const { backendRpc } = await import("~/lib/backend-rpc");
+  it("marks the selected agent's row", () => {
+    const ws = makeWorkspaceStub({
+      agents: readyResource(agents),
+      selectedAgent: () => agents[1],
+    });
+    render(() => <AgentManager ws={ws} />);
+    expect(screen.getByText("Test Agent 2").closest("li")).toHaveClass("border-blue-500");
+    expect(screen.getByText("Test Agent 1").closest("li")).not.toHaveClass("border-blue-500");
+  });
+
+  it("submits the create form via ws.createAgent and resets it on success", async () => {
+    const ws = makeWorkspaceStub();
     const user = userEvent.setup();
-    render(() => <AgentManager />);
+    render(() => <AgentManager ws={ws} />);
 
     const input = screen.getByPlaceholderText(/agent name/i);
-    const button = screen.getByRole("button", { name: /create agent/i });
-
     await user.type(input, "New Agent");
-    await user.click(button);
+    await user.click(screen.getByRole("button", { name: /create agent/i }));
 
-    expect(backendRpc.agent.create).toHaveBeenCalledWith({ name: "New Agent" });
+    expect(ws.createAgent).toHaveBeenCalledWith("New Agent");
+    expect(input).toHaveValue(""); // form.reset() ran because createAgent resolved true
+  });
+
+  it("keeps the typed name when create fails", async () => {
+    const ws = makeWorkspaceStub({ createAgent: vi.fn().mockResolvedValue(false) });
+    const user = userEvent.setup();
+    render(() => <AgentManager ws={ws} />);
+
+    const input = screen.getByPlaceholderText(/agent name/i);
+    await user.type(input, "Doomed");
+    await user.click(screen.getByRole("button", { name: /create agent/i }));
+
+    expect(ws.createAgent).toHaveBeenCalledWith("Doomed");
+    expect(input).toHaveValue("Doomed"); // no reset on failure
+  });
+
+  it("shows the workspace's agent error", () => {
+    render(() => <AgentManager ws={makeWorkspaceStub({ agentError: () => "Boom" })} />);
+    expect(screen.getByText("Boom")).toBeInTheDocument();
   });
 });

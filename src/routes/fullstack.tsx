@@ -1,21 +1,19 @@
 import { Title } from "@solidjs/meta";
-import { createSignal, Show } from "solid-js";
+import { Show } from "solid-js";
+import { createConversationWorkspace } from "~/lib/conversationWorkspace";
 import { AuthProvider, useAuth } from "~/components/AuthContext";
 import LoginForm from "~/components/LoginForm";
 import AgentManager from "~/components/AgentManager";
 import ConversationManager from "~/components/ConversationManager";
 import MessagePanel from "~/components/MessagePanel";
-import type { Agent, Conv } from "~/types/backend";
 
 function FullstackContent() {
   const { isAuthenticated, username, logoff } = useAuth();
-  const [selectedAgent, setSelectedAgent] = createSignal<Agent | null>(null);
-  const [selectedConv, setSelectedConv] = createSignal<Conv | null>(null);
+  const ws = createConversationWorkspace();
 
   const handleLogoff = async () => {
     await logoff();
-    setSelectedAgent(null);
-    setSelectedConv(null);
+    ws.reset();
   };
 
   return (
@@ -44,15 +42,15 @@ function FullstackContent() {
 
         <div class="grid gap-6 md:grid-cols-3">
           <div class="rounded border border-gray-200 p-4">
-            <AgentManager onAgentSelect={setSelectedAgent} />
+            <AgentManager ws={ws} />
           </div>
 
           <div class="rounded border border-gray-200 p-4">
-            <ConversationManager agent={selectedAgent()} onConvSelect={setSelectedConv} />
+            <ConversationManager ws={ws} />
           </div>
 
           <div class="rounded border border-gray-200 p-4">
-            <MessagePanel conv={selectedConv()} />
+            <MessagePanel conv={ws.selectedConv()} />
           </div>
         </div>
       </Show>
