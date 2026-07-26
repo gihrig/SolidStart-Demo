@@ -70,7 +70,6 @@ export function makeWorkspaceStub(
     createConv: vi.fn().mockResolvedValue(true),
     creatingConv: () => false,
     convError: () => null,
-    reset: vi.fn(),
     ...over,
   };
 }

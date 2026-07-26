@@ -24,8 +24,6 @@ export interface ConversationWorkspace {
   createConv: (title: string | null) => Promise<boolean>;
   creatingConv: Accessor<boolean>;
   convError: Accessor<string | null>;
-  // Lifecycle
-  reset: () => void;
 }
 
 export function createConversationWorkspace(): ConversationWorkspace {
@@ -91,13 +89,6 @@ export function createConversationWorkspace(): ConversationWorkspace {
     }
   };
 
-  const reset = () => {
-    setSelectedAgent(null);
-    setSelectedConv(null);
-    setAgentError(null);
-    setConvError(null);
-  };
-
   return {
     agents,
     selectedAgent,
@@ -111,6 +102,5 @@ export function createConversationWorkspace(): ConversationWorkspace {
     createConv,
     creatingConv,
     convError,
-    reset,
   };
 }

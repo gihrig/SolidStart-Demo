@@ -164,26 +164,4 @@ describe("createConversationWorkspace", () => {
       });
     });
   });
-
-  describe("reset", () => {
-    it("clears both selections and any errors (logoff)", async () => {
-      const { backendRpc } = await import("~/lib/backend-rpc");
-      (backendRpc.agent.create as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("x"));
-
-      await createRoot(async (dispose) => {
-        const ws = createConversationWorkspace();
-        ws.selectAgent(makeAgent(1, "Ada"));
-        ws.selectConv(makeConv(10, "Hi"));
-        await ws.createAgent("boom"); // leaves an agentError
-        expect(ws.agentError()).not.toBeNull();
-
-        ws.reset();
-        expect(ws.selectedAgent()).toBeNull();
-        expect(ws.selectedConv()).toBeNull();
-        expect(ws.agentError()).toBeNull();
-        expect(ws.convError()).toBeNull();
-        dispose();
-      });
-    });
-  });
 });
