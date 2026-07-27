@@ -41,7 +41,7 @@ export function createConversationWorkspace(): ConversationWorkspace {
   const [convs, { refetch: refetchConvs }] = createResource(selectedAgent, async (agent) => {
     if (!agent) return [];
     return backendRpc.conv.list({
-      filters: [{ agent_id: { $eq: Number(agent.id) } }],
+      filters: [{ agent_id: { $eq: agent.id } }],
     });
   });
 

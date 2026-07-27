@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
-import { auth, agent, conv, convMsg, backendRpc } from "./backend-rpc";
+import { auth, agent, conv, convMsg, backendRpc, createRpcClient } from "./backend-rpc";
 
 // Helper to create a mock fetch response
 function mockResponse(body: unknown, ok = true, status = 200): Response {
@@ -192,16 +192,31 @@ describe("rpcCall core behaviour", () => {
     expect(typeof body.params.id).toBe("number");
   });
 
-  it("increments the RPC id with each call", async () => {
+  it("numbers requests from 1 within a fresh client", async () => {
     const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
     vi.stubGlobal("fetch", fetchMock);
+    const client = createRpcClient();
 
-    await agent.list();
-    await agent.list();
+    await client.agent.list();
+    await client.agent.list();
 
     const id1 = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body).id;
     const id2 = JSON.parse((fetchMock.mock.calls[1] as any[])[1].body).id;
-    expect(id2).toBe(id1 + 1);
+    expect(id1).toBe(1);
+    expect(id2).toBe(2);
+  });
+
+  it("gives each client an independent id counter", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createRpcClient().agent.list();
+    await createRpcClient().agent.list();
+
+    const idA = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body).id;
+    const idB = JSON.parse((fetchMock.mock.calls[1] as any[])[1].body).id;
+    expect(idA).toBe(1);
+    expect(idB).toBe(1);
   });
 });
 
@@ -316,6 +331,17 @@ describe("convMsg", () => {
     const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
     expect(body.method).toBe("add_conv_msg");
     expect(body.params).toEqual({ data: { conv_id: 10, content: "Hello" } });
+  });
+
+  it("coerces a bigint conv_id to a number inside the list filter", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await convMsg.list(BigInt(10));
+
+    const eq = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body).params.filters[0].conv_id.$eq;
+    expect(eq).toBe(10);
+    expect(typeof eq).toBe("number");
   });
 });
 
