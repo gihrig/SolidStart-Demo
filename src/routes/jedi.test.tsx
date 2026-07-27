@@ -148,11 +148,13 @@ describe("Jedi route (data-driven from jedi-api)", () => {
     expect(categories.getAttribute("aria-activedescendant")).toBe("category-option-1");
   });
 
-  // #37 regression: the sidebar cards bind the highlight with `classList` *and* a
-  // static `class`. When `class` was ordered after `classList`, its className write
-  // wiped the freshly-toggled highlight on a row's first paint; only a later
-  // classList update re-applied it — so a default (winning/top-ranked) selection
-  // that never gets a follow-up update rendered with no highlight.
+  // #37 regression: `useListbox` owns the highlight, returning it as a `classList`
+  // via `getOptionProps` that each card spreads onto its option `<li>`, alongside a
+  // static `class`. `class` writes the whole className, so it must be applied before
+  // the spread — the card lists it first. If it were ordered after, its write would
+  // wipe the freshly-toggled highlight on a row's first paint; only a later classList
+  // update would re-apply it, so a default (winning/top-ranked) selection that never
+  // gets a follow-up update would render with no highlight.
   const isHighlighted = (el: Element) => el.className.includes("bg-(--theme-highlight)");
 
   it("highlights the default selection on all three cards at load (#37)", async () => {

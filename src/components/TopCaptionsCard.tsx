@@ -12,20 +12,11 @@ export interface TopCaptionsCardProps {
 }
 
 export default function TopCaptionsCard(props: TopCaptionsCardProps) {
-  // Same index<->id mapping as TopPhotosCard: `useListbox` counts in indices,
-  // the seam selects by id.
-  const selectedIndex = () => {
-    const id = props.selectedCaption()?.id;
-    return props.captions()?.findIndex((c) => c.id === id) ?? -1;
-  };
-
-  const { listboxProps, getOptionProps, ringIndex } = useListbox({
-    count: () => props.captions()?.length ?? 0,
-    selectedIndex,
-    onSelect: (index) => {
-      const caption = props.captions()?.[index];
-      if (caption) props.onSelect(caption.id);
-    },
+  const { listboxProps, getOptionProps } = useListbox({
+    items: () => props.captions(),
+    selectedKey: () => props.selectedCaption()?.id,
+    keyOf: (caption) => caption.id,
+    onSelect: (caption) => props.onSelect(caption.id),
     label: "Top Captions",
     idPrefix: "caption",
   });
@@ -36,14 +27,9 @@ export default function TopCaptionsCard(props: TopCaptionsCardProps) {
         <For each={props.captions() ?? []}>
           {(c, index) => (
             <li
+              class="flex items-center cursor-pointer w-full p-2 rounded outline-none hover:bg-(--theme-hover-bg) transition-colors duration-150"
               {...getOptionProps(index())}
               aria-current={props.selectedCaption()?.id === c.id ? "true" : undefined}
-              class="flex items-center cursor-pointer w-full p-2 rounded outline-none hover:bg-(--theme-hover-bg) transition-colors duration-150"
-              classList={{
-                "bg-(--theme-highlight)": props.selectedCaption()?.id === c.id,
-                "ring-2": ringIndex() === index(),
-                "ring-(--theme-accent)": ringIndex() === index(),
-              }}
             >
               <img
                 class="w-8 h-8 rounded-full object-cover mr-1"

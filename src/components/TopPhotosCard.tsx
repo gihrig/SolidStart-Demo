@@ -14,19 +14,11 @@ export interface TopPhotosCardProps {
 }
 
 export default function TopPhotosCard(props: TopPhotosCardProps) {
-  // `useListbox` works in list indices; the seam selects by id, so map at the edge.
-  const selectedIndex = () => {
-    const id = props.selectedPost()?.id;
-    return props.posts()?.findIndex((p) => p.id === id) ?? -1;
-  };
-
-  const { listboxProps, getOptionProps, ringIndex } = useListbox({
-    count: () => props.posts()?.length ?? 0,
-    selectedIndex,
-    onSelect: (index) => {
-      const post = props.posts()?.[index];
-      if (post) props.onSelect(post.id);
-    },
+  const { listboxProps, getOptionProps } = useListbox({
+    items: () => props.posts(),
+    selectedKey: () => props.selectedPost()?.id,
+    keyOf: (post) => post.id,
+    onSelect: (post) => props.onSelect(post.id),
     label: "Top Photos",
     idPrefix: "photo",
   });
@@ -43,14 +35,9 @@ export default function TopPhotosCard(props: TopPhotosCardProps) {
           <For each={props.posts() ?? []}>
             {(p, index) => (
               <li
+                class="flex items-center cursor-pointer w-full p-2 rounded outline-none hover:bg-(--theme-hover-bg) transition-colors duration-150"
                 {...getOptionProps(index())}
                 aria-current={props.selectedPost()?.id === p.id ? "true" : undefined}
-                class="flex items-center cursor-pointer w-full p-2 rounded outline-none hover:bg-(--theme-hover-bg) transition-colors duration-150"
-                classList={{
-                  "bg-(--theme-highlight)": props.selectedPost()?.id === p.id,
-                  "ring-2": ringIndex() === index(),
-                  "ring-(--theme-accent)": ringIndex() === index(),
-                }}
               >
                 <img
                   class="w-10 h-10 rounded-lg object-cover mr-3"

@@ -9,6 +9,22 @@ interface UseWebSocketOptions {
   autoReconnect?: boolean;
 }
 
+/** Callbacks a consumer registers with a message feed. */
+export interface MessageFeedOptions {
+  onConvMsg?: (convId: number, msg: ConvMsg) => void;
+  onError?: (error: string) => void;
+}
+
+/** The slice of a live socket a message view actually consumes. */
+export interface MessageFeed {
+  connected: () => boolean;
+  subscribe: (channel: string, id?: number | bigint) => void;
+  unsubscribe: (channel: string, id?: number | bigint) => void;
+}
+
+/** Port: live socket in prod, in-memory adapter in tests. `useWebSocket` satisfies it. */
+export type MessageFeedFactory = (options: MessageFeedOptions) => MessageFeed;
+
 export function useWebSocket(options: UseWebSocketOptions = {}) {
   const [connected, setConnected] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);

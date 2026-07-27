@@ -5,7 +5,11 @@
       "WebFetch(domain:tanstack.com)",
       "Bash(vp i *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(pkill -f \"vinxi dev\")",
+      "Bash(pkill -f vite)",
+      "Bash(lsof -ti:3000)",
+      "Bash(xargs kill -9)"
     ]
   }
 }
