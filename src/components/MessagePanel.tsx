@@ -1,13 +1,15 @@
 import { createSignal, createEffect, Show, For } from "solid-js";
 import { backendRpc } from "~/lib/backend-rpc";
-import { useWebSocket } from "~/lib/websocket";
+import { useWebSocket, type MessageFeedFactory } from "~/lib/websocket";
 import type { Conv, ConvMsg } from "~/types/backend";
 
-interface Props {
+interface MessagePanelProps {
   conv: Conv | null;
+  /** Message feed port; defaults to the live WebSocket. Tests inject an in-memory adapter. */
+  feed?: MessageFeedFactory;
 }
 
-export default function MessagePanel(props: Props) {
+export default function MessagePanel(props: MessagePanelProps) {
   const [messages, setMessages] = createSignal<ConvMsg[]>([]);
   const [sending, setSending] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
@@ -17,7 +19,7 @@ export default function MessagePanel(props: Props) {
   let scrollEl: HTMLDivElement | undefined;
 
   // WebSocket for real-time updates
-  const { connected, subscribe, unsubscribe } = useWebSocket({
+  const { connected, subscribe, unsubscribe } = (props.feed ?? useWebSocket)({
     onConvMsg: (convId, msg) => {
       // Only add message if it's for the current conversation
       if (props.conv && Number(props.conv.id) === convId) {
