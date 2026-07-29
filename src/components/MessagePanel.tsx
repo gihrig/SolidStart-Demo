@@ -1,7 +1,7 @@
 import { createSignal, createEffect, Show, For } from "solid-js";
-import { backendRpc } from "~/lib/backend-rpc";
-import { useWebSocket, type MessageFeedFactory } from "~/lib/websocket";
-import type { Conv, ConvMsg } from "~/types/backend";
+import { createConvMessages } from "~/lib/createConvMessages";
+import type { MessageFeedFactory } from "~/lib/websocket";
+import type { Conv } from "~/types/backend";
 
 interface MessagePanelProps {
   conv: Conv | null;
@@ -10,47 +10,12 @@ interface MessagePanelProps {
 }
 
 export default function MessagePanel(props: MessagePanelProps) {
-  const [messages, setMessages] = createSignal<ConvMsg[]>([]);
   const [sending, setSending] = createSignal(false);
-  const [error, setError] = createSignal<string | null>(null);
-
-  // Prevents a stale convMsg.list response from overwriting a message added via handleSend
-  let listStale = false;
   let scrollEl: HTMLDivElement | undefined;
 
-  // WebSocket for real-time updates
-  const { connected, subscribe, unsubscribe } = (props.feed ?? useWebSocket)({
-    onConvMsg: (convId, msg) => {
-      // Only add message if it's for the current conversation
-      if (props.conv && Number(props.conv.id) === convId) {
-        setMessages((prev) => {
-          // Avoid duplicates (in case we just sent this message)
-          if (prev.some((m) => Number(m.id) === Number(msg.id))) {
-            return prev;
-          }
-          return [...prev, msg];
-        });
-      }
-    },
-    onError: (err) => setError(err),
-  });
-
-  // Subscribe to conversation updates when conv changes and load history
-  createEffect(() => {
-    const conv = props.conv;
-    if (conv) {
-      listStale = false;
-      subscribe("conv", conv.id);
-      setMessages([]);
-      backendRpc.convMsg
-        .list(conv.id)
-        .then((msgs) => {
-          if (!listStale) setMessages(msgs);
-        })
-        .catch((e) => {
-          if (!listStale) setError(e instanceof Error ? e.message : "Failed to load messages");
-        });
-    }
+  // The live-message protocol (subscribe, history, merge, dedupe, stale-guard) lives here.
+  const { messages, send, connected, error } = createConvMessages(() => props.conv, {
+    feed: props.feed,
   });
 
   // Scroll to bottom whenever messages change
@@ -59,41 +24,17 @@ export default function MessagePanel(props: MessagePanelProps) {
     if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight;
   });
 
-  // Unsubscribe when conversation changes or component unmounts
-  createEffect((prevConvId: bigint | number | null) => {
-    const currentConvId = props.conv?.id ?? null;
-    if (prevConvId && prevConvId !== currentConvId) {
-      unsubscribe("conv", prevConvId);
-    }
-    return currentConvId;
-  }, null);
-
   const handleSend = async (e: Event) => {
     e.preventDefault();
     if (!props.conv) return;
 
-    setError(null);
-    setSending(true);
     const form = e.target as HTMLFormElement;
-    const formData = new FormData(form);
+    const content = new FormData(form).get("content") as string;
 
-    try {
-      const msg = await backendRpc.convMsg.add({
-        conv_id: props.conv.id,
-        content: formData.get("content") as string,
-      });
-      // Prevent any in-flight convMsg.list response from overwriting this message
-      listStale = true;
-      // Add message immediately; dedupe in case WebSocket already delivered it
-      setMessages((prev) =>
-        prev.some((m) => Number(m.id) === Number(msg.id)) ? prev : [...prev, msg],
-      );
-      form.reset();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to send message");
-    } finally {
-      setSending(false);
-    }
+    setSending(true);
+    const sent = await send(content);
+    setSending(false);
+    if (sent) form.reset();
   };
 
   return (
