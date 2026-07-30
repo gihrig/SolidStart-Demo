@@ -1,5 +1,6 @@
 import { createSignal, createResource, type Accessor, type Resource } from "solid-js";
 import { backendRpc } from "~/lib/backend-rpc";
+import { createRpcAction } from "~/lib/createRpcAction";
 import type { Agent, Conv } from "~/types/backend";
 
 /**
@@ -29,10 +30,6 @@ export interface ConversationWorkspace {
 export function createConversationWorkspace(): ConversationWorkspace {
   const [selectedAgent, setSelectedAgent] = createSignal<Agent | null>(null);
   const [selectedConv, setSelectedConv] = createSignal<Conv | null>(null);
-  const [creatingAgent, setCreatingAgent] = createSignal(false);
-  const [creatingConv, setCreatingConv] = createSignal(false);
-  const [agentError, setAgentError] = createSignal<string | null>(null);
-  const [convError, setConvError] = createSignal<string | null>(null);
 
   const [agents, { refetch: refetchAgents }] = createResource(() => backendRpc.agent.list());
 
@@ -55,38 +52,37 @@ export function createConversationWorkspace(): ConversationWorkspace {
 
   const selectConv = (conv: Conv) => setSelectedConv(conv);
 
-  const createAgent = async (name: string): Promise<boolean> => {
-    setAgentError(null);
-    setCreatingAgent(true);
-    try {
+  // Each action owns the pending/error state machine; the operation below (RPC +
+  // refetch + select) runs *inside* the wrapped fn so a refetch rejection is
+  // caught into `error` and pending still clears.
+  const agentAction = createRpcAction(
+    async (name: string) => {
       const agent = await backendRpc.agent.create({ name });
       await refetchAgents();
       selectAgent(agent);
-      return true;
-    } catch (e) {
-      setAgentError(e instanceof Error ? e.message : "Failed to create agent");
-      return false;
-    } finally {
-      setCreatingAgent(false);
-    }
-  };
+      return agent;
+    },
+    { fallbackError: "Failed to create agent" },
+  );
 
-  const createConv = async (title: string | null): Promise<boolean> => {
-    const agent = selectedAgent();
-    if (!agent) return false;
-    setConvError(null);
-    setCreatingConv(true);
-    try {
+  const convAction = createRpcAction(
+    async ({ agent, title }: { agent: Agent; title: string | null }) => {
       const conv = await backendRpc.conv.create({ agent_id: agent.id, title });
       await refetchConvs();
       selectConv(conv);
-      return true;
-    } catch (e) {
-      setConvError(e instanceof Error ? e.message : "Failed to create conversation");
-      return false;
-    } finally {
-      setCreatingConv(false);
-    }
+      return conv;
+    },
+    { fallbackError: "Failed to create conversation" },
+  );
+
+  const createAgent = async (name: string): Promise<boolean> =>
+    (await agentAction.run(name)) !== undefined;
+
+  const createConv = async (title: string | null): Promise<boolean> => {
+    // Pre-check runs before the state machine: no agent, no work, no error/pending.
+    const agent = selectedAgent();
+    if (!agent) return false;
+    return (await convAction.run({ agent, title })) !== undefined;
   };
 
   return {
@@ -94,13 +90,13 @@ export function createConversationWorkspace(): ConversationWorkspace {
     selectedAgent,
     selectAgent,
     createAgent,
-    creatingAgent,
-    agentError,
+    creatingAgent: agentAction.pending,
+    agentError: agentAction.error,
     convs,
     selectedConv,
     selectConv,
     createConv,
-    creatingConv,
-    convError,
+    creatingConv: convAction.pending,
+    convError: convAction.error,
   };
 }
