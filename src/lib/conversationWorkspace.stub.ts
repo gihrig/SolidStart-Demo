@@ -8,28 +8,28 @@ import type { ConversationWorkspace } from "./conversationWorkspace";
 
 /** A minimal valid `Agent` fixture. */
 export const makeAgent = (id: number, name: string): Agent => ({
-  id: BigInt(id),
-  owner_id: BigInt(1),
+  id,
+  owner_id: 1,
   name,
   ai_provider: "openai",
   ai_model: "gpt-4",
-  cid: BigInt(1),
+  cid: 1,
   ctime: "2024-01-01T00:00:00Z",
-  mid: BigInt(1),
+  mid: 1,
   mtime: "2024-01-01T00:00:00Z",
 });
 
 /** A minimal valid `Conv` fixture (defaults to agent 1). */
 export const makeConv = (id: number, title: string, agentId = 1): Conv => ({
-  id: BigInt(id),
-  agent_id: BigInt(agentId),
-  owner_id: BigInt(1),
+  id,
+  agent_id: agentId,
+  owner_id: 1,
   title,
   kind: "OwnerOnly",
   state: "Active",
-  cid: BigInt(1),
+  cid: 1,
   ctime: "2024-01-01T00:00:00Z",
-  mid: BigInt(1),
+  mid: 1,
   mtime: "2024-01-01T00:00:00Z",
 });
 

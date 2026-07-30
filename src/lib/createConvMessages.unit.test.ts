@@ -16,26 +16,26 @@ vi.mock("~/lib/backend-rpc", () => ({
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
 const mockConv: Conv = {
-  id: BigInt(10),
-  agent_id: BigInt(1),
-  owner_id: BigInt(1),
+  id: 10,
+  agent_id: 1,
+  owner_id: 1,
   title: "Test Conversation",
   kind: "OwnerOnly",
   state: "Active",
-  cid: BigInt(1),
+  cid: 1,
   ctime: "2024-01-01T00:00:00Z",
-  mid: BigInt(1),
+  mid: 1,
   mtime: "2024-01-01T00:00:00Z",
 };
 
 const msg = (id: number, content: string): ConvMsg => ({
-  id: BigInt(id),
-  conv_id: BigInt(10),
-  user_id: BigInt(1),
+  id,
+  conv_id: 10,
+  user_id: 1,
   content,
-  cid: BigInt(1),
+  cid: 1,
   ctime: "2024-01-01T00:00:00Z",
-  mid: BigInt(1),
+  mid: 1,
   mtime: "2024-01-01T00:00:00Z",
 });
 
@@ -190,7 +190,7 @@ describe("createConvMessages", () => {
     (backendRpc.convMsg.list as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce([msg(1, "conv10")])
       .mockResolvedValueOnce([msg(2, "conv20")]);
-    const otherConv: Conv = { ...mockConv, id: BigInt(20) };
+    const otherConv: Conv = { ...mockConv, id: 20 };
     const feed = createFakeFeed(true);
 
     await createRoot(async (dispose) => {

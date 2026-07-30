@@ -16,12 +16,6 @@ import { isRpcError } from "~/types/backend";
 
 const BACKEND_URL = "http://localhost:8080";
 
-// The one place ids change shape: bigint domain ids become JSON numbers here,
-// so callers pass domain ids and RPC methods never re-coerce.
-function serializeWithBigInt(obj: unknown): string {
-  return JSON.stringify(obj, (_key, value) => (typeof value === "bigint" ? Number(value) : value));
-}
-
 // Auth functions (not RPC, direct REST)
 export const auth = {
   async login(username: string, password: string): Promise<{ result: { success: boolean } }> {
@@ -67,7 +61,7 @@ export function createRpcClient() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include", // Include cookies for auth
-      body: serializeWithBigInt(request),
+      body: JSON.stringify(request),
     });
 
     if (!response.ok) {
@@ -87,27 +81,25 @@ export function createRpcClient() {
   // Agent RPC methods
   const agent = {
     create: (data: AgentForCreate) => rpcCall<Agent>("create_agent", { data }),
-    get: (id: bigint | number) => rpcCall<Agent>("get_agent", { id }),
+    get: (id: number) => rpcCall<Agent>("get_agent", { id }),
     list: (filters?: Record<string, unknown>) => rpcCall<Agent[]>("list_agents", { filters }),
-    update: (id: bigint | number, data: AgentForUpdate) =>
-      rpcCall<Agent>("update_agent", { id, data }),
-    delete: (id: bigint | number) => rpcCall<Agent>("delete_agent", { id }),
+    update: (id: number, data: AgentForUpdate) => rpcCall<Agent>("update_agent", { id, data }),
+    delete: (id: number) => rpcCall<Agent>("delete_agent", { id }),
   };
 
   // Conversation RPC methods
   const conv = {
     create: (data: ConvForCreate) => rpcCall<Conv>("create_conv", { data }),
-    get: (id: bigint | number) => rpcCall<Conv>("get_conv", { id }),
+    get: (id: number) => rpcCall<Conv>("get_conv", { id }),
     list: (filters?: Record<string, unknown>) => rpcCall<Conv[]>("list_convs", { filters }),
-    update: (id: bigint | number, data: ConvForUpdate) =>
-      rpcCall<Conv>("update_conv", { id, data }),
-    delete: (id: bigint | number) => rpcCall<Conv>("delete_conv", { id }),
+    update: (id: number, data: ConvForUpdate) => rpcCall<Conv>("update_conv", { id, data }),
+    delete: (id: number) => rpcCall<Conv>("delete_conv", { id }),
   };
 
   // Conversation Message RPC methods
   const convMsg = {
     add: (data: ConvMsgForCreate) => rpcCall<ConvMsg>("add_conv_msg", { data }),
-    list: (convId: bigint | number) =>
+    list: (convId: number) =>
       rpcCall<ConvMsg[]>("list_conv_msgs", {
         filters: [{ conv_id: { $eq: convId } }],
       }),
