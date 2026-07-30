@@ -7,26 +7,26 @@ import type { MessageFeedFactory, MessageFeedOptions } from "~/lib/websocket";
 import type { Conv, ConvMsg } from "~/types/backend";
 
 const mockConv: Conv = {
-  id: BigInt(10),
-  agent_id: BigInt(1),
-  owner_id: BigInt(1),
+  id: 10,
+  agent_id: 1,
+  owner_id: 1,
   title: "Test Conversation",
   kind: "OwnerOnly",
   state: "Active",
-  cid: BigInt(1),
+  cid: 1,
   ctime: "2024-01-01T00:00:00Z",
-  mid: BigInt(1),
+  mid: 1,
   mtime: "2024-01-01T00:00:00Z",
 };
 
 const msg = (id: number, content: string): ConvMsg => ({
-  id: BigInt(id),
-  conv_id: BigInt(10),
-  user_id: BigInt(1),
+  id,
+  conv_id: 10,
+  user_id: 1,
   content,
-  cid: BigInt(1),
+  cid: 1,
   ctime: "2024-01-01T00:00:00Z",
-  mid: BigInt(1),
+  mid: 1,
   mtime: "2024-01-01T00:00:00Z",
 });
 
@@ -85,7 +85,7 @@ describe("<MessagePanel />", () => {
 
   it("unsubscribes from the previous conversation when conv changes", async () => {
     const feed = createFakeFeed();
-    const otherConv: Conv = { ...mockConv, id: BigInt(20) };
+    const otherConv: Conv = { ...mockConv, id: 20 };
     const [conv, setConv] = createSignal<Conv | null>(mockConv);
     render(() => <MessagePanel conv={conv()} feed={feed.factory} />);
 
@@ -105,7 +105,7 @@ describe("<MessagePanel />", () => {
     await user.click(screen.getByRole("button", { name: /send/i }));
 
     expect(backendRpc.convMsg.add).toHaveBeenCalledWith(
-      expect.objectContaining({ conv_id: BigInt(10), content: "Hello test" }),
+      expect.objectContaining({ conv_id: 10, content: "Hello test" }),
     );
   });
 

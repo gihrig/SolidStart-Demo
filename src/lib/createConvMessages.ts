@@ -19,7 +19,7 @@ export interface ConvMessagesDeps {
 
 /** Only new ids append — the single de-duplication point for feed + send. */
 function appendMsg(prev: ConvMsg[], msg: ConvMsg): ConvMsg[] {
-  return prev.some((m) => Number(m.id) === Number(msg.id)) ? prev : [...prev, msg];
+  return prev.some((m) => m.id === msg.id) ? prev : [...prev, msg];
 }
 
 /**
@@ -39,7 +39,7 @@ export function createConvMessages(
   const { connected, subscribe, unsubscribe } = (deps.feed ?? useWebSocket)({
     onConvMsg: (convId, msg) => {
       const c = conv();
-      if (c && Number(c.id) === convId) setMessages((prev) => appendMsg(prev, msg));
+      if (c && c.id === convId) setMessages((prev) => appendMsg(prev, msg));
     },
     onError: (err) => setError(err),
   });
@@ -62,7 +62,7 @@ export function createConvMessages(
   });
 
   // Unsubscribe from the previous conversation on change / cleanup.
-  createEffect((prevConvId: bigint | number | null) => {
+  createEffect((prevConvId: number | null) => {
     const currentConvId = conv()?.id ?? null;
     if (prevConvId && prevConvId !== currentConvId) unsubscribe("conv", prevConvId);
     return currentConvId;

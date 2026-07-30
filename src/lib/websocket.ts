@@ -18,8 +18,8 @@ export interface MessageFeedOptions {
 /** The slice of a live socket a message view actually consumes. */
 export interface MessageFeed {
   connected: () => boolean;
-  subscribe: (channel: string, id?: number | bigint) => void;
-  unsubscribe: (channel: string, id?: number | bigint) => void;
+  subscribe: (channel: string, id?: number) => void;
+  unsubscribe: (channel: string, id?: number) => void;
 }
 
 /** Port: live socket in prod, in-memory adapter in tests. `useWebSocket` satisfies it. */
@@ -57,7 +57,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           const data = JSON.parse(event.data) as WsMessage;
           if (data.event_type === "conv_msg" && options.onConvMsg) {
             const msg = data.payload as ConvMsg;
-            options.onConvMsg(Number(msg.conv_id), msg);
+            options.onConvMsg(msg.conv_id, msg);
           }
         } catch (e) {
           console.error("Failed to parse WebSocket message:", e);
@@ -68,25 +68,25 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
   };
 
-  const subscribe = (channel: string, id?: number | bigint) => {
+  const subscribe = (channel: string, id?: number) => {
     if (ws?.readyState === WebSocket.OPEN) {
       ws.send(
         JSON.stringify({
           action: "subscribe",
           channel,
-          id: id ? Number(id) : undefined,
+          id,
         }),
       );
     }
   };
 
-  const unsubscribe = (channel: string, id?: number | bigint) => {
+  const unsubscribe = (channel: string, id?: number) => {
     if (ws?.readyState === WebSocket.OPEN) {
       ws.send(
         JSON.stringify({
           action: "unsubscribe",
           channel,
-          id: id ? Number(id) : undefined,
+          id,
         }),
       );
     }

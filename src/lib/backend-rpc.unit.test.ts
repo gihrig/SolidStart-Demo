@@ -182,16 +182,6 @@ describe("rpcCall core behaviour", () => {
     await expect(agent.get(1)).rejects.toThrow("Entity not found");
   });
 
-  it("serializes BigInt values as numbers", async () => {
-    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess({ id: 1, name: "A" }))));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await agent.get(BigInt(9007199254740991));
-
-    const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
-    expect(typeof body.params.id).toBe("number");
-  });
-
   it("numbers requests from 1 within a fresh client", async () => {
     const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
     vi.stubGlobal("fetch", fetchMock);
@@ -331,17 +321,6 @@ describe("convMsg", () => {
     const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
     expect(body.method).toBe("add_conv_msg");
     expect(body.params).toEqual({ data: { conv_id: 10, content: "Hello" } });
-  });
-
-  it("coerces a bigint conv_id to a number inside the list filter", async () => {
-    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await convMsg.list(BigInt(10));
-
-    const eq = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body).params.filters[0].conv_id.$eq;
-    expect(eq).toBe(10);
-    expect(typeof eq).toBe("number");
   });
 });
 
