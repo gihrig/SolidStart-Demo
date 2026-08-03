@@ -1,0 +1,1092 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — SolidStart Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "dark",
+        securityLevel: "loose",
+        flowchart: { curve: "basis" },
+      });
+    </script>
+    <style>
+      .seam {
+        stroke: #94a3b8;
+        stroke-dasharray: 5 5;
+        fill: none;
+      }
+      .leak {
+        stroke: #f87171;
+        stroke-width: 2;
+        fill: none;
+        marker-end: url(#leakhead);
+      }
+      .wire {
+        stroke: #94a3b8;
+        stroke-width: 1.5;
+        fill: none;
+        marker-end: url(#wirehead);
+      }
+      .deep {
+        background: linear-gradient(135deg, #020617, #1e293b);
+        border: 1px solid #334155;
+      }
+      .mod {
+        border: 1.5px solid #475569;
+      }
+      .modlabel {
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #94a3b8;
+      }
+      .chip {
+        font-size: 11px;
+        letter-spacing: 0.04em;
+      }
+      pre.code {
+        font-size: 11.5px;
+        line-height: 1.45;
+      }
+      .faded {
+        opacity: 0.4;
+      }
+      .dup {
+        background: repeating-linear-gradient(
+          45deg,
+          #450a0a,
+          #450a0a 6px,
+          #7f1d1d 6px,
+          #7f1d1d 12px
+        );
+      }
+      .mermaid {
+        display: flex;
+        justify-content: center;
+      }
+      h2 {
+        scroll-margin-top: 1rem;
+      }
+      body {
+        font-feature-settings: "kern";
+      }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-200 font-sans antialiased">
+    <svg width="0" height="0" class="absolute">
+      <defs>
+        <marker id="leakhead" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#f87171" />
+        </marker>
+        <marker id="wirehead" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#94a3b8" />
+        </marker>
+      </defs>
+    </svg>
+
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+      <!-- ================= HEADER ================= -->
+      <header class="space-y-5 border-b border-slate-800 pb-8">
+        <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Deep-modules review</p>
+        <h1 class="font-serif text-4xl md:text-5xl text-slate-100">SolidStart Demo — Front-end</h1>
+        <p class="text-slate-400 max-w-2xl">
+          Deepening opportunities across the two demo contexts —
+          <span class="font-medium text-slate-200">Realtime Conversations</span> and
+          <span class="font-medium text-slate-200">Jedi</span> — over the shared
+          <span class="font-mono text-[13px]">src/lib</span> primitives. Every claim quotes verified
+          code with line numbers. 2026-08-03.
+        </p>
+
+        <div class="flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-400 pt-1">
+          <span class="inline-flex items-center gap-2"
+            ><span class="inline-block w-5 h-3 border-2 border-slate-500 bg-slate-800"></span>
+            module</span
+          >
+          <span class="inline-flex items-center gap-2"
+            ><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" class="seam" /></svg>
+            seam</span
+          >
+          <span class="inline-flex items-center gap-2"
+            ><svg width="26" height="8"><line x1="0" y1="4" x2="22" y2="4" class="leak" /></svg>
+            leakage</span
+          >
+          <span class="inline-flex items-center gap-2"
+            ><span class="inline-block w-5 h-3 deep"></span> deep module</span
+          >
+          <span class="inline-flex items-center gap-2"
+            ><span class="inline-block w-5 h-3 dup"></span> duplication</span
+          >
+        </div>
+
+        <div class="flex flex-wrap gap-2 pt-1 text-xs">
+          <a
+            href="#a"
+            class="rounded-full bg-emerald-500/15 text-emerald-300 px-3 py-1 hover:bg-emerald-500/25"
+            >1 · Async-mutation choreography</a
+          >
+          <a
+            href="#b"
+            class="rounded-full bg-emerald-500/15 text-emerald-300 px-3 py-1 hover:bg-emerald-500/25"
+            >2 · Sidebar selection has two owners</a
+          >
+          <a
+            href="#c"
+            class="rounded-full bg-amber-500/15 text-amber-300 px-3 py-1 hover:bg-amber-500/25"
+            >3 · Workspace leaks Resource</a
+          >
+          <a
+            href="#d"
+            class="rounded-full bg-amber-500/15 text-amber-300 px-3 py-1 hover:bg-amber-500/25"
+            >4 · URL sanitize has no owner</a
+          >
+          <a
+            href="#e"
+            class="rounded-full bg-amber-500/15 text-amber-300 px-3 py-1 hover:bg-amber-500/25"
+            >5 · useDisclosure returns state</a
+          >
+          <a
+            href="#f"
+            class="rounded-full bg-slate-700/50 text-slate-300 px-3 py-1 hover:bg-slate-700"
+            >6 · WebSocket surface too wide</a
+          >
+        </div>
+      </header>
+
+      <section id="candidates" class="space-y-14">
+        <!-- ============================================================= -->
+        <!-- CANDIDATE A -->
+        <!-- ============================================================= -->
+        <article id="a" class="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden">
+          <div class="p-6 md:p-8 space-y-6">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="text-xs font-mono text-slate-500">01</span>
+              <h2 class="font-serif text-2xl text-slate-100">
+                Unify the async-mutation choreography
+              </h2>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <span class="chip rounded-full bg-emerald-600 text-white px-3 py-1 font-medium"
+                >Strong</span
+              >
+              <span class="chip rounded-full bg-slate-800 text-slate-300 px-3 py-1"
+                >in-process</span
+              >
+              <span class="chip rounded-full bg-slate-800 text-slate-300 px-3 py-1"
+                >Realtime Conversations</span
+              >
+            </div>
+            <p class="font-mono text-sm text-slate-400">
+              createRpcAction.ts · createConvMessages.ts · AuthContext.tsx · MessagePanel.tsx ·
+              conversationWorkspace.ts
+            </p>
+
+            <!-- diagram -->
+            <div class="grid md:grid-cols-2 gap-4">
+              <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                <p class="modlabel mb-3">Before — one concept, four hand-rolls</p>
+                <pre class="mermaid">
+flowchart TB
+  RA["createRpcAction<br/><small>reset → try/catch/finally</small>"]
+  WS["conversationWorkspace<br/><small>agentAction / convAction</small>"]
+  CM["createConvMessages.send<br/><small>hand-rolls try/catch — no pending</small>"]
+  AC["AuthContext.login<br/><small>hand-rolls try/catch + re-throw</small>"]
+  MP["MessagePanel<br/><small>owns its own sending() signal</small>"]
+  WS -->|uses| RA
+  CM -.re-implements.-> RA
+  AC -.re-implements.-> RA
+  MP -.tracks pending<br/>the hook won't expose.-> CM
+  classDef leak stroke:#f87171,stroke-width:2px,fill:#450a0a,color:#fecaca;
+  classDef ok stroke:#34d399,stroke-width:1.5px,fill:#052e16,color:#a7f3d0;
+  class CM,AC,MP leak
+  class RA,WS ok
+                </pre>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                <p class="modlabel mb-3">After — one deep action module</p>
+                <div class="relative h-[300px]">
+                  <div
+                    class="deep absolute left-1/2 -translate-x-1/2 top-[116px] w-52 rounded-lg text-white text-center py-4 px-3"
+                  >
+                    <p class="text-[10px] uppercase tracking-wider text-slate-400">deep module</p>
+                    <p class="font-mono text-sm mt-1">RpcAction</p>
+                    <p class="text-[11px] text-slate-300 mt-1">run · pending · error</p>
+                  </div>
+                  <svg
+                    class="absolute inset-0 w-full h-full"
+                    viewBox="0 0 360 300"
+                    preserveAspectRatio="none"
+                  >
+                    <line x1="60" y1="40" x2="150" y2="130" class="wire" />
+                    <line x1="180" y1="30" x2="180" y2="112" class="wire" />
+                    <line x1="300" y1="40" x2="212" y2="130" class="wire" />
+                    <line x1="180" y1="270" x2="180" y2="182" class="wire" />
+                  </svg>
+                  <div
+                    class="mod absolute left-2 top-3 bg-slate-800 rounded px-2 py-1 text-[11px] font-mono"
+                  >
+                    workspace
+                  </div>
+                  <div
+                    class="mod absolute left-1/2 -translate-x-1/2 top-1 bg-slate-800 rounded px-2 py-1 text-[11px] font-mono"
+                  >
+                    send
+                  </div>
+                  <div
+                    class="mod absolute right-2 top-3 bg-slate-800 rounded px-2 py-1 text-[11px] font-mono"
+                  >
+                    login
+                  </div>
+                  <div
+                    class="mod absolute left-1/2 -translate-x-1/2 bottom-1 bg-slate-800 rounded px-2 py-1 text-[11px] font-mono"
+                  >
+                    MessagePanel <span class="text-slate-500 line-through">sending()</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4">
+              <pre
+                class="code rounded-lg bg-slate-950 border border-slate-800 text-slate-100 p-4 overflow-x-auto"
+              ><span class="text-slate-500">// createRpcAction.ts:30 — the choreography, owned once</span>
+run = async (args) =&gt; {
+  setError(null); setPending(true);
+  try { return await fn(args); }
+  catch (e) { setError(...); return undefined; }
+  finally { setPending(false); }
+}</pre>
+              <pre
+                class="code rounded-lg bg-slate-950 border border-slate-800 text-slate-100 p-4 overflow-x-auto"
+              ><span class="text-slate-500">// createConvMessages.ts:71 — the same dance, again, no pending</span>
+const send = async (content) =&gt; {
+  ...
+  setError(null);
+  try { const msg = await backendRpc.convMsg.add(...);
+    setMessages(...); return true; }
+  catch (e) { setError(...); return false; }   <span class="text-rose-400">// MessagePanel keeps sending()</span>
+}</pre>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+              <p>
+                <span class="font-semibold text-slate-100">Problem.</span> "Fire an RPC, reflect its
+                pending + error" is a deep concept hand-rolled at four call sites, each answering it
+                slightly differently.
+              </p>
+              <p>
+                <span class="font-semibold text-slate-100">Solution.</span> Route
+                <span class="font-mono text-[13px]">send</span> (and the login flow) through the
+                existing <span class="font-mono text-[13px]">RpcAction</span> so pending and error
+                have one owner.
+              </p>
+            </div>
+
+            <div>
+              <p class="modlabel mb-2">Wins</p>
+              <ul
+                class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-emerald-400"
+              >
+                <li>locality: pending + error owned once</li>
+                <li>
+                  <span class="font-mono text-[13px]">MessagePanel</span> drops its
+                  <span class="font-mono text-[13px]">sending</span> signal
+                </li>
+                <li>send lifecycle testable through one interface</li>
+                <li>leverage: one action, N call sites</li>
+              </ul>
+            </div>
+            <div
+              class="rounded-lg bg-slate-800/50 border border-slate-700 px-4 py-3 text-[13px] text-slate-300"
+            >
+              <span class="font-semibold text-slate-100">Grill first:</span>
+              <span class="font-mono text-[12px]">login</span> re-throws (<span
+                class="font-mono text-[12px]"
+                >AuthContext.tsx:27</span
+              >) and <span class="font-mono text-[12px]">send</span> returns
+              <span class="font-mono text-[12px]">boolean</span> — the
+              <span class="font-mono text-[12px]">send</span>/<span class="font-mono text-[12px]"
+                >MessagePanel</span
+              >
+              half is the clean win; the login half is a genuine interface question, not a rename.
+            </div>
+          </div>
+        </article>
+
+        <!-- ============================================================= -->
+        <!-- CANDIDATE B -->
+        <!-- ============================================================= -->
+        <article id="b" class="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden">
+          <div class="p-6 md:p-8 space-y-6">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="text-xs font-mono text-slate-500">02</span>
+              <h2 class="font-serif text-2xl text-slate-100">
+                The sidebar's selection has two owners
+              </h2>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <span class="chip rounded-full bg-emerald-600 text-white px-3 py-1 font-medium"
+                >Strong</span
+              >
+              <span class="chip rounded-full bg-slate-800 text-slate-300 px-3 py-1"
+                >in-process</span
+              >
+              <span class="chip rounded-full bg-slate-800 text-slate-300 px-3 py-1">Jedi</span>
+            </div>
+            <p class="font-mono text-sm text-slate-400">
+              useListbox.ts · TopPhotosCard.tsx · TopCaptionsCard.tsx · CategoriesCard.tsx
+            </p>
+
+            <!-- diagram -->
+            <div class="grid md:grid-cols-2 gap-4">
+              <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                <p class="modlabel mb-3">Before — selection computed twice</p>
+                <div class="relative h-[300px] text-[11px]">
+                  <div class="mod bg-slate-800 rounded-lg absolute left-3 top-3 w-40 p-2">
+                    <p class="modlabel">useListbox — seam</p>
+                    <p class="mt-1 font-mono text-emerald-400">aria-selected</p>
+                    <p class="font-mono text-emerald-400">bg-(--theme-highlight)</p>
+                    <p class="text-slate-500 mt-1">from selectedIndex()</p>
+                  </div>
+                  <div class="dup mod rounded-lg absolute right-3 top-2 w-44 p-2 text-slate-100">
+                    <p class="modlabel">TopPhotosCard</p>
+                    <p class="mt-1 font-mono text-rose-300">aria-current</p>
+                    <p class="text-slate-300">= selectedPost()?.id === p.id</p>
+                  </div>
+                  <div
+                    class="dup mod rounded-lg absolute right-3 top-[112px] w-44 p-2 text-slate-100"
+                  >
+                    <p class="modlabel">TopCaptionsCard</p>
+                    <p class="mt-1 font-mono text-rose-300">aria-current</p>
+                    <p class="text-slate-300">= selectedCaption()?.id === c.id</p>
+                  </div>
+                  <div class="mod bg-slate-800 rounded-lg absolute right-3 top-[204px] w-44 p-2">
+                    <p class="modlabel">CategoriesCard</p>
+                    <p class="text-slate-500 mt-1">same wiring, index-keyed</p>
+                  </div>
+                  <svg
+                    class="absolute inset-0 w-full h-full"
+                    viewBox="0 0 360 300"
+                    preserveAspectRatio="none"
+                  >
+                    <line x1="150" y1="40" x2="205" y2="30" class="leak" />
+                    <line x1="150" y1="55" x2="205" y2="132" class="leak" />
+                  </svg>
+                  <p class="absolute left-3 bottom-2 text-rose-400 text-[11px]">
+                    "is this row selected?" answered in 2 places
+                  </p>
+                </div>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                <p class="modlabel mb-3">After — one keyed listbox-card</p>
+                <div class="relative h-[300px] text-[11px]">
+                  <div
+                    class="deep rounded-lg absolute left-1/2 -translate-x-1/2 top-4 w-52 p-3 text-white text-center"
+                  >
+                    <p class="text-[10px] uppercase tracking-wider text-slate-400">deep module</p>
+                    <p class="font-mono text-sm mt-1">SidebarListboxCard</p>
+                    <p class="text-[10px] text-slate-300 mt-1">owns wiring + selection paint</p>
+                  </div>
+                  <svg
+                    class="absolute inset-0 w-full h-full"
+                    viewBox="0 0 360 300"
+                    preserveAspectRatio="none"
+                  >
+                    <line x1="120" y1="110" x2="120" y2="200" class="wire" />
+                    <line x1="240" y1="110" x2="240" y2="200" class="wire" />
+                    <line x1="180" y1="110" x2="180" y2="200" class="wire" />
+                  </svg>
+                  <div
+                    class="mod bg-slate-800 rounded absolute left-4 bottom-6 w-24 p-1.5 text-center"
+                  >
+                    renderRow: photo
+                  </div>
+                  <div
+                    class="mod bg-slate-800 rounded absolute left-1/2 -translate-x-1/2 bottom-6 w-24 p-1.5 text-center"
+                  >
+                    caption
+                  </div>
+                  <div
+                    class="mod bg-slate-800 rounded absolute right-4 bottom-6 w-24 p-1.5 text-center"
+                  >
+                    category
+                  </div>
+                  <p class="absolute left-1/2 -translate-x-1/2 bottom-0 text-emerald-400">
+                    selection lives once, in the seam
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4">
+              <pre
+                class="code rounded-lg bg-slate-950 border border-slate-800 text-slate-100 p-4 overflow-x-auto"
+              ><span class="text-slate-500">// useListbox.ts:123 — the seam already owns selection</span>
+get "aria-selected"() { return selectedIndex() === index; }
+get classList() {
+  return { "bg-(--theme-highlight)": selectedIndex() === index, ... };
+}</pre>
+              <pre
+                class="code rounded-lg bg-slate-950 border border-slate-800 text-slate-100 p-4 overflow-x-auto"
+              ><span class="text-slate-500">// TopPhotosCard.tsx:39 — and the card recomputes it anyway</span>
+&lt;li {...getOptionProps(index())}
+    <span class="text-rose-400">aria-current={props.selectedPost()?.id === p.id ? "true" : undefined}</span>&gt;
+<span class="text-slate-500">// TopCaptionsCard.tsx:32 repeats it verbatim; &lt;li&gt; classes byte-identical</span></pre>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+              <p>
+                <span class="font-semibold text-slate-100">Problem.</span> Three cards re-wire
+                <span class="font-mono text-[13px]">useListbox</span> the same way, and the two
+                id-keyed cards recompute "row is selected" a second time as
+                <span class="font-mono text-[13px]">aria-current</span> — a second source of truth
+                for the #37 highlight.
+              </p>
+              <p>
+                <span class="font-semibold text-slate-100">Solution.</span> One keyed listbox-card
+                owns the wiring and the selection paint; cards supply only a row renderer. If
+                <span class="font-mono text-[13px]">aria-current</span> is wanted, the seam emits it
+                — nobody recomputes it.
+              </p>
+            </div>
+
+            <div>
+              <p class="modlabel mb-2">Wins</p>
+              <ul
+                class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-emerald-400"
+              >
+                <li>delete the second selection source</li>
+                <li>
+                  seam owns <span class="font-mono text-[13px]">aria-selected</span>; card stops
+                  recomputing
+                </li>
+                <li>two id-keyed cards collapse to one</li>
+                <li>locality: selection fix verified once</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ============================================================= -->
+        <!-- CANDIDATE C -->
+        <!-- ============================================================= -->
+        <article id="c" class="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden">
+          <div class="p-6 md:p-8 space-y-6">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="text-xs font-mono text-slate-500">03</span>
+              <h2 class="font-serif text-2xl text-slate-100">
+                The workspace leaks <span class="font-mono text-xl">Resource</span> through its seam
+              </h2>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <span class="chip rounded-full bg-amber-500 text-slate-950 px-3 py-1 font-medium"
+                >Worth exploring</span
+              >
+              <span class="chip rounded-full bg-slate-800 text-slate-300 px-3 py-1">mock</span>
+              <span class="chip rounded-full bg-slate-800 text-slate-300 px-3 py-1"
+                >Realtime Conversations</span
+              >
+            </div>
+            <p class="font-mono text-sm text-slate-400">
+              conversationWorkspace.ts · ConversationTree.tsx · conversationWorkspace.stub.ts
+            </p>
+
+            <!-- diagram -->
+            <div class="grid md:grid-cols-2 gap-4">
+              <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                <p class="modlabel mb-3">Before — consumers reach past the seam</p>
+                <div class="relative h-[300px] text-[11px]">
+                  <div class="mod bg-slate-800 rounded-lg absolute left-3 top-6 w-40 p-2">
+                    <p class="modlabel">conversationWorkspace</p>
+                    <p class="mt-1 font-mono text-rose-400">agents: Resource&lt;Agent[]&gt;</p>
+                    <p class="font-mono text-rose-400">convs: Resource&lt;Conv[]&gt;</p>
+                  </div>
+                  <svg
+                    class="absolute inset-0 w-full h-full"
+                    viewBox="0 0 360 300"
+                    preserveAspectRatio="none"
+                  >
+                    <line x1="200" y1="20" x2="200" y2="280" class="seam" />
+                    <line x1="300" y1="70" x2="188" y2="60" class="leak" />
+                    <line x1="300" y1="120" x2="188" y2="80" class="leak" />
+                  </svg>
+                  <div class="mod bg-slate-800 rounded-lg absolute right-3 top-10 w-36 p-2">
+                    <p class="modlabel">ConversationTree</p>
+                    <p class="mt-1 font-mono text-rose-400">.loading</p>
+                    <p class="font-mono text-rose-400">.error.message</p>
+                  </div>
+                  <div class="dup mod rounded-lg absolute right-3 bottom-6 w-40 p-2 text-slate-100">
+                    <p class="modlabel">stub.ts</p>
+                    <p class="mt-1 text-slate-200">fabricates Resource</p>
+                    <p class="font-mono text-[10px] text-rose-300">
+                      as unknown as Resource&lt;T&gt;
+                    </p>
+                  </div>
+                  <p class="absolute left-3 bottom-2 text-slate-500">
+                    seam ▍ SolidJS framework type crosses it
+                  </p>
+                </div>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                <p class="modlabel mb-3">After — plain accessors at the seam</p>
+                <div class="relative h-[300px] text-[11px]">
+                  <div class="deep rounded-lg absolute left-3 top-6 w-44 p-3 text-white">
+                    <p class="text-[10px] uppercase tracking-wider text-slate-400">deep module</p>
+                    <p class="font-mono text-[12px] text-emerald-300 mt-1">agents()</p>
+                    <p class="font-mono text-[12px] text-emerald-300">agentsLoading()</p>
+                    <p class="font-mono text-[12px] text-emerald-300">agentsError()</p>
+                    <p class="text-[10px] text-slate-400 mt-1">Resource stays inside</p>
+                  </div>
+                  <svg
+                    class="absolute inset-0 w-full h-full"
+                    viewBox="0 0 360 300"
+                    preserveAspectRatio="none"
+                  >
+                    <line x1="210" y1="20" x2="210" y2="280" class="seam" />
+                    <line x1="300" y1="70" x2="200" y2="70" class="wire" />
+                  </svg>
+                  <div class="mod bg-slate-800 rounded-lg absolute right-3 top-10 w-36 p-2">
+                    <p class="modlabel">ConversationTree</p>
+                    <p class="text-slate-400 mt-1">reads accessors only</p>
+                  </div>
+                  <div class="mod bg-slate-800 rounded-lg absolute right-3 bottom-6 w-40 p-2">
+                    <p class="modlabel">stub.ts</p>
+                    <p class="text-emerald-400 mt-1">plain object — no cast</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <pre
+              class="code rounded-lg bg-slate-950 border border-slate-800 text-slate-100 p-4 overflow-x-auto"
+            ><span class="text-slate-500">// conversationWorkspace.stub.ts:37 — the mock only exists to imitate framework internals</span>
+export function readyResource&lt;T&gt;(value: T): Resource&lt;T&gt; {
+  return Object.assign(() =&gt; value, { loading: false, error: undefined, latest: value, state: "ready" })
+    <span class="text-rose-400">as unknown as Resource&lt;T&gt;</span>;   <span class="text-slate-500">// ConversationTree.tsx:117 reads .error.message</span>
+}</pre>
+
+            <div class="grid md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+              <p>
+                <span class="font-semibold text-slate-100">Problem.</span> The interface hands out
+                raw <span class="font-mono text-[13px]">Resource&lt;T&gt;</span>, so consumers read
+                <span class="font-mono text-[13px]">.loading</span>/<span
+                  class="font-mono text-[13px]"
+                  >.error.message</span
+                >
+                and the only test double must fake the whole SolidJS Resource surface through
+                <span class="font-mono text-[13px]">unknown</span>.
+              </p>
+              <p>
+                <span class="font-semibold text-slate-100">Solution.</span> Expose
+                <span class="font-mono text-[13px]"
+                  >agents() / agentsLoading() / agentsError()</span
+                >
+                plain accessors; keep the <span class="font-mono text-[13px]">Resource</span> as
+                private implementation.
+              </p>
+            </div>
+
+            <div>
+              <p class="modlabel mb-2">Wins</p>
+              <ul
+                class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-amber-400"
+              >
+                <li>seam stops leaking <span class="font-mono text-[13px]">Resource</span></li>
+                <li>stub becomes a plain object</li>
+                <li>loading/error tested without faking internals</li>
+                <li>interface: accessors, not framework types</li>
+              </ul>
+            </div>
+            <div
+              class="rounded-lg bg-amber-950/40 border border-amber-800/60 px-4 py-3 text-[13px] text-amber-200"
+            >
+              <span class="font-semibold">One adapter = hypothetical seam.</span> The stub is a test
+              mock, not a second runtime adapter — so widen the seam for testability, not
+              polymorphism. The elaborate mock is a symptom of the leak, not a reason to keep it.
+            </div>
+          </div>
+        </article>
+
+        <!-- ============================================================= -->
+        <!-- CANDIDATE D -->
+        <!-- ============================================================= -->
+        <article id="d" class="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden">
+          <div class="p-6 md:p-8 space-y-6">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="text-xs font-mono text-slate-500">04</span>
+              <h2 class="font-serif text-2xl text-slate-100">
+                URL sanitization has no single owner
+              </h2>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <span class="chip rounded-full bg-amber-500 text-slate-950 px-3 py-1 font-medium"
+                >Worth exploring</span
+              >
+              <span class="chip rounded-full bg-slate-800 text-slate-300 px-3 py-1"
+                >in-process</span
+              >
+              <span class="chip rounded-full bg-slate-800 text-slate-300 px-3 py-1">Jedi</span>
+            </div>
+            <p class="font-mono text-sm text-slate-400">
+              jedi-api.ts · Author.tsx · Image.tsx · Hero.tsx · TopPhotosCard.tsx ·
+              TopCaptionsCard.tsx · JediNav.tsx
+            </p>
+
+            <!-- diagram: three lanes -->
+            <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+              <p class="modlabel mb-3">Before — one claimed boundary, answered 0, 1, and 2 times</p>
+              <div class="space-y-3 text-[12px]">
+                <div class="flex items-center gap-2">
+                  <span class="w-16 text-slate-500 shrink-0">data.json</span>
+                  <span class="rounded bg-emerald-600 text-white px-2 py-1 font-mono text-[11px]"
+                    >safe() @ jedi-api</span
+                  >
+                  <span class="text-slate-600">→</span>
+                  <span class="rounded bg-emerald-600 text-white px-2 py-1 font-mono text-[11px]"
+                    >sanitizeUrl again @ Author/Image/Hero</span
+                  >
+                  <span class="text-slate-600">→</span>
+                  <span
+                    class="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-slate-200"
+                    >render</span
+                  >
+                  <span class="ml-auto text-rose-400 font-medium">sanitized ×2</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-16 text-slate-500 shrink-0">data.json</span>
+                  <span class="rounded bg-emerald-600 text-white px-2 py-1 font-mono text-[11px]"
+                    >safe() @ jedi-api</span
+                  >
+                  <span class="text-slate-600">→</span>
+                  <span
+                    class="rounded border border-dashed border-slate-600 bg-slate-800/40 px-2 py-1 text-slate-500 italic"
+                    >no gate</span
+                  >
+                  <span class="text-slate-600">→</span>
+                  <span
+                    class="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-slate-200"
+                    >render
+                    <span class="font-mono text-[11px]">src={p.author.avatarUrl}</span></span
+                  >
+                  <span class="ml-auto text-amber-400 font-medium">×1 — sidebar, JediNav</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-16 text-slate-500 shrink-0">data.json</span>
+                  <span
+                    class="rounded border border-dashed border-rose-800 bg-rose-950/40 px-2 py-1 text-rose-400 font-mono text-[11px]"
+                    >photographerUrl — raw</span
+                  >
+                  <span class="text-slate-600">→</span>
+                  <span
+                    class="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-slate-200"
+                    >render
+                    <span class="font-mono text-[11px]"
+                      >href={props.post.photographerUrl}</span
+                    ></span
+                  >
+                  <span class="ml-auto text-slate-400 font-medium"
+                    >FeaturedPost inconsistent within one file</span
+                  >
+                </div>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-800 flex items-center gap-3 text-[12px]">
+                <span class="modlabel">After</span>
+                <span class="w-16 text-slate-500">data.json</span>
+                <span class="rounded deep text-white px-3 py-1 font-mono text-[11px]"
+                  >sanitize seam @ jedi-api — the one gate</span
+                >
+                <span class="text-slate-600">→</span>
+                <span class="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-slate-200"
+                  >every consumer binds trusted output</span
+                >
+              </div>
+            </div>
+
+            <pre
+              class="code rounded-lg bg-slate-950 border border-slate-800 text-slate-100 p-4 overflow-x-auto"
+            ><span class="text-slate-500">// jedi-api.ts:19 — the intended single boundary (asserted by its unit test)</span>
+const safe = (url) =&gt; sanitizeUrl(url) ?? "";   <span class="text-slate-500">// every URL field routes through it</span>
+<span class="text-slate-500">// Author.tsx:12 re-sanitizes:</span>  const imgSrc = () =&gt; sanitizeUrl(props.avatarSrc);
+<span class="text-slate-500">// TopPhotosCard.tsx:50 trusts it raw:</span>  &lt;img src={p.author.avatarUrl} /&gt;</pre>
+
+            <div class="grid md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+              <p>
+                <span class="font-semibold text-slate-100">Problem.</span>
+                <span class="font-mono text-[13px]">jedi-api</span> sanitizes every URL, yet
+                <span class="font-mono text-[13px]">Author/Image/Hero</span> sanitize again while
+                the sidebar cards and <span class="font-mono text-[13px]">JediNav</span> bind raw —
+                the "single boundary" is answered three ways.
+              </p>
+              <p>
+                <span class="font-semibold text-slate-100">Solution.</span> Make the
+                <span class="font-mono text-[13px]">jedi-api</span> seam the sole owner; consumers
+                bind its trusted output; drop the leaf-level re-sanitizing.
+              </p>
+            </div>
+
+            <div>
+              <p class="modlabel mb-2">Wins</p>
+              <ul
+                class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-amber-400"
+              >
+                <li>one seam answers "is this URL safe"</li>
+                <li>delete redundant leaf sanitizing</li>
+                <li>close the sidebar's sanitize gap</li>
+                <li>locality: policy fixed in one place</li>
+              </ul>
+            </div>
+            <div
+              class="rounded-lg bg-amber-950/40 border border-amber-800/60 px-4 py-3 text-[13px] text-amber-200"
+            >
+              <span class="font-semibold">Supports ADR-0002.</span> The ADR already names the
+              <span class="font-mono text-[12px]">jedi-api</span> seam as "the single trust boundary
+              where every URL field passes through
+              <span class="font-mono text-[12px]">sanitizeUrl</span>." This deepening honors it —
+              the friction is that the code doesn't. <span class="italic">Grill:</span> are
+              <span class="font-mono text-[12px]">Author</span>/<span class="font-mono text-[12px]"
+                >Image</span
+              >
+              meant to be defensive reusable primitives (defense-in-depth) beyond Jedi? That's the
+              one real counter-argument.
+            </div>
+          </div>
+        </article>
+
+        <!-- ============================================================= -->
+        <!-- CANDIDATE E -->
+        <!-- ============================================================= -->
+        <article id="e" class="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden">
+          <div class="p-6 md:p-8 space-y-6">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="text-xs font-mono text-slate-500">05</span>
+              <h2 class="font-serif text-2xl text-slate-100">
+                <span class="font-mono text-xl">useDisclosure</span> hands back state, not props
+              </h2>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <span class="chip rounded-full bg-amber-500 text-slate-950 px-3 py-1 font-medium"
+                >Worth exploring</span
+              >
+              <span class="chip rounded-full bg-slate-800 text-slate-300 px-3 py-1"
+                >in-process</span
+              >
+              <span class="chip rounded-full bg-slate-800 text-slate-300 px-3 py-1">Jedi</span>
+            </div>
+            <p class="font-mono text-sm text-slate-400">
+              useDisclosure.ts · jedi.tsx · JediNav.tsx
+            </p>
+
+            <div class="grid md:grid-cols-2 gap-4">
+              <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                <p class="modlabel mb-3">Before — wiring recurs; a 4th disclosure hand-rolled</p>
+                <pre class="mermaid">
+flowchart TB
+  UD["useDisclosure<br/><small>returns open · toggle · inert</small>"]
+  J["jedi.tsx sidebar<br/><small>wires aria-expanded + inert by hand</small>"]
+  N1["JediNav mobileNav<br/><small>same wiring, again</small>"]
+  N2["JediNav dropdown<br/><small>hand-rolled: needs click-outside + ARIA</small>"]
+  UD --> J
+  UD --> N1
+  N2 -.can't use useDisclosure.-> UD
+  classDef leak stroke:#f87171,stroke-width:2px,fill:#450a0a,color:#fecaca;
+  classDef ok stroke:#fbbf24,stroke-width:1.5px,fill:#451a03,color:#fde68a;
+  class J,N1,N2 leak
+  class UD ok
+                </pre>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                <p class="modlabel mb-3">After — deep disclosure returns spreadable props</p>
+                <div class="relative h-[300px] text-[11px]">
+                  <div
+                    class="deep rounded-lg absolute left-1/2 -translate-x-1/2 top-6 w-52 p-3 text-white text-center"
+                  >
+                    <p class="text-[10px] uppercase tracking-wider text-slate-400">deep module</p>
+                    <p class="font-mono text-[12px] mt-1">triggerProps · panelProps</p>
+                    <p class="text-[10px] text-slate-300 mt-1">
+                      ARIA · inert · dismiss · click-outside
+                    </p>
+                  </div>
+                  <svg
+                    class="absolute inset-0 w-full h-full"
+                    viewBox="0 0 360 300"
+                    preserveAspectRatio="none"
+                  >
+                    <line x1="110" y1="118" x2="80" y2="210" class="wire" />
+                    <line x1="180" y1="118" x2="180" y2="210" class="wire" />
+                    <line x1="250" y1="118" x2="285" y2="210" class="wire" />
+                  </svg>
+                  <div
+                    class="mod bg-slate-800 rounded absolute left-2 bottom-8 w-24 p-1.5 text-center"
+                  >
+                    sidebar
+                  </div>
+                  <div
+                    class="mod bg-slate-800 rounded absolute left-1/2 -translate-x-1/2 bottom-8 w-24 p-1.5 text-center"
+                  >
+                    mobile nav
+                  </div>
+                  <div
+                    class="mod bg-slate-800 rounded absolute right-2 bottom-8 w-24 p-1.5 text-center"
+                  >
+                    dropdown
+                  </div>
+                  <p class="absolute left-1/2 -translate-x-1/2 bottom-1 text-emerald-400">
+                    {...spread} — no per-site wiring
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <pre
+              class="code rounded-lg bg-slate-950 border border-slate-800 text-slate-100 p-4 overflow-x-auto"
+            ><span class="text-slate-500">// useDisclosure.ts:38 — hides the state combo, leaves the DOM/ARIA contract to callers</span>
+return { open, toggle, inert };
+<span class="text-slate-500">// JediNav.tsx:12 — so the dropdown (needs click-outside + ARIA) is hand-rolled as a 4th disclosure</span>
+const [dropdownOpen, setDropdownOpen] = createSignal(false);
+useDismiss(() =&gt; setDropdownOpen(false), dropdownOpen, () =&gt; dropdownRef);</pre>
+
+            <div class="grid md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+              <p>
+                <span class="font-semibold text-slate-100">Problem.</span> Unlike
+                <span class="font-mono text-[13px]">useListbox</span> (spreadable props),
+                <span class="font-mono text-[13px]">useDisclosure</span> returns only state, so
+                <span class="font-mono text-[13px]">aria-expanded</span>/<span
+                  class="font-mono text-[13px]"
+                  >inert</span
+                >/toggle wiring reappears at every call site — and it's too shallow for JediNav's
+                dropdown, which hand-rolls a fourth one.
+              </p>
+              <p>
+                <span class="font-semibold text-slate-100">Solution.</span> Deepen it to return
+                spreadable <span class="font-mono text-[13px]">triggerProps</span>/<span
+                  class="font-mono text-[13px]"
+                  >panelProps</span
+                >
+                and absorb click-outside + ARIA, matching the
+                <span class="font-mono text-[13px]">useListbox</span> shape.
+              </p>
+            </div>
+
+            <div>
+              <p class="modlabel mb-2">Wins</p>
+              <ul
+                class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-amber-400"
+              >
+                <li>interface hands back props, not state</li>
+                <li>ARIA/DOM wiring written once</li>
+                <li>JediNav's 4th disclosure folds in</li>
+                <li>leverage: one module, all disclosures</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ============================================================= -->
+        <!-- CANDIDATE F -->
+        <!-- ============================================================= -->
+        <article id="f" class="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden">
+          <div class="p-6 md:p-8 space-y-6">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="text-xs font-mono text-slate-500">06</span>
+              <h2 class="font-serif text-2xl text-slate-100">
+                The WebSocket surface is wider than any caller uses
+              </h2>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <span class="chip rounded-full bg-slate-600 text-white px-3 py-1 font-medium"
+                >Speculative</span
+              >
+              <span class="chip rounded-full bg-slate-800 text-slate-300 px-3 py-1"
+                >ports &amp; adapters</span
+              >
+              <span class="chip rounded-full bg-slate-800 text-slate-300 px-3 py-1"
+                >Realtime Conversations</span
+              >
+            </div>
+            <p class="font-mono text-sm text-slate-400">websocket.ts · createConvMessages.ts</p>
+
+            <!-- mass diagram -->
+            <div class="grid md:grid-cols-2 gap-4">
+              <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                <p class="modlabel mb-3">Before — interface as tall as it is used-less</p>
+                <div class="flex gap-3 items-end h-[280px]">
+                  <div class="flex-1">
+                    <p class="text-[10px] text-slate-500 mb-1 text-center">returned surface</p>
+                    <div
+                      class="rounded-t bg-emerald-600 text-white text-[11px] font-mono text-center py-1.5"
+                    >
+                      connected
+                    </div>
+                    <div
+                      class="bg-emerald-600 text-white text-[11px] font-mono text-center py-1.5 border-t border-emerald-700"
+                    >
+                      subscribe
+                    </div>
+                    <div
+                      class="bg-emerald-600 text-white text-[11px] font-mono text-center py-1.5 border-t border-emerald-700"
+                    >
+                      unsubscribe
+                    </div>
+                    <div
+                      class="bg-slate-700 text-slate-400 text-[11px] font-mono text-center py-1.5 border-t border-slate-600 line-through"
+                    >
+                      error
+                    </div>
+                    <div
+                      class="bg-slate-700 text-slate-400 text-[11px] font-mono text-center py-1.5 border-t border-slate-600 line-through"
+                    >
+                      disconnect
+                    </div>
+                    <div
+                      class="rounded-b bg-slate-700 text-slate-400 text-[11px] font-mono text-center py-1.5 border-t border-slate-600 line-through"
+                    >
+                      reconnect
+                    </div>
+                    <p class="text-[10px] text-rose-400 mt-1 text-center">
+                      3 of 6 have no production caller
+                    </p>
+                  </div>
+                  <div class="flex-1">
+                    <p class="text-[10px] text-slate-500 mb-1 text-center">option types</p>
+                    <div class="rounded bg-slate-800 mod text-[10px] font-mono p-2 mb-2">
+                      UseWebSocketOptions<br /><span class="text-slate-500"
+                        >onConvMsg · onError · autoReconnect</span
+                      >
+                    </div>
+                    <div class="rounded dup mod text-[10px] font-mono p-2 text-slate-100">
+                      MessageFeedOptions<br /><span class="text-slate-300"
+                        >onConvMsg · onError</span
+                      >
+                    </div>
+                    <p class="text-[10px] text-rose-400 mt-1 text-center">
+                      two near-identical option types
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                <p class="modlabel mb-3">After — small interface, deep implementation</p>
+                <div class="flex flex-col justify-center h-[280px] gap-3">
+                  <div class="deep rounded-lg text-white p-3">
+                    <p class="text-[10px] uppercase tracking-wider text-slate-400">
+                      MessageFeed — the port callers see
+                    </p>
+                    <p class="font-mono text-[12px] text-emerald-300 mt-1">
+                      connected · subscribe · unsubscribe
+                    </p>
+                  </div>
+                  <p class="text-[11px] text-slate-400 text-center">
+                    socket lifecycle, reconnect, parse — all <span class="italic">inside</span>
+                  </p>
+                  <div
+                    class="rounded border border-slate-700 bg-slate-800 text-[11px] font-mono p-2 text-center text-slate-200"
+                  >
+                    one options type
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <pre
+              class="code rounded-lg bg-slate-950 border border-slate-800 text-slate-100 p-4 overflow-x-auto"
+            ><span class="text-slate-500">// websocket.ts:106 — returns six; createConvMessages.ts:39 destructures three</span>
+return { connected, <span class="text-rose-400">error</span>, subscribe, unsubscribe, <span class="text-rose-400">disconnect</span>, <span class="text-rose-400">reconnect: connect</span> };
+<span class="text-slate-500">// error() is redundant with the onError callback; disconnect/reconnect: zero production callers</span></pre>
+
+            <div class="grid md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+              <p>
+                <span class="font-semibold text-slate-100">Problem.</span>
+                <span class="font-mono text-[13px]">useWebSocket</span> returns six members (three
+                unused in production) behind two near-identical option types — interface width
+                without matching leverage.
+              </p>
+              <p>
+                <span class="font-semibold text-slate-100">Solution.</span> Return the
+                <span class="font-mono text-[13px]">MessageFeed</span> port callers actually use;
+                keep reconnect/disconnect as private implementation; collapse to one options type.
+              </p>
+            </div>
+
+            <div>
+              <p class="modlabel mb-2">Wins</p>
+              <ul
+                class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-500"
+              >
+                <li>interface shrinks to 3 real members</li>
+                <li>
+                  delete dead <span class="font-mono text-[13px]">disconnect</span>/<span
+                    class="font-mono text-[13px]"
+                    >reconnect</span
+                  >/<span class="font-mono text-[13px]">error</span>
+                </li>
+                <li>one options type, not two</li>
+                <li>test drives the port, not internals</li>
+              </ul>
+            </div>
+            <div
+              class="rounded-lg bg-slate-800/50 border border-slate-700 px-4 py-3 text-[13px] text-slate-300"
+            >
+              <span class="font-semibold text-slate-100">Why Speculative:</span>
+              <span class="font-mono text-[12px]">reconnect</span> is partly there so the unit test
+              can trigger <span class="font-mono text-[12px]">connect</span> (<span
+                class="font-mono text-[12px]"
+                >onMount</span
+              >
+              doesn't fire in the harness). Trimming the surface means solving that test seam first
+              — hard-to-test leaking into a wider interface.
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <!-- ================= TOP RECOMMENDATION ================= -->
+      <section id="top-recommendation">
+        <div class="rounded-2xl deep text-white p-8 md:p-10">
+          <p class="text-xs uppercase tracking-widest text-emerald-300 mb-3">Top recommendation</p>
+          <h2 class="font-serif text-3xl mb-4 text-slate-100">
+            Start with #1 — unify the async-mutation choreography.
+          </h2>
+          <p class="text-slate-300 max-w-3xl leading-relaxed">
+            It has the most leverage: one deep
+            <span class="font-mono text-[15px] text-white">RpcAction</span> concept is hand-rolled
+            at four call sites, and the payoff is a concrete behaviour change, not a rename —
+            <span class="font-mono text-[15px] text-white">MessagePanel</span> deletes its own
+            <span class="font-mono text-[15px] text-white">sending</span> signal and the send
+            lifecycle (pending + error) becomes testable through
+            <span class="font-mono text-[15px] text-white">createConvMessages</span>'s interface
+            instead of only through the DOM. That directly closes the untested wiring gap in the
+            Conversations slice.
+          </p>
+          <p class="text-slate-400 max-w-3xl leading-relaxed mt-4 text-sm">
+            If you want a smaller, self-contained first cut instead,
+            <a href="#b" class="text-emerald-300 underline"
+              >#2 (sidebar selection has two owners)</a
+            >
+            is the cleanest quick win — deleting a genuine second source of truth for the #37
+            highlight.
+          </p>
+          <div class="mt-6 flex flex-wrap gap-3 text-sm">
+            <a href="#a" class="rounded-full bg-white/10 hover:bg-white/20 px-4 py-2"
+              >→ Candidate #1</a
+            >
+            <a href="#b" class="rounded-full bg-white/10 hover:bg-white/20 px-4 py-2"
+              >→ Candidate #2</a
+            >
+          </div>
+        </div>
+      </section>
+
+      <footer class="text-center text-xs text-slate-500 pt-4 border-t border-slate-800">
+        Vocabulary:
+        <span class="font-mono"
+          >module · interface · implementation · depth · seam · adapter · leverage · locality</span
+        >
+        — from the codebase-design skill. Domain terms from CONTEXT.md.
+      </footer>
+    </main>
+  </body>
+</html>
