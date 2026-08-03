@@ -70,7 +70,7 @@ export default function MessagePanel(props: MessagePanelProps) {
           {/* Messages Display — fills the pane, scrolls internally */}
           <div
             ref={(el) => (scrollEl = el)}
-            class="hoverlist min-h-0 flex-1 space-y-2 overflow-y-auto rounded-lg bg-(--theme-card-bg) p-2 text-(--theme-card-fg)"
+            class="hoverlist max-h-[70dvh] min-h-0 flex-1 space-y-2 overflow-y-auto rounded-lg bg-(--theme-card-bg) p-2 text-(--theme-card-fg)"
           >
             <Show when={messages().length === 0}>
               <p class="text-(--theme-muted)">No messages yet</p>
