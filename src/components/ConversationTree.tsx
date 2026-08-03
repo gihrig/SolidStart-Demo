@@ -1,6 +1,6 @@
 import { For, Show, type Accessor } from "solid-js";
 import { useListbox } from "~/lib/useListbox";
-import type { ConversationWorkspace } from "~/lib/conversationWorkspace";
+import { convLabel, type ConversationWorkspace } from "~/lib/conversationWorkspace";
 import type { Agent, Conv } from "~/types/backend";
 
 export interface ConversationTreeProps {
@@ -153,7 +153,7 @@ export default function ConversationTree(props: ConversationTreeProps) {
                                 class="cursor-pointer rounded p-2 outline-none"
                                 {...getOptionProps(index())}
                               >
-                                {conv.title || "Untitled"}
+                                {convLabel(conv)}
                               </li>
                             )}
                           </For>

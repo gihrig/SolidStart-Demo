@@ -27,19 +27,39 @@ export interface ConversationWorkspace {
   convError: Accessor<string | null>;
 }
 
+/**
+ * The displayed label for a conversation; empty/absent title reads as "Untitled".
+ * The navigator renders the same rule, so it consumes this to stay in one place.
+ */
+export const convLabel = (c: Conv): string => c.title || "Untitled";
+
+// Keep the navigator scannable: sort case-insensitively by displayed label, with
+// `id` as a stable tiebreak so equal labels (e.g. several "Untitled") are
+// deterministic. `~/types/backend` ids are `number` (ADR-0003), so the subtraction
+// is safe. Applied once at this seam so every consumer sees one order.
+const sortByLabel = <T extends { id: number }>(items: T[], label: (item: T) => string): T[] =>
+  [...items].sort(
+    (a, b) => label(a).localeCompare(label(b), undefined, { sensitivity: "base" }) || a.id - b.id,
+  );
+
 export function createConversationWorkspace(): ConversationWorkspace {
   const [selectedAgent, setSelectedAgent] = createSignal<Agent | null>(null);
   const [selectedConv, setSelectedConv] = createSignal<Conv | null>(null);
 
-  const [agents, { refetch: refetchAgents }] = createResource(() => backendRpc.agent.list());
+  const [agents, { refetch: refetchAgents }] = createResource(async () =>
+    sortByLabel(await backendRpc.agent.list(), (a) => a.name),
+  );
 
   // Conversations belong to the selected agent; re-keying on it refetches (and
   // yields [] with no agent), so the list never shows another agent's convs.
   const [convs, { refetch: refetchConvs }] = createResource(selectedAgent, async (agent) => {
     if (!agent) return [];
-    return backendRpc.conv.list({
-      filters: [{ agent_id: { $eq: agent.id } }],
-    });
+    return sortByLabel(
+      await backendRpc.conv.list({
+        filters: [{ agent_id: { $eq: agent.id } }],
+      }),
+      convLabel,
+    );
   });
 
   const selectAgent = (agent: Agent) => {
