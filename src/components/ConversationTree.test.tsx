@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
+import { createSignal } from "solid-js";
 import { render, screen } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import {
@@ -7,6 +8,7 @@ import {
   makeWorkspaceStub,
   readyResource,
 } from "~/lib/conversationWorkspace.stub";
+import type { Agent } from "~/types/backend";
 import ConversationTree from "./ConversationTree";
 
 const ada = makeAgent(1, "Ada");
@@ -135,6 +137,30 @@ describe("<ConversationTree /> (navigator)", () => {
     expect(screen.queryByText(/ID:/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ada" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Conv Alpha" })).toBeInTheDocument();
+  });
+
+  it("scrolls the newly selected agent to the top of the list", async () => {
+    // jsdom has no layout; provide scrollIntoView so we can observe the call
+    // and which element it targeted.
+    const scrollSpy = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollSpy;
+
+    const [selected, setSelected] = createSignal<Agent | null>(null);
+    const ws = makeWorkspaceStub({
+      agents: readyResource([ada, bob]),
+      selectedAgent: selected,
+      selectAgent: (a) => setSelected(a),
+    });
+    const user = userEvent.setup();
+    render(() => <ConversationTree ws={ws} />);
+
+    await user.click(screen.getByRole("button", { name: /bob/i }));
+
+    expect(scrollSpy).toHaveBeenCalledWith({ block: "start" });
+    // Called on Bob's row (the disclosure header's <li>), aligning it to the top.
+    expect(scrollSpy.mock.instances[0]).toBe(
+      screen.getByRole("button", { name: /bob/i }).closest("li"),
+    );
   });
 
   it("surfaces the workspace's agent and conversation errors", () => {

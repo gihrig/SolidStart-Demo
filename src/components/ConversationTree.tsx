@@ -1,4 +1,4 @@
-import { For, Show, type Accessor } from "solid-js";
+import { For, Show, createEffect, onCleanup, type Accessor } from "solid-js";
 import { useListbox } from "~/lib/useListbox";
 import { convLabel, type ConversationWorkspace } from "~/lib/conversationWorkspace";
 import type { Agent, Conv } from "~/types/backend";
@@ -62,6 +62,18 @@ export default function ConversationTree(props: ConversationTreeProps) {
   const isOpen = (agent: Agent) => ws.selectedAgent()?.id === agent.id;
   const convs: Accessor<Conv[]> = () => ws.convs() ?? [];
 
+  // Selecting an agent rewrites the accordion (the open one expands, the previous
+  // one collapses), which can shift the chosen row off-screen when it was picked
+  // near the bottom of a scrolled list. Bring the selected row to the top so it
+  // stays visible. Rows register their element by id; the effect scrolls whichever
+  // is selected after the DOM has updated. (`scrollIntoView?.` — jsdom has none.)
+  const agentRows = new Map<number, HTMLLIElement>();
+  createEffect(() => {
+    const agent = ws.selectedAgent();
+    if (!agent) return;
+    agentRows.get(agent.id)?.scrollIntoView?.({ block: "start" });
+  });
+
   // One listbox drives the open Agent's Conversations: `ws.convs` only ever holds
   // the selected Agent's list, so a single instance suffices for the whole tree.
   const { listboxProps, getOptionProps } = useListbox<Conv>({
@@ -109,7 +121,12 @@ export default function ConversationTree(props: ConversationTreeProps) {
           <ul class="hoverlist space-y-1">
             <For each={ws.agents()} fallback={<li class="text-(--theme-muted)">No agents yet</li>}>
               {(agent) => (
-                <li>
+                <li
+                  ref={(el) => {
+                    agentRows.set(agent.id, el);
+                    onCleanup(() => agentRows.delete(agent.id));
+                  }}
+                >
                   <button
                     type="button"
                     aria-expanded={isOpen(agent)}
