@@ -43,11 +43,15 @@ export function createConversationWorkspace(): ConversationWorkspace {
   });
 
   const selectAgent = (agent: Agent) => {
-    // Only a genuine agent change drops the conversation selection; re-clicking
-    // the current agent leaves it intact.
-    const changed = selectedAgent()?.id !== agent.id;
+    // Accordion toggle: re-selecting the open agent collapses it back to none;
+    // any change of agent (including collapse) drops the conversation selection.
+    if (selectedAgent()?.id === agent.id) {
+      setSelectedAgent(null);
+      setSelectedConv(null);
+      return;
+    }
     setSelectedAgent(agent);
-    if (changed) setSelectedConv(null);
+    setSelectedConv(null);
   };
 
   const selectConv = (conv: Conv) => setSelectedConv(conv);

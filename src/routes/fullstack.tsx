@@ -3,8 +3,7 @@ import { Show, type Accessor } from "solid-js";
 import { createConversationWorkspace } from "~/lib/conversationWorkspace";
 import { AuthProvider, useAuth } from "~/components/AuthContext";
 import LoginForm from "~/components/LoginForm";
-import AgentManager from "~/components/AgentManager";
-import ConversationManager from "~/components/ConversationManager";
+import ConversationTree from "~/components/ConversationTree";
 import MessagePanel from "~/components/MessagePanel";
 
 interface AuthenticatedWorkspaceProps {
@@ -31,16 +30,13 @@ function AuthenticatedWorkspace(props: AuthenticatedWorkspaceProps) {
         </button>
       </div>
 
+      {/* Interim two-pane layout; the responsive 1:3 grid + mobile drawer land in #52. */}
       <div class="grid gap-6 md:grid-cols-3">
-        <div class="rounded border border-gray-200 p-4">
-          <AgentManager ws={ws} />
+        <div class="card-style p-4 md:col-span-1">
+          <ConversationTree ws={ws} />
         </div>
 
-        <div class="rounded border border-gray-200 p-4">
-          <ConversationManager ws={ws} />
-        </div>
-
-        <div class="rounded border border-gray-200 p-4">
+        <div class="card-style p-4 md:col-span-2">
           <MessagePanel conv={ws.selectedConv()} />
         </div>
       </div>

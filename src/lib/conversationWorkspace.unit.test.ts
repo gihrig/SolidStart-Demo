@@ -63,15 +63,15 @@ describe("createConversationWorkspace", () => {
       });
     });
 
-    it("re-selecting the same agent keeps the conversation selection", async () => {
+    it("re-selecting the open agent collapses the selection to none", async () => {
       await createRoot(async (dispose) => {
         const ws = createConversationWorkspace();
         const ada = makeAgent(1, "Ada");
         ws.selectAgent(ada);
-        const conv = makeConv(10, "Hello");
-        ws.selectConv(conv);
-        ws.selectAgent(makeAgent(1, "Ada")); // same id, fresh object
-        expect(ws.selectedConv()).toEqual(conv);
+        ws.selectConv(makeConv(10, "Hello"));
+        ws.selectAgent(makeAgent(1, "Ada")); // same id, fresh object → collapse
+        expect(ws.selectedAgent()).toBeNull();
+        expect(ws.selectedConv()).toBeNull();
         dispose();
       });
     });
