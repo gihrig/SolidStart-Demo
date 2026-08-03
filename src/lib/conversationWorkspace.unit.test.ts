@@ -63,15 +63,67 @@ describe("createConversationWorkspace", () => {
       });
     });
 
-    it("re-selecting the same agent keeps the conversation selection", async () => {
+    it("re-selecting the open agent collapses the selection to none", async () => {
       await createRoot(async (dispose) => {
         const ws = createConversationWorkspace();
         const ada = makeAgent(1, "Ada");
         ws.selectAgent(ada);
-        const conv = makeConv(10, "Hello");
-        ws.selectConv(conv);
-        ws.selectAgent(makeAgent(1, "Ada")); // same id, fresh object
-        expect(ws.selectedConv()).toEqual(conv);
+        ws.selectConv(makeConv(10, "Hello"));
+        ws.selectAgent(makeAgent(1, "Ada")); // same id, fresh object → collapse
+        expect(ws.selectedAgent()).toBeNull();
+        expect(ws.selectedConv()).toBeNull();
+        dispose();
+      });
+    });
+  });
+
+  describe("alphabetical sorting", () => {
+    it("exposes agents sorted A→Z by name, case-insensitive", async () => {
+      const { backendRpc } = await import("~/lib/backend-rpc");
+      (backendRpc.agent.list as ReturnType<typeof vi.fn>).mockResolvedValue([
+        makeAgent(1, "bob"),
+        makeAgent(2, "Ada"),
+        makeAgent(3, "Cara"),
+      ]);
+
+      await createRoot(async (dispose) => {
+        const ws = createConversationWorkspace();
+        await flush();
+        expect(ws.agents()?.map((a) => a.name)).toEqual(["Ada", "bob", "Cara"]);
+        dispose();
+      });
+    });
+
+    it("exposes conversations sorted A→Z by displayed title, empty titles as 'Untitled'", async () => {
+      const { backendRpc } = await import("~/lib/backend-rpc");
+      (backendRpc.conv.list as ReturnType<typeof vi.fn>).mockResolvedValue([
+        makeConv(10, "banana"),
+        makeConv(11, ""), // → "Untitled", sorts after "banana"
+        makeConv(12, "Apple"),
+      ]);
+
+      await createRoot(async (dispose) => {
+        const ws = createConversationWorkspace();
+        ws.selectAgent(makeAgent(1, "Ada"));
+        await flush();
+        expect(ws.convs()?.map((c) => c.title)).toEqual(["Apple", "banana", ""]);
+        dispose();
+      });
+    });
+
+    it("orders equal labels deterministically by id (several 'Untitled')", async () => {
+      const { backendRpc } = await import("~/lib/backend-rpc");
+      (backendRpc.conv.list as ReturnType<typeof vi.fn>).mockResolvedValue([
+        makeConv(30, ""),
+        makeConv(10, ""),
+        makeConv(20, ""),
+      ]);
+
+      await createRoot(async (dispose) => {
+        const ws = createConversationWorkspace();
+        ws.selectAgent(makeAgent(1, "Ada"));
+        await flush();
+        expect(ws.convs()?.map((c) => c.id)).toEqual([10, 20, 30]);
         dispose();
       });
     });

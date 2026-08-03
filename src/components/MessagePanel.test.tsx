@@ -122,6 +122,24 @@ describe("<MessagePanel />", () => {
     await waitFor(() => expect(screen.getByText("Hello test")).toBeInTheDocument());
   });
 
+  it("renders message content only — no numeric id label", async () => {
+    const { backendRpc } = await import("~/lib/backend-rpc");
+    (backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(msg(207, "hello there"));
+    const user = userEvent.setup();
+
+    const { container } = render(() => (
+      <MessagePanel conv={mockConv} feed={createFakeFeed().factory} />
+    ));
+
+    await user.type(screen.getByPlaceholderText(/type a message/i), "hello there");
+    await user.click(screen.getByRole("button", { name: /send/i }));
+    await waitFor(() => expect(screen.getByText("hello there")).toBeInTheDocument());
+
+    // Row shows content only — the raw numeric id must not render anywhere.
+    expect(container.textContent).not.toMatch(/ID:/i);
+    expect(container.textContent).not.toMatch(/\b207\b/);
+  });
+
   it("renders a message pushed through the feed for the current conversation", async () => {
     const feed = createFakeFeed(true);
     render(() => <MessagePanel conv={mockConv} feed={feed.factory} />);
