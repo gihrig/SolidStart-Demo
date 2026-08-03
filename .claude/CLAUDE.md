@@ -10,7 +10,7 @@ SolidJS + SolidStart app with TailwindCSS v4, MDX, TypeScript, and Playwright e2
 
 Read this section before starting any phase.
 
-When reporting information to me, be extremely concise and sacrifice grammar for the sake of concision.
+Always use the `concise` skill unless the user asks to 'explain' or for 'more detail'.
 
 ### Workflow
 
