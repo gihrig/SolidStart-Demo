@@ -38,7 +38,7 @@ export default function MessagePanel(props: MessagePanelProps) {
   };
 
   return (
-    <div class="space-y-4">
+    <div class="flex h-full flex-col gap-4">
       <div class="flex items-center justify-between">
         <h3 class="text-lg font-semibold">Messages</h3>
         <Show when={props.conv}>
@@ -49,47 +49,40 @@ export default function MessagePanel(props: MessagePanelProps) {
       </div>
 
       <Show when={!props.conv}>
-        <p class="text-gray-500">Select a conversation</p>
+        <p class="text-(--theme-muted)">Select a conversation</p>
       </Show>
 
       <Show when={props.conv}>
-        <Show when={error()}>
-          <div class="rounded bg-red-100 p-2 text-red-700">{error()}</div>
-        </Show>
+        {/* Send Message Form — fills the remaining pane height */}
+        <form onSubmit={handleSend} class="flex min-h-0 flex-1 flex-col gap-2">
+          <Show when={error()}>
+            <div class="rounded bg-red-100 p-2 text-red-700">{error()}</div>
+          </Show>
 
-        {/* Send Message Form */}
-        <form onSubmit={handleSend} class="flex flex-col gap-2">
           <button
             type="submit"
             disabled={sending()}
-            class="w-full rounded bg-blue-600 px-12 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+            class="w-full rounded bg-(--theme-btn-primary) px-12 py-2 text-white hover:bg-(--theme-btn-primary-hover) disabled:opacity-50"
           >
             {sending() ? "Sending..." : "Send"}
           </button>
 
-          {/* Messages Display */}
+          {/* Messages Display — fills the pane, scrolls internally */}
           <div
             ref={(el) => (scrollEl = el)}
-            class="max-h-60 space-y-2 overflow-y-auto rounded border border-gray-200 p-2"
+            class="hoverlist min-h-0 flex-1 space-y-2 overflow-y-auto rounded-lg bg-(--theme-card-bg) p-2 text-(--theme-card-fg)"
           >
             <Show when={messages().length === 0}>
-              <p class="text-gray-500">No messages yet</p>
+              <p class="text-(--theme-muted)">No messages yet</p>
             </Show>
-            <For each={messages()}>
-              {(msg) => (
-                <div class="rounded bg-auto p-2">
-                  <p>{msg.content}</p>
-                  <span class="text-xs text-gray-500">ID: {String(msg.id)}</span>
-                </div>
-              )}
-            </For>
+            <For each={messages()}>{(msg) => <div class="p-2">{msg.content}</div>}</For>
           </div>
 
           <input
             name="content"
             placeholder="Type a message..."
             required
-            class="w-full rounded border border-gray-300 px-3 py-2"
+            class="w-full rounded border border-gray-300 bg-(--theme-card-bg) px-3 py-2 text-(--theme-card-fg)"
           />
         </form>
       </Show>
