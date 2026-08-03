@@ -98,4 +98,20 @@
     @apply bg-(--theme-card-bg) text-(--theme-card-fg) rounded-full px-3 py-1;
     @apply hover:bg-(--theme-hover-bg) hover:text-(--theme-hover-fg);
   }
+
+  .card-style {
+    @apply flex flex-col overflow-hidden relative rounded-2xl shadow-lg mb-8 pb-4 bg-(--theme-card-bg) text-(--theme-card-fg);
+  }
+
+  .hoverlist > * {
+    @apply rounded-md transition-colors duration-150;
+  }
+
+  .hoverlist > *:hover {
+    @apply bg-(--theme-hover-bg);
+  }
+
+  .hoverlist > * > :is(a, button) {
+    @apply flex items-center p-2;
+  }
 }
