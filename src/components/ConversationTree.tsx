@@ -5,6 +5,8 @@ import type { Agent, Conv } from "~/types/backend";
 
 export interface ConversationTreeProps {
   ws: ConversationWorkspace;
+  /** Fired after a Conversation is selected — lets the mobile drawer close. */
+  onConversationSelected?: () => void;
 }
 
 interface CreateFormProps {
@@ -66,7 +68,10 @@ export default function ConversationTree(props: ConversationTreeProps) {
     items: () => ws.convs(),
     selectedKey: () => ws.selectedConv()?.id,
     keyOf: (conv) => conv.id,
-    onSelect: (conv) => ws.selectConv(conv),
+    onSelect: (conv) => {
+      ws.selectConv(conv);
+      props.onConversationSelected?.();
+    },
     label: "Conversations",
     idPrefix: "conv",
   });

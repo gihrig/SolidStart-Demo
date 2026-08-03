@@ -3,8 +3,7 @@ import { Show, type Accessor } from "solid-js";
 import { createConversationWorkspace } from "~/lib/conversationWorkspace";
 import { AuthProvider, useAuth } from "~/components/AuthContext";
 import LoginForm from "~/components/LoginForm";
-import ConversationTree from "~/components/ConversationTree";
-import MessagePanel from "~/components/MessagePanel";
+import WorkspaceLayout from "~/components/WorkspaceLayout";
 
 interface AuthenticatedWorkspaceProps {
   username: Accessor<string | null>;
@@ -20,26 +19,14 @@ function AuthenticatedWorkspace(props: AuthenticatedWorkspaceProps) {
 
   return (
     <>
-      <div class="mb-4 flex items-center justify-between">
-        <span class="text-green-600">Logged in as: {props.username()}</span>
-        <button
-          onClick={props.onLogoff}
-          class="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
-        >
+      <div class="mx-auto mb-4 flex max-w-6xl items-center justify-between">
+        <span class="text-(--theme-muted)">Logged in as: {props.username()}</span>
+        <button onClick={props.onLogoff} class="theme-button">
           Logout
         </button>
       </div>
 
-      {/* Interim two-pane layout; the responsive 1:3 grid + mobile drawer land in #52. */}
-      <div class="grid gap-6 md:grid-cols-3">
-        <div class="card-style p-4 md:col-span-1">
-          <ConversationTree ws={ws} />
-        </div>
-
-        <div class="card-style p-4 md:col-span-2">
-          <MessagePanel conv={ws.selectedConv()} />
-        </div>
-      </div>
+      <WorkspaceLayout ws={ws} />
     </>
   );
 }
@@ -50,7 +37,7 @@ function FullstackContent() {
   return (
     <main class="container mx-auto p-4">
       <h1>Full-Stack Integration Demo</h1>
-      <p class="mb-4 text-center! text-gray-400">
+      <p class="mb-4 text-center! text-(--theme-muted)">
         SolidStart + Rust/Axum JSON-RPC Example (with WebSocket real-time updates)
       </p>
 
