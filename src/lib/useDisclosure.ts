@@ -3,37 +3,87 @@ import { useIsMobile } from "~/lib/useIsMobile";
 import { useDismiss } from "~/lib/useDismiss";
 
 /**
- * A mobile disclosure: the open/toggle state plus the a11y wiring a mobile
- * collapsible panel needs — Escape-to-dismiss and the `inert` gate that removes
- * the collapsed panel from the tab order on mobile only (on desktop the panel
- * is always shown, so never inert). The Jedi route's sidebar and JediNav's
- * mobile menu are the two call sites; both hand-wired the identical
- * `signal + useIsMobile() + useDismiss + inert` before this module.
+ * A disclosure: the open/toggle state plus the a11y wiring a collapsible panel
+ * needs, exposed as two spreadable prop bags (matching `useListbox`'s shape).
+ * `triggerProps` carries the button's `aria-expanded` / `aria-controls` / click;
+ * `panelProps` carries the panel's `id` and the `inert` gate that removes a
+ * hidden panel from the tab order. Callers spread these and keep only their own
+ * open-driven paint (transitions differ per site). The Jedi sidebar, JediNav's
+ * mobile menu, the conversation drawer, and JediNav's profile dropdown are the
+ * call sites; all hand-wired the identical `signal + aria + useDismiss + inert`
+ * before this module owned it.
  */
-export interface Disclosure {
-  open: Accessor<boolean>;
-  toggle: () => void;
-  inert: Accessor<boolean>;
-}
+export type DisclosureMode = "drawer" | "popup";
 
 export interface UseDisclosureOptions {
   /**
-   * Extra guard ANDed with `open()` to decide whether Escape dismisses. Use it
-   * when a nested disclosure should absorb the dismiss first — e.g. JediNav's
-   * mobile menu stays open while its profile dropdown is open.
+   * Stable id shared by `panelProps.id` and the trigger's `aria-controls`, so
+   * assistive tech links the button to the panel it controls.
+   */
+  id: string;
+  /**
+   * Which inert regime the panel follows:
+   * - `"drawer"` (default): always shown on desktop, a collapsible drawer on
+   *   mobile — inert only when mobile *and* closed.
+   * - `"popup"`: hidden on every viewport until opened — inert whenever closed.
+   */
+  mode?: DisclosureMode;
+  /**
+   * Extra guard ANDed with `open()` to decide whether Escape / click-away
+   * dismisses. Use it when a nested disclosure should absorb the dismiss first —
+   * e.g. JediNav's mobile menu stays open while its profile dropdown is open.
    */
   dismissWhen?: Accessor<boolean>;
+  /**
+   * Opt-in click-outside boundary. When provided, a click outside this element
+   * dismisses in addition to Escape. Omit for Escape-only disclosures (the
+   * drawers have no single boundary element spanning trigger + panel).
+   */
+  ref?: () => HTMLElement | undefined;
 }
 
-export function useDisclosure(options?: UseDisclosureOptions): Disclosure {
+export interface Disclosure {
+  /** Spread onto the trigger `<button>`. */
+  triggerProps: {
+    readonly "aria-expanded": boolean;
+    readonly "aria-controls": string;
+    onClick: () => void;
+  };
+  /** Spread onto the panel element. */
+  panelProps: {
+    readonly id: string;
+    readonly inert: boolean;
+  };
+  open: Accessor<boolean>;
+  toggle: () => void;
+}
+
+export function useDisclosure(options: UseDisclosureOptions): Disclosure {
   const [open, setOpen] = createSignal(false);
   const isMobile = useIsMobile();
+  const mode = options.mode ?? "drawer";
 
-  const dismissActive = () => open() && (options?.dismissWhen?.() ?? true);
-  useDismiss(() => setOpen(false), dismissActive);
+  const dismissActive = () => open() && (options.dismissWhen?.() ?? true);
+  useDismiss(() => setOpen(false), dismissActive, options.ref);
 
   const toggle = () => setOpen((v) => !v);
-  const inert = () => isMobile() && !open();
+  // A popup is hidden until opened, so it is inert whenever closed. A drawer is
+  // always shown on desktop, so only its mobile-collapsed state is inert.
+  const inert = () => (mode === "popup" ? !open() : isMobile() && !open());
 
-  return { open, toggle, inert };
+  const triggerProps = {
+    get "aria-expanded"() {
+      return open();
+    },
+    "aria-controls": options.id,
+    onClick: toggle,
+  };
+  const panelProps = {
+    id: options.id,
+    get inert() {
+      return inert();
+    },
+  };
+
+  return { triggerProps, panelProps, open, toggle };
 }

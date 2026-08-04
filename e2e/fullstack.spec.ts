@@ -110,6 +110,32 @@ test.describe("Fullstack Integration Page", () => {
       });
     });
 
+    test("mobile drawer: navigator inert until toggled, Escape re-collapses (#55 C5)", async ({
+      page,
+    }) => {
+      // Set the mobile viewport before login so the drawer mounts with
+      // useIsMobile() already true (its matchMedia listener registers onMount).
+      await page.setViewportSize({ width: 375, height: 667 });
+      await page.getByRole("button", { name: /login/i }).click();
+      await expect(page.getByText(/logged in as/i)).toBeVisible({ timeout: 10000 });
+
+      const toggle = page.getByRole("button", { name: /^conversations$/i });
+      const navigator = page.locator("#conversation-navigator");
+
+      // Drawer mode: collapsed + inert while closed on mobile; the toggle links to it.
+      await expect(toggle).toHaveAttribute("aria-controls", "conversation-navigator");
+      await expect(toggle).toHaveAttribute("aria-expanded", "false");
+      await expect(navigator).toHaveAttribute("inert");
+
+      await toggle.click();
+      await expect(toggle).toHaveAttribute("aria-expanded", "true");
+      await expect(navigator).not.toHaveAttribute("inert");
+
+      await page.keyboard.press("Escape");
+      await expect(toggle).toHaveAttribute("aria-expanded", "false");
+      await expect(navigator).toHaveAttribute("inert");
+    });
+
     test("should logout successfully", async ({ page }) => {
       await page.getByRole("button", { name: /login/i }).click();
       await expect(page.getByText(/logged in as/i)).toBeVisible({

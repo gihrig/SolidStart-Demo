@@ -56,16 +56,20 @@ describe("<JediNav />", () => {
     const user = userEvent.setup();
     render(() => <JediNav />);
     const trigger = screen.getByRole("button", { name: /profile menu/i });
-    const dropdown = screen.getByText("My Profile").closest("[aria-hidden]")!;
+    // The popup drops aria-hidden in favour of `inert` (a jsdom DOM property);
+    // locate it by the id that links the trigger's aria-controls to the panel.
+    const dropdown = document.getElementById("jedi-profile-menu")! as HTMLElement & {
+      inert: boolean;
+    };
 
     expect(dropdown).toHaveClass("pointer-events-none");
-    expect(dropdown).toHaveAttribute("aria-hidden", "true");
+    expect(dropdown.inert).toBe(true);
 
     await user.click(trigger);
 
     expect(dropdown).not.toHaveClass("pointer-events-none");
     expect(dropdown).toHaveClass("opacity-100");
-    expect(dropdown).toHaveAttribute("aria-hidden", "false");
+    expect(dropdown.inert).toBe(false);
   });
 
   describe("hamburger menu", () => {
@@ -73,6 +77,14 @@ describe("<JediNav />", () => {
       render(() => <JediNav />);
       const btn = screen.getByRole("button", { name: /toggle navigation/i });
       expect(btn).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("toggle's aria-controls links to the nav panel's id", () => {
+      render(() => <JediNav />);
+      const btn = screen.getByRole("button", { name: /toggle navigation/i });
+      const nav = screen.getByRole("navigation", { name: /Jedi site navigation/i });
+      expect(btn).toHaveAttribute("aria-controls", "jedi-mobile-nav");
+      expect(nav).toHaveAttribute("id", "jedi-mobile-nav");
     });
 
     it("mobile nav starts hidden (pointer-events-none)", () => {
@@ -166,12 +178,14 @@ describe("<JediNav />", () => {
       render(() => <JediNav />);
       const trigger = screen.getByRole("button", { name: /profile menu/i });
       await user.click(trigger);
-      const dropdown = screen.getByText("My Profile").closest("[aria-hidden]")!;
-      expect(dropdown).toHaveAttribute("aria-hidden", "false");
+      const dropdown = document.getElementById("jedi-profile-menu")! as HTMLElement & {
+        inert: boolean;
+      };
+      expect(dropdown.inert).toBe(false);
 
       await user.click(document.body);
 
-      expect(dropdown).toHaveAttribute("aria-hidden", "true");
+      expect(dropdown.inert).toBe(true);
       expect(dropdown).toHaveClass("pointer-events-none");
     });
   });

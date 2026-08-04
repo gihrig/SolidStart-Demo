@@ -41,3 +41,44 @@ new tree-state and no new tree primitive is introduced.
 - The navigator stays consistent with Jedi's documented listbox pattern (`CONTEXT.md`,
   "Sidebar selection & focus"), so a future fix to the shared selection/focus behaviour
   in `useListbox` lands on both pages at once.
+
+## `useDisclosure` returns spreadable props, with `drawer` / `popup` modes (#55 C5)
+
+`useDisclosure` originally returned raw state (`open`, `toggle`, `inert`), so every
+call site re-hand-wired the same `aria-expanded` / `aria-controls` / `id` / `inert`
+wiring — and did it inconsistently (two of four sites omitted the `aria-controls`↔`id`
+link). It now returns two spreadable prop bags matching `useListbox`'s shape:
+`triggerProps` (`aria-expanded`, `aria-controls`, `onClick`) and `panelProps`
+(`id`, `inert`), while still exposing `open()`/`toggle()` for the site-specific paint
+(each panel animates differently — grid-rows, opacity/translate, block/hidden,
+opacity/scale — so paint stays at the call site, off the seam). One `id` option feeds
+both `panelProps.id` and `triggerProps['aria-controls']`, so the a11y link can no
+longer be forgotten. This deepens the module (behaviour behind a small interface,
+testable through it) and gives the disclosure a11y one owner, mirroring
+[ADR-0005](0005-rpc-mutations-via-rpcaction.md) (mutation choreography) and
+[ADR-0006](0006-safeurl-brand-enforces-sanitize-boundary.md) (sanitize boundary).
+
+A `mode` option names the one axis the four call sites genuinely differ on — **when
+the panel is inert**:
+
+- `drawer` (default) — always shown on desktop, a collapsible drawer on mobile:
+  `inert` only when `isMobile() && !open()`. The Jedi sidebar, JediNav's mobile menu,
+  and the conversation navigator drawer.
+- `popup` — hidden on every viewport until opened: `inert` whenever `!open()`.
+  JediNav's profile dropdown, which folds into `useDisclosure` here rather than staying
+  hand-rolled; it also supplies the opt-in `ref` boundary that adds click-outside
+  dismissal (the drawers stay Escape-only — trigger and panel sit in separate DOM
+  subtrees with no single boundary element). Its redundant `aria-hidden` is dropped:
+  `inert` alone owns "hidden from assistive tech", consistent with the drawers.
+
+### Considered and rejected
+
+- **Keep the profile dropdown hand-rolled** — rejected: its differing inert regime is
+  captured cleanly by `mode: "popup"`, so folding it in removes the last bespoke
+  `createSignal + useDismiss + inert` copy and gives the pattern a single owner. The
+  cost is a `mode` flag currently serving one popup caller — accepted as the smaller
+  price than a second, drifting implementation of the same wiring.
+- **`panelProps` owns the show/hide paint too** (a shared `classList`, as
+  `useListbox`'s option props do) — rejected: the four panels animate through different
+  CSS properties, so no shared class fits; the seam owns only the invariant a11y
+  wiring, and `open()` stays exposed for each site's own transitions.

@@ -136,6 +136,29 @@ test.describe("Jedi Page - Nav slide transitions (regression #28)", () => {
   });
 });
 
+test.describe("Jedi Page - Profile dropdown (popup disclosure, #55 C5)", () => {
+  test("opens on click, closes on click-outside, inert while closed", async ({ page }) => {
+    await page.goto("/jedi");
+    const trigger = page.getByRole("button", { name: /profile menu/i });
+    const menu = page.locator("#jedi-profile-menu");
+
+    // Popup mode: hidden from AT + tab order (inert) whenever closed — on desktop
+    // too, unlike the drawers. The trigger's aria-controls points at this menu.
+    await expect(trigger).toHaveAttribute("aria-controls", "jedi-profile-menu");
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(menu).toHaveAttribute("inert");
+
+    await trigger.click();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await expect(menu).not.toHaveAttribute("inert");
+
+    // A click outside the wrapping <li> boundary dismisses it (ref click-outside).
+    await page.getByRole("heading", { name: /awesome photos/i }).click();
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(menu).toHaveAttribute("inert");
+  });
+});
+
 test.describe("Jedi Page - Footer (preserved from existing tests)", () => {
   test("should have working external link to solidjs.com in footer", async ({ page }) => {
     await page.goto("/jedi");
