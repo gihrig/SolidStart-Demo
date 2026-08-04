@@ -1,4 +1,5 @@
 import type { IconName } from "~/components/Icon";
+import type { SafeUrl } from "~/lib/sanitizeUrl";
 
 /* ---- Storage shapes: one object per row, mirroring a future DB table. ----
    IDs are plain numbers (JSON has no bigint; the RPC wire format is numeric). */
@@ -71,21 +72,31 @@ export interface JediData {
 export interface AuthorRef {
   id: number;
   name: string;
-  avatarUrl: string;
+  avatarUrl: SafeUrl;
 }
 
 export interface PostView {
   id: number;
   author: AuthorRef;
   title: string;
-  imageSrc: string;
+  imageSrc: SafeUrl;
   imageAlt: string;
   photographer: string;
-  photographerUrl: string;
-  sourceUrl: string;
+  photographerUrl: SafeUrl;
+  sourceUrl: SafeUrl;
   categories: JediCategory[];
   likeCount: number;
   commentCount: number;
+}
+
+/** Hero as returned by the seam: its URL fields are sanitized (`JediHero` is the
+ *  raw storage row). Mirrors the `JediPost`→`PostView` storage/view split. */
+export interface HeroView {
+  title: string;
+  subtitle: string;
+  ctaText: string;
+  ctaHref: SafeUrl;
+  backgroundImage: SafeUrl;
 }
 
 export interface CaptionView {

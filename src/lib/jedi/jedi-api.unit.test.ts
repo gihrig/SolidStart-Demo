@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 
 // Pass-through spy: lets us assert every URL field is routed through the
 // sanitizer, without re-testing sanitizeUrl (it has its own unit tests).
-vi.mock("~/lib/sanitizeUrl", () => ({ sanitizeUrl: vi.fn((u: string) => u) }));
+// `trustedUrl` is the seam's empty-URL fallback, so the mock must export it too.
+vi.mock("~/lib/sanitizeUrl", () => ({
+  sanitizeUrl: vi.fn((u: string) => u),
+  trustedUrl: (u: string) => u,
+}));
 
 import { sanitizeUrl } from "~/lib/sanitizeUrl";
 import { ICON_NAMES } from "~/components/Icon";

@@ -1,16 +1,16 @@
-import { sanitizeUrl } from "~/lib/sanitizeUrl";
+import type { SafeUrl } from "~/lib/sanitizeUrl";
 
 export interface HeroProps {
   title: string;
   subtitle: string;
   ctaText: string;
-  ctaHref: string;
-  backgroundImage: string;
+  ctaHref: SafeUrl;
+  backgroundImage: SafeUrl;
 }
 
 export default function Hero(props: HeroProps) {
   const bgImage = () => {
-    const url = sanitizeUrl(props.backgroundImage);
+    const url = props.backgroundImage;
     return url ? `url('${url}')` : undefined;
   };
 
@@ -26,7 +26,7 @@ export default function Hero(props: HeroProps) {
         <p class="text-lg font-bold mb-5">{props.subtitle}</p>
         <a
           class="inline-flex flex-wrap shrink-0 items-center justify-center px-4 min-h-13 font-semibold rounded-lg text-white transition-transform active:scale-95 bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover) shadow-md"
-          href={sanitizeUrl(props.ctaHref)}
+          href={props.ctaHref}
         >
           {props.ctaText}
         </a>

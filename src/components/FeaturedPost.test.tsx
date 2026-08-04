@@ -1,17 +1,18 @@
 import { describe, it, expect } from "vite-plus/test";
 import { render, screen } from "@solidjs/testing-library";
+import { trustedUrl } from "~/lib/sanitizeUrl";
 import FeaturedPost from "./FeaturedPost";
 import type { PostView, CaptionView } from "~/types/jedi";
 
 const post: PostView = {
   id: 1,
-  author: { id: 1, name: "Lisa", avatarUrl: "https://example.com/lisa.png" },
+  author: { id: 1, name: "Lisa", avatarUrl: trustedUrl("https://example.com/lisa.png") },
   title: "Little Jedi",
-  imageSrc: "https://example.com/jedi.jpg",
+  imageSrc: trustedUrl("https://example.com/jedi.jpg"),
   imageAlt: "Little Jedi cat",
   photographer: "Felicity Berkleef",
-  photographerUrl: "https://example.com/felicity",
-  sourceUrl: "https://example.com/source",
+  photographerUrl: trustedUrl("https://example.com/felicity"),
+  sourceUrl: trustedUrl("https://example.com/source"),
   categories: [
     { id: 3, name: "Animals", icon: "dog" },
     { id: 6, name: "Cute", icon: "fire-heart" },
@@ -23,7 +24,7 @@ const post: PostView = {
 const caption: CaptionView = {
   id: 1,
   postId: 1,
-  author: { id: 1, name: "Lisa", avatarUrl: "https://example.com/lisa.png" },
+  author: { id: 1, name: "Lisa", avatarUrl: trustedUrl("https://example.com/lisa.png") },
   text: "Jedi Kitty protects the street",
   likeCount: 8,
 };
