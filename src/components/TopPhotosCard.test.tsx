@@ -33,14 +33,12 @@ describe("<TopPhotosCard />", () => {
     expect(screen.getByAltText("Post 1 photo")).toBeInTheDocument();
   });
 
-  it("marks the selected post's row as current and selected", () => {
+  it("marks the selected post's row as selected", () => {
     render(() => (
       <TopPhotosCard posts={() => posts} selectedPost={() => posts[1]} onSelect={vi.fn()} />
     ));
     const options = screen.getAllByRole("option");
-    expect(options[1]).toHaveAttribute("aria-current", "true");
     expect(options[1]).toHaveAttribute("aria-selected", "true");
-    expect(options[0]).not.toHaveAttribute("aria-current");
     expect(options[0]).toHaveAttribute("aria-selected", "false");
   });
 

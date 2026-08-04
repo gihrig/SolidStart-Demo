@@ -177,12 +177,12 @@ describe("Jedi route (data-driven from jedi-api)", () => {
     within(categories).getAllByRole("option")[1].click(); // Landscape — re-filters + re-keys
     await screen.findByRole("heading", { name: /brilliant tree/i });
 
-    // Top Photos re-filters; its effective (aria-current) selected row is highlighted.
+    // Top Photos re-filters; its effective (aria-selected) selected row is highlighted.
     await waitFor(() => {
       const photos = within(screen.getByRole("listbox", { name: "Top Photos" })).getAllByRole(
         "option",
       );
-      const current = photos.filter((r) => r.getAttribute("aria-current") === "true");
+      const current = photos.filter((r) => r.getAttribute("aria-selected") === "true");
       expect(current).toEqual(photos.filter(isHighlighted));
       expect(current).toHaveLength(1);
     });
@@ -193,7 +193,7 @@ describe("Jedi route (data-driven from jedi-api)", () => {
       const captions = within(screen.getByRole("listbox", { name: "Top Captions" })).getAllByRole(
         "option",
       );
-      const current = captions.filter((r) => r.getAttribute("aria-current") === "true");
+      const current = captions.filter((r) => r.getAttribute("aria-selected") === "true");
       expect(current).toEqual(captions.filter(isHighlighted));
       expect(current).toHaveLength(1);
     });

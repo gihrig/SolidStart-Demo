@@ -37,7 +37,6 @@ export default function TopPhotosCard(props: TopPhotosCardProps) {
               <li
                 class="flex items-center cursor-pointer w-full p-2 rounded outline-none hover:bg-(--theme-hover-bg) transition-colors duration-150"
                 {...getOptionProps(index())}
-                aria-current={props.selectedPost()?.id === p.id ? "true" : undefined}
               >
                 <img
                   class="w-10 h-10 rounded-lg object-cover mr-3"

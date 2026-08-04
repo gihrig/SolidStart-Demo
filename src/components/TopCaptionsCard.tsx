@@ -29,7 +29,6 @@ export default function TopCaptionsCard(props: TopCaptionsCardProps) {
             <li
               class="flex items-center cursor-pointer w-full p-2 rounded outline-none hover:bg-(--theme-hover-bg) transition-colors duration-150"
               {...getOptionProps(index())}
-              aria-current={props.selectedCaption()?.id === c.id ? "true" : undefined}
             >
               <img
                 class="w-8 h-8 rounded-full object-cover mr-1"
