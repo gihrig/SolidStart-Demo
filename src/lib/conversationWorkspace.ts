@@ -1,4 +1,4 @@
-import { createSignal, createResource, type Accessor, type Resource } from "solid-js";
+import { createSignal, createResource, type Accessor } from "solid-js";
 import { backendRpc } from "~/lib/backend-rpc";
 import { createRpcAction } from "~/lib/createRpcAction";
 import type { Agent, Conv } from "~/types/backend";
@@ -11,21 +11,33 @@ import type { Agent, Conv } from "~/types/backend";
  * the create dance is written once instead of copy-pasted per manager.
  */
 export interface ConversationWorkspace {
-  // Agents
-  agents: Resource<Agent[]>;
+  // Agents — the Solid `Resource` stays private; the list, its loading flag, and
+  // its load error are exposed as plain accessors so consumers (and the stub)
+  // never touch framework internals.
+  agents: Accessor<Agent[]>;
+  agentsLoading: Accessor<boolean>;
+  agentsError: Accessor<string | null>;
   selectedAgent: Accessor<Agent | null>;
   selectAgent: (agent: Agent) => void;
   createAgent: (name: string) => Promise<boolean>;
   creatingAgent: Accessor<boolean>;
-  agentError: Accessor<string | null>;
+  createAgentError: Accessor<string | null>;
   // Conversations
-  convs: Resource<Conv[]>;
+  convs: Accessor<Conv[]>;
+  convsLoading: Accessor<boolean>;
+  convsError: Accessor<string | null>;
   selectedConv: Accessor<Conv | null>;
   selectConv: (conv: Conv) => void;
   createConv: (title: string | null) => Promise<boolean>;
   creatingConv: Accessor<boolean>;
-  convError: Accessor<string | null>;
+  createConvError: Accessor<string | null>;
 }
+
+// Normalize a `Resource`'s thrown error into display text, matching the create
+// side (`createRpcAction`): a real `Error` yields its message; anything else
+// falls back to `fallback`. `undefined` (no error) reads as `null`.
+const loadError = (err: unknown, fallback: string): string | null =>
+  err == null ? null : err instanceof Error ? err.message : fallback;
 
 /**
  * The displayed label for a conversation; empty/absent title reads as "Untitled".
@@ -110,17 +122,21 @@ export function createConversationWorkspace(): ConversationWorkspace {
   };
 
   return {
-    agents,
+    agents: () => agents() ?? [],
+    agentsLoading: () => agents.loading,
+    agentsError: () => loadError(agents.error, "Failed to load agents"),
     selectedAgent,
     selectAgent,
     createAgent,
     creatingAgent: agentAction.pending,
-    agentError: agentAction.error,
-    convs,
+    createAgentError: agentAction.error,
+    convs: () => convs() ?? [],
+    convsLoading: () => convs.loading,
+    convsError: () => loadError(convs.error, "Failed to load conversations"),
     selectedConv,
     selectConv,
     createConv,
     creatingConv: convAction.pending,
-    convError: convAction.error,
+    createConvError: convAction.error,
   };
 }

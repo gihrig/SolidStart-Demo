@@ -1,12 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { render, screen } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
-import {
-  makeAgent,
-  makeConv,
-  makeWorkspaceStub,
-  readyResource,
-} from "~/lib/conversationWorkspace.stub";
+import { makeAgent, makeConv, makeWorkspaceStub } from "~/lib/conversationWorkspace.stub";
 import WorkspaceLayout from "./WorkspaceLayout";
 
 // MessagePanel opens a WebSocket feed by default; inject an inert fake so the
@@ -44,7 +39,7 @@ describe("<WorkspaceLayout /> drawer", () => {
     beforeEach(() => setupMatchMedia(true));
 
     it("starts collapsed: toggle aria-expanded false, navigator hidden and inert", () => {
-      render(() => <WorkspaceLayout ws={makeWorkspaceStub({ agents: readyResource([ada]) })} />);
+      render(() => <WorkspaceLayout ws={makeWorkspaceStub({ agents: () => [ada] })} />);
       expect(toggle()).toHaveAttribute("aria-expanded", "false");
       expect(navigator()).toHaveClass("hidden");
       expect(navigator().inert).toBe(true);
@@ -52,7 +47,7 @@ describe("<WorkspaceLayout /> drawer", () => {
 
     it("toggle opens the drawer: aria-expanded true, navigator shown and not inert", async () => {
       const user = userEvent.setup();
-      render(() => <WorkspaceLayout ws={makeWorkspaceStub({ agents: readyResource([ada]) })} />);
+      render(() => <WorkspaceLayout ws={makeWorkspaceStub({ agents: () => [ada] })} />);
       await user.click(toggle());
       expect(toggle()).toHaveAttribute("aria-expanded", "true");
       expect(navigator()).not.toHaveClass("hidden");
@@ -61,7 +56,7 @@ describe("<WorkspaceLayout /> drawer", () => {
 
     it("Escape closes the open drawer", async () => {
       const user = userEvent.setup();
-      render(() => <WorkspaceLayout ws={makeWorkspaceStub({ agents: readyResource([ada]) })} />);
+      render(() => <WorkspaceLayout ws={makeWorkspaceStub({ agents: () => [ada] })} />);
       await user.click(toggle());
       expect(toggle()).toHaveAttribute("aria-expanded", "true");
 
@@ -73,9 +68,9 @@ describe("<WorkspaceLayout /> drawer", () => {
 
     it("selecting a conversation closes the drawer", async () => {
       const ws = makeWorkspaceStub({
-        agents: readyResource([ada]),
+        agents: () => [ada],
         selectedAgent: () => ada,
-        convs: readyResource([convAlpha]),
+        convs: () => [convAlpha],
       });
       const user = userEvent.setup();
       render(() => <WorkspaceLayout ws={ws} />);
@@ -93,7 +88,7 @@ describe("<WorkspaceLayout /> drawer", () => {
     beforeEach(() => setupMatchMedia(false));
 
     it("navigator is always shown and never inert; the toggle is mobile-only", () => {
-      render(() => <WorkspaceLayout ws={makeWorkspaceStub({ agents: readyResource([ada]) })} />);
+      render(() => <WorkspaceLayout ws={makeWorkspaceStub({ agents: () => [ada] })} />);
       expect(navigator()).toHaveClass("md:block");
       expect(navigator().inert).toBe(false);
       expect(toggle()).toHaveClass("md:hidden");

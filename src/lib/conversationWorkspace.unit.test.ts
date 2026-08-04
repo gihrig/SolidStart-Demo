@@ -145,7 +145,7 @@ describe("createConversationWorkspace", () => {
         await flush();
         expect(ws.agents()).toEqual([created]); // list refetched after create
         expect(ws.creatingAgent()).toBe(false);
-        expect(ws.agentError()).toBeNull();
+        expect(ws.createAgentError()).toBeNull();
         dispose();
       });
     });
@@ -160,7 +160,7 @@ describe("createConversationWorkspace", () => {
         const ws = createConversationWorkspace();
         const ok = await ws.createAgent("Doomed");
         expect(ok).toBe(false);
-        expect(ws.agentError()).toBe("create failed");
+        expect(ws.createAgentError()).toBe("create failed");
         expect(ws.selectedAgent()).toBeNull();
         expect(ws.creatingAgent()).toBe(false);
         dispose();
@@ -210,7 +210,7 @@ describe("createConversationWorkspace", () => {
         ws.selectAgent(makeAgent(1, "Ada"));
         const ok = await ws.createConv("Doomed");
         expect(ok).toBe(false);
-        expect(ws.convError()).toBe("conv failed");
+        expect(ws.createConvError()).toBe("conv failed");
         expect(ws.selectedConv()).toBeNull();
         dispose();
       });

@@ -2,12 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { createSignal } from "solid-js";
 import { render, screen } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
-import {
-  makeAgent,
-  makeConv,
-  makeWorkspaceStub,
-  readyResource,
-} from "~/lib/conversationWorkspace.stub";
+import { makeAgent, makeConv, makeWorkspaceStub } from "~/lib/conversationWorkspace.stub";
 import type { Agent } from "~/types/backend";
 import ConversationTree from "./ConversationTree";
 
@@ -22,23 +17,21 @@ describe("<ConversationTree /> (navigator)", () => {
   });
 
   it("renders each agent as a collapsed disclosure header when none is open", () => {
-    render(() => (
-      <ConversationTree ws={makeWorkspaceStub({ agents: readyResource([ada, bob]) })} />
-    ));
+    render(() => <ConversationTree ws={makeWorkspaceStub({ agents: () => [ada, bob] })} />);
     const adaHeader = screen.getByRole("button", { name: /ada/i });
     expect(adaHeader).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByRole("button", { name: /bob/i })).toHaveAttribute("aria-expanded", "false");
   });
 
   it("marks the open agent's header as expanded", () => {
-    const ws = makeWorkspaceStub({ agents: readyResource([ada, bob]), selectedAgent: () => ada });
+    const ws = makeWorkspaceStub({ agents: () => [ada, bob], selectedAgent: () => ada });
     render(() => <ConversationTree ws={ws} />);
     expect(screen.getByRole("button", { name: /ada/i })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("button", { name: /bob/i })).toHaveAttribute("aria-expanded", "false");
   });
 
   it("clicking an agent header calls selectAgent (accordion open/collapse)", async () => {
-    const ws = makeWorkspaceStub({ agents: readyResource([ada, bob]) });
+    const ws = makeWorkspaceStub({ agents: () => [ada, bob] });
     const user = userEvent.setup();
     render(() => <ConversationTree ws={ws} />);
     await user.click(screen.getByRole("button", { name: /ada/i }));
@@ -47,9 +40,9 @@ describe("<ConversationTree /> (navigator)", () => {
 
   it("shows the open agent's conversations as a single-select listbox", () => {
     const ws = makeWorkspaceStub({
-      agents: readyResource([ada]),
+      agents: () => [ada],
       selectedAgent: () => ada,
-      convs: readyResource([convAlpha, convBeta]),
+      convs: () => [convAlpha, convBeta],
       selectedConv: () => convBeta,
     });
     render(() => <ConversationTree ws={ws} />);
@@ -69,9 +62,9 @@ describe("<ConversationTree /> (navigator)", () => {
 
   it("clicking a conversation option calls selectConv", async () => {
     const ws = makeWorkspaceStub({
-      agents: readyResource([ada]),
+      agents: () => [ada],
       selectedAgent: () => ada,
-      convs: readyResource([convAlpha]),
+      convs: () => [convAlpha],
     });
     const user = userEvent.setup();
     render(() => <ConversationTree ws={ws} />);
@@ -81,33 +74,33 @@ describe("<ConversationTree /> (navigator)", () => {
 
   it("renders 'Untitled' for a conversation with no title", () => {
     const ws = makeWorkspaceStub({
-      agents: readyResource([ada]),
+      agents: () => [ada],
       selectedAgent: () => ada,
-      convs: readyResource([makeConv(12, "", 1)]),
+      convs: () => [makeConv(12, "", 1)],
     });
     render(() => <ConversationTree ws={ws} />);
     expect(screen.getByRole("option", { name: "Untitled" })).toBeInTheDocument();
   });
 
   it("offers Create Conversation only while an agent is open", () => {
-    const closed = makeWorkspaceStub({ agents: readyResource([ada]) });
+    const closed = makeWorkspaceStub({ agents: () => [ada] });
     const { unmount } = render(() => <ConversationTree ws={closed} />);
     expect(screen.queryByRole("button", { name: /create conversation/i })).not.toBeInTheDocument();
     unmount();
 
-    const open = makeWorkspaceStub({ agents: readyResource([ada]), selectedAgent: () => ada });
+    const open = makeWorkspaceStub({ agents: () => [ada], selectedAgent: () => ada });
     render(() => <ConversationTree ws={open} />);
     expect(screen.getByRole("button", { name: /create conversation/i })).toBeInTheDocument();
   });
 
   it("Create Agent lives at the navigator root regardless of open state", () => {
-    render(() => <ConversationTree ws={makeWorkspaceStub({ agents: readyResource([ada]) })} />);
+    render(() => <ConversationTree ws={makeWorkspaceStub({ agents: () => [ada] })} />);
     const block = screen.getByRole("button", { name: /create agent/i }).closest("section");
     expect(block).toHaveAttribute("aria-label", "Create agent");
   });
 
   it("calls createAgent with the typed name and resets on success", async () => {
-    const ws = makeWorkspaceStub({ agents: readyResource([]) });
+    const ws = makeWorkspaceStub({ agents: () => [] });
     const user = userEvent.setup();
     render(() => <ConversationTree ws={ws} />);
     const input = screen.getByPlaceholderText(/agent name/i);
@@ -118,7 +111,7 @@ describe("<ConversationTree /> (navigator)", () => {
   });
 
   it("calls createConv with the typed title (null when empty) and resets", async () => {
-    const ws = makeWorkspaceStub({ agents: readyResource([ada]), selectedAgent: () => ada });
+    const ws = makeWorkspaceStub({ agents: () => [ada], selectedAgent: () => ada });
     const user = userEvent.setup();
     render(() => <ConversationTree ws={ws} />);
     await user.click(screen.getByRole("button", { name: /create conversation/i }));
@@ -127,9 +120,9 @@ describe("<ConversationTree /> (navigator)", () => {
 
   it("renders no raw numeric ids for agents or conversations", () => {
     const ws = makeWorkspaceStub({
-      agents: readyResource([ada]),
+      agents: () => [ada],
       selectedAgent: () => ada,
-      convs: readyResource([convAlpha]),
+      convs: () => [convAlpha],
     });
     render(() => <ConversationTree ws={ws} />);
     // The old rows appended an "ID: <n>" label; assert that label is gone and
@@ -147,7 +140,7 @@ describe("<ConversationTree /> (navigator)", () => {
 
     const [selected, setSelected] = createSignal<Agent | null>(null);
     const ws = makeWorkspaceStub({
-      agents: readyResource([ada, bob]),
+      agents: () => [ada, bob],
       selectedAgent: selected,
       selectAgent: (a) => setSelected(a),
     });
@@ -163,18 +156,49 @@ describe("<ConversationTree /> (navigator)", () => {
     );
   });
 
-  it("surfaces the workspace's agent and conversation errors", () => {
-    const agentErr = makeWorkspaceStub({ agents: readyResource([ada]), agentError: () => "boom" });
+  it("surfaces the workspace's agent and conversation create-errors", () => {
+    const agentErr = makeWorkspaceStub({ agents: () => [ada], createAgentError: () => "boom" });
     const { unmount } = render(() => <ConversationTree ws={agentErr} />);
     expect(screen.getByText("boom")).toBeInTheDocument();
     unmount();
 
     const convErr = makeWorkspaceStub({
-      agents: readyResource([ada]),
+      agents: () => [ada],
       selectedAgent: () => ada,
-      convError: () => "conv boom",
+      createConvError: () => "conv boom",
     });
     render(() => <ConversationTree ws={convErr} />);
     expect(screen.getByText("conv boom")).toBeInTheDocument();
+  });
+
+  it("shows a loading notice while agents are loading", () => {
+    render(() => <ConversationTree ws={makeWorkspaceStub({ agentsLoading: () => true })} />);
+    expect(screen.getByText(/loading agents/i)).toBeInTheDocument();
+  });
+
+  it("surfaces the agent load-error text", () => {
+    const ws = makeWorkspaceStub({ agentsError: () => "network down" });
+    render(() => <ConversationTree ws={ws} />);
+    expect(screen.getByText(/error loading agents: network down/i)).toBeInTheDocument();
+  });
+
+  it("shows a loading notice while the open agent's conversations load", () => {
+    const ws = makeWorkspaceStub({
+      agents: () => [ada],
+      selectedAgent: () => ada,
+      convsLoading: () => true,
+    });
+    render(() => <ConversationTree ws={ws} />);
+    expect(screen.getByText(/loading conversations/i)).toBeInTheDocument();
+  });
+
+  it("surfaces the conversation load-error text", () => {
+    const ws = makeWorkspaceStub({
+      agents: () => [ada],
+      selectedAgent: () => ada,
+      convsError: () => "conv fetch failed",
+    });
+    render(() => <ConversationTree ws={ws} />);
+    expect(screen.getByText(/error: conv fetch failed/i)).toBeInTheDocument();
   });
 });
