@@ -60,7 +60,7 @@ export default function ConversationTree(props: ConversationTreeProps) {
   const ws = props.ws;
 
   const isOpen = (agent: Agent) => ws.selectedAgent()?.id === agent.id;
-  const convs: Accessor<Conv[]> = () => ws.convs() ?? [];
+  const convs: Accessor<Conv[]> = () => ws.convs();
 
   // Selecting an agent rewrites the accordion (the open one expands, the previous
   // one collapses), which can shift the chosen row off-screen when it was picked
@@ -95,8 +95,8 @@ export default function ConversationTree(props: ConversationTreeProps) {
       {/* Create Agent — one isolated, self-contained block at the navigator root
           so a future Admin-only gate can wrap exactly this and nothing else. */}
       <section aria-label="Create agent" class="space-y-2">
-        <Show when={ws.agentError()}>
-          <div class="rounded bg-red-100 p-2 text-red-700">{ws.agentError()}</div>
+        <Show when={ws.createAgentError()}>
+          <div class="rounded bg-red-100 p-2 text-red-700">{ws.createAgentError()}</div>
         </Show>
         <CreateForm
           label="Create Agent"
@@ -110,79 +110,77 @@ export default function ConversationTree(props: ConversationTreeProps) {
 
       {/* Scrollable Agent list — caps the navigator to the screen height. */}
       <div class="max-h-[70dvh] space-y-4 overflow-y-auto">
-        <Show when={ws.agents.loading}>
+        <Show when={ws.agentsLoading()}>
           <p class="text-(--theme-muted)">Loading agents...</p>
         </Show>
-        <Show when={ws.agents.error}>
-          <p class="text-red-600">Error loading agents: {ws.agents.error.message}</p>
+        <Show when={ws.agentsError()}>
+          <p class="text-red-600">Error loading agents: {ws.agentsError()}</p>
         </Show>
 
-        <Show when={ws.agents()}>
-          <ul class="hoverlist space-y-1">
-            <For each={ws.agents()} fallback={<li class="text-(--theme-muted)">No agents yet</li>}>
-              {(agent) => (
-                <li
-                  ref={(el) => {
-                    agentRows.set(agent.id, el);
-                    onCleanup(() => agentRows.delete(agent.id));
-                  }}
+        <ul class="hoverlist space-y-1">
+          <For each={ws.agents()} fallback={<li class="text-(--theme-muted)">No agents yet</li>}>
+            {(agent) => (
+              <li
+                ref={(el) => {
+                  agentRows.set(agent.id, el);
+                  onCleanup(() => agentRows.delete(agent.id));
+                }}
+              >
+                <button
+                  type="button"
+                  aria-expanded={isOpen(agent)}
+                  onClick={() => ws.selectAgent(agent)}
+                  class="flex w-full items-center justify-between rounded p-2 text-left font-semibold"
                 >
-                  <button
-                    type="button"
-                    aria-expanded={isOpen(agent)}
-                    onClick={() => ws.selectAgent(agent)}
-                    class="flex w-full items-center justify-between rounded p-2 text-left font-semibold"
-                  >
-                    <span>{agent.name}</span>
-                    <span aria-hidden="true">{isOpen(agent) ? "▾" : "▸"}</span>
-                  </button>
+                  <span>{agent.name}</span>
+                  <span aria-hidden="true">{isOpen(agent) ? "▾" : "▸"}</span>
+                </button>
 
-                  {/* Open Agent reveals its Conversations + create-conversation. */}
-                  <Show when={isOpen(agent)}>
-                    <div class="mt-2 space-y-2 pl-2">
-                      <Show when={ws.convError()}>
-                        <div class="rounded bg-red-100 p-2 text-red-700">{ws.convError()}</div>
-                      </Show>
+                {/* Open Agent reveals its Conversations + create-conversation. */}
+                <Show when={isOpen(agent)}>
+                  <div class="mt-2 space-y-2 pl-2">
+                    <Show when={ws.createConvError()}>
+                      <div class="rounded bg-red-100 p-2 text-red-700">{ws.createConvError()}</div>
+                    </Show>
 
-                      <CreateForm
-                        label="Create Conversation"
-                        field="title"
-                        placeholder="Conversation title (optional)"
-                        pending={ws.creatingConv()}
-                        onSubmit={(raw) => ws.createConv(raw || null)}
-                      />
+                    <CreateForm
+                      label="Create Conversation"
+                      field="title"
+                      placeholder="Conversation title (optional)"
+                      pending={ws.creatingConv()}
+                      onSubmit={(raw) => ws.createConv(raw || null)}
+                    />
 
-                      <Show when={ws.convs.loading}>
-                        <p class="text-(--theme-muted)">Loading conversations...</p>
-                      </Show>
-                      <Show when={ws.convs.error}>
-                        <p class="text-red-600">Error: {ws.convs.error.message}</p>
-                      </Show>
+                    <Show when={ws.convsLoading()}>
+                      <p class="text-(--theme-muted)">Loading conversations...</p>
+                    </Show>
+                    <Show when={ws.convsError()}>
+                      <p class="text-red-600">Error: {ws.convsError()}</p>
+                    </Show>
 
-                      <Show
-                        when={convs().length > 0}
-                        fallback={<p class="text-(--theme-muted)">No conversations yet</p>}
-                      >
-                        <ul class="hoverlist space-y-1" {...listboxProps}>
-                          <For each={convs()}>
-                            {(conv, index) => (
-                              <li
-                                class="cursor-pointer rounded p-2 outline-none"
-                                {...getOptionProps(index())}
-                              >
-                                {convLabel(conv)}
-                              </li>
-                            )}
-                          </For>
-                        </ul>
-                      </Show>
-                    </div>
-                  </Show>
-                </li>
-              )}
-            </For>
-          </ul>
-        </Show>
+                    <Show
+                      when={convs().length > 0}
+                      fallback={<p class="text-(--theme-muted)">No conversations yet</p>}
+                    >
+                      <ul class="hoverlist space-y-1" {...listboxProps}>
+                        <For each={convs()}>
+                          {(conv, index) => (
+                            <li
+                              class="cursor-pointer rounded p-2 outline-none"
+                              {...getOptionProps(index())}
+                            >
+                              {convLabel(conv)}
+                            </li>
+                          )}
+                        </For>
+                      </ul>
+                    </Show>
+                  </div>
+                </Show>
+              </li>
+            )}
+          </For>
+        </ul>
       </div>
     </div>
   );

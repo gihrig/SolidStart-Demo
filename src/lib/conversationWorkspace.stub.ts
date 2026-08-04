@@ -1,5 +1,4 @@
 import { vi } from "vite-plus/test";
-import type { Resource } from "solid-js";
 import type { Agent, Conv } from "~/types/backend";
 import type { ConversationWorkspace } from "./conversationWorkspace";
 
@@ -33,43 +32,27 @@ export const makeConv = (id: number, title: string, agentId = 1): Conv => ({
   mtime: "2024-01-01T00:00:00Z",
 });
 
-/** A resolved resource exposing the surface the managers read: `()`, `.loading`, `.error`. */
-export function readyResource<T>(value: T): Resource<T> {
-  return Object.assign(() => value, {
-    loading: false,
-    error: undefined,
-    latest: value,
-    state: "ready" as const,
-  }) as unknown as Resource<T>;
-}
-
-/** A still-loading resource. */
-export function loadingResource<T>(): Resource<T> {
-  return Object.assign(() => undefined, {
-    loading: true,
-    error: undefined,
-    latest: undefined,
-    state: "pending" as const,
-  }) as unknown as Resource<T>;
-}
-
 /** A workspace whose actions are `vi.fn()` spies; override any slice per test. */
 export function makeWorkspaceStub(
   over: Partial<ConversationWorkspace> = {},
 ): ConversationWorkspace {
   return {
-    agents: readyResource<Agent[]>([]),
+    agents: () => [],
+    agentsLoading: () => false,
+    agentsError: () => null,
     selectedAgent: () => null,
     selectAgent: vi.fn(),
     createAgent: vi.fn().mockResolvedValue(true),
     creatingAgent: () => false,
-    agentError: () => null,
-    convs: readyResource<Conv[]>([]),
+    createAgentError: () => null,
+    convs: () => [],
+    convsLoading: () => false,
+    convsError: () => null,
     selectedConv: () => null,
     selectConv: vi.fn(),
     createConv: vi.fn().mockResolvedValue(true),
     creatingConv: () => false,
-    convError: () => null,
+    createConvError: () => null,
     ...over,
   };
 }
