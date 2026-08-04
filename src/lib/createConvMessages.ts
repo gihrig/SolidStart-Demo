@@ -1,5 +1,6 @@
 import { createSignal, createEffect } from "solid-js";
 import { backendRpc } from "~/lib/backend-rpc";
+import { createRpcAction } from "~/lib/createRpcAction";
 import { useWebSocket, type MessageFeedFactory } from "~/lib/websocket";
 import type { Conv, ConvMsg } from "~/types/backend";
 
@@ -8,7 +9,10 @@ export interface ConvMessages {
   messages: () => ConvMsg[];
   /** Sends `content`; resolves `true` when it was accepted, `false` on failure. */
   send: (content: string) => Promise<boolean>;
+  /** True while a send RPC is in flight (owned by the send action). */
+  pending: () => boolean;
   connected: () => boolean;
+  /** A send failure, else the standing feed/history error (send takes precedence). */
   error: () => string | null;
 }
 
@@ -31,7 +35,9 @@ export function createConvMessages(
   deps: ConvMessagesDeps = {},
 ): ConvMessages {
   const [messages, setMessages] = createSignal<ConvMsg[]>([]);
-  const [error, setError] = createSignal<string | null>(null);
+  // Connection + history-load failures. Send failures live in `sendAction.error`;
+  // the exposed `error()` merges the two with send taking precedence.
+  const [feedError, setFeedError] = createSignal<string | null>(null);
 
   // Prevents a stale convMsg.list response from overwriting a message added via send().
   let listStale = false;
@@ -41,7 +47,7 @@ export function createConvMessages(
       const c = conv();
       if (c && c.id === convId) setMessages((prev) => appendMsg(prev, msg));
     },
-    onError: (err) => setError(err),
+    onError: (err) => setFeedError(err),
   });
 
   // Subscribe + load history when the conversation changes.
@@ -57,7 +63,7 @@ export function createConvMessages(
         if (!listStale) setMessages(msgs);
       })
       .catch((e) => {
-        if (!listStale) setError(e instanceof Error ? e.message : "Failed to load messages");
+        if (!listStale) setFeedError(e instanceof Error ? e.message : "Failed to load messages");
       });
   });
 
@@ -68,21 +74,28 @@ export function createConvMessages(
     return currentConvId;
   }, null);
 
-  const send = async (content: string): Promise<boolean> => {
-    const c = conv();
-    if (!c) return false;
-    setError(null);
-    try {
+  // The send choreography (reset error → pending → try/catch/finally) is owned by
+  // createRpcAction; the success step runs inside so its rejection lands in error.
+  const sendAction = createRpcAction(
+    async ({ c, content }: { c: Conv; content: string }) => {
       const msg = await backendRpc.convMsg.add({ conv_id: c.id, content });
       // Any in-flight history load is now stale; drop it when it resolves.
       listStale = true;
       setMessages((prev) => appendMsg(prev, msg));
-      return true;
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to send message");
-      return false;
-    }
+      return msg;
+    },
+    { fallbackError: "Failed to send message" },
+  );
+
+  // Conv pre-check runs outside run() so "no conversation" never flips pending.
+  const send = async (content: string): Promise<boolean> => {
+    const c = conv();
+    if (!c) return false;
+    return (await sendAction.run({ c, content })) !== undefined;
   };
 
-  return { messages, send, connected, error };
+  // One displayed error: a send failure wins over a standing feed/history error.
+  const error = () => sendAction.error() ?? feedError();
+
+  return { messages, send, pending: sendAction.pending, connected, error };
 }

@@ -1,4 +1,4 @@
-import { createSignal, createEffect, Show, For } from "solid-js";
+import { createEffect, Show, For } from "solid-js";
 import { createConvMessages } from "~/lib/createConvMessages";
 import type { MessageFeedFactory } from "~/lib/websocket";
 import type { Conv } from "~/types/backend";
@@ -10,11 +10,11 @@ interface MessagePanelProps {
 }
 
 export default function MessagePanel(props: MessagePanelProps) {
-  const [sending, setSending] = createSignal(false);
   let scrollEl: HTMLDivElement | undefined;
 
-  // The live-message protocol (subscribe, history, merge, dedupe, stale-guard) lives here.
-  const { messages, send, connected, error } = createConvMessages(() => props.conv, {
+  // The live-message protocol (subscribe, history, merge, dedupe, stale-guard) plus
+  // the send lifecycle (pending + error) live here; the panel owns no send state.
+  const { messages, send, pending, connected, error } = createConvMessages(() => props.conv, {
     feed: props.feed,
   });
 
@@ -31,9 +31,7 @@ export default function MessagePanel(props: MessagePanelProps) {
     const form = e.target as HTMLFormElement;
     const content = new FormData(form).get("content") as string;
 
-    setSending(true);
     const sent = await send(content);
-    setSending(false);
     if (sent) form.reset();
   };
 
@@ -61,10 +59,10 @@ export default function MessagePanel(props: MessagePanelProps) {
 
           <button
             type="submit"
-            disabled={sending()}
+            disabled={pending()}
             class="w-full rounded bg-(--theme-btn-primary) px-12 py-2 text-white hover:bg-(--theme-btn-primary-hover) disabled:opacity-50"
           >
-            {sending() ? "Sending..." : "Send"}
+            {pending() ? "Sending..." : "Send"}
           </button>
 
           {/* Messages Display — fills the pane, scrolls internally */}

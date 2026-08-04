@@ -140,6 +140,54 @@ describe("<MessagePanel />", () => {
     expect(container.textContent).not.toMatch(/\b207\b/);
   });
 
+  it("disables the button and shows 'Sending...' while a send is in flight", async () => {
+    const { backendRpc } = await import("~/lib/backend-rpc");
+    let resolveAdd!: (m: ConvMsg) => void;
+    (backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockReturnValue(
+      new Promise<ConvMsg>((r) => (resolveAdd = r)),
+    );
+    const user = userEvent.setup();
+
+    render(() => <MessagePanel conv={mockConv} feed={createFakeFeed().factory} />);
+
+    await user.type(screen.getByPlaceholderText(/type a message/i), "hi");
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /sending/i })).toBeDisabled());
+
+    resolveAdd(msg(700, "hi"));
+    await waitFor(() => expect(screen.getByRole("button", { name: /^send$/i })).toBeEnabled());
+  });
+
+  it("clears the input after a successful send", async () => {
+    const { backendRpc } = await import("~/lib/backend-rpc");
+    (backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(msg(701, "cleared"));
+    const user = userEvent.setup();
+
+    render(() => <MessagePanel conv={mockConv} feed={createFakeFeed().factory} />);
+
+    const input = screen.getByPlaceholderText(/type a message/i) as HTMLInputElement;
+    await user.type(input, "cleared");
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+
+    await waitFor(() => expect(input.value).toBe(""));
+  });
+
+  it("keeps the input after a failed send", async () => {
+    const { backendRpc } = await import("~/lib/backend-rpc");
+    (backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("nope"));
+    const user = userEvent.setup();
+
+    render(() => <MessagePanel conv={mockConv} feed={createFakeFeed().factory} />);
+
+    const input = screen.getByPlaceholderText(/type a message/i) as HTMLInputElement;
+    await user.type(input, "kept");
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+
+    await waitFor(() => expect(screen.getByText("nope")).toBeInTheDocument());
+    expect(input.value).toBe("kept");
+  });
+
   it("renders a message pushed through the feed for the current conversation", async () => {
     const feed = createFakeFeed(true);
     render(() => <MessagePanel conv={mockConv} feed={feed.factory} />);

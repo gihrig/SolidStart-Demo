@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
-import { render, screen } from "@solidjs/testing-library";
+import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import LoginForm from "./LoginForm";
 import { AuthProvider } from "./AuthContext";
@@ -44,6 +44,24 @@ describe("<LoginForm />", () => {
 
     expect(usernameInput.value).toBe("demo1");
     expect(passwordInput.value).toBe("welcome");
+  });
+
+  it("disables the button and shows 'Logging in...' while login is in flight", async () => {
+    const { backendRpc } = await import("~/lib/backend-rpc");
+    let resolveLogin!: (v: { result: { success: boolean } }) => void;
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    vi.mocked(backendRpc.auth.login).mockReturnValueOnce(
+      new Promise<{ result: { success: boolean } }>((r) => (resolveLogin = r)),
+    );
+    const user = userEvent.setup();
+    renderWithAuth();
+
+    await user.click(screen.getByRole("button", { name: /^login$/i }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /logging in/i })).toBeDisabled());
+
+    resolveLogin({ result: { success: true } });
+    await waitFor(() => expect(screen.getByRole("button", { name: /^login$/i })).toBeEnabled());
   });
 
   it("submits form with entered credentials", async () => {

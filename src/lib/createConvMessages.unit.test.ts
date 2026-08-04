@@ -185,6 +185,69 @@ describe("createConvMessages", () => {
     });
   });
 
+  it("pending is false, true while a send is in flight, then false again", async () => {
+    const { backendRpc } = await import("~/lib/backend-rpc");
+    let resolveAdd!: (m: ConvMsg) => void;
+    (backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockReturnValue(
+      new Promise<ConvMsg>((r) => (resolveAdd = r)),
+    );
+    const feed = createFakeFeed();
+    await createRoot(async (dispose) => {
+      const cm = createConvMessages(() => mockConv, { feed: feed.factory });
+      await flush();
+      expect(cm.pending()).toBe(false);
+      const sent = cm.send("hi");
+      expect(cm.pending()).toBe(true);
+      resolveAdd(msg(400, "hi"));
+      await sent;
+      expect(cm.pending()).toBe(false);
+      dispose();
+    });
+  });
+
+  it("does not flip pending when there is no conversation selected", async () => {
+    const feed = createFakeFeed();
+    await createRoot(async (dispose) => {
+      const cm = createConvMessages(() => null, { feed: feed.factory });
+      await flush();
+      expect(await cm.send("hi")).toBe(false);
+      expect(cm.pending()).toBe(false);
+      dispose();
+    });
+  });
+
+  it("a send failure takes precedence over a prior feed error", async () => {
+    const { backendRpc } = await import("~/lib/backend-rpc");
+    (backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("send failed"),
+    );
+    const feed = createFakeFeed(true);
+    await createRoot(async (dispose) => {
+      const cm = createConvMessages(() => mockConv, { feed: feed.factory });
+      await flush();
+      feed.emitError("feed down");
+      expect(cm.error()).toBe("feed down");
+      await cm.send("boom");
+      expect(cm.error()).toBe("send failed");
+      dispose();
+    });
+  });
+
+  it("a prior feed error resurfaces once a send succeeds and clears its own error", async () => {
+    const { backendRpc } = await import("~/lib/backend-rpc");
+    (backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(msg(600, "ok"));
+    const feed = createFakeFeed(true);
+    await createRoot(async (dispose) => {
+      const cm = createConvMessages(() => mockConv, { feed: feed.factory });
+      await flush();
+      feed.emitError("feed down");
+      expect(await cm.send("ok")).toBe(true);
+      // send's own error cleared; the standing connection error shows through again.
+      expect(cm.error()).toBe("feed down");
+      dispose();
+    });
+  });
+
   it("unsubscribes the old conversation and loads history for the new one on switch", async () => {
     const { backendRpc } = await import("~/lib/backend-rpc");
     (backendRpc.convMsg.list as ReturnType<typeof vi.fn>)
