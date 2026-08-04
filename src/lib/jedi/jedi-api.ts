@@ -1,11 +1,11 @@
 import data from "./data.json";
-import { sanitizeUrl } from "~/lib/sanitizeUrl";
+import { sanitizeUrl, trustedUrl, type SafeUrl } from "~/lib/sanitizeUrl";
 import type {
   JediData,
   JediPost,
   JediCaption,
   JediCategory,
-  JediHero,
+  HeroView,
   AuthorRef,
   PostView,
   CaptionView,
@@ -15,8 +15,9 @@ import type {
 // icon is a real sprite name, so this once-only boundary cast is safe.
 const db = data as unknown as JediData;
 
-/** Drop any URL the shared sanitizer rejects (javascript:/data:/etc.). */
-const safe = (url: string): string => sanitizeUrl(url) ?? "";
+/** The single sanitize boundary (ADR-0002): every URL field passes through here.
+ *  A rejected URL collapses to the empty `SafeUrl`; consumers bind it raw. */
+const safe = (url: string): SafeUrl => sanitizeUrl(url) ?? trustedUrl("");
 
 const byLikesDesc = <T extends { likeCount: number }>(a: T, b: T): number =>
   b.likeCount - a.likeCount;
@@ -62,7 +63,7 @@ const toCaptionView = (c: JediCaption): CaptionView => ({
 
 const rankedPosts = (): PostView[] => db.posts.map(toPostView).sort(byLikesDesc);
 
-const heroContent = (): JediHero => ({
+const heroContent = (): HeroView => ({
   title: db.hero.title,
   subtitle: db.hero.subtitle,
   ctaText: db.hero.ctaText,
@@ -92,7 +93,7 @@ export const jediApi = {
       ),
   },
   hero: {
-    get: (): Promise<JediHero> => Promise.resolve(heroContent()),
+    get: (): Promise<HeroView> => Promise.resolve(heroContent()),
   },
   profile: {
     get: (): Promise<AuthorRef> => Promise.resolve(authorOf(db.profile.userId)),

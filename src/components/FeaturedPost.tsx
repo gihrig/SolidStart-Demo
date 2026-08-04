@@ -1,4 +1,5 @@
 import { For } from "solid-js";
+import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { PostView, CaptionView } from "~/types/jedi";
 import Image from "~/components/Image";
 import Author from "~/components/Author";
@@ -48,7 +49,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
         <Author
           avatarSrc={props.post.author.avatarUrl}
           name={props.post.author.name}
-          href="#"
+          href={trustedUrl("#")}
           onClick={notImplemented}
         />
         <p class="text-5xl mb-10 px-4 font-hero">{props.caption?.text ?? ""}</p>

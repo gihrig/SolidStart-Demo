@@ -1,18 +1,19 @@
 import { describe, it, expect, vi } from "vite-plus/test";
 import { render, screen } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
+import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { PostView } from "~/types/jedi";
 import TopPhotosCard from "./TopPhotosCard";
 
 const makePost = (id: number, name: string, likeCount: number): PostView => ({
   id,
-  author: { id, name, avatarUrl: `https://example.com/${name}.png` },
+  author: { id, name, avatarUrl: trustedUrl(`https://example.com/${name}.png`) },
   title: `Post ${id}`,
-  imageSrc: `https://example.com/${id}.jpg`,
+  imageSrc: trustedUrl(`https://example.com/${id}.jpg`),
   imageAlt: `Post ${id} photo`,
   photographer: "Someone",
-  photographerUrl: "https://example.com/someone",
-  sourceUrl: "https://example.com/source",
+  photographerUrl: trustedUrl("https://example.com/someone"),
+  sourceUrl: trustedUrl("https://example.com/source"),
   categories: [],
   likeCount,
   commentCount: 0,

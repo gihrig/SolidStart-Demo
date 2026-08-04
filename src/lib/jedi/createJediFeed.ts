@@ -1,6 +1,6 @@
 import { createResource, createSignal, type Accessor, type Setter } from "solid-js";
 import { jediApi } from "~/lib/jedi/jedi-api";
-import type { JediCategory, PostView, CaptionView, JediHero, AuthorRef } from "~/types/jedi";
+import type { JediCategory, PostView, CaptionView, HeroView, AuthorRef } from "~/types/jedi";
 
 /**
  * The Jedi feed's view-model: it owns the route's four data resources and the
@@ -50,7 +50,7 @@ export interface JediFeed {
   selectCaption: (id: number) => void;
   selectedCategory: Accessor<number>;
   setSelectedCategory: Setter<number>;
-  hero: Accessor<JediHero | undefined>;
+  hero: Accessor<HeroView | undefined>;
   profile: Accessor<AuthorRef | undefined>;
 }
 

@@ -1,30 +1,28 @@
 import { Show } from "solid-js";
-import { sanitizeUrl } from "~/lib/sanitizeUrl";
+import type { SafeUrl } from "~/lib/sanitizeUrl";
 
 export interface ImageProps {
-  src: string;
+  src: SafeUrl;
   alt: string;
-  href?: string;
+  href?: SafeUrl;
   class?: string;
   loading?: "lazy" | "eager";
 }
 
 export default function Image(props: ImageProps) {
-  const imgSrc = () => sanitizeUrl(props.src);
-
   return (
     <figure class={props.class}>
       <Show
         when={props.href}
         fallback={
-          <img class="w-full bg-gray-700" src={imgSrc()} alt={props.alt} loading={props.loading} />
+          <img class="w-full bg-gray-700" src={props.src} alt={props.alt} loading={props.loading} />
         }
       >
         {(href) => (
-          <a href={sanitizeUrl(href())}>
+          <a href={href()}>
             <img
               class="w-full bg-gray-700"
-              src={imgSrc()}
+              src={props.src}
               alt={props.alt}
               loading={props.loading}
             />

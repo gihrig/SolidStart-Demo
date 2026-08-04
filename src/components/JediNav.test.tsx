@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { render, screen } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
+import { trustedUrl } from "~/lib/sanitizeUrl";
 import JediNav from "./JediNav";
 
 function setupMatchMedia(mobile: boolean) {
@@ -42,7 +43,7 @@ describe("<JediNav />", () => {
     const profile = {
       id: 3,
       name: "Bart",
-      avatarUrl: "https://img.icons8.com/doodle/96/null/bart-simpson.png",
+      avatarUrl: trustedUrl("https://img.icons8.com/doodle/96/null/bart-simpson.png"),
     };
     render(() => <JediNav profile={profile} />);
     expect(screen.getByRole("button", { name: /profile menu/i })).toBeInTheDocument();

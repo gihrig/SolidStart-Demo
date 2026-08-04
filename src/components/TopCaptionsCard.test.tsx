@@ -1,13 +1,14 @@
 import { describe, it, expect, vi } from "vite-plus/test";
 import { render, screen } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
+import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { CaptionView } from "~/types/jedi";
 import TopCaptionsCard from "./TopCaptionsCard";
 
 const makeCaption = (id: number, name: string, likeCount: number): CaptionView => ({
   id,
   postId: 1,
-  author: { id, name, avatarUrl: `https://example.com/${name}.png` },
+  author: { id, name, avatarUrl: trustedUrl(`https://example.com/${name}.png`) },
   text: `Caption ${id}`,
   likeCount,
 });
