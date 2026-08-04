@@ -30,7 +30,7 @@ describe("<TopCaptionsCard />", () => {
     expect(options[0]).toHaveTextContent("(8 Likes)");
   });
 
-  it("marks the selected caption's row as current and selected", () => {
+  it("marks the selected caption's row as selected", () => {
     render(() => (
       <TopCaptionsCard
         captions={() => captions}
@@ -39,9 +39,8 @@ describe("<TopCaptionsCard />", () => {
       />
     ));
     const options = screen.getAllByRole("option");
-    expect(options[1]).toHaveAttribute("aria-current", "true");
     expect(options[1]).toHaveAttribute("aria-selected", "true");
-    expect(options[0]).not.toHaveAttribute("aria-current");
+    expect(options[0]).toHaveAttribute("aria-selected", "false");
   });
 
   it("calls onSelect with the clicked caption's id (not its index)", () => {
