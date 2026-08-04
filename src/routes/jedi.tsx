@@ -28,7 +28,7 @@ export default function Jedi() {
     profile,
   } = createJediFeed();
 
-  const sidebar = useDisclosure();
+  const sidebar = useDisclosure({ id: "jedi-sidebar" });
 
   return (
     <>
@@ -47,8 +47,7 @@ export default function Jedi() {
           <button
             type="button"
             aria-label="Toggle sidebar"
-            aria-expanded={sidebar.open()}
-            onClick={sidebar.toggle}
+            {...sidebar.triggerProps}
             class="flex items-center font-bold text-(--theme-card-fg) bg-(--theme-card-bg) hover:text-(--theme-hover-fg) hover:bg-(--theme-hover-bg) rounded-lg p-3"
           >
             <span>Categories</span>
@@ -73,7 +72,7 @@ export default function Jedi() {
 
         {/* Sidebar — grid-rows collapse: aside is nested grid inside parent grid-cols-3 */}
         <aside
-          inert={sidebar.inert()}
+          {...sidebar.panelProps}
           class={`col-span-full md:col-span-1 mx-5pct md:mr-20pct order-1 md:order-2 grid transition-[grid-template-rows,opacity] duration-300 ease-out md:opacity-100 md:grid-rows-[1fr] ${sidebar.open() ? "opacity-100 grid-rows-[1fr]" : "opacity-0 grid-rows-[0fr]"}`}
         >
           <div class="overflow-hidden min-h-0 md:overflow-visible">

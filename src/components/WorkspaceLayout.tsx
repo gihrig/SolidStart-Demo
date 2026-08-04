@@ -15,7 +15,7 @@ export interface WorkspaceLayoutProps {
  * selecting a Conversation closes the drawer.
  */
 export default function WorkspaceLayout(props: WorkspaceLayoutProps) {
-  const drawer = useDisclosure();
+  const drawer = useDisclosure({ id: "conversation-navigator" });
 
   const closeDrawerIfOpen = () => {
     if (drawer.open()) drawer.toggle();
@@ -27,9 +27,7 @@ export default function WorkspaceLayout(props: WorkspaceLayoutProps) {
       <button
         type="button"
         aria-label="Conversations"
-        aria-controls="conversation-navigator"
-        aria-expanded={drawer.open()}
-        onClick={drawer.toggle}
+        {...drawer.triggerProps}
         class="theme-button mb-4 flex items-center gap-2 md:hidden"
       >
         <span aria-hidden="true">{drawer.open() ? "▾" : "▸"}</span>
@@ -40,8 +38,7 @@ export default function WorkspaceLayout(props: WorkspaceLayoutProps) {
         {/* Navigator: a drawer on mobile (hidden + inert when closed), a fixed
             pane on desktop (always shown, never inert). */}
         <div
-          id="conversation-navigator"
-          inert={drawer.inert()}
+          {...drawer.panelProps}
           class={`md:col-span-1 md:block ${drawer.open() ? "block" : "hidden"}`}
         >
           <div class="card-style p-4">

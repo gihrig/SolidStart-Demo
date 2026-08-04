@@ -1,5 +1,4 @@
-import { createSignal, Show } from "solid-js";
-import { useDismiss } from "~/lib/useDismiss";
+import { Show } from "solid-js";
 import { useDisclosure } from "~/lib/useDisclosure";
 import type { AuthorRef } from "~/types/jedi";
 import Icon from "~/components/Icon";
@@ -9,17 +8,21 @@ export interface JediNavProps {
 }
 
 export default function JediNav(props: JediNavProps) {
-  const [dropdownOpen, setDropdownOpen] = createSignal(false);
   let dropdownRef: HTMLLIElement | undefined;
 
+  // The profile dropdown is a popup — hidden (and inert) whenever closed, on
+  // every viewport — dismissed by Escape or a click outside its wrapping <li>.
+  const dropdown = useDisclosure({
+    id: "jedi-profile-menu",
+    mode: "popup",
+    ref: () => dropdownRef,
+  });
   // The mobile menu stays open while its own profile dropdown is open, so the
   // dropdown absorbs the first Escape / click-away.
-  const mobileNav = useDisclosure({ dismissWhen: () => !dropdownOpen() });
-  useDismiss(
-    () => setDropdownOpen(false),
-    dropdownOpen,
-    () => dropdownRef,
-  );
+  const mobileNav = useDisclosure({
+    id: "jedi-mobile-nav",
+    dismissWhen: () => !dropdown.open(),
+  });
 
   return (
     <header class="jedi-header">
@@ -31,8 +34,7 @@ export default function JediNav(props: JediNavProps) {
         <button
           type="button"
           aria-label="Toggle navigation"
-          aria-expanded={mobileNav.open()}
-          onClick={mobileNav.toggle}
+          {...mobileNav.triggerProps}
           class="md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg"
         >
           <Show when={mobileNav.open()} fallback={<Icon name="menu" class="w-6 h-6 select-none" />}>
@@ -41,7 +43,7 @@ export default function JediNav(props: JediNavProps) {
         </button>
       </div>
       <nav
-        inert={mobileNav.inert()}
+        {...mobileNav.panelProps}
         aria-label="Jedi site navigation"
         class={`bg-gray-800 h-screen w-screen md:h-auto md:w-auto -mt-20 md:mt-0 md:opacity-100 md:translate-y-0 md:pointer-events-auto absolute md:relative -z-1 md:z-0 transition-[opacity,translate] duration-300 ease-out ${mobileNav.open() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-96 pointer-events-none"}`}
       >
@@ -60,9 +62,7 @@ export default function JediNav(props: JediNavProps) {
             <button
               type="button"
               aria-label="Profile menu"
-              aria-controls="jedi-profile-menu"
-              aria-expanded={dropdownOpen()}
-              onClick={() => setDropdownOpen(!dropdownOpen())}
+              {...dropdown.triggerProps}
               class="flex items-center gap-2 cursor-pointer select-none"
             >
               <img
@@ -73,14 +73,12 @@ export default function JediNav(props: JediNavProps) {
               {props.profile?.name}
               <Icon
                 name="expand-arrow"
-                class={`w-4 h-4 transition-transform duration-300 ${dropdownOpen() ? "rotate-180" : ""}`}
+                class={`w-4 h-4 transition-transform duration-300 ${dropdown.open() ? "rotate-180" : ""}`}
               />
             </button>
             <div
-              id="jedi-profile-menu"
-              inert={!dropdownOpen()}
-              aria-hidden={!dropdownOpen()}
-              class={`absolute right-0 bg-(--theme-card-bg) text-(--theme-card-fg) shadow rounded-lg w-40 p-2 z-20 transition-[opacity,translate,scale] duration-300 ease-out origin-top ${dropdownOpen() ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 -translate-y-5 pointer-events-none"}`}
+              {...dropdown.panelProps}
+              class={`absolute right-0 bg-(--theme-card-bg) text-(--theme-card-fg) shadow rounded-lg w-40 p-2 z-20 transition-[opacity,translate,scale] duration-300 ease-out origin-top ${dropdown.open() ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 -translate-y-5 pointer-events-none"}`}
             >
               <ul class="hoverlist">
                 <li>

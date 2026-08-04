@@ -59,6 +59,14 @@ describe("Jedi route (data-driven from jedi-api)", () => {
     expect(await screen.findByAltText("Bart avatar")).toBeInTheDocument();
   });
 
+  it("sidebar toggle's aria-controls links to the aside panel's id", async () => {
+    renderJedi();
+    await screen.findByRole("heading", { name: /little jedi/i }); // wait for load
+    const toggle = screen.getByRole("button", { name: /toggle sidebar/i });
+    expect(toggle).toHaveAttribute("aria-controls", "jedi-sidebar");
+    expect(document.getElementById("jedi-sidebar")).not.toBeNull();
+  });
+
   it("shows a selected Top Caption under the post in <main> (#33)", async () => {
     renderJedi();
     // Defaults to the winning caption of the featured post.
