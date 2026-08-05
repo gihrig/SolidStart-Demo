@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
-import { createRoot } from "solid-js";
+import { renderHook } from "@solidjs/testing-library";
 import { useWebSocket } from "./websocket";
 
-// Mock WebSocket
+// Mock WebSocket. `useWebSocket` connects from onMount, which renderHook fires by
+// mounting the hook — so the socket appears at instances[0] with no public
+// bootstrap, and reconnect/disconnect stay private.
 class MockWebSocket {
   static instances: MockWebSocket[] = [];
   static OPEN = 1;
@@ -40,159 +42,127 @@ class MockWebSocket {
 }
 
 describe("useWebSocket", () => {
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     MockWebSocket.instances = [];
     vi.stubGlobal("WebSocket", MockWebSocket);
+    // Errors are logged at the socket boundary; keep the output quiet and assertable.
+    errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    errorSpy.mockRestore();
   });
 
-  it("connects to the correct WebSocket URL", () => {
-    createRoot((dispose) => {
-      new (globalThis as any).WebSocket("ws://localhost:8080/ws");
-      expect(MockWebSocket.instances).toHaveLength(1);
-      expect(MockWebSocket.instances[0].url).toBe("ws://localhost:8080/ws");
-      dispose();
-    });
+  it("connects to the WebSocket URL on mount", () => {
+    renderHook(() => useWebSocket());
+    expect(MockWebSocket.instances).toHaveLength(1);
+    expect(MockWebSocket.instances[0].url).toBe("ws://localhost:8080/ws");
   });
 
-  it("sets connected to true when socket opens", () => {
-    createRoot((dispose) => {
-      const { connected, reconnect } = useWebSocket({ autoReconnect: false });
+  it("sets connected to true when the socket opens", () => {
+    const { result } = renderHook(() => useWebSocket());
+    expect(result.connected()).toBe(false);
 
-      expect(connected()).toBe(false);
-      reconnect();
+    MockWebSocket.instances[0].open();
 
-      const ws = MockWebSocket.instances[0];
-      ws.open();
-
-      expect(connected()).toBe(true);
-      dispose();
-    });
+    expect(result.connected()).toBe(true);
   });
 
-  it("sets connected to false when socket closes", () => {
-    createRoot((dispose) => {
-      const { connected, reconnect } = useWebSocket({ autoReconnect: false });
+  it("sets connected to false when the socket closes", () => {
+    const { result } = renderHook(() => useWebSocket());
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    expect(result.connected()).toBe(true);
 
-      reconnect();
-      const ws = MockWebSocket.instances[0];
-      ws.open();
-      expect(connected()).toBe(true);
+    ws.close();
 
-      ws.close();
-      expect(connected()).toBe(false);
-      dispose();
-    });
+    expect(result.connected()).toBe(false);
   });
 
-  it("calls onConvMsg with correct conv_id and msg for conv_msg events", () => {
-    createRoot((dispose) => {
-      const onConvMsg = vi.fn();
-      const { reconnect } = useWebSocket({ onConvMsg, autoReconnect: false });
+  it("calls onConvMsg with conv_id and msg for conv_msg events", () => {
+    const onConvMsg = vi.fn();
+    renderHook(() => useWebSocket({ onConvMsg }));
+    const ws = MockWebSocket.instances[0];
+    ws.open();
 
-      reconnect();
-      const ws = MockWebSocket.instances[0];
-      ws.open();
+    const fakeMsg = { id: 42, conv_id: 7, content: "Hello" };
+    ws.simulateMessage({ event_type: "conv_msg", channel: "conv:7", payload: fakeMsg });
 
-      const fakeMsg = { id: 42, conv_id: 7, content: "Hello" };
-      ws.simulateMessage({
-        event_type: "conv_msg",
-        channel: "conv:7",
-        payload: fakeMsg,
-      });
-
-      expect(onConvMsg).toHaveBeenCalledWith(7, fakeMsg);
-      dispose();
-    });
+    expect(onConvMsg).toHaveBeenCalledWith(7, fakeMsg);
   });
 
   it("does not call onConvMsg for non-conv_msg event types", () => {
-    createRoot((dispose) => {
-      const onConvMsg = vi.fn();
-      const { reconnect } = useWebSocket({ onConvMsg, autoReconnect: false });
+    const onConvMsg = vi.fn();
+    renderHook(() => useWebSocket({ onConvMsg }));
+    const ws = MockWebSocket.instances[0];
+    ws.open();
 
-      reconnect();
-      const ws = MockWebSocket.instances[0];
-      ws.open();
+    ws.simulateMessage({ event_type: "agent_update", channel: "agent:1", payload: {} });
 
-      ws.simulateMessage({
-        event_type: "agent_update",
-        channel: "agent:1",
-        payload: {},
-      });
-
-      expect(onConvMsg).not.toHaveBeenCalled();
-      dispose();
-    });
+    expect(onConvMsg).not.toHaveBeenCalled();
   });
 
-  it("sends subscribe message with channel and id", () => {
-    createRoot((dispose) => {
-      const { subscribe, reconnect } = useWebSocket({ autoReconnect: false });
+  it("sends subscribe with channel and id when the socket is open", () => {
+    const { result } = renderHook(() => useWebSocket());
+    const ws = MockWebSocket.instances[0];
+    ws.open();
 
-      reconnect();
-      const ws = MockWebSocket.instances[0];
-      ws.open();
+    result.subscribe("conv", 5);
 
-      subscribe("conv", 5);
-
-      expect(ws.send).toHaveBeenCalledWith(
-        JSON.stringify({ action: "subscribe", channel: "conv", id: 5 }),
-      );
-      dispose();
-    });
+    expect(ws.send).toHaveBeenCalledWith(
+      JSON.stringify({ action: "subscribe", channel: "conv", id: 5 }),
+    );
   });
 
-  it("sends unsubscribe message with channel and id", () => {
-    createRoot((dispose) => {
-      const { unsubscribe, reconnect } = useWebSocket({ autoReconnect: false });
+  it("sends unsubscribe with channel and id when the socket is open", () => {
+    const { result } = renderHook(() => useWebSocket());
+    const ws = MockWebSocket.instances[0];
+    ws.open();
 
-      reconnect();
-      const ws = MockWebSocket.instances[0];
-      ws.open();
+    result.unsubscribe("conv", 5);
 
-      unsubscribe("conv", 5);
-
-      expect(ws.send).toHaveBeenCalledWith(
-        JSON.stringify({ action: "unsubscribe", channel: "conv", id: 5 }),
-      );
-      dispose();
-    });
+    expect(ws.send).toHaveBeenCalledWith(
+      JSON.stringify({ action: "unsubscribe", channel: "conv", id: 5 }),
+    );
   });
 
-  it("sets error signal when socket errors", () => {
-    createRoot((dispose) => {
-      const onError = vi.fn();
-      const { error, reconnect } = useWebSocket({
-        onError,
-        autoReconnect: false,
-      });
+  it("reports socket errors through onError and logs them at the boundary", () => {
+    const onError = vi.fn();
+    renderHook(() => useWebSocket({ onError }));
 
-      reconnect();
-      const ws = MockWebSocket.instances[0];
-      ws.simulateError();
+    MockWebSocket.instances[0].simulateError();
 
-      expect(error()).toBe("WebSocket connection error");
-      expect(onError).toHaveBeenCalledWith("WebSocket connection error");
-      dispose();
-    });
+    expect(onError).toHaveBeenCalledWith("WebSocket connection error");
+    expect(errorSpy).toHaveBeenCalledWith("WebSocket connection error");
   });
 
-  it("does not send subscribe when socket is not open", () => {
-    createRoot((dispose) => {
-      const { subscribe, reconnect } = useWebSocket({ autoReconnect: false });
+  it("does not send subscribe when the socket is not open", () => {
+    const { result } = renderHook(() => useWebSocket());
+    // Do NOT open — readyState stays 0.
 
-      reconnect();
-      // Do NOT call ws.open() — readyState stays 0
+    result.subscribe("conv", 5);
 
-      subscribe("conv", 5);
+    expect(MockWebSocket.instances[0].send).not.toHaveBeenCalled();
+  });
 
-      const ws = MockWebSocket.instances[0];
-      expect(ws.send).not.toHaveBeenCalled();
-      dispose();
-    });
+  it("reconnects 3s after an unintended drop", () => {
+    vi.useFakeTimers();
+    try {
+      renderHook(() => useWebSocket());
+      expect(MockWebSocket.instances).toHaveLength(1);
+
+      MockWebSocket.instances[0].open();
+      MockWebSocket.instances[0].close(); // the socket drops
+
+      vi.advanceTimersByTime(3000);
+
+      expect(MockWebSocket.instances).toHaveLength(2);
+      expect(MockWebSocket.instances[1].url).toBe("ws://localhost:8080/ws");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
