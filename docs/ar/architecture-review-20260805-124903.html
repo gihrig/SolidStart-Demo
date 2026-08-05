@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — SolidStart-Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose" });
+    </script>
+    <style>
+      body {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+      }
+      .font-serif {
+        font-family: ui-serif, Georgia, "Times New Roman", serif;
+      }
+      .seam {
+        stroke-dasharray: 5 4;
+      }
+      .deep {
+        background: linear-gradient(135deg, #0b1220, #111c2e);
+        border: 1px solid #1f2937;
+      }
+      .mermaid {
+        display: flex;
+        justify-content: center;
+      }
+      /* mass-diagram bars */
+      .bar-iface {
+        background: repeating-linear-gradient(
+          45deg,
+          #b91c1c,
+          #b91c1c 6px,
+          #7f1d1d 6px,
+          #7f1d1d 12px
+        );
+      }
+      .bar-iface-slim {
+        background: repeating-linear-gradient(
+          45deg,
+          #059669,
+          #059669 6px,
+          #065f46 6px,
+          #065f46 12px
+        );
+      }
+      .bar-impl {
+        background: linear-gradient(180deg, #475569, #1e293b);
+      }
+      .faded {
+        opacity: 0.4;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-300">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-14">
+      <!-- ================= HEADER ================= -->
+      <header class="space-y-5">
+        <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Architecture review</p>
+        <h1 class="font-serif text-4xl md:text-5xl leading-tight text-slate-100">
+          SolidStart-Demo
+        </h1>
+        <p class="text-slate-400 max-w-3xl">
+          After
+          <span class="font-mono text-sm text-slate-300"
+            >#62 — consolidate FullStack + Jedi into a single-level app</span
+          >. Branch <span class="font-mono text-sm text-slate-300">#62-consolidate-app</span> @
+          <span class="font-mono text-sm text-slate-300">1e67c56</span>. Reviewed 2026-08-05.
+        </p>
+
+        <!-- legend -->
+        <div
+          class="flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-400 pt-2 border-t border-slate-800"
+        >
+          <span class="flex items-center gap-2"
+            ><span class="inline-block w-6 h-4 border border-slate-500 bg-slate-800"></span
+            >module</span
+          >
+          <span class="flex items-center gap-2"
+            ><svg width="26" height="8">
+              <line
+                class="seam"
+                x1="0"
+                y1="4"
+                x2="26"
+                y2="4"
+                stroke="#94a3b8"
+                stroke-width="2"
+              /></svg
+            >seam</span
+          >
+          <span class="flex items-center gap-2"
+            ><svg width="26" height="8">
+              <line x1="0" y1="4" x2="22" y2="4" stroke="#f87171" stroke-width="2" />
+              <path d="M22 1 L26 4 L22 7 Z" fill="#f87171" /></svg
+            >leak / no seam</span
+          >
+          <span class="flex items-center gap-2"
+            ><span class="inline-block w-6 h-4 deep rounded-sm"></span>deep module</span
+          >
+        </div>
+      </header>
+
+      <!-- ================= SCOPE / ALREADY DEEP ================= -->
+      <section class="space-y-3">
+        <p class="text-slate-300">
+          #62 lifted <span class="font-mono text-sm text-slate-200">&lt;AuthProvider&gt;</span> to
+          the app root and merged <span class="font-mono text-sm text-slate-200">JediNav</span> into
+          a global <span class="font-mono text-sm text-slate-200">Nav</span>. The seams it touched
+          are mostly deep already — one residue is worth deepening.
+        </p>
+        <div
+          class="rounded-lg border border-emerald-800/70 bg-emerald-950/40 p-4 text-sm text-emerald-200"
+        >
+          <span class="font-semibold text-emerald-100">Already deep (left alone):</span>
+          <span class="font-mono text-xs">websocket.ts</span> MessageFeed port +
+          <span class="font-mono text-xs">createConvMessages</span> injectable feed (two adapters —
+          real seam); <span class="font-mono text-xs">conversationWorkspace</span> +
+          <span class="font-mono text-xs">.stub</span>;
+          <span class="font-mono text-xs">jedi-api</span> RPC-shaped adapter over the mock;
+          <span class="font-mono text-xs">sanitizeUrl</span> SafeUrl brand at one boundary. Every
+          <span class="font-mono text-xs">src/lib</span> module carries a co-located unit test.
+        </div>
+      </section>
+
+      <!-- ================= CANDIDATES ================= -->
+      <section id="candidates" class="space-y-12">
+        <h2 class="font-serif text-2xl text-slate-100 border-b border-slate-800 pb-2">
+          Deepening candidates
+        </h2>
+
+        <!-- ---------- CANDIDATE 1 ---------- -->
+        <article
+          id="c1"
+          class="rounded-xl border border-slate-800 bg-slate-900 shadow-sm p-6 md:p-8 space-y-6"
+        >
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="rounded-full bg-emerald-600 text-white text-xs font-semibold px-3 py-1"
+              >Strong</span
+            >
+            <span
+              class="rounded-full border border-slate-600 text-slate-300 text-xs px-3 py-1 font-mono"
+              >mock → ports &amp; adapters</span
+            >
+            <h3 class="font-serif text-2xl text-slate-100">
+              Give the nav's unified identity a home
+            </h3>
+          </div>
+
+          <p class="text-sm text-slate-500 font-mono">
+            src/components/Nav.tsx · src/components/AuthContext.tsx · src/lib/jedi/jedi-api.ts
+            (profile) · Nav.test.tsx
+          </p>
+
+          <!-- before / after -->
+          <div class="grid md:grid-cols-2 gap-6">
+            <!-- BEFORE -->
+            <div class="rounded-lg border border-slate-800 bg-slate-950/60 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                Before — blend stranded in the component
+              </p>
+              <pre class="mermaid" style="min-height: 280px">
+flowchart TB
+  T["Nav.test.tsx<br/>renders the whole Nav<br/>+ mocks backend-rpc"]:::test
+  subgraph N["Nav component"]
+    direction TB
+    A["useAuth().username"]:::in
+    P["createResource(jediApi.profile)"]:::in
+    B["displayName = auth ? username : mock<br/>avatar = mock (always)"]:::leak
+    A --> B
+    P --> B
+  end
+  T -.only way in.-> B
+  classDef leak fill:#450a0a,stroke:#f87171,stroke-width:2px,color:#fecaca;
+  classDef in fill:#1e293b,stroke:#64748b,color:#e2e8f0;
+  classDef test fill:#0f172a,stroke:#475569,stroke-dasharray:5 4,color:#cbd5e1;
+</pre>
+              <p class="text-xs text-slate-500 mt-2">
+                No seam. The only test surface is a full
+                <span class="font-mono">&lt;Nav /&gt;</span> render.
+              </p>
+            </div>
+
+            <!-- AFTER -->
+            <div class="rounded-lg border border-slate-800 bg-slate-950/60 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                After — one deep identity module
+              </p>
+              <div class="relative" style="min-height: 280px">
+                <!-- interface strip -->
+                <div
+                  class="rounded-t-md bg-emerald-500 text-slate-950 text-center text-xs font-mono py-2 px-3 font-semibold"
+                >
+                  interface&nbsp;·&nbsp;{ displayName, avatarUrl }
+                </div>
+                <!-- deep implementation -->
+                <div
+                  class="deep !rounded-t-none rounded-b-md text-slate-300 text-xs p-4 space-y-2"
+                  style="min-height: 150px"
+                >
+                  <p class="uppercase tracking-wider text-slate-500 text-[10px]">
+                    implementation (hidden)
+                  </p>
+                  <p>blend rule: name from auth, avatar from profile</p>
+                  <p>non-suspending <span class="font-mono">.latest</span> read</p>
+                  <p class="text-emerald-300">#17 swaps mock → backend here ↓</p>
+                  <svg width="100%" height="10">
+                    <line
+                      class="seam"
+                      x1="0"
+                      y1="5"
+                      x2="100%"
+                      y2="5"
+                      stroke="#94a3b8"
+                      stroke-width="1.5"
+                    />
+                  </svg>
+                </div>
+                <!-- readers -->
+                <div class="flex gap-3 mt-3">
+                  <div
+                    class="flex-1 rounded border border-slate-700 bg-slate-800 text-center text-xs py-2 text-slate-300"
+                  >
+                    Nav reads 2 accessors
+                  </div>
+                  <div
+                    class="flex-1 rounded border border-emerald-700 bg-emerald-950/50 text-center text-xs py-2 text-emerald-200"
+                  >
+                    unit test hits the interface
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-slate-500 mt-2">
+                Small interface, deep implementation. Test crosses the same seam Nav does.
+              </p>
+            </div>
+          </div>
+
+          <!-- code evidence -->
+          <div
+            class="rounded-md bg-black border border-slate-800 text-slate-300 text-xs font-mono p-4 overflow-x-auto"
+          >
+            <span class="text-slate-500"
+              >// Nav.tsx:24-25, 70 — the blend, inline in the component</span
+            ><br />
+            const [profile] = createResource(() =&gt; jediApi.profile.get());<br />
+            const displayName = () =&gt; (isAuthenticated() ? username() : profile.latest?.name);<br />
+            <span class="text-slate-400"
+              >&lt;img src={profile.latest?.avatarUrl} alt={displayName() ? `${displayName()}
+              avatar` : ""} /&gt;</span
+            >
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div>
+              <p>
+                <span class="font-semibold text-slate-100">Problem.</span> The unified-identity
+                blend — the structural point of #62 — is the one view-model derivation left inline
+                in a component, reachable only by rendering
+                <span class="font-mono text-xs">&lt;Nav /&gt;</span>.
+              </p>
+              <p class="mt-3">
+                <span class="font-semibold text-slate-100">Solution.</span> Move the blend behind a
+                small interface (a new identity module, or a deepened
+                <span class="font-mono text-xs">useAuth</span>) exposing
+                <span class="font-mono text-xs">displayName</span> +
+                <span class="font-mono text-xs">avatarUrl</span>; Nav reads them.
+              </p>
+            </div>
+            <div>
+              <p class="font-semibold text-slate-100 mb-2">Wins</p>
+              <ul class="space-y-1 text-slate-300 list-disc pl-5">
+                <li>locality: blend rule in one module</li>
+                <li>interface is the test surface — no DOM</li>
+                <li>leverage: #17 swaps source behind the seam</li>
+                <li>Nav's interface shrinks to two reads</li>
+                <li>surfaces the alt-text vs mock-avatar mismatch</li>
+              </ul>
+            </div>
+          </div>
+
+          <div
+            class="rounded-md border border-emerald-800/70 bg-emerald-950/40 text-emerald-200 text-sm p-3"
+          >
+            <span class="font-semibold text-emerald-100">ADR-0007 —</span> realizes its "unified
+            identity" direction and names the concept #17 edits. No conflict.
+          </div>
+        </article>
+
+        <!-- ---------- CANDIDATE 2 ---------- -->
+        <article
+          id="c2"
+          class="rounded-xl border border-slate-800 bg-slate-900 shadow-sm p-6 md:p-8 space-y-6"
+        >
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="rounded-full bg-amber-500 text-slate-950 text-xs font-semibold px-3 py-1"
+              >Worth exploring</span
+            >
+            <span
+              class="rounded-full border border-slate-600 text-slate-300 text-xs px-3 py-1 font-mono"
+              >in-process</span
+            >
+            <h3 class="font-serif text-2xl text-slate-100">
+              Narrow JediFeed to the route's real surface
+            </h3>
+          </div>
+
+          <p class="text-sm text-slate-500 font-mono">
+            src/lib/jedi/createJediFeed.ts · src/routes/index.tsx · createJediFeed.unit.test.ts
+          </p>
+
+          <!-- before / after: mass diagram -->
+          <div class="grid md:grid-cols-2 gap-6">
+            <!-- BEFORE -->
+            <div class="rounded-lg border border-slate-800 bg-slate-950/60 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                Before — interface wider than the caller
+              </p>
+              <div class="flex items-end justify-center gap-6" style="height: 280px">
+                <div class="flex flex-col items-center">
+                  <span class="text-[10px] uppercase tracking-wider text-slate-500 mb-1"
+                    >interface · 15</span
+                  >
+                  <div
+                    class="w-20 bar-iface rounded-t ring-1 ring-slate-700"
+                    style="height: 210px"
+                  ></div>
+                  <div
+                    class="w-20 bg-slate-800 border border-slate-700 text-[9px] text-slate-400 text-center py-1 leading-tight"
+                  >
+                    posts · featured<br />topCaptions<br />winningCaption<br /><span
+                      class="text-red-400"
+                      >(test-only ×4)</span
+                    >
+                  </div>
+                </div>
+                <div class="flex flex-col items-center">
+                  <span class="text-[10px] uppercase tracking-wider text-slate-500 mb-1"
+                    >implementation</span
+                  >
+                  <div
+                    class="w-20 bar-impl rounded-t ring-1 ring-slate-700"
+                    style="height: 230px"
+                  ></div>
+                </div>
+              </div>
+              <p class="text-xs text-slate-500 mt-2">
+                Route uses 11 accessors; 4 more exist only for the unit test.
+              </p>
+            </div>
+
+            <!-- AFTER -->
+            <div class="rounded-lg border border-slate-800 bg-slate-950/60 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                After — interface matches the caller
+              </p>
+              <div class="flex items-end justify-center gap-6" style="height: 280px">
+                <div class="flex flex-col items-center">
+                  <span class="text-[10px] uppercase tracking-wider text-slate-500 mb-1"
+                    >interface · 11</span
+                  >
+                  <div
+                    class="w-20 bar-iface-slim rounded-t ring-1 ring-slate-700"
+                    style="height: 150px"
+                  ></div>
+                </div>
+                <div class="flex flex-col items-center">
+                  <span class="text-[10px] uppercase tracking-wider text-slate-500 mb-1"
+                    >implementation</span
+                  >
+                  <div
+                    class="w-20 bar-impl rounded-t ring-1 ring-slate-700 relative"
+                    style="height: 230px"
+                  >
+                    <span
+                      class="absolute inset-x-0 bottom-2 text-center text-[9px] text-slate-400 faded"
+                      >the 4 fold inside</span
+                    >
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-slate-500 mt-2">
+                Deeper: same implementation, interface trimmed to the route's reads.
+              </p>
+            </div>
+          </div>
+
+          <div
+            class="rounded-md bg-black border border-slate-800 text-slate-300 text-xs font-mono p-4 overflow-x-auto"
+          >
+            <span class="text-slate-500"
+              >// index.tsx destructures 11; createJediFeed.ts exposes 15.</span
+            ><br />
+            <span class="text-slate-500"
+              >// posts / featured / topCaptions / winningCaption — read only in
+              createJediFeed.unit.test.ts</span
+            ><br />
+            expect(feed.featured()?.id).toBe(1);
+            <span class="text-slate-500">// asserts a derivation via an extra accessor</span><br />
+            expect(feed.selectedPost()?.id).toBe(1);
+            <span class="text-slate-500">// …the route's real accessor already proves it</span>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div>
+              <p>
+                <span class="font-semibold text-slate-100">Problem.</span> Four accessors are
+                exposed purely as the test's read surface, so the interface is wider than the route
+                — the real caller — needs.
+              </p>
+              <p class="mt-3">
+                <span class="font-semibold text-slate-100">Solution.</span> Return only what the
+                route consumes; assert the derivations through those accessors (the interface is the
+                test surface).
+              </p>
+            </div>
+            <div>
+              <p class="font-semibold text-slate-100 mb-2">Wins</p>
+              <ul class="space-y-1 text-slate-300 list-disc pl-5">
+                <li>interface shrinks 15 → 11</li>
+                <li>test crosses the route's seam</li>
+                <li>delete 4 test-only accessors</li>
+                <li>interface matches the real caller</li>
+              </ul>
+            </div>
+          </div>
+          <p class="text-xs text-slate-500">
+            Milder than a leak: a within-module trim. Some intermediates may earn their place —
+            settle that when designing the interface.
+          </p>
+        </article>
+      </section>
+
+      <!-- ================= TOP RECOMMENDATION ================= -->
+      <section id="top-recommendation" class="space-y-4">
+        <h2 class="font-serif text-2xl text-slate-100 border-b border-slate-800 pb-2">
+          Top recommendation
+        </h2>
+        <div class="rounded-xl deep text-slate-100 p-8 space-y-3 ring-1 ring-emerald-900/40">
+          <p class="text-xs uppercase tracking-[0.2em] text-emerald-300">Start here</p>
+          <h3 class="font-serif text-3xl">
+            <a href="#c1" class="underline decoration-emerald-400/50 hover:decoration-emerald-400"
+              >Give the nav's unified identity a home</a
+            >
+          </h3>
+          <p class="text-slate-300 max-w-2xl">
+            It is the lone piece of real logic outside a lib seam, it is exactly the code #17 will
+            rewrite, and a small
+            <span class="font-mono text-sm">{ displayName, avatarUrl }</span> interface turns a
+            full-component render test into a unit test. Highest locality-and-leverage return on the
+            branch; the design fork — new identity module vs. deepening
+            <span class="font-mono text-sm">useAuth</span> — is the first thing to grill.
+          </p>
+        </div>
+      </section>
+
+      <footer class="text-xs text-slate-500 pt-6 border-t border-slate-800">
+        Vocabulary:
+        <span class="font-mono"
+          >module · interface · implementation · depth · seam · adapter · leverage · locality</span
+        >. Generated for #62 architecture review.
+      </footer>
+    </main>
+  </body>
+</html>
