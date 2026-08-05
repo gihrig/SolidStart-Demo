@@ -114,4 +114,16 @@
   .hoverlist > * > :is(a, button) {
     @apply flex items-center p-2;
   }
+
+  .site-header {
+    @apply bg-gray-800 text-white sticky top-0 z-50;
+  }
+
+  .site-nav > li > .nav-link {
+    @apply flex h-12 items-center gap-2 rounded-lg px-4;
+  }
+
+  .site-nav > li > .nav-link:hover {
+    @apply bg-gray-700;
+  }
 }

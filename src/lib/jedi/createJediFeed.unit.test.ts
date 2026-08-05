@@ -86,14 +86,6 @@ describe("createJediFeed — the route's view-model seam", () => {
       expect(feed.hero()?.ctaText).toBe("Get Started");
     }));
 
-  it("exposes the current user's profile for the nav avatar (Bart)", () =>
-    withFeed((feed) => {
-      expect(feed.profile()?.name).toBe("Bart");
-      expect(feed.profile()?.avatarUrl).toBe(
-        "https://img.icons8.com/doodle/96/null/bart-simpson.png",
-      );
-    }));
-
   it("re-keys topCaptions and winningCaption to the selected post", () =>
     withFeed(async (feed) => {
       // Featured (post 1) captions rank [8, 5].

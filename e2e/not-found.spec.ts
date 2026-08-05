@@ -19,7 +19,7 @@ test.describe("404 Not Found Page", () => {
 
     // The page should not show the home page content
     const homeHeading = page.getByRole("heading", {
-      name: /Hello SolidStart!/i,
+      name: /awesome photos & captions/i,
     });
     await expect(homeHeading).not.toBeVisible();
 
@@ -52,27 +52,28 @@ test.describe("404 Not Found Page", () => {
     await expect(homeLink).toBeVisible();
     await homeLink.click();
     await expect(page).toHaveURL("http://localhost:3000/");
-    await expect(page.getByRole("heading", { name: /Hello SolidStart!/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /awesome photos & captions/i })).toBeVisible();
   });
 
   test("should not match valid routes", async ({ page }) => {
     // Verify that similar but valid routes work correctly
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /Hello SolidStart!/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /awesome photos & captions/i })).toBeVisible();
 
     await page.goto("/about");
     await expect(page.getByRole("heading", { name: /^About$/i })).toBeVisible();
   });
 
   test("should handle different non-existent paths", async ({ page }) => {
-    const invalidPaths = ["/xxx", "/invalid", "/does-not-exist", "/test123"];
+    // /jedi is retired (Jedi is the home page now), so it must 404 too.
+    const invalidPaths = ["/xxx", "/invalid", "/does-not-exist", "/test123", "/jedi"];
 
     for (const path of invalidPaths) {
       await page.goto(path);
 
       // None should show home page content
       const homeHeading = page.getByRole("heading", {
-        name: /Hello SolidStart!/i,
+        name: /awesome photos & captions/i,
       });
       await expect(homeHeading).not.toBeVisible();
     }
