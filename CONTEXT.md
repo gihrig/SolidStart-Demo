@@ -2,9 +2,13 @@
 
 The front-end of a technology demo, serving as a production-standard reference
 for future projects. It is a single SolidStart package — a modular monolith (see
-[ADR-0001](docs/adr/0001-frontend-modular-monolith.md)) — holding two independent
-demo contexts, **Realtime Conversations** and **Jedi**, over a shared app shell
-and theme.
+[ADR-0001](docs/adr/0001-frontend-modular-monolith.md),
+[ADR-0007](docs/adr/0007-consolidate-jedi-shell-unified-identity.md)). **Jedi** is
+the top-level application: it serves as the home page and its nav and header are
+the global app shell. **Realtime Conversations** — the **FullStack** nav link —
+is a sub-application reached from that shell. The two share one theme and are
+converging on one authenticated identity, surfaced in the nav avatar (see
+ADR-0007).
 
 ## Realtime Conversations
 
@@ -15,6 +19,9 @@ each Conversation organized under an Agent.
 An authenticated identity that owns Agents and Conversations and authors
 Messages. Every User is either an Admin user or a Standard user.
 _Avoid_: account.
+_Converging_: the global nav avatar unifies this identity with the Jedi profile
+at back-end integration (#17, ADR-0007). In the client the `useAuth` seam already
+carries the interim `displayName` / `avatarUrl`; #17 swaps only the avatar's source.
 
 **Admin user**:
 A User holding maximum control and configuration permissions.

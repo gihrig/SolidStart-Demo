@@ -1,14 +1,15 @@
 import { test, expect } from "@playwright/test";
 
+// Jedi is the home page now (#62): it renders at `/` under the global Jedi nav.
 test.describe("Jedi Page", () => {
   test("should load successfully and display correct title", async ({ page }) => {
-    await page.goto("/jedi");
+    await page.goto("/");
     await expect(page).toHaveTitle(/Little Jedi/);
-    await expect(page).toHaveURL("http://localhost:3000/jedi");
+    await expect(page).toHaveURL("http://localhost:3000/");
   });
 
   test("should display hero section with title and CTA", async ({ page }) => {
-    await page.goto("/jedi");
+    await page.goto("/");
     const hero = page.locator("section").first();
     await expect(hero).toBeVisible();
     await expect(hero.getByRole("heading", { name: /awesome photos/i })).toBeVisible();
@@ -16,7 +17,7 @@ test.describe("Jedi Page", () => {
   });
 
   test("should display main article with image and caption", async ({ page }) => {
-    await page.goto("/jedi");
+    await page.goto("/");
     const article = page.locator("article").first();
     await expect(article).toBeVisible();
     await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
@@ -25,7 +26,7 @@ test.describe("Jedi Page", () => {
   });
 
   test("should display sidebar with categories on desktop", async ({ page }) => {
-    await page.goto("/jedi");
+    await page.goto("/");
     const aside = page.locator("aside");
     await expect(aside).toBeVisible();
     await expect(aside.getByRole("heading", { name: /categories/i })).toBeVisible();
@@ -35,7 +36,7 @@ test.describe("Jedi Page", () => {
 
   test("should toggle mobile sidebar when button clicked", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto("/jedi");
+    await page.goto("/");
     const toggle = page.getByRole("button", { name: /toggle sidebar/i });
     await expect(toggle).toBeVisible();
     const aside = page.locator("aside");
@@ -45,26 +46,26 @@ test.describe("Jedi Page", () => {
   });
 
   test("should display all three sidebar cards", async ({ page }) => {
-    await page.goto("/jedi");
+    await page.goto("/");
     const aside = page.locator("aside");
     await expect(aside.getByRole("heading", { name: /categories/i })).toBeVisible();
     await expect(aside.getByRole("heading", { name: /top photos/i })).toBeVisible();
     await expect(aside.getByRole("heading", { name: /top captions/i })).toBeVisible();
   });
 
-  test("should have global nav links on jedi page", async ({ page }) => {
-    await page.goto("/jedi");
+  test("should have global nav links on the home page", async ({ page }) => {
+    await page.goto("/");
     const nav = page.getByRole("navigation", { name: /^Main$/i });
     await expect(nav).toBeVisible();
-    await expect(nav.getByRole("link", { name: /home/i })).toBeVisible();
     await expect(nav.getByRole("link", { name: /about/i })).toBeVisible();
-    await expect(nav.getByRole("link", { name: /fullstack/i })).toBeVisible();
     await expect(nav.getByRole("link", { name: /readme/i })).toBeVisible();
-    await expect(nav.getByRole("link", { name: /jedi/i })).toBeVisible();
+    await expect(nav.getByRole("link", { name: /fullstack/i })).toBeVisible();
+    // The brand is the home affordance; no Home or Jedi nav link.
+    await expect(page.getByRole("link", { name: /awesome/i })).toHaveAttribute("href", "/");
   });
 
   test("should display author, tags, and post actions", async ({ page }) => {
-    await page.goto("/jedi");
+    await page.goto("/");
     const article = page.locator("article").first();
     await expect(article.getByRole("link").filter({ hasText: "Lisa" })).toBeVisible();
     await expect(article.getByRole("button", { name: /animals/i })).toBeVisible();
@@ -77,7 +78,7 @@ test.describe("Jedi Page", () => {
 
   test("should have responsive layout", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
-    await page.goto("/jedi");
+    await page.goto("/");
     await expect(page.locator("main")).toBeVisible();
     await expect(page.locator("aside")).toBeVisible();
     await page.setViewportSize({ width: 375, height: 667 });
@@ -88,12 +89,12 @@ test.describe("Jedi Page", () => {
   });
 });
 
-test.describe("Jedi Page - Nav slide transitions (regression #28)", () => {
+test.describe("Home Page - Nav slide transitions (regression #28)", () => {
   test("mobile nav menu slides via `translate` (not just opacity) on close", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto("/jedi");
+    await page.goto("/");
     const navBtn = page.getByRole("button", { name: /toggle navigation/i });
-    const nav = page.getByRole("navigation", { name: /jedi site navigation/i });
+    const nav = page.getByRole("navigation", { name: /site menu/i });
 
     // Tailwind v4 keeps the menu's motion in the `translate` property; it must be
     // in transition-property or the menu jumps (abrupt) instead of sliding (#28).
@@ -125,10 +126,10 @@ test.describe("Jedi Page - Nav slide transitions (regression #28)", () => {
   test("profile dropdown transitions `translate` and `scale`, not just opacity", async ({
     page,
   }) => {
-    await page.goto("/jedi");
+    await page.goto("/");
     // Same v4 fix: scale-90 / -translate-y-5 live in the `scale` / `translate` props.
     const tp = await page
-      .locator("#jedi-profile-menu")
+      .locator("#profile-menu")
       .evaluate((el) => getComputedStyle(el).transitionProperty);
     expect(tp).toContain("opacity");
     expect(tp).toContain("translate");
@@ -136,15 +137,15 @@ test.describe("Jedi Page - Nav slide transitions (regression #28)", () => {
   });
 });
 
-test.describe("Jedi Page - Profile dropdown (popup disclosure, #55 C5)", () => {
+test.describe("Home Page - Profile dropdown (popup disclosure, #55 C5)", () => {
   test("opens on click, closes on click-outside, inert while closed", async ({ page }) => {
-    await page.goto("/jedi");
+    await page.goto("/");
     const trigger = page.getByRole("button", { name: /profile menu/i });
-    const menu = page.locator("#jedi-profile-menu");
+    const menu = page.locator("#profile-menu");
 
     // Popup mode: hidden from AT + tab order (inert) whenever closed — on desktop
     // too, unlike the drawers. The trigger's aria-controls points at this menu.
-    await expect(trigger).toHaveAttribute("aria-controls", "jedi-profile-menu");
+    await expect(trigger).toHaveAttribute("aria-controls", "profile-menu");
     await expect(trigger).toHaveAttribute("aria-expanded", "false");
     await expect(menu).toHaveAttribute("inert");
 
@@ -152,16 +153,16 @@ test.describe("Jedi Page - Profile dropdown (popup disclosure, #55 C5)", () => {
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
     await expect(menu).not.toHaveAttribute("inert");
 
-    // A click outside the wrapping <li> boundary dismisses it (ref click-outside).
+    // A click outside the wrapping boundary dismisses it (ref click-outside).
     await page.getByRole("heading", { name: /awesome photos/i }).click();
     await expect(trigger).toHaveAttribute("aria-expanded", "false");
     await expect(menu).toHaveAttribute("inert");
   });
 });
 
-test.describe("Jedi Page - Footer (preserved from existing tests)", () => {
+test.describe("Home Page - Footer (preserved from existing tests)", () => {
   test("should have working external link to solidjs.com in footer", async ({ page }) => {
-    await page.goto("/jedi");
+    await page.goto("/");
     const solidjsLink = page.locator("footer").getByRole("link", { name: /solidjs\.com/i });
     await expect(solidjsLink).toBeVisible();
     await expect(solidjsLink).toHaveAttribute("href", "https://solidjs.com");
@@ -169,37 +170,37 @@ test.describe("Jedi Page - Footer (preserved from existing tests)", () => {
   });
 
   test("should have navigation link to Home page in footer", async ({ page }) => {
-    await page.goto("/jedi");
+    await page.goto("/");
     const homeLink = page.locator("footer").getByRole("link", { name: /^Home$/i });
     await expect(homeLink).toBeVisible();
     await expect(homeLink).toHaveAttribute("href", "/");
   });
 
-  test("should navigate to Home page when clicking footer link", async ({ page }) => {
-    await page.goto("/jedi");
+  test("should navigate home when clicking the footer Home link", async ({ page }) => {
+    await page.goto("/");
     const homeLink = page.locator("footer").getByRole("link", { name: /^Home$/i });
     await homeLink.click();
     await expect(page).toHaveURL("http://localhost:3000/");
-    await expect(page.getByRole("heading", { name: /Hello SolidStart!/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /awesome photos & captions/i })).toBeVisible();
   });
 
-  test("should display current page indicator in footer", async ({ page }) => {
-    await page.goto("/jedi");
-    const jediLink = page.locator("footer").getByRole("link", { name: /^Jedi$/i });
-    await expect(jediLink).toBeVisible();
-    await expect(jediLink).toHaveClass(/border-sky-600/);
+  test("marks the footer Home link active on the home page", async ({ page }) => {
+    await page.goto("/");
+    const homeLink = page.locator("footer").getByRole("link", { name: /^Home$/i });
+    await expect(homeLink).toBeVisible();
+    await expect(homeLink).toHaveClass(/border-sky-600/);
   });
 });
 
-test.describe("Jedi Page - Theme Toggle", () => {
+test.describe("Home Page - Theme Toggle", () => {
   test("should display theme toggle button", async ({ page }) => {
-    await page.goto("/jedi");
+    await page.goto("/");
     const toggle = page.getByRole("button", { name: /theme/i });
     await expect(toggle).toBeVisible();
   });
 
   test("should cycle through auto → light → dark → auto modes", async ({ page }) => {
-    await page.goto("/jedi");
+    await page.goto("/");
     const toggle = page.getByRole("button", { name: /theme/i });
 
     // Start at auto (default), click to light
@@ -224,7 +225,7 @@ test.describe("Jedi Page - Theme Toggle", () => {
   });
 
   test("should persist theme choice across page reload", async ({ page }) => {
-    await page.goto("/jedi");
+    await page.goto("/");
     const toggle = page.getByRole("button", { name: /theme/i });
 
     // Set to light explicitly: auto -> light
@@ -245,7 +246,7 @@ test.describe("Jedi Page - Theme Toggle", () => {
   test("should respect system dark preference in auto mode", async ({ page }) => {
     // Emulate dark system preference
     await page.emulateMedia({ colorScheme: "dark" });
-    await page.goto("/jedi");
+    await page.goto("/");
 
     // In auto mode (default), system dark preference should resolve to colorScheme dark
     const html = page.locator("html");
@@ -254,7 +255,7 @@ test.describe("Jedi Page - Theme Toggle", () => {
 
     // Switch to light system preference
     await page.emulateMedia({ colorScheme: "light" });
-    await page.goto("/jedi");
+    await page.goto("/");
     const htmlLight = page.locator("html");
     expect(await htmlLight.evaluate((el) => el.style.colorScheme)).toBe("light");
     expect(await htmlLight.getAttribute("data-theme")).toBeNull();

@@ -1,29 +1,38 @@
 import { test, expect } from "@playwright/test";
 
+// Jedi is the home page now (issue #62): `/` serves the Jedi feed under the
+// global Jedi-styled nav. This spec covers the home route's chrome; the Jedi
+// feature UI is covered in jedi.spec.ts (also at `/`).
 test.describe("Home Page", () => {
-  test("should load successfully and display correct title", async ({ page }) => {
+  test("loads at / with the Jedi title", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page).toHaveTitle(/SolidStart\+/);
+    await expect(page).toHaveTitle(/Little Jedi/);
     await expect(page).toHaveURL("http://localhost:3000/");
   });
 
-  test("should display main heading", async ({ page }) => {
+  test("displays the Jedi hero heading", async ({ page }) => {
     await page.goto("/");
 
-    const heading = page.getByRole("heading", { name: /Hello SolidStart!/i });
-    await expect(heading).toBeVisible();
-    await expect(heading).toHaveText("Hello SolidStart!");
+    await expect(page.getByRole("heading", { name: /awesome photos & captions/i })).toBeVisible();
   });
 
-  test("should display counter component in main content", async ({ page }) => {
+  test("renders the global nav brand and links", async ({ page }) => {
     await page.goto("/");
 
-    const mainContent = page.locator("main");
-    await expect(mainContent).toBeVisible();
+    // The brand is the home affordance (no separate Home link).
+    await expect(page.getByRole("link", { name: /awesome/i })).toHaveAttribute("href", "/");
+
+    const nav = page.getByRole("navigation", { name: "Main" });
+    await expect(nav.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
+    await expect(nav.getByRole("link", { name: "Readme" })).toHaveAttribute("href", "/readme");
+    await expect(nav.getByRole("link", { name: "FullStack" })).toHaveAttribute(
+      "href",
+      "/fullstack",
+    );
   });
 
-  test("should have working external link to solidjs.com in footer", async ({ page }) => {
+  test("has working external link to solidjs.com in footer", async ({ page }) => {
     await page.goto("/");
 
     const solidjsLink = page.locator("footer").getByRole("link", { name: /solidjs\.com/i });
@@ -32,46 +41,30 @@ test.describe("Home Page", () => {
     await expect(solidjsLink).toHaveAttribute("target", "_blank");
   });
 
-  test("should have navigation link to About page in footer", async ({ page }) => {
+  test("has an About link in the footer that navigates", async ({ page }) => {
     await page.goto("/");
 
     const aboutLink = page.locator("footer").getByRole("link", { name: /^About$/i });
-    await expect(aboutLink).toBeVisible();
     await expect(aboutLink).toHaveAttribute("href", "/about");
-  });
-
-  test("should navigate to About page when clicking footer link", async ({ page }) => {
-    await page.goto("/");
-
-    const aboutLink = page.locator("footer").getByRole("link", { name: /^About$/i });
     await aboutLink.click();
 
     await expect(page).toHaveURL("http://localhost:3000/about");
     await expect(page.getByRole("heading", { name: /^About$/i })).toBeVisible();
   });
 
-  test("should display current page indicator in footer", async ({ page }) => {
+  test("marks the footer Home link active on /", async ({ page }) => {
     await page.goto("/");
 
-    // Check that Home link has active styling in footer
     const homeLink = page.locator("footer").getByRole("link", { name: /^Home$/i });
     await expect(homeLink).toBeVisible();
     await expect(homeLink).toHaveClass(/border-sky-600/);
   });
 
-  test("should have proper page structure with footer", async ({ page }) => {
+  test("has a footer with two paragraphs", async ({ page }) => {
     await page.goto("/");
 
-    const main = page.locator("main");
     const footer = page.locator("footer");
-
-    await expect(main).toBeVisible();
     await expect(footer).toBeVisible();
-
-    // Verify key elements exist within main
-    await expect(main.locator("h1")).toBeVisible();
-
-    // Verify footer elements
     await expect(footer.locator("p")).toHaveCount(2);
   });
 });

@@ -1,6 +1,6 @@
 import { createResource, createSignal, type Accessor, type Setter } from "solid-js";
 import { jediApi } from "~/lib/jedi/jedi-api";
-import type { JediCategory, PostView, CaptionView, HeroView, AuthorRef } from "~/types/jedi";
+import type { JediCategory, PostView, CaptionView, HeroView } from "~/types/jedi";
 
 /**
  * The Jedi feed's view-model: it owns the route's four data resources and the
@@ -24,34 +24,28 @@ import type { JediCategory, PostView, CaptionView, HeroView, AuthorRef } from "~
  * self-resets — the old caption's id is absent from the new post's captions, so
  * it falls back to that post's winner.
  *
- * `hero` (the header banner content) and `profile` (the nav avatar's current
- * user) are the externalized header/hero data (#32): the route renders the Hero
- * from `hero` and hands `profile` to `<JediNav />`, so neither is hard-coded in
- * the markup.
+ * `hero` (the header banner content) is the externalized header data (#32): the
+ * route renders the Hero from `hero`, so it is not hard-coded in the markup. The
+ * nav avatar's profile now lives in the global Nav, not here (see ADR-0007).
  */
 export interface JediFeed {
   /** The real categories behind an "All" row at index 0 (`selectedCategory`). */
   categories: Accessor<JediCategory[] | undefined>;
-  posts: Accessor<PostView[] | undefined>;
-  /** `posts` filtered to `selectedCategory` — what Top Photos renders (#33-b). */
+  /** The ranked posts filtered to `selectedCategory` — what Top Photos renders (#33-b). */
   visiblePosts: Accessor<PostView[] | undefined>;
   /** The selected category's name when its filter matches no posts, so `<main>`
    *  can show a "No Posts in …" panel; undefined when posts exist or are loading. */
   emptyCategoryLabel: Accessor<string | undefined>;
-  featured: Accessor<PostView | undefined>;
   selectedPost: Accessor<PostView | undefined>;
   selectPost: (id: number) => void;
-  topCaptions: Accessor<CaptionView[] | undefined>;
   /** What Top Captions renders: the selected post's captions, or empty when no
    *  post is selected (an empty category), so the card clears with `<main>`. */
   visibleCaptions: Accessor<CaptionView[] | undefined>;
-  winningCaption: Accessor<CaptionView | undefined>;
   selectedCaption: Accessor<CaptionView | undefined>;
   selectCaption: (id: number) => void;
   selectedCategory: Accessor<number>;
   setSelectedCategory: Setter<number>;
   hero: Accessor<HeroView | undefined>;
-  profile: Accessor<AuthorRef | undefined>;
 }
 
 /** The synthetic "no filter" row. Id 0 is unused by the real categories. */
@@ -127,24 +121,18 @@ export function createJediFeed(): JediFeed {
   };
 
   const [hero] = createResource(() => jediApi.hero.get());
-  const [profile] = createResource(() => jediApi.profile.get());
 
   return {
     categories,
-    posts,
     visiblePosts,
     emptyCategoryLabel,
-    featured,
     selectedPost,
     selectPost,
-    topCaptions,
     visibleCaptions,
-    winningCaption,
     selectedCaption,
     selectCaption,
     selectedCategory,
     setSelectedCategory,
     hero,
-    profile,
   };
 }

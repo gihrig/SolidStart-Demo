@@ -39,13 +39,6 @@ export default function Footer() {
         >
           FullStack
         </A>{" "}
-        {" - "}
-        <A
-          href="/jedi"
-          class={`border-b-2 ${active("/jedi")} text-(--theme-accent) hover:underline`}
-        >
-          Jedi
-        </A>{" "}
       </p>
     </footer>
   );

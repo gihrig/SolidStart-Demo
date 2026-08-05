@@ -21,6 +21,8 @@ function AuthTestConsumer() {
     <div>
       <span data-testid="status">{auth.isAuthenticated() ? "logged-in" : "logged-out"}</span>
       <span data-testid="username">{auth.username() ?? "none"}</span>
+      <span data-testid="display-name">{auth.displayName?.() ?? "none"}</span>
+      <span data-testid="avatar-url">{auth.avatarUrl?.() ?? ""}</span>
       <span data-testid="error">{auth.error() ?? "none"}</span>
       <span data-testid="pending">{auth.pending() ? "yes" : "no"}</span>
       <span data-testid="threw">{threw()}</span>
@@ -128,5 +130,31 @@ describe("AuthContext", () => {
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(vi.mocked(backendRpc.auth.login)).toHaveBeenCalledWith("demo1", "welcome");
+  });
+
+  // The interim nav identity (ADR-0007): the display name is the login username
+  // once authenticated, else the Jedi mock profile name; the avatar is always the
+  // mock until the back-end merge (#17). Lives here — not inline in <Nav /> — so
+  // the blend is exercisable at the useAuth seam without rendering the nav.
+  describe("nav identity (interim, until #17)", () => {
+    it("shows the mock profile name and avatar when logged out", async () => {
+      renderWithAuth();
+
+      await waitFor(() => expect(screen.getByTestId("display-name").textContent).toBe("Bart"));
+      expect(screen.getByTestId("avatar-url").textContent).not.toBe("");
+    });
+
+    it("uses the login username as display name but keeps the mock avatar", async () => {
+      const user = userEvent.setup();
+      renderWithAuth();
+
+      await waitFor(() => expect(screen.getByTestId("display-name").textContent).toBe("Bart"));
+      const mockAvatar = screen.getByTestId("avatar-url").textContent;
+
+      await user.click(screen.getByRole("button", { name: /^login$/i }));
+
+      await waitFor(() => expect(screen.getByTestId("display-name").textContent).toBe("demo1"));
+      expect(screen.getByTestId("avatar-url").textContent).toBe(mockAvatar);
+    });
   });
 });

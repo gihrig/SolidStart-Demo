@@ -2,65 +2,59 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test"
 import { render, screen, within, waitFor, fireEvent } from "@solidjs/testing-library";
 import { MetaProvider } from "@solidjs/meta";
 import { Suspense } from "solid-js";
-import Jedi from "./jedi";
+import Home from "./index";
 
 function setupMatchMedia(mobile: boolean) {
   const mql = { matches: mobile, addEventListener: vi.fn(), removeEventListener: vi.fn() };
   window.matchMedia = vi.fn().mockReturnValue(mql) as unknown as typeof window.matchMedia;
 }
 
-const renderJedi = () =>
+const renderHome = () =>
   render(() => (
     <MetaProvider>
-      <Jedi />
+      <Home />
     </MetaProvider>
   ));
 
-describe("Jedi route (data-driven from jedi-api)", () => {
+describe("Home route (Jedi feed, data-driven from jedi-api)", () => {
   beforeEach(() => setupMatchMedia(false)); // desktop
   afterEach(() => vi.restoreAllMocks());
 
   it("renders the featured post from the mock", async () => {
-    renderJedi();
+    renderHome();
     expect(await screen.findByRole("heading", { name: /little jedi/i })).toBeInTheDocument();
     expect(await screen.findByText(/jedi kitty protects the street/i)).toBeInTheDocument();
   });
 
   it("renders the featured post's category chips (tags == categories)", async () => {
-    renderJedi();
+    renderHome();
     expect(await screen.findByRole("button", { name: /^Animals$/ })).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /^Cute$/ })).toBeInTheDocument();
   });
 
   // RED driver: Cute must now appear as a sidebar Category row *and* an article chip.
   it("adds 'Cute' as a sidebar Category (not only an article chip)", async () => {
-    renderJedi();
+    renderHome();
     await screen.findByRole("heading", { name: /little jedi/i }); // wait for load
     const cute = await screen.findAllByText("Cute");
     expect(cute.length).toBeGreaterThanOrEqual(2);
   });
 
   it("renders Top Photos and Top Captions from the mock", async () => {
-    renderJedi();
+    renderHome();
     expect(await screen.findByText(/\(8 Likes\)/)).toBeInTheDocument();
     expect(await screen.findByText(/\(4 Likes\)/)).toBeInTheDocument();
   });
 
   it("renders the externalized hero content from the mock", async () => {
-    renderJedi();
+    renderHome();
     expect(
       await screen.findByRole("heading", { name: /awesome photos & captions/i }),
     ).toBeInTheDocument();
   });
 
-  it("renders the externalized nav profile from the mock", async () => {
-    renderJedi();
-    expect(await screen.findByText("Bart")).toBeInTheDocument();
-    expect(await screen.findByAltText("Bart avatar")).toBeInTheDocument();
-  });
-
   it("sidebar toggle's aria-controls links to the aside panel's id", async () => {
-    renderJedi();
+    renderHome();
     await screen.findByRole("heading", { name: /little jedi/i }); // wait for load
     const toggle = screen.getByRole("button", { name: /toggle sidebar/i });
     expect(toggle).toHaveAttribute("aria-controls", "jedi-sidebar");
@@ -68,7 +62,7 @@ describe("Jedi route (data-driven from jedi-api)", () => {
   });
 
   it("shows a selected Top Caption under the post in <main> (#33)", async () => {
-    renderJedi();
+    renderHome();
     // Defaults to the winning caption of the featured post.
     expect(await screen.findByText(/jedi kitty protects the street/i)).toBeInTheDocument();
 
@@ -80,7 +74,7 @@ describe("Jedi route (data-driven from jedi-api)", () => {
   });
 
   it("filters Top Photos by the selected Category, moving <main> with it (#33-b)", async () => {
-    renderJedi();
+    renderHome();
     const categories = await screen.findByRole("listbox", { name: "Categories" });
     const photos = await screen.findByRole("listbox", { name: "Top Photos" });
     expect(within(photos).getAllByRole("option")).toHaveLength(4);
@@ -97,7 +91,7 @@ describe("Jedi route (data-driven from jedi-api)", () => {
   });
 
   it("shows every post again under the 'All' category row (#33-b)", async () => {
-    renderJedi();
+    renderHome();
     const categories = await screen.findByRole("listbox", { name: "Categories" });
     const photos = await screen.findByRole("listbox", { name: "Top Photos" });
 
@@ -108,7 +102,7 @@ describe("Jedi route (data-driven from jedi-api)", () => {
   });
 
   it("shows a 'No Posts in <category>' panel in <main> for an empty category", async () => {
-    renderJedi();
+    renderHome();
     const categories = await screen.findByRole("listbox", { name: "Categories" });
     await screen.findByRole("heading", { name: /little jedi/i }); // wait for load
 
@@ -131,7 +125,7 @@ describe("Jedi route (data-driven from jedi-api)", () => {
     render(() => (
       <MetaProvider>
         <Suspense>
-          <Jedi />
+          <Home />
         </Suspense>
       </MetaProvider>
     ));
@@ -166,7 +160,7 @@ describe("Jedi route (data-driven from jedi-api)", () => {
   const isHighlighted = (el: Element) => el.className.includes("bg-(--theme-highlight)");
 
   it("highlights the default selection on all three cards at load (#37)", async () => {
-    renderJedi();
+    renderHome();
     await screen.findByRole("heading", { name: /little jedi/i }); // loaded
 
     for (const name of ["Categories", "Top Photos", "Top Captions"]) {
@@ -178,7 +172,7 @@ describe("Jedi route (data-driven from jedi-api)", () => {
   });
 
   it("keeps the effective selection highlighted after a Category change (#37)", async () => {
-    renderJedi();
+    renderHome();
     const categories = await screen.findByRole("listbox", { name: "Categories" });
     await screen.findByRole("heading", { name: /little jedi/i });
 
@@ -208,7 +202,7 @@ describe("Jedi route (data-driven from jedi-api)", () => {
   });
 
   it("moves the highlight to a directly-selected Top Caption (#37 no-regression)", async () => {
-    renderJedi();
+    renderHome();
     const captions = await screen.findByRole("listbox", { name: "Top Captions" });
     await screen.findByRole("heading", { name: /little jedi/i });
 
@@ -227,7 +221,7 @@ describe("Jedi route (data-driven from jedi-api)", () => {
   const hasRing = (el: Element) => el.className.includes("ring-2");
 
   it("paints no focus ring when clicking options across two cards (#38)", async () => {
-    renderJedi();
+    renderHome();
     const categories = await screen.findByRole("listbox", { name: "Categories" });
     const captions = await screen.findByRole("listbox", { name: "Top Captions" });
     await screen.findByRole("heading", { name: /little jedi/i }); // loaded
@@ -247,7 +241,7 @@ describe("Jedi route (data-driven from jedi-api)", () => {
   });
 
   it("mirrors the empty message in Top Photos and clears Top Captions", async () => {
-    renderJedi();
+    renderHome();
     const categories = await screen.findByRole("listbox", { name: "Categories" });
     await screen.findByRole("listbox", { name: "Top Photos" }); // loaded
 

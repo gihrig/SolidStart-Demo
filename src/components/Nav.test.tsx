@@ -1,181 +1,206 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
-import { render, screen } from "@solidjs/testing-library";
+import { render, screen, within } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, createMemoryHistory } from "@solidjs/router";
+import { AuthProvider, useAuth } from "./AuthContext";
 import Nav from "./Nav";
 
-// createMemoryHistory() - Creates an in-memory navigation history for testing
-// history.set() - Sets the initial path before the router mounts
-// MemoryRouter with custom history - Provides the router context
-// Route with component={Nav} - Establishes the Route context that useLocation() requires
+// The nav reads useAuth(); AuthProvider's login/logoff hit backend-rpc, mocked
+// so a test can drive the app to logged-in (mirrors AuthContext.test).
+vi.mock("~/lib/backend-rpc", () => ({
+  backendRpc: {
+    auth: {
+      login: vi.fn().mockResolvedValue({ result: "ok" }),
+      logoff: vi.fn().mockResolvedValue({ result: "ok" }),
+    },
+  },
+}));
 
-const renderWithRouter = (path: string = "/") => {
-  const history = createMemoryHistory();
-  history.set({ value: path, scroll: false, replace: true });
+function setupMatchMedia(mobile: boolean) {
+  const mql = { matches: mobile, addEventListener: vi.fn(), removeEventListener: vi.fn() };
+  window.matchMedia = vi.fn().mockReturnValue(mql) as unknown as typeof window.matchMedia;
+}
 
-  return render(() => (
-    <MemoryRouter history={history}>
-      <Route path="*" component={Nav} />
-    </MemoryRouter>
+// Shares the nav's AuthProvider, so a test can flip the app to logged-in.
+function LoginTrigger() {
+  const { login } = useAuth();
+  return (
+    <button type="button" onClick={() => void login("Homer", "pw")}>
+      do-login
+    </button>
+  );
+}
+
+const renderNav = (withLogin = false) =>
+  render(() => (
+    <AuthProvider>
+      <Nav />
+      {withLogin ? <LoginTrigger /> : null}
+    </AuthProvider>
   ));
-};
-
-const mockMatchMedia = vi.fn().mockReturnValue({
-  matches: false,
-  addEventListener: vi.fn(),
-  removeEventListener: vi.fn(),
-});
 
 describe("<Nav />", () => {
   beforeEach(() => {
     localStorage.removeItem("theme");
-    Object.defineProperty(window, "matchMedia", {
-      writable: true,
-      value: mockMatchMedia,
-    });
+    document.documentElement.removeAttribute("data-theme");
+    setupMatchMedia(false); // desktop
   });
-  document.documentElement.removeAttribute("data-theme");
-  document.documentElement.style.colorScheme = "";
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("renders navigation with Home, About, Readme, FullStack and Jedi links", () => {
-    renderWithRouter();
-
-    const nav = screen.getByRole("navigation");
-    expect(nav).toBeInTheDocument();
-
-    const homeLink = screen.getByRole("link", { name: "Home" });
-    const aboutLink = screen.getByRole("link", { name: "About" });
-    const readmeLink = screen.getByRole("link", { name: "Readme" });
-    const fullstackLink = screen.getByRole("link", { name: "FullStack" });
-    const jediLink = screen.getByRole("link", { name: "Jedi" });
-
-    expect(homeLink).toHaveAttribute("href", "/");
-    expect(aboutLink).toHaveAttribute("href", "/about");
-    expect(readmeLink).toHaveAttribute("href", "/readme");
-    expect(fullstackLink).toHaveAttribute("href", "/fullstack");
-    expect(jediLink).toHaveAttribute("href", "/jedi");
+  it("renders the brand linking home", () => {
+    renderNav();
+    const brand = screen.getByText("Awesome").closest("a")!;
+    expect(brand).toHaveAttribute("href", "/");
   });
 
-  it("applies active styling to Home link when on home path", () => {
-    renderWithRouter("/");
-
-    const homeLink = screen.getByRole("link", { name: "Home" });
-    const aboutLink = screen.getByRole("link", { name: "About" });
-    const readmeLink = screen.getByRole("link", { name: "Readme" });
-    const fullstackLink = screen.getByRole("link", { name: "FullStack" });
-    const jediLink = screen.getByRole("link", { name: "Jedi" });
-
-    // Active link has sky-600 border, inactive has transparent
-    expect(homeLink).toHaveClass("border-sky-600");
-    expect(aboutLink).toHaveClass("border-transparent");
-    expect(readmeLink).toHaveClass("border-transparent");
-    expect(fullstackLink).toHaveClass("border-transparent");
-    expect(jediLink).toHaveClass("border-transparent");
+  it("renders About, Readme and FullStack in the main nav", () => {
+    renderNav();
+    const mainNav = screen.getByRole("navigation", { name: "Main" });
+    expect(within(mainNav).getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
+    expect(within(mainNav).getByRole("link", { name: "Readme" })).toHaveAttribute(
+      "href",
+      "/readme",
+    );
+    expect(within(mainNav).getByRole("link", { name: "FullStack" })).toHaveAttribute(
+      "href",
+      "/fullstack",
+    );
   });
 
-  it("applies active styling to About link when on about path", () => {
-    renderWithRouter("/about");
-
-    const homeLink = screen.getByRole("link", { name: "Home" });
-    const aboutLink = screen.getByRole("link", { name: "About" });
-    const readmeLink = screen.getByRole("link", { name: "Readme" });
-    const fullstackLink = screen.getByRole("link", { name: "FullStack" });
-    const jediLink = screen.getByRole("link", { name: "Jedi" });
-
-    expect(homeLink).toHaveClass("border-transparent");
-    expect(aboutLink).toHaveClass("border-sky-600");
-    expect(readmeLink).toHaveClass("border-transparent");
-    expect(fullstackLink).toHaveClass("border-transparent");
-    expect(jediLink).toHaveClass("border-transparent");
+  it("drops the Home, Create Post and Jedi links", () => {
+    renderNav();
+    expect(screen.queryByRole("link", { name: "Home" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Create Post")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Jedi" })).not.toBeInTheDocument();
   });
 
-  it("applies active styling to Readme link when on about path", () => {
-    renderWithRouter("/readme");
-
-    const homeLink = screen.getByRole("link", { name: "Home" });
-    const aboutLink = screen.getByRole("link", { name: "About" });
-    const readmeLink = screen.getByRole("link", { name: "Readme" });
-    const fullstackLink = screen.getByRole("link", { name: "FullStack" });
-    const jediLink = screen.getByRole("link", { name: "Jedi" });
-
-    expect(homeLink).toHaveClass("border-transparent");
-    expect(aboutLink).toHaveClass("border-transparent");
-    expect(readmeLink).toHaveClass("border-sky-600");
-    expect(fullstackLink).toHaveClass("border-transparent");
-    expect(jediLink).toHaveClass("border-transparent");
-  });
-
-  it("applies active styling to FullStack link when on /fullstack path", () => {
-    renderWithRouter("/fullstack");
-
-    const homeLink = screen.getByRole("link", { name: "Home" });
-    const aboutLink = screen.getByRole("link", { name: "About" });
-    const readmeLink = screen.getByRole("link", { name: "Readme" });
-    const fullstackLink = screen.getByRole("link", { name: "FullStack" });
-    const jediLink = screen.getByRole("link", { name: "Jedi" });
-
-    expect(homeLink).toHaveClass("border-transparent");
-    expect(aboutLink).toHaveClass("border-transparent");
-    expect(readmeLink).toHaveClass("border-transparent");
-    expect(fullstackLink).toHaveClass("border-sky-600");
-    expect(jediLink).toHaveClass("border-transparent");
-  });
-
-  it("applies active styling to Jedi link when on /jedi path", () => {
-    renderWithRouter("/jedi");
-
-    const homeLink = screen.getByRole("link", { name: "Home" });
-    const aboutLink = screen.getByRole("link", { name: "About" });
-    const readmeLink = screen.getByRole("link", { name: "Readme" });
-    const fullstackLink = screen.getByRole("link", { name: "FullStack" });
-    const jediLink = screen.getByRole("link", { name: "Jedi" });
-
-    expect(homeLink).toHaveClass("border-transparent");
-    expect(aboutLink).toHaveClass("border-transparent");
-    expect(readmeLink).toHaveClass("border-transparent");
-    expect(fullstackLink).toHaveClass("border-transparent");
-    expect(jediLink).toHaveClass("border-sky-600");
-  });
-
-  it("renders all links as inactive on unknown path", () => {
-    renderWithRouter("/unknown");
-
-    const homeLink = screen.getByRole("link", { name: "Home" });
-    const aboutLink = screen.getByRole("link", { name: "About" });
-    const readmeLink = screen.getByRole("link", { name: "Readme" });
-    const fullstackLink = screen.getByRole("link", { name: "FullStack" });
-    const jediLink = screen.getByRole("link", { name: "Jedi" });
-
-    expect(homeLink).toHaveClass("border-transparent");
-    expect(aboutLink).toHaveClass("border-transparent");
-    expect(readmeLink).toHaveClass("border-transparent");
-    expect(fullstackLink).toHaveClass("border-transparent");
-    expect(jediLink).toHaveClass("border-transparent");
-  });
-
-  it("renders theme toggle button in nav", () => {
-    renderWithRouter();
+  it("renders the theme toggle and mobile menu toggle", () => {
+    renderNav();
     expect(screen.getByRole("button", { name: /theme/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /toggle navigation/i })).toBeInTheDocument();
   });
 
-  it("theme toggle cycles through modes on click", async () => {
-    const user = userEvent.setup();
-    renderWithRouter();
-    const toggle = screen.getByRole("button", { name: /theme/i });
+  describe("profile avatar", () => {
+    it("shows the mock profile name + avatar when logged out", async () => {
+      renderNav();
+      expect(await screen.findByText("Bart")).toBeInTheDocument();
+      expect(await screen.findByAltText("Bart avatar")).toBeInTheDocument();
+    });
 
-    expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: system\b/);
+    it("offers My Profile + Log In → /fullstack when logged out", async () => {
+      const user = userEvent.setup();
+      renderNav();
+      await user.click(screen.getByRole("button", { name: /profile menu/i }));
+      expect(screen.getByRole("button", { name: /my profile/i })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /log in/i })).toHaveAttribute("href", "/fullstack");
+      expect(screen.queryByRole("button", { name: /log out/i })).not.toBeInTheDocument();
+    });
 
-    await user.click(toggle);
-    expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: light\b/);
+    // The identity blend (username vs mock name/avatar) is owned by the useAuth
+    // seam — see AuthContext.test "nav identity". Here we only check the nav wires
+    // the auth state to the dropdown: Log In becomes Log Out once authenticated.
+    it("swaps Log In for Log Out once authenticated", async () => {
+      const user = userEvent.setup();
+      renderNav(true);
+      await user.click(screen.getByRole("button", { name: /do-login/i }));
+      await user.click(screen.getByRole("button", { name: /profile menu/i }));
+      expect(await screen.findByRole("button", { name: /log out/i })).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: /log in/i })).not.toBeInTheDocument();
+    });
+  });
 
-    await user.click(toggle);
-    expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: dark\b/);
+  describe("profile dropdown", () => {
+    it("toggles inert/visibility on trigger click", async () => {
+      const user = userEvent.setup();
+      renderNav();
+      const trigger = screen.getByRole("button", { name: /profile menu/i });
+      const panel = document.getElementById("profile-menu")! as HTMLElement & { inert: boolean };
 
-    await user.click(toggle);
-    expect(toggle.getAttribute("aria-label")).toMatch(/^Theme: system\b/);
+      expect(panel).toHaveClass("pointer-events-none");
+      expect(panel.inert).toBe(true);
+
+      await user.click(trigger);
+
+      expect(panel).not.toHaveClass("pointer-events-none");
+      expect(panel).toHaveClass("opacity-100");
+      expect(panel.inert).toBe(false);
+    });
+  });
+
+  describe("hamburger menu", () => {
+    it("aria-controls links the toggle to the mobile menu panel", () => {
+      renderNav();
+      const btn = screen.getByRole("button", { name: /toggle navigation/i });
+      const menu = screen.getByRole("navigation", { name: /site menu/i });
+      expect(btn).toHaveAttribute("aria-controls", "site-mobile-nav");
+      expect(menu).toHaveAttribute("id", "site-mobile-nav");
+    });
+
+    it("starts collapsed and toggles open then closed", async () => {
+      const user = userEvent.setup();
+      renderNav();
+      const btn = screen.getByRole("button", { name: /toggle navigation/i });
+      const menu = screen.getByRole("navigation", { name: /site menu/i });
+
+      expect(btn).toHaveAttribute("aria-expanded", "false");
+      expect(menu).toHaveClass("pointer-events-none");
+      expect(btn.querySelector("use")!.getAttribute("href")).toContain("menu");
+
+      await user.click(btn);
+      expect(btn).toHaveAttribute("aria-expanded", "true");
+      expect(menu).not.toHaveClass("pointer-events-none");
+      expect(menu).toHaveClass("opacity-100");
+      expect(btn.querySelector("use")!.getAttribute("href")).toContain("delete-sign");
+
+      await user.click(btn);
+      expect(btn).toHaveAttribute("aria-expanded", "false");
+      expect(menu).toHaveClass("pointer-events-none");
+      expect(btn.querySelector("use")!.getAttribute("href")).toContain("menu");
+    });
+
+    it("lists About/Readme/FullStack in the mobile menu", () => {
+      renderNav();
+      const menu = screen.getByRole("navigation", { name: /site menu/i });
+      expect(within(menu).getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
+      expect(within(menu).getByRole("link", { name: "Readme" })).toHaveAttribute("href", "/readme");
+      expect(within(menu).getByRole("link", { name: "FullStack" })).toHaveAttribute(
+        "href",
+        "/fullstack",
+      );
+    });
+  });
+
+  describe("mobile mode", () => {
+    beforeEach(() => setupMatchMedia(true));
+
+    it("Escape closes the mobile menu", async () => {
+      const user = userEvent.setup();
+      renderNav();
+      const btn = screen.getByRole("button", { name: /toggle navigation/i });
+      await user.click(btn);
+      const menu = screen.getByRole("navigation", { name: /site menu/i });
+      expect(menu).not.toHaveClass("pointer-events-none");
+
+      await user.keyboard("{Escape}");
+
+      expect(menu).toHaveClass("pointer-events-none");
+      expect(btn).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("click outside closes the profile dropdown", async () => {
+      const user = userEvent.setup();
+      renderNav();
+      const trigger = screen.getByRole("button", { name: /profile menu/i });
+      await user.click(trigger);
+      const panel = document.getElementById("profile-menu")! as HTMLElement & { inert: boolean };
+      expect(panel.inert).toBe(false);
+
+      await user.click(document.body);
+
+      expect(panel.inert).toBe(true);
+      expect(panel).toHaveClass("pointer-events-none");
+    });
   });
 });

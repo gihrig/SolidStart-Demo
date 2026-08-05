@@ -1,7 +1,7 @@
 import { Title } from "@solidjs/meta";
 import { Show, type Accessor } from "solid-js";
 import { createConversationWorkspace } from "~/lib/conversationWorkspace";
-import { AuthProvider, useAuth } from "~/components/AuthContext";
+import { useAuth } from "~/components/AuthContext";
 import LoginForm from "~/components/LoginForm";
 import WorkspaceLayout from "~/components/WorkspaceLayout";
 
@@ -56,11 +56,11 @@ function FullstackContent() {
 
 export default function Fullstack() {
   return (
-    <AuthProvider>
+    <>
       <Title>Full-Stack Demo | SolidStart+</Title>
       <div class="demo">
         <FullstackContent />
       </div>
-    </AuthProvider>
+    </>
   );
 }

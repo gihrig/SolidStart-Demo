@@ -8,9 +8,9 @@ import { useDismiss } from "~/lib/useDismiss";
  * `triggerProps` carries the button's `aria-expanded` / `aria-controls` / click;
  * `panelProps` carries the panel's `id` and the `inert` gate that removes a
  * hidden panel from the tab order. Callers spread these and keep only their own
- * open-driven paint (transitions differ per site). The Jedi sidebar, JediNav's
- * mobile menu, the conversation drawer, and JediNav's profile dropdown are the
- * call sites; all hand-wired the identical `signal + aria + useDismiss + inert`
+ * open-driven paint (transitions differ per site). The home sidebar, the site
+ * nav's mobile menu, the conversation drawer, and the site nav's profile dropdown
+ * are the call sites; all hand-wired the identical `signal + aria + useDismiss + inert`
  * before this module owned it.
  */
 export type DisclosureMode = "drawer" | "popup";
@@ -31,7 +31,7 @@ export interface UseDisclosureOptions {
   /**
    * Extra guard ANDed with `open()` to decide whether Escape / click-away
    * dismisses. Use it when a nested disclosure should absorb the dismiss first —
-   * e.g. JediNav's mobile menu stays open while its profile dropdown is open.
+   * e.g. a mobile menu that stays open while a dropdown nested inside it is open.
    */
   dismissWhen?: Accessor<boolean>;
   /**
