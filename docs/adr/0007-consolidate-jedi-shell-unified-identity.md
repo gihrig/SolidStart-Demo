@@ -23,3 +23,8 @@ neutral one, and the Conversations/Jedi divide narrows toward a shared identity.
   "Jedi" and "FullStack" are retained pending #17.
 - No session restore yet: a reload starts logged-out, so the avatar shows the
   mock profile until a FullStack login.
+- The interim nav identity (`displayName` / `avatarUrl`) lives on the `useAuth`
+  seam in `AuthContext`, not inline in `Nav`. `AuthProvider` imports the Jedi mock
+  profile as the interim avatar source; #17 swaps that one source for the back-end
+  with the `useAuth` interface unchanged, so the seam survives the merge rather
+  than collapsing into a pass-through. The `useAuth` name is kept pending #17.

@@ -20,7 +20,8 @@ An authenticated identity that owns Agents and Conversations and authors
 Messages. Every User is either an Admin user or a Standard user.
 _Avoid_: account.
 _Converging_: the global nav avatar unifies this identity with the Jedi profile
-at back-end integration (#17, ADR-0007).
+at back-end integration (#17, ADR-0007). In the client the `useAuth` seam already
+carries the interim `displayName` / `avatarUrl`; #17 swaps only the avatar's source.
 
 **Admin user**:
 A User holding maximum control and configuration permissions.

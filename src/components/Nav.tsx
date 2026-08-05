@@ -1,6 +1,5 @@
-import { For, Show, createResource } from "solid-js";
+import { For, Show } from "solid-js";
 import { useDisclosure } from "~/lib/useDisclosure";
-import { jediApi } from "~/lib/jedi/jedi-api";
 import { useAuth } from "~/components/AuthContext";
 import Icon from "~/components/Icon";
 import ThemeToggle from "~/components/ThemeToggle";
@@ -14,15 +13,9 @@ const NAV_LINKS = [
 export default function Nav() {
   let dropdownRef: HTMLDivElement | undefined;
 
-  const { isAuthenticated, username, logoff } = useAuth();
-
-  // The avatar image (and the logged-out display name) come from the Jedi mock
-  // profile; `.latest` is a non-suspending read so the nav — which renders
-  // outside the app's <Suspense> — never suspends the whole tree (see ADR-0007).
-  // The display name is the login `username()` once authenticated, otherwise the
-  // mock name; back-end integration (#17) unifies the two identities.
-  const [profile] = createResource(() => jediApi.profile.get());
-  const displayName = () => (isAuthenticated() ? username() : profile.latest?.name);
+  // Identity (avatar + display name) comes from the useAuth seam; the interim
+  // blend with the Jedi mock profile lives there, not here (see ADR-0007).
+  const { isAuthenticated, logoff, displayName, avatarUrl } = useAuth();
 
   // The profile dropdown is a popup — hidden (and inert) whenever closed, on
   // every viewport — dismissed by Escape or a click outside its wrapping <div>.
@@ -67,7 +60,7 @@ export default function Nav() {
             >
               <img
                 class="h-8 rounded-full object-cover bg-teal-200"
-                src={profile.latest?.avatarUrl}
+                src={avatarUrl()}
                 alt={displayName() ? `${displayName()} avatar` : ""}
               />
               <span class="hidden sm:inline">{displayName()}</span>

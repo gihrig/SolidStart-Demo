@@ -98,14 +98,15 @@ describe("<Nav />", () => {
       expect(screen.queryByRole("button", { name: /log out/i })).not.toBeInTheDocument();
     });
 
-    it("reflects the login: username + Log Out once authenticated", async () => {
+    // The identity blend (username vs mock name/avatar) is owned by the useAuth
+    // seam — see AuthContext.test "nav identity". Here we only check the nav wires
+    // the auth state to the dropdown: Log In becomes Log Out once authenticated.
+    it("swaps Log In for Log Out once authenticated", async () => {
       const user = userEvent.setup();
       renderNav(true);
-      await screen.findByText("Bart"); // logged-out placeholder first
       await user.click(screen.getByRole("button", { name: /do-login/i }));
-      expect(await screen.findByText("Homer")).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: /profile menu/i }));
-      expect(screen.getByRole("button", { name: /log out/i })).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: /log out/i })).toBeInTheDocument();
       expect(screen.queryByRole("link", { name: /log in/i })).not.toBeInTheDocument();
     });
   });
