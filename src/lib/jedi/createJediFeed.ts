@@ -31,20 +31,16 @@ import type { JediCategory, PostView, CaptionView, HeroView } from "~/types/jedi
 export interface JediFeed {
   /** The real categories behind an "All" row at index 0 (`selectedCategory`). */
   categories: Accessor<JediCategory[] | undefined>;
-  posts: Accessor<PostView[] | undefined>;
-  /** `posts` filtered to `selectedCategory` — what Top Photos renders (#33-b). */
+  /** The ranked posts filtered to `selectedCategory` — what Top Photos renders (#33-b). */
   visiblePosts: Accessor<PostView[] | undefined>;
   /** The selected category's name when its filter matches no posts, so `<main>`
    *  can show a "No Posts in …" panel; undefined when posts exist or are loading. */
   emptyCategoryLabel: Accessor<string | undefined>;
-  featured: Accessor<PostView | undefined>;
   selectedPost: Accessor<PostView | undefined>;
   selectPost: (id: number) => void;
-  topCaptions: Accessor<CaptionView[] | undefined>;
   /** What Top Captions renders: the selected post's captions, or empty when no
    *  post is selected (an empty category), so the card clears with `<main>`. */
   visibleCaptions: Accessor<CaptionView[] | undefined>;
-  winningCaption: Accessor<CaptionView | undefined>;
   selectedCaption: Accessor<CaptionView | undefined>;
   selectCaption: (id: number) => void;
   selectedCategory: Accessor<number>;
@@ -128,15 +124,11 @@ export function createJediFeed(): JediFeed {
 
   return {
     categories,
-    posts,
     visiblePosts,
     emptyCategoryLabel,
-    featured,
     selectedPost,
     selectPost,
-    topCaptions,
     visibleCaptions,
-    winningCaption,
     selectedCaption,
     selectCaption,
     selectedCategory,
