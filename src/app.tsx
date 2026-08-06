@@ -6,7 +6,6 @@ import { AuthProvider } from "~/components/AuthContext";
 import Nav from "~/components/Nav";
 import Footer from "~/components/Footer";
 import "./app.css";
-import spriteRaw from "~/icon-sprite.svg?raw";
 
 export default function App() {
   return (
@@ -14,7 +13,6 @@ export default function App() {
       root={(props) => (
         <MetaProvider>
           <AuthProvider>
-            <div hidden innerHTML={spriteRaw} />
             <Nav />
             <Suspense>{props.children}</Suspense>
             <Footer />

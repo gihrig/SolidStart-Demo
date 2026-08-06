@@ -98,7 +98,7 @@ describe("<ThemeToggle />", () => {
     mockLocalStorage["theme"] = "light";
     const { container } = render(() => <ThemeToggle />);
     const svg = container.querySelector("svg")!;
-    expect(svg.querySelector("use")!.getAttribute("href")).toBe("#icon-sun");
+    expect(svg.querySelector("use")!.getAttribute("href")).toBe("/icon-sprite.svg#icon-sun");
     expect(svg).toHaveClass("w-5", "h-5");
   });
 
@@ -106,14 +106,14 @@ describe("<ThemeToggle />", () => {
     mockLocalStorage["theme"] = "dark";
     const { container } = render(() => <ThemeToggle />);
     const svg = container.querySelector("svg")!;
-    expect(svg.querySelector("use")!.getAttribute("href")).toBe("#icon-moon");
+    expect(svg.querySelector("use")!.getAttribute("href")).toBe("/icon-sprite.svg#icon-moon");
     expect(svg).toHaveClass("w-5", "h-5");
   });
 
   it("renders the system sprite icon at 20px in auto mode", () => {
     const { container } = render(() => <ThemeToggle />);
     const svg = container.querySelector("svg")!;
-    expect(svg.querySelector("use")!.getAttribute("href")).toBe("#icon-system");
+    expect(svg.querySelector("use")!.getAttribute("href")).toBe("/icon-sprite.svg#icon-system");
     expect(svg).toHaveClass("w-5", "h-5");
   });
 });

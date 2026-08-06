@@ -1,6 +1,6 @@
 import type { JSX } from "solid-js";
 
-// Mirror of the sprite symbol ids in src/icon-sprite.svg (bare, without the
+// Mirror of the sprite symbol ids in public/icon-sprite.svg (bare, without the
 // `icon-` prefix). Kept in sync by the drift test in Icon.test.tsx.
 export const ICON_NAMES = [
   "180-degrees",
@@ -34,7 +34,7 @@ export default function Icon(props: IconProps): JSX.Element {
       aria-label={props.label}
       aria-hidden={props.label ? undefined : "true"}
     >
-      <use href={`#icon-${props.name}`} />
+      <use href={`/icon-sprite.svg#icon-${props.name}`} />
     </svg>
   );
 }

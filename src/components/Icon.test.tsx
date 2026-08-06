@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vite-plus/test";
 import { render } from "@solidjs/testing-library";
-import spriteRaw from "~/icon-sprite.svg?raw";
+import spriteRaw from "../../public/icon-sprite.svg?raw";
 import Icon, { ICON_NAMES } from "./Icon";
 
 describe("<Icon />", () => {
@@ -10,7 +10,10 @@ describe("<Icon />", () => {
     expect(svg).toHaveClass("w-5");
     expect(svg).toHaveAttribute("aria-hidden", "true");
     expect(svg).toHaveAttribute("focusable", "false");
-    expect(container.querySelector("use")).toHaveAttribute("href", "#icon-fire-heart");
+    expect(container.querySelector("use")).toHaveAttribute(
+      "href",
+      "/icon-sprite.svg#icon-fire-heart",
+    );
   });
 
   it("exposes the icon to assistive tech when a label is given", () => {
