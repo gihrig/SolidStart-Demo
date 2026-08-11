@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1000" height="700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1.5; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 12px; fill: white; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .rect-layer { fill: #3D3D3D; }
+      .rect-sublayer { fill: #4D4D4D; }
+      .rect-process { fill: #5D5D5D; }
+      .rect-error { fill: #6D3D3D; }
+      .rect-data { fill: #3D5D3D; }
+      .rect-extractor { fill: #3D3D5D; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>
+  <rect width="1000" height="700" class="bg" x="2" y="1" />
+
+  <!-- Module Header -->
+  <rect x="30" y="30" width="940" height="80" rx="5" class="stroke-primary rect-layer" />
+  <text x="500" y="60" class="text-title">utils::token Module - Cookie Token Management</text>
+  <text x="500" y="85" class="text-code">Handles authentication token cookies for web sessions</text>
+
+  <!-- Constants Section -->
+  <rect x="30" y="140" width="235" height="80" rx="4" class="stroke-primary rect-data" />
+  <text x="150" y="165" class="text-section">Constants</text>
+  <text x="150" y="185" class="text-code">pub(crate) AUTH_TOKEN = "auth-token"</text>
+  <text x="150" y="205" class="text-small">Cookie name identifier</text>
+
+  <!-- Set Token Cookie Function -->
+  <rect x="300" y="140" width="320" height="200" rx="4" class="stroke-primary rect-process" />
+  <text x="460" y="165" class="text-section">pub(crate) set_token_cookie()</text>
+  <text x="460" y="185" class="text-code">cookies: &amp;Cookies, user: &amp;str, salt: Uuid</text>
+  <text x="460" y="205" class="text-code">→ Result&lt;()&gt;</text>
+
+  <!-- Step 1: Generate Token -->
+  <rect x="320" y="225" width="280" height="30" rx="2" class="stroke-primary rect-sublayer" />
+  <text x="460" y="245" class="text-code">1. generate_web_token(user, salt)?</text>
+
+  <!-- Step 2: Create Cookie -->
+  <rect x="320" y="260" width="280" height="30" rx="2" class="stroke-primary rect-sublayer" />
+  <text x="460" y="280" class="text-code">2. Cookie::new(AUTH_TOKEN, token)</text>
+
+  <!-- Step 3: Configure Cookie -->
+  <rect x="320" y="295" width="280" height="40" rx="2" class="stroke-primary rect-sublayer" />
+  <text x="460" y="310" class="text-code">3. Set http_only(true) &amp; path("/")</text>
+  <text x="460" y="325" class="text-small">Security &amp; accessibility settings</text>
+
+  <!-- Remove Token Cookie Function -->
+  <rect x="670" y="140" width="280" height="150" rx="4" class="stroke-primary rect-process" />
+  <text x="810" y="165" class="text-section">pub(crate) remove_token_cookie()</text>
+  <text x="810" y="185" class="text-code">cookies: &amp;Cookies → Result&lt;()&gt;</text>
+
+  <!-- Step 1: Create Empty Cookie -->
+  <rect x="690" y="210" width="240" height="30" rx="2" class="stroke-primary rect-sublayer" />
+  <text x="810" y="230" class="text-code">1. Cookie::from(AUTH_TOKEN)</text>
+
+  <!-- Step 2: Set Path -->
+  <rect x="690" y="245" width="240" height="30" rx="2" class="stroke-primary rect-sublayer" />
+  <text x="810" y="265" class="text-code">2. Set path("/") &amp; remove</text>
+
+  <!-- Flow Logic -->
+  <rect x="50" y="380" width="900" height="180" rx="5" class="stroke-primary rect-layer" />
+  <text x="500" y="410" class="text-section">Token Cookie Flow</text>
+
+  <!-- Authentication Request -->
+  <rect x="80" y="430" width="150" height="60" rx="3" class="stroke-primary rect-data" />
+  <text x="155" y="450" class="text-box-title">Login Request</text>
+  <text x="155" y="470" class="text-code">User &amp; Salt</text>
+
+  <!-- Token Generation -->
+  <rect x="280" y="430" width="150" height="60" rx="3" class="stroke-primary rect-process" />
+  <text x="355" y="450" class="text-box-title">Generate Token</text>
+  <text x="355" y="470" class="text-code">lib_auth::token</text>
+
+  <!-- Cookie Setting -->
+  <rect x="480" y="430" width="150" height="60" rx="3" class="stroke-primary rect-data" />
+  <text x="555" y="450" class="text-box-title">Set Cookie</text>
+  <text x="555" y="470" class="text-code">HTTP-Only Secure</text>
+
+  <!-- Logout Request -->
+  <rect x="680" y="430" width="150" height="60" rx="3" class="stroke-primary rect-error" />
+  <text x="755" y="450" class="text-box-title">Logout Request</text>
+  <text x="755" y="470" class="text-code">Remove Cookie</text>
+
+  <!-- Error Handling -->
+  <rect x="200" y="600" width="600" height="80" rx="4" class="stroke-primary rect-error" />
+  <text x="500" y="630" class="text-section">Error Handling</text>
+  <text x="500" y="655" class="text-small">Set and Remove functions return Result&lt;()&gt; for error handling</text>
+
+  <!-- Flow Arrows -->
+  <!-- Constants to functions -->
+  <line x1="265" y1="180" x2="300" y2="180" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="265" y1="180" x2="300" y2="215" class="line-primary" />
+  <line x1="300" y1="215" x2="670" y2="215" class="line-primary" marker-end="url(#arrowhead)" />
+
+  <!-- Flow sequence -->
+  <line x1="230" y1="460" x2="280" y2="460" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="430" y1="460" x2="480" y2="460" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="630" y1="460" x2="680" y2="460" class="line-primary" marker-end="url(#arrowhead)" />
+
+  <!-- Error flow -->
+  <line x1="500" y1="560" x2="500" y2="600" class="stroke-dashed" marker-end="url(#arrowhead)" />
+</svg>

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1000" height="950" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1.5; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 12px; fill: white; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .rect-layer { fill: #3D3D3D; }
+      .rect-sublayer { fill: #4D4D4D; }
+      .rect-process { fill: #5D5D5D; }
+      .rect-error { fill: #6D3D3D; }
+      .rect-data { fill: #3D5D3D; }
+      .rect-extractor { fill: #3D3D5D; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>
+  <rect width="1000" height="950" class="bg" x="2" y="1" />
+  <!-- Module Entry Point -->
+  <rect x="30" y="30" width="940" height="120" rx="5" class="stroke-primary rect-layer" />
+  <text x="500" y="60" class="text-title">conv_rpc Module - Conversation RPC Interface</text>
+  <text x="500" y="85" class="text-code">RPC handlers for Conv and ConvMsg operations</text>
+  <text x="500" y="105" class="text-small">Built on lib-rpc-core with generate_common_rpc_fns! macro</text>
+  <text x="500" y="125" class="text-small">Manages conversations and messages through ConvBmc</text>
+
+  <!-- Router Builder and Generated CRUD Functions -->
+  <rect x="30" y="180" width="940" height="140" rx="5" class="stroke-primary rect-data" />
+  <text x="500" y="210" class="text-section">rpc_router_builder()</text>
+  <text x="500" y="235" class="text-code">generate_common_rpc_fns! macro generates:</text>
+  <text x="250" y="260" class="text-small">create_conv(ctx, mm, params: ParamsForCreate&lt;ConvForCreate&gt;)</text>
+  <text x="250" y="275" class="text-small">get_conv(ctx, mm, params: ParamsIded)</text>
+  <text x="250" y="290" class="text-small">list_convs(ctx, mm, params: ParamsList&lt;ConvFilter&gt;)</text>
+  <text x="700" y="260" class="text-small">update_conv(ctx, mm, params: ParamsForUpdate&lt;ConvForUpdate&gt;)</text>
+  <text x="700" y="275" class="text-small">delete_conv(ctx, mm, params: ParamsIded)</text>
+  <text x="700" y="290" class="text-small">All return Result&lt;DataRpcResult&lt;T&gt;&gt;</text>
+
+  <!-- Conv CRUD Flow -->
+  <rect x="30" y="350" width="450" height="250" rx="5" class="stroke-primary rect-layer" />
+  <text x="255" y="380" class="text-section">Conv Entity Operations</text>
+
+  <!-- Create Conv -->  <rect x="50" y="400" width="190" height="80" rx="4" class="stroke-primary rect-process" />
+  <text x="145" y="425" class="text-box-title">create_conv</text>
+  <text x="145" y="445" class="text-code">ConvBmc::create()</text>
+  <text x="145" y="465" class="text-small">Returns: Conv entity</text>
+
+  <!-- Get/List Conv -->
+  <rect x="260" y="400" width="200" height="80" rx="4" class="stroke-primary rect-process" />
+  <text x="360" y="425" class="text-box-title">get_conv / list_convs</text>
+  <text x="360" y="445" class="text-code">ConvBmc::get() / list()</text>
+  <text x="360" y="465" class="text-small">Query by id or filter</text>
+
+  <!-- Update/Delete Conv -->
+  <rect x="50" y="500" width="410" height="80" rx="4" class="stroke-primary rect-process" />
+  <text x="255" y="525" class="text-box-title">update_conv / delete_conv</text>
+  <text x="255" y="545" class="text-code">ConvBmc::update() / delete()</text>
+  <text x="255" y="565" class="text-small">Modify or remove conv by id</text>
+  <!-- ConvMsg Operations -->
+  <rect x="520" y="350" width="450" height="250" rx="5" class="stroke-primary rect-layer" />
+  <text x="745" y="380" class="text-section">ConvMsg Operations</text>
+
+  <!-- Add ConvMsg Flow -->
+  <rect x="540" y="400" width="200" height="100" rx="4" class="stroke-primary rect-data" />
+  <text x="640" y="425" class="text-box-title">add_conv_msg</text>
+  <text x="640" y="445" class="text-code">Input: ConvMsgForCreate</text>
+  <text x="640" y="465" class="text-code">ConvBmc::add_msg()</text>
+  <text x="640" y="485" class="text-small">Returns created msg_id</text>
+
+  <!-- Get ConvMsg -->
+  <rect x="760" y="400" width="190" height="100" rx="4" class="stroke-primary rect-process" />
+  <text x="855" y="425" class="text-box-title">get_conv_msg</text>
+  <text x="855" y="445" class="text-code">Input: msg_id</text>
+  <text x="855" y="465" class="text-code">ConvBmc::get_msg()</text>
+  <text x="855" y="485" class="text-small">Returns: ConvMsg</text>
+  <!-- Retrieval After Creation -->
+  <rect x="540" y="520" width="410" height="60" rx="4" class="stroke-primary rect-sublayer" />
+  <text x="745" y="545" class="text-box-title">Auto-fetch after add_msg</text>
+  <text x="745" y="565" class="text-code">ConvBmc::get_msg() retrieves full ConvMsg after creation</text>
+
+  <!-- Data Flow Section -->
+  <rect x="30" y="630" width="940" height="290" rx="5" class="stroke-primary rect-layer" />
+  <text x="500" y="660" class="text-section">Data Flow &amp; Type System</text>
+
+  <!-- Input Types -->
+  <rect x="50" y="680" width="280" height="120" rx="4" class="stroke-primary rect-sublayer" />
+  <text x="190" y="705" class="text-box-title">Input Parameters</text>
+  <text x="190" y="730" class="text-code">ParamsForCreate&lt;T&gt;</text>
+  <text x="190" y="750" class="text-code">ParamsForUpdate&lt;T&gt;</text>
+  <text x="190" y="770" class="text-code">ParamsIded (id field)</text>
+  <text x="190" y="790" class="text-code">ParamsList&lt;Filter&gt;</text>
+  <!-- Core Dependencies -->
+  <rect x="360" y="680" width="280" height="120" rx="4" class="stroke-primary rect-sublayer" />
+  <text x="500" y="705" class="text-box-title">Core Dependencies</text>
+  <text x="500" y="730" class="text-code">Ctx - Request context</text>
+  <text x="500" y="750" class="text-code">ModelManager - DB access</text>
+  <text x="500" y="770" class="text-code">ConvBmc - Business logic</text>
+  <text x="500" y="790" class="text-code">lib_rpc_core - RPC infra</text>
+
+  <!-- Output Types -->
+  <rect x="670" y="680" width="280" height="120" rx="4" class="stroke-primary rect-data" />
+  <text x="810" y="705" class="text-box-title">Output Results</text>
+  <text x="810" y="730" class="text-code">DataRpcResult&lt;Conv&gt;</text>
+  <text x="810" y="750" class="text-code">DataRpcResult&lt;Vec&lt;Conv&gt;&gt;</text>
+  <text x="810" y="770" class="text-code">DataRpcResult&lt;ConvMsg&gt;</text>
+  <text x="810" y="790" class="text-code">Wrapped in Result&lt;T&gt;</text>
+  <!-- Error Handling -->
+  <rect x="50" y="820" width="900" height="80" rx="4" class="stroke-primary rect-error" />
+  <text x="500" y="845" class="text-box-title">Error Propagation</text>
+  <text x="500" y="865" class="text-code">All operations use ? operator for error propagation</text>
+  <text x="500" y="885" class="text-small">Errors bubble up through Result chain to RPC layer</text>
+
+  <!-- Flow Arrows -->
+  <!-- Generated Functions to Conv Operations -->
+  <line x1="255" y1="320" x2="255" y2="350" class="line-primary" marker-end="url(#arrowhead)" />
+
+  <!-- Generated Functions to ConvMsg Operations -->
+  <line x1="745" y1="320" x2="745" y2="350" class="line-primary" marker-end="url(#arrowhead)" />
+
+  <!-- add_conv_msg internal flow -->
+  <line x1="640" y1="500" x2="640" y2="520" class="stroke-dashed" marker-end="url(#arrowhead)" />
+  <line x1="855" y1="500" x2="855" y2="520" class="stroke-dashed" marker-end="url(#arrowhead)" />
+
+  <!-- Data flow connections -->
+  <line x1="330" y1="740" x2="360" y2="740" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="640" y1="740" x2="670" y2="740" class="line-primary" marker-end="url(#arrowhead)" />
+</svg>

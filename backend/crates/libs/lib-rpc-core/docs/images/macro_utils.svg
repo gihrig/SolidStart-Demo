@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1000" height="800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #fff; }
+      .stroke-primary { stroke: #fff; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #fff; stroke-width: 1; stroke-dasharray: 3,3; fill: none; }
+      .line-primary { stroke: #fff; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-function-title { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-parameter { font-family: Arial, sans-serif; font-size: 12px; fill: white; }
+      .text-detail { font-family: Arial, sans-serif; font-size: 10px; fill: white; }
+      .text-info { font-family: Arial, sans-serif; font-size: 11px; fill: white; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7"
+     refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>
+
+  <rect width="1000" height="800" class="bg"/>
+
+  <!-- Title -->
+  <text x="500" y="40" class="text-title">
+    macro_utils.rs - generate_common_rpc_fns! Flow Diagram
+  </text>
+
+  <!-- Macro Input Parameters Box -->
+  <rect x="50" y="80" width="300" height="180" rx="5" class="stroke-primary"/>
+  <text x="200" y="105" class="text-box-title">
+    Macro Input Parameters
+  </text>
+  <text x="60" y="130" class="text-parameter">
+    • Bmc: Business Model Controller
+  </text>
+  <text x="60" y="150" class="text-parameter">
+    • Entity: Return type
+  </text>
+  <text x="60" y="170" class="text-parameter">
+    • ForCreate: Create data type
+  </text>
+  <text x="60" y="190" class="text-parameter">
+    • ForUpdate: Update data type
+  </text>
+  <text x="60" y="210" class="text-parameter">
+    • Filter: List filter type
+  </text>
+  <text x="60" y="230" class="text-parameter">
+    • Suffix: Function name suffix
+  </text>
+
+  <!-- Arrow from Input to Generated Functions -->
+  <line x1="350" y1="170" x2="420" y2="170" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Generated RPC Functions Container -->
+  <rect x="450" y="80" width="500" height="680" rx="5" class="stroke-primary"/>
+  <text x="700" y="105" class="text-section">
+    Generated RPC Functions
+  </text>
+
+  <!-- create function -->
+  <rect x="470" y="120" width="180" height="100" rx="5" class="stroke-primary"/>
+  <text x="560" y="140" class="text-function-title">
+    create_{suffix}
+  </text>
+  <text x="480" y="160" class="text-detail">
+    Input: ParamsForCreate
+  </text>
+  <text x="480" y="175" class="text-detail">
+    1. Extract data
+  </text>
+  <text x="480" y="190" class="text-detail">
+    2. Bmc::create()
+  </text>
+  <text x="480" y="205" class="text-detail">
+    3. Bmc::get() → Entity
+  </text>
+
+  <!-- get function -->
+  <rect x="670" y="120" width="180" height="100" rx="5" class="stroke-primary"/>
+  <text x="760" y="140" class="text-function-title">
+    get_{suffix}
+  </text>
+  <text x="680" y="160" class="text-detail">
+    Input: ParamsIded
+  </text>
+  <text x="680" y="175" class="text-detail">
+    1. Extract id
+  </text>
+  <text x="680" y="190" class="text-detail">
+    2. Bmc::get() → Entity
+  </text>
+
+  <!-- list function -->
+  <rect x="470" y="240" width="180" height="100" rx="5" class="stroke-primary"/>
+  <text x="560" y="260" class="text-function-title">
+    list_{suffix}s
+  </text>
+  <text x="480" y="280" class="text-detail">
+    Input: ParamsList
+  </text>
+  <text x="480" y="295" class="text-detail">
+    1. Extract filters &amp; options
+  </text>
+  <text x="480" y="310" class="text-detail">
+    2. Bmc::list() → Vec&lt;Entity&gt;
+  </text>
+
+  <!-- update function -->
+  <rect x="670" y="240" width="180" height="100" rx="5" class="stroke-primary"/>
+  <text x="760" y="260" class="text-function-title">
+    update_{suffix}
+  </text>
+  <text x="680" y="280" class="text-detail">
+    Input: ParamsForUpdate
+  </text>
+  <text x="680" y="295" class="text-detail">
+    1. Extract id &amp; data
+  </text>
+  <text x="680" y="310" class="text-detail">
+    2. Bmc::update()
+  </text>
+  <text x="680" y="325" class="text-detail">
+    3. Bmc::get() → Entity
+  </text>
+
+  <!-- delete function -->
+  <rect x="570" y="360" width="180" height="100" rx="5" class="stroke-primary"/>
+  <text x="660" y="380" class="text-function-title">
+    delete_{suffix}
+  </text>
+  <text x="580" y="400" class="text-detail">
+    Input: ParamsIded
+  </text>
+  <text x="580" y="415" class="text-detail">
+    1. Extract id
+  </text>
+  <text x="580" y="430" class="text-detail">
+    2. Bmc::get() → Entity
+  </text>
+  <text x="580" y="445" class="text-detail">
+    3. Bmc::delete()
+  </text>
+
+  <!-- Common Function Parameters -->
+  <rect x="470" y="500" width="460" height="120" rx="5" class="stroke-primary"/>
+  <text x="700" y="520" class="text-box-title">
+    Common Function Parameters
+  </text>
+  <text x="480" y="545" class="text-info">
+    • ctx: Ctx - Request context
+  </text>
+  <text x="480" y="565" class="text-info">
+    • mm: ModelManager - Database connection manager
+  </text>
+  <text x="480" y="585" class="text-info">
+    • params: Various param types for different operations
+  </text>
+  <text x="480" y="605" class="text-info">
+    Return: Result&lt;DataRpcResult&lt;T&gt;&gt;
+  </text>
+
+  <!-- Macro Expansion Process -->
+  <rect x="470" y="640" width="460" height="100" rx="5" class="stroke-primary"/>
+  <text x="700" y="660" class="text-box-title">
+    Macro Expansion Process
+  </text>
+  <text x="480" y="680" class="text-info">
+    1. paste! macro enables identifier concatenation
+  </text>
+  <text x="480" y="700" class="text-info">
+    2. Function names generated using [&lt;pattern&gt;] syntax
+  </text>
+  <text x="480" y="720" class="text-info">
+    3. Type parameters substituted throughout function bodies
+  </text>
+
+  <!-- Dashed connection lines -->
+  <line x1="560" y1="220" x2="560" y2="500" class="stroke-dashed"/>
+  <line x1="760" y1="220" x2="760" y2="500" class="stroke-dashed"/>
+  <line x1="560" y1="340" x2="560" y2="500" class="stroke-dashed"/>
+  <line x1="760" y1="340" x2="760" y2="500" class="stroke-dashed"/>
+  <line x1="660" y1="460" x2="660" y2="500" class="stroke-dashed"/>
+
+  <!-- CRUD Operations Pattern Box -->
+  <rect x="50" y="300" width="300" height="200" rx="5" class="stroke-primary"/>
+  <text x="200" y="325" class="text-section">
+    CRUD Operations Pattern
+  </text>
+  <text x="60" y="350" class="text-info">
+    Create: Insert new entity, return created entity
+  </text>
+  <text x="60" y="370" class="text-info">
+    Read: Get single entity by ID
+  </text>
+  <text x="60" y="390" class="text-info">
+    List: Get multiple entities with filters
+  </text>
+  <text x="60" y="410" class="text-info">
+    Update: Modify entity, return updated entity
+  </text>
+  <text x="60" y="430" class="text-info">
+    Delete: Remove entity, return deleted entity
+  </text>
+  <text x="60" y="460" class="text-info">
+    Note: All operations go through BMC layer
+  </text>
+  <text x="60" y="480" class="text-info">
+    and return consistent DataRpcResult format
+  </text>
+</svg>

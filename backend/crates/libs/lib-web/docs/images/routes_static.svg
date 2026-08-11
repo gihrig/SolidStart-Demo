@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1.5; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 12px; fill: white; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .rect-layer { fill: #3D3D3D; }
+      .rect-sublayer { fill: #4D4D4D; }
+      .rect-process { fill: #5D5D5D; }
+      .rect-error { fill: #6D3D3D; }
+      .rect-data { fill: #3D5D3D; }
+      .rect-extractor { fill: #3D3D5D; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>
+  <rect width="800" height="600" class="bg" x="2" y="1" />
+
+  <!-- Module Entry Point -->
+  <rect x="30" y="30" width="740" height="100" rx="5" class="stroke-primary rect-layer" />
+  <text x="400" y="60" class="text-title">routes_static Module - Static File Serving Public Interface</text>
+  <text x="400" y="85" class="text-code">pub fn serve_dir(web_folder: &amp;'static String) -&gt; MethodRouter</text>
+  <text x="400" y="105" class="text-small">Configures static file serving with 404 handling</text>
+
+  <!-- Internal 404 Handler -->
+  <rect x="150" y="180" width="260" height="80" rx="5" class="stroke-primary rect-process" />
+  <text x="290" y="205" class="text-section">handle_404 Function</text>
+  <text x="290" y="225" class="text-code">async fn handle_404()</text>
+  <text x="280" y="245" class="text-small">(StatusCode::NOT_FOUND, "Resource not found.")</text>
+
+  <!-- ServeDir Service Configuration -->
+  <rect x="450" y="180" width="200" height="80" rx="5" class="stroke-primary rect-sublayer" />
+  <text x="550" y="205" class="text-section">ServeDir Service</text>
+  <text x="550" y="225" class="text-code">ServeDir::new(web_folder)</text>
+  <text x="550" y="245" class="text-small">Tower HTTP service</text>
+
+  <!-- Service Assembly -->
+  <rect x="150" y="320" width="500" height="100" rx="5" class="stroke-primary rect-data" />
+  <text x="400" y="345" class="text-section">Service Assembly</text>
+  <text x="400" y="365" class="text-code">any_service(ServeDir::new(web_folder)</text>
+  <text x="400" y="385" class="text-code">.not_found_service(handle_404.into_service()))</text>
+  <text x="400" y="410" class="text-small">Returns MethodRouter for any HTTP method</text>
+
+  <!-- Return Value -->
+  <rect x="250" y="460" width="300" height="80" rx="5" class="stroke-primary rect-extractor" />
+  <text x="400" y="485" class="text-section">Return Value</text>
+  <text x="400" y="505" class="text-code">MethodRouter</text>
+  <text x="400" y="525" class="text-small">Axum router for static file serving</text>
+
+  <!-- Flow Arrows -->
+  <line x1="280" y1="130" x2="280" y2="180" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="550" y1="130" x2="550" y2="180" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="280" y1="260" x2="280" y2="318" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="550" y1="260" x2="550" y2="318" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="400" y1="420" x2="400" y2="458" class="line-primary" marker-end="url(#arrowhead)" />
+</svg>

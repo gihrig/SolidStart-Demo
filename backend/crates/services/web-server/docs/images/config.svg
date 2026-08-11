@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1000" height="700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1.5; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 12px; fill: white; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .rect-layer { fill: #3D3D3D; }
+      .rect-sublayer { fill: #4D4D4D; }
+      .rect-process { fill: #5D5D5D; }
+      .rect-error { fill: #6D3D3D; }
+      .rect-data { fill: #3D5D3D; }
+      .rect-extractor { fill: #3D3D5D; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>  <rect width="1000" height="700" class="bg" />
+
+  <!-- Module Entry Point -->
+  <rect x="30" y="30" width="940" height="180" rx="5" class="stroke-primary rect-layer" />
+  <text x="500" y="60" class="text-title">Config Module - Web Server Configuration Management Public Interface</text>
+
+  <!-- Public Function -->
+  <rect x="60" y="90" width="280" height="100" rx="4" class="stroke-primary rect-sublayer" />
+  <text x="200" y="118" class="text-section">web_config()</text>
+  <text x="200" y="138" class="text-code">pub fn -&gt; &amp;'static WebConfig</text>
+  <text x="200" y="158" class="text-small">Entry point for configuration access</text>
+  <text x="200" y="175" class="text-small">Returns static reference to config</text>
+
+  <!-- WebConfig Struct -->
+  <rect x="700" y="90" width="240" height="100" rx="4" class="stroke-primary rect-data" />
+  <text x="820" y="118" class="text-section">WebConfig Struct</text>
+  <text x="820" y="138" class="text-code">pub struct WebConfig</text>
+  <text x="820" y="158" class="text-code">WEB_FOLDER: String</text>
+  <text x="820" y="175" class="text-small">Configuration data holder</text>
+
+  <!-- Initialization Flow -->
+  <rect x="30" y="250" width="940" height="420" rx="5" class="stroke-primary rect-layer" />
+  <text x="500" y="280" class="text-section">Initialization Flow</text>
+
+  <!-- OnceLock Pattern -->
+  <rect x="380" y="310" width="280" height="100" rx="4" class="stroke-primary rect-extractor" />
+  <text x="520" y="335" class="text-section">OnceLock Pattern</text>
+  <text x="520" y="355" class="text-code">static INSTANCE: OnceLock&lt;WebConfig&gt;</text>
+  <text x="520" y="375" class="text-small">Thread-safe lazy initialization</text>
+  <text x="520" y="395" class="text-small">get_or_init() ensures single instance</text>
+
+  <!-- Step 1: Check OnceLock -->
+  <rect x="60" y="310" width="200" height="80" rx="4" class="stroke-primary rect-process" />
+  <text x="160" y="335" class="text-box-title">Check OnceLock</text>
+  <text x="160" y="355" class="text-code">INSTANCE.get_or_init()</text>
+  <text x="160" y="375" class="text-small">Check if already initialized</text>
+
+  <!-- Step 2: Load from Environment -->
+  <rect x="60" y="420" width="200" height="80" rx="4" class="stroke-primary rect-process" />
+  <text x="160" y="445" class="text-box-title">load_from_env()</text>
+  <text x="160" y="465" class="text-code">WebConfig::load_from_env()</text>
+  <text x="160" y="485" class="text-small">Private impl method</text>
+
+  <!-- Step 3: Create WebConfig -->
+  <rect x="60" y="530" width="200" height="80" rx="4" class="stroke-primary rect-data" />
+  <text x="160" y="555" class="text-box-title">Create WebConfig</text>
+  <text x="160" y="575" class="text-code">Ok(WebConfig { ... })</text>
+  <text x="160" y="595" class="text-small">Return configured instance</text>
+
+  <!-- impl WebConfig Read Env -->
+  <rect x="700" y="310" width="240" height="80" rx="4" class="stroke-primary rect-data" />
+  <text x="820" y="335" class="text-box-title">impl WebConfig Read Env</text>
+  <text x="820" y="355" class="text-code">get_env("SERVICE_WEB_FOLDER")</text>
+  <text x="820" y="375" class="text-small">lib_utils::envs::get_env</text>
+
+  <!-- Error Handling -->
+  <rect x="700" y="530" width="240" height="80" rx="4" class="stroke-primary rect-error" />
+  <text x="820" y="555" class="text-box-title">Error Handling</text>
+  <text x="820" y="575" class="text-code">unwrap_or_else(|ex| panic!)</text>
+  <text x="820" y="595" class="text-small">FATAL - WHILE LOADING CONF</text>
+
+  <!-- Flow Arrows -->
+  <!-- Initialization flow -->
+  <line x1="160" y1="190" x2="160" y2="310" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="160" y1="390" x2="160" y2="420" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="160" y1="500" x2="160" y2="530" class="line-primary" marker-end="url(#arrowhead)" />
+
+  <!-- Success path -->
+  <line x1="260" y1="370" x2="380" y2="370" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="260" y1="560" x2="520" y2="560" class="line-primary" />
+  <line x1="520" y1="560" x2="520" y2="410" class="line-primary" marker-end="url(#arrowhead)" />
+
+  <!-- Impl Path -->
+  <line x1="820" y1="310" x2="820" y2="190" class="stroke-dashed" marker-end="url(#arrowhead)" />
+
+  <!-- Error path -->
+  <line x1="260" y1="580" x2="700" y2="580" class="stroke-dashed" marker-end="url(#arrowhead)" />
+
+  <!-- Return to static -->
+  <line x1="380" y1="330" x2="280" y2="190" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="660" y1="330" x2="760" y2="190" class="line-primary" marker-end="url(#arrowhead)" />
+</svg>

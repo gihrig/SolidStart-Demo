@@ -1,0 +1,126 @@
+{
+  "project": "Full-Stack Integration (SolidStart + Rust/Axum)",
+  "description": "Remaining tasks for completing the full-stack integration",
+  "created": "2026-01-23",
+  "tasks": [
+    {
+      "id": 1,
+      "phase": "Phase 4: Components",
+      "content": "Create WebSocket client hook (src/lib/websocket.ts)",
+      "status": "pending",
+      "activeForm": "Creating WebSocket client hook",
+      "location": "SolidStart-Demo/src/lib/websocket.ts",
+      "dependencies": []
+    },
+    {
+      "id": 2,
+      "phase": "Phase 4: Components",
+      "content": "Create Auth Context component (src/components/AuthContext.tsx)",
+      "status": "pending",
+      "activeForm": "Creating Auth Context component",
+      "location": "SolidStart-Demo/src/components/AuthContext.tsx",
+      "dependencies": []
+    },
+    {
+      "id": 3,
+      "phase": "Phase 4: Components",
+      "content": "Create Login Form component (src/components/LoginForm.tsx)",
+      "status": "pending",
+      "activeForm": "Creating Login Form component",
+      "location": "SolidStart-Demo/src/components/LoginForm.tsx",
+      "dependencies": [2]
+    },
+    {
+      "id": 4,
+      "phase": "Phase 4: Components",
+      "content": "Create Agent Manager component (src/components/AgentManager.tsx)",
+      "status": "pending",
+      "activeForm": "Creating Agent Manager component",
+      "location": "SolidStart-Demo/src/components/AgentManager.tsx",
+      "dependencies": []
+    },
+    {
+      "id": 5,
+      "phase": "Phase 4: Components",
+      "content": "Create Conversation Manager component (src/components/ConversationManager.tsx)",
+      "status": "pending",
+      "activeForm": "Creating Conversation Manager component",
+      "location": "SolidStart-Demo/src/components/ConversationManager.tsx",
+      "dependencies": []
+    },
+    {
+      "id": 6,
+      "phase": "Phase 4: Components",
+      "content": "Create Message Panel component with WebSocket (src/components/MessagePanel.tsx)",
+      "status": "pending",
+      "activeForm": "Creating Message Panel component with WebSocket",
+      "location": "SolidStart-Demo/src/components/MessagePanel.tsx",
+      "dependencies": [1]
+    },
+    {
+      "id": 7,
+      "phase": "Phase 5: Main Page",
+      "content": "Create fullstack page (src/routes/fullstack.tsx)",
+      "status": "pending",
+      "activeForm": "Creating fullstack page",
+      "location": "SolidStart-Demo/src/routes/fullstack.tsx",
+      "dependencies": [2, 3, 4, 5, 6]
+    },
+    {
+      "id": 8,
+      "phase": "Phase 6: Testing",
+      "content": "Create LoginForm unit tests (src/components/LoginForm.test.tsx)",
+      "status": "pending",
+      "activeForm": "Creating LoginForm unit tests",
+      "location": "SolidStart-Demo/src/components/LoginForm.test.tsx",
+      "dependencies": [3]
+    },
+    {
+      "id": 9,
+      "phase": "Phase 6: Testing",
+      "content": "Create AgentManager unit tests (src/components/AgentManager.test.tsx)",
+      "status": "pending",
+      "activeForm": "Creating AgentManager unit tests",
+      "location": "SolidStart-Demo/src/components/AgentManager.test.tsx",
+      "dependencies": [4]
+    },
+    {
+      "id": 10,
+      "phase": "Phase 6: Testing",
+      "content": "Create WebSocket hook tests (src/lib/websocket.test.ts)",
+      "status": "pending",
+      "activeForm": "Creating WebSocket hook tests",
+      "location": "SolidStart-Demo/src/lib/websocket.test.ts",
+      "dependencies": [1]
+    },
+    {
+      "id": 11,
+      "phase": "Phase 6: Testing",
+      "content": "Create E2E tests (e2e/fullstack.spec.ts)",
+      "status": "pending",
+      "activeForm": "Creating E2E tests",
+      "location": "SolidStart-Demo/e2e/fullstack.spec.ts",
+      "dependencies": [7]
+    },
+    {
+      "id": 12,
+      "phase": "Phase 6: Testing",
+      "content": "Run integration tests with both servers",
+      "status": "pending",
+      "activeForm": "Running integration tests with both servers",
+      "location": "Both projects",
+      "dependencies": [8, 9, 10, 11]
+    }
+  ],
+  "summary": {
+    "total": 12,
+    "pending": 12,
+    "in_progress": 0,
+    "completed": 0
+  },
+  "notes": [
+    "Front-end files are in: /Users/glen/Documents/Development/Study/Javascript/SolidJS/SolidStart-Demo",
+    "Back-end files are in: /Users/glen/Documents/Development/Study/Rust/Rust_10X/rust-web-app",
+    "Phases 1-3 (TypeScript types, RPC client, CORS, WebSocket backend) are already complete"
+  ]
+}

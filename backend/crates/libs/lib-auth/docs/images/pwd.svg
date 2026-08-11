@@ -1,0 +1,46 @@
+<svg width="700" height="500" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100%" height="100%" fill="#333333"/>
+  
+  <!-- Public API -->
+  <rect x="50" y="50" width="600" height="70" stroke="black" stroke-width="2" fill="#444444" rx="5"/>
+  <text x="350" y="85" font-family="Arial" font-size="16" fill="white" text-anchor="middle">Public API</text>
+  <text x="175" y="105" font-family="Arial" font-size="14" fill="white" text-anchor="middle">hash_pwd()</text>
+  <text x="525" y="105" font-family="Arial" font-size="14" fill="white" text-anchor="middle">validate_pwd()</text>
+  
+  <!-- Scheme Resolution -->
+  <rect x="50" y="150" width="600" height="70" stroke="black" stroke-width="2" fill="#444444" rx="5"/>
+  <text x="350" y="185" font-family="Arial" font-size="16" fill="white" text-anchor="middle">Scheme Resolution</text>
+  <text x="350" y="205" font-family="Arial" font-size="14" fill="white" text-anchor="middle">get_scheme() and SchemeDispatcher</text>
+  
+  <!-- Scheme Implementations -->
+  <rect x="50" y="250" width="275" height="70" stroke="black" stroke-width="2" fill="#444444" rx="5"/>
+  <text x="187.5" y="285" font-family="Arial" font-size="16" fill="white" text-anchor="middle">Scheme01</text>
+  <text x="187.5" y="305" font-family="Arial" font-size="14" fill="white" text-anchor="middle">HMAC-SHA512</text>
+  
+  <rect x="375" y="250" width="275" height="70" stroke="black" stroke-width="2" fill="#444444" rx="5"/>
+  <text x="512.5" y="285" font-family="Arial" font-size="16" fill="white" text-anchor="middle">Scheme02 (Default)</text>
+  <text x="512.5" y="305" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Argon2id</text>
+  
+  <!-- Results -->
+  <rect x="50" y="350" width="600" height="100" stroke="black" stroke-width="2" fill="#444444" rx="5"/>
+  <text x="350" y="375" font-family="Arial" font-size="16" fill="white" text-anchor="middle">Result Processing</text>
+  <text x="350" y="400" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Hash formatting: #&lt;scheme&gt;#&lt;hash&gt;</text>
+  <text x="350" y="425" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Status determination: SchemeStatus::Ok or SchemeStatus::Outdated</text>
+  
+  <!-- Arrows -->
+  <line x1="175" y1="120" x2="175" y2="150" stroke="white" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="525" y1="120" x2="525" y2="150" stroke="white" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <line x1="175" y1="220" x2="175" y2="250" stroke="white" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="525" y1="220" x2="525" y2="250" stroke="white" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <line x1="187.5" y1="320" x2="187.5" y2="350" stroke="white" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="512.5" y1="320" x2="512.5" y2="350" stroke="white" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Arrow definitions -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="white"/>
+    </marker>
+  </defs>
+</svg>

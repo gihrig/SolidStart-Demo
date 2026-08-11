@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1.5; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 12px; fill: white; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .rect-layer { fill: #3D3D3D; }
+      .rect-sublayer { fill: #4D4D4D; }
+      .rect-process { fill: #5D5D5D; }
+      .rect-error { fill: #6D3D3D; }
+      .rect-data { fill: #3D5D3D; }
+      .rect-extractor { fill: #3D3D5D; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>
+  <rect width="800" height="600" class="bg" x="2" y="1" />
+
+  <!-- Module Entry Point -->
+  <rect x="30" y="30" width="740" height="120" rx="5" class="stroke-primary rect-layer" />
+  <text x="400" y="60" class="text-title">agent_rpc Module - Agent RPC Public Interface</text>
+  <text x="400" y="90" class="text-code">lib_rpc_core::prelude::*</text>
+  <text x="400" y="110" class="text-code">lib_core::model::agent::{Agent, AgentBmc, AgentFilter, AgentForCreate, AgentForUpdate}</text>
+
+  <!-- Router Builder -->
+  <rect x="50" y="180" width="300" height="150" rx="5" class="stroke-primary rect-process" />
+  <text x="200" y="210" class="text-section">rpc_router_builder()</text>
+  <text x="200" y="230" class="text-code">RouterBuilder</text>
+  <text x="200" y="260" class="text-box-title">RPC Endpoints</text>
+  <text x="200" y="275" class="text-small">create_agent</text>
+  <text x="200" y="290" class="text-small">get_agent</text>
+  <text x="200" y="305" class="text-small">list_agents</text>
+  <text x="200" y="320" class="text-small">update_agent</text>
+
+  <!-- Generated Functions -->
+  <rect x="400" y="180" width="320" height="380" rx="5" class="stroke-primary rect-data" />
+  <text x="560" y="210" class="text-section">generate_common_rpc_fns!</text>
+  <text x="560" y="235" class="text-code">Macro-generated CRUD operations</text>
+
+  <!-- Create Function -->
+  <rect x="420" y="260" width="280" height="50" rx="3" class="stroke-primary rect-sublayer" />
+  <text x="560" y="280" class="text-box-title">create_agent</text>
+  <text x="560" y="295" class="text-small">AgentForCreate -&gt; Agent</text>
+
+  <!-- Get Function -->
+  <rect x="420" y="320" width="280" height="50" rx="3" class="stroke-primary rect-sublayer" />
+  <text x="560" y="340" class="text-box-title">get_agent</text>
+  <text x="560" y="355" class="text-small">ID -&gt; Agent</text>
+
+  <!-- List Function -->
+  <rect x="420" y="380" width="280" height="50" rx="3" class="stroke-primary rect-sublayer" />
+  <text x="560" y="400" class="text-box-title">list_agents</text>
+  <text x="560" y="415" class="text-small">AgentFilter -&gt; Vec&lt;Agent&gt;</text>
+
+  <!-- Update Function -->
+  <rect x="420" y="440" width="280" height="50" rx="3" class="stroke-primary rect-sublayer" />
+  <text x="560" y="460" class="text-box-title">update_agent</text>
+  <text x="560" y="475" class="text-small">ID, AgentForUpdate -&gt; Agent</text>
+
+  <!-- Delete Function -->
+  <rect x="420" y="500" width="280" height="50" rx="3" class="stroke-primary rect-sublayer" />
+  <text x="560" y="520" class="text-box-title">delete_agent</text>
+  <text x="560" y="535" class="text-small">ID -&gt; ()</text>
+
+  <!-- BMC Layer Reference -->
+  <rect x="80" y="380" width="220" height="80" rx="5" class="stroke-primary rect-extractor" />
+  <text x="190" y="405" class="text-section">AgentBmc</text>
+  <text x="190" y="425" class="text-code">Business Model Controller</text>
+  <text x="190" y="445" class="text-small">Database operations layer</text>
+
+  <!-- Flow Arrows -->
+  <line x1="200" y1="330" x2="200" y2="378" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="350" y1="255" x2="400" y2="285" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="300" y1="420" x2="400" y2="420" class="stroke-dashed" marker-end="url(#arrowhead)" />
+
+</svg>
