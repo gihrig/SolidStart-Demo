@@ -2,7 +2,9 @@
 [global_env]
 
 [scripts]
+bindings = { command = "cargo test export_bindings", info = "Regenerate ts-rs TypeScript bindings (exported via cargo test)" }
 build = { command = "cargo build", info = "Build w/ debug symbols", env = { RUST_LOG = "info" } }
+check = { command = "cargo fmt --all && cargo clippy --all-targets", info = "Format (fix) and lint" }
 db = { command = "docker run --rm --name pg -p 5432:5432 -e POSTGRES_PASSWORD=welcome postgres:17;", info="Start Postgres DB Docker container" }
 dev = { command = "cargo run -p web-server", info = "Start a dev server" }
 dev-watch = { command = "cargo watch -q -c -w crates/services/web-server/src/ -w crates/libs/ -w .cargo/ -x 'run -p web-server'", info = "Start dev server in watch mode" }
