@@ -1,4 +1,5 @@
 dist
+target
 .wrangler
 .output
 .vercel
