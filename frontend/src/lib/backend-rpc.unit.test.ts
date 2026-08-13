@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { auth, agent, conv, convMsg, backendRpc, createRpcClient } from "./backend-rpc";
 
+// Test credentials sourced from .env.test (VITE_-prefixed vars reach import.meta.env).
+const TEST_USERNAME = import.meta.env.VITE_TEST_USERNAME;
+const TEST_PASSWORD = import.meta.env.VITE_TEST_PASSWORD;
+
+if (!TEST_USERNAME || !TEST_PASSWORD) {
+  throw new Error("Missing VITE_TEST_USERNAME / VITE_TEST_PASSWORD — check frontend/.env.test");
+}
+
 // Helper to create a mock fetch response
 function mockResponse(body: unknown, ok = true, status = 200): Response {
   return {
@@ -36,14 +44,14 @@ describe("auth.login", () => {
     const fetchMock = vi.fn(() => Promise.resolve(mockResponse({ result: { success: true } })));
     vi.stubGlobal("fetch", fetchMock);
 
-    await auth.login("demo1", "welcome");
+    await auth.login(TEST_USERNAME, TEST_PASSWORD);
 
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:8080/api/login",
       expect.objectContaining({
         method: "POST",
         credentials: "include",
-        body: JSON.stringify({ username: "demo1", pwd: "welcome" }),
+        body: JSON.stringify({ username: TEST_USERNAME, pwd: TEST_PASSWORD }),
       }),
     );
   });
@@ -54,7 +62,7 @@ describe("auth.login", () => {
       vi.fn(() => Promise.resolve(mockResponse({ result: { success: true } }))),
     );
 
-    const result = await auth.login("demo1", "welcome");
+    const result = await auth.login(TEST_USERNAME, TEST_PASSWORD);
 
     expect(result).toEqual({ result: { success: true } });
   });
