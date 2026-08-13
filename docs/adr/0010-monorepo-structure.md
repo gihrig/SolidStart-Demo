@@ -29,10 +29,10 @@ the shared model. The domain is treated as **one bounded context with two
 surfaces** (the unified identity of [ADR-0007](0007-consolidate-jedi-shell-unified-identity.md)),
 so there is a single root `CONTEXT.md`, not a per-subtree split.
 
-**Build orchestration — a root `Scripts.toml` run by `cargo-run` / `run-cargo-script`
+**Build orchestration — a root `Scripts.toml` run by `run-cargo-script`
 (`cgs`).** Cross-cutting recipes (`cgs dev`, `cgs build`, `cgs test`, `cgs check`,
 `cgs bindings`) delegate to each subtree's native commands (`vpr …` in
-`frontend/`, `cargo …` in `backend/`). `run-cargo-script` reads `Scripts.toml`
+`frontend/`, `cgs …` in `backend/`). `run-cargo-script` reads `Scripts.toml`
 from the working directory and **runs without any `Cargo.toml`** (verified), so a
 master file at the polyglot root — which has no root `Cargo.toml`, since Cargo's
 lives at `backend/` — is valid. Subtree runners stay for single-side work.

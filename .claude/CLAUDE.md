@@ -105,6 +105,7 @@ Test naming: lib utilities use `.unit.test.ts`, components use `.test.tsx`, End 
 - **`update`/`update:latest` scripts call `bun` directly**: Bypassing `vp` invoking `bun update` directly for dependency management. It's an exception to the "don't use bun directly" rule.
 - **`check` script adds `--fix`**: `vpr check` runs `vp check --fix` (auto-fixes formatting/lint). Use `vp check` directly to avoid mutations.
 - **`vpr lighthouse` requires Brave Browser**: The script hardcodes `/Applications/Brave Browser.app/Contents/MacOS/Brave Browser` as `CHROME_PATH`. Will fail silently on machines without Brave installed at that path.
+- **Unit-test credentials live in `frontend/.env.test`**: `backend-rpc.unit.test.ts` reads demo login creds from `import.meta.env.VITE_TEST_USERNAME` / `VITE_TEST_PASSWORD` (Vite loads `.env.test` in test mode). The file is committed (not git-ignored, unlike `.env`), so unit tests pass on CI/fresh clones with **no extra env setup**; the test throws loudly if the vars are missing. Real secrets belong in `.env.test.local` (git-ignored).
 
 <!--VITE PLUS START-->
 

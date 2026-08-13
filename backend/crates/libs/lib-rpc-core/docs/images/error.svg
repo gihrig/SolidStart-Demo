@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-feature-title { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 12px; fill: white; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .text-note { font-family: Arial, sans-serif; font-size: 12px; font-style: italic; fill: white; text-anchor: middle; }
+      .text-note-sm { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .text-note-box { fill: none; stroke: #AAA; stroke-width: 1; stroke-dasharray: 5,5 }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7"
+     refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>
+
+  <rect width="800" height="600" class="bg"/>
+
+  <!-- Title -->
+  <text x="400" y="30" class="text-title">
+    Error Module Flow
+  </text>
+
+  <!-- Application Error Box -->
+  <rect x="100" y="80" width="200" height="80" rx="5" class="stroke-primary"/>
+  <text x="200" y="125" class="text-box-title">
+    Application Error
+  </text>
+
+  <!-- External Error Box -->
+  <rect x="500" y="80" width="200" height="80" rx="5" class="stroke-primary"/>
+  <text x="600" y="125" class="text-box-title">
+    External Error
+  </text>
+
+  <!-- Error Enum Box -->
+  <rect x="300" y="230" width="200" height="80" rx="5" class="stroke-primary"/>
+  <text x="400" y="260" class="text-box-title">
+    Error Enum
+  </text>
+  <text x="400" y="285" class="text-small">
+    (From trait converts)
+  </text>
+
+  <!-- RPC Router Box -->
+  <rect x="300" y="380" width="200" height="80" rx="5" class="stroke-primary"/>
+  <text x="400" y="410" class="text-box-title">
+    RPC Router
+  </text>
+  <text x="400" y="435" class="text-small">
+    (RpcHandlerError trait)
+  </text>
+
+  <!-- JSON-RPC Error Response Box -->
+  <rect x="300" y="530" width="200" height="50" rx="5" class="stroke-primary"/>
+  <text x="400" y="560" class="text-box-title">
+    JSON-RPC Error Response
+  </text>
+
+  <!-- Arrows -->
+  <line x1="200" y1="160" x2="350" y2="230" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <line x1="600" y1="160" x2="450" y2="230" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <line x1="400" y1="310" x2="400" y2="380" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <line x1="400" y1="460" x2="400" y2="530" class="line-primary" marker-end="url(#arrowhead)"/>
+</svg>

@@ -1,0 +1,19 @@
+# Root build orchestration for the mono-repo (ADR-0010).
+#
+# Cross-cutting recipes delegate to each subtree's native runner:
+#   frontend/ -> vpr <script>   (Vite+, package.json scripts)
+#   backend/  -> cgs <script>   (run-cargo-script, backend/Scripts.toml)
+#
+# Single-side work: cd into a subtree and use its runner directly.
+# Valid at the polyglot root with no root Cargo.toml (ADR-0010, verified):
+# run-cargo-script reads Scripts.toml from the working directory and needs no
+# Cargo.toml — Cargo's lives at backend/.
+
+[global_env]
+
+[scripts]
+bindings = { command = "(cd backend && cgs bindings)", info = "Regenerate ts-rs bindings (backend)" }
+build = { command = "(cd frontend && vpr build) && (cd backend && cgs build)", info = "Build both subtrees" }
+check = { command = "(cd frontend && vpr check) && (cd backend && cgs check)", info = "Format + lint + type-check both subtrees" }
+dev = { command = "(cd backend && cgs dev) & (cd frontend && vpr dev) & wait", info = "Start both dev servers; basic wiring — ticket E adds concurrently kill-both" }
+test = { command = "(cd frontend && vpr test:all) && (cd backend && cgs test)", info = "Run unit + component tests (frontend) and cargo tests (backend)" }

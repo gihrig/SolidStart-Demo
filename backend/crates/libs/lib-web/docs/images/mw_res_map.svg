@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1000" height="890" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1.5; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 12px; fill: white; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .rect-layer { fill: #3D3D3D; }
+      .rect-sublayer { fill: #4D4D4D; }
+      .rect-process { fill: #5D5D5D; }
+      .rect-error { fill: #6D3D3D; }
+      .rect-data { fill: #3D5D3D; }
+      .rect-extractor { fill: #3D3D5D; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>
+  <rect width="1000" height="890" class="bg" x="2" y="1" />
+
+  <!-- Module Entry Point -->
+  <rect x="30" y="30" width="940" height="180" rx="5" class="stroke-primary rect-layer" />
+  <text x="500" y="60" class="text-title">mw_res_map Module - Response Mapping Middleware Public Interface</text>
+  <text x="500" y="85" class="text-code">Used by: Axum response processing to handle errors and logging</text>
+
+  <!-- Middleware Function -->
+  <rect x="60" y="120" width="880" height="70" rx="4" class="stroke-primary rect-data" />
+  <text x="500" y="145" class="text-section">mw_reponse_map</text>
+  <text x="500" y="160" class="text-code">ctx: Result&lt;CtxW&gt;, uri: Uri, req_method: Method, req_stamp: ReqStamp, res: Response -&gt; Response</text>
+  <text x="500" y="180" class="text-small">Maps response errors to client format and logs requests</text>
+
+  <!-- Core Processing Flow -->
+  <rect x="30" y="240" width="940" height="620" rx="5" class="stroke-primary rect-layer" />
+
+  <!-- Step 1: Extract Context -->
+  <rect x="60" y="270" width="200" height="90" rx="4" class="stroke-primary rect-process" />
+  <text x="160" y="295" class="text-box-title">Extract Context</text>
+  <text x="160" y="310" class="text-code">ctx.map(|ctx| ctx.0).ok()</text>
+  <text x="160" y="335" class="text-small">Convert Result&lt;CtxW&gt; to Option&lt;Ctx&gt;</text>
+  <text x="160" y="350" class="text-small">Generate new UUID</text>
+
+  <!-- Step 2: Extract Response Data -->
+  <rect x="60" y="390" width="200" height="90" rx="4" class="stroke-primary rect-process" />
+  <text x="160" y="415" class="text-box-title">Extract Response Data</text>
+  <text x="160" y="430" class="text-code">get&lt;Arc&lt;RpcInfo&gt;&gt;()</text>
+  <text x="160" y="455" class="text-code">get&lt;Arc&lt;Error&gt;&gt;()</text>
+  <text x="160" y="470" class="text-small">From response extensions</text>
+
+  <!-- Step 3: Error Processing -->
+  <rect x="60" y="510" width="200" height="90" rx="4" class="stroke-primary rect-error" />
+  <text x="160" y="535" class="text-box-title">Error Processing</text>
+  <text x="160" y="550" class="text-code">client_status_and_error()</text>
+  <text x="160" y="575" class="text-small">Extract client error info</text>
+  <text x="160" y="590" class="text-small">Map to status code</text>
+
+  <!-- Step 4: Build Error Response -->
+  <rect x="60" y="630" width="200" height="90" rx="4" class="stroke-primary rect-error" />
+  <text x="160" y="655" class="text-box-title">Build Error Response</text>
+  <text x="160" y="670" class="text-code">JSON error body</text>
+  <text x="160" y="695" class="text-small">RPC format with req_uuid</text>
+  <text x="160" y="710" class="text-small">Status code response</text>
+
+  <!-- Error Response Structure -->
+  <rect x="420" y="270" width="430" height="90" rx="4" class="stroke-primary rect-error" />
+  <text x="635" y="295" class="text-box-title">Error Response JSON Structure</text>
+  <text x="635" y="310" class="text-code">  "id": rpc_info.id,</text>
+  <text x="635" y="335" class="text-code">  "error": { "message": message, "data": { "req_uuid": uuid, "detail": detail } }</text>
+  <text x="635" y="350" class="text-small">RPC-compliant error format</text>
+
+  <!-- Step 5: Request Logging -->
+  <rect x="420" y="390" width="430" height="90" rx="4" class="stroke-primary rect-data" />
+  <text x="635" y="415" class="text-box-title">Request Logging</text>
+  <text x="635" y="430" class="text-code">log_request(req_method, uri, req_stamp, rpc_info, ctx, web_error, client_error)</text>
+  <text x="635" y="450" class="text-small">Comprehensive request logging with timing and error data</text>
+  <text x="635" y="470" class="text-small">TODO: Handle logging failures gracefully</text>
+
+  <!-- Step 6: Response Selection -->
+  <rect x="420" y="510" width="430" height="90" rx="4" class="stroke-primary rect-process" />
+  <text x="635" y="535" class="text-box-title">Response Selection</text>
+  <text x="635" y="550" class="text-code">error_response.unwrap_or(res)</text>
+  <text x="635" y="575" class="text-small">Return error response if exists</text>
+  <text x="635" y="590" class="text-small">Otherwise return original response</text>
+
+  <!-- Debug logging indicators -->
+  <rect x="60" y="760" width="430" height="75" rx="4" class="stroke-dashed rect-sublayer" />
+  <text x="275" y="780" class="text-box-title">Debug Logging</text>
+  <text x="275" y="800" class="text-code">debug!("RES_MAPPER"), debug!("CLIENT ERROR BODY"), debug!("\n")</text>
+  <text x="275" y="825" class="text-small">Development and troubleshooting output</text>
+
+  <!-- Dependencies -->
+  <rect x="520" y="760" width="430" height="75" rx="4" class="stroke-dashed rect-sublayer" />
+  <text x="735" y="780" class="text-box-title">Key Dependencies</text>
+  <text x="735" y="800" class="text-code">log::log_request, CtxW, ReqStamp, RpcInfo, Error types</text>
+  <text x="735" y="825" class="text-small">Integration with authentication, timing, and logging systems</text>
+
+  <!-- Flow Arrows -->
+  <!-- Entry point to processing -->
+  <line x1="160" y1="190" x2="160" y2="270" class="line-primary" marker-end="url(#arrowhead)" />
+
+  <!-- Main process flow -->
+  <line x1="160" y1="360" x2="160" y2="390" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="160" y1="480" x2="160" y2="510" class="line-primary" marker-end="url(#arrowhead)" />
+
+  <!-- Error processing flow -->
+  <line x1="160" y1="600" x2="160" y2="630" class="line-primary" marker-end="url(#arrowhead)" />
+
+  <!-- Build Error Response flow -->
+  <line x1="340" y1="320" x2="420" y2="320" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="340" y1="320" x2="340" y2="680" class="line-primary" />
+  <line x1="260" y1="680" x2="340" y2="680" class="line-primary" />
+
+  <!-- Error response JSON flow -->
+  <line x1="640" y1="360" x2="640" y2="390" class="line-primary" marker-end="url(#arrowhead)" />
+
+  <!-- Request Logging flow -->
+  <line x1="640" y1="480" x2="640" y2="510" class="line-primary" marker-end="url(#arrowhead)" />
+
+  <!-- Final response flow -->
+  <line x1="850" y1="555" x2="900" y2="555" class="line-primary" />
+  <line x1="900" y1="555" x2="900" y2="190" class="line-primary" marker-end="url(#arrowhead)" />
+
+</svg>

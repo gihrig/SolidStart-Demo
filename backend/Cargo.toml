@@ -1,0 +1,74 @@
+[workspace.lints.rust]
+unsafe_code = "forbid"
+# unused = { level = "allow", priority = -1 } # For exploratory dev.
+
+[workspace]
+resolver = "2"
+members = [
+    # -- Application Libraries
+    "crates/libs/lib-utils",      # e.g., base64, time.
+    "crates/libs/lib-rpc-core",   # e.g., core rpc utils (using rpc-router crate)
+    "crates/libs/lib-auth",       # e.g., for pwd, token.
+    "crates/libs/lib-core",       # e.g., model, ctx, config.
+    "crates/libs/lib-web",        # e.g., logging, common middleware etc
+
+    # -- Application Services
+    "crates/services/web-server",
+
+    # -- Tools
+    "crates/tools/gen-key",
+]
+
+[workspace.lints.clippy]
+# priority = -1 # Lower priority allows overrides
+all = { level = "warn", priority = -1 }           # Enable `all` lint group at warning level
+# pedantic = { level = "warn", priority = -1 }    # Enable `pedantic` lint group at warning level
+# nursery = { level = "warn", priority = -1 }     # Enable `experimental` lint group at warning level
+# cargo = { level = "warn", priority = -1 }       # Enable `cargo` lint group at warning level
+#
+# Clippy overrides
+result_large_err = "allow"
+uninlined_format_args = "allow"
+#
+# Individual files or lines
+# #[allow(clippy::result_large_err)]
+#
+# Command line
+# cargo clippy --workspace --all-targets --all-features
+# Add -- -D warnings to enforce warnings as errors
+
+# NOTE: Declaring all dependencies here does not increase release binary size
+# Member crates depend on this file so do not require dependency updates
+# Features are additive, increasing binary size, only declare here if universal
+[workspace.dependencies]
+argon2 = "0.5.3"
+axum = { version = "0.8.8", features = ["macros", "ws"] }
+base64 = "0.22.1"
+blake3 = "1.8.3"
+derive_more = { version = "2.1.1", features = ["display", "from"] }
+enum_dispatch = "0.3.13"
+futures = "0.3.31"
+futures-util = "0.3"
+hmac = "0.12.1"
+lazy-regex = "3.5.1"
+modql = { version = "0.4.1", features = ["with-sea-query"] }
+pastey = "0.2.1"
+rand = "0.9.2"
+rpc-router = "0.2.0"
+sea-query = "0.32.7"
+sea-query-binder = { version = "0.7.0", features = ["sqlx-postgres", "with-time", "with-uuid"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+serde_with = { version = "3.16.1", features = ["time_0_3"] }
+sha2 = "0.10.9"
+sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio", "uuid"] }
+strum_macros = "0.27.2"
+time = { version = "0.3.45", features = ["formatting", "parsing", "serde"] }
+tokio = { version = "1.49.0", features = ["full"] }
+tokio-tungstenite = "0.21"
+tower-cookies = "0.11.0"
+tower-http = { version = "0.6.8", features = ["fs", "cors"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+ts-rs = "11.1.0"
+uuid = { version = "1.19.0", features = ["fast-rng", "v4"] }

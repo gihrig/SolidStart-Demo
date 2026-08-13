@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-feature-title { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 12px; fill: white; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .text-note { font-family: Arial, sans-serif; font-size: 12px; font-style: italic; fill: white; text-anchor: middle; }
+      .text-note-sm { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .text-note-box { fill: none; stroke: #AAA; stroke-width: 1; stroke-dasharray: 5,5 }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7"
+     refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>
+
+  <rect width="800" height="500" class="bg"/>
+
+  <!-- Title -->
+  <text x="400" y="30" class="text-title">Config Module Flow</text>
+
+  <!-- Boxes -->
+  <rect x="150" y="80" width="200" height="80" rx="5" class="stroke-primary"/>
+  <rect x="450" y="80" width="200" height="80" rx="5" class="stroke-primary"/>
+  <rect x="280" y="230" width="240" height="100" rx="5" class="stroke-primary"/>
+  <rect x="300" y="380" width="200" height="80" rx="5" class="stroke-primary"/>
+
+  <!-- Box Text -->
+  <text x="250" y="105" class="text-box-title">core_config()</text>
+  <text x="250" y="125" class="text-code">Public access function</text>
+
+  <text x="550" y="105" class="text-box-title">OnceLock&lt;CoreConfig&gt;</text>
+  <text x="550" y="125" class="text-code">Static instance</text>
+
+  <text x="400" y="260" class="text-box-title">CoreConfig::load_from_env()</text>
+  <text x="400" y="280" class="text-code">Reads environment variables</text>
+  <text x="400" y="300" class="text-code">Returns CoreConfig struct</text>
+
+  <text x="400" y="410" class="text-box-title">Environment</text>
+  <text x="400" y="430" class="text-code">DB_URL, WEB_FOLDER</text>
+
+  <!-- Arrows -->
+  <line x1="350" y1="120" x2="450" y2="120" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <line x1="550" y1="160" x2="550" y2="200" class="line-primary"/>
+  <line x1="550" y1="200" x2="400" y2="200" class="line-primary"/>
+  <line x1="400" y1="200" x2="400" y2="230" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <line x1="400" y1="335" x2="400" y2="375" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Flow description -->
+  <text x="390" y="100" class="text-code">access</text>
+  <text x="400" y="180" class="text-code">get_or_init()</text>
+  <text x="470" y="360" class="text-code">Read environment</text>
+
+  <!-- Legend -->
+  <rect x="650" y="400" width="120" height="80" rx="5" class="stroke-primary"/>
+  <text x="710" y="420" class="text-box-title">Legend</text>
+  <line x1="660" y1="435" x2="680" y2="435" class="line-primary"/>
+  <text x="705" y="440" class="text-small">Flow</text>
+  <rect x="660" y="450" width="20" height="20" rx="2" class="stroke-primary"/>
+  <text x="720" y="465" class="text-small">Component</text>
+</svg>

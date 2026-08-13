@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="670" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1.5; stroke-dasharray: 5,5; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .text-title { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-code { font-family: Arial, sans-serif; font-size: 12px; fill: white; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .rect-layer { fill: #3D3D3D; }
+      .rect-sublayer { fill: #4D4D4D; }
+      .rect-process { fill: #5D5D5D; }
+      .rect-error { fill: #6D3D3D; }
+      .rect-data { fill: #3D5D3D; }
+      .rect-extractor { fill: #3D3D5D; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+  </defs>
+  <rect width="800" height="670" class="bg" x="2" y="1" />
+
+  <!-- Module Entry Point -->
+  <rect x="30" y="30" width="740" height="200" rx="5" class="stroke-primary rect-layer" />
+  <text x="400" y="60" class="text-title">mw_req_stamp Module - Request Timestamp Middleware Public Interface</text>
+  <text x="400" y="85" class="text-code">Used by: Request handlers to track request timing and correlation via ReqStamp extractor</text>
+
+  <!-- Middleware Resolver -->
+  <rect x="60" y="110" width="320" height="100" rx="4" class="stroke-primary rect-data" />
+  <text x="220" y="135" class="text-section">mw_req_stamp_resolver</text>
+  <text x="220" y="155" class="text-code">mut req: Request&lt;Body&gt;, next: Next</text>
+  <text x="220" y="172" class="text-code">-&gt; Result&lt;Response&gt;</text>
+  <text x="220" y="190" class="text-small">Creates timestamp and UUID for request tracking</text>
+
+  <!-- ReqStamp Extractor -->
+  <rect x="420" y="110" width="320" height="100" rx="4" class="stroke-primary rect-extractor" />
+  <text x="580" y="135" class="text-section">ReqStamp Extractor</text>
+  <text x="580" y="155" class="text-code">FromRequestParts&lt;S&gt;</text>
+  <text x="580" y="170" class="text-code">Extract from request extensions</text>
+  <text x="580" y="190" class="text-small">Error: ReqStampNotInReqExt</text>
+
+  <!-- Core Process Flow -->
+  <rect x="30" y="270" width="740" height="370" rx="5" class="stroke-primary rect-layer" />
+
+  <!-- Step 1: Generate Timestamp -->
+  <rect x="80" y="300" width="180" height="80" rx="4" class="stroke-primary rect-process" />
+  <text x="170" y="325" class="text-box-title">Generate Timestamp</text>
+  <text x="170" y="345" class="text-code">time_in = now_utc()</text>
+  <text x="170" y="365" class="text-small">Current UTC timestamp</text>
+
+  <!-- Step 2: Generate UUID -->
+  <rect x="80" y="410" width="180" height="80" rx="4" class="stroke-primary rect-process" />
+  <text x="170" y="435" class="text-box-title">Generate UUID</text>
+  <text x="170" y="455" class="text-code">uuid = Uuid::new_v4()</text>
+  <text x="170" y="475" class="text-small">Unique request identifier</text>
+
+  <!-- Step 3: Store in Extensions -->
+  <rect x="80" y="520" width="180" height="80" rx="4" class="stroke-primary rect-data" />
+  <text x="170" y="545" class="text-box-title">Store in Extensions</text>
+  <text x="170" y="565" class="text-code">req.extensions_mut()</text>
+  <text x="170" y="585" class="text-code">.insert(ReqStamp{uuid, time_in})</text>
+
+  <!-- ReqStamp Struct -->
+  <rect x="420" y="300" width="320" height="100" rx="4" class="stroke-primary rect-data" />
+  <text x="580" y="330" class="text-box-title">ReqStamp Struct</text>
+  <text x="580" y="355" class="text-code">uuid: Uuid, time_in: OffsetDateTime</text>
+  <text x="580" y="380" class="text-small">Debug, Clone traits</text>
+
+  <!-- Flow Arrows -->
+  <!-- Timestamp generation -->
+  <line x1="120" y1="210" x2="120" y2="300" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="220" y1="300" x2="220" y2="210" class="line-primary" marker-end="url(#arrowhead)" />
+
+  <!-- Vertical flow to continuation -->
+  <line x1="170" y1="380" x2="170" y2="410" class="line-primary" marker-end="url(#arrowhead)" />
+  <line x1="170" y1="490" x2="170" y2="520" class="line-primary" marker-end="url(#arrowhead)" />
+
+  <!-- Connection to struct definition -->
+  <line x1="580" y1="300" x2="580" y2="210" class="line-primary" marker-end="url(#arrowhead)" />
+</svg>
