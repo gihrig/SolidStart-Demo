@@ -1,4 +1,3 @@
-pub mod dbx;
 // region:    --- Modules
 
 pub(in crate::model) mod dbx;
