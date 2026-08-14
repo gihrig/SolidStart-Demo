@@ -112,7 +112,9 @@ async fn handle_socket(socket: WebSocket, state: Arc<WsState>) {
 			match msg {
 				Message::Text(text) => {
 					// Handle subscription requests
-					if let Ok(sub) = serde_json::from_str::<SubscriptionRequest>(&text) {
+					if let Ok(sub) =
+						serde_json::from_str::<SubscriptionRequest>(&text)
+					{
 						debug!(
 							"Subscription request: action={}, channel={}, id={:?}",
 							sub.action, sub.channel, sub.id

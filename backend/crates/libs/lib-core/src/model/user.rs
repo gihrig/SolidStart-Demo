@@ -17,7 +17,9 @@ use ts_rs::TS;
 use uuid::Uuid;
 
 // region:    --- User Types
-#[derive(Clone, Debug, sqlx::Type, derive_more::Display, Deserialize, Serialize, TS)]
+#[derive(
+	Clone, Debug, sqlx::Type, derive_more::Display, Deserialize, Serialize, TS,
+)]
 #[sqlx(type_name = "user_typ")]
 #[ts(export, export_to = "UserTyp.d.ts")]
 

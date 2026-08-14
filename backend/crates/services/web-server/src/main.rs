@@ -59,7 +59,11 @@ async fn main() -> Result<()> {
 	// CORS Configuration for SolidStart front-end
 	// Note: For production, replace with specific allowed origins
 	let cors = CorsLayer::new()
-		.allow_origin("http://localhost:3000".parse::<axum::http::HeaderValue>().unwrap())
+		.allow_origin(
+			"http://localhost:3000"
+				.parse::<axum::http::HeaderValue>()
+				.unwrap(),
+		)
 		.allow_methods([Method::GET, Method::POST, Method::OPTIONS])
 		.allow_headers([
 			axum::http::header::CONTENT_TYPE,

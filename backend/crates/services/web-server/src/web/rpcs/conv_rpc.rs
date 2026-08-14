@@ -56,7 +56,8 @@ pub async fn list_conv_msgs(
 	mm: ModelManager,
 	params: ParamsList<ConvMsgFilter>,
 ) -> Result<DataRpcResult<Vec<ConvMsg>>> {
-	let msgs = ConvBmc::list_msgs(&ctx, &mm, params.filters, params.list_options).await?;
+	let msgs =
+		ConvBmc::list_msgs(&ctx, &mm, params.filters, params.list_options).await?;
 	Ok(msgs.into())
 }
 

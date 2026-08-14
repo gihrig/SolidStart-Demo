@@ -35,10 +35,10 @@ pub struct Agent {
 	pub cid: i64,
 	#[serde_as(as = "Rfc3339")]
 	#[ts(type = "string")]
-  pub ctime: OffsetDateTime,
+	pub ctime: OffsetDateTime,
 	pub mid: i64,
 	#[serde_as(as = "Rfc3339")]
-  #[ts(type = "string")]
+	#[ts(type = "string")]
 	pub mtime: OffsetDateTime,
 }
 

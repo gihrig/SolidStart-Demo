@@ -23,12 +23,12 @@ pub struct ConvUser {
 	// creator user_id and time
 	pub cid: i64,
 	#[serde_as(as = "Rfc3339")]
-  #[ts(type = "string")]
+	#[ts(type = "string")]
 	pub ctime: OffsetDateTime,
 	// last modifier user_id and time
 	pub mid: i64,
 	#[serde_as(as = "Rfc3339")]
-  #[ts(type = "string")]
+	#[ts(type = "string")]
 	pub mtime: OffsetDateTime,
 }
 

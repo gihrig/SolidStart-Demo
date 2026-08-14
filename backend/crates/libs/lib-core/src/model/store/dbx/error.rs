@@ -17,9 +17,10 @@ pub enum Error {
 	// -- Externals
 	#[from]
 	Sqlx(
-    #[serde_as(as = "DisplayFromStr")]
-    #[ts(type = "string")]
-    sqlx::Error),
+		#[serde_as(as = "DisplayFromStr")]
+		#[ts(type = "string")]
+		sqlx::Error,
+	),
 }
 
 // region:    --- Error Boilerplate

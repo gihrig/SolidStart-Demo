@@ -47,7 +47,7 @@ pub enum Error {
 	// -- RpcError (deconstructed from rpc_router::Error)
 	// Simple mapping for the RpcRequestParsingError. It will have the eventual id, method context.
 	#[from]
-  #[ts(skip)]
+	#[ts(skip)]
 	RpcRequestParsing(rpc_router::RpcRequestParsingError),
 
 	// When encountering `rpc_router::Error::Handler`, we deconstruct it into the appropriate concrete application error types.
@@ -60,19 +60,20 @@ pub enum Error {
 	// When the `rpc_router::Error` is not a `Handler`, we can pass through the rpc_router::Error
 	// as all variants contain concrete types.
 	RpcRouter {
-    #[ts(skip)]
+		#[ts(skip)]
 		id: Value,
 		method: String,
-    #[ts(skip)]
+		#[ts(skip)]
 		error: rpc_router::Error,
 	},
 
 	// -- External Modules
 	#[from]
 	SerdeJson(
-    #[serde_as(as = "DisplayFromStr")]
-    #[ts(type = "string")]
-    serde_json::Error),
+		#[serde_as(as = "DisplayFromStr")]
+		#[ts(type = "string")]
+		serde_json::Error,
+	),
 }
 
 // region:    --- From rpc-router::Error

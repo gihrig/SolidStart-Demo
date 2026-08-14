@@ -45,15 +45,17 @@ pub enum Error {
 	// -- Externals
 	#[from]
 	SeaQuery(
-    #[serde_as(as = "DisplayFromStr")]
-    #[ts(type = "string")]
-    sea_query::error::Error),
+		#[serde_as(as = "DisplayFromStr")]
+		#[ts(type = "string")]
+		sea_query::error::Error,
+	),
 
 	#[from]
 	ModqlIntoSea(
-    #[serde_as(as = "DisplayFromStr")]
-    #[ts(type = "string")]
-    modql::filter::IntoSeaError),
+		#[serde_as(as = "DisplayFromStr")]
+		#[ts(type = "string")]
+		modql::filter::IntoSeaError,
+	),
 }
 
 impl Error {
