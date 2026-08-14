@@ -4,11 +4,11 @@
 // value: NumericIds<T> rewrites a binding's bigint fields to number and
 // re-exports it under the same name, so downstream code compares ids directly
 // with no coercion while the generated .d.ts files stay untouched.
-import type { Agent as AgentWire } from "./Agent.d";
-import type { Conv as ConvWire } from "./Conv.d";
-import type { ConvMsg as ConvMsgWire } from "./ConvMsg.d";
-import type { ConvUser as ConvUserWire } from "./ConvUser.d";
-import type { User as UserWire } from "./User.d";
+import type { Agent as AgentWire } from "~backend-bindings/Agent.d";
+import type { Conv as ConvWire } from "~backend-bindings/Conv.d";
+import type { ConvMsg as ConvMsgWire } from "~backend-bindings/ConvMsg.d";
+import type { ConvUser as ConvUserWire } from "~backend-bindings/ConvUser.d";
+import type { User as UserWire } from "~backend-bindings/User.d";
 
 /** Rewrite a binding's bigint id fields to the number they already are at runtime. */
 type NumericIds<T> = { [K in keyof T]: T[K] extends bigint ? number : T[K] };
@@ -20,11 +20,11 @@ export type ConvUser = NumericIds<ConvUserWire>;
 export type User = NumericIds<UserWire>;
 
 // String-union bindings carry no ids — re-export unchanged.
-export type { ConvKind } from "./ConvKind.d";
-export type { ConvState } from "./ConvState.d";
-export type { UserTyp } from "./UserTyp.d";
-export type { ParamsIded } from "./ParamsIded.d";
-export type { ParamsForUpdate } from "./ParamsForUpdate.d";
+export type { ConvKind } from "~backend-bindings/ConvKind.d";
+export type { ConvState } from "~backend-bindings/ConvState.d";
+export type { UserTyp } from "~backend-bindings/UserTyp.d";
+export type { ParamsIded } from "~backend-bindings/ParamsIded.d";
+export type { ParamsForUpdate } from "~backend-bindings/ParamsForUpdate.d";
 
 // Input types for create operations (not in generated bindings)
 export interface AgentForCreate {

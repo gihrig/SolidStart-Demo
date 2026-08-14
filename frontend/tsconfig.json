@@ -15,7 +15,8 @@
     "types": ["@types/bun", "vinxi/types/client", "vitest/globals", "@testing-library/jest-dom"],
     "isolatedModules": true,
     "paths": {
-      "~/*": ["./src/*"]
+      "~/*": ["./src/*"],
+      "~backend-bindings/*": ["../backend/crates/services/web-server/bindings/*"]
     }
   },
   "include": ["src/**/*", "src/types/**/*", "playwright.config.ts", "e2e/**/*"]
