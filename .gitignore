@@ -1,44 +1,27 @@
-dist
-target
-.wrangler
-.output
-.vercel
-.netlify
-.vinxi
-app.config.timestamp_*.js
+# Thin root .gitignore for the mono-repo (ADR-0010).
+#
+# .gitignore is NESTED, not hoisted: the back-end's .gitignore opens with `.*`
+# and MUST stay scoped to backend/ — at the root it would swallow committed
+# dotfiles (.github/.vscode/.claude). Never add `.*` here.
+#
+# Front-end ignores live in frontend/.gitignore; back-end ignores in
+# backend/.gitignore. This file covers only root-level, cross-cutting artifacts.
 
-# Environment
-.env
-.env*.local
-
-# dependencies
-/node_modules
-
-# IDEs and editors
-/.idea
-.project
-.classpath
-*.launch
-.settings/
-
-# Temp
-gitignore
-/coverage/
-
-# System Files
+# System files (all trees)
 .DS_Store
 Thumbs.db
 
-# Snyk Security Extension - AI Rules (auto-generated)
+# Root-level tooling & orchestration artifacts
+/node_modules/
+/.output/
+/.vinxi/
+/reports/
+/coverage/
+.superpowers/
+
+# Environment (real secrets never committed)
+.env
+.env*.local
+
+# Snyk Security Extension — AI Rules (auto-generated)
 .github/instructions/snyk_rules.instructions.md
-
-# Reports
-reports/
-
-# Playwright
-node_modules/
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-/playwright/.auth/
