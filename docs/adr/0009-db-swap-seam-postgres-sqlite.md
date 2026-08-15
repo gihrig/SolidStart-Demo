@@ -1,5 +1,13 @@
 # Swap Postgres ↔ SQLite behind a compile-time feature flag over a portable-subset schema
 
+> **⚠️ Superseded by [ADR-0012](0012-postgres-turso-db-swap-seam.md).** This ADR
+> modelled the second backend as plain **SQLite over `sqlx`**. #17's actual
+> requirement is **Turso**, and the latest Turso technology is the `turso` crate (a
+> Rust rewrite of SQLite) — which is **not** an `sqlx` backend, so the seam mechanism
+> is redesigned in ADR-0012. The **schema-normalization** below (enums → `TEXT`,
+> app-side salts, RFC3339 timestamps) carries over and is still valid. Kept as the
+> record of the SQLite-via-`sqlx` path that was considered, and why it changed.
+
 #17 asks the back-end to "add database flexibility; switch between Turso and
 Postgres by swapping a module." We make the database a **compile-time choice**: a
 Cargo feature (`--features postgres | sqlite`, mutually exclusive, guarded by

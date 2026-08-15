@@ -63,7 +63,8 @@ the convergence set out in [ADR-0007](0007-consolidate-jedi-shell-unified-identi
 - The `ICON_NAMES` unit test relaxes from "icon ∈ ICON_NAMES" to "known key or
   fallback," reflecting the opaque-key contract.
 - The idempotent Like toggle needs `ON CONFLICT(owner_id, target_id) DO NOTHING`,
-  which must be written in the portable Postgres/SQLite subset tracked in
-  [ADR-0009](0009-db-swap-seam-postgres-sqlite.md).
+  which must be written in the portable Postgres/Turso subset tracked in
+  [ADR-0012](0012-postgres-turso-db-swap-seam.md).
 - All new schema is authored in that portable subset from the start (enums →
-  `TEXT`, app-generated ids/salts, RFC3339 timestamps).
+  `TEXT`, app-generated salts, RFC3339 timestamps); ids are DB-generated, rendered
+  per dialect by the single sea-query schema ([ADR-0012](0012-postgres-turso-db-swap-seam.md)).

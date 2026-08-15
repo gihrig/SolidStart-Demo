@@ -2,7 +2,7 @@
 
 #17 asks to merge the SolidStart front-end and the rust10x back-end — historically
 two repos — into a single mono-repo, and to work out the implications for build
-scripts and configuration. This ADR records the structure; [ADR-0009](0009-db-swap-seam-postgres-sqlite.md)
+scripts and configuration. This ADR records the structure; [ADR-0012](0012-postgres-turso-db-swap-seam.md)
 and [ADR-0011](0011-jedi-backend-domain-contract.md) cover what the merged
 back-end does.
 
@@ -20,7 +20,7 @@ back-end (`gihrig/rust-web-app`, the majority of whose commits are the author's
 own) is imported into `backend/` **with history** —
 `git filter-repo --to-subdirectory-filter backend/` then a merge with
 `--allow-unrelated-histories`, so `git blame backend/…` works through history.
-This matters because [ADR-0009](0009-db-swap-seam-postgres-sqlite.md) rewrites the
+This matters because [ADR-0012](0012-postgres-turso-db-swap-seam.md) rewrites the
 exact code whose history is being kept. The `rust-web-app` remote goes dormant.
 
 **Shared domain docs stay at the root.** Only **code and tool-config** descend
@@ -46,10 +46,13 @@ consumer keeps importing `~/types/backend` unchanged. A CI **bindings-drift guar
 (`cgs bindings` + `git diff --exit-code`) keeps the committed bindings in step with
 the Rust types.
 
-**Dev workflow.** `cgs dev` runs both servers via `concurrently` (kill-both); the
-default dev DB is SQLite, so `cgs dev` needs no Docker ([ADR-0009](0009-db-swap-seam-postgres-sqlite.md)).
-`src/lib/test-e2e.sh` is upgraded to self-boot the back-end (SQLite) so
-`cgs test:e2e` no longer requires a pre-running back-end.
+**Dev workflow.** `cgs dev` runs both servers via `concurrently` (kill-both). This is
+DB-independent and lands with the merge (#72), against the existing **Postgres**
+back-end. The **zero-infra dev default** and the **self-booting `cgs test:e2e`** arrive
+later, on the Turso track ([ADR-0012](0012-postgres-turso-db-swap-seam.md)): the
+`turso` crate runs in-process against a local file, so once it lands `cgs dev` and
+`cgs test:e2e` need no Docker. Until then, `cgs test:e2e` still expects a running
+back-end.
 
 **Dotfiles & tooling.** `.gitignore` is **nested, not hoisted** — the back-end's
 `.gitignore` opens with `.*` (ignore all dotfiles), which at the root would swallow
@@ -61,7 +64,7 @@ root-level: one `.vscode/` (with a rust-analyzer `linkedProjects` pointer to
 
 **CI — full GitHub Actions workflow, run on every PR (not path-filtered).** A
 back-end job (`fmt`/`clippy`/`nextest`/`build`) under a **DB matrix
-`{sqlite, postgres}`**, a front-end job (`vp check` — not `vpr check`, which would
+`{turso, postgres}`**, a front-end job (`vp check` — not `vpr check`, which would
 `--fix` in CI — plus `vp test`, `vinxi build`), the bindings-drift guard, and a
 self-booting e2e job (non-blocking at first). Path-filtering is avoided because the
 tsconfig alias couples the sides: a back-end entity change regenerates bindings and
@@ -78,7 +81,7 @@ must re-run the front-end type-check.
   proposed) — rejected: buries the front-end, and that plan also assumed a _fresh_
   repo (`git init`, `bun create`, `cargo new`), discarding both histories.
 - **Fresh repo / snapshot-import the back-end** — rejected: discards the back-end
-  history that [ADR-0009](0009-db-swap-seam-postgres-sqlite.md) is about to rewrite.
+  history that [ADR-0012](0012-postgres-turso-db-swap-seam.md) is about to rewrite.
 - **`just` or a root `package.json` + `concurrently`** for orchestration —
   rejected: `just` is a new install when `cgs` already fills the role; a root
   `package.json` plants a JS artifact at the polyglot root and invites `vp`/`vpr`
