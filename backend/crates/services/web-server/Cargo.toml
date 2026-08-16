@@ -1,0 +1,31 @@
+[package]
+name = "web-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# -- App Libs
+lib-utils = { path = "../../libs/lib-utils"}
+lib-rpc-core = { path = "../../libs/lib-rpc-core"}
+lib-auth = { path = "../../libs/lib-auth"}
+lib-core = { path = "../../libs/lib-core"}
+lib-web = { path = "../../libs/lib-web"}
+
+axum = { workspace = true }
+derive_more = { workspace = true }
+futures = { workspace = true }
+rpc-router = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+serde_with = { workspace = true }
+strum_macros = { workspace = true }
+time = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tower-cookies = { workspace = true }
+tower-http = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+uuid = { workspace = true, features = ["v4","fast-rng",] }
+
+[dev-dependencies]
+httpc-test = "0.1.10"

@@ -20,7 +20,8 @@ An authenticated identity that owns Agents and Conversations and authors
 Messages. Every User is either an Admin user or a Standard user.
 _Avoid_: account.
 _Converging_: the global nav avatar unifies this identity with the Jedi profile
-at back-end integration (#17, ADR-0007). In the client the `useAuth` seam already
+at back-end integration (#17, ADR-0007; formalized as one back-end `User`
+spanning both surfaces in ADR-0011). In the client the `useAuth` seam already
 carries the interim `displayName` / `avatarUrl`; #17 swaps only the avatar's source.
 
 **Admin user**:
@@ -76,7 +77,13 @@ Headings above use today's back-end tokens so the glossary matches the current c
 
 ## Jedi
 
-A responsive, accessible photo-and-caption sub-application with its own style and navigation. Users share Flickr photos as Posts and compete to caption them; both Posts and Captions accrue Likes. Content is served today by a back-end-faithful mock (see [ADR-0002](docs/adr/0002-jedi-mock-data-contract.md)) that doubles as the data contract a future back-end implements.
+A responsive, accessible photo-and-caption sub-application with its own style and navigation. Users share Flickr photos as Posts and compete to caption them; both Posts and Captions accrue Likes. Content is served today by a back-end-faithful mock (see [ADR-0002](docs/adr/0002-jedi-mock-data-contract.md)) that doubles as the data contract a future back-end implements. That contract is now specified in [ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md); the database portability it must respect is [ADR-0012](docs/adr/0012-postgres-turso-db-swap-seam.md), and the mono-repo that houses both surfaces is [ADR-0010](docs/adr/0010-monorepo-structure.md) (with the front-end kept over full-Rust per [ADR-0008](docs/adr/0008-keep-solidstart-leptos-tradeoff.md)).
+
+_Brand_: the user-facing wordmark is **"Awesome"** (`Nav.tsx`, page `<Title>`,
+hero); **Jedi** stays the code/domain token (`src/types/jedi.ts`, `src/lib/jedi/`,
+ADRs). They coexist by design — #17's "'Awesome' (formerly Jedi)" is _not_ a
+rename. A future code→brand alignment (Jedi → Awesome), if pursued, is parked
+with the planned renames in #31.
 
 **Post**:
 The core feed entity — a shared Flickr photo with its owner, Categories, caption competition, and like/comment counts. The Post _is_ the photo;
@@ -98,6 +105,14 @@ A User's remark on a Post; today only its count is surfaced. Distinct from a
 Conversations **Message**.
 _Avoid_: post, reply.
 
+**Like**:
+A User's endorsement of one Post or one Caption — a first-class record, not a
+stored counter (see [ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md)). At
+most one Like per User per target (an idempotent toggle); a Post's or Caption's
+like count is _derived_ by counting Likes. Captions compete on their own Like
+tallies (Top Captions).
+_Avoid_: vote, favorite, star; `likeCount` as stored truth.
+
 **Author**:
 The User who owns a Post, Caption, or Comment (`owner_id`); the UI renders the author's name and avatar. Distinct from the photo's original author.
 
@@ -109,6 +124,14 @@ _Avoid_: user (when the owning role is meant); poster.
 Ranked _views_, not stored lists. Top Photos = Posts ordered by like count (within the selected Category once filtering lands, #29); Top Captions = the
 selected/featured Post's Captions ordered by like count.
 _Avoid_: featured/popular list, best captions (as stored data).
+
+**Hero**:
+The home page's banner content — title, subtitle, CTA, background image. A
+BE-owned **singleton** an Admin user edits to change home branding; not
+user-generated and not `owner_id`-owned like Posts. FE renders it through the seam
+(URL fields sanitized). See
+[ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md).
+_Avoid_: banner, splash (as separate concepts); treating it as per-User content.
 
 ### Sidebar selection & focus
 

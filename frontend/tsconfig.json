@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "allowJs": true,
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["@types/bun", "vinxi/types/client", "vitest/globals", "@testing-library/jest-dom"],
+    "isolatedModules": true,
+    "paths": {
+      "~/*": ["./src/*"],
+      "~backend-bindings/*": ["../backend/crates/services/web-server/bindings/*"]
+    }
+  },
+  "include": ["src/**/*", "src/types/**/*", "playwright.config.ts", "e2e/**/*"]
+}

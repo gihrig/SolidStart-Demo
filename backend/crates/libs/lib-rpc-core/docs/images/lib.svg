@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #2f2f2f; }
+      .arrow-fill { fill: #AAA; }
+      .stroke-primary { stroke: #AAA; stroke-width: 2; fill: none; }
+      .stroke-secondary { stroke: #AAA; stroke-width: 1; fill: none; }
+      .stroke-dashed { stroke: #AAA; stroke-width: 1; stroke-dasharray: 3,3; fill: none; }
+      .line-primary { stroke: #AAA; stroke-width: 2; }
+      .line-dashed { stroke: #AAA; stroke-width: 1; stroke-dasharray: 3,3; }
+      .text-title { font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-section { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-module-title { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: white; text-anchor: middle; }
+      .text-feature-title { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: white; }
+      .text-code { font-family: Arial, sans-serif; font-size: 12px; fill: white; }
+      .text-small { font-family: Arial, sans-serif; font-size: 11px; fill: white; }
+      .text-tiny { font-family: Arial, sans-serif; font-size: 10px; fill: white; }
+      .text-legend { font-family: Arial, sans-serif; font-size: 10px; fill: white; }
+      .text-note { font-family: Arial, sans-serif; font-size: 12px; font-style: italic; fill: white; text-anchor: middle; }
+      .text-note-sm { font-family: Arial, sans-serif; font-size: 10px; fill: white; text-anchor: left; }
+      .text-note-box { fill: none; stroke: #AAA; stroke-width: 1; stroke-dasharray: 5,5 }
+
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7"
+     refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow-fill" />
+    </marker>
+    <marker id="arrowhead-small" markerWidth="8" markerHeight="5"
+     refX="8" refY="2.5" orient="auto">
+      <polygon points="0 0, 8 2.5, 0 5" class="arrow-fill" />
+    </marker>
+  </defs>
+
+  <rect width="1200" height="900" class="bg"/>
+
+  <!-- Title -->
+  <text x="600" y="40" class="text-title">
+    lib-rpc-core/src/lib.rs - Module Structure &amp; Flow Diagram
+  </text>
+
+  <!-- Main lib.rs Box -->
+  <rect x="450" y="80" width="300" height="160" rx="5" class="stroke-primary"/>
+  <text x="600" y="105" class="text-module-title">
+    lib.rs (Root Module)
+  </text>
+  <text x="460" y="130" class="text-feature-title">Declares &amp; Re-exports:</text>
+  <text x="460" y="150" class="text-small">• mod error → pub use Error, Result</text>
+  <text x="460" y="170" class="text-small">• mod rpc_params → pub use *</text>
+  <text x="460" y="190" class="text-small">• mod rpc_result (private)</text>
+  <text x="460" y="210" class="text-small">• mod utils (private)</text>
+  <text x="460" y="230" class="text-small">• pub mod prelude</text>
+
+  <!-- Error Module -->
+  <rect x="50" y="300" width="250" height="140" rx="5" class="stroke-primary"/>
+  <text x="175" y="325" class="text-box-title">
+    error.rs
+  </text>
+  <text x="60" y="350" class="text-small">• Error enum with variants:</text>
+  <text x="70" y="370" class="text-tiny">- Model(lib_core::model::Error)</text>
+  <text x="70" y="385" class="text-tiny">- SerdeJson(serde_json::Error)</text>
+  <text x="60" y="405" class="text-small">• Result&lt;T&gt; type alias</text>
+  <text x="60" y="425" class="text-small">• RpcHandlerError derive</text>
+
+  <!-- RPC Params Module -->
+  <rect x="330" y="300" width="280" height="200" rx="5" class="stroke-primary"/>
+  <text x="470" y="325" class="text-box-title">
+    rpc_params.rs
+  </text>
+  <text x="340" y="350" class="text-small">Generic RPC Parameter Types:</text>
+  <text x="340" y="375" class="text-tiny">• ParamsForCreate&lt;D&gt; { data: D }</text>
+  <text x="340" y="395" class="text-tiny">• ParamsForUpdate&lt;D&gt; { id: i64, data: D }</text>
+  <text x="340" y="415" class="text-tiny">• ParamsIded { id: i64 }</text>
+  <text x="340" y="435" class="text-tiny">• ParamsList&lt;F&gt; { filters, list_options }</text>
+  <text x="340" y="460" class="text-small">Traits implemented:</text>
+  <text x="340" y="480" class="text-tiny">• IntoParams / IntoDefaultRpcParams</text>
+
+  <!-- RPC Result Module -->
+  <rect x="640" y="300" width="250" height="120" rx="5" class="stroke-primary"/>
+  <text x="765" y="325" class="text-box-title">
+    rpc_result.rs
+  </text>
+  <text x="650" y="350" class="text-small">• DataRpcResult&lt;T&gt; wrapper</text>
+  <text x="650" y="370" class="text-small">• Contains: { data: T }</text>
+  <text x="650" y="390" class="text-small">• From&lt;T&gt; trait implementation</text>
+  <text x="650" y="410" class="text-small">• JSON-RPC result normalization</text>
+
+  <!-- Utils Module -->
+  <rect x="920" y="300" width="250" height="140" rx="5" class="stroke-primary"/>
+  <text x="1045" y="325" class="text-box-title">
+    utils/
+  </text>
+  <text x="930" y="350" class="text-small">• mod.rs declares:</text>
+  <text x="940" y="370" class="text-tiny">- macro_utils</text>
+  <text x="930" y="395" class="text-small">• macro_utils.rs contains:</text>
+  <text x="940" y="415" class="text-tiny">- generate_common_rpc_fns!</text>
+  <text x="940" y="430" class="text-tiny">- CRUD function generator</text>
+
+  <!-- Prelude Module -->
+  <rect x="400" y="550" width="400" height="180" rx="5" class="stroke-primary"/>
+  <text x="600" y="575" class="text-box-title">
+    prelude.rs
+  </text>
+  <text x="410" y="600" class="text-code">Re-exports for RPC modules convenience:</text>
+  <text x="410" y="625" class="text-tiny">• generate_common_rpc_fns! (from utils)</text>
+  <text x="410" y="645" class="text-tiny">• DataRpcResult (from rpc_result)</text>
+  <text x="410" y="665" class="text-tiny">• Result (from error)</text>
+  <text x="410" y="685" class="text-tiny">• All Params types (from rpc_params)</text>
+  <text x="410" y="705" class="text-tiny">• External: Ctx, ModelManager, paste!, RouterBuilder</text>
+
+  <!-- Arrows showing module relationships -->
+  <!-- lib.rs to modules -->
+  <line x1="500" y1="240" x2="175" y2="300" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="550" y1="240" x2="470" y2="300" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="650" y1="240" x2="765" y2="300" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="700" y1="240" x2="1045" y2="300" class="line-primary" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="240" x2="600" y2="550" class="line-primary" marker-end="url(#arrowhead)"/>
+
+  <!-- Prelude collecting from other modules -->
+  <line x1="600" y1="550" x2="175" y2="440" class="line-dashed" marker-end="url(#arrowhead-small)"/>
+  <line x1="600" y1="550" x2="470" y2="500" class="line-dashed" marker-end="url(#arrowhead-small)"/>
+  <line x1="600" y1="550" x2="765" y2="420" class="line-dashed" marker-end="url(#arrowhead-small)"/>
+  <line x1="600" y1="550" x2="1045" y2="440" class="line-dashed" marker-end="url(#arrowhead-small)"/>
+
+  <!-- Legend -->
+  <rect x="50" y="80" width="350" height="180" rx="5" class="stroke-secondary"/>
+  <text x="225" y="105" class="text-box-title">
+    Module Relationships
+  </text>
+  <line x1="60" y1="120" x2="90" y2="120" class="line-primary"/>
+  <text x="100" y="125" class="text-legend">Direct module declaration</text>
+
+  <line x1="60" y1="140" x2="90" y2="140" class="line-dashed"/>
+  <text x="100" y="145" class="text-legend">Re-export relationship</text>
+
+  <text x="60" y="170" class="text-legend">Module Visibility:</text>
+  <text x="60" y="190" class="text-legend">• error, rpc_params: Re-exported publicly</text>
+  <text x="60" y="210" class="text-legend">• rpc_result, utils: Private (internal)</text>
+  <text x="60" y="230" class="text-legend">• prelude: Public module for convenience</text>
+
+  <!-- Public API Box -->
+  <rect x="300" y="770" width="600" height="120" rx="5" class="text-note-box"/>
+  <text x="600" y="795" class="text-note">
+    Public API Surface
+  </text>
+  <text x="320" y="820" class="text-note-sm">• Direct Exports: Error, Result, ParamsForCreate, ParamsForUpdate, ParamsIded, ParamsList</text>
+  <text x="320" y="840" class="text-note-sm">• Via Prelude: All above + DataRpcResult + generate_common_rpc_fns! + external dependencies</text>
+  <text x="320" y="860" class="text-note-sm">• Purpose: Provides complete foundation for JSON-RPC CRUD operations with type-safe parameter handling</text>
+</svg>

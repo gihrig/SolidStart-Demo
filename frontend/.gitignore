@@ -1,0 +1,37 @@
+# Front-end (SolidStart/Vite+) ignores. Scoped to frontend/ — see ADR-0010.
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.output/
+.vinxi/
+.vercel/
+.netlify/
+.wrangler/
+app.config.timestamp_*.js
+
+# Environment (.env.test is committed; real secrets go in .env*.local)
+.env
+.env*.local
+
+# Reports, coverage, and Playwright artifacts (playwright.config.ts -> reports/)
+/reports/
+/coverage/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# Editors
+/.idea
+.project
+.classpath
+*.launch
+.settings/
+
+# System files
+.DS_Store
+Thumbs.db
