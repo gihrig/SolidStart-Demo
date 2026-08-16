@@ -25,19 +25,21 @@ Prefer the `cgs` recipes over raw `cargo`; each recipe wraps the exact `cargo`
 invocation and keeps flags consistent. Raw `cargo` stays available for one-offs
 that have no recipe (e.g. `cargo run -p gen-key`).
 
-| Command         | Description                                            |
-| --------------- | ------------------------------------------------------ |
-| `cgs dev`       | Start the web-server (`cargo run -p web-server`)       |
-| `cgs dev-watch` | Start the web-server in watch mode                     |
-| `cgs quick`     | Run the `quick_dev` example (login, CRUD, logout)      |
-| `cgs db`        | Start the Postgres docker container                    |
-| `cgs test`      | Run tests (`cargo nextest run -j1`)                    |
-| `cgs test-watch`| Run tests in watch mode                                |
+```text
+| Command         | Description                                              |
+| --------------- | -------------------------------------------------------- |
+| `cgs dev`       | Start the web-server (`cargo run -p web-server`)         |
+| `cgs dev-watch` | Start the web-server in watch mode                       |
+| `cgs quick`     | Run the `quick_dev` example (login, CRUD, logout)        |
+| `cgs db`        | Start the Postgres docker container                      |
+| `cgs test`      | Run tests (`cargo nextest run -j1`)                      |
+| `cgs test-watch`| Run tests in watch mode                                  |
 | `cgs check`     | Format (fix) + lint (`cargo fmt --all && cargo clippy --all-targets`)|
-| `cgs build`     | Build with debug symbols                               |
-| `cgs release`   | Build in release mode (`cargo build --release`)        |
-| `cgs bindings`  | Regenerate ts-rs bindings (`cargo test export_bindings`)|
-| `cgs doc`       | Build & open project docs                              |
+| `cgs build`     | Build with debug symbols                                 |
+| `cgs release`   | Build in release mode (`cargo build --release`)          |
+| `cgs bindings`  | Regenerate ts-rs bindings (`cargo test export_bindings`) |
+| `cgs doc`       | Build & open project docs                                |
+```
 
 ## Tech Stack
 
