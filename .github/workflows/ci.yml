@@ -1,0 +1,221 @@
+# Mono-repo CI (ADR-0010, #74). Runs on EVERY PR with NO path filter: the
+# front-end tsconfig aliases into backend/.../bindings, so a back-end entity
+# change regenerates bindings and must re-run the front-end type-check. A
+# FE-only PR still runs the BE job, and vice-versa.
+#
+# DB backend is Postgres only. The {turso, postgres} DB matrix and the SQLite
+# self-booting e2e (ADR-0010/#74 wording) belong to the Turso DB-swap track,
+# split out of #17 into #79 (seam #80, e2e self-boot #81) and land there — this
+# workflow closes the mono-repo merge on the existing Postgres DB.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# One in-flight run per ref; newer pushes cancel older runs.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -- Front-end: check (no --fix), test, build. Uses `vp` (not `vpr check`,
+  #    which would --fix in CI) per ADR-0010. Bins come from the local
+  #    vite-plus install after `bun install`.
+  frontend:
+    name: Front-end (vp check / test / build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Expose local bins (vp, vinxi) on PATH
+        run: echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Format + lint + type-check (no --fix)
+        run: vp check
+
+      - name: Unit + component tests
+        run: vp test
+
+      - name: Production build
+        run: vinxi build
+
+  # -- Back-end: fmt/clippy/build/nextest against a Postgres 17 service. The
+  #    tests seed the DB via _dev_utils::init_dev_db (SERVICE_DB_URL and the
+  #    dev SQL are wired through backend/.cargo/config.toml).
+  backend:
+    name: Back-end (fmt / clippy / build / nextest — postgres)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: welcome
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+
+      # Mirrors `cgs check` (fmt) but in check-mode: CI must not mutate.
+      - name: Format check
+        run: cargo fmt --all --check
+
+      # Mirrors `cgs check` lint exactly (backend/Scripts.toml). Not gated on
+      # warnings: the tree currently carries clippy warnings, and a `-D warnings`
+      # gate is a deliberate follow-up (clean the warnings first), not part of
+      # this CI issue. See the `-D warnings` note in the root Cargo.toml.
+      - name: Clippy
+        run: cargo clippy --all-targets
+
+      # Mirrors `cgs build`.
+      - name: Build
+        run: cargo build
+
+      # Mirrors `cgs test`; touches Postgres (init_dev_db + model tests).
+      - name: Tests
+        run: cargo nextest run -j1
+
+  # -- Bindings-drift guard (ADR-0010): regenerate ts-rs bindings, then fail if
+  #    the committed copies lag the Rust types. ts-rs export tests need no DB.
+  bindings-drift:
+    name: Bindings drift guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      # Equivalent to `cgs bindings` (backend/Scripts.toml: cargo test
+      # export_bindings); TS_RS_EXPORT_DIR is set in backend/.cargo/config.toml.
+      - name: Regenerate bindings
+        working-directory: backend
+        run: cargo test export_bindings
+
+      - name: Verify committed bindings are up to date
+        run: git diff --exit-code -- backend/crates/services/web-server/bindings
+
+      - name: Explain drift
+        if: failure()
+        run: |
+          echo "::error::Committed ts-rs bindings lag the Rust types."
+          echo "Run 'cgs bindings' (in backend/) and commit the changes."
+
+  # -- End-to-end (Playwright). Non-blocking at first (ADR-0010/#74): the job
+  #    boots the Postgres BE itself and runs the FE e2e suite, but
+  #    continue-on-error keeps a failure from blocking merge. #81 replaces this
+  #    with the self-booting `cgs test:e2e` on the Turso track.
+  e2e:
+    name: e2e (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: welcome
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - name: Install front-end dependencies
+        working-directory: frontend
+        run: bun install --frozen-lockfile
+
+      - name: Expose local bins (vinxi, playwright) on PATH
+        working-directory: frontend
+        run: echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: playwright install --with-deps chromium
+
+      # main() runs _dev_utils::init_dev (seeds app_db + demo1) then binds
+      # 127.0.0.1:8080; env comes from backend/.cargo/config.toml.
+      - name: Boot back-end
+        working-directory: backend
+        run: nohup cargo run -p web-server > "$RUNNER_TEMP/backend.log" 2>&1 &
+
+      - name: Wait for back-end (401 NO_AUTH on /api/rpc)
+        run: |
+          for i in $(seq 1 60); do
+            body=$(curl -s -X POST http://localhost:8080/api/rpc \
+              -H 'Content-Type: application/json' \
+              -d '{"jsonrpc":"2.0","id":1,"method":"test","params":{}}' || true)
+            echo "$body" | grep -q "NO_AUTH" && { echo "Back-end up."; exit 0; }
+            sleep 2
+          done
+          echo "Back-end did not become ready in time." >&2
+          tail -n 50 "$RUNNER_TEMP/backend.log" || true
+          exit 1
+
+      - name: Build front-end
+        working-directory: frontend
+        run: vinxi build
+
+      - name: Start front-end
+        working-directory: frontend
+        run: nohup vinxi start > "$RUNNER_TEMP/frontend.log" 2>&1 &
+
+      - name: Wait for front-end (port 3000)
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3000 > /dev/null && { echo "Front-end up."; exit 0; }
+            sleep 0.5
+          done
+          echo "Front-end did not become ready in time." >&2
+          exit 1
+
+      - name: Run Playwright e2e
+        working-directory: frontend
+        run: playwright test --project=chromium
