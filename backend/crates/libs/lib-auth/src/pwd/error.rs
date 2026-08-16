@@ -7,6 +7,7 @@ pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug, From, Serialize, TS)]
 #[ts(export, export_to = "lib_auth_Error.d.ts")]
+#[ts(rename = "LibAuthError")]
 pub enum Error {
 	PwdWithSchemeFailedParse,
 

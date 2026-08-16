@@ -25,6 +25,7 @@ pub type Result<T> = core::result::Result<T, Error>;
 #[serde_as]
 #[derive(Debug, From, RpcHandlerError, Serialize, TS)]
 #[ts(export, export_to = "lib_rpc_core_Error.d.ts")]
+#[ts(rename = "LibRpcCoreError")]
 pub enum Error {
 	// -- App Libs
 	#[from]

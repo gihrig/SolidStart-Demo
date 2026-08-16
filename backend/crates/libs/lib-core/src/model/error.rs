@@ -12,6 +12,7 @@ pub type Result<T> = core::result::Result<T, Error>;
 #[serde_as]
 #[derive(Debug, From, Serialize, TS)]
 #[ts(export, export_to = "lib_core_Error.d.ts")]
+#[ts(rename = "LibCoreError")]
 pub enum Error {
 	EntityNotFound {
 		entity: &'static str,

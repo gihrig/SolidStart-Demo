@@ -8,6 +8,7 @@ pub type Result<T> = core::result::Result<T, Error>;
 #[serde_as]
 #[derive(Debug, From, Serialize, TS)]
 #[ts(export, export_to = "lib_core_dbx_Error.d.ts")]
+#[ts(rename = "LibCoreDbxError")]
 pub enum Error {
 	TxnCantCommitNoOpenTxn,
 	CannotBeginTxnWithTxnFalse,

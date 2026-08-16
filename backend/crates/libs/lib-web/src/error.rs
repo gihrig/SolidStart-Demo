@@ -17,6 +17,7 @@ pub type Result<T> = core::result::Result<T, Error>;
 #[derive(Debug, From, Serialize, strum_macros::AsRefStr, TS)]
 #[serde(tag = "type", content = "data")]
 #[ts(export, export_to = "lib_web_Error.d.ts")]
+#[ts(rename = "LibWebError")]
 pub enum Error {
 	// -- Login
 	LoginFailUsernameNotFound,

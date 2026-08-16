@@ -5,6 +5,7 @@ pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug, Serialize, TS)]
 #[ts(export, export_to = "lib_auth_token_Error.d.ts")]
+#[ts(rename = "LibAuthTokenError")]
 pub enum Error {
 	HmacFailNewFromSlice,
 
