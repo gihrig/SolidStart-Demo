@@ -58,11 +58,29 @@ This update ([GitHub tag: E06](https://github.com/rust10x/rust-web-app/releases/
 	- [Rust Axum Full Course](https://youtube.com/watch?v=XZtlD_m59sM&list=PL7r-PXl6ZPcCIOFaL7nVHXZvBmHNhrh_Q)
 
 
+## Mono-repo & commands (ADR-0010)
+
+This back-end is the `backend/` subtree of the [SolidStart Demo mono-repo](../CONTEXT.md)
+(a SolidJS front-end in `frontend/` + this Rust/Axum back-end). See
+[ADR-0010](../docs/adr/0010-monorepo-structure.md) for the structure.
+
+- **Cross-cutting work** (both subtrees) runs from the **repo root** via `cgs`
+  (`run-cargo-script` on the root `Scripts.toml`): `cgs dev`, `cgs build`,
+  `cgs test`, `cgs check`, `cgs bindings`.
+- **Single-side (back-end) work** runs by `cd backend/` and using `cgs <script>`
+  against this subtree's `Scripts.toml` (`cgs` reads the `Scripts.toml` in the
+  working directory). The recipes below are back-end single-side commands; run
+  them from `backend/`.
+
+Prefer the `cgs` recipes over raw `cargo`; the recipes wrap the exact `cargo`
+invocations and keep flags consistent. Raw `cargo` stays available for one-offs
+with no recipe.
+
 ## Starting the DB
 
 ```sh
-# Start postgresql server docker image.
-docker run --rm --name pg -p 5432:5432 -e POSTGRES_PASSWORD=welcome postgres:17
+# Start the Postgres docker image.
+cgs db
 
 # (optional) To have a psql terminal on pg.
 # In another terminal (tab) run psql.
@@ -79,46 +97,35 @@ ALTER DATABASE postgres SET log_statement = 'all';
 > NOTE: Install cargo watch with `cargo install cargo-watch`.
 
 ```sh
-# Terminal 1 - To run the server.
-cargo watch -q -c -w crates/services/web-server/src/ -w crates/libs/ -w .cargo/ -x "run -p web-server"
+# Run the server in watch mode.
+cgs dev-watch
 
-# Terminal 2 - To run the quick_dev.
-cargo watch -q -c -w crates/services/web-server/examples/ -x "run -p web-server --example quick_dev"
+# Run the Quick Dev framework once (no watch recipe).
+cgs quick
 ```
 
 ## Dev
 
 ```sh
 # Terminal 1 - To run the server.
-cargo run -p web-server
+cgs dev
 
 # Terminal 2 - To run the Quick Dev framework (login, CRUD, logout).
-cargo run -p web-server --example quick_dev
+cgs quick
 ```
 
 ## Unit Test (watch)
 
 ```sh
-cargo watch -q -c -x "test -- --nocapture"
-
-# Concise test output
-cargo watch -q -c -x "nextest run -j1"
-
-# Specific test with filter.
-cargo watch -q -c -x "test -p lib-core test_create -- --nocapture"
-
-cargo watch -q -c -x "test -p lib-core model::user::tests::test_create -- --nocapture"
-
+# Concise test output, watch mode.
+cgs test-watch
 ```
 
 ## Unit Test
 
 ```sh
-# Concise test output
-cargo nextest run -j1
-
-cargo test -- --nocapture
-
+# Concise test output (cargo nextest run -j1).
+cgs test
 ```
 
 ## Build for production
@@ -126,14 +133,15 @@ cargo test -- --nocapture
 Note that codegen-units = 1 and lto = true increase compilation time but often yield the best size and performance results.
 
 ```sh
-# build for minimal binary size
-cargo build --release
+# build for minimal binary size (cargo build --release)
+cgs release
 
 ```
 
 ## Tools
 
 ```sh
+# No cgs recipe; run directly from backend/.
 cargo run -p gen-key
 ```
 

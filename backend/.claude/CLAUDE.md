@@ -1,103 +1,68 @@
-# Claude Session Summary
+# Back-end — SolidStart Demo
 
-## Session: Full-Stack Integration (SolidStart + Rust/Axum)
+Rust/Axum back-end (rust10x blueprint): JSON-RPC over HTTP + WebSocket, Postgres
+via `sqlx`/`sea-query`/`modql`, ts-rs TypeScript bindings. Toolchain: Rust/`cargo`,
+driven via `cgs`. This is the `backend/` subtree of the mono-repo (a SolidJS
+front-end in `frontend/` + this back-end). Cross-cutting rules live in the root
+`CLAUDE.md`; this file holds the back-end-specific rules and loads when Claude
+works in `backend/`.
 
-**Date:** 2026-01-18
-**Plan Document:** `planning/full_stack_integration.md`
+See [ADR-0010](../../docs/adr/0010-monorepo-structure.md) for the mono-repo
+structure and [ADR-0011](../../docs/adr/0011-jedi-backend-domain-contract.md) for
+what this back-end does.
 
-### Completed Phases
+---
 
-#### Phase 1: TypeScript Types & RPC Client (Front-end)
+## Commands
 
-**Step 1.1: Copy TypeScript Bindings**
-- Created `SolidStart-Demo/src/types/backend/` directory
-- Copied 10 TypeScript binding files from `rust-web-app/crates/services/web-server/bindings/`:
-  - `Agent.d.ts`, `Conv.d.ts`, `ConvKind.d.ts`, `ConvState.d.ts`, `ConvMsg.d.ts`
-  - `ConvUser.d.ts`, `User.d.ts`, `UserTyp.d.ts`
-  - `ParamsIded.d.ts`, `ParamsForUpdate.d.ts`
+This subtree runs via `cgs <script>` (`run-cargo-script` on `backend/Scripts.toml`);
+`cgs` reads the `Scripts.toml` in the working directory, so **run these from
+`backend/`**. Cross-cutting recipes (`cgs dev`/`build`/`test`/`check`/`bindings`
+over **both** subtrees) live in the root `Scripts.toml` and run **from the repo
+root** — same `cgs` binary, different `Scripts.toml`.
 
-**Step 1.2: Create Extended Types**
-- Created `SolidStart-Demo/src/types/backend/index.ts` with:
-  - Re-exports of all generated types
-  - Input types: `AgentForCreate`, `AgentForUpdate`, `ConvForCreate`, `ConvForUpdate`, `ConvMsgForCreate`
-  - Auth payloads: `LoginPayload`, `LogoffPayload`
-  - JSON-RPC types: `JsonRpcRequest`, `JsonRpcSuccessResponse`, `JsonRpcErrorResponse`, `JsonRpcResponse`
-  - Type guard: `isRpcError()`
-  - WebSocket types: `WsMessage`, `WsConvMsgPayload`, `WsSubscription`
+Prefer the `cgs` recipes over raw `cargo`; each recipe wraps the exact `cargo`
+invocation and keeps flags consistent. Raw `cargo` stays available for one-offs
+that have no recipe (e.g. `cargo run -p gen-key`).
 
-**Step 1.3: Create Custom RPC Client**
-- Created `SolidStart-Demo/src/lib/backend-rpc.ts` with:
-  - `BACKEND_URL` constant (`http://localhost:8080`)
-  - `serializeWithBigInt()` for BigInt JSON serialization
-  - `rpcCall<T>()` generic RPC function with credentials
-  - `auth.login()`, `auth.logoff()` REST methods
-  - `agent.create/get/list/update/delete()` RPC methods
-  - `conv.create/get/list/update/delete()` RPC methods
-  - `convMsg.add()` RPC method
-  - Unified `backendRpc` export
+| Command         | Description                                            |
+| --------------- | ------------------------------------------------------ |
+| `cgs dev`       | Start the web-server (`cargo run -p web-server`)       |
+| `cgs dev-watch` | Start the web-server in watch mode                     |
+| `cgs quick`     | Run the `quick_dev` example (login, CRUD, logout)      |
+| `cgs db`        | Start the Postgres docker container                    |
+| `cgs test`      | Run tests (`cargo nextest run -j1`)                    |
+| `cgs test-watch`| Run tests in watch mode                                |
+| `cgs check`     | Format (fix) + lint (`cargo fmt --all && cargo clippy --all-targets`)|
+| `cgs build`     | Build with debug symbols                               |
+| `cgs release`   | Build in release mode (`cargo build --release`)        |
+| `cgs bindings`  | Regenerate ts-rs bindings (`cargo test export_bindings`)|
+| `cgs doc`       | Build & open project docs                              |
 
-#### Phase 2: CORS Configuration (Back-end)
+## Tech Stack
 
-**Step 2.1: Add CORS Middleware**
-- Updated `Cargo.toml`: Added `cors` feature to `tower-http`
-- Updated `crates/services/web-server/src/main.rs`:
-  - Added imports: `tower_http::cors::{Any, CorsLayer}`, `axum::http::Method`
-  - Configured CORS for `http://localhost:3000` with credentials enabled
-  - Applied `.layer(cors)` to router
+- **Framework**: Axum (HTTP) + `rpc-router` (JSON-RPC dynamic router)
+- **DB**: Postgres via `sqlx`, `sea-query` (SQL builder), `modql` (filter DSL)
+- **Auth**: cookie-based; `POST /api/login`, `POST /api/logoff`
+- **RPC**: `POST /api/rpc`; **WebSocket**: `GET /ws`
+- **Bindings**: ts-rs exports to `crates/services/web-server/bindings/`
 
-#### Phase 3: WebSocket Support (Back-end)
+Workspace crates: `lib-utils`, `lib-rpc-core`, `lib-auth`, `lib-core`, `lib-web`
+(libs); `web-server` (service); `gen-key` (tool).
 
-**Step 3.1: Add WebSocket Handler**
-- Updated `Cargo.toml`: Added `ws` feature to `axum`
-- Updated `web-server/Cargo.toml`: Added `futures` dependency
-- Created `crates/services/web-server/src/web/routes_ws.rs`:
-  - `WsEvent` struct with `event_type`, `channel`, `payload`
-  - `WsState` with `broadcast::Sender` (derives `RpcResource`)
-  - `ws_handler()` and `handle_socket()` for WebSocket connections
-  - Broadcast helpers: `broadcast_conv_msg()`, `broadcast_conv_update()`, `broadcast_agent_update()`
+## Gotchas
 
-**Step 3.2: Register WebSocket Route**
-- Updated `web/mod.rs`: Added `pub mod routes_ws;`
-- Updated `main.rs`:
-  - Created `ws_state = Arc::new(WsState::new())`
-  - Created WebSocket routes via `web::routes_ws::routes(ws_state.clone())`
-  - Merged routes into main router
-
-**Step 3.3: Broadcast Events on Data Changes**
-- Updated `routes_rpc.rs`: Added `WsState` to rpc-router resources
-- Updated `conv_rpc.rs`: Modified `add_conv_msg` to broadcast WebSocket events
-
-### Endpoints
-
-| Endpoint | Description |
-|----------|-------------|
-| `POST /api/login` | User login (REST) |
-| `POST /api/logoff` | User logout (REST) |
-| `POST /api/rpc` | JSON-RPC endpoint |
-| `GET /ws` | WebSocket endpoint |
-
-### Remaining Phases
-
-- Phase 4: Create SolidStart Components
-- Phase 5: Create the Fullstack Page
-- Phase 6: Testing
-
-### Files Modified (Back-end)
-
-| File | Changes |
-|------|---------|
-| `Cargo.toml` | Added `cors` to tower-http, `ws` to axum |
-| `web-server/Cargo.toml` | Added `futures` |
-| `web-server/src/main.rs` | CORS config, WebSocket state & routes |
-| `web-server/src/web/mod.rs` | Added routes_ws module |
-| `web-server/src/web/routes_ws.rs` | **NEW** - WebSocket handler |
-| `web-server/src/web/routes_rpc.rs` | Added WsState resource |
-| `web-server/src/web/rpcs/conv_rpc.rs` | WebSocket broadcast in add_conv_msg |
-
-### Files Created (Front-end)
-
-| File | Purpose |
-|------|---------|
-| `src/types/backend/*.d.ts` | TypeScript bindings (copied) |
-| `src/types/backend/index.ts` | Type re-exports & extensions |
-| `src/lib/backend-rpc.ts` | Custom RPC client |
+- **`cgs` is overloaded by working directory**: from `backend/` it runs
+  back-end recipes; from the repo root it runs the cross-cutting recipes. Check
+  where you are before running `cgs dev`/`test`/`build`.
+- **Postgres must be running** for the server, `quick_dev`, and the tests that
+  touch the DB. Start it with `cgs db` (Postgres 17 docker container).
+- **ts-rs bindings are the front-end's source of truth**: the front-end imports
+  them via a tsconfig `paths` alias into `crates/services/web-server/bindings/`
+  (ADR-0010). After changing a `#[derive(TS)]` type, run `cgs bindings` to keep
+  them in step; ADR-0010 specs a CI bindings-drift guard (`cgs bindings` +
+  `git diff --exit-code`) once the workflow lands.
+- **CORS is configured for the front-end** at `http://localhost:3000` with
+  credentials enabled (`crates/services/web-server/src/main.rs`).
+- **`cargo watch` needs installing**: `cargo install cargo-watch` before
+  `cgs dev-watch`/`cgs test-watch`.
