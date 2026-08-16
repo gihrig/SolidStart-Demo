@@ -2,7 +2,7 @@
   "rust-analyzer.linkedProjects": ["backend/Cargo.toml"],
   "snyk.advanced.autoSelectOrganization": false,
   "editor.defaultFormatter": "oxc.oxc-vscode",
-  "oxc.fmt.configPath": "./oxfmtrc.jsonc",
+  "oxc.fmt.configPath": "./frontend/.oxfmtrc.jsonc",
   "editor.formatOnSave": true,
   "editor.formatOnSaveMode": "file",
   "editor.codeActionsOnSave": {
