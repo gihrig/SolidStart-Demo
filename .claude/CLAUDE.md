@@ -21,7 +21,6 @@ Always use the `concise` skill unless the user asks to 'explain' or for 'more de
 ### Workflow
 
 - Use `karpathy-guidelines` skills
-- Use `superpowers` (systematic-debugging, TDD, verification-before-completion)
 - Use `concise` to communicate
 - Phases labeled **(Claude)** are executed by Claude AI.
 - Skip completed phases: `[√] Phase...`.
@@ -39,13 +38,13 @@ Cross-cutting recipes run from the repo root via `run-cargo-script` (`cgs`),
 reading the root `Scripts.toml`; each delegates to the subtrees' native runners
 (`vpr …` in `frontend/`, `cgs …` in `backend/`).
 
-| Command        | Description                               |
-| -------------- | ----------------------------------------- |
-| `cgs dev`      | Start both dev servers                     |
-| `cgs build`    | Build both subtrees                        |
-| `cgs test`     | Run both test suites                       |
-| `cgs check`    | Format + lint + type-check both subtrees   |
-| `cgs bindings` | Regenerate ts-rs bindings (back-end)       |
+| Command        | Description                              |
+| -------------- | ---------------------------------------- |
+| `cgs dev`      | Start both dev servers                   |
+| `cgs build`    | Build both subtrees                      |
+| `cgs test`     | Run both test suites                     |
+| `cgs check`    | Format + lint + type-check both subtrees |
+| `cgs bindings` | Regenerate ts-rs bindings (back-end)     |
 
 Single-side work: `cd frontend` (use `vpr …`) or `cd backend` (use `cgs …`); see
 the subtree `CLAUDE.md` for each side's command table.
