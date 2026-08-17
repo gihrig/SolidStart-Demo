@@ -22,7 +22,6 @@ use uuid::Uuid;
 )]
 #[sqlx(type_name = "user_typ")]
 #[ts(export, export_to = "UserTyp.d.ts")]
-
 pub enum UserTyp {
 	Sys,
 	User,
@@ -35,7 +34,6 @@ impl From<UserTyp> for sea_query::Value {
 
 #[derive(Clone, Fields, FromRow, Debug, Serialize, TS)]
 #[ts(export, export_to = "User.d.ts")]
-
 pub struct User {
 	pub id: i64,
 	pub username: String,
