@@ -1,24 +1,41 @@
-# SolidStart Demo — Front-end
+# SolidStart Demo — Domain Model
 
-The front-end of a technology demo, serving as a production-standard reference
-for future projects. It is a single SolidStart package — a modular monolith (see
-[ADR-0001](docs/adr/0001-frontend-modular-monolith.md),
-[ADR-0007](docs/adr/0007-consolidate-jedi-shell-unified-identity.md)). **Jedi** is
-the top-level application: it serves as the home page and its nav and header are
-the global app shell. **Realtime Conversations** — the **FullStack** nav link —
-is a sub-application reached from that shell. The two share one theme and are
-converging on one authenticated identity, surfaced in the nav avatar (see
-ADR-0007).
+The shared domain model for the SolidStart Demo mono-repo — **one bounded context
+with two surfaces** ([ADR-0010](docs/adr/0010-monorepo-structure.md)): a SolidStart
+front-end (`frontend/`) and a Rust/Axum back-end (`backend/`), unified by one
+authenticated **User** ([ADR-0007](docs/adr/0007-consolidate-jedi-shell-unified-identity.md),
+[ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md)). The front-end is a single
+SolidStart package — a modular monolith ([ADR-0001](docs/adr/0001-frontend-modular-monolith.md),
+ADR-0007): **Jedi** is the top-level application — the home page, and its nav,
+header, and theme are the global app shell; **Realtime Conversations** — the
+**FullStack** nav link — is a sub-application reached from that shell. The back-end
+owns the domain and exports it to the front-end as ts-rs bindings the front-end
+consumes (the _contract seam_, below).
+
+**Reading this glossary.** Entity entries are surface-neutral; italic labels mark
+the rest:
+
+- `_BE_:` — how the **back-end** realizes the term (fields, tables, tokens).
+- `_FE_:` — how the **front-end** realizes it (render, seam, a11y).
+- `_Planned_:` — contracted but **not yet built** ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md)); see each section's status note.
+- `_Avoid_:` — synonyms the project deliberately does **not** use.
 
 ## Realtime Conversations
 
 A demo of real-time conversations: Users exchange Messages within Conversations,
 each Conversation organized under an Agent.
 
+_Status_: the Conversations back-end is **live** — `crates/libs/lib-core/src/model/`
+holds `agent.rs`, `conv.rs`, `conv_msg.rs`, `conv_user.rs`, `user.rs`, all exported
+via ts-rs. The `_BE_` notes below are built code.
+
 **User**:
 An authenticated identity that owns Agents and Conversations and authors
 Messages. Every User is either an Admin user or a Standard user.
 _Avoid_: account.
+_BE_: `User = { id, username, typ }` with `UserTyp = "Sys" | "User"` — the lean
+identity. The nav avatar's `displayName` / `avatarUrl` are **not** back-end
+columns; they are front-end `useAuth`-seam fields (see Front-end surface).
 _Converging_: the global nav avatar unifies this identity with the Jedi profile
 at back-end integration (#17, ADR-0007; formalized as one back-end `User`
 spanning both surfaces in ADR-0011). In the client the `useAuth` seam already
@@ -37,47 +54,56 @@ _Avoid_: regular user.
 A container that groups Conversations; a User selects one and converses within it.
 An Agent is not a participant — it never authors Messages — despite carrying an AI provider and model (`ai_provider`, `ai_model`).
 _Avoid_: bot, assistant, responder; "agent" in the AFK / coding-agent sense used by the issue tracker.
+_BE_: `Agent = { id, owner_id, name, ai_provider, ai_model, … }` — the label field
+is `name` (not `title`).
 
-Future refactor: Rename Agent to Channel. See #31
+Future refactor: Rename Agent to Channel. See #31 (see the rename table under
+Back-end surface & contract seam).
 
 **Conversation**:
 A thread of Messages within one Agent, owned by the Standard user who created it.
 Ownership is fixed — a Conversation and its Messages never transfer to another User. Each Conversation has an access `kind` that scopes who may take part.
 _Avoid_: chat, room.
+_BE_: `Conv = { id, agent_id, owner_id, title, kind, state, … }`; `kind` and
+`state` are stored as `TEXT` + `CHECK` in the portable-subset schema
+([ADR-0012](docs/adr/0012-postgres-turso-db-swap-seam.md)).
 
 **Owner**:
 The User who created an entity — an Agent (an Admin user) or a Conversation (a Standard user). Fixed for the entity's life. For a Conversation, only its Owner or an Admin user may delete Messages or the whole thread.
 _Avoid_: creator.
+_BE_: the `owner_id` column on `Agent` / `Conv`.
 
 **Member**:
 A User admitted to a Conversation beyond its Owner; Only Owner-plus-Members may take part in a private Conversation.
 _Avoid_: participant.
+_BE_: a `ConvUser = { conv_id, user_id, … }` row admits a User to a Conversation.
 
 **Message**:
 An entry a User — the Owner or a Member — posts in a Conversation; that User is the Message's author, distinct from the Conversation Owner.
 _Avoid_: post, comment.
+_BE_: `ConvMsg = { id, conv_id, user_id, content, … }` — `user_id` is the author,
+distinct from the Conversation's `owner_id`.
 
 **Conversation kind** (`OwnerOnly` | `MultiUsers`):
 A Conversation's access scope. `OwnerOnly` is private — only its Owner and invited Members may read or post. `MultiUsers` is public — any User may read and post, without invitation.
 _Avoid_: visibility, permission.
+_BE_: `ConvKind = "OwnerOnly" | "MultiUsers"`.
 
 **Conversation state** (`Active` | `Archived`):
 A Conversation's lifecycle. `Active` is in the working set; `Archived` is retained but hidden from it — never deleted.
 _Avoid_: status.
-
-### Planned renames
-
-Headings above use today's back-end tokens so the glossary matches the current code; these are the names a future back-end refactor is expected to adopt.
-
-- `Agent` → **Channel** see #31
-- `typ` → **userType**; tier values `Sys` → **admin**, `User` → **standard**
-- `kind` values `OwnerOnly` → **Private**, `MultiUsers` → **Public**
-- the `Conv*` type family → **`Thread*`** (`Conv`→`Thread`, `ConvMsg`→`ThreadMsg`,
-  `ConvUser`→`ThreadUser`, `ConvKind`→`ThreadKind`, `ConvState`→`ThreadState`)
+_BE_: `ConvState = "Active" | "Archived"`.
 
 ## Jedi
 
 A responsive, accessible photo-and-caption sub-application with its own style and navigation. Users share Flickr photos as Posts and compete to caption them; both Posts and Captions accrue Likes. Content is served today by a back-end-faithful mock (see [ADR-0002](docs/adr/0002-jedi-mock-data-contract.md)) that doubles as the data contract a future back-end implements. That contract is now specified in [ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md); the database portability it must respect is [ADR-0012](docs/adr/0012-postgres-turso-db-swap-seam.md), and the mono-repo that houses both surfaces is [ADR-0010](docs/adr/0010-monorepo-structure.md) (with the front-end kept over full-Rust per [ADR-0008](docs/adr/0008-keep-solidstart-leptos-tradeoff.md)).
+
+_Status_: the Jedi **back-end is contracted but not yet built** —
+`crates/libs/lib-core/src/model/` has no `Post` / `Caption` / `Category` /
+`Comment` / `…Like` / `Hero` today; Jedi is still served entirely by the front-end
+mock ([ADR-0002](docs/adr/0002-jedi-mock-data-contract.md)). Every `_BE_` note in
+this section is therefore `_Planned_` per
+[ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md).
 
 _Brand_: the user-facing wordmark is **"Awesome"** (`Nav.tsx`, page `<Title>`,
 hero); **Jedi** stays the code/domain token (`src/types/jedi.ts`, `src/lib/jedi/`,
@@ -90,20 +116,27 @@ The core feed entity — a shared Flickr photo with its owner, Categories, capti
 
 **Top Photos** is Posts ranked by likes, not a separate entity.
 _Avoid_: Photo (as a distinct entity), Image, feed item.
+_BE_ (Planned): a first-class entity owned via `owner_id`.
 
 **Caption**:
 An independently-liked line of text a User submits for a Post. Many Captions
 compete per Post, each ranked by its own Likes; the top one is shown on the Post. A first-class entity — never merely a Post's "caption text".
 _Avoid_: title; caption text (as a Post field).
+_BE_ (Planned): a first-class entity; ranked by its own CaptionLikes.
 
 **Category**:
 A classification a Post carries; a Post's on-card "tags" _are_ its Categories (many-to-many). The single-select sidebar filters Posts by one Category.
 _Avoid_: Tag, Label (as concepts separate from Category).
+_BE_ (Planned): `Category = { id, name, icon: String }` — `icon` is an **opaque
+key** the back-end never interprets; the front-end maps it to `IconName` (see
+Front-end surface). Keeps the taxonomy fully back-end-owned.
 
 **Comment**:
 A User's remark on a Post; today only its count is surfaced. Distinct from a
 Conversations **Message**.
 _Avoid_: post, reply.
+_BE_ (Planned): a first-class entity owned via `owner_id`; only its count is
+surfaced today.
 
 **Like**:
 A User's endorsement of one Post or one Caption — a first-class record, not a
@@ -112,6 +145,9 @@ most one Like per User per target (an idempotent toggle); a Post's or Caption's
 like count is _derived_ by counting Likes. Captions compete on their own Like
 tallies (Top Captions).
 _Avoid_: vote, favorite, star; `likeCount` as stored truth.
+_BE_ (Planned): two tables — `post_like` and `caption_like`, each
+`{ owner_id, target_id, ctime }` with `unique(owner_id, target_id)` so a toggle is
+idempotent; like counts are **derived by counting rows**, never stored.
 
 **Author**:
 The User who owns a Post, Caption, or Comment (`owner_id`); the UI renders the author's name and avatar. Distinct from the photo's original author.
@@ -124,6 +160,7 @@ _Avoid_: user (when the owning role is meant); poster.
 Ranked _views_, not stored lists. Top Photos = Posts ordered by like count (within the selected Category once filtering lands, #29); Top Captions = the
 selected/featured Post's Captions ordered by like count.
 _Avoid_: featured/popular list, best captions (as stored data).
+_BE_ (Planned): **derived views** ordered by like count — not stored tables.
 
 **Hero**:
 The home page's banner content — title, subtitle, CTA, background image. A
@@ -132,6 +169,94 @@ user-generated and not `owner_id`-owned like Posts. FE renders it through the se
 (URL fields sanitized). See
 [ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md).
 _Avoid_: banner, splash (as separate concepts); treating it as per-User content.
+_BE_ (Planned): `Hero = { title, subtitle, cta_text, cta_href, background_image }`
+— a single mutable row, not `owner_id`-owned. The front-end renders it as a
+sanitized `HeroView` (see Front-end surface).
+
+## Back-end surface & contract seam
+
+The back-end (`backend/`, Rust/Axum, rust10x blueprint) owns the domain and
+exports it to the front-end as **ts-rs bindings** — the contract both surfaces
+share. This section names that seam's vocabulary; the _mechanism_ (the tsconfig
+`paths` alias, the CI bindings-drift guard) lives in
+[ADR-0010](docs/adr/0010-monorepo-structure.md), not here.
+
+**Unified `User`** (the cross-surface identity):
+One back-end `User = { id, username, typ }` (`UserTyp = "Sys" | "User"`) is the
+same identity that owns Agents and Conversations **and** — once the Jedi back-end
+lands — Posts, Captions, and Likes. The Jedi mock's `JediProfile { userId }` _is_
+this User ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md)), completing
+the convergence set out in
+[ADR-0007](docs/adr/0007-consolidate-jedi-shell-unified-identity.md).
+
+**ts-rs bindings** (the FE↔BE contract):
+The back-end's `#[derive(TS)]` types export to
+`backend/crates/services/web-server/bindings/`; the front-end consumes them, so a
+back-end type change _is_ a front-end contract change (CI guards the two in step —
+ADR-0010).
+_Avoid_: DTO, hand-kept schema — there is one generated source of truth.
+
+**`~/types/backend` barrel + `NumericIds`**:
+The front-end imports bindings **only** through the `~/types/backend` barrel, which
+re-applies `NumericIds` (a binding's `id: bigint` → `number`) and layers its
+hand-authored types. Consumers never import raw `bindings/` files directly. See
+[ADR-0003](docs/adr/0003-entity-identity-number-at-barrel.md),
+[ADR-0010](docs/adr/0010-monorepo-structure.md).
+
+**`ParamsIded` / `ParamsForUpdate<D>`** (shared RPC param shapes):
+`ParamsIded = { id }` carries an id-only call (fetch/delete by id);
+`ParamsForUpdate<D> = { id, data }` carries an update. Both are exported through
+the same ts-rs seam as the entities.
+
+**Audit columns** (`cid` / `ctime` / `mid` / `mtime`):
+Every back-end entity carries rust10x audit fields — creator id / create time,
+modifier id / modify time. `ctime` and `mtime` are RFC3339 `TEXT` in the portable
+schema ([ADR-0012](docs/adr/0012-postgres-turso-db-swap-seam.md)).
+
+**`Conv*` token family & planned renames**:
+The exported tokens are **today's back-end names**, so this glossary matches the
+current code; a future back-end refactor is expected to adopt the planned names
+below. (The Jedi brand `Jedi → Awesome` is a separate code→brand alignment, not a
+token rename — see the Jedi `_Brand_` note; both are parked in #31.)
+
+| Today (BE token / ts-rs)                           | Planned                                                      | Note                           |
+| -------------------------------------------------- | ------------------------------------------------------------ | ------------------------------ |
+| `Agent`                                            | `Channel`                                                    | #31                            |
+| `typ` (field on `User`)                            | `userType`                                                   |                                |
+| `UserTyp` values `Sys` / `User`                    | `admin` / `standard`                                         | tier values                    |
+| `ConvKind` values `OwnerOnly` / `MultiUsers`       | `Private` / `Public`                                         | access scope                   |
+| `Conv` `ConvMsg` `ConvUser` `ConvKind` `ConvState` | `Thread` `ThreadMsg` `ThreadUser` `ThreadKind` `ThreadState` | the `Conv*` family → `Thread*` |
+
+## Front-end surface
+
+Front-end-only realizations — how the SolidStart client (`frontend/src/`) presents
+the shared domain and consumes the contract seam.
+
+### Seam-end realizations
+
+**`IconName`** (↔ `Category.icon`):
+`IconName = (typeof ICON_NAMES)[number]` (`components/Icon.tsx`) — a union of the
+sprite ids. **Today** the mock's `JediCategory.icon` is typed `IconName` directly,
+and the unit test asserts strict membership (`expect(ICON_NAMES).toContain(c.icon)`,
+`lib/jedi/jedi-api.unit.test.ts`).
+_Planned_: once the back-end owns `Category.icon` as an opaque `String`, the barrel
+maps that key to `IconName` **with a fallback** and the test relaxes to "known key
+or fallback" ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md)).
+
+**`SafeUrl` / `HeroView`** (↔ `Hero`):
+The seam returns the `Hero` as a sanitized `HeroView` (`types/jedi.ts`) whose URL
+fields `ctaHref` / `backgroundImage` are typed `SafeUrl` — a brand
+`string & { __brand: "SafeUrl" }` minted only by `sanitizeUrl` / `trustedUrl`
+(`lib/sanitizeUrl.ts`), so a raw string can't reach a URL sink unsanitized
+([ADR-0006](docs/adr/0006-safeurl-brand-enforces-sanitize-boundary.md)).
+
+**`useAuth` interim identity & mock→real swap**:
+The nav avatar's `displayName` / `avatarUrl` live on the `useAuth` seam
+([ADR-0007](docs/adr/0007-consolidate-jedi-shell-unified-identity.md)), not on the
+back-end `User`. As the Jedi back-end lands, the front-end swaps mock→real **behind
+this seam, slice by slice** ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md));
+the `useAuth` interface is unchanged by #17.
+_Avoid_: rewiring components at cutover — the seam absorbs the swap.
 
 ### Sidebar selection & focus
 
