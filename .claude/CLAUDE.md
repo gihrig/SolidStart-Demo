@@ -45,7 +45,7 @@ package.json scripts (ADR-0010 addendum).
 | `cgs start`    | Build + run both subtrees in release mode         |
 | `cgs build`    | Build both subtrees                               |
 | `cgs test`     | Run both test suites                              |
-| `cgs e2e`      | Run e2e tests (boots back-end + front-end)        |
+| `cgs test:e2e` | Run e2e tests (boots back-end + front-end)        |
 | `cgs cover`    | Run both test suites with coverage                |
 | `cgs check`    | Format + lint + type-check both subtrees          |
 | `cgs update`   | Update dependencies in both subtrees              |

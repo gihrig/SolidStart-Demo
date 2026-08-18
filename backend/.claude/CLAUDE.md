@@ -33,7 +33,7 @@ that have no recipe (e.g. `cargo run -p gen-key`).
 | `cgs quick`     | Run the `quick_dev` example (login, CRUD, logout)        |
 | `cgs db`        | Start the Postgres docker container                      |
 | `cgs test`      | Run tests (`cargo nextest run -j1`)                      |
-| `cgs test-watch`| Run tests in watch mode                                  |
+| `cgs test:watch`| Run tests in watch mode                                  |
 | `cgs cover`     | Run tests with coverage + open report (`cargo llvm-cov --open`)|
 | `cgs check`     | Format (fix) + lint (`cargo fmt --all && cargo clippy --all-targets`)|
 | `cgs build`     | Build with debug symbols                                 |
@@ -75,4 +75,4 @@ Workspace crates: `lib-utils`, `lib-rpc-core`, `lib-auth`, `lib-core`, `lib-web`
 - **CORS is configured for the front-end** at `http://localhost:3000` with
   credentials enabled (`crates/services/web-server/src/main.rs`).
 - **`cargo watch` needs installing**: `cargo install cargo-watch` before
-  `cgs dev-watch`/`cgs test-watch`.
+  `cgs dev-watch`/`cgs test:watch`.
