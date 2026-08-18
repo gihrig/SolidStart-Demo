@@ -63,6 +63,10 @@ Workspace crates: `lib-utils`, `lib-rpc-core`, `lib-auth`, `lib-core`, `lib-web`
   where you are before running `cgs dev`/`test`/`build`.
 - **Postgres must be running** for the server, `quick_dev`, and the tests that
   touch the DB. Start it with `cgs db` (Postgres 17 docker container).
+- **HTTP-layer integration test** lives in `crates/services/web-server/src/app.rs`
+  (`#[cfg(test)] mod tests`): drives the shared `app()` router in-process via
+  `axum-test` (login → rpc CRUD → logoff), the assert-based counterpart to the
+  `quick_dev` example. Model-level `#[tokio::test]`s test the Bmc layer directly.
 - **ts-rs bindings are the front-end's source of truth**: the front-end imports
   them via a tsconfig `paths` alias into `crates/services/web-server/bindings/`
   (ADR-0010). After changing a `#[derive(TS)]` type, run `cgs bindings` to keep
