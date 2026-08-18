@@ -1,41 +1,108 @@
 #!/bin/bash
 
 # End-to-End test helper script
-# Confirm Back-End server is running
-# Script starts Front-End server
-# Run Playwright tests
-# Stop Front-End server
+# Starts the Back-End server (release) and the Front-End server, runs Playwright,
+# then stops both. Assumes Postgres is running (see `cgs db`); a cold release
+# compile can be slow, so run `cgs release` first if the back-end times out below.
 
 # Exit on error
 set -e
 
-# Trap to ensure server cleanup on exit
+BE_PID=""       # launcher subshell (cgs/cargo), set only if we start the back-end
+BE_STARTED=""   # "1" only if THIS script started the back-end (so we own teardown)
+FE_PID=""
+
+# True if $1 is $BE_PID or one of its descendants. Walks the parent chain with
+# `ps`, so it must be called while the launcher is still alive — once it exits,
+# the web-server reparents to init and the link back to $BE_PID is lost.
+owned_by_launcher() {
+  local pid=$1 hops=0
+  [ -n "$BE_PID" ] || return 1
+  while [ -n "$pid" ] && [ "$pid" -gt 1 ] 2>/dev/null; do
+    [ "$pid" = "$BE_PID" ] && return 0
+    pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d '[:space:]')
+    hops=$((hops + 1))
+    [ $hops -ge 20 ] && break
+  done
+  return 1
+}
+
+# Trap to ensure the servers this script started are cleaned up on exit.
 cleanup() {
-  if [ ! -z "$SERVER_PID" ]; then
-    echo "Stopping server (PID: $SERVER_PID)..."
-    kill $SERVER_PID 2>/dev/null || true
+  if [ -n "$FE_PID" ]; then
+    echo "Stopping Front-End (PID: $FE_PID)..."
+    kill "$FE_PID" 2>/dev/null || true
+  fi
+  if [ "$BE_STARTED" = "1" ]; then
+    echo "Stopping Back-End..."
+    # `cgs start` runs `cargo run`, which spawns the web-server as a grandchild;
+    # killing the launcher alone leaks it, so also kill whatever holds :8080 --
+    # but only if that listener is ours. If our back-end never bound the port
+    # (or already died), :8080 may belong to an unrelated dev/CI service that we
+    # must not touch. Resolve ownership BEFORE killing the launcher, while the
+    # parent chain still reaches $BE_PID.
+    local pid our_listeners=""
+    for pid in $(lsof -ti tcp:8080 -sTCP:LISTEN 2>/dev/null || true); do
+      if owned_by_launcher "$pid"; then
+        our_listeners="$our_listeners $pid"
+      else
+        echo "  Leaving PID $pid on :8080 alone (not started by this script)."
+      fi
+    done
+    [ -n "$BE_PID" ] && kill "$BE_PID" 2>/dev/null || true
+    [ -n "$our_listeners" ] && kill $our_listeners 2>/dev/null || true
+    # Reap the launcher so its SIGTERM exit status is not surfaced as an error.
+    [ -n "$BE_PID" ] && wait "$BE_PID" 2>/dev/null || true
   fi
 }
 trap cleanup EXIT
 
-# Confirm RPC endpoint returns `401` with `NO_AUTH` error (unauthenticated):
-RESPONSE=$(curl -s -w "\n%{http_code}" -X POST http://localhost:8080/api/rpc \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"test","params":{}}') || true
-HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-BODY=$(echo "$RESPONSE" | head -n1)
+# Readiness probe: the RPC endpoint returns HTTP 401 with a NO_AUTH error body
+# for an unauthenticated request once the back-end is up.
+be_ready() {
+  local resp code body
+  resp=$(curl -s -w "\n%{http_code}" -X POST http://localhost:8080/api/rpc \
+    -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0","id":1,"method":"test","params":{}}') || return 1
+  code=$(echo "$resp" | tail -n1)
+  body=$(echo "$resp" | head -n1)
+  [ "$code" = "401" ] && echo "$body" | grep -q "NO_AUTH"
+}
 
-if [ "$HTTP_CODE" != "401" ]; then
-  echo "FAIL: Expected HTTP 401, got $HTTP_CODE"
-  echo "Body: $BODY"
-  exit 1
+# Reuse an already-running back-end if one is up; otherwise start our own.
+# When we start it, it's quiet by default (the back-end logs at debug via
+# .cargo/config.toml, which is noisy under Playwright). Override the level per
+# run, e.g. `E2E_RUST_LOG=debug vpr test:e2e`. A back-end we did NOT start keeps
+# its own log level — stop it first if you want E2E_RUST_LOG to take effect.
+if be_ready; then
+  echo "Back-End already running on :8080 — reusing it."
+  echo "  (Its log level is that process's own, not E2E_RUST_LOG=${E2E_RUST_LOG:-warn}.)"
+else
+  # The web-server logs to stdout (kept visible); cargo/cgs build output and the
+  # SIGTERM "failure" it prints when we stop it go to stderr -> a log file, so
+  # they don't clutter the e2e run. Inspect the file if the back-end misbehaves.
+  BE_ERR_LOG="reports/e2e-backend.stderr.log"
+  mkdir -p reports
+  echo "Starting Back-End server (release, RUST_LOG=${E2E_RUST_LOG:-warn}; build log -> $BE_ERR_LOG)..."
+  (cd ../backend && RUST_LOG="${E2E_RUST_LOG:-warn}" cgs start) 2>"$BE_ERR_LOG" &
+  BE_PID=$!
+  BE_STARTED=1
+
+  # Wait for the Back-End to be ready (with timeout)
+  echo "Waiting for Back-End server to be ready..."
+  BE_MAX_ATTEMPTS=240  # 120 seconds (240 * 0.5s) — allows for a release compile
+  BE_ATTEMPT=0
+  until be_ready; do
+    BE_ATTEMPT=$((BE_ATTEMPT + 1))
+    if [ $BE_ATTEMPT -ge $BE_MAX_ATTEMPTS ]; then
+      echo "Back-End server failed to start within 120 seconds. Last stderr:"
+      tail -n 20 "$BE_ERR_LOG" 2>/dev/null || true
+      exit 1
+    fi
+    sleep 0.5
+  done
+  echo "Back-End server OK: RPC unauthenticated request returned HTTP 401 with NO_AUTH"
 fi
-if ! echo "$BODY" | grep -q "NO_AUTH"; then
-  echo "FAIL: Expected body to contain 'NO_AUTH'"
-  echo "Body: $BODY"
-  exit 1
-fi
-echo "Back-End server OK: RPC unauthenticated request returned HTTP 401 with NO_AUTH"
 echo
 
 # Create project release build
@@ -45,24 +112,23 @@ vinxi build
 # Start Front-End server in the background
 echo "Starting Front-End server..."
 vinxi start &
-SERVER_PID=$!
+FE_PID=$!
 
-# Wait for server to be ready (with timeout)
-echo "Waiting for server to be ready..."
+# Wait for the Front-End to be ready (with timeout)
+echo "Waiting for Front-End server to be ready..."
 MAX_ATTEMPTS=60  # 30 seconds (60 * 0.5s)
 ATTEMPT=0
-
 while ! curl -s http://localhost:3000 > /dev/null; do
   ATTEMPT=$((ATTEMPT + 1))
   if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
-    echo "Server failed to start within 30 seconds"
+    echo "Front-End server failed to start within 30 seconds"
     exit 1
   fi
   sleep 0.5
 done
 
 echo
-echo "Server ready, running tests..."
+echo "Servers ready, running tests..."
 echo
 echo "Command: vpx playwright test $@"
 

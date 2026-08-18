@@ -5,11 +5,15 @@
 bindings = { command = "cargo test export_bindings", info = "Regenerate ts-rs TypeScript bindings (exported via cargo test)" }
 build = { command = "cargo build", info = "Build w/ debug symbols", env = { RUST_LOG = "info" } }
 check = { command = "cargo fmt --all && cargo clippy --all-targets", info = "Format (fix) and lint" }
-db = { command = "docker run --rm --name pg -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=welcome postgres:17;", info="Start Postgres DB Docker container" }
+cover = { command = "cargo llvm-cov --open", info = "Run tests with coverage and open the HTML report" }
+db = { command = "docker run --rm --name pg -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=welcome postgres:17;", info = "Start Postgres DB Docker container" }
 dev = { command = "cargo run -p web-server", info = "Start a dev server" }
 dev-watch = { command = "cargo watch -q -c -w crates/services/web-server/src/ -w crates/libs/ -w .cargo/ -x 'run -p web-server'", info = "Start dev server in watch mode" }
 doc = { command = "cargo doc --no-deps --open", info = "Build project documentation" }
 quick = { command = "cargo run -p web-server --example quick_dev", info = "Run the quick-dev example program" }
 release = { command = "cargo build --release", info = "Build project in release mode" }
-test = { command = "cargo nextest run -j1", env = { RUST_LOG = "warn"}, info = "Run project tests" }
-test-watch = { command = "cargo watch -q -c -x 'nextest run -j1'", env = { RUST_LOG = "warn"}, info = "Run tests in watch mode" }
+start = { command = "cargo run -p web-server --release", info = "Build and run the web-server in release mode (assumes Postgres is running)" }
+test = { command = "cargo nextest run -j1", env = { RUST_LOG = "warn" }, info = "Run project tests" }
+"test:watch" = { command = "cargo watch -q -c -x 'nextest run -j1'", env = { RUST_LOG = "warn" }, info = "Run tests in watch mode" }
+update = { command = "cargo update", info = "Update dependencies (Cargo.lock)" }
+upgrade = { command = "rustup update", info = "Update the Rust toolchain" }

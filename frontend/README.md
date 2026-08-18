@@ -105,6 +105,13 @@ vpr test:comp -t "Nav" // Run Nav.test.tsx
 
 End to end tests are run with Playwright
 
+`vpr test:e2e` boots **both** servers — the back-end (release) and the front-end —
+runs Playwright, then stops the ones it started. **Postgres must already be
+running** (`cgs db` from `backend/`); if a back-end is already listening on
+`:8080` it is reused and left running. Back-end logs default to `warn` (quiet);
+raise them for a run with `E2E_RUST_LOG=debug vpr test:e2e`. Back-end build/stderr
+goes to `reports/e2e-backend.stderr.log`.
+
 Run end-to-end test with:
 
 ```sh

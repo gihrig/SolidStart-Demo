@@ -1,7 +1,9 @@
 # Root build orchestration for the mono-repo (ADR-0010).
 #
-# Cross-cutting recipes delegate to each subtree's native runner:
-#   frontend/ -> vpr <script>   (Vite+, package.json scripts)
+# Cross-cutting recipes delegate to each subtree via one runner (`cgs`), per the
+# ADR-0010 addendum: the front-end now exposes a `cgs` alias surface
+# (frontend/Scripts.toml) that proxies its package.json scripts through `vpr`.
+#   frontend/ -> cgs <script>   (frontend/Scripts.toml -> vpr -> package.json)
 #   backend/  -> cgs <script>   (run-cargo-script, backend/Scripts.toml)
 #
 # Single-side work: cd into a subtree and use its runner directly.
@@ -13,7 +15,11 @@
 
 [scripts]
 bindings = { command = "(cd backend && cgs bindings)", info = "Regenerate ts-rs bindings (backend)" }
-build = { command = "(cd frontend && vpr build) && (cd backend && cgs build)", info = "Build both subtrees" }
-check = { command = "(cd frontend && vpr check) && (cd backend && cgs check)", info = "Format + lint + type-check both subtrees" }
-dev = { command = "(cd frontend && vpx concurrently -k -n backend,frontend -c blue,green '(cd ../backend && cgs dev)' 'vpr dev')", info = "Start both dev servers (concurrently, kill-both)" }
-test = { command = "(cd frontend && vpr test:all) && (cd backend && cgs test)", info = "Run unit + component tests (frontend) and cargo tests (backend)" }
+build = { command = "(cd frontend && cgs build) && (cd backend && cgs build)", info = "Build both subtrees" }
+check = { command = "(cd frontend && cgs check) && (cd backend && cgs check)", info = "Format + lint + type-check both subtrees" }
+cover = { command = "(cd frontend && cgs test:cover) && (cd backend && cgs cover)", info = "Run both test suites with coverage" }
+dev = { command = "(cd frontend && vpx concurrently -k -n backend,frontend -c blue,green '(cd ../backend && cgs dev)' 'cgs dev')", info = "Start both dev servers (concurrently, kill-both)" }
+"test:e2e" = { command = "(cd frontend && cgs test:e2e)", info = "Run e2e tests (boots back-end + front-end; assumes Postgres is running)" }
+start = { command = "(cd frontend && cgs build) && (cd backend && cgs release) && (cd frontend && vpx concurrently -k -n backend,frontend -c blue,green '(cd ../backend && cgs start)' 'cgs start')", info = "Build and run both subtrees in release mode (concurrently, kill-both; assumes Postgres is running)" }
+test = { command = "(cd frontend && cgs test:all) && (cd backend && cgs test)", info = "Run unit + component tests (frontend) and cargo tests (backend)" }
+update = { command = "(cd frontend && cgs update) && (cd backend && cgs update)", info = "Update dependencies in both subtrees (sequential)" }

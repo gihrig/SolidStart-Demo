@@ -33,12 +33,16 @@ that have no recipe (e.g. `cargo run -p gen-key`).
 | `cgs quick`     | Run the `quick_dev` example (login, CRUD, logout)        |
 | `cgs db`        | Start the Postgres docker container                      |
 | `cgs test`      | Run tests (`cargo nextest run -j1`)                      |
-| `cgs test-watch`| Run tests in watch mode                                  |
+| `cgs test:watch`| Run tests in watch mode                                  |
+| `cgs cover`     | Run tests with coverage + open report (`cargo llvm-cov --open`)|
 | `cgs check`     | Format (fix) + lint (`cargo fmt --all && cargo clippy --all-targets`)|
 | `cgs build`     | Build with debug symbols                                 |
 | `cgs release`   | Build in release mode (`cargo build --release`)          |
+| `cgs start`     | Build + run web-server in release (`cargo run -p web-server --release`)|
 | `cgs bindings`  | Regenerate ts-rs bindings (`cargo test export_bindings`) |
 | `cgs doc`       | Build & open project docs                                |
+| `cgs update`    | Update dependencies (`cargo update`)                     |
+| `cgs upgrade`   | Update the Rust toolchain (`rustup update`)              |
 ```
 
 ## Tech Stack
@@ -59,6 +63,10 @@ Workspace crates: `lib-utils`, `lib-rpc-core`, `lib-auth`, `lib-core`, `lib-web`
   where you are before running `cgs dev`/`test`/`build`.
 - **Postgres must be running** for the server, `quick_dev`, and the tests that
   touch the DB. Start it with `cgs db` (Postgres 17 docker container).
+- **HTTP-layer integration test** lives in `crates/services/web-server/src/app.rs`
+  (`#[cfg(test)] mod tests`): drives the shared `app()` router in-process via
+  `axum-test` (login → rpc CRUD → logoff), the assert-based counterpart to the
+  `quick_dev` example. Model-level `#[tokio::test]`s test the Bmc layer directly.
 - **ts-rs bindings are the front-end's source of truth**: the front-end imports
   them via a tsconfig `paths` alias into `crates/services/web-server/bindings/`
   (ADR-0010). After changing a `#[derive(TS)]` type, run `cgs bindings` to keep
@@ -67,4 +75,4 @@ Workspace crates: `lib-utils`, `lib-rpc-core`, `lib-auth`, `lib-core`, `lib-web`
 - **CORS is configured for the front-end** at `http://localhost:3000` with
   credentials enabled (`crates/services/web-server/src/main.rs`).
 - **`cargo watch` needs installing**: `cargo install cargo-watch` before
-  `cgs dev-watch`/`cgs test-watch`.
+  `cgs dev-watch`/`cgs test:watch`.

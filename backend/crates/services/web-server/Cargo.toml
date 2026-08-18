@@ -28,4 +28,6 @@ tracing-subscriber = { workspace = true, features = ["env-filter"] }
 uuid = { workspace = true, features = ["v4","fast-rng",] }
 
 [dev-dependencies]
+axum-test = "21.0.0"
 httpc-test = "0.1.10"
+serial_test = "3.3.1"

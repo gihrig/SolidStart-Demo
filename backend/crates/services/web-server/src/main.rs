@@ -1,27 +1,19 @@
 // region:    --- Modules
 
+mod app;
 mod config;
 mod error;
 mod web;
 
 pub use self::error::{Error, Result};
-use config::web_config;
 
-use lib_web::middleware::mw_auth::{mw_ctx_require, mw_ctx_resolver};
-use lib_web::middleware::mw_req_stamp::mw_req_stamp_resolver;
-use lib_web::middleware::mw_res_map::mw_response_map;
-use lib_web::routes::routes_static;
-
-use crate::web::routes_login;
+use crate::app::app;
 use crate::web::routes_ws::WsState;
 
-use axum::{http::Method, middleware, Router};
 use lib_core::_dev_utils;
 use lib_core::model::ModelManager;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use tower_cookies::CookieManagerLayer;
-use tower_http::cors::CorsLayer;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
@@ -49,39 +41,8 @@ async fn main() -> Result<()> {
 
 	// endregion: -- Initialization Phase
 
-	// Route Definition - Protected API endpoints
-	let routes_rpc = web::routes_rpc::routes(mm.clone(), ws_state.clone())
-		.route_layer(middleware::from_fn(mw_ctx_require));
-
-	// WebSocket routes (no auth required for upgrade, auth handled in WS handler if needed)
-	let routes_ws = web::routes_ws::routes(ws_state.clone());
-
-	// CORS Configuration for SolidStart front-end
-	// Note: For production, replace with specific allowed origins
-	let cors = CorsLayer::new()
-		.allow_origin(
-			"http://localhost:3000"
-				.parse::<axum::http::HeaderValue>()
-				.unwrap(),
-		)
-		.allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-		.allow_headers([
-			axum::http::header::CONTENT_TYPE,
-			axum::http::header::AUTHORIZATION,
-		])
-		.allow_credentials(true);
-
-	// Router Assembly - Middleware nested under /api prefix
-	let routes_all = Router::new()
-		.merge(routes_login::routes(mm.clone()))
-		.nest("/api", routes_rpc)
-		.merge(routes_ws)
-		.layer(middleware::map_response(mw_response_map))
-		.layer(middleware::from_fn_with_state(mm.clone(), mw_ctx_resolver))
-		.layer(CookieManagerLayer::new())
-		.layer(cors)
-		.layer(middleware::from_fn(mw_req_stamp_resolver))
-		.fallback_service(routes_static::serve_dir(&web_config().WEB_FOLDER));
+	// Router Assembly (shared with the integration tests in `app.rs`).
+	let routes_all = app(mm, ws_state);
 
 	// region: --- Start Server
 	// Note: For this block, ok to unwrap
