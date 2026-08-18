@@ -407,6 +407,10 @@ expect(body.params).toEqual({
                 class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700"
                 >mock → ports &amp; adapters</span
               >
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-950 text-sky-300 border border-sky-800"
+                >Partially landed</span
+              >
             </div>
             <h2 class="text-2xl font-serif font-semibold text-slate-100">
               Inject the data-source adapter instead of grabbing the singleton
@@ -415,6 +419,38 @@ expect(body.params).toEqual({
               src/lib/conversationWorkspace.ts · src/lib/createConvMessages.ts ·
               src/lib/jedi/createJediFeed.ts · *.unit.test.ts
             </p>
+          </div>
+
+          <div class="rounded-lg border border-sky-800 bg-sky-950/40 p-4 text-sm text-slate-300">
+            <div class="schematic text-sky-300 mb-1">Status — landed in slices</div>
+            <p class="leading-relaxed">
+              The <code class="text-slate-200">createConvMessages</code> RPC half shipped:
+              <code class="text-slate-200">ConvMsgClient</code> injected, default
+              <code class="text-slate-200">backendRpc.convMsg</code>, and
+              <code class="text-slate-200">vi.mock</code> dropped from its unit test. The other two
+              consumers were split off to where the seam is actually earned:
+            </p>
+            <ul class="mt-2 space-y-1">
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  ><code class="text-slate-200">createConversationWorkspace</code> injection rides
+                  with its new WebSocket feed seam in
+                  <span class="font-mono text-xs">#85</span> (Agent/Conv live-propagation) — both
+                  deps land in one move.</span
+                >
+              </li>
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  ><code class="text-slate-200">createJediFeed</code> waits for
+                  <span class="font-mono text-xs">#67</span>:
+                  <code class="text-slate-200">jediApi</code> is the only adapter today (a
+                  one-adapter, hypothetical seam) until the real back-end arrives as the
+                  second.</span
+                >
+              </li>
+            </ul>
           </div>
 
           <div class="grid md:grid-cols-2 gap-4">
@@ -541,7 +577,8 @@ backendRpc.convMsg.add({…})
                 </li>
                 <li class="flex gap-2">
                   <span class="text-emerald-400">▸</span> drops
-                  <code class="text-xs text-slate-200">vi.mock</code> from 3 test files
+                  <code class="text-xs text-slate-200">vi.mock</code> from createConvMessages' test
+                  (the workspace's follows in #85, jedi's in #67)
                 </li>
                 <li class="flex gap-2">
                   <span class="text-emerald-400">▸</span> one consistent injection story, socket +
