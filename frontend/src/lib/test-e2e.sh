@@ -12,6 +12,21 @@ BE_PID=""       # launcher subshell (cgs/cargo), set only if we start the back-e
 BE_STARTED=""   # "1" only if THIS script started the back-end (so we own teardown)
 FE_PID=""
 
+# True if $1 is $BE_PID or one of its descendants. Walks the parent chain with
+# `ps`, so it must be called while the launcher is still alive — once it exits,
+# the web-server reparents to init and the link back to $BE_PID is lost.
+owned_by_launcher() {
+  local pid=$1 hops=0
+  [ -n "$BE_PID" ] || return 1
+  while [ -n "$pid" ] && [ "$pid" -gt 1 ] 2>/dev/null; do
+    [ "$pid" = "$BE_PID" ] && return 0
+    pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d '[:space:]')
+    hops=$((hops + 1))
+    [ $hops -ge 20 ] && break
+  done
+  return 1
+}
+
 # Trap to ensure the servers this script started are cleaned up on exit.
 cleanup() {
   if [ -n "$FE_PID" ]; then
@@ -21,11 +36,21 @@ cleanup() {
   if [ "$BE_STARTED" = "1" ]; then
     echo "Stopping Back-End..."
     # `cgs start` runs `cargo run`, which spawns the web-server as a grandchild;
-    # killing the launcher alone leaks it, so also kill whatever holds :8080.
+    # killing the launcher alone leaks it, so also kill whatever holds :8080 --
+    # but only if that listener is ours. If our back-end never bound the port
+    # (or already died), :8080 may belong to an unrelated dev/CI service that we
+    # must not touch. Resolve ownership BEFORE killing the launcher, while the
+    # parent chain still reaches $BE_PID.
+    local pid our_listeners=""
+    for pid in $(lsof -ti tcp:8080 -sTCP:LISTEN 2>/dev/null || true); do
+      if owned_by_launcher "$pid"; then
+        our_listeners="$our_listeners $pid"
+      else
+        echo "  Leaving PID $pid on :8080 alone (not started by this script)."
+      fi
+    done
     [ -n "$BE_PID" ] && kill "$BE_PID" 2>/dev/null || true
-    local be_listener
-    be_listener=$(lsof -ti tcp:8080 -sTCP:LISTEN 2>/dev/null || true)
-    [ -n "$be_listener" ] && kill $be_listener 2>/dev/null || true
+    [ -n "$our_listeners" ] && kill $our_listeners 2>/dev/null || true
     # Reap the launcher so its SIGTERM exit status is not surfaced as an error.
     [ -n "$BE_PID" ] && wait "$BE_PID" 2>/dev/null || true
   fi
