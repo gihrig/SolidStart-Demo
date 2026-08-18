@@ -8,18 +8,26 @@
 # Exit on error
 set -e
 
-BE_PID=""
+BE_PID=""       # launcher subshell (cgs/cargo), set only if we start the back-end
+BE_STARTED=""   # "1" only if THIS script started the back-end (so we own teardown)
 FE_PID=""
 
-# Trap to ensure both servers are cleaned up on exit
+# Trap to ensure the servers this script started are cleaned up on exit.
 cleanup() {
   if [ -n "$FE_PID" ]; then
     echo "Stopping Front-End (PID: $FE_PID)..."
-    kill $FE_PID 2>/dev/null || true
+    kill "$FE_PID" 2>/dev/null || true
   fi
-  if [ -n "$BE_PID" ]; then
-    echo "Stopping Back-End (PID: $BE_PID)..."
-    kill $BE_PID 2>/dev/null || true
+  if [ "$BE_STARTED" = "1" ]; then
+    echo "Stopping Back-End..."
+    # `cgs start` runs `cargo run`, which spawns the web-server as a grandchild;
+    # killing the launcher alone leaks it, so also kill whatever holds :8080.
+    [ -n "$BE_PID" ] && kill "$BE_PID" 2>/dev/null || true
+    local be_listener
+    be_listener=$(lsof -ti tcp:8080 -sTCP:LISTEN 2>/dev/null || true)
+    [ -n "$be_listener" ] && kill $be_listener 2>/dev/null || true
+    # Reap the launcher so its SIGTERM exit status is not surfaced as an error.
+    [ -n "$BE_PID" ] && wait "$BE_PID" 2>/dev/null || true
   fi
 }
 trap cleanup EXIT
@@ -36,24 +44,40 @@ be_ready() {
   [ "$code" = "401" ] && echo "$body" | grep -q "NO_AUTH"
 }
 
-# Start the Back-End server (release) in the background
-echo "Starting Back-End server (release)..."
-(cd ../backend && cgs start) &
-BE_PID=$!
+# Reuse an already-running back-end if one is up; otherwise start our own.
+# When we start it, it's quiet by default (the back-end logs at debug via
+# .cargo/config.toml, which is noisy under Playwright). Override the level per
+# run, e.g. `E2E_RUST_LOG=debug vpr test:e2e`. A back-end we did NOT start keeps
+# its own log level — stop it first if you want E2E_RUST_LOG to take effect.
+if be_ready; then
+  echo "Back-End already running on :8080 — reusing it."
+  echo "  (Its log level is that process's own, not E2E_RUST_LOG=${E2E_RUST_LOG:-warn}.)"
+else
+  # The web-server logs to stdout (kept visible); cargo/cgs build output and the
+  # SIGTERM "failure" it prints when we stop it go to stderr -> a log file, so
+  # they don't clutter the e2e run. Inspect the file if the back-end misbehaves.
+  BE_ERR_LOG="reports/e2e-backend.stderr.log"
+  mkdir -p reports
+  echo "Starting Back-End server (release, RUST_LOG=${E2E_RUST_LOG:-warn}; build log -> $BE_ERR_LOG)..."
+  (cd ../backend && RUST_LOG="${E2E_RUST_LOG:-warn}" cgs start) 2>"$BE_ERR_LOG" &
+  BE_PID=$!
+  BE_STARTED=1
 
-# Wait for the Back-End to be ready (with timeout)
-echo "Waiting for Back-End server to be ready..."
-BE_MAX_ATTEMPTS=240  # 120 seconds (240 * 0.5s) — allows for a release compile
-BE_ATTEMPT=0
-until be_ready; do
-  BE_ATTEMPT=$((BE_ATTEMPT + 1))
-  if [ $BE_ATTEMPT -ge $BE_MAX_ATTEMPTS ]; then
-    echo "Back-End server failed to start within 120 seconds"
-    exit 1
-  fi
-  sleep 0.5
-done
-echo "Back-End server OK: RPC unauthenticated request returned HTTP 401 with NO_AUTH"
+  # Wait for the Back-End to be ready (with timeout)
+  echo "Waiting for Back-End server to be ready..."
+  BE_MAX_ATTEMPTS=240  # 120 seconds (240 * 0.5s) — allows for a release compile
+  BE_ATTEMPT=0
+  until be_ready; do
+    BE_ATTEMPT=$((BE_ATTEMPT + 1))
+    if [ $BE_ATTEMPT -ge $BE_MAX_ATTEMPTS ]; then
+      echo "Back-End server failed to start within 120 seconds. Last stderr:"
+      tail -n 20 "$BE_ERR_LOG" 2>/dev/null || true
+      exit 1
+    fi
+    sleep 0.5
+  done
+  echo "Back-End server OK: RPC unauthenticated request returned HTTP 401 with NO_AUTH"
+fi
 echo
 
 # Create project release build
