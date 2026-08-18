@@ -281,15 +281,18 @@ describe("conv", () => {
     expect(body.params).toEqual({ data: { agent_id: 1, title: "My Conv" } });
   });
 
-  it("conv.list sends list_convs", async () => {
+  it("conv.list sends list_convs filtered by agent_id", async () => {
     const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
     vi.stubGlobal("fetch", fetchMock);
 
-    await conv.list({ agent_id: 1 });
+    await conv.list(1);
 
     const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
     expect(body.method).toBe("list_convs");
-    expect(body.params).toEqual({ filters: { agent_id: 1 } });
+    // The ModQL array shape the back-end's OneOrMany<Vec<ConvFilter>> actually filters
+    // on. The prior `{ filters: { agent_id: 1 } }` object was coerced to an empty
+    // filter (every field None), returning every Agent's Convs (arch-review C1).
+    expect(body.params).toEqual({ filters: [{ agent_id: { $eq: 1 } }] });
   });
 
   it("conv.update sends update_conv", async () => {

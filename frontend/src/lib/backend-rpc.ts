@@ -82,7 +82,7 @@ export function createRpcClient() {
   const agent = {
     create: (data: AgentForCreate) => rpcCall<Agent>("create_agent", { data }),
     get: (id: number) => rpcCall<Agent>("get_agent", { id }),
-    list: (filters?: Record<string, unknown>) => rpcCall<Agent[]>("list_agents", { filters }),
+    list: () => rpcCall<Agent[]>("list_agents"),
     update: (id: number, data: AgentForUpdate) => rpcCall<Agent>("update_agent", { id, data }),
     delete: (id: number) => rpcCall<Agent>("delete_agent", { id }),
   };
@@ -91,7 +91,13 @@ export function createRpcClient() {
   const conv = {
     create: (data: ConvForCreate) => rpcCall<Conv>("create_conv", { data }),
     get: (id: number) => rpcCall<Conv>("get_conv", { id }),
-    list: (filters?: Record<string, unknown>) => rpcCall<Conv[]>("list_convs", { filters }),
+    // List a single Agent's Conversations. The ModQL filter shape
+    // ([{ field: { $eq } }], matching the back-end's OneOrMany<Vec<ConvFilter>>) is
+    // built here so callers pass a domain id, never the query dialect — a raw
+    // `{ filters }` passthrough double-wrapped it into an empty filter, leaking
+    // every Agent's Convs (arch-review C1).
+    list: (agentId: number) =>
+      rpcCall<Conv[]>("list_convs", { filters: [{ agent_id: { $eq: agentId } }] }),
     update: (id: number, data: ConvForUpdate) => rpcCall<Conv>("update_conv", { id, data }),
     delete: (id: number) => rpcCall<Conv>("delete_conv", { id }),
   };

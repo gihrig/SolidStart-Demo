@@ -66,12 +66,7 @@ export function createConversationWorkspace(): ConversationWorkspace {
   // yields [] with no agent), so the list never shows another agent's convs.
   const [convs, { refetch: refetchConvs }] = createResource(selectedAgent, async (agent) => {
     if (!agent) return [];
-    return sortByLabel(
-      await backendRpc.conv.list({
-        filters: [{ agent_id: { $eq: agent.id } }],
-      }),
-      convLabel,
-    );
+    return sortByLabel(await backendRpc.conv.list(agent.id), convLabel);
   });
 
   const selectAgent = (agent: Agent) => {
