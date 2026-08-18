@@ -14,6 +14,6 @@ quick = { command = "cargo run -p web-server --example quick_dev", info = "Run t
 release = { command = "cargo build --release", info = "Build project in release mode" }
 start = { command = "cargo run -p web-server --release", info = "Build and run the web-server in release mode (assumes Postgres is running)" }
 test = { command = "cargo nextest run -j1", env = { RUST_LOG = "warn" }, info = "Run project tests" }
-test-watch = { command = "cargo watch -q -c -x 'nextest run -j1'", env = { RUST_LOG = "warn" }, info = "Run tests in watch mode" }
+"test:watch" = { command = "cargo watch -q -c -x 'nextest run -j1'", env = { RUST_LOG = "warn" }, info = "Run tests in watch mode" }
 update = { command = "cargo update", info = "Update dependencies (Cargo.lock)" }
 upgrade = { command = "rustup update", info = "Update the Rust toolchain" }

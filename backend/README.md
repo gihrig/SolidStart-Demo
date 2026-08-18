@@ -117,7 +117,7 @@ cgs quick
 
 ```sh
 # Concise test output, watch mode.
-cgs test-watch
+cgs test:watch
 ```
 
 ## Unit Test
@@ -125,6 +125,15 @@ cgs test-watch
 ```sh
 # Concise test output (cargo nextest run -j1).
 cgs test
+```
+
+## Coverage
+
+> NOTE: Install with `cargo install cargo-llvm-cov`.
+
+```sh
+# Run tests with coverage and open the HTML report (cargo llvm-cov --open).
+cgs cover
 ```
 
 ## Build for production
@@ -135,6 +144,19 @@ Note that codegen-units = 1 and lto = true increase compilation time but often y
 # build for minimal binary size (cargo build --release)
 cgs release
 
+# build AND run the server in release mode (cargo run -p web-server --release).
+# Assumes Postgres is running (cgs db).
+cgs start
+```
+
+## Dependencies & toolchain
+
+```sh
+# Update Cargo dependencies (cargo update -> Cargo.lock).
+cgs update
+
+# Update the Rust toolchain (rustup update).
+cgs upgrade
 ```
 
 ## Tools

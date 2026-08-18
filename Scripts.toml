@@ -19,7 +19,7 @@ build = { command = "(cd frontend && cgs build) && (cd backend && cgs build)", i
 check = { command = "(cd frontend && cgs check) && (cd backend && cgs check)", info = "Format + lint + type-check both subtrees" }
 cover = { command = "(cd frontend && cgs test:cover) && (cd backend && cgs cover)", info = "Run both test suites with coverage" }
 dev = { command = "(cd frontend && vpx concurrently -k -n backend,frontend -c blue,green '(cd ../backend && cgs dev)' 'cgs dev')", info = "Start both dev servers (concurrently, kill-both)" }
-e2e = { command = "(cd frontend && cgs test:e2e)", info = "Run e2e tests (boots back-end + front-end; assumes Postgres is running)" }
+"test:e2e" = { command = "(cd frontend && cgs test:e2e)", info = "Run e2e tests (boots back-end + front-end; assumes Postgres is running)" }
 start = { command = "(cd frontend && cgs build) && (cd backend && cgs release) && (cd frontend && vpx concurrently -k -n backend,frontend -c blue,green '(cd ../backend && cgs start)' 'cgs start')", info = "Build and run both subtrees in release mode (concurrently, kill-both; assumes Postgres is running)" }
 test = { command = "(cd frontend && cgs test:all) && (cd backend && cgs test)", info = "Run unit + component tests (frontend) and cargo tests (backend)" }
 update = { command = "(cd frontend && cgs update) && (cd backend && cgs update)", info = "Update dependencies in both subtrees (sequential)" }
