@@ -6,6 +6,8 @@ scripts and configuration. This ADR records the structure; [ADR-0012](0012-postg
 and [ADR-0011](0011-jedi-backend-domain-contract.md) cover what the merged
 back-end does.
 
+_Status: accepted; **superseded-in-part** by the [Addendum](#addendum-2026-08-17--standardize-on-cgs-across-both-subtrees) below — the "`vpr` for the front-end, subtree runners only for single-side work" command-surface decision is revised to standardize on `cgs` across both subtrees._
+
 ## Decisions
 
 **Layout — `frontend/` + `backend/`.** Two top-level directories. Framework-neutral
@@ -29,10 +31,10 @@ the shared model. The domain is treated as **one bounded context with two
 surfaces** (the unified identity of [ADR-0007](0007-consolidate-jedi-shell-unified-identity.md)),
 so there is a single root `CONTEXT.md`, not a per-subtree split.
 
-**Build orchestration — a root `Scripts.toml` run by `run-cargo-script`
+**Build orchestration — a root `Scripts.toml` run by `cargo-run`
 (`cgs`).** Cross-cutting recipes (`cgs dev`, `cgs build`, `cgs test`, `cgs check`,
 `cgs bindings`) delegate to each subtree's native commands (`vpr …` in
-`frontend/`, `cgs …` in `backend/`). `run-cargo-script` reads `Scripts.toml`
+`frontend/`, `cgs …` in `backend/`). `cargo-run` reads `Scripts.toml`
 from the working directory and **runs without any `Cargo.toml`** (verified), so a
 master file at the polyglot root — which has no root `Cargo.toml`, since Cargo's
 lives at `backend/` — is valid. Subtree runners stay for single-side work.
@@ -108,3 +110,32 @@ must re-run the front-end type-check.
 - Back-end work is now tracked as issues on the single `gihrig/SolidStart-Demo`
   tracker, and `docs/adr/` now numbers TypeScript and Rust decisions in one
   sequence.
+
+## Addendum (2026-08-17) — standardize on `cgs` across both subtrees
+
+#86 expands the script surface (`start`, `e2e`, `cover`, `update`, `upgrade`) and,
+in doing so, revises this ADR's original command-surface decision. The original
+said the front-end uses its native runner `vpr` and that **subtree runners stay for
+single-side work** — cross-cutting recipes at the root delegated to `vpr` on the
+front-end side.
+
+**Revised decision — one runner (`cgs`) everywhere; package.json stays the
+front-end source of truth.** The front-end gains a `frontend/Scripts.toml` whose
+recipes are thin aliases proxying each package.json script through `vpr`
+(`<name> = { command = "vpr <name>" }`), mirrored 1:1. So `cgs <script>` works in
+`frontend/` just as in `backend/` and at the root, and the root recipes now call
+`cgs` on both sides. `vpr` still works directly in `frontend/` for those who prefer
+it; package.json remains the canonical list of front-end scripts (standard manifest
+location — tooling such as Greptile expects it there), with the alias file a
+generated mirror.
+
+**Why not fold the front-end scripts into `Scripts.toml` outright?** That would move
+the source of truth off the standard `package.json` location and duplicate what the
+JS ecosystem already reads. The alias layer keeps `package.json` authoritative while
+giving the repo a single command vocabulary.
+
+**Scope note (e2e / release).** `cgs e2e` boots the back-end (release) and front-end
+via `frontend/src/lib/test-e2e.sh` and **assumes Postgres is already running** — the
+zero-infra, self-booting e2e of the original "Dev workflow" section still awaits the
+Turso track ([ADR-0012](0012-postgres-turso-db-swap-seam.md)/[ADR-0013](0013-in-browser-turso-server-sync.md),
+proposed/deferred). `cgs start` likewise assumes Postgres is up, mirroring `cgs dev`.

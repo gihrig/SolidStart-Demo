@@ -1,0 +1,29 @@
+# Front-end recipe surface for the mono-repo (ADR-0010 addendum).
+#
+# Thin aliases that proxy each package.json script through `vpr <script>`, so the
+# whole repo speaks one runner (`cgs`) while package.json stays the source of truth
+# for the front-end scripts (standard manifest location; tooling expects it there).
+#
+# Regenerate/extend by mirroring package.json 1:1 — every script gets an alias.
+
+[global_env]
+
+[scripts]
+audit = { command = "vpr audit", info = "Audit dependencies (bun audit)" }
+build = { command = "vpr build", info = "Build the front-end (vinxi build)" }
+check = { command = "vpr check", info = "Format + lint (vp check --fix)" }
+"check:type" = { command = "vpr check:type", info = "Type-check (tsc --noEmit)" }
+dev = { command = "vpr dev", info = "Start the dev server (vinxi dev)" }
+lighthouse = { command = "vpr lighthouse", info = "Build, serve, and run a Lighthouse report" }
+start = { command = "vpr start", info = "Serve the production build (vinxi start)" }
+"test:all" = { command = "vpr test:all", info = "Run all tests (vp test)" }
+"test:all:watch" = { command = "vpr test:all:watch", info = "Run all tests in watch mode" }
+"test:comp" = { command = "vpr test:comp", info = "Run component tests (src/components)" }
+"test:comp:watch" = { command = "vpr test:comp:watch", info = "Run component tests in watch mode" }
+"test:cover" = { command = "vpr test:cover", info = "Run tests with coverage (reports/coverage)" }
+"test:e2e" = { command = "vpr test:e2e", info = "Run Playwright e2e tests (boots back-end + front-end)" }
+"test:show" = { command = "vpr test:show", info = "Open the last Playwright HTML report" }
+"test:unit" = { command = "vpr test:unit", info = "Run unit tests (src/lib)" }
+"test:unit:watch" = { command = "vpr test:unit:watch", info = "Run unit tests in watch mode" }
+update = { command = "vpr update", info = "Update dependencies (bun update)" }
+"update:latest" = { command = "vpr update:latest", info = "Update dependencies to latest (bun update --latest)" }

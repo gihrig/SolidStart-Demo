@@ -34,11 +34,15 @@ that have no recipe (e.g. `cargo run -p gen-key`).
 | `cgs db`        | Start the Postgres docker container                      |
 | `cgs test`      | Run tests (`cargo nextest run -j1`)                      |
 | `cgs test-watch`| Run tests in watch mode                                  |
+| `cgs cover`     | Run tests with coverage + open report (`cargo llvm-cov --open`)|
 | `cgs check`     | Format (fix) + lint (`cargo fmt --all && cargo clippy --all-targets`)|
 | `cgs build`     | Build with debug symbols                                 |
 | `cgs release`   | Build in release mode (`cargo build --release`)          |
+| `cgs start`     | Build + run web-server in release (`cargo run -p web-server --release`)|
 | `cgs bindings`  | Regenerate ts-rs bindings (`cargo test export_bindings`) |
 | `cgs doc`       | Build & open project docs                                |
+| `cgs update`    | Update dependencies (`cargo update`)                     |
+| `cgs upgrade`   | Update the Rust toolchain (`rustup update`)              |
 ```
 
 ## Tech Stack

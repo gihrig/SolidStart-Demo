@@ -35,19 +35,25 @@ Always use the `concise` skill unless the user asks to 'explain' or for 'more de
 ## Command surface (mono-repo)
 
 Cross-cutting recipes run from the repo root via `run-cargo-script` (`cgs`),
-reading the root `Scripts.toml`; each delegates to the subtrees' native runners
-(`vpr …` in `frontend/`, `cgs …` in `backend/`).
+reading the root `Scripts.toml`; each delegates to the subtrees via `cgs` — the
+back-end natively, the front-end through a `cgs` alias surface that proxies its
+package.json scripts (ADR-0010 addendum).
 
-| Command        | Description                              |
-| -------------- | ---------------------------------------- |
-| `cgs dev`      | Start both dev servers                   |
-| `cgs build`    | Build both subtrees                      |
-| `cgs test`     | Run both test suites                     |
-| `cgs check`    | Format + lint + type-check both subtrees |
-| `cgs bindings` | Regenerate ts-rs bindings (back-end)     |
+| Command        | Description                                       |
+| -------------- | ------------------------------------------------- |
+| `cgs dev`      | Start both dev servers                            |
+| `cgs start`    | Build + run both subtrees in release mode         |
+| `cgs build`    | Build both subtrees                               |
+| `cgs test`     | Run both test suites                              |
+| `cgs e2e`      | Run e2e tests (boots back-end + front-end)        |
+| `cgs cover`    | Run both test suites with coverage                |
+| `cgs check`    | Format + lint + type-check both subtrees          |
+| `cgs update`   | Update dependencies in both subtrees              |
+| `cgs bindings` | Regenerate ts-rs bindings (back-end)              |
 
-Single-side work: `cd frontend` (use `vpr …`) or `cd backend` (use `cgs …`); see
-the subtree `CLAUDE.md` for each side's command table.
+Single-side work: `cd frontend` or `cd backend` and use `cgs …` (both subtrees now
+expose a `cgs` surface); `vpr …` still works in `frontend/`. See the subtree
+`CLAUDE.md` for each side's command table.
 
 ---
 
