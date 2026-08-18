@@ -44,6 +44,17 @@ export const auth = {
   },
 };
 
+/**
+ * The convMsg slice a message view consumes (see createConvMessages). The RPC
+ * client's `convMsg` object satisfies it structurally, so the app injects the
+ * real client by default while tests pass an in-memory adapter — the RPC-side
+ * mirror of the socket seam (MessageFeed in websocket.ts).
+ */
+export interface ConvMsgClient {
+  list: (convId: number) => Promise<ConvMsg[]>;
+  add: (data: ConvMsgForCreate) => Promise<ConvMsg>;
+}
+
 // An RPC client owns its own request-id counter, so tests can spin up a fresh
 // one instead of depending on module-global state that leaks between them.
 export function createRpcClient() {

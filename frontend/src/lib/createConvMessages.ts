@@ -1,5 +1,5 @@
 import { createSignal, createEffect } from "solid-js";
-import { backendRpc } from "~/lib/backend-rpc";
+import { backendRpc, type ConvMsgClient } from "~/lib/backend-rpc";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { useWebSocket, type MessageFeedFactory } from "~/lib/websocket";
 import type { Conv, ConvMsg } from "~/types/backend";
@@ -16,9 +16,14 @@ export interface ConvMessages {
   error: () => string | null;
 }
 
-/** Injectable seam: live WebSocket by default, an in-memory adapter in tests. */
+/**
+ * Injectable seams: the live WebSocket feed and the RPC client, each real by
+ * default and an in-memory adapter in tests. The RPC half now stands at the same
+ * seam as the socket half instead of reaching for the `backendRpc` singleton.
+ */
 export interface ConvMessagesDeps {
   feed?: MessageFeedFactory;
+  convMsg?: ConvMsgClient;
 }
 
 /** Only new ids append — the single de-duplication point for feed + send. */
@@ -42,6 +47,8 @@ export function createConvMessages(
   // Prevents a stale convMsg.list response from overwriting a message added via send().
   let listStale = false;
 
+  // Both data sources are injectable seams; default to the real socket/singleton.
+  const convMsgApi = deps.convMsg ?? backendRpc.convMsg;
   const { connected, subscribe, unsubscribe } = (deps.feed ?? useWebSocket)({
     onConvMsg: (convId, msg) => {
       const c = conv();
@@ -57,7 +64,7 @@ export function createConvMessages(
     listStale = false;
     subscribe("conv", c.id);
     setMessages([]);
-    backendRpc.convMsg
+    convMsgApi
       .list(c.id)
       .then((msgs) => {
         if (!listStale) setMessages(msgs);
@@ -78,7 +85,7 @@ export function createConvMessages(
   // createRpcAction; the success step runs inside so its rejection lands in error.
   const sendAction = createRpcAction(
     async ({ c, content }: { c: Conv; content: string }) => {
-      const msg = await backendRpc.convMsg.add({ conv_id: c.id, content });
+      const msg = await convMsgApi.add({ conv_id: c.id, content });
       // Any in-flight history load is now stale; drop it when it resolves.
       listStale = true;
       setMessages((prev) => appendMsg(prev, msg));
