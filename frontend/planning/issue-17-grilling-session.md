@@ -34,7 +34,7 @@ D3b DB-swap mechanism .......... LOCKED → (i) feature flag; portable subset; d
 D4a  Layout ................... LOCKED → (a) frontend/ + backend/
 D4-1 Host repo + history ...... LOCKED → host=FE; preserve BE history (filter-repo → backend/)
 D4-2 ts-rs binding path ....... LOCKED → (C) single source via tsconfig alias into backend/…/bindings
-D4-3 Build orchestration ...... LOCKED → root Scripts.toml via cargo-run/run-cargo-script (cgs)
+D4-3 Build orchestration ...... LOCKED → root Scripts.toml via cargo-run (cgs)
 D4-4 Dev workflow (2 servers) . LOCKED → cgs dev (concurrently) + SQLite-default + self-booting e2e
 D4-5a Root vs subtree placement  LOCKED → domain docs (CONTEXT+ADRs) at root, single-context; code/config → subtrees
 D4-5b .gitignore/CLAUDE.md/editor LOCKED → nested .gitignore + light-split CLAUDE.md + root editor/CI

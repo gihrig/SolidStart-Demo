@@ -64,7 +64,7 @@ This is the `backend/` subtree of the [SolidStart Demo mono-repo](../CONTEXT.md)
 [ADR-0010](../docs/adr/0010-monorepo-structure.md) for the structure.
 
 - **Cross-cutting work** (both subtrees) run from the **repo root** via `cgs`
-  (`run-cargo-script` on the root `Scripts.toml`): `cgs <script>`. Run `cgs` by itself for a list scripts
+  (`cargo-run` on the root `Scripts.toml`): `cgs <script>`. Run `cgs` by itself for a list scripts
 - **Single-side (back-end) work** run from `backend/` using `cgs <script>`
   against this subtree's `Scripts.toml` (`cgs` reads the `Scripts.toml` in the
   working directory). The recipes below are back-end single-side commands; run

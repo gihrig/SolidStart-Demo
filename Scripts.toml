@@ -4,11 +4,11 @@
 # ADR-0010 addendum: the front-end now exposes a `cgs` alias surface
 # (frontend/Scripts.toml) that proxies its package.json scripts through `vpr`.
 #   frontend/ -> cgs <script>   (frontend/Scripts.toml -> vpr -> package.json)
-#   backend/  -> cgs <script>   (run-cargo-script, backend/Scripts.toml)
+#   backend/  -> cgs <script>   (cargo-run, backend/Scripts.toml)
 #
 # Single-side work: cd into a subtree and use its runner directly.
 # Valid at the polyglot root with no root Cargo.toml (ADR-0010, verified):
-# run-cargo-script reads Scripts.toml from the working directory and needs no
+# cargo-run reads Scripts.toml from the working directory and needs no
 # Cargo.toml — Cargo's lives at backend/.
 
 [global_env]

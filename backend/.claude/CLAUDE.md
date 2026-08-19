@@ -15,7 +15,7 @@ what this back-end does.
 
 ## Commands
 
-This subtree runs via `cgs <script>` (`run-cargo-script` on `backend/Scripts.toml`);
+This subtree runs via `cgs <script>` (`cargo-run` on `backend/Scripts.toml`);
 `cgs` reads the `Scripts.toml` in the working directory, so **run these from
 `backend/`**. Cross-cutting recipes (`cgs dev`/`build`/`test`/`check`/`bindings`
 over **both** subtrees) live in the root `Scripts.toml` and run **from the repo
