@@ -604,6 +604,10 @@ backendRpc.convMsg.add({…})
                 class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700"
                 >in-process</span
               >
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-950 text-sky-300 border border-sky-800"
+                >Partially landed</span
+              >
             </div>
             <h2 class="text-2xl font-serif font-semibold text-slate-100">
               Collapse the three hand-spelled CRUD blocks into one <code>crud(entity)</code>
@@ -611,6 +615,62 @@ backendRpc.convMsg.add({…})
             <p class="text-sm text-slate-500 font-mono">
               src/lib/backend-rpc.ts · src/types/backend/index.ts
             </p>
+          </div>
+
+          <div class="rounded-lg border border-sky-800 bg-sky-950/40 p-4 text-sm text-slate-300">
+            <div class="schematic text-sky-300 mb-1">Status — narrow slice landed</div>
+            <p class="leading-relaxed">
+              A
+              <code class="text-slate-200">crud&lt;Entity, CreateInput, UpdateInput&gt;(name)</code>
+              factory now owns <code class="text-slate-200">create/get/update/delete</code> for
+              <code class="text-slate-200">agent</code> and
+              <code class="text-slate-200">conv</code>; each keeps its own hand-written
+              <code class="text-slate-200">list</code>,
+              <code class="text-slate-200">convMsg</code> (add+list) is untouched, and
+              <code class="text-slate-200">auth</code> was left as its own REST door. Deliberately
+              narrower than the sketch above — the forward context sharpened the edges:
+            </p>
+            <ul class="mt-2 space-y-1">
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  ><code class="text-slate-200">list</code> stays per-entity: its arg shape and
+                  filter dialect differ, the method name is plural (<code class="text-slate-200"
+                    >list_agents</code
+                  >), and C1 lived in <code class="text-slate-200">conv.list</code> — a generated
+                  list would rebuild the passthrough C1 removed.</span
+                >
+              </li>
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  >N is <strong class="text-slate-200">2</strong>, not 3+: the factory definition
+                  offsets the two call sites, so it is break-even on line count today (the "one
+                  envelope, N entities / ~10 wrappers" win overstated it). Applied for the
+                  uniformity and a free third entity later — knowingly YAGNI.</span
+                >
+              </li>
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  ><span class="font-mono text-xs">#67</span> (jedi → real back-end) does
+                  <em>not</em> add a tenant: jedi is read-only view projections (<code
+                    class="text-slate-200"
+                    >featured</code
+                  >, <code class="text-slate-200">listForPost</code>, singleton
+                  <code class="text-slate-200">get</code>s), not CRUD — what it needs is
+                  <code class="text-slate-200">rpcCall</code>, already factored.</span
+                >
+              </li>
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  ><span class="font-mono text-xs">#85</span> (Agent/Conv realtime) does
+                  <em>not</em> add a tenant either: it is a WebSocket feed seam, orthogonal to the
+                  RPC envelope.</span
+                >
+              </li>
+            </ul>
           </div>
 
           <div class="grid md:grid-cols-2 gap-4">
