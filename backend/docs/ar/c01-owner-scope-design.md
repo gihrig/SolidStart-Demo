@@ -1,6 +1,6 @@
 # AR C01 — Owner-scope at the read seam — Design spec
 
-- **Status:** Draft — pending review & confirmation. **No code written.**
+- **Status:** Reviewed and confirmed. **ready for agent.**
 - **Source:** `docs/ar/architecture-review-20260818-223636.html`, candidate 01 ("Give the ownership invariant a home at the read seam").
 - **Branch:** `arch-review-8-18` · **Drafted:** 2026-08-20
 - **Scope of this slice:** enforce the **Owner** boundary at the model read/write seam for `Conv`, `ConvMsg`, and `Agent`. Deliberately narrower than the rust10x privilege ACS (see [Out of scope](#out-of-scope)).
