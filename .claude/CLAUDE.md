@@ -40,17 +40,20 @@ reading the root `Scripts.toml`; each delegates to the subtrees via `cgs` — th
 back-end natively, the front-end through a `cgs` alias surface that proxies its
 package.json scripts (ADR-0010 addendum).
 
-| Command        | Description                                |
-| -------------- | ------------------------------------------ |
-| `cgs dev`      | Start both dev servers                     |
-| `cgs start`    | Build + run both subtrees in release mode  |
-| `cgs build`    | Build both subtrees                        |
-| `cgs test`     | Run both test suites                       |
-| `cgs test:e2e` | Run e2e tests (boots back-end + front-end) |
-| `cgs cover`    | Run both test suites with coverage         |
-| `cgs check`    | Format + lint + type-check both subtrees   |
-| `cgs update`   | Update dependencies in both subtrees       |
-| `cgs bindings` | Regenerate ts-rs bindings (back-end)       |
+| Command                | Description                                    |
+| ---------------------- | ---------------------------------------------- |
+| `cgs dev`              | Start both dev servers                         |
+| `cgs start`            | Build + run both subtrees in release mode      |
+| `cgs build`            | Build both subtrees                            |
+| `cgs test`             | Run both test suites                           |
+| `cgs test:e2e`         | Run e2e tests (boots back-end + front-end)     |
+| `cgs cover`            | Run both test suites with coverage             |
+| `cgs check`            | Format + lint + type-check both subtrees       |
+| `cgs update`           | Update dependencies in both subtrees           |
+| `cgs bindings`         | Regenerate ts-rs bindings (back-end)           |
+| `cgs adr:index`        | Regenerate `docs/adr/README.md` from the ADRs  |
+| `cgs adr:index:check`  | Verify the ADR index is current (CI guard)     |
+| `cgs adr:list`         | Print the ADR index as a console table         |
 
 Single-side work: `cd frontend` or `cd backend` and use `cgs …` (both subtrees now
 expose a `cgs` surface); `vpr …` still works in `frontend/`. See the subtree

@@ -135,6 +135,24 @@ jobs:
           echo "::error::Committed ts-rs bindings lag the Rust types."
           echo "Run 'cgs bindings' (in backend/) and commit the changes."
 
+  # -- ADR index guard: docs/adr/README.md is generated from the ADR files, so
+  #    fail if it lags. Mirrors `cgs adr:index:check` (root Scripts.toml) with the
+  #    underlying script, per the CI convention above — no cargo/cgs, no DB.
+  adr-index:
+    name: ADR index guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify docs/adr/README.md is current
+        run: ./scripts/adr-index.sh check
+
+      - name: Explain drift
+        if: failure()
+        run: |
+          echo "::error::docs/adr/README.md lags the ADR files."
+          echo "Run 'cgs adr:index' (from the repo root) and commit docs/adr/README.md."
+
   # -- End-to-end (Playwright). Non-blocking at first (ADR-0010/#74): the job
   #    boots the Postgres BE itself and runs the FE e2e suite, but
   #    continue-on-error keeps a failure from blocking merge. #81 replaces this
