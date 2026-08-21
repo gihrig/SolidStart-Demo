@@ -113,7 +113,10 @@ pub struct ConvForCreate {
 
 #[derive(Fields, Deserialize, Default)]
 pub struct ConvForUpdate {
-	pub owner_id: Option<i64>,
+	// Note: `owner_id` is intentionally not updatable. The owner-only Write
+	//       scope (`owner_id = me`) keys on it, so allowing a client to rewrite
+	//       it would let an owner give away — or lock themselves out of — their
+	//       own conv. Ownership transfer belongs to the privilege ACS.
 	pub title: Option<String>,
 	pub closed: Option<bool>,
 	#[field(cast_as = "conv_state")]
