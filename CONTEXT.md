@@ -69,7 +69,7 @@ _BE_: `Conv = { id, agent_id, owner_id, title, kind, state, … }`; `kind` and
 ([ADR-0012](docs/adr/0012-postgres-turso-db-swap-seam.md)).
 
 **Owner**:
-The User who created an entity — an Agent (an Admin user) or a Conversation (a Standard user). Fixed for the entity's life. For a Conversation, only its Owner or an Admin user may delete Messages or the whole thread.
+The User who created an entity — an Agent (an Admin user) or a Conversation (a Standard user). Fixed for the entity's life. For a Conversation, only its Owner or an Admin user may delete Messages or the whole thread. Only its Owner may update a Conversation — rename it, or change its `kind` or `state`; the Admin override extends to deletion, not editing.
 _Avoid_: creator.
 _BE_: the `owner_id` column on `Agent` / `Conv`.
 
