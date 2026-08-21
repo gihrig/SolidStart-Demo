@@ -62,6 +62,7 @@ mod tests {
 	use axum_test::TestServer;
 	use lib_core::_dev_utils::{self, clean_agents, clean_convs};
 	use lib_core::ctx::Ctx;
+	use lib_core::model::user::{UserBmc, UserForCreate};
 	use serde_json::{json, Value};
 	use serial_test::serial;
 	use std::sync::Arc;
@@ -156,6 +157,117 @@ mod tests {
 		let ctx = Ctx::root_ctx();
 		clean_convs(&ctx, &mm, "test_web_login_rpc_logoff_ok").await?;
 		clean_agents(&ctx, &mm, "test_web_login_rpc_logoff_ok").await?;
+
+		Ok(())
+	}
+
+	/// C01 cross-user scope over HTTP (Q10): a private (`OwnerOnly`) conv created
+	/// by `demo1` is invisible to a second logged-in user — `get_conv` errors
+	/// for them, while its owner still reads it.
+	#[serial]
+	#[tokio::test]
+	async fn test_web_cross_user_conv_scope() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let fx_prefix = "test_web_cross_user_conv_scope";
+
+		// A second authenticatable user (demo1 is seeded by dev_db).
+		let demo2_username = format!("{fx_prefix}-demo2");
+		let demo2_id = UserBmc::create(
+			&root,
+			&mm,
+			UserForCreate {
+				username: demo2_username.clone(),
+				pwd_clear: "welcome".to_string(),
+			},
+		)
+		.await?;
+
+		let fx_agent_name = format!("{fx_prefix} agent 01");
+		let fx_conv_title = format!("{fx_prefix} conv 01");
+
+		// -- demo1 session: create an agent + a private (default OwnerOnly) conv.
+		let mut server_a =
+			TestServer::new(app(mm.clone(), Arc::new(WsState::new())));
+		server_a.save_cookies();
+		server_a
+			.post("/api/login")
+			.json(&json!({ "username": "demo1", "pwd": "welcome" }))
+			.await
+			.assert_status_ok();
+
+		let body: Value = server_a
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "create_agent",
+				"params": { "data": { "name": fx_agent_name } }
+			}))
+			.await
+			.json();
+		let agent_id = body
+			.pointer("/result/data/id")
+			.and_then(Value::as_i64)
+			.ok_or("create_agent: missing /result/data/id")?;
+
+		let body: Value = server_a
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "create_conv",
+				"params": { "data": { "agent_id": agent_id, "title": fx_conv_title } }
+			}))
+			.await
+			.json();
+		let conv_id = body
+			.pointer("/result/data/id")
+			.and_then(Value::as_i64)
+			.ok_or("create_conv: missing /result/data/id")?;
+
+		// -- demo2 session: cannot read demo1's private conv.
+		let mut server_b =
+			TestServer::new(app(mm.clone(), Arc::new(WsState::new())));
+		server_b.save_cookies();
+		server_b
+			.post("/api/login")
+			.json(&json!({ "username": demo2_username, "pwd": "welcome" }))
+			.await
+			.assert_status_ok();
+
+		let body: Value = server_b
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "get_conv",
+				"params": { "id": conv_id }
+			}))
+			.await
+			.json();
+		assert!(
+			body.get("error").is_some(),
+			"cross-user get_conv should error, got: {body}"
+		);
+		assert!(
+			body.pointer("/result/data").is_none(),
+			"cross-user get_conv should not return conv data"
+		);
+
+		// -- The owner still reads its own conv (scope is not over-broad).
+		let body: Value = server_a
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "get_conv",
+				"params": { "id": conv_id }
+			}))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data/id").and_then(Value::as_i64),
+			Some(conv_id)
+		);
+
+		// -- Clean (convs before agents; message rows cascade with the conv)
+		clean_convs(&root, &mm, fx_prefix).await?;
+		clean_agents(&root, &mm, fx_prefix).await?;
+		UserBmc::delete(&root, &mm, demo2_id).await?;
 
 		Ok(())
 	}

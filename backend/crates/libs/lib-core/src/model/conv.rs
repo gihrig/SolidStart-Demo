@@ -1,6 +1,6 @@
 use crate::ctx::Ctx;
 use crate::generate_common_bmc_fns;
-use crate::model::base::{self, DbBmc};
+use crate::model::base::{self, Access, CommonIden, DbBmc};
 use crate::model::conv_msg::{
 	ConvMsg, ConvMsgBmc, ConvMsgFilter, ConvMsgForCreate, ConvMsgForInsert,
 };
@@ -12,7 +12,7 @@ use modql::field::{Fields, SeaFieldValue};
 use modql::filter::{
 	FilterNodes, ListOptions, OpValsInt64, OpValsString, OpValsValue,
 };
-use sea_query::Nullable;
+use sea_query::{Alias, Condition, Expr, Nullable};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use sqlx::types::time::OffsetDateTime;
@@ -20,13 +20,6 @@ use sqlx::FromRow;
 use ts_rs::TS;
 
 // region:    --- Conv Types
-
-/// Trait to implement on entities that have a conv_id
-/// This will allow Ctx to be upgraded with the corresponding conv_id for
-/// future access control.
-pub trait ConvScoped {
-	fn conv_id(&self) -> i64;
-}
 
 #[derive(
 	Debug, Clone, sqlx::Type, derive_more::Display, Deserialize, Serialize, TS,
@@ -159,6 +152,24 @@ impl DbBmc for ConvBmc {
 	fn has_owner_id() -> bool {
 		true
 	}
+
+	/// Owner-scope a Conv operation:
+	/// - `Read`: `owner_id = me OR kind = 'MultiUsers'` (a `MultiUsers` conv is
+	///   public; Member reads are deferred — no Members exist yet).
+	/// - `Write`: `owner_id = me` (only the Owner may update/delete).
+	fn access_scope(ctx: &Ctx, access: Access) -> Option<Condition> {
+		let owner = Expr::col(CommonIden::OwnerId).eq(ctx.user_id());
+		match access {
+			Access::Read => Some(
+				Condition::any().add(owner).add(
+					Expr::col(Alias::new("kind"))
+						.eq(Expr::val(ConvKind::MultiUsers.to_string())
+							.cast_as(Alias::new("conv_kind"))),
+				),
+			),
+			Access::Write => Some(Condition::all().add(owner)),
+		}
+	}
 }
 
 // This will generate the `impl ConvBmc {...}` with the default CRUD functions.
@@ -197,20 +208,15 @@ impl ConvBmc {
 		base::list::<ConvMsgBmc, _, _>(ctx, mm, filter, list_options).await
 	}
 
-	/// NOTE: The current strategy is to not require conv_id, but we will check
-	///       that user have `conv:ReadMsg` privilege on correponding conv (post base::get).
+	/// Read a single `ConvMsg` by id. A thin `base::get` passthrough now that the
+	/// `ConvMsgBmc` `Read` hook auto-scopes it to messages in a readable Conv:
+	/// a message in a Conv the caller may not read yields `EntityNotFound`.
 	pub async fn get_msg(
 		ctx: &Ctx,
 		mm: &ModelManager,
 		msg_id: i64,
 	) -> Result<ConvMsg> {
-		let conv_msg: ConvMsg = base::get::<ConvMsgBmc, _>(ctx, mm, msg_id).await?;
-
-		// TODO: Validate conv_msg is with ctx.conv_id
-		//       let _ctx = ctx.add_conv_id(conv_msg.conv_id());
-		//       assert_privileges(&ctx, &mm, &["conv@owner_id", "conv:ReadMsg"]);
-
-		Ok(conv_msg)
+		base::get::<ConvMsgBmc, _>(ctx, mm, msg_id).await
 	}
 }
 
@@ -224,10 +230,13 @@ mod tests {
 	type Result<T> = core::result::Result<T, Error>; // For tests.
 
 	use super::*;
-	use crate::_dev_utils::{self, seed_agent};
+	use crate::_dev_utils::{self, seed_agent, seed_user};
 	use crate::ctx::Ctx;
+	use crate::model;
 	use crate::model::agent::AgentBmc;
+	use crate::model::conv_msg::ConvMsgFilter;
 	use modql::filter::OpValString;
+	use serde_json::json;
 	use serial_test::serial;
 
 	#[serial]
@@ -319,6 +328,165 @@ mod tests {
 		// -- Clean
 		// This should delete cascade
 		AgentBmc::delete(&ctx, &mm, agent_id).await?;
+
+		Ok(())
+	}
+
+	/// C01 owner-scope matrix (Q10): a non-root two-user fixture proving the
+	/// `access_scope` seam. User A owns an `OwnerOnly` and a `MultiUsers` conv
+	/// (each with a message); User B may see only the public one.
+	#[serial]
+	#[tokio::test]
+	async fn test_access_scope_conv_two_user() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let fx_prefix = "test_access_scope_conv_two_user";
+
+		let a_id = seed_user(&root, &mm, &format!("{fx_prefix}-A")).await?;
+		let b_id = seed_user(&root, &mm, &format!("{fx_prefix}-B")).await?;
+		let ctx_a = Ctx::new(a_id)?;
+		let ctx_b = Ctx::new(b_id)?;
+
+		// Agents are readable by all Users; owner is irrelevant here.
+		let agent_id =
+			seed_agent(&ctx_a, &mm, &format!("{fx_prefix} agent")).await?;
+
+		// A owns one private (OwnerOnly) and one public (MultiUsers) conv.
+		let owner_conv_id = ConvBmc::create(
+			&ctx_a,
+			&mm,
+			ConvForCreate {
+				agent_id,
+				title: Some(format!("{fx_prefix} owner-only")),
+				kind: Some(ConvKind::OwnerOnly),
+			},
+		)
+		.await?;
+		let multi_conv_id = ConvBmc::create(
+			&ctx_a,
+			&mm,
+			ConvForCreate {
+				agent_id,
+				title: Some(format!("{fx_prefix} multi-users")),
+				kind: Some(ConvKind::MultiUsers),
+			},
+		)
+		.await?;
+
+		// A posts a message into each of its convs.
+		ConvBmc::add_msg(
+			&ctx_a,
+			&mm,
+			ConvMsgForCreate {
+				conv_id: owner_conv_id,
+				content: "owner-only msg".to_string(),
+			},
+		)
+		.await?;
+		ConvBmc::add_msg(
+			&ctx_a,
+			&mm,
+			ConvMsgForCreate {
+				conv_id: multi_conv_id,
+				content: "multi-users msg".to_string(),
+			},
+		)
+		.await?;
+
+		// -- Check: B is denied the OwnerOnly conv (read + writes).
+		assert!(
+			matches!(
+				ConvBmc::get(&ctx_b, &mm, owner_conv_id).await,
+				Err(model::Error::EntityNotFound { .. })
+			),
+			"B get A's OwnerOnly conv should be EntityNotFound"
+		);
+		assert!(
+			matches!(
+				ConvBmc::update(
+					&ctx_b,
+					&mm,
+					owner_conv_id,
+					ConvForUpdate {
+						title: Some("hijack".to_string()),
+						..Default::default()
+					},
+				)
+				.await,
+				Err(model::Error::EntityNotFound { .. })
+			),
+			"B update A's OwnerOnly conv should be EntityNotFound"
+		);
+		assert!(
+			matches!(
+				ConvBmc::delete(&ctx_b, &mm, owner_conv_id).await,
+				Err(model::Error::EntityNotFound { .. })
+			),
+			"B delete A's OwnerOnly conv should be EntityNotFound"
+		);
+
+		// -- Check: B may read the MultiUsers conv.
+		let multi = ConvBmc::get(&ctx_b, &mm, multi_conv_id).await?;
+		assert_eq!(multi.id, multi_conv_id);
+
+		// -- Check: B's list sees the public conv but not A's private one.
+		let b_convs = ConvBmc::list(
+			&ctx_b,
+			&mm,
+			Some(vec![ConvFilter {
+				agent_id: Some(agent_id.into()),
+				..Default::default()
+			}]),
+			None,
+		)
+		.await?;
+		let b_ids: Vec<i64> = b_convs.iter().map(|c| c.id).collect();
+		assert!(
+			b_ids.contains(&multi_conv_id),
+			"B list should include MultiUsers"
+		);
+		assert!(
+			!b_ids.contains(&owner_conv_id),
+			"B list should exclude A's OwnerOnly"
+		);
+
+		// -- Check: message reads scope via the parent-conv subquery.
+		let owner_msgs = ConvBmc::list_msgs(
+			&ctx_b,
+			&mm,
+			Some(vec![serde_json::from_value::<ConvMsgFilter>(
+				json!({ "conv_id": owner_conv_id }),
+			)?]),
+			None,
+		)
+		.await?;
+		assert!(
+			owner_msgs.is_empty(),
+			"B list_msgs on OwnerOnly should be empty"
+		);
+
+		let multi_msgs = ConvBmc::list_msgs(
+			&ctx_b,
+			&mm,
+			Some(vec![serde_json::from_value::<ConvMsgFilter>(
+				json!({ "conv_id": multi_conv_id }),
+			)?]),
+			None,
+		)
+		.await?;
+		assert_eq!(
+			multi_msgs.len(),
+			1,
+			"B list_msgs on MultiUsers should return rows"
+		);
+
+		// -- Check: root bypasses the scope and sees the private conv.
+		ConvBmc::get(&root, &mm, owner_conv_id).await?;
+
+		// -- Clean (agent delete cascades convs + msgs).
+		AgentBmc::delete(&root, &mm, agent_id).await?;
+		_dev_utils::clean_users(&root, &mm, fx_prefix).await?;
 
 		Ok(())
 	}

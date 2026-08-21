@@ -8,10 +8,23 @@ mod utils;
 pub use crud_fns::*;
 pub use utils::*;
 
+use crate::ctx::Ctx;
 use modql::SIden;
-use sea_query::{Iden, IntoIden, TableRef};
+use sea_query::{Condition, Iden, IntoIden, TableRef};
 
 // endregion: --- Modules
+
+// region:    --- Access
+
+/// The kind of access an operation performs, passed to `DbBmc::access_scope`
+/// so an entity can return a different row-scoping predicate for reads vs writes.
+#[derive(Clone, Copy, Debug)]
+pub enum Access {
+	Read,
+	Write,
+}
+
+// endregion: --- Access
 
 // region:    --- Consts
 
@@ -66,5 +79,16 @@ pub trait DbBmc {
 	/// default: false
 	fn has_owner_id() -> bool {
 		false
+	}
+
+	/// Optional row-scoping predicate for this entity.
+	///
+	/// Returns `None` to leave the operation unscoped (the default), so every
+	/// entity is unscoped unless it opts in. When `Some`, the returned
+	/// `Condition` is ANDed into the operation's `WHERE` by the `base` CRUD
+	/// functions. `access` distinguishes reads (owner ∪ public) from writes
+	/// (owner-only). The root context bypasses this hook entirely (see `base`).
+	fn access_scope(_ctx: &Ctx, _access: Access) -> Option<Condition> {
+		None
 	}
 }

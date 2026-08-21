@@ -1,6 +1,6 @@
 use crate::ctx::Ctx;
 use crate::generate_common_bmc_fns;
-use crate::model::base::{self, DbBmc};
+use crate::model::base::{self, Access, CommonIden, DbBmc};
 use crate::model::modql_utils::time_to_sea_value;
 use crate::model::ModelManager;
 use crate::model::Result;
@@ -8,6 +8,7 @@ use lib_utils::time::Rfc3339;
 use modql::field::Fields;
 use modql::filter::{FilterNodes, OpValsString, OpValsValue};
 use modql::filter::{ListOptions, OpValsInt64};
+use sea_query::{Condition, Expr};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use sqlx::types::time::OffsetDateTime;
@@ -77,6 +78,19 @@ impl DbBmc for AgentBmc {
 	fn has_owner_id() -> bool {
 		true
 	}
+
+	/// Agents are Admin-owned but readable by every User (a Standard user
+	/// selects one to converse within), so `Read` is unscoped. `Write` is
+	/// `owner_id = me`: only the creating (Admin) user may update/delete.
+	fn access_scope(ctx: &Ctx, access: Access) -> Option<Condition> {
+		match access {
+			Access::Read => None,
+			Access::Write => Some(
+				Condition::all()
+					.add(Expr::col(CommonIden::OwnerId).eq(ctx.user_id())),
+			),
+		}
+	}
 }
 
 // This will generate the `impl AgentBmc {...}` with the default CRUD functions.
@@ -98,7 +112,9 @@ mod tests {
 	type Result<T> = core::result::Result<T, Error>; // For tests.
 
 	use super::*;
-	use crate::_dev_utils::{self, clean_agents, seed_agent, seed_agents};
+	use crate::_dev_utils::{
+		self, clean_agents, clean_users, seed_agent, seed_agents, seed_user,
+	};
 	use crate::model;
 	use serde_json::json;
 	use serial_test::serial;
@@ -343,6 +359,82 @@ mod tests {
 		// -- Clean
 		let count = clean_agents(&ctx, &mm, "test_list_ok agent").await?;
 		assert_eq!(count, 2, "Should have cleaned 2 agents");
+
+		Ok(())
+	}
+
+	/// C01 owner-scope matrix (Q10, Q11): Agents are readable by every User but
+	/// writable only by their creator. User B may read A's Agent but not mutate
+	/// or delete it.
+	#[serial]
+	#[tokio::test]
+	async fn test_access_scope_agent_two_user() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let fx_prefix = "test_access_scope_agent_two_user";
+
+		let a_id = seed_user(&root, &mm, &format!("{fx_prefix}-A")).await?;
+		let b_id = seed_user(&root, &mm, &format!("{fx_prefix}-B")).await?;
+		let ctx_a = Ctx::new(a_id)?;
+		let ctx_b = Ctx::new(b_id)?;
+
+		let agent_id =
+			seed_agent(&ctx_a, &mm, &format!("{fx_prefix} agent")).await?;
+
+		// -- Check: B may read A's Agent (Read is unscoped).
+		let agent = AgentBmc::get(&ctx_b, &mm, agent_id).await?;
+		assert_eq!(agent.id, agent_id);
+
+		let b_list = AgentBmc::list(
+			&ctx_b,
+			&mm,
+			Some(vec![serde_json::from_value::<AgentFilter>(json!({
+				"name": { "$contains": fx_prefix }
+			}))?]),
+			None,
+		)
+		.await?;
+		assert_eq!(b_list.len(), 1, "B list should see A's Agent");
+
+		// -- Check: B may not write A's Agent (Write is owner-only).
+		assert!(
+			matches!(
+				AgentBmc::update(
+					&ctx_b,
+					&mm,
+					agent_id,
+					AgentForUpdate {
+						name: Some("hijack".to_string()),
+					},
+				)
+				.await,
+				Err(model::Error::EntityNotFound { .. })
+			),
+			"B update A's Agent should be EntityNotFound"
+		);
+		assert!(
+			matches!(
+				AgentBmc::delete(&ctx_b, &mm, agent_id).await,
+				Err(model::Error::EntityNotFound { .. })
+			),
+			"B delete A's Agent should be EntityNotFound"
+		);
+
+		// -- Check: the creator (A) may write its own Agent.
+		AgentBmc::update(
+			&ctx_a,
+			&mm,
+			agent_id,
+			AgentForUpdate {
+				name: Some(format!("{fx_prefix} agent renamed")),
+			},
+		)
+		.await?;
+
+		// -- Clean
+		AgentBmc::delete(&root, &mm, agent_id).await?;
+		clean_users(&root, &mm, fx_prefix).await?;
 
 		Ok(())
 	}

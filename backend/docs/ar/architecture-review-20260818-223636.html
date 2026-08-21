@@ -158,6 +158,10 @@
                 class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700"
                 >authorization seam</span
               >
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-900 text-emerald-200 border border-emerald-700"
+                >Landed</span
+              >
             </div>
             <h2 class="text-2xl font-serif font-semibold text-slate-100">
               Give the ownership invariant a home at the read seam
@@ -176,6 +180,64 @@
             <code class="text-slate-200">Ctx</code> — passed to every CRUD function — is used only to
             stamp audit columns.
           </p>
+
+          <div class="rounded-lg border border-emerald-800 bg-emerald-950/40 p-4 text-sm text-slate-300">
+            <div class="schematic text-emerald-300 mb-1">Status — C01 slice landed</div>
+            <p class="leading-relaxed">
+              A per-Bmc
+              <code class="text-slate-200">access_scope(ctx, Access)</code> hook on
+              <code class="text-slate-200">DbBmc</code> (default
+              <code class="text-slate-200">None</code>) now scopes all six ctx-taking
+              <code class="text-slate-200">base</code> CRUD functions:
+              <strong class="text-slate-200">read-scope</strong> (owner ∪ public) on
+              <code class="text-slate-200">get/list/count</code> and
+              <strong class="text-slate-200">write-scope</strong> (owner-only) on
+              <code class="text-slate-200">update/delete/delete_many</code>. A wrong Owner is
+              indistinguishable from a missing row —
+              <code class="text-slate-200">EntityNotFound</code>, assertable at the Bmc — with the
+              root context (<code class="text-slate-200">user_id = 0</code>) bypassing scope once in
+              <code class="text-slate-200">base</code>. Recorded in
+              <a
+                class="text-emerald-300 underline"
+                href="../../../docs/adr/0014-backend-row-scoped-authorization-seam.md"
+                >ADR-0014</a
+              >; design in
+              <a class="text-emerald-300 underline" href="./c01-owner-scope-design.md"
+                >c01-owner-scope-design.md</a
+              >.
+            </p>
+            <ul class="mt-2 space-y-1">
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  ><code class="text-slate-200">Conv</code>: read
+                  <code class="text-slate-200">owner_id = me OR kind = 'MultiUsers'</code>, write
+                  <code class="text-slate-200">owner_id = me</code>.
+                  <code class="text-slate-200">ConvMsg</code> reads scope via a parent-conv subquery;
+                  <code class="text-slate-200">Agent</code> reads for all Users, writes creator-only.</span
+                >
+              </li>
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  >Deliberately narrower than the privilege ACS: the Admin
+                  <code class="text-slate-200">typ = Sys</code> delete override,
+                  <code class="text-slate-200">add_msg</code> post-permission (the next slice), and
+                  Member reads are documented, deferred gaps — not silent ones.</span
+                >
+              </li>
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  >Resolved candidate 02 as a side effect: the dead
+                  <code class="text-slate-200">ConvScoped</code> /
+                  <code class="text-slate-200">Ctx.conv_id</code> scaffolding is retired (no live
+                  caller). Verified by a non-root two-user Bmc matrix plus one cross-user HTTP
+                  case.</span
+                >
+              </li>
+            </ul>
+          </div>
 
           <!-- before / after -->
           <div class="grid md:grid-cols-2 gap-4">

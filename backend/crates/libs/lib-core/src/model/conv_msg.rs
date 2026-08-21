@@ -1,9 +1,11 @@
-use crate::model::base::DbBmc;
-use crate::model::conv::ConvScoped;
+use crate::ctx::Ctx;
+use crate::model::base::{Access, CommonIden, DbBmc};
+use crate::model::conv::ConvBmc;
 use crate::model::modql_utils::time_to_sea_value;
 use lib_utils::time::Rfc3339;
 use modql::field::Fields;
 use modql::filter::{FilterNodes, OpValsInt64, OpValsString, OpValsValue};
+use sea_query::{Alias, Condition, Expr, Query};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use sqlx::FromRow;
@@ -38,22 +40,10 @@ pub struct ConvMsg {
 	pub mtime: OffsetDateTime,
 }
 
-impl ConvScoped for ConvMsg {
-	fn conv_id(&self) -> i64 {
-		self.conv_id
-	}
-}
-
 #[derive(Fields, Deserialize)]
 pub struct ConvMsgForCreate {
 	pub conv_id: i64,
 	pub content: String,
-}
-
-impl ConvScoped for ConvMsgForCreate {
-	fn conv_id(&self) -> i64 {
-		self.conv_id
-	}
 }
 
 /// ConvMsg for Insert, which is derived from the public `ConvMsgForCreate`.
@@ -90,12 +80,6 @@ pub struct ConvMsgForUpdate {
 	pub content: Option<String>,
 }
 
-impl ConvScoped for ConvMsgForUpdate {
-	fn conv_id(&self) -> i64 {
-		self.conv_id
-	}
-}
-
 #[derive(FilterNodes, Deserialize, Default, Debug)]
 pub struct ConvMsgFilter {
 	id: Option<OpValsInt64>,
@@ -119,6 +103,28 @@ pub struct ConvMsgBmc;
 
 impl DbBmc for ConvMsgBmc {
 	const TABLE: &'static str = "conv_msg";
+
+	/// Scope a message read to messages whose parent `Conv` the caller may read.
+	/// `ConvMsg` has no `owner_id`, so the predicate references the parent via a
+	/// subquery — reusing `ConvBmc`'s own `Read` predicate (owner ∪ public) as
+	/// the subquery's `WHERE`, evaluated against the `conv` table. `Write` is
+	/// `None`: `ConvMsg` has no direct write CRUD (managed via `ConvBmc`).
+	fn access_scope(ctx: &Ctx, access: Access) -> Option<Condition> {
+		match access {
+			Access::Read => {
+				let mut subquery = Query::select();
+				subquery.column(CommonIden::Id).from(ConvBmc::table_ref());
+				if let Some(cond) = ConvBmc::access_scope(ctx, Access::Read) {
+					subquery.cond_where(cond);
+				}
+				Some(
+					Condition::all()
+						.add(Expr::col(Alias::new("conv_id")).in_subquery(subquery)),
+				)
+			}
+			Access::Write => None,
+		}
+	}
 }
 
 // Note: The strategy here is to not implement `ConvMsgBmc` CRUD functions,
