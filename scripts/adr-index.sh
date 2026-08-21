@@ -75,8 +75,14 @@ EOF
 }
 
 render_console() {
+  echo ">> = Superseded by · Amended = Accepted as amended"
+  echo
   { printf 'ADR\tStatus\tDecision\n';
     extract | while IFS=$'\t' read -r num file title status; do
+      case "$status" in
+        "Superseded by "*) status=">> ${status##* }" ;;
+        "Accepted (amended)") status="Amended" ;;
+      esac
       printf '%s\t%s\t%s\n' "$num" "$status" "$title"
     done
   } | column -t -s $'\t'
