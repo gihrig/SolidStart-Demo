@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — SolidStart Demo back-end</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "dark",
+        securityLevel: "loose",
+        flowchart: { htmlLabels: true },
+      });
+    </script>
+    <style>
+      body {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+      }
+      .font-serif {
+        font-family: ui-serif, Georgia, "Times New Roman", serif;
+      }
+      .deep {
+        background: linear-gradient(135deg, #0b1220, #111c2e);
+        border: 1px solid #1f2937;
+        box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+      }
+      .schematic {
+        font-size: 0.62rem;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+      code,
+      pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .codeblock {
+        background: #0a0f1c;
+        color: #cbd5e1;
+        border: 1px solid #1e293b;
+      }
+      .codeblock .k {
+        color: #7dd3fc;
+      }
+      .codeblock .s {
+        color: #86efac;
+      }
+      .codeblock .r {
+        color: #fca5a5;
+      }
+      .codeblock .c {
+        color: #64748b;
+        font-style: italic;
+      }
+      .mermaid {
+        display: flex;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-300 antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-14">
+      <!-- ================= HEADER ================= -->
+      <header class="space-y-6">
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+          <h1 class="text-4xl font-serif font-semibold tracking-tight text-slate-100">
+            Architecture review
+          </h1>
+          <div class="text-sm text-slate-500 font-mono">
+            SolidStart Demo · <span class="text-slate-300">backend/</span> · 2026-08-18 · branch
+            <span class="text-slate-300">arch-review-8-18</span>
+          </div>
+        </div>
+        <p class="text-slate-400 max-w-3xl leading-relaxed">
+          First architecture review of the Rust/Axum back-end — the previous seven all looked at
+          <code class="text-sm text-slate-200">frontend/</code>. The rust10x spine is well-shaped:
+          <code class="text-sm text-slate-200">crud_fns</code> is a deep generic base,
+          <code class="text-sm text-slate-200">Dbx</code> hides transaction ref-counting behind a
+          tiny interface, and two macros
+          (<code class="text-sm text-slate-200">generate_common_bmc_fns!</code> /
+          <code class="text-sm text-slate-200">generate_common_rpc_fns!</code>) keep the entity
+          boilerplate thin. All three friction points below share
+          <em>one spine</em>: the server threads a
+          <code class="text-sm text-slate-200">Ctx</code> — the caller's identity and scope —
+          through every layer, then never acts on it. Reads, deletes, and the realtime fan-out all
+          ignore who is asking.
+        </p>
+
+        <div
+          class="rounded-md bg-slate-900 border border-slate-800 px-4 py-3 text-sm text-slate-400 max-w-3xl"
+        >
+          <span class="schematic text-slate-500">The connection to the front-end review</span>
+          <p class="mt-1 leading-relaxed">
+            The front-end's landed <span class="font-mono text-xs text-slate-300">C1</span> fixed a
+            <code class="text-slate-300">conv.list</code> filter double-wrap that had "leaked every
+            Agent's Convs." That was the <em>symptom</em>. This review finds the <em>root</em>: the
+            back-end never scoped the query by Owner in the first place, so a broken — or absent —
+            client filter silently widens the result set instead of being rejected.
+          </p>
+        </div>
+
+        <!-- legend -->
+        <div
+          class="flex flex-wrap gap-x-8 gap-y-3 text-xs text-slate-400 border-y border-slate-800 py-4"
+        >
+          <span class="flex items-center gap-2"
+            ><span class="inline-block w-6 h-4 border-2 border-slate-500 rounded-sm"></span>
+            module</span
+          >
+          <span class="flex items-center gap-2"
+            ><svg width="30" height="6">
+              <line
+                x1="0"
+                y1="3"
+                x2="30"
+                y2="3"
+                stroke="#64748b"
+                stroke-width="2"
+                stroke-dasharray="5 5"
+              />
+            </svg>
+            seam (interface)</span
+          >
+          <span class="flex items-center gap-2"
+            ><svg width="30" height="10">
+              <line x1="0" y1="5" x2="24" y2="5" stroke="#ef4444" stroke-width="2.5" />
+              <path d="M24 1 L30 5 L24 9 Z" fill="#ef4444" />
+            </svg>
+            leakage / ignored scope</span
+          >
+          <span class="flex items-center gap-2"
+            ><span class="inline-block w-6 h-4 rounded-sm deep"></span> deep module</span
+          >
+          <span class="flex items-center gap-2"
+            ><span class="inline-block w-3 h-3 rounded-full bg-emerald-500"></span> Strong</span
+          >
+          <span class="flex items-center gap-2"
+            ><span class="inline-block w-3 h-3 rounded-full bg-amber-500"></span> Worth
+            exploring</span
+          >
+        </div>
+      </header>
+
+      <section id="candidates" class="space-y-16">
+        <!-- ============================================================ -->
+        <!-- CANDIDATE 1 -->
+        <!-- ============================================================ -->
+        <article id="c1" class="space-y-6">
+          <div class="space-y-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-mono text-slate-600">01</span>
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800"
+                >Strong</span
+              >
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700"
+                >authorization seam</span
+              >
+            </div>
+            <h2 class="text-2xl font-serif font-semibold text-slate-100">
+              Give the ownership invariant a home at the read seam
+            </h2>
+            <p class="text-sm text-slate-500 font-mono">
+              model/base/crud_fns.rs · model/base/mod.rs · model/base/utils.rs ·
+              lib-rpc-core/utils/macro_utils.rs
+            </p>
+          </div>
+
+          <p class="text-slate-400 leading-relaxed max-w-3xl text-sm">
+            <code class="text-slate-200">CONTEXT.md</code> is explicit: a Conversation is "owned by
+            the Standard user who created it," and "only its Owner or an Admin user may delete
+            Messages or the whole thread." The back-end <em>writes</em>
+            <code class="text-slate-200">owner_id</code> on create and then never reads it back. The
+            <code class="text-slate-200">Ctx</code> — passed to every CRUD function — is used only to
+            stamp audit columns.
+          </p>
+
+          <!-- before / after -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- BEFORE -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <div class="schematic text-slate-500 mb-3">
+                Before — ctx flows down three layers, ignored at each read
+              </div>
+              <div class="space-y-1.5 text-[0.7rem]">
+                <div class="border border-slate-700 rounded p-1.5 bg-slate-800/50">
+                  <div class="schematic text-slate-500">rpc handler</div>
+                  <div class="font-mono text-slate-300">get_conv(<span class="text-sky-300">ctx</span>, mm, {id})</div>
+                </div>
+                <div class="flex justify-center text-slate-600">│ ctx ▼</div>
+                <div class="border border-slate-700 rounded p-1.5 bg-slate-800/50">
+                  <div class="schematic text-slate-500">bmc (macro-generated)</div>
+                  <div class="font-mono text-slate-300">ConvBmc::get(<span class="text-sky-300">ctx</span>, mm, id)</div>
+                </div>
+                <div class="flex justify-center text-slate-600">│ ctx ▼</div>
+                <div class="flex items-stretch gap-1">
+                  <div class="flex-1 border border-red-900/70 rounded p-1.5 bg-red-950/40">
+                    <div class="schematic text-red-400">base::get</div>
+                    <div class="font-mono text-red-300">get(<span class="text-red-400">_ctx</span>, mm, id)</div>
+                    <div class="text-red-400 mt-0.5">_ctx — dropped. WHERE id = $1 only</div>
+                  </div>
+                </div>
+                <div class="border border-slate-700 rounded p-1.5 bg-slate-800/30 mt-2">
+                  <div class="schematic text-slate-500">the only owner_id write — create-time</div>
+                  <div class="font-mono text-slate-400">prep_fields_for_create → owner_id = user_id</div>
+                </div>
+                <p class="text-slate-500 pt-1 leading-snug">
+                  The boundary "you see only your own" lives nowhere on the server. It is delegated,
+                  implicitly, to whatever <code class="text-slate-400">filters</code> the client
+                  remembers to send.
+                </p>
+              </div>
+            </div>
+
+            <!-- AFTER -->
+            <div class="rounded-lg deep p-4 text-slate-100">
+              <div class="schematic text-slate-400 mb-3">
+                After — the read seam owns the scope
+              </div>
+              <div class="space-y-1.5 text-[0.7rem]">
+                <div class="border border-slate-700 rounded p-1.5 bg-slate-800/40">
+                  <div class="schematic text-slate-400">rpc handler</div>
+                  <div class="font-mono text-slate-100">get_conv(<span class="text-sky-300">ctx</span>, mm, {id})</div>
+                </div>
+                <div class="flex justify-center text-slate-600">│ ctx ▼</div>
+                <div class="border border-slate-700 rounded p-1.5 bg-slate-800/40">
+                  <div class="schematic text-slate-400">bmc</div>
+                  <div class="font-mono text-slate-100">ConvBmc::get(<span class="text-sky-300">ctx</span>, mm, id)</div>
+                </div>
+                <div class="flex justify-center text-slate-600">│ ctx ▼</div>
+                <div class="border border-emerald-500/40 rounded p-2 bg-emerald-500/10">
+                  <div class="schematic text-emerald-300">base::get — consults DbBmc::has_owner_id()</div>
+                  <div class="font-mono text-emerald-200 mt-0.5">
+                    WHERE id = $1 <span class="text-emerald-400">AND owner_id = ctx.user_id()</span>
+                  </div>
+                  <div class="text-slate-300 mt-1 leading-snug">
+                    Wrong Owner → the same <code class="text-emerald-300">EntityNotFound</code> a
+                    missing row returns. Admin / root scope bypasses. One predicate, every entity
+                    that declares an Owner.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- evidence -->
+          <div class="grid md:grid-cols-3 gap-4 text-xs">
+            <div class="rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
+              <div class="px-3 py-1.5 bg-slate-800/60 text-slate-400 font-mono text-[0.65rem]">
+                base/crud_fns.rs:89,154,262
+              </div>
+              <pre
+                class="codeblock p-3 leading-relaxed overflow-x-auto"
+              ><span class="c">// every read takes _ctx — unused</span>
+pub async fn get&lt;MC, E&gt;(
+  <span class="r">_ctx</span>: &amp;Ctx, mm, id) …
+pub async fn list&lt;MC, E, F&gt;(
+  <span class="r">_ctx</span>: &amp;Ctx, mm, filter…) …
+pub async fn delete&lt;MC&gt;(
+  <span class="r">_ctx</span>: &amp;Ctx, mm, id) …</pre>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
+              <div class="px-3 py-1.5 bg-slate-800/60 text-slate-400 font-mono text-[0.65rem]">
+                base/utils.rs:11–13 — the only owner_id use
+              </div>
+              <pre
+                class="codeblock p-3 leading-relaxed overflow-x-auto"
+              >if MC::<span class="k">has_owner_id</span>() {
+  fields.push(SeaField::new(
+    CommonIden::OwnerId,
+    <span class="s">user_id</span>));
+}
+<span class="c">// set on create; never read on</span>
+<span class="c">// get / list / delete</span></pre>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
+              <div class="px-3 py-1.5 bg-slate-800/60 text-slate-400 font-mono text-[0.65rem]">
+                lib-rpc-core macro_utils.rs:43
+              </div>
+              <pre
+                class="codeblock p-3 leading-relaxed overflow-x-auto"
+              ><span class="c">// list_&lt;suffix&gt;s: client filter,</span>
+<span class="c">// straight through, unscoped</span>
+$bmc::list(&amp;ctx, &amp;mm,
+  <span class="r">params.filters</span>,
+  params.list_options)</pre>
+            </div>
+          </div>
+
+          <!-- problem / solution / wins -->
+          <div class="grid md:grid-cols-2 gap-6 pt-1">
+            <div class="space-y-3">
+              <div>
+                <div class="schematic text-slate-500">Problem</div>
+                <p class="text-slate-300">
+                  <code class="text-sm text-slate-200">get</code> /
+                  <code class="text-sm text-slate-200">list</code> /
+                  <code class="text-sm text-slate-200">delete</code> accept a
+                  <code class="text-sm text-slate-200">_ctx</code> they discard.
+                  <code class="text-sm text-slate-200">has_owner_id()</code> is declared
+                  <code class="text-sm text-slate-200">true</code> on Agent and Conv but only fires
+                  at create. So <code class="text-sm text-slate-200">get_conv(id)</code> returns any
+                  User's Conversation by guessed id, and the Owner-scoping the front-end sends is a
+                  courtesy, not a guarantee.
+                </p>
+              </div>
+              <div>
+                <div class="schematic text-slate-500">Solution</div>
+                <p class="text-slate-300">
+                  Make the read seam consult
+                  <code class="text-sm text-slate-200">has_owner_id()</code> the way create already
+                  does: when an entity has an Owner, add
+                  <code class="text-sm text-slate-200">owner_id = ctx.user_id()</code> to the WHERE
+                  inside <code class="text-sm text-slate-200">base::{get,list,delete}</code>. The
+                  invariant moves out of client filters and into one module.
+                </p>
+              </div>
+            </div>
+            <div>
+              <div class="schematic text-slate-500 mb-2">Wins</div>
+              <ul class="space-y-1.5 text-slate-300 text-sm">
+                <li class="flex gap-2">
+                  <span class="text-emerald-400">▸</span> locality: the Owner boundary lives in one
+                  seam, not N callers
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-emerald-400">▸</span> leverage: every Owner-scoped entity gets it
+                  free
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-emerald-400">▸</span> the interface stops taking a
+                  <code class="text-xs text-slate-200">_ctx</code> it ignores
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-emerald-400">▸</span> test surface: "wrong Owner →
+                  EntityNotFound" becomes assertable at the Bmc
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div
+            class="rounded-md bg-amber-950/40 border border-amber-800/50 px-4 py-2.5 text-sm text-amber-200"
+          >
+            <span class="font-semibold text-amber-100">Open design questions (for grilling):</span>
+            <code>root_ctx()</code> carries <code>user_id = 0</code> — the scope must exempt
+            Admin / system callers, and Members (not just Owners) must still reach a
+            <code>MultiUsers</code> Conversation. This is the minimal <em>owner-scope</em> slice —
+            deliberately narrower than the rust10x privilege ACS the blueprint defers (candidate 02),
+            not a replacement for it.
+          </div>
+        </article>
+
+        <!-- ============================================================ -->
+        <!-- CANDIDATE 2 -->
+        <!-- ============================================================ -->
+        <article id="c2" class="space-y-6">
+          <div class="space-y-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-mono text-slate-600">02</span>
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-950 text-amber-300 border border-amber-800"
+                >Worth exploring</span
+              >
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700"
+                >hypothetical seam · 0 adapters</span
+              >
+            </div>
+            <h2 class="text-2xl font-serif font-semibold text-slate-100">
+              Decide the fate of the inert ACS scaffolding
+            </h2>
+            <p class="text-sm text-slate-500 font-mono">
+              ctx/mod.rs · model/conv.rs · model/conv_msg.rs
+            </p>
+          </div>
+
+          <p class="text-slate-400 leading-relaxed max-w-3xl text-sm">
+            A future Access Control System is scaffolded across three files —
+            <code class="text-slate-200">ConvScoped</code> (a trait, implemented three times),
+            <code class="text-slate-200">Ctx.conv_id</code> with
+            <code class="text-slate-200">add_conv_id()</code> and a
+            <code class="text-slate-200">conv_id()</code> accessor, and a
+            <code class="text-slate-200">TODO</code> in
+            <code class="text-slate-200">get_msg</code>. Grep says the trait method and the Ctx field
+            are <strong class="text-slate-200">never called outside a comment</strong>. Apply the
+            deletion test and it all vanishes cleanly: today it is a seam with zero adapters — exactly
+            what the design vocabulary says not to build until something varies across it.
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- BEFORE mermaid -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-3">
+              <div class="schematic text-slate-500 mb-1 px-1">
+                Today — scaffolding wired to nothing
+              </div>
+              <pre class="mermaid">
+flowchart TB
+  T["ConvScoped::conv_id()<br/>trait + 3 impls"]
+  C["Ctx.conv_id · add_conv_id()<br/>· conv_id()"]
+  G["get_msg TODO:<br/>assert_privileges (commented)"]
+  V(("∅ no caller"))
+  T -. "unused" .-> V
+  C -. "unused" .-> V
+  G -. "commented out" .-> V
+  classDef dead stroke:#ef4444,stroke-width:1.5px,fill:#450a0a,color:#fca5a5;
+  classDef void stroke:#64748b,stroke-width:1.5px,fill:#0f172a,color:#94a3b8;
+  class T,C,G dead
+  class V void
+              </pre>
+            </div>
+            <!-- AFTER: two futures -->
+            <div class="rounded-lg deep p-4 text-slate-100">
+              <div class="schematic text-slate-400 mb-3">Two honest futures — pick one</div>
+              <div class="space-y-3 text-[0.72rem]">
+                <div class="border border-emerald-500/40 rounded p-2 bg-emerald-500/10">
+                  <div class="schematic text-emerald-300">A — candidate 01 becomes its first adapter</div>
+                  <div class="text-slate-300 mt-1 leading-snug">
+                    <code class="text-emerald-300">get_msg</code> upgrades the Ctx via
+                    <code class="text-emerald-300">add_conv_id(msg.conv_id())</code> and checks the
+                    Conversation's Owner. The trait and field turn load-bearing —
+                    <em>one adapter, now real.</em>
+                  </div>
+                </div>
+                <div class="border border-slate-600 rounded p-2 bg-slate-800/40">
+                  <div class="schematic text-slate-400">B — retire until the ACS lands</div>
+                  <div class="text-slate-300 mt-1 leading-snug">
+                    Delete the trait, the <code class="text-slate-200">conv_id</code> field, and the
+                    accessors. Re-introduce them when the privilege system is actually built. The
+                    interface stops advertising a capability the code doesn't have.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- evidence -->
+          <div class="grid md:grid-cols-2 gap-4 text-xs">
+            <div class="rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
+              <div class="px-3 py-1.5 bg-slate-800/60 text-slate-400 font-mono text-[0.65rem]">
+                ctx/mod.rs:14–43 — field + mutators, no readers
+              </div>
+              <pre
+                class="codeblock p-3 leading-relaxed overflow-x-auto"
+              >pub struct Ctx {
+  user_id: i64,
+  <span class="c">/// Note: For the future ACS</span>
+  <span class="r">conv_id</span>: Option&lt;i64&gt;,
+}
+pub fn <span class="k">add_conv_id</span>(&amp;self, id) -&gt; Ctx {…}</pre>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
+              <div class="px-3 py-1.5 bg-slate-800/60 text-slate-400 font-mono text-[0.65rem]">
+                model/conv.rs:200–213 — the sole intended caller, commented
+              </div>
+              <pre
+                class="codeblock p-3 leading-relaxed overflow-x-auto"
+              >let conv_msg = base::get::&lt;ConvMsgBmc,_&gt;(…)?;
+<span class="c">// TODO: Validate conv_msg is with ctx.conv_id</span>
+<span class="c">//   let _ctx = ctx.add_conv_id(conv_msg.conv_id());</span>
+<span class="c">//   assert_privileges(&amp;ctx, &amp;mm, &["conv@owner_id",…]);</span>
+Ok(conv_msg)</pre>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 pt-1">
+            <div class="space-y-3">
+              <div>
+                <div class="schematic text-slate-500">Problem</div>
+                <p class="text-slate-300">
+                  Three files carry the vocabulary of an access-control seam that no code path
+                  exercises. A reader (human or agent) can't tell scaffolding-for-later from a
+                  live-but-buggy check — the intent reads as implemented.
+                </p>
+              </div>
+              <div>
+                <div class="schematic text-slate-500">Solution</div>
+                <p class="text-slate-300">
+                  Tie it to candidate 01. If 01's owner-scope needs Message→Conversation resolution,
+                  <code class="text-sm text-slate-200">get_msg</code> is the first real adapter and
+                  the scaffolding earns its place. If not, retire it and let the future ACS
+                  reintroduce it deliberately.
+                </p>
+              </div>
+            </div>
+            <div>
+              <div class="schematic text-slate-500 mb-2">Wins</div>
+              <ul class="space-y-1.5 text-slate-300 text-sm">
+                <li class="flex gap-2">
+                  <span class="text-amber-400">▸</span> "one adapter = real, zero = hypothetical" —
+                  resolved either way
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-amber-400">▸</span> the code stops describing behavior it doesn't
+                  have
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-amber-400">▸</span> AI-navigability: no phantom seam to reason
+                  around
+                </li>
+              </ul>
+            </div>
+          </div>
+          <p class="text-xs text-slate-500 italic">
+            Held at "worth exploring": this is intentional rust10x forward-scaffolding, so the call
+            is a judgement about honesty-of-interface, not a bug. Its answer falls out of candidate
+            01.
+          </p>
+        </article>
+
+        <!-- ============================================================ -->
+        <!-- CANDIDATE 3 -->
+        <!-- ============================================================ -->
+        <article id="c3" class="space-y-6">
+          <div class="space-y-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-mono text-slate-600">03</span>
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-950 text-amber-300 border border-amber-800"
+                >Worth exploring</span
+              >
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700"
+                >inverted module</span
+              >
+            </div>
+            <h2 class="text-2xl font-serif font-semibold text-slate-100">
+              The WebSocket channel that nothing routes on
+            </h2>
+            <p class="text-sm text-slate-500 font-mono">src/web/routes_ws.rs</p>
+          </div>
+
+          <p class="text-slate-400 leading-relaxed max-w-3xl text-sm">
+            The realtime feed is an <em>inverted</em> module: its interface is more sophisticated
+            than its behavior. Clients send a
+            <code class="text-slate-200">SubscriptionRequest {action, channel, id}</code>; every
+            broadcast is stamped with a <code class="text-slate-200">channel</code> like
+            <code class="text-slate-200">conv:42</code>. But the subscription handler is a no-op and
+            the channel is never matched — <strong class="text-slate-200">every connected client
+            receives every event.</strong> Two of the three broadcast helpers have zero callers.
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- BEFORE: fan-out to all -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <div class="schematic text-slate-500 mb-3">Before — subscribe is decoration; all get all</div>
+              <div class="space-y-2 text-[0.7rem]">
+                <div class="flex items-stretch gap-1">
+                  <div class="w-24 shrink-0 border border-slate-700 rounded p-1.5 bg-slate-800/50">
+                    <div class="schematic text-slate-500">event</div>
+                    <div class="font-mono text-slate-300">channel:<br/>conv:42</div>
+                  </div>
+                  <div class="flex items-center">
+                    <svg width="26" height="12"><line x1="0" y1="6" x2="19" y2="6" stroke="#ef4444" stroke-width="2"/><path d="M19 2 L26 6 L19 10 Z" fill="#ef4444"/></svg>
+                  </div>
+                  <div class="flex-1 space-y-1">
+                    <div class="border border-red-900/70 rounded p-1 bg-red-950/40 font-mono text-red-300">client A — subscribed conv:42 ✓ wanted</div>
+                    <div class="border border-red-900/70 rounded p-1 bg-red-950/40 font-mono text-red-300">client B — subscribed conv:99 ✗ gets it anyway</div>
+                    <div class="border border-red-900/70 rounded p-1 bg-red-950/40 font-mono text-red-300">client C — no sub ✗ gets it anyway</div>
+                  </div>
+                </div>
+                <p class="text-slate-500 pt-1 leading-snug">
+                  A private <code class="text-slate-400">OwnerOnly</code> Conversation's Messages
+                  reach every socket, regardless of membership — the same Owner boundary candidate 01
+                  is about, on the push path.
+                </p>
+              </div>
+            </div>
+            <!-- AFTER: filtered -->
+            <div class="rounded-lg deep p-4 text-slate-100">
+              <div class="schematic text-slate-400 mb-3">After — channel becomes load-bearing</div>
+              <div class="space-y-2 text-[0.7rem]">
+                <div class="flex items-stretch gap-1">
+                  <div class="w-24 shrink-0 border border-slate-700 rounded p-1.5 bg-slate-800/40">
+                    <div class="schematic text-slate-400">event</div>
+                    <div class="font-mono text-slate-100">channel:<br/>conv:42</div>
+                  </div>
+                  <div class="flex items-center">
+                    <svg width="26" height="12"><line x1="0" y1="6" x2="19" y2="6" stroke="#10b981" stroke-width="2"/><path d="M19 2 L26 6 L19 10 Z" fill="#10b981"/></svg>
+                  </div>
+                  <div class="flex-1 space-y-1">
+                    <div class="border border-emerald-700/60 rounded p-1 bg-emerald-950/40 font-mono text-emerald-200">client A — conv:42 ✓ delivered</div>
+                    <div class="border border-slate-700 rounded p-1 bg-slate-800/30 font-mono text-slate-500">client B — conv:99 · filtered out</div>
+                    <div class="border border-slate-700 rounded p-1 bg-slate-800/30 font-mono text-slate-500">client C — · filtered out</div>
+                  </div>
+                </div>
+                <div class="mt-2 border border-emerald-500/40 rounded p-2 bg-emerald-500/10 leading-snug">
+                  Per-connection subscription set; the send task matches
+                  <code class="text-emerald-300">event.channel</code> before forwarding. Or — shrink
+                  the interface: drop <code class="text-emerald-300">SubscriptionRequest</code> and
+                  the channel field until per-channel is actually needed.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- evidence -->
+          <div class="grid md:grid-cols-2 gap-4 text-xs">
+            <div class="rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
+              <div class="px-3 py-1.5 bg-slate-800/60 text-slate-400 font-mono text-[0.65rem]">
+                routes_ws.rs:114–124 — parsed, then dropped
+              </div>
+              <pre
+                class="codeblock p-3 leading-relaxed overflow-x-auto"
+              >if let Ok(sub) = serde_json::from_str::
+    &lt;SubscriptionRequest&gt;(&amp;text) {
+  debug!("Subscription request: …");
+  <span class="c">// Note: For a full implementation, you</span>
+  <span class="c">// would track subscriptions per client</span>
+  <span class="c">// … all connected clients receive all.</span>
+}</pre>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
+              <div class="px-3 py-1.5 bg-slate-800/60 text-slate-400 font-mono text-[0.65rem]">
+                routes_ws.rs:165–181 — 2 of 3 helpers unused (grep)
+              </div>
+              <pre
+                class="codeblock p-3 leading-relaxed overflow-x-auto"
+              >pub fn <span class="k">broadcast_conv_msg</span>(…)   <span class="s">// 1 caller</span>
+pub fn <span class="k">broadcast_conv_update</span>(…) <span class="r">// 0 callers</span>
+pub fn <span class="k">broadcast_agent_update</span>(…)<span class="r">// 0 callers</span>
+<span class="c">// conv/agent update events are built but</span>
+<span class="c">// never emitted from the CRUD path</span></pre>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 pt-1">
+            <div class="space-y-3">
+              <div>
+                <div class="schematic text-slate-500">Problem</div>
+                <p class="text-slate-300">
+                  The interface promises per-channel subscription; the implementation ignores it and
+                  fans out everything. Callers must learn a protocol that does nothing, and the
+                  <code class="text-sm text-slate-200">channel</code> field reads as meaningful when
+                  it is inert.
+                </p>
+              </div>
+              <div>
+                <div class="schematic text-slate-500">Solution</div>
+                <p class="text-slate-300">
+                  Deepen or shrink. <em>Deepen:</em> hold a subscription set per connection and
+                  filter by <code class="text-sm text-slate-200">event.channel</code> in the send
+                  task — the channel becomes real, and it aligns the push path with candidate 01's
+                  Owner boundary. <em>Shrink:</em> drop the subscription protocol and the channel
+                  field until a second consumer needs it.
+                </p>
+              </div>
+            </div>
+            <div>
+              <div class="schematic text-slate-500 mb-2">Wins</div>
+              <ul class="space-y-1.5 text-slate-300 text-sm">
+                <li class="flex gap-2">
+                  <span class="text-amber-400">▸</span> interface stops over-promising
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-amber-400">▸</span> private Conversations stop leaking on the
+                  socket
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-amber-400">▸</span> removes 2 dead helpers, or gives them a
+                  caller
+                </li>
+              </ul>
+            </div>
+          </div>
+          <p class="text-xs text-slate-500 italic">
+            Larger than 01: "deepen" needs per-connection state and touches the front-end's
+            <span class="font-mono">#85</span> live-propagation work. Worth exploring after the
+            contained Bmc win lands.
+          </p>
+        </article>
+      </section>
+
+      <!-- ================= TOP RECOMMENDATION ================= -->
+      <section id="top-recommendation" class="pt-4">
+        <div class="rounded-xl deep text-slate-100 p-8 space-y-4">
+          <div class="schematic text-emerald-300">Tackle first</div>
+          <h2 class="text-3xl font-serif font-semibold text-slate-100">
+            <a href="#c1" class="hover:text-emerald-300 transition-colors"
+              >01 · Give the ownership invariant a home at the read seam</a
+            >
+          </h2>
+          <p class="text-slate-400 max-w-3xl leading-relaxed">
+            Smallest change with the widest reach: one predicate in
+            <code class="text-slate-200">base::{get,list,delete}</code>, gated on the
+            <code class="text-slate-200">has_owner_id()</code> that already exists, and every
+            Owner-scoped entity inherits it. It is the server-side root of the front-end's
+            just-landed <span class="font-mono text-xs">C1</span> filter leak — fixing it turns the
+            client's Owner filter from a courtesy into a guarantee. It also decides
+            <a href="#c2" class="text-emerald-300 hover:underline">candidate 02</a>: if the scope
+            needs Message→Conversation resolution, the inert
+            <code class="text-slate-200">ConvScoped</code> / <code class="text-slate-200">Ctx.conv_id</code>
+            scaffolding becomes its first real adapter.
+            <a href="#c3" class="text-emerald-300 hover:underline">Candidate 03</a> is the same
+            boundary on the realtime push path — worth exploring once the contained Bmc win is in.
+          </p>
+        </div>
+      </section>
+
+      <footer class="text-center text-xs text-slate-600 pt-6 space-y-1">
+        <div>
+          Vocabulary:
+          <span class="font-mono"
+            >module · interface · depth · seam · adapter · leverage · locality</span
+          >
+          — <code>/codebase-design</code>. Domain terms (Agent · Conversation · Owner · Member ·
+          OwnerOnly) — <code>CONTEXT.md</code>.
+        </div>
+        <div>
+          No ADR conflicts: no ADR (0001–0013) governs back-end authorization; these candidates
+          enforce access rules <code>CONTEXT.md</code> already specifies but the back-end does not
+          yet honor.
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>
