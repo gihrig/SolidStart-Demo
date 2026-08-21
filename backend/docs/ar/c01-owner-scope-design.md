@@ -209,6 +209,6 @@ Once the server enforces scope, the front-end's `owner_id` filter (the landed C1
 
 ---
 
-## 11. No ADR conflict
+## 11. ADR
 
-No ADR (0001–0013) governs back-end authorization. These changes enforce access rules `CONTEXT.md` already specifies but the back-end does not yet honor.
+The durable seam this slice establishes — the per-Bmc `access_scope` hook, root bypass, `EntityNotFound`-on-miss, and read/write asymmetry — is recorded in [ADR-0014](../../../docs/adr/0014-backend-row-scoped-authorization-seam.md). No prior ADR (0001–0013) governed back-end authorization. This slice is ADR-0014's first enforcing implementation; it enforces access rules `CONTEXT.md` already specifies but the back-end does not yet honor.
