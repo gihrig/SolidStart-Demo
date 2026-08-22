@@ -587,6 +587,10 @@ Ok(conv_msg)</pre>
                 class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700"
                 >inverted module</span
               >
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-900 text-sky-200 border border-sky-700"
+                >Design ready</span
+              >
             </div>
             <h2 class="text-2xl font-serif font-semibold text-slate-100">
               The WebSocket channel that nothing routes on
@@ -603,6 +607,59 @@ Ok(conv_msg)</pre>
             the channel is never matched — <strong class="text-slate-200">every connected client
             receives every event.</strong> Two of the three broadcast helpers have zero callers.
           </p>
+
+          <div class="rounded-lg border border-sky-800 bg-sky-950/40 p-4 text-sm text-slate-300">
+            <div class="schematic text-sky-300 mb-1">Status — C03 design ready (not yet built)</div>
+            <p class="leading-relaxed">
+              Grilled and specced. The leak is real, not merely an interface wart: the send task
+              forwards every event unconditionally and the subscribe handler is a no-op, so a private
+              <code class="text-slate-200">OwnerOnly</code> Conversation's full
+              <code class="text-slate-200">ConvMsg</code> payloads reach every socket — the front-end
+              only hides them with a client-side <code class="text-slate-200">if</code>. This is
+              <a class="text-sky-300 underline" href="#c1">candidate 01</a>'s Owner boundary,
+              unenforced on the push path. Recorded in
+              <a
+                class="text-sky-300 underline"
+                href="../../../docs/adr/0015-realtime-push-authorization-at-subscribe-time.md"
+                >ADR-0015</a
+              >; design in
+              <a class="text-sky-300 underline" href="./c03-realtime-channel-design.md"
+                >c03-realtime-channel-design.md</a
+              >.
+            </p>
+            <ul class="mt-2 space-y-1">
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  ><strong class="text-slate-200">Deepen, not shrink.</strong> Authorize at
+                  <em>subscribe-time</em> by reusing the C01 read scope
+                  (<code class="text-slate-200">ConvBmc::get</code> → owner ∪
+                  <code class="text-slate-200">MultiUsers</code>); the send task then forwards only a
+                  connection's authorized channels — fan-out flips to
+                  <em>default-deny</em>.</span
+                >
+              </li>
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  >The socket gains identity: <code class="text-slate-200">/ws</code> requires auth
+                  and captures <code class="text-slate-200">Ctx</code> at the upgrade. The two dead
+                  broadcast helpers are removed; <code class="text-slate-200">WsEvent</code> joins the
+                  ts-rs bindings.</span
+                >
+              </li>
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  >Not back-end-only: default-deny forces a small front-end change (replay
+                  subscriptions on reconnect). Deferred hardening — mid-session revocation + subscribe
+                  DoS — is tracked in <span class="font-mono text-xs">#88</span>. Vocabulary: "channel"
+                  kept for the WS routing key; <span class="font-mono text-xs">#31</span> retargeted to
+                  Agent → Topic.</span
+                >
+              </li>
+            </ul>
+          </div>
 
           <div class="grid md:grid-cols-2 gap-4">
             <!-- BEFORE: fan-out to all -->

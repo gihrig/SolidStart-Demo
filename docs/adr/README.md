@@ -24,3 +24,4 @@ flat "what has been decided" view.
 | [0012](0012-postgres-turso-db-swap-seam.md) | Swap Postgres ↔ Turso Database behind a compile-time feature flag over a portable-subset schema | Accepted |
 | [0013](0013-in-browser-turso-server-sync.md) | Run an in-browser Turso Database that syncs to the server (optional, on the Turso build) | Accepted |
 | [0014](0014-backend-row-scoped-authorization-seam.md) | Row-scoped authorization lives in a per-Bmc `access_scope` hook | Accepted |
+| [0015](0015-realtime-push-authorization-at-subscribe-time.md) | Realtime push authorization lives at subscribe-time, reusing the read scope | Accepted |

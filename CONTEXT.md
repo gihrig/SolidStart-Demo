@@ -57,8 +57,9 @@ _Avoid_: bot, assistant, responder; "agent" in the AFK / coding-agent sense used
 _BE_: `Agent = { id, owner_id, name, ai_provider, ai_model, … }` — the label field
 is `name` (not `title`).
 
-Future refactor: Rename Agent to Channel. See #31 (see the rename table under
-Back-end surface & contract seam).
+Future refactor: Rename Agent to Topic. See #31 (see the rename table under
+Back-end surface & contract seam). Not to be confused with the realtime **Channel**
+(the live-Event routing key, below), which keeps its name.
 
 **Conversation**:
 A thread of Messages within one Agent, owned by the Standard user who created it.
@@ -93,6 +94,44 @@ _BE_: `ConvKind = "OwnerOnly" | "MultiUsers"`.
 A Conversation's lifecycle. `Active` is in the working set; `Archived` is retained but hidden from it — never deleted.
 _Avoid_: status.
 _BE_: `ConvState = "Active" | "Archived"`.
+
+### Realtime feed
+
+How a Conversation's Messages reach a User's client live, honoring the same access
+rules as a read. This is the vocabulary of the push path; the entities above are
+what it carries.
+
+**Feed**:
+The live stream a User's client receives Conversation Events on, without polling.
+Access-scoped: a client receives an Event only for a Channel it holds a
+Subscription to.
+_Avoid_: socket (as the concept), push.
+_BE_: a WebSocket at `GET /ws` (auth-required); one broadcast fans Events to all
+connections, each filtered to its Subscriptions (`web/routes_ws.rs`).
+_FE_: the `MessageFeed` port (`lib/websocket.ts`).
+
+**Channel**:
+The routing key an Event is addressed to and a Subscription names — one
+Conversation's, `conv:{id}`. Distinct from the planned Agent → **Topic** rename
+(#31): a Channel routes live Events; a Topic groups Threads.
+_Avoid_: topic (that names the Agent rename); room.
+_BE_: `WsEvent.channel` (and `SubscriptionRequest.channel` + `id`).
+
+**Subscription**:
+A client's standing request to receive Events on a Channel; permitted only for a
+Channel the client is entitled to read — owner ∪ `MultiUsers`, the same scope as a
+direct read ([ADR-0014](docs/adr/0014-backend-row-scoped-authorization-seam.md)). A
+connection with no Subscription receives nothing.
+_Avoid_: listener, watch.
+_BE_: `SubscriptionRequest { action, channel, id }`; authorized at subscribe-time
+and held per-connection ([ADR-0015](docs/adr/0015-realtime-push-authorization-at-subscribe-time.md)).
+_FE_: `subscribe` / `unsubscribe` on the `MessageFeed`, replayed on (re)connect.
+
+**Event**:
+One notification carried on the Feed — today only a new Message (`conv_msg`).
+_Avoid_: notification, broadcast (the mechanism, not the item).
+_BE_: `WsEvent { event_type, channel, payload }` (ts-rs-exported).
+_FE_: `WsMessage`.
 
 ## Jedi
 
@@ -221,7 +260,7 @@ token rename — see the Jedi `_Brand_` note; both are parked in #31.)
 
 | Today (BE token / ts-rs)                           | Planned                                                      | Note                           |
 | -------------------------------------------------- | ------------------------------------------------------------ | ------------------------------ |
-| `Agent`                                            | `Channel`                                                    | #31                            |
+| `Agent`                                            | `Topic`                                                      | #31                            |
 | `typ` (field on `User`)                            | `userType`                                                   |                                |
 | `UserTyp` values `Sys` / `User`                    | `admin` / `standard`                                         | tier values                    |
 | `ConvKind` values `OwnerOnly` / `MultiUsers`       | `Private` / `Public`                                         | access scope                   |
