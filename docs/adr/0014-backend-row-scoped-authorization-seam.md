@@ -80,12 +80,14 @@ logged-in Admin user.
 - Existing model tests all use `root_ctx` (bypass), so proving scope needs a
   non-root two-user fixture; new tests assert wrong-owner → `EntityNotFound` at
   the Bmc, plus one cross-user HTTP case.
-- Future authorization slices **extend this seam** rather than inventing another:
-  - **`add_msg` post-permission** — the immediate next slice; a create-path
-    "may I post here?" check that today's design does not cover. Create is
-    unscoped, so an unentitled post inserts and then fails its `get_msg`
-    read-back with `EntityNotFound` — persisted but reported as failed. Tracked
-    in [#89](https://github.com/gihrig/SolidStart-Demo/issues/89).
+- Authorization slices **extend this seam** rather than inventing another:
+  - **`add_msg` post-permission** — landed in
+    [#89](https://github.com/gihrig/SolidStart-Demo/issues/89). Create is unscoped,
+    so an unentitled post used to insert and then fail its `get_msg` read-back with
+    `EntityNotFound` — persisted but reported as failed. `ConvBmc::add_msg` now
+    authorizes the parent-conv read (`base::get::<ConvBmc, Conv>` — the same
+    `owner_id = me OR kind = 'MultiUsers'` Read predicate) before inserting, so a
+    denied post returns `EntityNotFound` before any insert.
   - **Admin (`typ = Sys`) delete override** on Conversations/Messages
     (`CONTEXT.md`) — needs `typ` on the auth context; belongs to the privilege
     ACS, and will read through `Access`/`access_scope`.
