@@ -26,6 +26,11 @@ export type { UserTyp } from "~backend-bindings/UserTyp.d";
 export type { ParamsIded } from "~backend-bindings/ParamsIded.d";
 export type { ParamsForUpdate } from "~backend-bindings/ParamsForUpdate.d";
 
+// Realtime feed envelope — generated from the backend `WsEvent` (ADR-0015). No
+// ids, so it re-exports unchanged. `payload` is `unknown`; the consumer narrows
+// it by `event_type`.
+export type { WsEvent } from "~backend-bindings/WsEvent.d";
+
 // Input types for create operations (not in generated bindings)
 export interface AgentForCreate {
   name: string;
@@ -94,15 +99,12 @@ export function isRpcError(response: JsonRpcResponse): response is JsonRpcErrorR
   return "error" in response;
 }
 
-// WebSocket message types — matches backend WsEvent struct fields
-export interface WsMessage {
-  event_type: "conv_msg" | "conv_update" | "agent_update" | "error";
-  channel: string;
-  payload: unknown;
-}
-
+// WebSocket subscription request (client → server). The event envelope is the
+// generated `WsEvent` re-exported above; this request shape is declared here
+// because the backend `SubscriptionRequest` is not a ts-rs binding. `channel` is
+// `"conv"` only — the backend authorizes and routes no other kind (ADR-0015).
 export interface WsSubscription {
   action: "subscribe" | "unsubscribe";
-  channel: "conv" | "agent";
+  channel: "conv";
   id?: number;
 }

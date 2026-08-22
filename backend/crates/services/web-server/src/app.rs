@@ -22,8 +22,10 @@ pub fn app(mm: ModelManager, ws_state: Arc<WsState>) -> Router {
 	let routes_rpc = routes_rpc::routes(mm.clone(), ws_state.clone())
 		.route_layer(middleware::from_fn(mw_ctx_require));
 
-	// WebSocket routes (auth handled in the WS handler if needed).
-	let routes_ws = routes_ws::routes(ws_state.clone());
+	// WebSocket routes require auth like the RPC routes; the handler then captures
+	// the caller's identity at the upgrade to authorize per-connection subscriptions.
+	let routes_ws = routes_ws::routes(ws_state.clone(), mm.clone())
+		.route_layer(middleware::from_fn(mw_ctx_require));
 
 	// CORS for the SolidStart front-end (harmless in tests, which send no Origin).
 	let cors = CorsLayer::new()

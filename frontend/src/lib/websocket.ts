@@ -1,5 +1,5 @@
 import { createSignal, onCleanup, onMount } from "solid-js";
-import type { WsMessage, ConvMsg } from "~/types/backend";
+import type { WsEvent, ConvMsg } from "~/types/backend";
 
 const WS_URL = "ws://localhost:8080/ws";
 
@@ -23,6 +23,8 @@ export type MessageFeedFactory = (options: MessageFeedOptions) => MessageFeed;
  * The live WebSocket adapter behind the {@link MessageFeed} port. Connects on
  * mount (client only — `onMount` is the SSR guard, so no socket is opened during
  * server render) and reconnects unconditionally 3s after an unintended drop.
+ * Desired subscriptions are remembered and replayed on every (re)connect, since
+ * the server authorizes per connection and default-denies (ADR-0015).
  * `conv_msg` events and errors reach the consumer through the registered
  * callbacks; a failure is also logged at this boundary via `console.error`.
  *
@@ -38,6 +40,17 @@ export function useWebSocket(options: MessageFeedOptions = {}): MessageFeed {
   // `onclose` does not schedule a reconnect after the consumer is gone.
   let intentionalClose = false;
 
+  // Desired subscriptions, replayed on every (re)connect. The server authorizes
+  // per connection and default-denies (ADR-0015), so a fresh socket must
+  // re-subscribe or it silently receives nothing.
+  const desired = new Map<string, { channel: string; id?: number }>();
+  const subKey = (channel: string, id?: number) => `${channel}:${id ?? ""}`;
+  const sendSub = (action: "subscribe" | "unsubscribe", channel: string, id?: number) => {
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ action, channel, id }));
+    }
+  };
+
   const fail = (message: string) => {
     console.error(message);
     options.onError?.(message);
@@ -50,6 +63,10 @@ export function useWebSocket(options: MessageFeedOptions = {}): MessageFeed {
 
       ws.onopen = () => {
         setConnected(true);
+        // Replay desired subscriptions onto the (re)connected socket.
+        for (const { channel, id } of desired.values()) {
+          sendSub("subscribe", channel, id);
+        }
       };
 
       ws.onclose = () => {
@@ -64,7 +81,7 @@ export function useWebSocket(options: MessageFeedOptions = {}): MessageFeed {
 
       ws.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data) as WsMessage;
+          const data = JSON.parse(event.data) as WsEvent;
           if (data.event_type === "conv_msg" && options.onConvMsg) {
             const msg = data.payload as ConvMsg;
             options.onConvMsg(msg.conv_id, msg);
@@ -79,15 +96,13 @@ export function useWebSocket(options: MessageFeedOptions = {}): MessageFeed {
   };
 
   const subscribe = (channel: string, id?: number) => {
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ action: "subscribe", channel, id }));
-    }
+    desired.set(subKey(channel, id), { channel, id });
+    sendSub("subscribe", channel, id);
   };
 
   const unsubscribe = (channel: string, id?: number) => {
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ action: "unsubscribe", channel, id }));
-    }
+    desired.delete(subKey(channel, id));
+    sendSub("unsubscribe", channel, id);
   };
 
   const disconnect = () => {

@@ -165,4 +165,58 @@ describe("useWebSocket", () => {
       vi.useRealTimers();
     }
   });
+
+  it("replays a pending subscription once the socket opens", () => {
+    const { result } = renderHook(() => useWebSocket());
+    const ws = MockWebSocket.instances[0];
+
+    // Subscribing before open cannot send yet, but the intent is remembered.
+    result.subscribe("conv", 5);
+    expect(ws.send).not.toHaveBeenCalled();
+
+    ws.open();
+
+    expect(ws.send).toHaveBeenCalledWith(
+      JSON.stringify({ action: "subscribe", channel: "conv", id: 5 }),
+    );
+  });
+
+  it("replays subscriptions onto the new socket after a reconnect", () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useWebSocket());
+      const first = MockWebSocket.instances[0];
+      first.open();
+      result.subscribe("conv", 5);
+      expect(first.send).toHaveBeenCalledWith(
+        JSON.stringify({ action: "subscribe", channel: "conv", id: 5 }),
+      );
+
+      first.close(); // unintended drop
+      vi.advanceTimersByTime(3000);
+
+      const second = MockWebSocket.instances[1];
+      second.open();
+
+      expect(second.send).toHaveBeenCalledWith(
+        JSON.stringify({ action: "subscribe", channel: "conv", id: 5 }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not replay a subscription that was unsubscribed before open", () => {
+    const { result } = renderHook(() => useWebSocket());
+    const ws = MockWebSocket.instances[0];
+
+    result.subscribe("conv", 5);
+    result.unsubscribe("conv", 5);
+
+    ws.open();
+
+    expect(ws.send).not.toHaveBeenCalledWith(
+      JSON.stringify({ action: "subscribe", channel: "conv", id: 5 }),
+    );
+  });
 });
