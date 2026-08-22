@@ -165,7 +165,8 @@ mod tests {
 
 	/// C01 cross-user scope over HTTP (Q10): a private (`OwnerOnly`) conv created
 	/// by `demo1` is invisible to a second logged-in user — `get_conv` errors
-	/// for them, while its owner still reads it.
+	/// for them and they cannot `add_conv_msg` into it (#89), while its owner
+	/// still reads it.
 	#[serial]
 	#[tokio::test]
 	async fn test_web_cross_user_conv_scope() -> Result<()> {
@@ -250,6 +251,24 @@ mod tests {
 		assert!(
 			body.pointer("/result/data").is_none(),
 			"cross-user get_conv should not return conv data"
+		);
+
+		// -- demo2 also cannot post into demo1's private conv (#89 post-permission).
+		let body: Value = server_b
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "add_conv_msg",
+				"params": { "data": { "conv_id": conv_id, "content": "b illicit post" } }
+			}))
+			.await
+			.json();
+		assert!(
+			body.get("error").is_some(),
+			"cross-user add_conv_msg should error, got: {body}"
+		);
+		assert!(
+			body.pointer("/result/data").is_none(),
+			"cross-user add_conv_msg should not return data"
 		);
 
 		// -- The owner still reads its own conv (scope is not over-broad).

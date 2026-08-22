@@ -196,6 +196,12 @@ impl ConvBmc {
 		mm: &ModelManager,
 		msg_c: ConvMsgForCreate,
 	) -> Result<i64> {
+		// Post-permission (#89): may post iff may read the parent conv — the same
+		// predicate as `ConvBmc::get`. A miss yields `EntityNotFound` before any
+		// insert (no existence oracle, consistent with ADR-0014).
+		let conv_id = msg_c.conv_id;
+		let _ = base::get::<ConvBmc, Conv>(ctx, mm, conv_id).await?;
+
 		let msg_i = ConvMsgForInsert::from_msg_for_create(ctx.user_id(), msg_c);
 		let conv_msg_id = base::create::<ConvMsgBmc, _>(ctx, mm, msg_i).await?;
 
@@ -486,6 +492,116 @@ mod tests {
 
 		// -- Check: root bypasses the scope and sees the private conv.
 		ConvBmc::get(&root, &mm, owner_conv_id).await?;
+
+		// -- Clean (agent delete cascades convs + msgs).
+		AgentBmc::delete(&root, &mm, agent_id).await?;
+		_dev_utils::clean_users(&root, &mm, fx_prefix).await?;
+
+		Ok(())
+	}
+
+	/// #89 post-permission: a User may `add_msg` to a conv iff it may read the
+	/// parent conv (same predicate as `ConvBmc::get`). A denied post must not
+	/// insert a row (no existence oracle, consistent with ADR-0014).
+	#[serial]
+	#[tokio::test]
+	async fn test_add_msg_post_permission_two_user() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let fx_prefix = "test_add_msg_post_permission_two_user";
+
+		let a_id = seed_user(&root, &mm, &format!("{fx_prefix}-A")).await?;
+		let b_id = seed_user(&root, &mm, &format!("{fx_prefix}-B")).await?;
+		let ctx_a = Ctx::new(a_id)?;
+		let ctx_b = Ctx::new(b_id)?;
+
+		let agent_id =
+			seed_agent(&ctx_a, &mm, &format!("{fx_prefix} agent")).await?;
+
+		// A owns one private (OwnerOnly) and one public (MultiUsers) conv.
+		let owner_conv_id = ConvBmc::create(
+			&ctx_a,
+			&mm,
+			ConvForCreate {
+				agent_id,
+				title: Some(format!("{fx_prefix} owner-only")),
+				kind: Some(ConvKind::OwnerOnly),
+			},
+		)
+		.await?;
+		let multi_conv_id = ConvBmc::create(
+			&ctx_a,
+			&mm,
+			ConvForCreate {
+				agent_id,
+				title: Some(format!("{fx_prefix} multi-users")),
+				kind: Some(ConvKind::MultiUsers),
+			},
+		)
+		.await?;
+
+		// -- Check: the Owner may post to its own OwnerOnly conv.
+		ConvBmc::add_msg(
+			&ctx_a,
+			&mm,
+			ConvMsgForCreate {
+				conv_id: owner_conv_id,
+				content: "owner post".to_string(),
+			},
+		)
+		.await?;
+
+		// -- Check: B is denied posting to A's OwnerOnly conv ...
+		assert!(
+			matches!(
+				ConvBmc::add_msg(
+					&ctx_b,
+					&mm,
+					ConvMsgForCreate {
+						conv_id: owner_conv_id,
+						content: "b illicit post".to_string(),
+					},
+				)
+				.await,
+				Err(model::Error::EntityNotFound { .. })
+			),
+			"B add_msg to A's OwnerOnly conv should be EntityNotFound"
+		);
+
+		// ... and the denied post inserted nothing (only the Owner's msg remains).
+		let owner_msgs = ConvBmc::list_msgs(
+			&root,
+			&mm,
+			Some(vec![serde_json::from_value::<ConvMsgFilter>(
+				json!({ "conv_id": owner_conv_id }),
+			)?]),
+			None,
+		)
+		.await?;
+		assert_eq!(owner_msgs.len(), 1, "denied post must not insert a row");
+
+		// -- Check: B may post to A's MultiUsers (public) conv.
+		ConvBmc::add_msg(
+			&ctx_b,
+			&mm,
+			ConvMsgForCreate {
+				conv_id: multi_conv_id,
+				content: "b public post".to_string(),
+			},
+		)
+		.await?;
+
+		// -- Check: root bypasses the scope (may post to A's OwnerOnly conv).
+		ConvBmc::add_msg(
+			&root,
+			&mm,
+			ConvMsgForCreate {
+				conv_id: owner_conv_id,
+				content: "root post".to_string(),
+			},
+		)
+		.await?;
 
 		// -- Clean (agent delete cascades convs + msgs).
 		AgentBmc::delete(&root, &mm, agent_id).await?;
