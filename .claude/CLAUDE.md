@@ -23,13 +23,6 @@ Always refer to previously existing code as "exiting" never "hand written".
 
 - Use `karpathy-guidelines` skills
 - Use `concise` to communicate
-- Phases labeled **(Claude)** are executed by Claude AI.
-- Skip completed phases: `[√] Phase...`.
-- Execute first incomplete phase: `[ ] Phase...`.
-- The **final phase is labeled (User)** this is manual validation after all Claude phases are complete.
-- Within each Claude phase:
-  1. Execute each step in order.
-  2. Run the step's verification (tests/checks) — **tests/checks must pass before the step is complete**.
 
 ---
 
@@ -40,20 +33,20 @@ reading the root `Scripts.toml`; each delegates to the subtrees via `cgs` — th
 back-end natively, the front-end through a `cgs` alias surface that proxies its
 package.json scripts (ADR-0010 addendum).
 
-| Command                | Description                                    |
-| ---------------------- | ---------------------------------------------- |
-| `cgs dev`              | Start both dev servers                         |
-| `cgs start`            | Build + run both subtrees in release mode      |
-| `cgs build`            | Build both subtrees                            |
-| `cgs test`             | Run both test suites                           |
-| `cgs test:e2e`         | Run e2e tests (boots back-end + front-end)     |
-| `cgs cover`            | Run both test suites with coverage             |
-| `cgs check`            | Format + lint + type-check both subtrees       |
-| `cgs update`           | Update dependencies in both subtrees           |
-| `cgs bindings`         | Regenerate ts-rs bindings (back-end)           |
-| `cgs adr:index`        | Regenerate `docs/adr/README.md` from the ADRs  |
-| `cgs adr:index:check`  | Verify the ADR index is current (CI guard)     |
-| `cgs adr:list`         | Print the ADR index as a console table         |
+| Command               | Description                                   |
+| --------------------- | --------------------------------------------- |
+| `cgs dev`             | Start both dev servers                        |
+| `cgs start`           | Build + run both subtrees in release mode     |
+| `cgs build`           | Build both subtrees                           |
+| `cgs test`            | Run both test suites                          |
+| `cgs test:e2e`        | Run e2e tests (boots back-end + front-end)    |
+| `cgs cover`           | Run both test suites with coverage            |
+| `cgs check`           | Format + lint + type-check both subtrees      |
+| `cgs update`          | Update dependencies in both subtrees          |
+| `cgs bindings`        | Regenerate ts-rs bindings (back-end)          |
+| `cgs adr:index`       | Regenerate `docs/adr/README.md` from the ADRs |
+| `cgs adr:index:check` | Verify the ADR index is current (CI guard)    |
+| `cgs adr:list`        | Print the ADR index as a console table        |
 
 Single-side work: `cd frontend` or `cd backend` and use `cgs …` (both subtrees now
 expose a `cgs` surface); `vpr …` still works in `frontend/`. See the subtree

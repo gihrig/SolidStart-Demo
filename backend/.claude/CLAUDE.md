@@ -9,7 +9,11 @@ works in `backend/`.
 
 See [ADR-0010](../../docs/adr/0010-monorepo-structure.md) for the mono-repo
 structure and [ADR-0011](../../docs/adr/0011-jedi-backend-domain-contract.md) for
-what this back-end does.
+what this back-end does. Later ADRs extend it:
+[0014](../../docs/adr/0014-backend-row-scoped-authorization-seam.md)/[0015](../../docs/adr/0015-realtime-push-authorization-at-subscribe-time.md)
+(authorization seams) and
+[0012](../../docs/adr/0012-postgres-turso-db-swap-seam.md)/[0013](../../docs/adr/0013-in-browser-turso-server-sync.md)
+(Turso DB-swap track).
 
 ---
 
@@ -70,9 +74,9 @@ Workspace crates: `lib-utils`, `lib-rpc-core`, `lib-auth`, `lib-core`, `lib-web`
 - **ts-rs bindings are the front-end's source of truth**: the front-end imports
   them via a tsconfig `paths` alias into `crates/services/web-server/bindings/`
   (ADR-0010). After changing a `#[derive(TS)]` type, run `cgs bindings` to keep
-  them in step; ADR-0010 specs a CI bindings-drift guard (`cgs bindings` +
-  `git diff --exit-code`) once the workflow lands.
+  them in step; CI enforces a bindings-drift guard (`cargo test export_bindings`
+  + `git diff --exit-code`) in `.github/workflows/ci.yml`.
 - **CORS is configured for the front-end** at `http://localhost:3000` with
-  credentials enabled (`crates/services/web-server/src/main.rs`).
+  credentials enabled (`crates/services/web-server/src/app.rs`).
 - **`cargo watch` needs installing**: `cargo install cargo-watch` before
   `cgs dev-watch`/`cgs test:watch`.

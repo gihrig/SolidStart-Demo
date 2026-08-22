@@ -29,7 +29,7 @@ holds the front-end-specific rules and loads when Claude works in `frontend/`.
 
 ## Project Commands
 
-All project-specific scripts must use `vpr <script>` (not `vp <script>`) to avoid invoking Vite+ built-ins.
+All project-specific scripts must use `vpr <script>` (not `vp <script>`) to avoid invoking Vite+ built-ins. A `cgs <script>` surface (`frontend/Scripts.toml`) also proxies these package.json scripts through `vpr` (ADR-0010 addendum), so `cgs test`/`build`/etc. work here too.
 
 ### Development
 
