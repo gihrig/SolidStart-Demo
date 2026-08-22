@@ -91,12 +91,13 @@ logged-in Admin user.
     ACS, and will read through `Access`/`access_scope`.
   - **Member reads** of another Owner's `OwnerOnly` Conversation — lands with
     the `ConvUser` Member feature (a stub today, so no regression).
-- **`delete_many` is non-atomic under Write scope.** A mixed list of owned and
-  scoped-out ids deletes the owned rows, then the count mismatch reports the whole
-  call as `EntityNotFound` — with no surrounding transaction to roll back the
-  partial delete. Close with a txn + rollback (Dbx already exposes
-  `begin_txn`/`commit_txn`/`rollback_txn`), or a pre-count. Tracked in
-  [#90](https://github.com/gihrig/SolidStart-Demo/issues/90).
+- **`delete_many` is now atomic under Write scope** — landed in
+  [#90](https://github.com/gihrig/SolidStart-Demo/issues/90). A mixed list of owned
+  and scoped-out ids used to delete the owned rows, then the count mismatch reported
+  the whole call as `EntityNotFound` — with no surrounding transaction to roll back
+  the partial delete. `base::delete_many` now wraps the scoped delete in a
+  `new_with_txn()` transaction (mirroring `UserBmc::create`): a count mismatch rolls
+  back (nothing deleted), a full match commits.
 - The candidate-02 per-row `conv_id` scaffolding is retired: a parent-conv
   subquery in `ConvMsgBmc`'s Read scope replaces it, so one mechanism does the
   job instead of two (detailed in the C01 design doc).
