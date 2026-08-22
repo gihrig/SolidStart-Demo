@@ -239,7 +239,7 @@ mod tests {
 	type Result<T> = core::result::Result<T, Error>; // For tests.
 
 	use super::*;
-	use crate::_dev_utils::{self, seed_agent, seed_user};
+	use crate::_dev_utils::{self, seed_agent, seed_conv, seed_user};
 	use crate::ctx::Ctx;
 	use crate::model;
 	use crate::model::agent::AgentBmc;
@@ -604,6 +604,81 @@ mod tests {
 		.await?;
 
 		// -- Clean (agent delete cascades convs + msgs).
+		AgentBmc::delete(&root, &mm, agent_id).await?;
+		_dev_utils::clean_users(&root, &mm, fx_prefix).await?;
+
+		Ok(())
+	}
+
+	/// #90 atomic `delete_many`: under the owner Write scope (`owner_id = me`) a
+	/// mixed-ownership id set must be all-or-nothing. A scoped-out id makes the
+	/// whole delete roll back, so an owned id in the same call is never left
+	/// partially deleted while the call reports failure.
+	#[serial]
+	#[tokio::test]
+	async fn test_delete_many_atomic_two_user() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let fx_prefix = "test_delete_many_atomic_two_user";
+
+		let a_id = seed_user(&root, &mm, &format!("{fx_prefix}-A")).await?;
+		let b_id = seed_user(&root, &mm, &format!("{fx_prefix}-B")).await?;
+		let ctx_a = Ctx::new(a_id)?;
+		let ctx_b = Ctx::new(b_id)?;
+
+		let agent_id =
+			seed_agent(&ctx_a, &mm, &format!("{fx_prefix} agent")).await?;
+
+		// A owns one conv, B owns another (both default OwnerOnly, Write-scoped).
+		let a_conv1 =
+			seed_conv(&ctx_a, &mm, agent_id, &format!("{fx_prefix} A-1")).await?;
+		let b_conv =
+			seed_conv(&ctx_b, &mm, agent_id, &format!("{fx_prefix} B-1")).await?;
+
+		// -- Check: A `delete_many([own, other])` → the scoped DELETE removes only
+		//    A's row, so count (1) != len (2) → rolled back → EntityNotFound.
+		assert!(
+			matches!(
+				ConvBmc::delete_many(&ctx_a, &mm, vec![a_conv1, b_conv]).await,
+				Err(model::Error::EntityNotFound { .. })
+			),
+			"mixed-ownership delete_many should be EntityNotFound"
+		);
+		// ... and the owned row must survive the rolled-back partial delete.
+		ConvBmc::get(&ctx_a, &mm, a_conv1).await?;
+		ConvBmc::get(&ctx_b, &mm, b_conv).await?;
+
+		// -- Check: A `delete_many([own, own])`, both owned → Ok(2), both gone.
+		let a_conv2 =
+			seed_conv(&ctx_a, &mm, agent_id, &format!("{fx_prefix} A-2")).await?;
+		let a_conv3 =
+			seed_conv(&ctx_a, &mm, agent_id, &format!("{fx_prefix} A-3")).await?;
+		let deleted =
+			ConvBmc::delete_many(&ctx_a, &mm, vec![a_conv2, a_conv3]).await?;
+		assert_eq!(deleted, 2, "all-owned delete_many should delete both");
+		for gone in [a_conv2, a_conv3] {
+			assert!(
+				matches!(
+					ConvBmc::get(&ctx_a, &mm, gone).await,
+					Err(model::Error::EntityNotFound { .. })
+				),
+				"conv {gone} should be gone after a committed delete"
+			);
+		}
+
+		// -- Check: empty id set → Ok(0) (unchanged early return, no txn).
+		assert_eq!(ConvBmc::delete_many(&ctx_a, &mm, vec![]).await?, 0);
+
+		// -- Check: root (user_id 0) bypasses the scope, deleting across owners.
+		let deleted_root =
+			ConvBmc::delete_many(&root, &mm, vec![a_conv1, b_conv]).await?;
+		assert_eq!(
+			deleted_root, 2,
+			"root delete_many should delete across owners"
+		);
+
+		// -- Clean (agent delete cascades any remaining convs + msgs).
 		AgentBmc::delete(&root, &mm, agent_id).await?;
 		_dev_utils::clean_users(&root, &mm, fx_prefix).await?;
 

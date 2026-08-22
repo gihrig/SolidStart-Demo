@@ -332,6 +332,14 @@ where
 		return Ok(0);
 	}
 
+	// -- Atomicity: under the owner Write scope a mixed-ownership id set scopes
+	//    out the non-owned ids, so the DELETE removes fewer rows than requested.
+	//    Without a transaction the owned ids would be deleted while the count
+	//    mismatch below still reports failure (a partial delete masked as an
+	//    error). Run on a txn Dbx so a mismatch rolls the whole delete back. (#90)
+	let mm = mm.new_with_txn()?;
+	mm.dbx().begin_txn().await?;
+
 	// -- Build query
 	let mut query = Query::delete();
 	query
@@ -339,7 +347,7 @@ where
 		.cond_where(Expr::col(CommonIden::Id).is_in(ids.clone()));
 
 	// -- Row-scope (owner-only); scoped-out ids delete 0 rows and the count
-	//    mismatch below surfaces as EntityNotFound (consistent with a miss).
+	//    mismatch below rolls back and surfaces as EntityNotFound.
 	if let Some(scope) = scope_cond::<MC>(ctx, Access::Write) {
 		query.cond_where(scope);
 	}
@@ -351,11 +359,13 @@ where
 
 	// -- Check result
 	if result as usize != ids.len() {
+		mm.dbx().rollback_txn().await?; // nothing deleted
 		Err(Error::EntityNotFound {
 			entity: MC::TABLE,
 			id: 0, // Using 0 because multiple IDs could be not found, you may want to improve error handling here
 		})
 	} else {
+		mm.dbx().commit_txn().await?;
 		Ok(result)
 	}
 }
