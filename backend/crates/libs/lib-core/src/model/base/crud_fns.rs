@@ -1,6 +1,6 @@
 use crate::ctx::Ctx;
 use crate::model::base::{
-	prep_fields_for_create, prep_fields_for_update, CommonIden, DbBmc,
+	prep_fields_for_create, prep_fields_for_update, Access, CommonIden, DbBmc,
 	LIST_LIMIT_DEFAULT, LIST_LIMIT_MAX,
 };
 use crate::model::ModelManager;
@@ -12,6 +12,18 @@ use sea_query_binder::SqlxBinder;
 use sqlx::postgres::PgRow;
 use sqlx::FromRow;
 use sqlx::Row;
+
+/// Resolve the row-scoping predicate for `MC` at this `access`, centralizing
+/// the root bypass: the root context (`user_id == 0`) is the system identity
+/// used for seeding and internal calls and is never scoped. Every other caller
+/// gets the entity's `access_scope` hook (which may still be `None`).
+fn scope_cond<MC: DbBmc>(ctx: &Ctx, access: Access) -> Option<Condition> {
+	if ctx.user_id() == 0 {
+		None
+	} else {
+		MC::access_scope(ctx, access)
+	}
+}
 
 pub async fn create<MC, E>(ctx: &Ctx, mm: &ModelManager, data: E) -> Result<i64>
 where
@@ -86,7 +98,7 @@ where
 	Ok(ids)
 }
 
-pub async fn get<MC, E>(_ctx: &Ctx, mm: &ModelManager, id: i64) -> Result<E>
+pub async fn get<MC, E>(ctx: &Ctx, mm: &ModelManager, id: i64) -> Result<E>
 where
 	MC: DbBmc,
 	E: for<'r> FromRow<'r, PgRow> + Unpin + Send,
@@ -97,7 +109,12 @@ where
 	query
 		.from(MC::table_ref())
 		.columns(E::sea_column_refs())
-		.and_where(Expr::col(CommonIden::Id).eq(id));
+		.cond_where(Expr::col(CommonIden::Id).eq(id));
+
+	// -- Row-scope (owner ∪ public); a non-matching scope yields no row.
+	if let Some(scope) = scope_cond::<MC>(ctx, Access::Read) {
+		query.cond_where(scope);
+	}
 
 	// -- Exec query
 	let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
@@ -152,7 +169,7 @@ where
 }
 
 pub async fn list<MC, E, F>(
-	_ctx: &Ctx,
+	ctx: &Ctx,
 	mm: &ModelManager,
 	filter: Option<F>,
 	list_options: Option<ListOptions>,
@@ -173,6 +190,10 @@ where
 		let cond: Condition = filters.try_into()?;
 		query.cond_where(cond);
 	}
+	// -- Row-scope (owner ∪ public), ANDed with any filter above.
+	if let Some(scope) = scope_cond::<MC>(ctx, Access::Read) {
+		query.cond_where(scope);
+	}
 	// list options
 	let list_options = compute_list_options(list_options)?;
 	list_options.apply_to_sea_query(&mut query);
@@ -187,7 +208,7 @@ where
 }
 
 pub async fn count<MC, F>(
-	_ctx: &Ctx,
+	ctx: &Ctx,
 	mm: &ModelManager,
 	filter: Option<F>,
 ) -> Result<i64>
@@ -207,6 +228,10 @@ where
 		let filters: FilterGroups = filter.into();
 		let cond: Condition = filters.try_into()?;
 		query.cond_where(cond);
+	}
+	// -- Row-scope (owner ∪ public), ANDed with any filter above.
+	if let Some(scope) = scope_cond::<MC>(ctx, Access::Read) {
+		query.cond_where(scope);
 	}
 
 	let query_str = query.to_string(PostgresQueryBuilder);
@@ -241,7 +266,12 @@ where
 	query
 		.table(MC::table_ref())
 		.values(fields)
-		.and_where(Expr::col(CommonIden::Id).eq(id));
+		.cond_where(Expr::col(CommonIden::Id).eq(id));
+
+	// -- Row-scope (owner-only); a non-matching scope updates 0 rows.
+	if let Some(scope) = scope_cond::<MC>(ctx, Access::Write) {
+		query.cond_where(scope);
+	}
 
 	// -- Execute query
 	let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
@@ -259,7 +289,7 @@ where
 	}
 }
 
-pub async fn delete<MC>(_ctx: &Ctx, mm: &ModelManager, id: i64) -> Result<()>
+pub async fn delete<MC>(ctx: &Ctx, mm: &ModelManager, id: i64) -> Result<()>
 where
 	MC: DbBmc,
 {
@@ -267,7 +297,12 @@ where
 	let mut query = Query::delete();
 	query
 		.from_table(MC::table_ref())
-		.and_where(Expr::col(CommonIden::Id).eq(id));
+		.cond_where(Expr::col(CommonIden::Id).eq(id));
+
+	// -- Row-scope (owner-only); a non-matching scope deletes 0 rows.
+	if let Some(scope) = scope_cond::<MC>(ctx, Access::Write) {
+		query.cond_where(scope);
+	}
 
 	// -- Execute query
 	let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
@@ -286,7 +321,7 @@ where
 }
 
 pub async fn delete_many<MC>(
-	_ctx: &Ctx,
+	ctx: &Ctx,
 	mm: &ModelManager,
 	ids: Vec<i64>,
 ) -> Result<u64>
@@ -297,11 +332,25 @@ where
 		return Ok(0);
 	}
 
+	// -- Atomicity: under the owner Write scope a mixed-ownership id set scopes
+	//    out the non-owned ids, so the DELETE removes fewer rows than requested.
+	//    Without a transaction the owned ids would be deleted while the count
+	//    mismatch below still reports failure (a partial delete masked as an
+	//    error). Run on a txn Dbx so a mismatch rolls the whole delete back. (#90)
+	let mm = mm.new_with_txn()?;
+	mm.dbx().begin_txn().await?;
+
 	// -- Build query
 	let mut query = Query::delete();
 	query
 		.from_table(MC::table_ref())
-		.and_where(Expr::col(CommonIden::Id).is_in(ids.clone()));
+		.cond_where(Expr::col(CommonIden::Id).is_in(ids.clone()));
+
+	// -- Row-scope (owner-only); scoped-out ids delete 0 rows and the count
+	//    mismatch below rolls back and surfaces as EntityNotFound.
+	if let Some(scope) = scope_cond::<MC>(ctx, Access::Write) {
+		query.cond_where(scope);
+	}
 
 	// -- Execute query
 	let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
@@ -310,11 +359,13 @@ where
 
 	// -- Check result
 	if result as usize != ids.len() {
+		mm.dbx().rollback_txn().await?; // nothing deleted
 		Err(Error::EntityNotFound {
 			entity: MC::TABLE,
 			id: 0, // Using 0 because multiple IDs could be not found, you may want to improve error handling here
 		})
 	} else {
+		mm.dbx().commit_txn().await?;
 		Ok(result)
 	}
 }

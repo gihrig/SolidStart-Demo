@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — SolidStart Demo front-end</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "dark",
+        securityLevel: "loose",
+        flowchart: { htmlLabels: true },
+      });
+    </script>
+    <style>
+      body {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+      }
+      .font-serif {
+        font-family: ui-serif, Georgia, "Times New Roman", serif;
+      }
+      .seam {
+        stroke-dasharray: 5 5;
+      }
+      .deep {
+        background: linear-gradient(135deg, #0b1220, #111c2e);
+        border: 1px solid #1f2937;
+        box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+      }
+      .schematic {
+        font-size: 0.62rem;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+      code,
+      pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .codeblock {
+        background: #0a0f1c;
+        color: #cbd5e1;
+        border: 1px solid #1e293b;
+      }
+      .codeblock .k {
+        color: #7dd3fc;
+      }
+      .codeblock .s {
+        color: #86efac;
+      }
+      .codeblock .r {
+        color: #fca5a5;
+      }
+      .codeblock .c {
+        color: #64748b;
+        font-style: italic;
+      }
+      .mermaid {
+        display: flex;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-300 antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-14">
+      <!-- ================= HEADER ================= -->
+      <header class="space-y-6">
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+          <h1 class="text-4xl font-serif font-semibold tracking-tight text-slate-100">
+            Architecture review
+          </h1>
+          <div class="text-sm text-slate-500 font-mono">
+            SolidStart Demo · <span class="text-slate-300">frontend/</span> · 2026-08-18 · branch
+            <span class="text-slate-300">arch-review-8-18</span>
+          </div>
+        </div>
+        <p class="text-slate-400 max-w-3xl leading-relaxed">
+          The view-model layer is deep and well-shaped —
+          <code class="text-sm text-slate-200">createConversationWorkspace</code>,
+          <code class="text-sm text-slate-200">createConvMessages</code>, and
+          <code class="text-sm text-slate-200">createJediFeed</code> each hide a lot of
+          orchestration behind a small accessor interface. All three friction points sit
+          <em>beneath</em> them, in the data-access layer: the
+          <code class="text-sm text-slate-200">backend-rpc</code> module and how the view-models
+          reach it.
+        </p>
+
+        <!-- legend -->
+        <div
+          class="flex flex-wrap gap-x-8 gap-y-3 text-xs text-slate-400 border-y border-slate-800 py-4"
+        >
+          <span class="flex items-center gap-2"
+            ><span class="inline-block w-6 h-4 border-2 border-slate-500 rounded-sm"></span>
+            module</span
+          >
+          <span class="flex items-center gap-2"
+            ><svg width="30" height="6">
+              <line
+                x1="0"
+                y1="3"
+                x2="30"
+                y2="3"
+                stroke="#64748b"
+                stroke-width="2"
+                stroke-dasharray="5 5"
+              />
+            </svg>
+            seam (interface)</span
+          >
+          <span class="flex items-center gap-2"
+            ><svg width="30" height="10">
+              <line x1="0" y1="5" x2="24" y2="5" stroke="#ef4444" stroke-width="2.5" />
+              <path d="M24 1 L30 5 L24 9 Z" fill="#ef4444" />
+            </svg>
+            leakage</span
+          >
+          <span class="flex items-center gap-2"
+            ><span class="inline-block w-6 h-4 rounded-sm deep"></span> deep module</span
+          >
+          <span class="flex items-center gap-2"
+            ><span class="inline-block w-3 h-3 rounded-full bg-emerald-500"></span> Strong</span
+          >
+          <span class="flex items-center gap-2"
+            ><span class="inline-block w-3 h-3 rounded-full bg-amber-500"></span> Worth
+            exploring</span
+          >
+        </div>
+      </header>
+
+      <section id="candidates" class="space-y-16">
+        <!-- ============================================================ -->
+        <!-- CANDIDATE 1 -->
+        <!-- ============================================================ -->
+        <article id="c1" class="space-y-6">
+          <div class="space-y-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-mono text-slate-600">01</span>
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800"
+                >Strong</span
+              >
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700"
+                >ports &amp; adapters</span
+              >
+            </div>
+            <h2 class="text-2xl font-serif font-semibold text-slate-100">
+              Deepen the <code>backend-rpc</code> list interface
+            </h2>
+            <p class="text-sm text-slate-500 font-mono">
+              src/lib/backend-rpc.ts · src/lib/conversationWorkspace.ts ·
+              src/lib/backend-rpc.unit.test.ts
+            </p>
+          </div>
+
+          <!-- before / after -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- BEFORE -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <div class="schematic text-slate-500 mb-3">
+                Before — filter language leaks, inconsistently
+              </div>
+              <div class="space-y-2 text-[0.7rem]">
+                <!-- row: conv.list leaks -->
+                <div class="flex items-stretch gap-1">
+                  <div class="w-28 shrink-0 border border-slate-700 rounded p-1.5 bg-slate-800/60">
+                    <div class="schematic text-slate-500">caller</div>
+                    <div class="font-mono text-slate-300">
+                      conv.list(<span class="text-red-400">{filters:[…]}</span>)
+                    </div>
+                  </div>
+                  <div class="flex items-center">
+                    <svg width="26" height="12">
+                      <line x1="0" y1="6" x2="19" y2="6" stroke="#ef4444" stroke-width="2" />
+                      <path d="M19 2 L26 6 L19 10 Z" fill="#ef4444" />
+                    </svg>
+                  </div>
+                  <div class="flex-1 border border-red-900/70 rounded p-1.5 bg-red-950/40">
+                    <div class="schematic text-red-400">wire params</div>
+                    <div class="font-mono text-red-300 break-all">filters:{filters:[…]}</div>
+                    <div class="text-red-400 mt-0.5">double-wrapped</div>
+                  </div>
+                </div>
+                <!-- row: convMsg.list owns it -->
+                <div class="flex items-stretch gap-1">
+                  <div class="w-28 shrink-0 border border-slate-700 rounded p-1.5 bg-slate-800/60">
+                    <div class="schematic text-slate-500">caller</div>
+                    <div class="font-mono text-slate-300">
+                      convMsg.list(<span class="text-emerald-400">convId</span>)
+                    </div>
+                  </div>
+                  <div class="flex items-center">
+                    <svg width="26" height="12">
+                      <line x1="0" y1="6" x2="19" y2="6" stroke="#10b981" stroke-width="2" />
+                      <path d="M19 2 L26 6 L19 10 Z" fill="#10b981" />
+                    </svg>
+                  </div>
+                  <div class="flex-1 border border-emerald-900/70 rounded p-1.5 bg-emerald-950/40">
+                    <div class="schematic text-emerald-400">builds ModQL inside</div>
+                    <div class="font-mono text-emerald-300 break-all">[{conv_id:{$eq}}]</div>
+                    <div class="text-emerald-400 mt-0.5">deep — domain arg</div>
+                  </div>
+                </div>
+                <!-- row: the test tests a third shape -->
+                <div class="flex items-stretch gap-1">
+                  <div
+                    class="w-28 shrink-0 border border-dashed border-slate-700 rounded p-1.5 bg-slate-900"
+                  >
+                    <div class="schematic text-slate-600">unit test</div>
+                    <div class="font-mono text-slate-500">
+                      conv.list(<span class="text-slate-400">{agent_id:1}</span>)
+                    </div>
+                  </div>
+                  <div class="flex items-center">
+                    <svg width="26" height="12">
+                      <line
+                        x1="0"
+                        y1="6"
+                        x2="19"
+                        y2="6"
+                        stroke="#64748b"
+                        stroke-width="1.5"
+                        stroke-dasharray="3 2"
+                      />
+                      <path d="M19 2 L26 6 L19 10 Z" fill="#64748b" />
+                    </svg>
+                  </div>
+                  <div class="flex-1 border border-slate-800 rounded p-1.5 bg-slate-800/30">
+                    <div class="font-mono text-slate-400 break-all">filters:{agent_id:1}</div>
+                    <div class="text-slate-600 mt-0.5">a third shape — no caller uses it</div>
+                  </div>
+                </div>
+                <p class="text-slate-500 pt-1 leading-snug">
+                  Three list methods, three filter conventions. The real filtered call and its test
+                  never agree on the shape.
+                </p>
+              </div>
+            </div>
+
+            <!-- AFTER -->
+            <div class="rounded-lg deep p-4 text-slate-100">
+              <div class="schematic text-slate-400 mb-3">
+                After — one owner of ModQL, domain args only
+              </div>
+              <div class="space-y-2 text-[0.7rem]">
+                <div class="flex items-stretch gap-1">
+                  <div class="w-28 shrink-0 border border-slate-700 rounded p-1.5 bg-slate-800/50">
+                    <div class="schematic text-slate-400">caller</div>
+                    <div class="font-mono text-slate-100">
+                      conv.list(<span class="text-sky-300">{agentId}</span>)
+                    </div>
+                  </div>
+                  <div class="flex items-center">
+                    <svg width="26" height="12">
+                      <line x1="0" y1="6" x2="19" y2="6" stroke="#64748b" stroke-width="2" />
+                      <path d="M19 2 L26 6 L19 10 Z" fill="#64748b" />
+                    </svg>
+                  </div>
+                  <div class="flex-1 border border-slate-700 rounded p-1.5 bg-slate-800/30">
+                    <div class="schematic text-slate-500">ModQL — internal</div>
+                    <div class="font-mono text-slate-400 break-all">[{agent_id:{$eq}}]</div>
+                  </div>
+                </div>
+                <div class="flex items-stretch gap-1">
+                  <div class="w-28 shrink-0 border border-slate-700 rounded p-1.5 bg-slate-800/50">
+                    <div class="schematic text-slate-400">caller</div>
+                    <div class="font-mono text-slate-100">
+                      convMsg.list(<span class="text-sky-300">convId</span>)
+                    </div>
+                  </div>
+                  <div class="flex items-center">
+                    <svg width="26" height="12">
+                      <line x1="0" y1="6" x2="19" y2="6" stroke="#64748b" stroke-width="2" />
+                      <path d="M19 2 L26 6 L19 10 Z" fill="#64748b" />
+                    </svg>
+                  </div>
+                  <div class="flex-1 border border-slate-700 rounded p-1.5 bg-slate-800/30">
+                    <div class="font-mono text-slate-400 break-all">[{conv_id:{$eq}}]</div>
+                  </div>
+                </div>
+                <div class="mt-3 border border-emerald-500/40 rounded p-2 bg-emerald-500/10">
+                  <div class="schematic text-emerald-300">
+                    the ModQL dialect lives here — and only here
+                  </div>
+                  <div class="text-slate-300 mt-1 leading-snug">
+                    Callers pass domain ids. The <code class="text-emerald-300">{$eq}</code> shape,
+                    and its one wrapping, are the module's private business. The test exercises the
+                    shape callers actually send.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- evidence -->
+          <div class="grid md:grid-cols-3 gap-4 text-xs">
+            <div class="rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
+              <div class="px-3 py-1.5 bg-slate-800/60 text-slate-400 font-mono text-[0.65rem]">
+                backend-rpc.ts:85–104
+              </div>
+              <pre
+                class="codeblock p-3 leading-relaxed overflow-x-auto"
+              ><span class="c">// agent + conv: raw passthrough</span>
+list: (<span class="k">filters</span>?: Record&lt;…&gt;) =&gt;
+  rpcCall(<span class="s">"list_convs"</span>, { <span class="r">filters</span> }),
+<span class="c">// convMsg: owns the ModQL</span>
+list: (<span class="k">convId</span>: number) =&gt;
+  rpcCall(<span class="s">"list_conv_msgs"</span>, {
+    filters: [{ conv_id: { $eq: convId }}]
+  }),</pre>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
+              <div class="px-3 py-1.5 bg-slate-800/60 text-slate-400 font-mono text-[0.65rem]">
+                conversationWorkspace.ts:70 — the real call
+              </div>
+              <pre
+                class="codeblock p-3 leading-relaxed overflow-x-auto"
+              >await backendRpc.conv.<span class="k">list</span>({
+  <span class="r">filters</span>: [{ agent_id:
+    { $eq: agent.id } }],
+})
+<span class="c">// arg → params.filters =</span>
+<span class="c">//   { filters: [ … ] }  ← wrap²</span></pre>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
+              <div class="px-3 py-1.5 bg-slate-800/60 text-slate-400 font-mono text-[0.65rem]">
+                backend-rpc.unit.test.ts:288–292
+              </div>
+              <pre
+                class="codeblock p-3 leading-relaxed overflow-x-auto"
+              >await conv.<span class="k">list</span>({ agent_id: 1 });
+expect(body.params).toEqual({
+  filters: { agent_id: 1 }
+});
+<span class="c">// asserts a shape the real</span>
+<span class="c">// caller never sends</span></pre>
+            </div>
+          </div>
+
+          <!-- problem / solution / wins -->
+          <div class="grid md:grid-cols-2 gap-6 pt-1">
+            <div class="space-y-3">
+              <div>
+                <div class="schematic text-slate-500">Problem</div>
+                <p class="text-slate-300">
+                  The ModQL filter dialect leaks across the seam, and each list method leaks it
+                  differently — so the one real filtered caller double-wraps it and the unit test
+                  asserts a third, unused shape.
+                </p>
+              </div>
+              <div>
+                <div class="schematic text-slate-500">Solution</div>
+                <p class="text-slate-300">
+                  Give every list method a domain-shaped interface (<code
+                    class="text-sm text-slate-200"
+                    >conv.list({ agentId })</code
+                  >) and build the ModQL inside — the way
+                  <code class="text-sm text-slate-200">convMsg.list</code> already does.
+                </p>
+              </div>
+            </div>
+            <div>
+              <div class="schematic text-slate-500 mb-2">Wins</div>
+              <ul class="space-y-1.5 text-slate-300 text-sm">
+                <li class="flex gap-2">
+                  <span class="text-emerald-400">▸</span> locality: ModQL dialect lives in one
+                  module
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-emerald-400">▸</span> interface shrinks; implementation absorbs
+                  the shape
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-emerald-400">▸</span> test surface matches the real call
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-emerald-400">▸</span> resolves a likely latent filter bug
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div
+            class="rounded-md bg-amber-950/40 border border-amber-800/50 px-4 py-2.5 text-sm text-amber-200"
+          >
+            <span class="font-semibold text-amber-100">Verify first:</span> whether the
+            double-wrapped <code>filters</code> is silently dropped server-side — if so,
+            <code>conv.list</code> returns every agent's Conversations. The e2e
+            (<code>fullstack.spec.ts</code>) creates only one Agent, so it can't surface this; the
+            client-side resource re-key masks it in the demo.
+          </div>
+        </article>
+
+        <!-- ============================================================ -->
+        <!-- CANDIDATE 2 -->
+        <!-- ============================================================ -->
+        <article id="c2" class="space-y-6">
+          <div class="space-y-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-mono text-slate-600">02</span>
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800"
+                >Strong</span
+              >
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700"
+                >mock → ports &amp; adapters</span
+              >
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-950 text-sky-300 border border-sky-800"
+                >Partially landed</span
+              >
+            </div>
+            <h2 class="text-2xl font-serif font-semibold text-slate-100">
+              Inject the data-source adapter instead of grabbing the singleton
+            </h2>
+            <p class="text-sm text-slate-500 font-mono">
+              src/lib/conversationWorkspace.ts · src/lib/createConvMessages.ts ·
+              src/lib/jedi/createJediFeed.ts · *.unit.test.ts
+            </p>
+          </div>
+
+          <div class="rounded-lg border border-sky-800 bg-sky-950/40 p-4 text-sm text-slate-300">
+            <div class="schematic text-sky-300 mb-1">Status — landed in slices</div>
+            <p class="leading-relaxed">
+              The <code class="text-slate-200">createConvMessages</code> RPC half shipped:
+              <code class="text-slate-200">ConvMsgClient</code> injected, default
+              <code class="text-slate-200">backendRpc.convMsg</code>, and
+              <code class="text-slate-200">vi.mock</code> dropped from its unit test. The other two
+              consumers were split off to where the seam is actually earned:
+            </p>
+            <ul class="mt-2 space-y-1">
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  ><code class="text-slate-200">createConversationWorkspace</code> injection rides
+                  with its new WebSocket feed seam in
+                  <span class="font-mono text-xs">#85</span> (Agent/Conv live-propagation) — both
+                  deps land in one move.</span
+                >
+              </li>
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  ><code class="text-slate-200">createJediFeed</code> waits for
+                  <span class="font-mono text-xs">#67</span>:
+                  <code class="text-slate-200">jediApi</code> is the only adapter today (a
+                  one-adapter, hypothetical seam) until the real back-end arrives as the
+                  second.</span
+                >
+              </li>
+            </ul>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- BEFORE mermaid -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-3">
+              <div class="schematic text-slate-500 mb-1 px-1">
+                Before — test reaches past the interface
+              </div>
+              <pre class="mermaid">
+flowchart TB
+  subgraph vm[view-models]
+    W[createConversationWorkspace]
+    M[createConvMessages]
+    J[createJediFeed]
+  end
+  S([backendRpc / jediApi<br/>module singleton])
+  T{{unit test}}
+  W --> S
+  M --> S
+  J --> S
+  T -. "vi.mock the module" .-> S
+  M -- "feed: injected ✓" --> F([MessageFeed port])
+  classDef leak stroke:#ef4444,stroke-width:2px,fill:#450a0a,color:#fca5a5;
+  classDef ok stroke:#10b981,stroke-width:2px,fill:#052e2b,color:#6ee7b7;
+  classDef sing stroke:#64748b,stroke-width:1.5px,fill:#0f172a,color:#cbd5e1;
+  class T leak
+  class F ok
+  class S sing
+              </pre>
+            </div>
+            <!-- AFTER mermaid -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-3">
+              <div class="schematic text-slate-500 mb-1 px-1">
+                After — adapter injected at the seam
+              </div>
+              <pre class="mermaid">
+flowchart TB
+  subgraph vm[view-models]
+    W2[createConversationWorkspace]
+    M2[createConvMessages]
+    J2[createJediFeed]
+  end
+  P([client port]):::seam
+  W2 --> P
+  M2 --> P
+  J2 --> P
+  R[createRpcClient / jediApi<br/>real adapter] --> P
+  Fake[in-memory adapter] --> P
+  T2{{unit test}} -- "injects fake" --> Fake
+  classDef ok stroke:#10b981,stroke-width:2px,fill:#052e2b,color:#6ee7b7;
+  classDef seam stroke:#94a3b8,stroke-width:2px,stroke-dasharray:5 5,fill:#0f172a,color:#cbd5e1;
+  class R,Fake,T2 ok
+              </pre>
+            </div>
+          </div>
+
+          <!-- evidence -->
+          <div class="grid md:grid-cols-2 gap-4 text-xs">
+            <div class="rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
+              <div class="px-3 py-1.5 bg-slate-800/60 text-slate-400 font-mono text-[0.65rem]">
+                the socket half — a real seam (2 adapters)
+              </div>
+              <pre
+                class="codeblock p-3 leading-relaxed overflow-x-auto"
+              ><span class="c">// createConvMessages.ts:19–20,45</span>
+interface ConvMessagesDeps {
+  <span class="k">feed</span>?: MessageFeedFactory; <span class="c">// injected</span>
+}
+const { … } = (deps.feed ?? useWebSocket)({…});</pre>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
+              <div class="px-3 py-1.5 bg-slate-800/60 text-slate-400 font-mono text-[0.65rem]">
+                the RPC half — a module mock, not a seam
+              </div>
+              <pre
+                class="codeblock p-3 leading-relaxed overflow-x-auto"
+              ><span class="c">// createConvMessages.ts:60,81 — singleton</span>
+backendRpc.convMsg.list(c.id)
+backendRpc.convMsg.add({…})
+<span class="c">// its test:8 — mock the whole module</span>
+<span class="r">vi.mock</span>(<span class="s">"~/lib/backend-rpc"</span>, () =&gt; ({…}))</pre>
+            </div>
+          </div>
+
+          <p class="text-sm text-slate-400 leading-relaxed">
+            The seam material already exists:
+            <code class="text-sm text-slate-200">createRpcClient()</code> is a factory (<span
+              class="font-mono text-xs"
+              >backend-rpc.ts:49</span
+            >) whose own tests spin up fresh clients — it just isn't threaded into the view-models,
+            which reach for the <code class="text-sm text-slate-200">backendRpc</code> singleton
+            instead. The <code class="text-sm text-slate-200">MessageFeed</code> port shows the
+            target shape; the RPC side should match.
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-6 pt-1">
+            <div class="space-y-3">
+              <div>
+                <div class="schematic text-slate-500">Problem</div>
+                <p class="text-slate-300">
+                  Every view-model binds a module singleton, so the only way to test past the
+                  interface is <code class="text-sm text-slate-200">vi.mock</code> — the test
+                  crosses <em>through</em> the module instead of standing at its seam.
+                </p>
+              </div>
+              <div>
+                <div class="schematic text-slate-500">Solution</div>
+                <p class="text-slate-300">
+                  Accept an injected client (like <code class="text-sm text-slate-200">feed</code>),
+                  default it to the real one. Tests pass an in-memory adapter — the same discipline
+                  the socket port already earns.
+                </p>
+              </div>
+            </div>
+            <div>
+              <div class="schematic text-slate-500 mb-2">Wins</div>
+              <ul class="space-y-1.5 text-slate-300 text-sm">
+                <li class="flex gap-2">
+                  <span class="text-emerald-400">▸</span> the interface becomes the test surface
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-emerald-400">▸</span> two adapters justify the seam: real +
+                  in-memory
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-emerald-400">▸</span> drops
+                  <code class="text-xs text-slate-200">vi.mock</code> from createConvMessages' test
+                  (the workspace's follows in #85, jedi's in #67)
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-emerald-400">▸</span> one consistent injection story, socket +
+                  RPC
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ============================================================ -->
+        <!-- CANDIDATE 3 -->
+        <!-- ============================================================ -->
+        <article id="c3" class="space-y-6">
+          <div class="space-y-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-mono text-slate-600">03</span>
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-950 text-amber-300 border border-amber-800"
+                >Worth exploring</span
+              >
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700"
+                >in-process</span
+              >
+              <span
+                class="px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-950 text-sky-300 border border-sky-800"
+                >Partially landed</span
+              >
+            </div>
+            <h2 class="text-2xl font-serif font-semibold text-slate-100">
+              Collapse the three hand-spelled CRUD blocks into one <code>crud(entity)</code>
+            </h2>
+            <p class="text-sm text-slate-500 font-mono">
+              src/lib/backend-rpc.ts · src/types/backend/index.ts
+            </p>
+          </div>
+
+          <div class="rounded-lg border border-sky-800 bg-sky-950/40 p-4 text-sm text-slate-300">
+            <div class="schematic text-sky-300 mb-1">Status — narrow slice landed</div>
+            <p class="leading-relaxed">
+              A
+              <code class="text-slate-200">crud&lt;Entity, CreateInput, UpdateInput&gt;(name)</code>
+              factory now owns <code class="text-slate-200">create/get/update/delete</code> for
+              <code class="text-slate-200">agent</code> and
+              <code class="text-slate-200">conv</code>; each keeps its own hand-written
+              <code class="text-slate-200">list</code>,
+              <code class="text-slate-200">convMsg</code> (add+list) is untouched, and
+              <code class="text-slate-200">auth</code> was left as its own REST door. Deliberately
+              narrower than the sketch above — the forward context sharpened the edges:
+            </p>
+            <ul class="mt-2 space-y-1">
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  ><code class="text-slate-200">list</code> stays per-entity: its arg shape and
+                  filter dialect differ, the method name is plural (<code class="text-slate-200"
+                    >list_agents</code
+                  >), and C1 lived in <code class="text-slate-200">conv.list</code> — a generated
+                  list would rebuild the passthrough C1 removed.</span
+                >
+              </li>
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  >N is <strong class="text-slate-200">2</strong>, not 3+: the factory definition
+                  offsets the two call sites, so it is break-even on line count today (the "one
+                  envelope, N entities / ~10 wrappers" win overstated it). Applied for the
+                  uniformity and a free third entity later — knowingly YAGNI.</span
+                >
+              </li>
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  ><span class="font-mono text-xs">#67</span> (jedi → real back-end) does
+                  <em>not</em> add a tenant: jedi is read-only view projections (<code
+                    class="text-slate-200"
+                    >featured</code
+                  >, <code class="text-slate-200">listForPost</code>, singleton
+                  <code class="text-slate-200">get</code>s), not CRUD — what it needs is
+                  <code class="text-slate-200">rpcCall</code>, already factored.</span
+                >
+              </li>
+              <li class="flex gap-2">
+                <span class="text-slate-500">→</span>
+                <span
+                  ><span class="font-mono text-xs">#85</span> (Agent/Conv realtime) does
+                  <em>not</em> add a tenant either: it is a WebSocket feed seam, orthogonal to the
+                  RPC envelope.</span
+                >
+              </li>
+            </ul>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- BEFORE: mass / repetition -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <div class="schematic text-slate-500 mb-3">
+                Before — envelope re-spelled per entity
+              </div>
+              <div class="grid grid-cols-3 gap-2 text-[0.62rem]">
+                <div class="space-y-1">
+                  <div class="schematic text-slate-500 text-center">agent</div>
+                  <div
+                    class="font-mono text-slate-400 border border-slate-700 rounded bg-slate-800/40 p-1 space-y-0.5"
+                  >
+                    <div>create {data}</div>
+                    <div>get {id}</div>
+                    <div>list {…}</div>
+                    <div>update {id,data}</div>
+                    <div>delete {id}</div>
+                  </div>
+                </div>
+                <div class="space-y-1">
+                  <div class="schematic text-slate-500 text-center">conv</div>
+                  <div
+                    class="font-mono text-slate-400 border border-slate-700 rounded bg-slate-800/40 p-1 space-y-0.5"
+                  >
+                    <div>create {data}</div>
+                    <div>get {id}</div>
+                    <div>list {…}</div>
+                    <div>update {id,data}</div>
+                    <div>delete {id}</div>
+                  </div>
+                </div>
+                <div class="space-y-1">
+                  <div class="schematic text-slate-500 text-center">convMsg</div>
+                  <div
+                    class="font-mono text-slate-400 border border-slate-700 rounded bg-slate-800/40 p-1 space-y-0.5"
+                  >
+                    <div>add {data}</div>
+                    <div>list {…}</div>
+                  </div>
+                </div>
+              </div>
+              <p class="text-[0.7rem] text-slate-500 pt-3 leading-snug">
+                Twelve method-name strings and the <code class="text-slate-400">{data}</code>/<code
+                  class="text-slate-400"
+                  >{id}</code
+                >/<code class="text-slate-400">{id,data}</code> shapes hand-repeated — the same
+                shapes the <code class="text-slate-400">ParamsIded</code> /
+                <code class="text-slate-400">ParamsForUpdate</code>
+                bindings already name. Interface surface ≈ implementation: shallow.
+              </p>
+            </div>
+            <!-- AFTER: one factory -->
+            <div class="rounded-lg deep p-4 text-slate-100">
+              <div class="schematic text-slate-400 mb-3">After — one factory owns the envelope</div>
+              <div class="flex flex-col items-center gap-3 pt-2">
+                <div class="w-full border border-slate-700 rounded bg-slate-800/50 p-2 text-center">
+                  <div class="schematic text-emerald-300">crud&lt;E&gt;(name)</div>
+                  <div class="font-mono text-[0.62rem] text-slate-400 mt-1">
+                    create · get · list · update · delete
+                  </div>
+                </div>
+                <div class="text-slate-500 text-xs">▼ instantiated three times</div>
+                <div class="grid grid-cols-3 gap-2 w-full text-[0.62rem] font-mono text-slate-300">
+                  <div class="border border-slate-700 rounded bg-slate-800/30 p-1 text-center">
+                    crud("agent")
+                  </div>
+                  <div class="border border-slate-700 rounded bg-slate-800/30 p-1 text-center">
+                    crud("conv")
+                  </div>
+                  <div class="border border-slate-700 rounded bg-slate-800/30 p-1 text-center">
+                    + convMsg
+                  </div>
+                </div>
+                <p class="text-[0.7rem] text-slate-400 leading-snug pt-1">
+                  Envelope shapes defined once, typed against the shared
+                  <code class="text-slate-300">Params*</code> bindings. Interface shrinks to three
+                  lines; implementation absorbs the repetition.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="rounded-lg border border-slate-800 bg-slate-900 overflow-hidden text-xs max-w-md"
+          >
+            <div class="px-3 py-1.5 bg-slate-800/60 text-slate-400 font-mono text-[0.65rem]">
+              a second, differently-shaped door: auth sits outside the factory
+            </div>
+            <pre
+              class="codeblock p-3 leading-relaxed overflow-x-auto"
+            ><span class="c">// backend-rpc.ts:20 — module singleton, not in createRpcClient()</span>
+export const <span class="k">auth</span> = { login, logoff };
+<span class="c">// login returns { result:{ success } } — AuthContext.tsx:52</span>
+<span class="c">// ignores it entirely (throws-or-ok). Shallow return, no reader.</span></pre>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 pt-1">
+            <div class="space-y-3">
+              <div>
+                <div class="schematic text-slate-500">Problem</div>
+                <p class="text-slate-300">
+                  Three near-identical CRUD blocks re-spell the RPC envelope twelve times;
+                  <code class="text-sm text-slate-200">auth</code> is a fourth, different door in
+                  the same module with a return no caller reads.
+                </p>
+              </div>
+              <div>
+                <div class="schematic text-slate-500">Solution</div>
+                <p class="text-slate-300">
+                  A <code class="text-sm text-slate-200">crud(name)</code> factory owns
+                  <code class="text-sm text-slate-200">{data}</code>/<code
+                    class="text-sm text-slate-200"
+                    >{id}</code
+                  >/<code class="text-sm text-slate-200">{id,data}</code> once, typed against the
+                  <code class="text-sm text-slate-200">Params*</code> bindings; fold
+                  <code class="text-sm text-slate-200">auth</code> into the same client.
+                </p>
+              </div>
+            </div>
+            <div>
+              <div class="schematic text-slate-500 mb-2">Wins</div>
+              <ul class="space-y-1.5 text-slate-300 text-sm">
+                <li class="flex gap-2">
+                  <span class="text-amber-400">▸</span> leverage: one envelope, N entities
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-amber-400">▸</span> deletes ~10 shallow method wrappers
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-amber-400">▸</span> envelope typed once against bindings
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-amber-400">▸</span> pairs naturally with candidate 01
+                </li>
+              </ul>
+            </div>
+          </div>
+          <p class="text-xs text-slate-500 italic">
+            Rides on the same module as 01 — do them in one pass. Held at "worth exploring" because
+            the repetition is dull, not dangerous: no correctness risk, just surface area.
+          </p>
+        </article>
+      </section>
+
+      <!-- ================= TOP RECOMMENDATION ================= -->
+      <section id="top-recommendation" class="pt-4">
+        <div class="rounded-xl deep text-slate-100 p-8 space-y-4">
+          <div class="schematic text-emerald-300">Tackle first</div>
+          <h2 class="text-3xl font-serif font-semibold text-slate-100">
+            <a href="#c1" class="hover:text-emerald-300 transition-colors"
+              >01 · Deepen the <code>backend-rpc</code> list interface</a
+            >
+          </h2>
+          <p class="text-slate-400 max-w-3xl leading-relaxed">
+            Smallest blast radius, highest confidence, and the only candidate touching a likely
+            correctness defect: the filter dialect leaks, the one real caller double-wraps it, and
+            neither the unit test nor the e2e can catch a broken Agent filter. Fixing it
+            concentrates the ModQL dialect in one module and makes the test surface match the real
+            call — then
+            <a href="#c3" class="text-emerald-300 hover:underline">candidate 03</a> rides along in
+            the same file.
+            <a href="#c2" class="text-emerald-300 hover:underline">Candidate 02</a> is the larger
+            structural follow-up — worth it, but it changes every view-model's interface, so land
+            the contained wins first.
+          </p>
+        </div>
+      </section>
+
+      <footer class="text-center text-xs text-slate-600 pt-6">
+        Vocabulary:
+        <span class="font-mono"
+          >module · interface · depth · seam · adapter · leverage · locality</span
+        >
+        — <code>/codebase-design</code>. No ADR conflicts: candidates 02–03 complement ADR-0005
+        (RpcAction) and ADR-0010 (ts-rs bindings).
+      </footer>
+    </main>
+  </body>
+</html>

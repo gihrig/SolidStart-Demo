@@ -110,6 +110,46 @@ test.describe("Fullstack Integration Page", () => {
       });
     });
 
+    test("lists only the selected Agent's Conversations — agent→conv isolation (arch-review C1)", async ({
+      page,
+    }) => {
+      // Regression guard: the client once sent conv.list `{ filters: [...] }`, which the
+      // back-end's `OneOrMany<Vec<ConvFilter>>` coerced to an empty filter — so every
+      // Agent's Convs leaked into every Agent. One Agent can't surface that; two can.
+      // Unique names keep this run independent of Convs left by earlier runs.
+      const tag = Date.now();
+      const agentA = `Iso-A-${tag}`;
+      const agentB = `Iso-B-${tag}`;
+      const convA = `a1-${tag}`;
+      const convB = `b1-${tag}`;
+
+      await page.getByRole("button", { name: /login/i }).click();
+      await expect(page.getByText(/logged in as/i)).toBeVisible({ timeout: 10000 });
+
+      // Agent A + its Conversation (creating an Agent selects and opens it).
+      await page.getByPlaceholder(/agent name/i).fill(agentA);
+      await page.getByRole("button", { name: /create agent/i }).click();
+      await expect(page.getByRole("button", { name: agentA })).toBeVisible({ timeout: 5000 });
+      await page.getByPlaceholder(/conversation title/i).fill(convA);
+      await page.getByRole("button", { name: /create conv/i }).click();
+      await expect(page.getByText(convA)).toBeVisible({ timeout: 5000 });
+
+      // Agent B + its Conversation (this selects B, collapsing A).
+      await page.getByPlaceholder(/agent name/i).fill(agentB);
+      await page.getByRole("button", { name: /create agent/i }).click();
+      await expect(page.getByRole("button", { name: agentB })).toBeVisible({ timeout: 5000 });
+      await page.getByPlaceholder(/conversation title/i).fill(convB);
+      await page.getByRole("button", { name: /create conv/i }).click();
+      await expect(page.getByText(convB)).toBeVisible({ timeout: 5000 });
+
+      // Re-open Agent A: its Conversation list refetches for A alone.
+      await page.getByRole("button", { name: agentA }).click();
+
+      // convA is A's — it shows. convB is B's — it must not appear under A.
+      await expect(page.getByText(convA)).toBeVisible({ timeout: 5000 });
+      await expect(page.getByText(convB)).toHaveCount(0);
+    });
+
     test("mobile drawer: navigator inert until toggled, Escape re-collapses (#55 C5)", async ({
       page,
     }) => {

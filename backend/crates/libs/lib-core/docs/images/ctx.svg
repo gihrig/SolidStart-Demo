@@ -35,7 +35,7 @@
 
   <!-- Context Object Inside Business Logic -->
   <rect x="150" y="220" width="500" height="70" rx="5" class="stroke-secondary"/>
-  <text x="400" y="250" class="text-code">Ctx { user_id: 123, conv_id: Some(456) }</text>
+  <text x="400" y="250" class="text-code">Ctx { user_id: 123 }</text>
   <text x="400" y="275" class="text-small">Immutable Security Context</text>
 
   <!-- Model Layer -->
@@ -65,7 +65,7 @@
   <path d="M100,95 L50,95 L50,540 L100,540" class="stroke-dashed"/>
   <text x="35" y="320" class="text-note" transform="rotate(270, 35, 320)">Root Context (System Operations)</text>
 
-  <!-- Context Enrichment (Right Side) -->
+  <!-- Row-Scoped Authorization (Right Side) -->
   <path d="M700,250 L750,250 L750,410 L700,410" class="stroke-dashed"/>
-  <text x="765" y="320" class="text-note" transform="rotate(90, 765, 320)">ctx.add_conv_id()</text>
+  <text x="765" y="320" class="text-note" transform="rotate(90, 765, 320)">MC::access_scope(ctx, access)</text>
 </svg>

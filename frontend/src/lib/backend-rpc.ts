@@ -44,6 +44,17 @@ export const auth = {
   },
 };
 
+/**
+ * The convMsg slice a message view consumes (see createConvMessages). The RPC
+ * client's `convMsg` object satisfies it structurally, so the app injects the
+ * real client by default while tests pass an in-memory adapter — the RPC-side
+ * mirror of the socket seam (MessageFeed in websocket.ts).
+ */
+export interface ConvMsgClient {
+  list: (convId: number) => Promise<ConvMsg[]>;
+  add: (data: ConvMsgForCreate) => Promise<ConvMsg>;
+}
+
 // An RPC client owns its own request-id counter, so tests can spin up a fresh
 // one instead of depending on module-global state that leaks between them.
 export function createRpcClient() {
@@ -78,22 +89,36 @@ export function createRpcClient() {
     return json.result.data;
   }
 
+  // create/get/update/delete share one JSON-RPC envelope, keyed by entity name
+  // (`create_agent`, `get_conv`, …). `list` is deliberately NOT generated here:
+  // its arg shape and filter dialect differ per entity, and the method name is
+  // plural (`list_agents`), so each entity spells its own `list` below. C1 lived
+  // in conv.list — keeping it hand-written keeps that domain logic visible.
+  function crud<Entity, CreateInput, UpdateInput>(name: string) {
+    return {
+      create: (data: CreateInput) => rpcCall<Entity>(`create_${name}`, { data }),
+      get: (id: number) => rpcCall<Entity>(`get_${name}`, { id }),
+      update: (id: number, data: UpdateInput) => rpcCall<Entity>(`update_${name}`, { id, data }),
+      delete: (id: number) => rpcCall<Entity>(`delete_${name}`, { id }),
+    };
+  }
+
   // Agent RPC methods
   const agent = {
-    create: (data: AgentForCreate) => rpcCall<Agent>("create_agent", { data }),
-    get: (id: number) => rpcCall<Agent>("get_agent", { id }),
-    list: (filters?: Record<string, unknown>) => rpcCall<Agent[]>("list_agents", { filters }),
-    update: (id: number, data: AgentForUpdate) => rpcCall<Agent>("update_agent", { id, data }),
-    delete: (id: number) => rpcCall<Agent>("delete_agent", { id }),
+    ...crud<Agent, AgentForCreate, AgentForUpdate>("agent"),
+    list: () => rpcCall<Agent[]>("list_agents"),
   };
 
   // Conversation RPC methods
   const conv = {
-    create: (data: ConvForCreate) => rpcCall<Conv>("create_conv", { data }),
-    get: (id: number) => rpcCall<Conv>("get_conv", { id }),
-    list: (filters?: Record<string, unknown>) => rpcCall<Conv[]>("list_convs", { filters }),
-    update: (id: number, data: ConvForUpdate) => rpcCall<Conv>("update_conv", { id, data }),
-    delete: (id: number) => rpcCall<Conv>("delete_conv", { id }),
+    ...crud<Conv, ConvForCreate, ConvForUpdate>("conv"),
+    // List a single Agent's Conversations. The ModQL filter shape
+    // ([{ field: { $eq } }], matching the back-end's OneOrMany<Vec<ConvFilter>>) is
+    // built here so callers pass a domain id, never the query dialect — a raw
+    // `{ filters }` passthrough double-wrapped it into an empty filter, leaking
+    // every Agent's Convs (arch-review C1).
+    list: (agentId: number) =>
+      rpcCall<Conv[]>("list_convs", { filters: [{ agent_id: { $eq: agentId } }] }),
   };
 
   // Conversation Message RPC methods
