@@ -117,6 +117,15 @@ pub struct ConvForUpdate {
 	//       scope (`owner_id = me`) keys on it, so allowing a client to rewrite
 	//       it would let an owner give away — or lock themselves out of — their
 	//       own conv. Ownership transfer belongs to the privilege ACS.
+	//
+	// Note: `kind` is likewise not updatable — a Conv's visibility is fixed
+	//       at creation. The realtime subscribe-time authorization cache
+	//       (ADR-0015) relies on this: because no operation can narrow a Conv
+	//       (`MultiUsers → OwnerOnly`) under a live Subscription, there is no
+	//       stale-authorization (TOCTOU) window today. Adding `kind` here
+	//       reopens that window and must be paired with subscription-
+	//       invalidation first (deferred, #91 "Realtime hardening II").
+	//       Guarded by `test_conv_kind_is_immutable_guard`.
 	pub title: Option<String>,
 	pub closed: Option<bool>,
 	#[field(cast_as = "conv_state")]
@@ -492,6 +501,65 @@ mod tests {
 
 		// -- Check: root bypasses the scope and sees the private conv.
 		ConvBmc::get(&root, &mm, owner_conv_id).await?;
+
+		// -- Clean (agent delete cascades convs + msgs).
+		AgentBmc::delete(&root, &mm, agent_id).await?;
+		_dev_utils::clean_users(&root, &mm, fx_prefix).await?;
+
+		Ok(())
+	}
+
+	/// Guard: a Conv's `kind` is immutable. `ConvForUpdate` has no `kind`
+	/// field, so an update payload carrying `kind` is silently dropped (no
+	/// `deny_unknown_fields`) and the Conv stays as created. The realtime
+	/// subscribe-time authorization cache (ADR-0015) is safe *because* of this:
+	/// nothing can narrow `MultiUsers → OwnerOnly` under a live Subscription, so
+	/// there is no TOCTOU window today. If someone adds `kind` to `ConvForUpdate`
+	/// this test fails — the signal to build subscription-invalidation before
+	/// shipping mutable visibility (deferred, #91 "Realtime hardening II").
+	#[serial]
+	#[tokio::test]
+	async fn test_conv_kind_is_immutable_guard() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let fx_prefix = "test_conv_kind_is_immutable_guard";
+
+		let a_id = seed_user(&root, &mm, &format!("{fx_prefix}-A")).await?;
+		let ctx_a = Ctx::new(a_id)?;
+		let agent_id =
+			seed_agent(&ctx_a, &mm, &format!("{fx_prefix} agent")).await?;
+
+		// A public conv a non-owner may currently read (and subscribe to).
+		let conv_id = ConvBmc::create(
+			&ctx_a,
+			&mm,
+			ConvForCreate {
+				agent_id,
+				title: Some(format!("{fx_prefix} multi-users")),
+				kind: Some(ConvKind::MultiUsers),
+			},
+		)
+		.await?;
+
+		// An update payload that *tries* to narrow the conv to OwnerOnly. `kind`
+		// is not a field of `ConvForUpdate`, so serde drops it; the `title` keeps
+		// the UPDATE well-formed.
+		let for_update: ConvForUpdate = serde_json::from_value(json!({
+			"title": "narrow attempt",
+			"kind": "OwnerOnly",
+		}))?;
+		ConvBmc::update(&ctx_a, &mm, conv_id, for_update).await?;
+
+		// The kind is unchanged: narrowing via update is impossible today.
+		let conv = ConvBmc::get(&ctx_a, &mm, conv_id).await?;
+		assert_eq!(
+			conv.kind,
+			ConvKind::MultiUsers,
+			"Conv.kind must be immutable; if it changed, `kind` became updatable \
+			 and the WS subscribe-time cache (ADR-0015) now needs \
+			 subscription-invalidation",
+		);
 
 		// -- Clean (agent delete cascades convs + msgs).
 		AgentBmc::delete(&root, &mm, agent_id).await?;

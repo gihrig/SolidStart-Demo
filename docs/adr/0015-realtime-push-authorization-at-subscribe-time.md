@@ -85,16 +85,26 @@ decision): a Channel routes live Events, a Topic groups Threads.
 - **Two dead broadcast helpers are removed** (`broadcast_conv_update`,
   `broadcast_agent_update`, zero callers); a real `conv_update`/`agent_update`
   emitter is (re)introduced with a caller when #85's live-propagation needs it.
-- **Deferred, tracked in #88** (not built here):
+- **Deferred, tracked in #88 → #91 "Realtime hardening II"** (not built in the
+  original slice):
   - *Mid-session revocation (TOCTOU)* — because authz is cached at subscribe-time,
-    a Conversation narrowed `MultiUsers → OwnerOnly` after a client subscribed keeps
-    delivering to that connection until it reconnects. An emit-time re-check or
-    subscription-invalidation closes it.
-  - *Subscribe DoS* — each subscribe costs one `ConvBmc::get`; add rate-limiting and
-    a per-connection subscription cap.
+    a Conversation narrowed `MultiUsers → OwnerOnly` under a live subscription would
+    keep delivering to that connection until it reconnects. **This is latent today:
+    `kind` is immutable (`ConvForUpdate` has no `kind` field) and no Members exist
+    (`ConvBmc::access_scope` is `owner ∪ MultiUsers`), so no operation can narrow a
+    Conversation under a live subscription.** Guarded by
+    `test_conv_kind_is_immutable_guard`; when `kind` becomes mutable or Members
+    land, close it with an emit-time re-check or subscription-invalidation.
+  - *Subscribe DoS* — each subscribe costs one `ConvBmc::get`. A **per-connection
+    subscription cap (16)**, checked before the authorizing read, now bounds the
+    held set and the concurrent authorizing reads (#88); **subscribe-frequency and
+    server-side connection rate-limiting** remain deferred.
 - **Cross-site production cookie flow.** The auth cookie is `HttpOnly` with the
   default `SameSite=Lax`, which rides the same-site `localhost:3000 → :8080`
   upgrade in dev. A cross-*site* production deploy would need `SameSite=None;
   Secure` (or a token handshake) for the cookie to reach the upgrade.
-- **Anonymous `/ws` now 401s**, which the front-end's unconditional 3s reconnect
-  will retry; in practice the socket is only opened inside the authenticated app.
+- **Anonymous `/ws` now 401s.** The socket is only opened inside the authenticated
+  app (`fullstack.tsx`), so this bites on mid-session token expiry rather than
+  steady state; the front-end reconnect is now bounded — exponential back-off then
+  pause, not an unconditional 3s loop (#88). Server-side connection rate-limiting
+  remains deferred (#91 "Realtime hardening II").

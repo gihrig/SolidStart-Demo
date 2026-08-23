@@ -43,17 +43,22 @@ class MockWebSocket {
 
 describe("useWebSocket", () => {
   let errorSpy: ReturnType<typeof vi.spyOn>;
+  let randomSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     MockWebSocket.instances = [];
     vi.stubGlobal("WebSocket", MockWebSocket);
     // Errors are logged at the socket boundary; keep the output quiet and assertable.
     errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    // Pin reconnect jitter to its midpoint (factor 1.0) so back-off delays are
+    // exact and timer assertions are deterministic.
+    randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.5);
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
     errorSpy.mockRestore();
+    randomSpy.mockRestore();
   });
 
   it("connects to the WebSocket URL on mount", () => {
@@ -218,5 +223,73 @@ describe("useWebSocket", () => {
     expect(ws.send).not.toHaveBeenCalledWith(
       JSON.stringify({ action: "subscribe", channel: "conv", id: 5 }),
     );
+  });
+
+  it("backs off exponentially across consecutive drops", () => {
+    vi.useFakeTimers();
+    try {
+      renderHook(() => useWebSocket());
+      MockWebSocket.instances[0].open();
+      MockWebSocket.instances[0].close(); // drop #1 → 3000
+
+      vi.advanceTimersByTime(2999);
+      expect(MockWebSocket.instances).toHaveLength(1);
+      vi.advanceTimersByTime(1);
+      expect(MockWebSocket.instances).toHaveLength(2); // reconnect at 3000
+
+      MockWebSocket.instances[1].close(); // drop #2 → 6000 (doubled)
+      vi.advanceTimersByTime(5999);
+      expect(MockWebSocket.instances).toHaveLength(2);
+      vi.advanceTimersByTime(1);
+      expect(MockWebSocket.instances).toHaveLength(3); // reconnect at 6000
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("resets the back-off after a successful reconnect", () => {
+    vi.useFakeTimers();
+    try {
+      renderHook(() => useWebSocket());
+      MockWebSocket.instances[0].open();
+      MockWebSocket.instances[0].close(); // drop → 3000
+
+      vi.advanceTimersByTime(3000);
+      expect(MockWebSocket.instances).toHaveLength(2);
+      MockWebSocket.instances[1].open(); // success resets the back-off
+
+      MockWebSocket.instances[1].close(); // next delay is 3000 again, not 6000
+      vi.advanceTimersByTime(2999);
+      expect(MockWebSocket.instances).toHaveLength(2);
+      vi.advanceTimersByTime(1);
+      expect(MockWebSocket.instances).toHaveLength(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("pauses reconnecting after the retry cap and reports it via onError", () => {
+    vi.useFakeTimers();
+    const onError = vi.fn();
+    try {
+      renderHook(() => useWebSocket({ onError }));
+      MockWebSocket.instances[0].open(); // reset back-off to 0
+
+      // Six reconnect attempts, each new socket dropping immediately.
+      const delays = [3000, 6000, 12000, 24000, 30000, 30000];
+      MockWebSocket.instances[0].close(); // drop #1
+      delays.forEach((delay, n) => {
+        vi.advanceTimersByTime(delay);
+        expect(MockWebSocket.instances).toHaveLength(n + 2);
+        MockWebSocket.instances[n + 1].close(); // immediate drop
+      });
+
+      // The 7th close hits the cap: no new socket, and a paused error surfaces.
+      vi.advanceTimersByTime(60000);
+      expect(MockWebSocket.instances).toHaveLength(7); // 1 initial + 6 retries
+      expect(onError).toHaveBeenCalledWith("WebSocket reconnect paused after 6 attempts");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

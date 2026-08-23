@@ -3,6 +3,19 @@ import type { WsEvent, ConvMsg } from "~/types/backend";
 
 const WS_URL = "ws://localhost:8080/ws";
 
+// Reconnect back-off. The socket only exists inside the authenticated app
+// (`fullstack.tsx`'s `<Show when={isAuthenticated()}>`), so a logged-out client
+// never dials and logout tears the socket down; this back-off governs the one
+// remaining case — a mid-session token expiry, where the upgrade 401s and a
+// browser cannot read that status. Exponential from a 3s base, capped and
+// jittered, giving up after a bounded number of attempts (a new login remounts
+// this adapter with a fresh counter — the resume path). NOTE: cooperative client
+// robustness, not a security boundary — server-side connection rate-limiting is
+// tracked separately (#91 "Realtime hardening II").
+const RECONNECT_BASE_MS = 3000;
+const RECONNECT_MAX_MS = 30000;
+const RECONNECT_MAX_RETRIES = 6;
+
 /** Callbacks a consumer registers with a message feed. */
 export interface MessageFeedOptions {
   onConvMsg?: (convId: number, msg: ConvMsg) => void;
@@ -22,7 +35,8 @@ export type MessageFeedFactory = (options: MessageFeedOptions) => MessageFeed;
 /**
  * The live WebSocket adapter behind the {@link MessageFeed} port. Connects on
  * mount (client only — `onMount` is the SSR guard, so no socket is opened during
- * server render) and reconnects unconditionally 3s after an unintended drop.
+ * server render) and reconnects with exponential back-off after an unintended
+ * drop, pausing after {@link RECONNECT_MAX_RETRIES} consecutive failures.
  * Desired subscriptions are remembered and replayed on every (re)connect, since
  * the server authorizes per connection and default-denies (ADR-0015).
  * `conv_msg` events and errors reach the consumer through the registered
@@ -39,6 +53,9 @@ export function useWebSocket(options: MessageFeedOptions = {}): MessageFeed {
   // Set while we close on purpose (cleanup/disconnect) so the resulting
   // `onclose` does not schedule a reconnect after the consumer is gone.
   let intentionalClose = false;
+  // Consecutive failed reconnects; drives the back-off and the give-up cap. A
+  // successful open resets it to 0.
+  let retryCount = 0;
 
   // Desired subscriptions, replayed on every (re)connect. The server authorizes
   // per connection and default-denies (ADR-0015), so a fresh socket must
@@ -63,6 +80,8 @@ export function useWebSocket(options: MessageFeedOptions = {}): MessageFeed {
 
       ws.onopen = () => {
         setConnected(true);
+        // A successful connection resets the back-off.
+        retryCount = 0;
         // Replay desired subscriptions onto the (re)connected socket.
         for (const { channel, id } of desired.values()) {
           sendSub("subscribe", channel, id);
@@ -72,7 +91,18 @@ export function useWebSocket(options: MessageFeedOptions = {}): MessageFeed {
       ws.onclose = () => {
         setConnected(false);
         if (intentionalClose) return;
-        reconnectTimeout = window.setTimeout(connect, 3000);
+        if (retryCount >= RECONNECT_MAX_RETRIES) {
+          // Give up rather than retry a doomed upgrade forever (e.g. an expired
+          // session that keeps 401ing). A new login remounts this adapter with a
+          // fresh counter — that is the resume path.
+          fail(`WebSocket reconnect paused after ${RECONNECT_MAX_RETRIES} attempts`);
+          return;
+        }
+        const backoff = Math.min(RECONNECT_BASE_MS * 2 ** retryCount, RECONNECT_MAX_MS);
+        // ±20% jitter to avoid synchronized retries.
+        const delay = backoff * (0.8 + Math.random() * 0.4);
+        retryCount += 1;
+        reconnectTimeout = window.setTimeout(connect, delay);
       };
 
       ws.onerror = () => {

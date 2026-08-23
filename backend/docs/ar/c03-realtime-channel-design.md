@@ -103,8 +103,8 @@ WebSocket flows are awkward to drive in the in-process `axum-test` harness (`app
 
 ## 7. Out of scope (documented gaps — deferred, not silent) → #88
 
-1. **Mid-session revocation (TOCTOU).** Authz is cached at subscribe-time; a Conversation narrowed `MultiUsers → OwnerOnly` (or a Member removed) after a client subscribed keeps delivering until reconnect. Closed later by an emit-time re-check or subscription-invalidation.
-2. **Subscribe DoS.** Each subscribe costs one `ConvBmc::get`; add rate-limiting + a per-connection subscription cap.
+1. **Mid-session revocation (TOCTOU).** Authz is cached at subscribe-time; a Conversation narrowed `MultiUsers → OwnerOnly` under a live subscription would keep delivering until reconnect. **Latent today** — `kind` is immutable (`ConvForUpdate` has no `kind`) and no Members exist, so nothing can narrow a live Conversation; guarded by `test_conv_kind_is_immutable_guard` and documented at `ConvForUpdate`. The runtime mechanism (emit-time re-check or subscription-invalidation) is deferred until `kind`-mutation or Members land (#91 "Realtime hardening II").
+2. **Subscribe DoS.** Each subscribe costs one `ConvBmc::get`. A **per-connection subscription cap (16)**, checked before the authorizing read, now bounds the held set (#88); **subscribe-frequency + server-side connection rate-limiting** remain deferred (#91 "Realtime hardening II").
 3. **`conv_update` / `agent_update` events.** Removed here; re-introduced with real emitters when #85's live-propagation needs them.
 4. **Cross-site production cookie flow.** The auth cookie is `HttpOnly`, default `SameSite=Lax` (`token.rs:18-20`) — fine for the same-site dev upgrade; a cross-_site_ prod deploy needs `SameSite=None; Secure` or a token handshake.
 

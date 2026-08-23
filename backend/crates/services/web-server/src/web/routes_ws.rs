@@ -121,6 +121,22 @@ fn should_forward(subs: &HashSet<String>, channel: &str) -> bool {
 	subs.contains(channel)
 }
 
+/// The per-connection subscription cap. Because it is checked *before* the
+/// authorizing `ConvBmc::get`, it bounds both the authorized set and the number
+/// of concurrent authorizing DB reads a single connection can hold. The
+/// front-end holds one active subscription at a time, so 16 is generous headroom
+/// for conversation-switching and reconnect replay. Subscribe-frequency and
+/// server-side connection rate-limiting are deferred (#91 "Realtime hardening
+/// II").
+const MAX_SUBSCRIPTIONS: usize = 16;
+
+/// Whether a connection may admit another subscription without exceeding
+/// [`MAX_SUBSCRIPTIONS`]. Checked before the authorizing read, so a full set
+/// issues no further `ConvBmc::get`s.
+fn has_subscription_capacity(subs: &HashSet<String>) -> bool {
+	subs.len() < MAX_SUBSCRIPTIONS
+}
+
 // endregion: --- Subscription authorization
 
 // region:    --- WebSocket Handler
@@ -201,10 +217,20 @@ async fn handle_socket(
 							// Authorize against the read scope before honoring; an
 							// unauthorized or unknown channel is silently ignored.
 							"subscribe" => {
-								if let Some(key) =
-									authorize_subscription(&ctx, &mm, &req).await
-								{
-									recv_subs.write().await.insert(key);
+								// Cap the per-connection set *before* the
+								// authorizing read, so a full connection
+								// issues no further `ConvBmc::get`s. Over the
+								// cap is ignored, like an unauthorized channel.
+								let has_capacity = {
+									let subs = recv_subs.read().await;
+									has_subscription_capacity(&subs)
+								};
+								if has_capacity {
+									if let Some(key) =
+										authorize_subscription(&ctx, &mm, &req).await
+									{
+										recv_subs.write().await.insert(key);
+									}
 								}
 							}
 							"unsubscribe" => {
@@ -306,6 +332,23 @@ mod tests {
 		assert!(
 			!should_forward(&subs, "conv:2"),
 			"unsubscribed channel is dropped"
+		);
+	}
+
+	#[test]
+	fn subscription_capacity_caps_at_max() {
+		let mut subs = HashSet::new();
+		for i in 0..MAX_SUBSCRIPTIONS {
+			assert!(
+				has_subscription_capacity(&subs),
+				"a set below the cap admits another subscription"
+			);
+			subs.insert(format!("conv:{i}"));
+		}
+		assert_eq!(subs.len(), MAX_SUBSCRIPTIONS);
+		assert!(
+			!has_subscription_capacity(&subs),
+			"a full set admits no more subscriptions"
 		);
 	}
 
