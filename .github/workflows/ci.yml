@@ -91,12 +91,11 @@ jobs:
       - name: Format check
         run: cargo fmt --all --check
 
-      # Mirrors `cgs check` lint exactly (backend/Scripts.toml). Not gated on
-      # warnings: the tree currently carries clippy warnings, and a `-D warnings`
-      # gate is a deliberate follow-up (clean the warnings first), not part of
-      # this CI issue. See the `-D warnings` note in the root Cargo.toml.
+      # Mirrors `cgs check` lint (backend/Scripts.toml), gated on warnings: the
+      # tree is warning-clean, so `-D warnings` fails CI on any new clippy
+      # warning. See the `-D warnings` note in the root Cargo.toml.
       - name: Clippy
-        run: cargo clippy --all-targets
+        run: cargo clippy --all-targets -- -D warnings
 
       # Mirrors `cgs build`.
       - name: Build

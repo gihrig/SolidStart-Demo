@@ -4,7 +4,7 @@
 [scripts]
 bindings = { command = "cargo test export_bindings", info = "Regenerate ts-rs TypeScript bindings (exported via cargo test)" }
 build = { command = "cargo build", info = "Build w/ debug symbols", env = { RUST_LOG = "info" } }
-check = { command = "cargo fmt --all && cargo clippy --all-targets", info = "Format (fix) and lint" }
+check = { command = "cargo fmt --all && cargo clippy --all-targets -- -D warnings", info = "Format (fix) and lint (warnings gate CI on)" }
 cover = { command = "cargo llvm-cov --open", info = "Run tests with coverage and open the HTML report" }
 db = { command = "docker run --rm --name pg -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=welcome postgres:17;", info = "Start Postgres DB Docker container" }
 dev = { command = "cargo run -p web-server", info = "Start a dev server" }
