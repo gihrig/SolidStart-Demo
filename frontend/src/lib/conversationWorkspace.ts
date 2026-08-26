@@ -1,4 +1,5 @@
 import { createSignal, createResource, type Accessor } from "solid-js";
+import { createStore, reconcile } from "solid-js/store";
 import { backendRpc, type WorkspaceRpcClient } from "~/lib/backend-rpc";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { useWebSocket, type MessageFeedFactory } from "~/lib/websocket";
@@ -75,9 +76,16 @@ export function createConversationWorkspace(
   // Both data sources are injectable seams; default to the real socket/singleton.
   const rpc = deps.rpc ?? backendRpc;
 
-  const [agents, { refetch: refetchAgents }] = createResource(async () =>
-    sortByLabel(await rpc.agent.list(), (a) => a.name),
-  );
+  // Agents are held in a reconciled store, not read straight off the resource, so
+  // a refetch (e.g. a #85 `agent_update` poke) keeps stable object identity for
+  // unchanged Agents. `<For>` then preserves the open Agent's row — and the
+  // uncontrolled create-conversation input inside it — instead of recreating it.
+  const [agentList, setAgentList] = createStore<Agent[]>([]);
+  const [agentsRes, { refetch: refetchAgents }] = createResource(async () => {
+    const list = sortByLabel(await rpc.agent.list(), (a) => a.name);
+    setAgentList(reconcile(list, { key: "id" }));
+    return list;
+  });
 
   // Conversations belong to the selected agent; re-keying on it refetches (and
   // yields [] with no agent), so the list never shows another agent's convs.
@@ -144,9 +152,9 @@ export function createConversationWorkspace(
   };
 
   return {
-    agents: () => agents() ?? [],
-    agentsLoading: () => agents.loading,
-    agentsError: () => loadError(agents.error, "Failed to load agents"),
+    agents: () => agentList,
+    agentsLoading: () => agentsRes.loading,
+    agentsError: () => loadError(agentsRes.error, "Failed to load agents"),
     selectedAgent,
     selectAgent,
     createAgent,
