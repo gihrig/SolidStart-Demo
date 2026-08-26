@@ -94,7 +94,7 @@ describe("useWebSocket", () => {
     ws.open();
 
     const fakeMsg = { id: 42, conv_id: 7, content: "Hello" };
-    ws.simulateMessage({ event_type: "conv_msg", channel: "conv:7", payload: fakeMsg });
+    ws.simulateMessage({ event_type: "conv_msg", payload: fakeMsg });
 
     expect(onConvMsg).toHaveBeenCalledWith(7, fakeMsg);
   });
@@ -105,7 +105,7 @@ describe("useWebSocket", () => {
     const ws = MockWebSocket.instances[0];
     ws.open();
 
-    ws.simulateMessage({ event_type: "agent_update", channel: "agents", payload: null });
+    ws.simulateMessage({ event_type: "agent_update" });
 
     expect(onConvMsg).not.toHaveBeenCalled();
   });
@@ -116,7 +116,7 @@ describe("useWebSocket", () => {
     const ws = MockWebSocket.instances[0];
     ws.open();
 
-    ws.simulateMessage({ event_type: "agent_update", channel: "agents", payload: null });
+    ws.simulateMessage({ event_type: "agent_update" });
 
     expect(onAgentUpdate).toHaveBeenCalledTimes(1);
   });
@@ -127,7 +127,7 @@ describe("useWebSocket", () => {
     const ws = MockWebSocket.instances[0];
     ws.open();
 
-    ws.simulateMessage({ event_type: "conv_update", channel: "convs", payload: null });
+    ws.simulateMessage({ event_type: "conv_update" });
 
     expect(onConvUpdate).toHaveBeenCalledTimes(1);
   });

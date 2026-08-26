@@ -118,7 +118,8 @@ export function useWebSocket(options: MessageFeedOptions = {}): MessageFeed {
         try {
           const data = JSON.parse(event.data) as WsEvent;
           if (data.event_type === "conv_msg" && options.onConvMsg) {
-            const msg = data.payload as ConvMsg;
+            // Narrowed by the discriminant: `payload` is a typed ConvMsg, no cast.
+            const msg = data.payload;
             options.onConvMsg(msg.conv_id, msg);
           } else if (data.event_type === "agent_update") {
             options.onAgentUpdate?.();

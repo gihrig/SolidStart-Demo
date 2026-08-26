@@ -9,6 +9,7 @@ import type { Conv as ConvWire } from "~backend-bindings/Conv.d";
 import type { ConvMsg as ConvMsgWire } from "~backend-bindings/ConvMsg.d";
 import type { ConvUser as ConvUserWire } from "~backend-bindings/ConvUser.d";
 import type { User as UserWire } from "~backend-bindings/User.d";
+import type { WsEvent as WsEventWire } from "~backend-bindings/WsEvent.d";
 
 /** Rewrite a binding's bigint id fields to the number they already are at runtime. */
 type NumericIds<T> = { [K in keyof T]: T[K] extends bigint ? number : T[K] };
@@ -26,10 +27,15 @@ export type { UserTyp } from "~backend-bindings/UserTyp.d";
 export type { ParamsIded } from "~backend-bindings/ParamsIded.d";
 export type { ParamsForUpdate } from "~backend-bindings/ParamsForUpdate.d";
 
-// Realtime feed envelope — generated from the backend `WsEvent` (ADR-0015). No
-// ids, so it re-exports unchanged. `payload` is `unknown`; the consumer narrows
-// it by `event_type`.
-export type { WsEvent } from "~backend-bindings/WsEvent.d";
+// Realtime feed envelope — generated from the backend `WsEvent` (ADR-0015), a
+// discriminated union tagged by `event_type`. Consumed through the barrel (not
+// raw) so the nested `conv_msg` payload gets the same bigint→number id rewrite
+// as every entity (ADR-0003); the two list-feed pokes carry no payload. The
+// consumer narrows by `event_type` and reads a typed payload — no cast.
+type NumericIdsEvent<T> = T extends { payload: infer P }
+  ? Omit<T, "payload"> & { payload: NumericIds<P> }
+  : T;
+export type WsEvent = NumericIdsEvent<WsEventWire>;
 
 // Input types for create operations (not in generated bindings)
 export interface AgentForCreate {

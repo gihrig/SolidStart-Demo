@@ -50,6 +50,14 @@ exports, so the realtime contract joins the one-generated-source-of-truth guard
 front-end. The `payload` stays `serde_json::Value` (typed per `event_type` by the
 consumer) for this slice.
 
+> **Update (2026-08-25, arch-review C01).** `WsEvent` is now a discriminated
+> union tagged by `event_type` (internal serde tagging): `conv_msg` carries a
+> typed `ConvMsg`, and the two list-feed pokes are payload-less. The original
+> "`payload` stays `serde_json::Value`" choice fit one live event; #85 landed
+> three, making the union real. The front-end now narrows on the tag and reads a
+> typed payload with **no cast**. The routing Channel is derived from the variant
+> (a private `WsEvent::channel` method), not carried on the wire.
+
 **"Channel" names the realtime routing key.** A Channel is `conv:{id}` — the key an
 event is addressed to and a subscription names. It is deliberately **not** the
 planned `Agent → Topic` rename (#31, retargeted from `Channel` to `Topic` by this
@@ -85,6 +93,10 @@ decision): a Channel routes live Events, a Topic groups Threads.
 - **Two dead broadcast helpers are removed** (`broadcast_conv_update`,
   `broadcast_agent_update`, zero callers); a real `conv_update`/`agent_update`
   emitter is (re)introduced with a caller when #85's live-propagation needs it.
+- **The envelope is a typed discriminated union** (arch-review C01, 2026-08-25):
+  `WsEvent` is tagged by `event_type` with a typed `conv_msg` payload, so the
+  front-end drops its `payload as ConvMsg` cast. A `wsevent_wire_shape_is_stable`
+  test locks the serialized shape the front-end parses. See the Decisions update.
 - **Deferred, tracked in #88 → #91 "Realtime hardening II"** (not built in the
   original slice):
   - *Mid-session revocation (TOCTOU)* — because authz is cached at subscribe-time,

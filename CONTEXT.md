@@ -135,8 +135,12 @@ One notification carried on the Feed: a new Message (`conv_msg`, with the Messag
 as payload), or a list-feed poke (`agent_update` / `conv_update`, payload-less —
 the client refetches).
 _Avoid_: notification, broadcast (the mechanism, not the item).
-_BE_: `WsEvent { event_type, channel, payload }` (ts-rs-exported).
-_FE_: `WsMessage`.
+_BE_: `WsEvent` — a discriminated union tagged by `event_type` (ts-rs-exported):
+`conv_msg` carries a typed `ConvMsg`; `agent_update` / `conv_update` are
+payload-less. The routing Channel is derived from the variant, not carried on the
+wire.
+_FE_: the same generated `WsEvent`, consumed through the `~/types/backend` barrel
+so the `conv_msg` payload gets the `NumericIds` id rewrite (ADR-0003).
 
 ## Jedi
 

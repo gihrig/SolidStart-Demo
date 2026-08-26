@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — SolidStart Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose" });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 4 4; }
+      .leak { stroke: #f87171; }
+      /* deep module: a raised panel against the near-black page */
+      .deep { background: linear-gradient(135deg, #111827, #1f2937); border: 1px solid #3f4a5f; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-200 font-sans">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-14">
+      <!-- ===================== HEADER ===================== -->
+      <header class="space-y-5">
+        <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Architecture review</p>
+        <h1 class="font-serif text-4xl font-semibold text-slate-100">SolidStart Demo</h1>
+        <p class="text-sm text-slate-400">2026-08-25 · scope: the realtime <span class="mono">Feed</span> — the hot spot across the last commits (#85, #88, ADR-0015).</p>
+
+        <div class="flex flex-wrap gap-4 text-xs text-slate-400 border-t border-slate-800 pt-4">
+          <span class="flex items-center gap-2"><span class="inline-block w-5 h-4 border border-slate-500 bg-slate-800"></span> module</span>
+          <span class="flex items-center gap-2">
+            <svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" class="seam" stroke="#94a3b8" stroke-width="2"/></svg> seam
+          </span>
+          <span class="flex items-center gap-2">
+            <svg width="26" height="8"><line x1="0" y1="4" x2="20" y2="4" class="leak" stroke-width="2"/><path d="M20 1 L26 4 L20 7 Z" fill="#f87171"/></svg> leakage
+          </span>
+          <span class="flex items-center gap-2"><span class="inline-block w-5 h-4 deep rounded-sm"></span> deep module</span>
+        </div>
+
+        <div class="rounded-md bg-slate-900 border border-slate-800 px-4 py-3 text-sm text-slate-300">
+          The read / write / subscribe paths are already deep and owner-scoped (ADR-0014 / ADR-0015). These three candidates
+          all sit on the <em>push</em> envelope that #85 just widened — where the shape is still carried by strings.
+        </div>
+      </header>
+
+      <!-- ===================== CANDIDATES ===================== -->
+      <section id="candidates" class="space-y-16">
+
+        <!-- ---------- CANDIDATE 1 ---------- -->
+        <article id="c1" class="space-y-6">
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Candidate 1</span>
+            <h2 class="font-serif text-2xl font-semibold text-slate-100">Type the feed envelope</h2>
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300">Worth exploring</span>
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">ports &amp; adapters · contract seam</span>
+          </div>
+
+          <p class="mono text-sm text-slate-400">
+            backend/crates/services/web-server/src/web/routes_ws.rs ·
+            bindings/WsEvent.d.ts ·
+            frontend/src/lib/websocket.ts
+          </p>
+
+          <!-- before / after -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- BEFORE -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-5">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-4">Before — shallow envelope</p>
+              <div class="border border-slate-700 rounded-md overflow-hidden text-sm">
+                <div class="bg-slate-800 px-3 py-1.5 text-xs uppercase tracking-wider text-slate-400">WsEvent (wire)</div>
+                <div class="mono px-3 py-1 border-t border-slate-700">event_type: <span class="text-slate-500">string</span></div>
+                <div class="mono px-3 py-1 border-t border-slate-700">channel: <span class="text-slate-500">string</span></div>
+                <div class="mono px-3 py-1 border-t border-slate-700">payload: <span class="text-red-400">unknown</span></div>
+              </div>
+              <div class="flex justify-center py-1">
+                <svg width="40" height="46">
+                  <line x1="20" y1="0" x2="20" y2="38" class="leak" stroke-width="2"/>
+                  <path d="M16 32 L20 40 L24 32 Z" fill="#f87171"/>
+                </svg>
+              </div>
+              <div class="border border-red-800 rounded-md bg-red-950/50 text-sm">
+                <div class="bg-red-900/40 px-3 py-1.5 text-xs uppercase tracking-wider text-red-300">websocket.ts</div>
+                <div class="mono px-3 py-2 text-red-300">const msg = data.payload <b>as ConvMsg</b>;</div>
+              </div>
+              <p class="text-xs text-slate-400 mt-3">Interface carries no invariant. The client casts, unchecked. A malformed payload passes for a Message.</p>
+            </div>
+
+            <!-- AFTER -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-5">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-4">After — deep envelope</p>
+              <div class="border-2 border-slate-500 rounded-md overflow-hidden text-sm shadow-sm">
+                <div class="deep text-slate-100 px-3 py-1.5 text-xs uppercase tracking-wider">WsEvent · tagged union</div>
+                <div class="mono px-3 py-1 border-t border-slate-700">ConvMsg { payload: <span class="text-emerald-300 font-semibold">ConvMsg</span> }</div>
+                <div class="mono px-3 py-1 border-t border-slate-700">AgentUpdate</div>
+                <div class="mono px-3 py-1 border-t border-slate-700">ConvUpdate</div>
+              </div>
+              <div class="flex justify-center py-1">
+                <svg width="40" height="46">
+                  <line x1="20" y1="0" x2="20" y2="38" stroke="#34d399" stroke-width="2"/>
+                  <path d="M16 32 L20 40 L24 32 Z" fill="#34d399"/>
+                </svg>
+              </div>
+              <div class="border border-emerald-800 rounded-md bg-emerald-950/40 text-sm">
+                <div class="bg-emerald-900/40 px-3 py-1.5 text-xs uppercase tracking-wider text-emerald-300">websocket.ts</div>
+                <div class="mono px-3 py-2 text-emerald-200">case "conv_msg": e.payload <span class="text-emerald-400">// ConvMsg</span></div>
+              </div>
+              <p class="text-xs text-slate-400 mt-3">The variant binds the payload type. The client narrows by discriminant. No cast.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-2 text-sm text-slate-200">
+            <p><span class="font-semibold text-slate-100">Problem.</span> The envelope is shallow — two strings and <span class="mono">unknown</span> hold the whole protocol; three live event types now share it (#85).</p>
+            <p><span class="font-semibold text-slate-100">Solution.</span> Make <span class="mono">WsEvent</span> a <span class="mono">#[serde(tag="event_type")]</span> enum; ts-rs exports a discriminated union.</p>
+          </div>
+
+          <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+            <li>leverage: payload type follows the discriminant</li>
+            <li>locality: the event-shape invariant lives in one enum</li>
+            <li>delete the unchecked <span class="mono">as ConvMsg</span></li>
+            <li>three constructors can no longer mismatch the triple</li>
+          </ul>
+
+          <div class="rounded-md bg-amber-950/40 border border-amber-800 px-4 py-2.5 text-sm text-amber-200">
+            <b class="text-amber-100">Reopens ADR-0015 (Q7).</b> That decision kept <span class="mono">payload</span> untyped when only <span class="mono">conv_msg</span> was live and two helpers were dead.
+            #85 made all three live — one adapter became three. The union is now real, so the seam is worth reopening.
+          </div>
+        </article>
+
+        <!-- ---------- CANDIDATE 2 ---------- -->
+        <article id="c2" class="space-y-6">
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Candidate 2</span>
+            <h2 class="font-serif text-2xl font-semibold text-slate-100">Give the routing key a Channel type</h2>
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300">Worth exploring</span>
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">in-process</span>
+          </div>
+
+          <p class="mono text-sm text-slate-400">backend/crates/services/web-server/src/web/routes_ws.rs</p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- BEFORE -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before — the key is a string, spread out</p>
+              <pre class="mermaid">
+flowchart TD
+  K["#quot;conv:{id}#quot; string"]:::leak
+  K --> A["channel_key()#nbsp;#nbsp;match"]:::leak
+  K --> B["authorize_subscription()#nbsp;#nbsp;match"]:::leak
+  K --> C["broadcast_conv_msg()#nbsp;#nbsp;format!"]:::leak
+  K --> D["#quot;agents#quot; / #quot;convs#quot;#nbsp;#nbsp;literals"]:::leak
+  classDef leak fill:#450a0a,color:#fecaca,stroke:#f87171,stroke-width:2px;
+              </pre>
+              <p class="text-xs text-slate-400 mt-1">Two match sites, three constructors. Add a kind and the compiler stays silent.</p>
+            </div>
+            <!-- AFTER -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">After — one deep Channel</p>
+              <pre class="mermaid">
+flowchart TD
+  E["enum Channel<br/>Conv(id) · Agents · Convs"]:::deep
+  E --> F["key() → String"]:::ok
+  E --> G["parse(kind,id)"]:::ok
+  E --> H["authorize dispatch"]:::ok
+  classDef deep fill:#1e293b,color:#e2e8f0,stroke:#64748b,stroke-width:2px;
+  classDef ok fill:#052e2b,color:#a7f3d0,stroke:#059669,stroke-width:1.5px;
+              </pre>
+              <p class="text-xs text-slate-400 mt-1">One type parses, keys, and dispatches. The wire stays a string — no contract change.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-2 text-sm text-slate-200">
+            <p><span class="font-semibold text-slate-100">Problem.</span> No <span class="mono">Channel</span> type exists; the <span class="mono">conv:{id}</span> key and the kind set live as strings across two matches and three constructors.</p>
+            <p><span class="font-semibold text-slate-100">Solution.</span> A backend-internal <span class="mono">Channel</span> enum owns parse, key, and the authorize dispatch.</p>
+          </div>
+
+          <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+            <li>locality: one place to add a channel kind</li>
+            <li>compiler enforces exhaustiveness</li>
+            <li>delete two string matches</li>
+            <li>no contract change; CONTEXT.md already names Channel</li>
+          </ul>
+          <p class="text-sm text-slate-400">Modest today — three kinds. It pays back the moment a fourth channel lands.</p>
+        </article>
+
+        <!-- ---------- CANDIDATE 3 ---------- -->
+        <article id="c3" class="space-y-6">
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Candidate 3</span>
+            <h2 class="font-serif text-2xl font-semibold text-slate-100">Concentrate the mutation → poke rule</h2>
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-700 text-slate-200">Speculative</span>
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">in-process</span>
+          </div>
+
+          <p class="mono text-sm text-slate-400">
+            backend/crates/services/web-server/src/web/rpcs/conv_rpc.rs ·
+            rpcs/agent_rpc.rs
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- BEFORE -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-5">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — every handler remembers</p>
+              <div class="space-y-1.5 text-sm">
+                <div class="flex items-center justify-between border-l-4 border-slate-600 pl-3 py-1">
+                  <span class="mono">create_conv</span><span class="mono text-red-400">broadcast_conv_update()</span></div>
+                <div class="flex items-center justify-between border-l-4 border-slate-600 pl-3 py-1">
+                  <span class="mono">update_conv</span><span class="mono text-red-400">broadcast_conv_update()</span></div>
+                <div class="flex items-center justify-between border-l-4 border-slate-600 pl-3 py-1">
+                  <span class="mono">delete_conv</span><span class="mono text-red-400">broadcast_conv_update()</span></div>
+                <div class="flex items-center justify-between border-l-4 border-slate-600 pl-3 py-1">
+                  <span class="mono">add_conv_msg</span><span class="mono text-red-400">broadcast_conv_msg()</span></div>
+                <div class="flex items-center justify-between border-l-4 border-slate-600 pl-3 py-1">
+                  <span class="mono">create/update/delete_agent</span><span class="mono text-red-400">×3</span></div>
+              </div>
+              <p class="text-xs text-slate-400 mt-3">Seven manual pokes. The generated CRUD was bypassed to add them. A new mutation can forget.</p>
+            </div>
+            <!-- AFTER -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-5">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — one seam pokes</p>
+              <div class="space-y-1.5 text-sm mb-3">
+                <div class="mono text-slate-400 border-l-4 border-slate-700 pl-3 py-0.5">create · update · delete …</div>
+                <div class="mono text-slate-400 border-l-4 border-slate-700 pl-3 py-0.5">declare channel: convs</div>
+              </div>
+              <div class="flex justify-center py-1">
+                <svg width="40" height="34"><line x1="20" y1="0" x2="20" y2="26" stroke="#34d399" stroke-width="2"/><path d="M16 20 L20 28 L24 20 Z" fill="#34d399"/></svg>
+              </div>
+              <div class="deep text-slate-100 rounded-md px-3 py-4 text-center text-sm">
+                <div class="text-xs uppercase tracking-wider text-slate-400">mutate-then-poke seam</div>
+                <div class="mono mt-1">write → poke(channel)</div>
+              </div>
+              <p class="text-xs text-slate-400 mt-3">The poke rule lives once. The model stays free of the socket.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-2 text-sm text-slate-200">
+            <p><span class="font-semibold text-slate-100">Problem.</span> The rule "a mutation pokes its list feed" is enforced by memory at seven handlers, not by structure.</p>
+            <p><span class="font-semibold text-slate-100">Solution.</span> A mutate-then-poke seam at the RPC layer pairs each write with its poke; the model keeps no transport knowledge.</p>
+          </div>
+
+          <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+            <li>locality: the poke rule lives in one seam</li>
+            <li>a new mutation cannot forget</li>
+            <li>keeps the model ↔ transport seam intact</li>
+            <li>open question: exactly where the seam sits</li>
+          </ul>
+
+          <div class="rounded-md bg-slate-800/60 border border-slate-700 px-4 py-2.5 text-sm text-slate-300">
+            <b class="text-slate-100">Speculative.</b> The friction is real; the seam placement is not obvious. This one is for the grilling loop, not the patch.
+          </div>
+        </article>
+
+      </section>
+
+      <!-- ===================== TOP RECOMMENDATION ===================== -->
+      <section id="top-recommendation">
+        <div class="rounded-xl deep text-slate-100 p-8 space-y-3">
+          <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Top recommendation</p>
+          <h2 class="font-serif text-2xl font-semibold">
+            <a href="#c1" class="underline decoration-slate-500 hover:decoration-emerald-400">Candidate 1 — Type the feed envelope</a>
+          </h2>
+          <p class="text-sm text-slate-300 max-w-3xl">
+            Freshest friction, and the only one that removes an unchecked cast at the seam both surfaces share.
+            #85 turned a one-variant envelope into a real three-variant union, so the ADR-0015 choice to keep
+            <span class="mono">payload</span> untyped no longer holds. Deepen the type; the client stops casting.
+          </p>
+          <p class="text-sm text-slate-400 max-w-3xl">
+            Lower-risk alternative: <a href="#c2" class="underline decoration-slate-500 hover:decoration-emerald-400">Candidate 2</a> — a
+            <span class="mono">Channel</span> type is backend-internal and reopens no ADR.
+          </p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

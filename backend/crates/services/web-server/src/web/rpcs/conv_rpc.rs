@@ -79,16 +79,11 @@ pub async fn add_conv_msg(
 ) -> Result<DataRpcResult<ConvMsg>> {
 	let ParamsForCreate { data: msg_c } = params;
 
-	// Get conv_id before creating message (for broadcast)
-	let conv_id = msg_c.conv_id;
-
 	let msg_id = ConvBmc::add_msg(&ctx, &mm, msg_c).await?;
 	let msg = ConvBmc::get_msg(&ctx, &mm, msg_id).await?;
 
-	// Broadcast WebSocket event for new message
-	if let Ok(payload) = serde_json::to_value(&msg) {
-		ws_state.broadcast_conv_msg(conv_id, &payload);
-	}
+	// Broadcast the new message on its Conversation's channel.
+	ws_state.broadcast_conv_msg(&msg);
 
 	Ok(msg.into())
 }
