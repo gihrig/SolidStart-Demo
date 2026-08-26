@@ -102,9 +102,10 @@ export function isRpcError(response: JsonRpcResponse): response is JsonRpcErrorR
 // WebSocket subscription request (client → server). The event envelope is the
 // generated `WsEvent` re-exported above; this request shape is declared here
 // because the backend `SubscriptionRequest` is not a ts-rs binding. `channel` is
-// `"conv"` only — the backend authorizes and routes no other kind (ADR-0015).
+// `"conv"` (one Conversation, needs `id`) or the two id-less global list feeds
+// `"agents"` / `"convs"` (#85); the backend routes no other kind (ADR-0015).
 export interface WsSubscription {
   action: "subscribe" | "unsubscribe";
-  channel: "conv";
+  channel: "conv" | "agents" | "convs";
   id?: number;
 }

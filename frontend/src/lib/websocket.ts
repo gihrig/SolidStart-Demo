@@ -19,6 +19,11 @@ const RECONNECT_MAX_RETRIES = 6;
 /** Callbacks a consumer registers with a message feed. */
 export interface MessageFeedOptions {
   onConvMsg?: (convId: number, msg: ConvMsg) => void;
+  // List-feed pokes: a contentless signal that the Agent list or a Conversation
+  // list may have changed (#85). The consumer refetches through the scoped RPC —
+  // the event carries no row, so nothing here narrows access.
+  onAgentUpdate?: () => void;
+  onConvUpdate?: () => void;
   onError?: (error: string) => void;
 }
 
@@ -115,6 +120,10 @@ export function useWebSocket(options: MessageFeedOptions = {}): MessageFeed {
           if (data.event_type === "conv_msg" && options.onConvMsg) {
             const msg = data.payload as ConvMsg;
             options.onConvMsg(msg.conv_id, msg);
+          } else if (data.event_type === "agent_update") {
+            options.onAgentUpdate?.();
+          } else if (data.event_type === "conv_update") {
+            options.onConvUpdate?.();
           }
         } catch (e) {
           console.error("Failed to parse WebSocket message:", e);

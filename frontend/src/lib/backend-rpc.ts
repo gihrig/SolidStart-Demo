@@ -55,6 +55,23 @@ export interface ConvMsgClient {
   add: (data: ConvMsgForCreate) => Promise<ConvMsg>;
 }
 
+/**
+ * The agent + conv slice the Conversations workspace consumes (see
+ * createConversationWorkspace). The RPC client's `agent`/`conv` objects satisfy
+ * it structurally, so the app injects the real client by default while tests
+ * pass an in-memory adapter — the same inject-or-default idiom as ConvMsgClient.
+ */
+export interface WorkspaceRpcClient {
+  agent: {
+    list: () => Promise<Agent[]>;
+    create: (data: AgentForCreate) => Promise<Agent>;
+  };
+  conv: {
+    list: (agentId: number) => Promise<Conv[]>;
+    create: (data: ConvForCreate) => Promise<Conv>;
+  };
+}
+
 // An RPC client owns its own request-id counter, so tests can spin up a fresh
 // one instead of depending on module-global state that leaks between them.
 export function createRpcClient() {

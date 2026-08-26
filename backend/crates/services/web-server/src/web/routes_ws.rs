@@ -90,11 +90,16 @@ pub fn routes(ws_state: Arc<WsState>, mm: ModelManager) -> Router {
 // region:    --- Subscription authorization
 
 /// The channel key a well-formed subscription request targets, or `None` for an
-/// unknown kind or a missing id. Today only `conv:{id}` exists (C03/Q9); an
-/// unknown kind is ignored rather than errored.
+/// unknown kind or a missing id. `conv:{id}` names one Conversation's Event
+/// stream (C03/Q9). `agents` and `convs` are the two global list-feed channels:
+/// a contentless "poke" that tells a subscriber its Agent list or Conversation
+/// list may have changed (#85); they carry no id. An unknown kind is ignored
+/// rather than errored.
 fn channel_key(req: &SubscriptionRequest) -> Option<String> {
 	match req.channel.as_str() {
 		"conv" => req.id.map(|id| format!("conv:{id}")),
+		"agents" => Some("agents".to_string()),
+		"convs" => Some("convs".to_string()),
 		_ => None,
 	}
 }
@@ -110,9 +115,22 @@ async fn authorize_subscription(
 	req: &SubscriptionRequest,
 ) -> Option<String> {
 	let key = channel_key(req)?;
-	let id = req.id?;
-	ConvBmc::get(ctx, mm, id).await.ok()?;
-	Some(key)
+	match req.channel.as_str() {
+		// A Conversation channel reuses the ADR-0014 read scope: a caller may
+		// subscribe iff `ConvBmc::get` (owner ∪ `MultiUsers`) returns the row.
+		"conv" => {
+			let id = req.id?;
+			ConvBmc::get(ctx, mm, id).await.ok()?;
+			Some(key)
+		}
+		// The list-feed channels are contentless pokes (#85). Any authenticated
+		// socket may subscribe — identity is fixed at upgrade, Agents are
+		// world-readable (`AgentBmc` Read is unscoped), and a poke leaks no row.
+		// The client refetches through the scoped `list_*` RPC, which re-applies
+		// authorization, so the Conversation-list poke discloses nothing either.
+		"agents" | "convs" => Some(key),
+		_ => None,
+	}
 }
 
 /// Default-deny fan-out: a connection receives an event only for a channel it
@@ -279,6 +297,28 @@ impl WsState {
 			payload: msg.clone(),
 		});
 	}
+
+	/// Poke the global Agent-list channel: the Agent list may have changed (#85).
+	/// Carries no payload — a subscriber refetches through the scoped
+	/// `list_agents` RPC, so no Agent row crosses the push path.
+	pub fn broadcast_agent_update(&self) {
+		self.broadcast(WsEvent {
+			event_type: "agent_update".to_string(),
+			channel: "agents".to_string(),
+			payload: serde_json::Value::Null,
+		});
+	}
+
+	/// Poke the global Conversation-list channel: some Conversation list may have
+	/// changed (#85). Contentless for the same reason as `broadcast_agent_update`;
+	/// the refetch re-applies the read scope, so no Conversation row leaks.
+	pub fn broadcast_conv_update(&self) {
+		self.broadcast(WsEvent {
+			event_type: "conv_update".to_string(),
+			channel: "convs".to_string(),
+			payload: serde_json::Value::Null,
+		});
+	}
 }
 
 // endregion: --- Helper Functions for Broadcasting
@@ -315,6 +355,45 @@ mod tests {
 	fn channel_key_rejects_unknown_kind() {
 		assert_eq!(channel_key(&sub("subscribe", "agent", Some(1))), None);
 		assert_eq!(channel_key(&sub("subscribe", "", Some(1))), None);
+	}
+
+	#[test]
+	fn channel_key_list_feeds_are_idless() {
+		// The two global list-feed channels carry no id; a stray id is ignored.
+		assert_eq!(
+			channel_key(&sub("subscribe", "agents", None)),
+			Some("agents".to_string())
+		);
+		assert_eq!(
+			channel_key(&sub("subscribe", "agents", Some(7))),
+			Some("agents".to_string())
+		);
+		assert_eq!(
+			channel_key(&sub("subscribe", "convs", None)),
+			Some("convs".to_string())
+		);
+	}
+
+	#[test]
+	fn broadcast_agent_update_pokes_agents_channel() {
+		let ws = WsState::new();
+		let mut rx = ws.tx.subscribe();
+		ws.broadcast_agent_update();
+		let event = rx.try_recv().expect("an event was broadcast");
+		assert_eq!(event.event_type, "agent_update");
+		assert_eq!(event.channel, "agents");
+		assert_eq!(event.payload, serde_json::Value::Null);
+	}
+
+	#[test]
+	fn broadcast_conv_update_pokes_convs_channel() {
+		let ws = WsState::new();
+		let mut rx = ws.tx.subscribe();
+		ws.broadcast_conv_update();
+		let event = rx.try_recv().expect("an event was broadcast");
+		assert_eq!(event.event_type, "conv_update");
+		assert_eq!(event.channel, "convs");
+		assert_eq!(event.payload, serde_json::Value::Null);
 	}
 
 	#[test]
@@ -431,6 +510,19 @@ mod tests {
 			)
 			.await,
 			Some(format!("conv:{owner_conv_id}")),
+		);
+
+		// The list-feed channels are contentless pokes: any authenticated caller
+		// may subscribe (#85), so B is admitted to both without a DB scope check.
+		assert_eq!(
+			authorize_subscription(&ctx_b, &mm, &sub("subscribe", "agents", None))
+				.await,
+			Some("agents".to_string()),
+		);
+		assert_eq!(
+			authorize_subscription(&ctx_b, &mm, &sub("subscribe", "convs", None))
+				.await,
+			Some("convs".to_string()),
 		);
 
 		Ok(())

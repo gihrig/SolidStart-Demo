@@ -111,9 +111,12 @@ connections, each filtered to its Subscriptions (`web/routes_ws.rs`).
 _FE_: the `MessageFeed` port (`lib/websocket.ts`).
 
 **Channel**:
-The routing key an Event is addressed to and a Subscription names — one
-Conversation's, `conv:{id}`. Distinct from the planned Agent → **Topic** rename
-(#31): a Channel routes live Events; a Topic groups Threads.
+The routing key an Event is addressed to and a Subscription names. One
+Conversation's is `conv:{id}`. Two id-less global list feeds also exist: `agents`
+and `convs`, each a contentless "poke" that some Agent list or Conversation list
+may have changed (#85); a subscriber refetches through the scoped `list_*` RPC,
+so no row crosses the push path. Distinct from the planned Agent → **Topic**
+rename (#31): a Channel routes live Events; a Topic groups Threads.
 _Avoid_: topic (that names the Agent rename); room.
 _BE_: `WsEvent.channel` (and `SubscriptionRequest.channel` + `id`).
 
@@ -128,7 +131,9 @@ and held per-connection ([ADR-0015](docs/adr/0015-realtime-push-authorization-at
 _FE_: `subscribe` / `unsubscribe` on the `MessageFeed`, replayed on (re)connect.
 
 **Event**:
-One notification carried on the Feed — today only a new Message (`conv_msg`).
+One notification carried on the Feed: a new Message (`conv_msg`, with the Message
+as payload), or a list-feed poke (`agent_update` / `conv_update`, payload-less —
+the client refetches).
 _Avoid_: notification, broadcast (the mechanism, not the item).
 _BE_: `WsEvent { event_type, channel, payload }` (ts-rs-exported).
 _FE_: `WsMessage`.

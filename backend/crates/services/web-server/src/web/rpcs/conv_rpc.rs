@@ -18,14 +18,57 @@ pub fn rpc_router_builder() -> RouterBuilder {
 	)
 }
 
-generate_common_rpc_fns!(
+// `get_conv` / `list_convs` follow the common pattern. `create`/`update`/
+// `delete` are hand-written below so each can poke the Conversation-list feed (#85).
+generate_common_rpc_read_fns!(
 	Bmc: ConvBmc,
 	Entity: Conv,
-	ForCreate: ConvForCreate,
-	ForUpdate: ConvForUpdate,
 	Filter: ConvFilter,
 	Suffix: conv
 );
+
+/// Create a Conversation, then poke the Conversation-list feed so every client
+/// refetches its list.
+pub async fn create_conv(
+	ctx: Ctx,
+	mm: ModelManager,
+	ws_state: WsState,
+	params: ParamsForCreate<ConvForCreate>,
+) -> Result<DataRpcResult<Conv>> {
+	let ParamsForCreate { data } = params;
+	let id = ConvBmc::create(&ctx, &mm, data).await?;
+	let entity = ConvBmc::get(&ctx, &mm, id).await?;
+	ws_state.broadcast_conv_update();
+	Ok(entity.into())
+}
+
+/// Update a Conversation, then poke the Conversation-list feed.
+pub async fn update_conv(
+	ctx: Ctx,
+	mm: ModelManager,
+	ws_state: WsState,
+	params: ParamsForUpdate<ConvForUpdate>,
+) -> Result<DataRpcResult<Conv>> {
+	let ParamsForUpdate { id, data } = params;
+	ConvBmc::update(&ctx, &mm, id, data).await?;
+	let entity = ConvBmc::get(&ctx, &mm, id).await?;
+	ws_state.broadcast_conv_update();
+	Ok(entity.into())
+}
+
+/// Delete a Conversation, then poke the Conversation-list feed.
+pub async fn delete_conv(
+	ctx: Ctx,
+	mm: ModelManager,
+	ws_state: WsState,
+	params: ParamsIded,
+) -> Result<DataRpcResult<Conv>> {
+	let ParamsIded { id } = params;
+	let entity = ConvBmc::get(&ctx, &mm, id).await?;
+	ConvBmc::delete(&ctx, &mm, id).await?;
+	ws_state.broadcast_conv_update();
+	Ok(entity.into())
+}
 
 /// Add conv_msg with WebSocket broadcast
 pub async fn add_conv_msg(
