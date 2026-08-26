@@ -94,7 +94,7 @@ describe("useWebSocket", () => {
     ws.open();
 
     const fakeMsg = { id: 42, conv_id: 7, content: "Hello" };
-    ws.simulateMessage({ event_type: "conv_msg", channel: "conv:7", payload: fakeMsg });
+    ws.simulateMessage({ event_type: "conv_msg", payload: fakeMsg });
 
     expect(onConvMsg).toHaveBeenCalledWith(7, fakeMsg);
   });
@@ -105,9 +105,31 @@ describe("useWebSocket", () => {
     const ws = MockWebSocket.instances[0];
     ws.open();
 
-    ws.simulateMessage({ event_type: "agent_update", channel: "agent:1", payload: {} });
+    ws.simulateMessage({ event_type: "agent_update" });
 
     expect(onConvMsg).not.toHaveBeenCalled();
+  });
+
+  it("calls onAgentUpdate for an agent_update poke", () => {
+    const onAgentUpdate = vi.fn();
+    renderHook(() => useWebSocket({ onAgentUpdate }));
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+
+    ws.simulateMessage({ event_type: "agent_update" });
+
+    expect(onAgentUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onConvUpdate for a conv_update poke", () => {
+    const onConvUpdate = vi.fn();
+    renderHook(() => useWebSocket({ onConvUpdate }));
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+
+    ws.simulateMessage({ event_type: "conv_update" });
+
+    expect(onConvUpdate).toHaveBeenCalledTimes(1);
   });
 
   it("sends subscribe with channel and id when the socket is open", () => {

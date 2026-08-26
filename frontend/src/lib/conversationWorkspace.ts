@@ -1,6 +1,8 @@
 import { createSignal, createResource, type Accessor } from "solid-js";
-import { backendRpc } from "~/lib/backend-rpc";
+import { createStore, reconcile } from "solid-js/store";
+import { backendRpc, type WorkspaceRpcClient } from "~/lib/backend-rpc";
 import { createRpcAction } from "~/lib/createRpcAction";
+import { useWebSocket, type MessageFeedFactory } from "~/lib/websocket";
 import type { Agent, Conv } from "~/types/backend";
 
 /**
@@ -33,6 +35,17 @@ export interface ConversationWorkspace {
   createConvError: Accessor<string | null>;
 }
 
+/**
+ * Injectable seams: the live WebSocket feed and the agent+conv RPC slice, each
+ * real by default and an in-memory adapter in tests. Mirrors `ConvMessagesDeps`
+ * so the injection story is identical across both view-models; injecting the RPC
+ * half drops the need for `vi.mock("~/lib/backend-rpc")`.
+ */
+export interface ConversationWorkspaceDeps {
+  feed?: MessageFeedFactory;
+  rpc?: WorkspaceRpcClient;
+}
+
 // Normalize a `Resource`'s thrown error into display text, matching the create
 // side (`createRpcAction`): a real `Error` yields its message; anything else
 // falls back to `fallback`. `undefined` (no error) reads as `null`.
@@ -54,20 +67,55 @@ const sortByLabel = <T extends { id: number }>(items: T[], label: (item: T) => s
     (a, b) => label(a).localeCompare(label(b), undefined, { sensitivity: "base" }) || a.id - b.id,
   );
 
-export function createConversationWorkspace(): ConversationWorkspace {
+export function createConversationWorkspace(
+  deps: ConversationWorkspaceDeps = {},
+): ConversationWorkspace {
   const [selectedAgent, setSelectedAgent] = createSignal<Agent | null>(null);
   const [selectedConv, setSelectedConv] = createSignal<Conv | null>(null);
 
-  const [agents, { refetch: refetchAgents }] = createResource(async () =>
-    sortByLabel(await backendRpc.agent.list(), (a) => a.name),
-  );
+  // Both data sources are injectable seams; default to the real socket/singleton.
+  const rpc = deps.rpc ?? backendRpc;
+
+  // Agents are held in a reconciled store, not read straight off the resource, so
+  // a refetch (e.g. a #85 `agent_update` poke) keeps stable object identity for
+  // unchanged Agents. `<For>` then preserves the open Agent's row — and the
+  // uncontrolled create-conversation input inside it — instead of recreating it.
+  const [agentList, setAgentList] = createStore<Agent[]>([]);
+  const [agentsRes, { refetch: refetchAgents }] = createResource(async () => {
+    const list = sortByLabel(await rpc.agent.list(), (a) => a.name);
+    setAgentList(reconcile(list, { key: "id" }));
+    return list;
+  });
 
   // Conversations belong to the selected agent; re-keying on it refetches (and
   // yields [] with no agent), so the list never shows another agent's convs.
   const [convs, { refetch: refetchConvs }] = createResource(selectedAgent, async (agent) => {
     if (!agent) return [];
-    return sortByLabel(await backendRpc.conv.list(agent.id), convLabel);
+    return sortByLabel(await rpc.conv.list(agent.id), convLabel);
   });
+
+  // Live propagation (#85): a poke on either global list feed refetches the
+  // matching list, so a change made in one client (or tab) reaches the others.
+  // The feed carries no rows; the refetch re-applies the back-end read scope.
+  const feed = (deps.feed ?? useWebSocket)({
+    // After the refetch settles, drop the selection if the selected Agent is the
+    // one deleted elsewhere — its row is now gone from `agentList`. Same collapse
+    // `selectAgent` makes on re-select; clearing it re-keys the conv resource to
+    // [], so the deleted Agent's cascaded conversations leave the screen and
+    // `createConv` can't fire against a dead Agent id. This lives in the `then`,
+    // not the resource fetcher, because the fetcher would track the signal read.
+    onAgentUpdate: () =>
+      void Promise.resolve(refetchAgents()).then(() => {
+        const sel = selectedAgent();
+        if (sel && !agentList.some((a) => a.id === sel.id)) {
+          setSelectedAgent(null);
+          setSelectedConv(null);
+        }
+      }),
+    onConvUpdate: () => void refetchConvs(),
+  });
+  feed.subscribe("agents");
+  feed.subscribe("convs");
 
   const selectAgent = (agent: Agent) => {
     // Accordion toggle: re-selecting the open agent collapses it back to none;
@@ -88,7 +136,7 @@ export function createConversationWorkspace(): ConversationWorkspace {
   // caught into `error` and pending still clears.
   const agentAction = createRpcAction(
     async (name: string) => {
-      const agent = await backendRpc.agent.create({ name });
+      const agent = await rpc.agent.create({ name });
       await refetchAgents();
       selectAgent(agent);
       return agent;
@@ -98,7 +146,7 @@ export function createConversationWorkspace(): ConversationWorkspace {
 
   const convAction = createRpcAction(
     async ({ agent, title }: { agent: Agent; title: string | null }) => {
-      const conv = await backendRpc.conv.create({ agent_id: agent.id, title });
+      const conv = await rpc.conv.create({ agent_id: agent.id, title });
       await refetchConvs();
       selectConv(conv);
       return conv;
@@ -117,9 +165,9 @@ export function createConversationWorkspace(): ConversationWorkspace {
   };
 
   return {
-    agents: () => agents() ?? [],
-    agentsLoading: () => agents.loading,
-    agentsError: () => loadError(agents.error, "Failed to load agents"),
+    agents: () => agentList,
+    agentsLoading: () => agentsRes.loading,
+    agentsError: () => loadError(agentsRes.error, "Failed to load agents"),
     selectedAgent,
     selectAgent,
     createAgent,

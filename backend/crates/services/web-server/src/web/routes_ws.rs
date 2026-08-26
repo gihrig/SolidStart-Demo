@@ -10,6 +10,7 @@ use axum::{
 use futures::{SinkExt, StreamExt};
 use lib_core::ctx::Ctx;
 use lib_core::model::conv::ConvBmc;
+use lib_core::model::conv_msg::ConvMsg;
 use lib_core::model::ModelManager;
 use lib_web::middleware::mw_auth::CtxW;
 use serde::{Deserialize, Serialize};
@@ -21,16 +22,35 @@ use ts_rs::TS;
 
 // region:    --- WebSocket Event Types
 
-#[derive(Clone, Debug, Serialize, Deserialize, TS)]
+/// The realtime feed envelope, a discriminated union tagged by `event_type`
+/// (internal serde tagging). ts-rs exports it, so the front-end narrows on the
+/// tag and reads a typed payload — no cast. `conv_msg` carries the new `ConvMsg`;
+/// the two list-feed pokes are payload-less (#85). The routing `channel` is
+/// derived from the variant (see the `channel` method below), not carried on the
+/// wire.
+#[derive(Clone, Debug, Serialize, TS)]
+#[serde(tag = "event_type")]
 #[ts(export, export_to = "WsEvent.d.ts")]
-pub struct WsEvent {
-	pub event_type: String,
-	pub channel: String,
-	// The payload shape varies by `event_type`; the consumer narrows it. Kept
-	// `unknown` on the TS side so the envelope can join the bindings without a
-	// serde_json TS impl.
-	#[ts(type = "unknown")]
-	pub payload: serde_json::Value,
+pub enum WsEvent {
+	#[serde(rename = "conv_msg")]
+	ConvMsg { payload: ConvMsg },
+	#[serde(rename = "agent_update")]
+	AgentUpdate,
+	#[serde(rename = "conv_update")]
+	ConvUpdate,
+}
+
+impl WsEvent {
+	/// The routing key this event is addressed to, derived from the variant so
+	/// the `conv:{id}` format lives in exactly one place. The send task matches it
+	/// against a connection's authorized subscription set (ADR-0015).
+	fn channel(&self) -> String {
+		match self {
+			WsEvent::ConvMsg { payload } => format!("conv:{}", payload.conv_id),
+			WsEvent::AgentUpdate => "agents".to_string(),
+			WsEvent::ConvUpdate => "convs".to_string(),
+		}
+	}
 }
 
 #[derive(Debug, Deserialize)]
@@ -90,11 +110,16 @@ pub fn routes(ws_state: Arc<WsState>, mm: ModelManager) -> Router {
 // region:    --- Subscription authorization
 
 /// The channel key a well-formed subscription request targets, or `None` for an
-/// unknown kind or a missing id. Today only `conv:{id}` exists (C03/Q9); an
-/// unknown kind is ignored rather than errored.
+/// unknown kind or a missing id. `conv:{id}` names one Conversation's Event
+/// stream (C03/Q9). `agents` and `convs` are the two global list-feed channels:
+/// a contentless "poke" that tells a subscriber its Agent list or Conversation
+/// list may have changed (#85); they carry no id. An unknown kind is ignored
+/// rather than errored.
 fn channel_key(req: &SubscriptionRequest) -> Option<String> {
 	match req.channel.as_str() {
 		"conv" => req.id.map(|id| format!("conv:{id}")),
+		"agents" => Some("agents".to_string()),
+		"convs" => Some("convs".to_string()),
 		_ => None,
 	}
 }
@@ -110,9 +135,22 @@ async fn authorize_subscription(
 	req: &SubscriptionRequest,
 ) -> Option<String> {
 	let key = channel_key(req)?;
-	let id = req.id?;
-	ConvBmc::get(ctx, mm, id).await.ok()?;
-	Some(key)
+	match req.channel.as_str() {
+		// A Conversation channel reuses the ADR-0014 read scope: a caller may
+		// subscribe iff `ConvBmc::get` (owner ∪ `MultiUsers`) returns the row.
+		"conv" => {
+			let id = req.id?;
+			ConvBmc::get(ctx, mm, id).await.ok()?;
+			Some(key)
+		}
+		// The list-feed channels are contentless pokes (#85). Any authenticated
+		// socket may subscribe — identity is fixed at upgrade, Agents are
+		// world-readable (`AgentBmc` Read is unscoped), and a poke leaks no row.
+		// The client refetches through the scoped `list_*` RPC, which re-applies
+		// authorization, so the Conversation-list poke discloses nothing either.
+		"agents" | "convs" => Some(key),
+		_ => None,
+	}
 }
 
 /// Default-deny fan-out: a connection receives an event only for a channel it
@@ -172,7 +210,7 @@ async fn handle_socket(
 					// Default-deny: skip channels this connection has not subscribed to.
 					let subscribed = {
 						let subs = send_subs.read().await;
-						should_forward(&subs, &event.channel)
+						should_forward(&subs, &event.channel())
 					};
 					if !subscribed {
 						continue;
@@ -271,13 +309,26 @@ async fn handle_socket(
 // region:    --- Helper Functions for Broadcasting
 
 impl WsState {
-	/// Broadcast a conversation message event
-	pub fn broadcast_conv_msg(&self, conv_id: i64, msg: &serde_json::Value) {
-		self.broadcast(WsEvent {
-			event_type: "conv_msg".to_string(),
-			channel: format!("conv:{}", conv_id),
+	/// Broadcast a conversation message event. Takes the typed `ConvMsg`; the
+	/// envelope derives its `conv:{id}` channel from the payload.
+	pub fn broadcast_conv_msg(&self, msg: &ConvMsg) {
+		self.broadcast(WsEvent::ConvMsg {
 			payload: msg.clone(),
 		});
+	}
+
+	/// Poke the global Agent-list channel: the Agent list may have changed (#85).
+	/// Carries no payload — a subscriber refetches through the scoped
+	/// `list_agents` RPC, so no Agent row crosses the push path.
+	pub fn broadcast_agent_update(&self) {
+		self.broadcast(WsEvent::AgentUpdate);
+	}
+
+	/// Poke the global Conversation-list channel: some Conversation list may have
+	/// changed (#85). Contentless for the same reason as `broadcast_agent_update`;
+	/// the refetch re-applies the read scope, so no Conversation row leaks.
+	pub fn broadcast_conv_update(&self) {
+		self.broadcast(WsEvent::ConvUpdate);
 	}
 }
 
@@ -315,6 +366,75 @@ mod tests {
 	fn channel_key_rejects_unknown_kind() {
 		assert_eq!(channel_key(&sub("subscribe", "agent", Some(1))), None);
 		assert_eq!(channel_key(&sub("subscribe", "", Some(1))), None);
+	}
+
+	#[test]
+	fn channel_key_list_feeds_are_idless() {
+		// The two global list-feed channels carry no id; a stray id is ignored.
+		assert_eq!(
+			channel_key(&sub("subscribe", "agents", None)),
+			Some("agents".to_string())
+		);
+		assert_eq!(
+			channel_key(&sub("subscribe", "agents", Some(7))),
+			Some("agents".to_string())
+		);
+		assert_eq!(
+			channel_key(&sub("subscribe", "convs", None)),
+			Some("convs".to_string())
+		);
+	}
+
+	#[test]
+	fn broadcast_agent_update_pokes_agents_channel() {
+		let ws = WsState::new();
+		let mut rx = ws.tx.subscribe();
+		ws.broadcast_agent_update();
+		let event = rx.try_recv().expect("an event was broadcast");
+		assert!(matches!(event, WsEvent::AgentUpdate));
+		assert_eq!(event.channel(), "agents");
+	}
+
+	#[test]
+	fn broadcast_conv_update_pokes_convs_channel() {
+		let ws = WsState::new();
+		let mut rx = ws.tx.subscribe();
+		ws.broadcast_conv_update();
+		let event = rx.try_recv().expect("an event was broadcast");
+		assert!(matches!(event, WsEvent::ConvUpdate));
+		assert_eq!(event.channel(), "convs");
+	}
+
+	/// Wire-lock: the serialized envelope the front-end parses. Internal tagging
+	/// puts `event_type` at the top level; the two pokes carry nothing else. This
+	/// guards the contract (ADR-0010) against a serde-shape drift the generated
+	/// `.d.ts` cannot show — e.g. a change of tagging mode or a variant rename.
+	#[test]
+	fn wsevent_wire_shape_is_stable() {
+		use time::OffsetDateTime;
+
+		assert_eq!(
+			serde_json::to_value(WsEvent::AgentUpdate).unwrap(),
+			serde_json::json!({ "event_type": "agent_update" }),
+		);
+		assert_eq!(
+			serde_json::to_value(WsEvent::ConvUpdate).unwrap(),
+			serde_json::json!({ "event_type": "conv_update" }),
+		);
+
+		let msg = ConvMsg {
+			id: 1,
+			conv_id: 7,
+			user_id: 2,
+			content: "hi".to_string(),
+			cid: 2,
+			ctime: OffsetDateTime::UNIX_EPOCH,
+			mid: 2,
+			mtime: OffsetDateTime::UNIX_EPOCH,
+		};
+		let v = serde_json::to_value(WsEvent::ConvMsg { payload: msg }).unwrap();
+		assert_eq!(v["event_type"].as_str(), Some("conv_msg"));
+		assert_eq!(v["payload"]["conv_id"].as_i64(), Some(7));
 	}
 
 	#[test]
@@ -431,6 +551,19 @@ mod tests {
 			)
 			.await,
 			Some(format!("conv:{owner_conv_id}")),
+		);
+
+		// The list-feed channels are contentless pokes: any authenticated caller
+		// may subscribe (#85), so B is admitted to both without a DB scope check.
+		assert_eq!(
+			authorize_subscription(&ctx_b, &mm, &sub("subscribe", "agents", None))
+				.await,
+			Some("agents".to_string()),
+		);
+		assert_eq!(
+			authorize_subscription(&ctx_b, &mm, &sub("subscribe", "convs", None))
+				.await,
+			Some("convs".to_string()),
 		);
 
 		Ok(())

@@ -35,7 +35,7 @@ that have no recipe (e.g. `cargo run -p gen-key`).
 | `cgs dev`       | Start the web-server (`cargo run -p web-server`)         |
 | `cgs dev-watch` | Start the web-server in watch mode                       |
 | `cgs quick`     | Run the `quick_dev` example (login, CRUD, logout)        |
-| `cgs db`        | Start the Postgres docker container                      |
+| `cgs db`        | Start the Postgres docker container (container name: pg) |
 | `cgs test`      | Run tests (`cargo nextest run -j1`)                      |
 | `cgs test:watch`| Run tests in watch mode                                  |
 | `cgs cover`     | Run tests with coverage + open report (`cargo llvm-cov --open`)|
@@ -75,7 +75,7 @@ Workspace crates: `lib-utils`, `lib-rpc-core`, `lib-auth`, `lib-core`, `lib-web`
   them via a tsconfig `paths` alias into `crates/services/web-server/bindings/`
   (ADR-0010). After changing a `#[derive(TS)]` type, run `cgs bindings` to keep
   them in step; CI enforces a bindings-drift guard (`cargo test export_bindings`
-  + `git diff --exit-code`) in `.github/workflows/ci.yml`.
+  - `git diff --exit-code`) in `.github/workflows/ci.yml`.
 - **CORS is configured for the front-end** at `http://localhost:3000` with
   credentials enabled (`crates/services/web-server/src/app.rs`).
 - **`cargo watch` needs installing**: `cargo install cargo-watch` before
