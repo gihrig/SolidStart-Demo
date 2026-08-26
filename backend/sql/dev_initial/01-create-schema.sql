@@ -126,6 +126,15 @@ ALTER TABLE conv_msg ADD CONSTRAINT fk_conv_msg_conv
   FOREIGN KEY (conv_id) REFERENCES "conv"(id)
   ON DELETE CASCADE;
 
+-- conv_user participants cascade from BOTH parents: the Conversation joined and
+-- the User who joins. The conv link was absent, so a deleted Conversation (e.g.
+-- cascaded from a deleted agent via fk_conv_agent) would orphan its participant
+-- rows once ConvUserBmc is implemented (see conv_user.rs). fk_conv_user_conv now
+-- guards conv_id, and the user link is renamed fk_conv_user_user.
 ALTER TABLE conv_user ADD CONSTRAINT fk_conv_user_conv
+  FOREIGN KEY (conv_id) REFERENCES "conv"(id)
+  ON DELETE CASCADE;
+
+ALTER TABLE conv_user ADD CONSTRAINT fk_conv_user_user
   FOREIGN KEY (user_id) REFERENCES "user"(id)
   ON DELETE CASCADE;

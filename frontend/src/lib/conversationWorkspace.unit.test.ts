@@ -283,6 +283,58 @@ describe("createConversationWorkspace", () => {
       });
     });
 
+    it("drops a selected agent an agent_update poke removed", async () => {
+      const feed = createFakeFeed();
+      const rpc = createFakeRpc();
+      const ada = makeAgent(1, "Ada");
+      // First load has Ada; after the poke (Ada deleted elsewhere) the list is empty.
+      rpc.agentList.mockResolvedValueOnce([ada]).mockResolvedValueOnce([]);
+
+      await createRoot(async (dispose) => {
+        const ws = createConversationWorkspace({ feed: feed.factory, rpc: rpc.rpc });
+        await flush();
+        ws.selectAgent(ada);
+        ws.selectConv(makeConv(10, "Hello"));
+        await flush();
+        expect(ws.selectedAgent()).toEqual(ada);
+        expect(ws.selectedConv()).not.toBeNull();
+
+        feed.emitAgentUpdate(); // Ada deleted in another client
+        await flush();
+
+        // The row is gone from the list and the stale selection is dropped, so the
+        // navigator hides its convs (gated on selectedAgent) and createConv can't
+        // fire against the dead Agent id.
+        expect(ws.agents()).toEqual([]);
+        expect(ws.selectedAgent()).toBeNull();
+        expect(ws.selectedConv()).toBeNull();
+        expect(await ws.createConv("blocked")).toBe(false);
+        expect(rpc.convCreate).not.toHaveBeenCalled();
+        dispose();
+      });
+    });
+
+    it("keeps the selected agent when the poke leaves it in the list", async () => {
+      const feed = createFakeFeed();
+      const rpc = createFakeRpc();
+      const ada = makeAgent(1, "Ada");
+      // A poke that adds Bob but keeps Ada must not disturb Ada's selection.
+      rpc.agentList.mockResolvedValueOnce([ada]).mockResolvedValueOnce([ada, makeAgent(2, "Bob")]);
+
+      await createRoot(async (dispose) => {
+        const ws = createConversationWorkspace({ feed: feed.factory, rpc: rpc.rpc });
+        await flush();
+        ws.selectAgent(ada);
+        await flush();
+
+        feed.emitAgentUpdate();
+        await flush();
+
+        expect(ws.selectedAgent()).toEqual(ada);
+        dispose();
+      });
+    });
+
     it("refetches the conversation list when a conv_update poke arrives", async () => {
       const feed = createFakeFeed();
       const rpc = createFakeRpc();

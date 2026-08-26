@@ -98,7 +98,20 @@ export function createConversationWorkspace(
   // matching list, so a change made in one client (or tab) reaches the others.
   // The feed carries no rows; the refetch re-applies the back-end read scope.
   const feed = (deps.feed ?? useWebSocket)({
-    onAgentUpdate: () => void refetchAgents(),
+    // After the refetch settles, drop the selection if the selected Agent is the
+    // one deleted elsewhere — its row is now gone from `agentList`. Same collapse
+    // `selectAgent` makes on re-select; clearing it re-keys the conv resource to
+    // [], so the deleted Agent's cascaded conversations leave the screen and
+    // `createConv` can't fire against a dead Agent id. This lives in the `then`,
+    // not the resource fetcher, because the fetcher would track the signal read.
+    onAgentUpdate: () =>
+      void Promise.resolve(refetchAgents()).then(() => {
+        const sel = selectedAgent();
+        if (sel && !agentList.some((a) => a.id === sel.id)) {
+          setSelectedAgent(null);
+          setSelectedConv(null);
+        }
+      }),
     onConvUpdate: () => void refetchConvs(),
   });
   feed.subscribe("agents");
