@@ -16,6 +16,10 @@ app.config.timestamp_*.js
 .env
 .env*.local
 
+# Local config overrides (Claude, editor, etc.) — never committed
+*.local
+*.local.json
+
 # Reports, coverage, and Playwright artifacts (playwright.config.ts -> reports/)
 /reports/
 /coverage/

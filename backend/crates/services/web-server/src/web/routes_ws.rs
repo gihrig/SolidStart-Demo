@@ -41,14 +41,14 @@ pub enum WsEvent {
 }
 
 impl WsEvent {
-	/// The routing key this event is addressed to, derived from the variant so
-	/// the `conv:{id}` format lives in exactly one place. The send task matches it
-	/// against a connection's authorized subscription set (ADR-0015).
-	fn channel(&self) -> String {
+	/// The [`Channel`] this event is addressed to, derived from the variant. The
+	/// send task matches its key against a connection's authorized subscription
+	/// set (ADR-0015).
+	fn channel(&self) -> Channel {
 		match self {
-			WsEvent::ConvMsg { payload } => format!("conv:{}", payload.conv_id),
-			WsEvent::AgentUpdate => "agents".to_string(),
-			WsEvent::ConvUpdate => "convs".to_string(),
+			WsEvent::ConvMsg { payload } => Channel::Conv(payload.conv_id),
+			WsEvent::AgentUpdate => Channel::Agents,
+			WsEvent::ConvUpdate => Channel::Convs,
 		}
 	}
 }
@@ -109,47 +109,52 @@ pub fn routes(ws_state: Arc<WsState>, mm: ModelManager) -> Router {
 
 // region:    --- Subscription authorization
 
-/// The channel key a well-formed subscription request targets, or `None` for an
-/// unknown kind or a missing id. `conv:{id}` names one Conversation's Event
-/// stream (C03/Q9). `agents` and `convs` are the two global list-feed channels:
-/// a contentless "poke" that tells a subscriber its Agent list or Conversation
-/// list may have changed (#85); they carry no id. An unknown kind is ignored
-/// rather than errored.
-fn channel_key(req: &SubscriptionRequest) -> Option<String> {
-	match req.channel.as_str() {
-		"conv" => req.id.map(|id| format!("conv:{id}")),
-		"agents" => Some("agents".to_string()),
-		"convs" => Some("convs".to_string()),
-		_ => None,
-	}
+/// The routing key an Event is addressed to and a Subscription names
+/// (CONTEXT.md "Channel"). Backend-internal: the wire still carries the
+/// `{ channel, id }` string pair; this is its parsed, checked form. `conv:{id}`
+/// names one Conversation's Event stream (C03/Q9); `agents` and `convs` are the
+/// two id-less global list-feed pokes — a subscriber refetches through the
+/// scoped `list_*` RPC, so no row crosses the push path (#85).
+#[derive(Debug)]
+enum Channel {
+	Conv(i64),
+	Agents,
+	Convs,
 }
 
-/// Resolve a `subscribe` request to the channel key the connection may receive,
-/// or `None` if it is malformed, of an unknown kind, or the caller is not
-/// entitled. Entitlement reuses the ADR-0014 read scope: a caller may subscribe
-/// to a Conversation's channel iff `ConvBmc::get` (owner ∪ `MultiUsers`) returns
-/// it. Fails closed on any error.
-async fn authorize_subscription(
-	ctx: &Ctx,
-	mm: &ModelManager,
-	req: &SubscriptionRequest,
-) -> Option<String> {
-	let key = channel_key(req)?;
-	match req.channel.as_str() {
-		// A Conversation channel reuses the ADR-0014 read scope: a caller may
-		// subscribe iff `ConvBmc::get` (owner ∪ `MultiUsers`) returns the row.
-		"conv" => {
-			let id = req.id?;
-			ConvBmc::get(ctx, mm, id).await.ok()?;
-			Some(key)
+impl Channel {
+	/// Parse a subscription request into a Channel, or `None` for an unknown
+	/// kind or a missing id. The one boundary where a wire string becomes a
+	/// Channel; an unknown kind is ignored rather than errored.
+	fn parse(req: &SubscriptionRequest) -> Option<Self> {
+		match req.channel.as_str() {
+			"conv" => req.id.map(Channel::Conv),
+			"agents" => Some(Channel::Agents),
+			"convs" => Some(Channel::Convs),
+			_ => None,
 		}
-		// The list-feed channels are contentless pokes (#85). Any authenticated
-		// socket may subscribe — identity is fixed at upgrade, Agents are
-		// world-readable (`AgentBmc` Read is unscoped), and a poke leaks no row.
-		// The client refetches through the scoped `list_*` RPC, which re-applies
-		// authorization, so the Conversation-list poke discloses nothing either.
-		"agents" | "convs" => Some(key),
-		_ => None,
+	}
+
+	/// The routing key string. The one place the `conv:{id}` format lives; the
+	/// send task matches it against a connection's authorized subscription set.
+	fn key(&self) -> String {
+		match self {
+			Channel::Conv(id) => format!("conv:{id}"),
+			Channel::Agents => "agents".to_string(),
+			Channel::Convs => "convs".to_string(),
+		}
+	}
+
+	/// Whether this caller may subscribe. Fails closed. A Conversation channel
+	/// reuses the ADR-0014 read scope: entitled iff `ConvBmc::get` (owner ∪
+	/// `MultiUsers`) returns the row. The list-feed pokes are contentless, so any
+	/// authenticated socket may subscribe (#85) — identity is fixed at upgrade
+	/// and a poke leaks no row.
+	async fn authorize(&self, ctx: &Ctx, mm: &ModelManager) -> bool {
+		match self {
+			Channel::Conv(id) => ConvBmc::get(ctx, mm, *id).await.is_ok(),
+			Channel::Agents | Channel::Convs => true,
+		}
 	}
 }
 
@@ -210,7 +215,7 @@ async fn handle_socket(
 					// Default-deny: skip channels this connection has not subscribed to.
 					let subscribed = {
 						let subs = send_subs.read().await;
-						should_forward(&subs, &event.channel())
+						should_forward(&subs, &event.channel().key())
 					};
 					if !subscribed {
 						continue;
@@ -264,16 +269,16 @@ async fn handle_socket(
 									has_subscription_capacity(&subs)
 								};
 								if has_capacity {
-									if let Some(key) =
-										authorize_subscription(&ctx, &mm, &req).await
-									{
-										recv_subs.write().await.insert(key);
+									if let Some(ch) = Channel::parse(&req) {
+										if ch.authorize(&ctx, &mm).await {
+											recv_subs.write().await.insert(ch.key());
+										}
 									}
 								}
 							}
 							"unsubscribe" => {
-								if let Some(key) = channel_key(&req) {
-									recv_subs.write().await.remove(&key);
+								if let Some(ch) = Channel::parse(&req) {
+									recv_subs.write().await.remove(&ch.key());
 								}
 							}
 							_ => {}
@@ -353,6 +358,23 @@ mod tests {
 		}
 	}
 
+	/// Test sugar over the `Channel` API: parse a request to its routing key
+	/// (`parse` → `key`), the pair the old free `channel_key` used to be.
+	fn channel_key(req: &SubscriptionRequest) -> Option<String> {
+		Channel::parse(req).map(|c| c.key())
+	}
+
+	/// Test sugar: the full subscribe resolution `handle_socket` performs
+	/// (`parse` → `authorize` → `key`). `None` on unknown kind or a scope miss.
+	async fn authorize_subscription(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		req: &SubscriptionRequest,
+	) -> Option<String> {
+		let ch = Channel::parse(req)?;
+		ch.authorize(ctx, mm).await.then(|| ch.key())
+	}
+
 	#[test]
 	fn channel_key_conv_requires_id() {
 		assert_eq!(
@@ -392,7 +414,7 @@ mod tests {
 		ws.broadcast_agent_update();
 		let event = rx.try_recv().expect("an event was broadcast");
 		assert!(matches!(event, WsEvent::AgentUpdate));
-		assert_eq!(event.channel(), "agents");
+		assert_eq!(event.channel().key(), "agents");
 	}
 
 	#[test]
@@ -402,7 +424,7 @@ mod tests {
 		ws.broadcast_conv_update();
 		let event = rx.try_recv().expect("an event was broadcast");
 		assert!(matches!(event, WsEvent::ConvUpdate));
-		assert_eq!(event.channel(), "convs");
+		assert_eq!(event.channel().key(), "convs");
 	}
 
 	/// Wire-lock: the serialized envelope the front-end parses. Internal tagging

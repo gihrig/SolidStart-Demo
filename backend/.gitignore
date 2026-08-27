@@ -15,6 +15,10 @@ _*
 *.lockb
 *.log
 
+# -- Local config overrides (Claude, editor, etc.) — never committed
+*.local
+*.local.json
+
 # -- Rust
 target/
 !Cargo.lock
