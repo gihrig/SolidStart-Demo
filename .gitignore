@@ -23,5 +23,9 @@ Thumbs.db
 .env
 .env*.local
 
+# Local per-developer config overrides (e.g. .claude/settings.local.json) — never committed
+*.local
+*.local.json
+
 # Snyk Security Extension — AI Rules (auto-generated)
 .github/instructions/snyk_rules.instructions.md
