@@ -10,7 +10,7 @@ use crate::model::Result;
 use lib_utils::time::Rfc3339;
 use modql::field::{Fields, SeaFieldValue};
 use modql::filter::{
-	FilterNodes, ListOptions, OpValsInt64, OpValsString, OpValsValue,
+	FilterNodes, ListOptions, OpValString, OpValsInt64, OpValsString, OpValsValue,
 };
 use sea_query::{Alias, Condition, Expr, Nullable};
 use serde::{Deserialize, Serialize};
@@ -142,6 +142,9 @@ pub struct ConvFilter {
 	#[modql(cast_as = "conv_kind")]
 	pub kind: Option<OpValsString>,
 
+	#[modql(cast_as = "conv_state")]
+	pub state: Option<OpValsString>,
+
 	pub title: Option<OpValsString>,
 
 	pub cid: Option<OpValsInt64>,
@@ -192,6 +195,65 @@ generate_common_bmc_fns!(
 	ForUpdate: ConvForUpdate,
 	Filter: ConvFilter,
 );
+
+/// Append a `state != Archived` constraint to each filter node unless the caller
+/// already constrains `state`. `None` (and an empty node set) becomes a single
+/// node carrying only that constraint. The result stays an ARRAY of filter nodes
+/// end to end: a wrapping object would deserialize as one `OneOrMany` "One" node
+/// (no `deny_unknown_fields`) and silently match every row, so the exclusion is
+/// appended to each node, never wrapped.
+fn hide_archived_by_default(
+	filter: Option<Vec<ConvFilter>>,
+) -> Option<Vec<ConvFilter>> {
+	fn exclude_archived() -> Option<OpValsString> {
+		Some(OpValString::Not(ConvState::Archived.to_string()).into())
+	}
+
+	let nodes = match filter {
+		// Caller constrains `state` anywhere -> honor the filter verbatim, so
+		// Archived Convs can be listed explicitly (e.g. `state = Archived`).
+		Some(nodes) if nodes.iter().any(|n| n.state.is_some()) => {
+			return Some(nodes)
+		}
+		Some(nodes) => nodes,
+		None => Vec::new(),
+	};
+
+	if nodes.is_empty() {
+		Some(vec![ConvFilter {
+			state: exclude_archived(),
+			..Default::default()
+		}])
+	} else {
+		Some(
+			nodes
+				.into_iter()
+				.map(|mut node| {
+					node.state = exclude_archived();
+					node
+				})
+				.collect(),
+		)
+	}
+}
+
+// Default working-set listing for `Conv`.
+impl ConvBmc {
+	/// List `Conv`s as the default working set (backs the `list_convs` RPC):
+	/// Archived Convs are hidden unless the caller's `filter` constrains `state`,
+	/// in which case the filter is honored verbatim. Archiving is a `state` flip
+	/// (`ConvForUpdate`), never a delete — an Archived Conv and its Messages are
+	/// retained and reachable via an explicit `state = Archived` filter or by id.
+	pub async fn list_active_default(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		filter: Option<Vec<ConvFilter>>,
+		list_options: Option<ListOptions>,
+	) -> Result<Vec<Conv>> {
+		let filter = hide_archived_by_default(filter);
+		base::list::<Self, _, _>(ctx, mm, filter, list_options).await
+	}
+}
 
 // Additional ConvBmc methods to manage the `ConvMsg` constructs.
 impl ConvBmc {
@@ -749,6 +811,150 @@ mod tests {
 		// -- Clean (agent delete cascades any remaining convs + msgs).
 		AgentBmc::delete(&root, &mm, agent_id).await?;
 		_dev_utils::clean_users(&root, &mm, fx_prefix).await?;
+
+		Ok(())
+	}
+
+	/// #25 archive semantics: the default working-set listing
+	/// (`list_active_default`, backing the `list_convs` RPC) hides Archived Convs;
+	/// an explicit `state` filter lists them; and archiving/unarchiving is a
+	/// `state` flip that never deletes the Conv or its Messages.
+	#[serial]
+	#[tokio::test]
+	async fn test_list_active_default_archive_semantics() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let ctx = Ctx::root_ctx();
+		let fx_prefix = "test_archive_semantics";
+		let agent_id = seed_agent(&ctx, &mm, &format!("{fx_prefix} agent")).await?;
+
+		let active_id =
+			seed_conv(&ctx, &mm, agent_id, &format!("{fx_prefix} active")).await?;
+		let archived_id =
+			seed_conv(&ctx, &mm, agent_id, &format!("{fx_prefix} archived")).await?;
+		// The soon-to-be-Archived Conv keeps a Message, to prove retention.
+		ConvBmc::add_msg(
+			&ctx,
+			&mm,
+			ConvMsgForCreate {
+				conv_id: archived_id,
+				content: "keep me".to_string(),
+			},
+		)
+		.await?;
+
+		// Archive: `state -> Archived` is an update, not a delete.
+		ConvBmc::update(
+			&ctx,
+			&mm,
+			archived_id,
+			ConvForUpdate {
+				state: Some(ConvState::Archived),
+				..Default::default()
+			},
+		)
+		.await?;
+
+		let agent_filter = || {
+			Some(vec![ConvFilter {
+				agent_id: Some(agent_id.into()),
+				..Default::default()
+			}])
+		};
+		let ids = |convs: &[Conv]| convs.iter().map(|c| c.id).collect::<Vec<i64>>();
+
+		// -- Check: default listing (agent filter, no `state`) hides Archived.
+		let default_ids =
+			ids(
+				&ConvBmc::list_active_default(&ctx, &mm, agent_filter(), None)
+					.await?,
+			);
+		assert!(
+			default_ids.contains(&active_id),
+			"default list keeps Active"
+		);
+		assert!(
+			!default_ids.contains(&archived_id),
+			"default list hides Archived"
+		);
+
+		// -- Check: a `None` filter also hides Archived (single exclude node).
+		let none_ids =
+			ids(&ConvBmc::list_active_default(&ctx, &mm, None, None).await?);
+		assert!(
+			!none_ids.contains(&archived_id),
+			"None-filter default list hides Archived"
+		);
+
+		// -- Check: an explicit `state = Archived` filter lists it.
+		let archived_ids = ids(&ConvBmc::list_active_default(
+			&ctx,
+			&mm,
+			Some(vec![ConvFilter {
+				agent_id: Some(agent_id.into()),
+				state: Some(OpValString::Eq(ConvState::Archived.to_string()).into()),
+				..Default::default()
+			}]),
+			None,
+		)
+		.await?);
+		assert_eq!(
+			archived_ids,
+			vec![archived_id],
+			"explicit state=Archived lists only the Archived conv"
+		);
+
+		// -- Check: archiving deleted nothing — the Conv and its Message remain.
+		let still = ConvBmc::get(&ctx, &mm, archived_id).await?;
+		assert!(
+			matches!(still.state, ConvState::Archived),
+			"archived conv is retained with state Archived"
+		);
+		let archived_msgs = ConvBmc::list_msgs(
+			&ctx,
+			&mm,
+			Some(vec![serde_json::from_value::<ConvMsgFilter>(
+				json!({ "conv_id": archived_id }),
+			)?]),
+			None,
+		)
+		.await?;
+		assert_eq!(archived_msgs.len(), 1, "archiving retains Messages");
+
+		// -- Check: unarchive (`state -> Active`) restores it to the default list,
+		//    and its Message survived the round-trip.
+		ConvBmc::update(
+			&ctx,
+			&mm,
+			archived_id,
+			ConvForUpdate {
+				state: Some(ConvState::Active),
+				..Default::default()
+			},
+		)
+		.await?;
+		let after_ids =
+			ids(
+				&ConvBmc::list_active_default(&ctx, &mm, agent_filter(), None)
+					.await?,
+			);
+		assert!(
+			after_ids.contains(&archived_id),
+			"unarchived conv reappears in the default list"
+		);
+		let msgs_after = ConvBmc::list_msgs(
+			&ctx,
+			&mm,
+			Some(vec![serde_json::from_value::<ConvMsgFilter>(
+				json!({ "conv_id": archived_id }),
+			)?]),
+			None,
+		)
+		.await?;
+		assert_eq!(msgs_after.len(), 1, "unarchiving retains Messages");
+
+		// -- Clean (agent delete cascades convs + msgs).
+		AgentBmc::delete(&ctx, &mm, agent_id).await?;
 
 		Ok(())
 	}

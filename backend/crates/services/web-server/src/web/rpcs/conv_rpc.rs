@@ -18,14 +18,34 @@ pub fn rpc_router_builder() -> RouterBuilder {
 	)
 }
 
-// `get_conv` / `list_convs` follow the common pattern. `create`/`update`/
-// `delete` are hand-written below so each can poke the Conversation-list feed (#85).
-generate_common_rpc_read_fns!(
-	Bmc: ConvBmc,
-	Entity: Conv,
-	Filter: ConvFilter,
-	Suffix: conv
-);
+// `get_conv` is the common read passthrough. `list_convs` is hand-written so it
+// can hide Archived Convs by default (#25, `ConvBmc::list_active_default`).
+// `create`/`update`/`delete` are hand-written so each can poke the
+// Conversation-list feed (#85).
+
+/// Fetch a single Conversation by id (owner ∪ public read scope).
+pub async fn get_conv(
+	ctx: Ctx,
+	mm: ModelManager,
+	params: ParamsIded,
+) -> Result<DataRpcResult<Conv>> {
+	let entity = ConvBmc::get(&ctx, &mm, params.id).await?;
+	Ok(entity.into())
+}
+
+/// List Conversations as the default working set: Archived Convs are hidden
+/// unless the `filter` constrains `state`, in which case it is honored verbatim
+/// (so Archived Convs can be listed explicitly via `state = Archived`). #25.
+pub async fn list_convs(
+	ctx: Ctx,
+	mm: ModelManager,
+	params: ParamsList<ConvFilter>,
+) -> Result<DataRpcResult<Vec<Conv>>> {
+	let convs =
+		ConvBmc::list_active_default(&ctx, &mm, params.filters, params.list_options)
+			.await?;
+	Ok(convs.into())
+}
 
 /// Create a Conversation, then poke the Conversation-list feed so every client
 /// refetches its list.
