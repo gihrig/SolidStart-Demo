@@ -151,6 +151,18 @@ export default function ConversationTree(props: ConversationTreeProps) {
                       onSubmit={(raw) => ws.createConv(raw || null)}
                     />
 
+                    {/* Reveal Archived Conversations, hidden from the default
+                        list (#46). Kept above the list so it stays reachable
+                        even when the default view is empty. */}
+                    <label class="flex items-center gap-2 text-sm text-(--theme-muted)">
+                      <input
+                        type="checkbox"
+                        checked={ws.showArchived()}
+                        onChange={() => ws.toggleShowArchived()}
+                      />
+                      Show archived
+                    </label>
+
                     <Show when={ws.convsLoading()}>
                       <p class="text-(--theme-muted)">Loading conversations...</p>
                     </Show>
@@ -165,11 +177,43 @@ export default function ConversationTree(props: ConversationTreeProps) {
                       <ul class="hoverlist space-y-1" {...listboxProps}>
                         <For each={convs()}>
                           {(conv, index) => (
+                            // The option's accessible name is pinned to the label
+                            // via `aria-label`, so the nested archive button below
+                            // does not leak into it. `stopPropagation` keeps a
+                            // button click from also selecting the row; `tabIndex
+                            // -1` keeps the button out of the listbox Tab stop
+                            // (interim slice — options carry the roving focus).
                             <li
-                              class="cursor-pointer rounded p-2 outline-none"
+                              class="rounded outline-none"
+                              aria-label={convLabel(conv)}
                               {...getOptionProps(index())}
                             >
-                              {convLabel(conv)}
+                              <div class="flex cursor-pointer items-center justify-between gap-2 p-2">
+                                <span>{convLabel(conv)}</span>
+                                <button
+                                  type="button"
+                                  tabIndex={-1}
+                                  aria-label={`${
+                                    conv.state === "Archived" ? "Unarchive" : "Archive"
+                                  } ${convLabel(conv)}`}
+                                  disabled={ws.isArchiving(conv.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void (conv.state === "Archived"
+                                      ? ws.unarchiveConv(conv)
+                                      : ws.archiveConv(conv));
+                                  }}
+                                  class="shrink-0 rounded px-2 py-1 text-xs text-(--theme-muted) hover:text-(--theme-card-fg) disabled:opacity-50"
+                                >
+                                  {conv.state === "Archived" ? "Unarchive" : "Archive"}
+                                </button>
+                              </div>
+                              {/* Per-row failure: one row's error never overwrites another's. */}
+                              <Show when={ws.archiveError(conv.id)}>
+                                <p class="px-2 pb-2 text-xs text-red-700">
+                                  {ws.archiveError(conv.id)}
+                                </p>
+                              </Show>
                             </li>
                           )}
                         </For>

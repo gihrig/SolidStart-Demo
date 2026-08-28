@@ -20,11 +20,12 @@ function createFakeRpc() {
   const agentCreate = vi.fn();
   const convList = vi.fn().mockResolvedValue([]);
   const convCreate = vi.fn();
+  const convUpdate = vi.fn();
   const rpc: WorkspaceRpcClient = {
     agent: { list: agentList, create: agentCreate },
-    conv: { list: convList, create: convCreate },
+    conv: { list: convList, create: convCreate, update: convUpdate },
   };
-  return { rpc, agentList, agentCreate, convList, convCreate };
+  return { rpc, agentList, agentCreate, convList, convCreate, convUpdate };
 }
 
 // In-memory feed adapter: lets a test emit list-feed pokes through the port.
@@ -289,11 +290,15 @@ describe("createConversationWorkspace", () => {
       const ada = makeAgent(1, "Ada");
       // First load has Ada; after the poke (Ada deleted elsewhere) the list is empty.
       rpc.agentList.mockResolvedValueOnce([ada]).mockResolvedValueOnce([]);
+      // Ada's conv list holds the selected conv, so the selection is legitimately
+      // in the list until the agent-delete poke clears it.
+      rpc.convList.mockResolvedValue([makeConv(10, "Hello")]);
 
       await createRoot(async (dispose) => {
         const ws = createConversationWorkspace({ feed: feed.factory, rpc: rpc.rpc });
         await flush();
         ws.selectAgent(ada);
+        await flush();
         ws.selectConv(makeConv(10, "Hello"));
         await flush();
         expect(ws.selectedAgent()).toEqual(ada);
@@ -350,6 +355,282 @@ describe("createConversationWorkspace", () => {
         feed.emitConvUpdate();
         await flush();
         expect(ws.convs().map((c) => c.title)).toEqual(["Apple", "Berry"]);
+        dispose();
+      });
+    });
+  });
+
+  describe("archive (#46)", () => {
+    // The back-end (#25) owns Archived filtering; the fake mirrors it: a default
+    // request returns the working set, `includeArchived` returns both states.
+    const bothStates = () => [
+      makeConv(10, "Active one", 1, "Active"),
+      makeConv(11, "Archived one", 1, "Archived"),
+    ];
+    const withArchiveModel = (rpc: ReturnType<typeof createFakeRpc>) => {
+      let archived = false;
+      rpc.convUpdate.mockImplementation((id: number, data: { state: "Active" | "Archived" }) => {
+        archived = data.state === "Archived";
+        return Promise.resolve(makeConv(id, "Open", 1, data.state));
+      });
+      rpc.convList.mockImplementation((_id: number, opts?: { includeArchived?: boolean }) => {
+        const conv = makeConv(10, "Open", 1, archived ? "Archived" : "Active");
+        if (opts?.includeArchived) return Promise.resolve([conv]);
+        return Promise.resolve(archived ? [] : [conv]);
+      });
+    };
+
+    it("requests the working set by default, so Archived are hidden", async () => {
+      const feed = createFakeFeed();
+      const rpc = createFakeRpc();
+      rpc.convList.mockImplementation((_id: number, opts?: { includeArchived?: boolean }) =>
+        Promise.resolve(opts?.includeArchived ? bothStates() : [makeConv(10, "Active one")]),
+      );
+
+      await createRoot(async (dispose) => {
+        const ws = createConversationWorkspace({ feed: feed.factory, rpc: rpc.rpc });
+        ws.selectAgent(makeAgent(1, "Ada"));
+        await flush();
+        expect(ws.showArchived()).toBe(false);
+        expect(ws.convs().map((c) => c.title)).toEqual(["Active one"]);
+        expect(rpc.convList).toHaveBeenLastCalledWith(1, { includeArchived: false });
+        dispose();
+      });
+    });
+
+    it("refetches including Archived when showArchived is toggled on, and back off", async () => {
+      const feed = createFakeFeed();
+      const rpc = createFakeRpc();
+      rpc.convList.mockImplementation((_id: number, opts?: { includeArchived?: boolean }) =>
+        Promise.resolve(opts?.includeArchived ? bothStates() : [makeConv(10, "Active one")]),
+      );
+
+      await createRoot(async (dispose) => {
+        const ws = createConversationWorkspace({ feed: feed.factory, rpc: rpc.rpc });
+        ws.selectAgent(makeAgent(1, "Ada"));
+        await flush();
+
+        ws.toggleShowArchived();
+        await flush();
+        expect(ws.showArchived()).toBe(true);
+        expect(ws.convs().map((c) => c.title)).toEqual(["Active one", "Archived one"]);
+        expect(rpc.convList).toHaveBeenLastCalledWith(1, { includeArchived: true });
+
+        ws.toggleShowArchived();
+        await flush();
+        expect(ws.convs().map((c) => c.title)).toEqual(["Active one"]);
+        expect(rpc.convList).toHaveBeenLastCalledWith(1, { includeArchived: false });
+        dispose();
+      });
+    });
+
+    it("archiveConv sets state Archived, then refetches so it drops out", async () => {
+      const feed = createFakeFeed();
+      const rpc = createFakeRpc();
+      withArchiveModel(rpc);
+
+      await createRoot(async (dispose) => {
+        const ws = createConversationWorkspace({ feed: feed.factory, rpc: rpc.rpc });
+        ws.selectAgent(makeAgent(1, "Ada"));
+        await flush();
+        expect(ws.convs().map((c) => c.title)).toEqual(["Open"]);
+
+        const ok = await ws.archiveConv(makeConv(10, "Open", 1, "Active"));
+        expect(ok).toBe(true);
+        expect(rpc.convUpdate).toHaveBeenCalledWith(10, { state: "Archived" });
+        await flush();
+        expect(ws.convs()).toEqual([]); // refetched working set no longer has it
+        expect(ws.isArchiving(10)).toBe(false);
+        expect(ws.archiveError(10)).toBeNull();
+        dispose();
+      });
+    });
+
+    it("unarchiveConv sets state Active", async () => {
+      const feed = createFakeFeed();
+      const rpc = createFakeRpc();
+      const archived = makeConv(11, "Kept", 1, "Archived");
+      rpc.convUpdate.mockResolvedValue(makeConv(11, "Kept", 1, "Active"));
+      rpc.convList.mockResolvedValue([archived]);
+
+      await createRoot(async (dispose) => {
+        const ws = createConversationWorkspace({ feed: feed.factory, rpc: rpc.rpc });
+        ws.selectAgent(makeAgent(1, "Ada"));
+        await flush();
+        const ok = await ws.unarchiveConv(archived);
+        expect(ok).toBe(true);
+        expect(rpc.convUpdate).toHaveBeenCalledWith(11, { state: "Active" });
+        dispose();
+      });
+    });
+
+    it("clears the selection when archiving hides the selected conversation", async () => {
+      const feed = createFakeFeed();
+      const rpc = createFakeRpc();
+      withArchiveModel(rpc);
+
+      await createRoot(async (dispose) => {
+        const ws = createConversationWorkspace({ feed: feed.factory, rpc: rpc.rpc });
+        ws.selectAgent(makeAgent(1, "Ada"));
+        await flush();
+        ws.selectConv(makeConv(10, "Open", 1, "Active"));
+        expect(ws.selectedConv()).not.toBeNull();
+
+        await ws.archiveConv(makeConv(10, "Open", 1, "Active"));
+        await flush(); // let the reconcile effect run on the refetched list
+        // The working-set refetch dropped it, so the selection is cleared rather
+        // than stranding an unreachable conversation.
+        expect(ws.selectedConv()).toBeNull();
+        dispose();
+      });
+    });
+
+    it("drops the selection when a later refetch removes the selected conversation", async () => {
+      // Guards the "stranded selection" case: the archive's own refetch may keep
+      // the selection (e.g. it failed, or Archived were shown), but a subsequent
+      // successful list refetch that no longer contains it must reconcile.
+      const feed = createFakeFeed();
+      const rpc = createFakeRpc();
+      rpc.convList
+        .mockResolvedValueOnce([makeConv(10, "Open", 1, "Active")]) // initial load
+        .mockResolvedValueOnce([]); // a later refetch: archived elsewhere, now gone
+
+      await createRoot(async (dispose) => {
+        const ws = createConversationWorkspace({ feed: feed.factory, rpc: rpc.rpc });
+        ws.selectAgent(makeAgent(1, "Ada"));
+        await flush();
+        ws.selectConv(makeConv(10, "Open", 1, "Active"));
+        expect(ws.selectedConv()).not.toBeNull();
+
+        feed.emitConvUpdate(); // a poke triggers a refetch that drops the row
+        await flush();
+        expect(ws.selectedConv()).toBeNull();
+        dispose();
+      });
+    });
+
+    it("keeps the selection when showArchived leaves the archived conversation visible", async () => {
+      const feed = createFakeFeed();
+      const rpc = createFakeRpc();
+      withArchiveModel(rpc);
+
+      await createRoot(async (dispose) => {
+        const ws = createConversationWorkspace({ feed: feed.factory, rpc: rpc.rpc });
+        ws.selectAgent(makeAgent(1, "Ada"));
+        await flush();
+        ws.selectConv(makeConv(10, "Open", 1, "Active"));
+        ws.toggleShowArchived(); // archived rows stay visible
+        await flush();
+
+        await ws.archiveConv(makeConv(10, "Open", 1, "Active"));
+        expect(ws.selectedConv()?.id).toBe(10); // still reachable, still selected
+        dispose();
+      });
+    });
+
+    it("keeps each concurrent archive's pending state independent", async () => {
+      const feed = createFakeFeed();
+      const rpc = createFakeRpc();
+      // Hold both updates open; resolve them one at a time via the gates.
+      const gates: Array<() => void> = [];
+      rpc.convUpdate.mockImplementation(
+        (id: number, data: { state: "Active" | "Archived" }) =>
+          new Promise((resolve) => {
+            gates.push(() => resolve(makeConv(id, `C${id}`, 1, data.state)));
+          }),
+      );
+      rpc.convList.mockResolvedValue([makeConv(10, "A"), makeConv(11, "B")]);
+
+      await createRoot(async (dispose) => {
+        const ws = createConversationWorkspace({ feed: feed.factory, rpc: rpc.rpc });
+        ws.selectAgent(makeAgent(1, "Ada"));
+        await flush();
+
+        const p10 = ws.archiveConv(makeConv(10, "A", 1, "Active"));
+        const p11 = ws.archiveConv(makeConv(11, "B", 1, "Active"));
+        expect(ws.isArchiving(10)).toBe(true);
+        expect(ws.isArchiving(11)).toBe(true);
+
+        gates[0](); // conv 10's update completes first
+        await p10;
+        // 10 completing must not clear 11's still-pending state.
+        expect(ws.isArchiving(10)).toBe(false);
+        expect(ws.isArchiving(11)).toBe(true);
+
+        gates[1]();
+        await p11;
+        expect(ws.isArchiving(11)).toBe(false);
+        dispose();
+      });
+    });
+
+    it("surfaces the error on an archive failure", async () => {
+      const feed = createFakeFeed();
+      const rpc = createFakeRpc();
+      rpc.convUpdate.mockRejectedValue(new Error("archive failed"));
+
+      await createRoot(async (dispose) => {
+        const ws = createConversationWorkspace({ feed: feed.factory, rpc: rpc.rpc });
+        ws.selectAgent(makeAgent(1, "Ada"));
+        await flush();
+        const ok = await ws.archiveConv(makeConv(10, "Doomed"));
+        expect(ok).toBe(false);
+        expect(ws.archiveError(10)).toBe("archive failed");
+        expect(ws.isArchiving(10)).toBe(false);
+        dispose();
+      });
+    });
+
+    it("keeps each concurrent archive's error independent", async () => {
+      const feed = createFakeFeed();
+      const rpc = createFakeRpc();
+      // Hold both updates open; reject each with its own message via the gates.
+      const gates: Array<() => void> = [];
+      rpc.convUpdate.mockImplementation(
+        (id: number) =>
+          new Promise((_resolve, reject) => {
+            gates.push(() => reject(new Error(`boom ${id}`)));
+          }),
+      );
+      rpc.convList.mockResolvedValue([makeConv(10, "A"), makeConv(11, "B")]);
+
+      await createRoot(async (dispose) => {
+        const ws = createConversationWorkspace({ feed: feed.factory, rpc: rpc.rpc });
+        ws.selectAgent(makeAgent(1, "Ada"));
+        await flush();
+
+        const p10 = ws.archiveConv(makeConv(10, "A", 1, "Active"));
+        const p11 = ws.archiveConv(makeConv(11, "B", 1, "Active"));
+        gates[0](); // conv 10 fails
+        await p10;
+        gates[1](); // conv 11 fails
+        await p11;
+
+        // Each row keeps its own failure; starting 11 never cleared 10's error.
+        expect(ws.archiveError(10)).toBe("boom 10");
+        expect(ws.archiveError(11)).toBe("boom 11");
+        dispose();
+      });
+    });
+
+    it("clears a row's prior error when it is retried", async () => {
+      const feed = createFakeFeed();
+      const rpc = createFakeRpc();
+      rpc.convList.mockResolvedValue([makeConv(10, "A")]);
+      rpc.convUpdate
+        .mockRejectedValueOnce(new Error("first fail"))
+        .mockResolvedValueOnce(makeConv(10, "A", 1, "Archived"));
+
+      await createRoot(async (dispose) => {
+        const ws = createConversationWorkspace({ feed: feed.factory, rpc: rpc.rpc });
+        ws.selectAgent(makeAgent(1, "Ada"));
+        await flush();
+
+        expect(await ws.archiveConv(makeConv(10, "A", 1, "Active"))).toBe(false);
+        expect(ws.archiveError(10)).toBe("first fail");
+
+        expect(await ws.archiveConv(makeConv(10, "A", 1, "Active"))).toBe(true);
+        expect(ws.archiveError(10)).toBeNull(); // retry cleared the stale error
         dispose();
       });
     });

@@ -48,7 +48,9 @@ describe("<ConversationTree /> (navigator)", () => {
     render(() => <ConversationTree ws={ws} />);
     expect(screen.getByRole("listbox", { name: /conversations/i })).toBeInTheDocument();
     const options = screen.getAllByRole("option");
-    expect(options.map((o) => o.textContent)).toEqual(["Conv Alpha", "Conv Beta"]);
+    // Each row now also holds an archive button, so assert the option's label
+    // (its pinned accessible name) rather than raw textContent.
+    expect(options.map((o) => o.getAttribute("aria-label"))).toEqual(["Conv Alpha", "Conv Beta"]);
     // The selected conversation is marked.
     expect(screen.getByRole("option", { name: "Conv Beta" })).toHaveAttribute(
       "aria-selected",
@@ -200,5 +202,99 @@ describe("<ConversationTree /> (navigator)", () => {
     });
     render(() => <ConversationTree ws={ws} />);
     expect(screen.getByText(/error: conv fetch failed/i)).toBeInTheDocument();
+  });
+
+  describe("archive controls (#46)", () => {
+    const archivedConv = makeConv(12, "Old Conv", 1, "Archived");
+
+    it("shows an Archive button on an Active conversation and calls archiveConv", async () => {
+      const ws = makeWorkspaceStub({
+        agents: () => [ada],
+        selectedAgent: () => ada,
+        convs: () => [convAlpha],
+      });
+      const user = userEvent.setup();
+      render(() => <ConversationTree ws={ws} />);
+      await user.click(screen.getByRole("button", { name: /archive conv alpha/i }));
+      expect(ws.archiveConv).toHaveBeenCalledWith(convAlpha);
+      expect(ws.unarchiveConv).not.toHaveBeenCalled();
+    });
+
+    it("shows an Unarchive button on an Archived conversation and calls unarchiveConv", async () => {
+      const ws = makeWorkspaceStub({
+        agents: () => [ada],
+        selectedAgent: () => ada,
+        convs: () => [archivedConv],
+        showArchived: () => true,
+      });
+      const user = userEvent.setup();
+      render(() => <ConversationTree ws={ws} />);
+      await user.click(screen.getByRole("button", { name: /unarchive old conv/i }));
+      expect(ws.unarchiveConv).toHaveBeenCalledWith(archivedConv);
+      expect(ws.archiveConv).not.toHaveBeenCalled();
+    });
+
+    it("clicking the archive button does not also select the conversation", async () => {
+      const ws = makeWorkspaceStub({
+        agents: () => [ada],
+        selectedAgent: () => ada,
+        convs: () => [convAlpha],
+      });
+      const user = userEvent.setup();
+      render(() => <ConversationTree ws={ws} />);
+      await user.click(screen.getByRole("button", { name: /archive conv alpha/i }));
+      expect(ws.selectConv).not.toHaveBeenCalled();
+    });
+
+    it("keeps the option's accessible name as just the title", () => {
+      const ws = makeWorkspaceStub({
+        agents: () => [ada],
+        selectedAgent: () => ada,
+        convs: () => [convAlpha],
+      });
+      render(() => <ConversationTree ws={ws} />);
+      expect(screen.getByRole("option", { name: "Conv Alpha" })).toBeInTheDocument();
+    });
+
+    it("reflects showArchived and calls toggleShowArchived on change", async () => {
+      const ws = makeWorkspaceStub({
+        agents: () => [ada],
+        selectedAgent: () => ada,
+        showArchived: () => false,
+      });
+      const user = userEvent.setup();
+      render(() => <ConversationTree ws={ws} />);
+      const toggle = screen.getByRole("checkbox", { name: /show archived/i });
+      expect(toggle).not.toBeChecked();
+      await user.click(toggle);
+      expect(ws.toggleShowArchived).toHaveBeenCalled();
+    });
+
+    it("disables only the in-flight conversation's archive button", () => {
+      const ws = makeWorkspaceStub({
+        agents: () => [ada],
+        selectedAgent: () => ada,
+        convs: () => [convAlpha, convBeta],
+        isArchiving: (id: number) => id === convAlpha.id,
+      });
+      render(() => <ConversationTree ws={ws} />);
+      expect(screen.getByRole("button", { name: /archive conv alpha/i })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /archive conv beta/i })).not.toBeDisabled();
+    });
+
+    it("surfaces the archive error only on the row that failed", () => {
+      const ws = makeWorkspaceStub({
+        agents: () => [ada],
+        selectedAgent: () => ada,
+        convs: () => [convAlpha, convBeta],
+        archiveError: (id: number) => (id === convAlpha.id ? "archive boom" : null),
+      });
+      render(() => <ConversationTree ws={ws} />);
+      // The failed row shows the message; the other row does not.
+      const alphaRow = screen.getByRole("option", { name: "Conv Alpha" });
+      const betaRow = screen.getByRole("option", { name: "Conv Beta" });
+      expect(alphaRow).toHaveTextContent("archive boom");
+      expect(betaRow).not.toHaveTextContent("archive boom");
+    });
   });
 });

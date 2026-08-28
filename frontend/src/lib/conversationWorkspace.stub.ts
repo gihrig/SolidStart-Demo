@@ -1,5 +1,5 @@
 import { vi } from "vite-plus/test";
-import type { Agent, Conv } from "~/types/backend";
+import type { Agent, Conv, ConvState } from "~/types/backend";
 import type { ConversationWorkspace } from "./conversationWorkspace";
 
 // Test-only stubs and fixtures for the Conversations workspace and its
@@ -18,14 +18,19 @@ export const makeAgent = (id: number, name: string): Agent => ({
   mtime: "2024-01-01T00:00:00Z",
 });
 
-/** A minimal valid `Conv` fixture (defaults to agent 1). */
-export const makeConv = (id: number, title: string, agentId = 1): Conv => ({
+/** A minimal valid `Conv` fixture (defaults to agent 1, Active state). */
+export const makeConv = (
+  id: number,
+  title: string,
+  agentId = 1,
+  state: ConvState = "Active",
+): Conv => ({
   id,
   agent_id: agentId,
   owner_id: 1,
   title,
   kind: "OwnerOnly",
-  state: "Active",
+  state,
   cid: 1,
   ctime: "2024-01-01T00:00:00Z",
   mid: 1,
@@ -53,6 +58,12 @@ export function makeWorkspaceStub(
     createConv: vi.fn().mockResolvedValue(true),
     creatingConv: () => false,
     createConvError: () => null,
+    archiveConv: vi.fn().mockResolvedValue(true),
+    unarchiveConv: vi.fn().mockResolvedValue(true),
+    isArchiving: () => false,
+    archiveError: () => null,
+    showArchived: () => false,
+    toggleShowArchived: vi.fn(),
     ...over,
   };
 }
