@@ -209,32 +209,32 @@ fn hide_archived_by_default(
 		Some(OpValString::Not(ConvState::Archived.to_string()).into())
 	}
 
-	let nodes = match filter {
-		// Caller constrains `state` anywhere -> honor the filter verbatim, so
-		// Archived Convs can be listed explicitly (e.g. `state = Archived`).
-		Some(nodes) if nodes.iter().any(|n| n.state.is_some()) => {
-			return Some(nodes)
-		}
-		Some(nodes) => nodes,
-		None => Vec::new(),
-	};
+	let nodes = filter.unwrap_or_default();
 
+	// An empty node set (`None` or `[]`) becomes a single exclude-only node.
 	if nodes.is_empty() {
-		Some(vec![ConvFilter {
+		return Some(vec![ConvFilter {
 			state: exclude_archived(),
 			..Default::default()
-		}])
-	} else {
-		Some(
-			nodes
-				.into_iter()
-				.map(|mut node| {
-					node.state = exclude_archived();
-					node
-				})
-				.collect(),
-		)
+		}]);
 	}
+
+	// Add the exclusion PER node, only where the caller did not already
+	// constrain `state`. Nodes are OR-combined, so a node that sets `state`
+	// (e.g. an explicit `state = Archived`) is honored verbatim, while an
+	// unconstrained sibling node must still exclude Archived. Deciding
+	// array-wide would let that unconstrained OR branch leak Archived.
+	Some(
+		nodes
+			.into_iter()
+			.map(|mut node| {
+				if node.state.is_none() {
+					node.state = exclude_archived();
+				}
+				node
+			})
+			.collect(),
+	)
 }
 
 // Default working-set listing for `Conv`.
@@ -955,6 +955,93 @@ mod tests {
 
 		// -- Clean (agent delete cascades convs + msgs).
 		AgentBmc::delete(&ctx, &mm, agent_id).await?;
+
+		Ok(())
+	}
+
+	/// #25 archive semantics, mixed filter array: a filter array is OR-combined,
+	/// so the exclusion must be applied PER node. A node that does not constrain
+	/// `state` must not leak Archived, even when a sibling node in the same array
+	/// constrains `state` explicitly (regression guard for the default listing).
+	#[serial]
+	#[tokio::test]
+	async fn test_list_active_default_mixed_filter_no_leak() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let ctx = Ctx::root_ctx();
+		let fx_prefix = "test_mixed_filter_no_leak";
+		let agent_a = seed_agent(&ctx, &mm, &format!("{fx_prefix} agent A")).await?;
+		let agent_b = seed_agent(&ctx, &mm, &format!("{fx_prefix} agent B")).await?;
+
+		// Agent A: one Active, one Archived. Agent B: one Archived.
+		let a_active =
+			seed_conv(&ctx, &mm, agent_a, &format!("{fx_prefix} A active")).await?;
+		let a_archived =
+			seed_conv(&ctx, &mm, agent_a, &format!("{fx_prefix} A archived"))
+				.await?;
+		let b_archived =
+			seed_conv(&ctx, &mm, agent_b, &format!("{fx_prefix} B archived"))
+				.await?;
+		for id in [a_archived, b_archived] {
+			ConvBmc::update(
+				&ctx,
+				&mm,
+				id,
+				ConvForUpdate {
+					state: Some(ConvState::Archived),
+					..Default::default()
+				},
+			)
+			.await?;
+		}
+
+		// Mixed array (OR of two nodes):
+		//   node 1 -> explicit `state = Archived` for Agent B,
+		//   node 2 -> unconstrained on `state` for Agent A.
+		// The exclusion must apply to node 2 only.
+		let ids = ConvBmc::list_active_default(
+			&ctx,
+			&mm,
+			Some(vec![
+				ConvFilter {
+					agent_id: Some(agent_b.into()),
+					state: Some(
+						OpValString::Eq(ConvState::Archived.to_string()).into(),
+					),
+					..Default::default()
+				},
+				ConvFilter {
+					agent_id: Some(agent_a.into()),
+					..Default::default()
+				},
+			]),
+			None,
+		)
+		.await?
+		.iter()
+		.map(|c| c.id)
+		.collect::<Vec<i64>>();
+
+		// Explicit node returns Agent B Archived.
+		assert!(
+			ids.contains(&b_archived),
+			"explicit state=Archived node lists Agent B archived"
+		);
+		// Unconstrained node returns Agent A Active.
+		assert!(
+			ids.contains(&a_active),
+			"unconstrained node lists Agent A active"
+		);
+		// Leak guard: Agent A Archived must NOT appear via the unconstrained node.
+		// The array-wide short-circuit returned it; the per-node fix hides it.
+		assert!(
+			!ids.contains(&a_archived),
+			"unconstrained node must not leak Agent A archived"
+		);
+
+		// -- Clean (agent delete cascades convs + msgs).
+		AgentBmc::delete(&ctx, &mm, agent_a).await?;
+		AgentBmc::delete(&ctx, &mm, agent_b).await?;
 
 		Ok(())
 	}
