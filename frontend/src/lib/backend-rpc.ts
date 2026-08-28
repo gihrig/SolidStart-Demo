@@ -67,8 +67,9 @@ export interface WorkspaceRpcClient {
     create: (data: AgentForCreate) => Promise<Agent>;
   };
   conv: {
-    list: (agentId: number) => Promise<Conv[]>;
+    list: (agentId: number, opts?: { includeArchived?: boolean }) => Promise<Conv[]>;
     create: (data: ConvForCreate) => Promise<Conv>;
+    update: (id: number, data: ConvForUpdate) => Promise<Conv>;
   };
 }
 
@@ -134,8 +135,16 @@ export function createRpcClient() {
     // built here so callers pass a domain id, never the query dialect — a raw
     // `{ filters }` passthrough double-wrapped it into an empty filter, leaking
     // every Agent's Convs (arch-review C1).
-    list: (agentId: number) =>
-      rpcCall<Conv[]>("list_convs", { filters: [{ agent_id: { $eq: agentId } }] }),
+    //
+    // Archived filtering is the back-end's (#25): a node with no `state` is
+    // returned as the working set (`list_convs` injects `state != Archived`).
+    // To include Archived, constrain `state` to both values, which the back-end
+    // honors verbatim — so the front-end never filters Conversations itself.
+    list: (agentId: number, opts: { includeArchived?: boolean } = {}) => {
+      const node: Record<string, unknown> = { agent_id: { $eq: agentId } };
+      if (opts.includeArchived) node.state = { $in: ["Active", "Archived"] };
+      return rpcCall<Conv[]>("list_convs", { filters: [node] });
+    },
   };
 
   // Conversation Message RPC methods
