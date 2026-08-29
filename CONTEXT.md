@@ -142,6 +142,14 @@ wire.
 _FE_: the same generated `WsEvent`, consumed through the `~/types/backend` barrel
 so the `conv_msg` payload gets the `NumericIds` id rewrite (ADR-0003).
 
+**Poke rule**:
+Every Conversation or Agent mutation pokes its list feed. A create, update, or
+delete emits the matching list-feed Event, and every client then refetches (#85).
+The rule is per-entity: a Conv mutation pokes `convs`, an Agent mutation pokes
+`agents`. Adding a Message pokes its Conversation's Channel instead.
+_Avoid_: refresh, notify.
+_BE_: the create/update/delete handlers plus `add_conv_msg` (`web/rpcs/*.rs`).
+
 ## Jedi
 
 A responsive, accessible photo-and-caption sub-application with its own style and navigation. Users share Flickr photos as Posts and compete to caption them; both Posts and Captions accrue Likes. Content is served today by a back-end-faithful mock (see [ADR-0002](docs/adr/0002-jedi-mock-data-contract.md)) that doubles as the data contract a future back-end implements. That contract is now specified in [ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md); the database portability it must respect is [ADR-0012](docs/adr/0012-postgres-turso-db-swap-seam.md), and the mono-repo that houses both surfaces is [ADR-0010](docs/adr/0010-monorepo-structure.md) (with the front-end kept over full-Rust per [ADR-0008](docs/adr/0008-keep-solidstart-leptos-tradeoff.md)).
