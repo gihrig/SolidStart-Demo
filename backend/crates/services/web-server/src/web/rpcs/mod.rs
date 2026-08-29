@@ -50,25 +50,77 @@ mod poke_rule_guard {
 		MUTATION_PREFIXES.iter().any(|p| name.starts_with(p))
 	}
 
-	// The identifiers listed inside the file's `router_builder!( ... )` block.
-	fn router_builder_names(src: &str) -> Vec<String> {
-		let mut names = Vec::new();
-		let mut in_block = false;
-		for line in src.lines() {
-			let t = line.trim();
-			if !in_block {
-				if t.contains("router_builder!(") {
-					in_block = true;
+	// A Rust identifier: leading letter or `_`, then letters/digits/`_`.
+	fn is_ident(tok: &str) -> bool {
+		let mut chars = tok.chars();
+		matches!(chars.next(), Some(c) if c.is_ascii_alphabetic() || c == '_')
+			&& chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+	}
+
+	// `src` with every `//` line comment removed, so paren-matching and name
+	// extraction never trip on `()` or identifiers that live inside a comment.
+	fn strip_line_comments(src: &str) -> String {
+		src.lines()
+			.map(|l| match l.find("//") {
+				Some(i) => &l[..i],
+				None => l,
+			})
+			.collect::<Vec<_>>()
+			.join("\n")
+	}
+
+	// The text inside the outermost `( ... )` — `after` begins just past the
+	// opening paren — plus the remainder after the matching close paren.
+	fn balanced_parens(after: &str) -> (&str, &str) {
+		let mut depth = 1usize;
+		for (i, c) in after.char_indices() {
+			match c {
+				'(' => depth += 1,
+				')' => {
+					depth -= 1;
+					if depth == 0 {
+						return (&after[..i], &after[i + 1..]);
+					}
 				}
-				continue;
+				_ => {}
 			}
-			if t.starts_with(')') {
-				break;
+		}
+		(after, "")
+	}
+
+	// Handler fn names inside one `router_builder!( ... )` argument, across all
+	// three rpc-router syntaxes. In the labeled forms only the `handlers: [ ... ]`
+	// group carries fn names; `resources: [ ... ]` is ignored.
+	fn handler_idents(args: &str) -> Vec<String> {
+		let scope = match args.find("handlers:") {
+			Some(h) => {
+				let after = &args[h + "handlers:".len()..];
+				match (after.find('['), after.find(']')) {
+					(Some(o), Some(c)) if c > o => &after[o + 1..c],
+					_ => "",
+				}
 			}
-			if t.starts_with("//") || t.is_empty() {
-				continue;
-			}
-			names.push(t.trim_end_matches(',').trim().to_string());
+			None => args,
+		};
+		scope
+			.split(|c: char| !c.is_ascii_alphanumeric() && c != '_')
+			.filter(|t| is_ident(t))
+			.map(str::to_string)
+			.collect()
+	}
+
+	// Every handler registered via `router_builder!` in this source — across every
+	// block and all three call syntaxes (Pattern 1 bare list; Pattern 2/3
+	// `handlers: [..]`). Comments are stripped first.
+	fn router_builder_names(src: &str) -> Vec<String> {
+		let clean = strip_line_comments(src);
+		let mut names = Vec::new();
+		let mut rest = clean.as_str();
+		while let Some(i) = rest.find("router_builder!(") {
+			let after = &rest[i + "router_builder!(".len()..];
+			let (args, tail) = balanced_parens(after);
+			names.extend(handler_idents(args));
+			rest = tail;
 		}
 		names
 	}
@@ -201,6 +253,38 @@ pub async fn delete_widget(params: X) -> Y {
 		let out = violations("fake.rs", src, |_| None);
 		assert_eq!(out.len(), 1, "expected one violation, got: {out:?}");
 		assert!(out[0].contains("no expected poke"));
+	}
+
+	#[test]
+	fn router_builder_names_reads_all_syntaxes_and_blocks() {
+		// Pattern 1 (bare list, multi-line + inline), Pattern 2 (handlers +
+		// resources), Pattern 3 (handlers only), and two blocks in one file.
+		let src = r#"
+pub fn a() -> RouterBuilder {
+	router_builder!(
+		create_a, // trailing comment
+		get_a,
+	)
+}
+pub fn b() -> RouterBuilder {
+	router_builder!(handlers: [create_b, get_b], resources: [ModelManager {}])
+}
+pub fn c() -> RouterBuilder {
+	router_builder!(handlers: [create_c])
+}
+pub fn d() -> RouterBuilder { router_builder!(create_d, get_d) }
+"#;
+		let mut got = router_builder_names(src);
+		got.sort();
+		assert_eq!(
+			got,
+			[
+				"create_a", "create_b", "create_c", "create_d", "get_a", "get_b",
+				"get_d"
+			]
+		);
+		// A resource type must never be read as a handler.
+		assert!(!got.iter().any(|n| n == "ModelManager"));
 	}
 }
 
