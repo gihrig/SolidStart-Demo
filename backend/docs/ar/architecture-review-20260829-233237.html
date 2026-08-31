@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Architecture review — SolidStart Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose", flowchart: { htmlLabels: true, curve: "basis" } });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 5 4; }
+      /* deep module: lighter than the slate-900 cards, with a faint ring, so it reads as the solid one */
+      .deep { background: linear-gradient(135deg, #1e293b, #334155); box-shadow: inset 0 0 0 1px rgba(148,163,184,.28); }
+      .lit { font-variant-ligatures: none; }
+      pre.mermaid { min-height: 300px; }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-100 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-14">
+
+      <!-- ============================ HEADER ============================ -->
+      <header class="space-y-5">
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+          <h1 class="font-serif text-4xl tracking-tight">Architecture review</h1>
+          <div class="text-sm text-slate-400 text-right leading-tight">
+            <div class="font-mono">gihrig/SolidStart-Demo</div>
+            <div>2026-08-29 · branch <span class="font-mono">Arch-review-8-29-26</span></div>
+          </div>
+        </div>
+
+        <p class="text-slate-300 max-w-3xl">
+          Four <strong class="text-slate-100">deepening</strong> opportunities on the realtime Conversations surface — the
+          hot spot of the last stretch of history (<span class="font-mono text-sm">conv.rs</span>,
+          <span class="font-mono text-sm">routes_ws.rs</span>,
+          <span class="font-mono text-sm">conversationWorkspace.ts</span>). Domain terms come from
+          <span class="font-mono text-sm">CONTEXT.md</span>; the architecture terms are the
+          <span class="font-mono text-sm">/codebase-design</span> glossary — used exactly.
+        </p>
+
+        <!-- Legend -->
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-400 border-y border-slate-800 py-3">
+          <span class="uppercase tracking-wider text-slate-500">Legend</span>
+          <span class="inline-flex items-center gap-2"><span class="inline-block w-5 h-4 border border-slate-500 bg-slate-800"></span> module</span>
+          <span class="inline-flex items-center gap-2"><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#94a3b8" stroke-width="2" class="seam"/></svg> seam</span>
+          <span class="inline-flex items-center gap-2"><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#ef4444" stroke-width="2"/></svg> leak / by-discipline edge</span>
+          <span class="inline-flex items-center gap-2"><span class="inline-block w-5 h-4 deep rounded-sm"></span> deep module</span>
+        </div>
+
+        <!-- Prior-AR note -->
+        <div class="rounded-lg bg-slate-900 border border-slate-800 px-4 py-3 text-sm text-slate-300">
+          <span class="font-semibold text-slate-100">Not re-litigated.</span>
+          The 2026-08-18 review landed <span class="font-mono">C01</span> (owner-scope seam, ADR-0014),
+          <span class="font-mono">C02</span> (the back-end <span class="font-mono">Channel</span> type, commit <span class="font-mono">5660782</span>) and
+          <span class="font-mono">C03</span> (subscribe-time push auth, ADR-0015). These are treated as settled; the candidates below sit downstream of them.
+        </div>
+      </header>
+
+      <!-- ============================ CANDIDATES ============================ -->
+      <section id="candidates" class="space-y-16">
+
+        <!-- =================================================================
+             CANDIDATE 1 — POKE RULE HOME
+        ================================================================== -->
+        <article id="c1" class="space-y-6">
+          <div class="space-y-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-emerald-300 bg-emerald-900/50 px-2 py-0.5 rounded">Strong</span>
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-200 bg-slate-700 px-2 py-0.5 rounded">in-process</span>
+              <span class="text-xs uppercase tracking-wider text-slate-500">Candidate 1</span>
+            </div>
+            <h2 class="font-serif text-2xl">Give the Poke rule a structural home</h2>
+          </div>
+
+          <div class="font-mono text-sm text-slate-400 space-y-0.5">
+            <div>backend/…/web/rpcs/conv_rpc.rs · agent_rpc.rs</div>
+            <div>backend/…/web/rpcs/mod.rs <span class="text-slate-500">(the ~270-line poke guard)</span></div>
+            <div>backend/…/lib-rpc-core/src/utils/macro_utils.rs</div>
+            <div>backend/…/web/routes_ws.rs <span class="text-slate-500">(broadcast_* helpers)</span></div>
+          </div>
+
+          <!-- BEFORE / AFTER -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- before -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before — rule = discipline</div>
+              <pre class="mermaid">
+flowchart TB
+  subgraph guard["fn every_registered_mutation_pokes_its_list_feed()<br/>~270 lines: strip comments · match parens · scan bodies"]
+    direction LR
+    g[["POKE_TABLE + Rust text parser"]]
+  end
+  cc[create_conv] -.->|remember| bc[broadcast_conv_update]
+  uc[update_conv] -.->|remember| bc
+  dc[delete_conv] -.->|remember| bc
+  ca[create_agent] -.->|remember| ba[broadcast_agent_update]
+  ua[update_agent] -.->|remember| ba
+  da[delete_agent] -.->|remember| ba
+  guard -. re-parses source .-> cc & uc & dc & ca & ua & da
+  classDef disc stroke:#f87171,stroke-width:1.5px,stroke-dasharray:5 4,fill:#0b1220,color:#e2e8f0;
+  classDef poke fill:#7f1d1d,stroke:#fca5a5,color:#fee2e2;
+  class cc,uc,dc,ca,ua,da disc
+  class bc,ba poke
+              </pre>
+              <p class="text-xs text-slate-400 mt-2">
+                Six mutations are hand-written <em>only</em> to append one poke line; a source-scanning
+                test re-parses Rust to prove the line is present.
+              </p>
+            </div>
+            <!-- after -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">After — rule = one deep module</div>
+              <pre class="mermaid">
+flowchart TB
+  subgraph deep["crud_with_poke!(Bmc, Channel)<br/>mutation + its poke, paired"]
+    direction TB
+    m[create · update · delete] --> p[[poke this entity's list feed]]
+  end
+  conv[[conv_rpc]] --> deep
+  agent[[agent_rpc]] --> deep
+  tiny["guard shrinks to:<br/>one macro, tested once"]:::ok
+  deep -.-> tiny
+  classDef ok fill:#064e3b,stroke:#34d399,color:#d1fae5;
+  style deep fill:#1e293b,color:#e2e8f0,stroke:#94a3b8
+  style m fill:#0f172a,color:#e2e8f0,stroke:#334155
+  style p fill:#0f172a,color:#e2e8f0,stroke:#334155
+              </pre>
+              <p class="text-xs text-slate-400 mt-2">
+                A mutation cannot land without its poke — the pairing is the interface, not a checklist.
+                The six hand-written handlers collapse back to the macro.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="font-semibold text-slate-100">Problem.</span> The Poke rule lives as discipline in six hand-written mutations plus a ~270-line text-scanning guard — no module owns it.</p>
+            <p><span class="font-semibold text-slate-100">Solution.</span> Pair each mutation with its channel poke behind one interface, so the poke ships with the mutation.</p>
+          </div>
+
+          <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-emerald-400">
+            <li>locality: the poke lives in one module</li>
+            <li>leverage: one macro, every entity pokes</li>
+            <li>delete the ~270-line text guard</li>
+            <li>a new entity (Post, Caption) pokes for free</li>
+            <li>interface shrinks; the macro absorbs the trio</li>
+            <li>guard proves execution, not text presence</li>
+          </ul>
+
+          <div class="rounded bg-emerald-950/50 border border-emerald-800 px-3 py-2 text-sm text-emerald-200">
+            <span class="font-semibold text-emerald-100">Two adapters justify the seam — here there are three:</span>
+            <span class="font-mono">agents</span>, <span class="font-mono">convs</span>, and
+            <span class="font-mono">conv:{id}</span> pokes. The variation across the seam is real, not hypothetical.
+          </div>
+        </article>
+
+        <!-- =================================================================
+             CANDIDATE 2 — ONE SHARED FEED
+        ================================================================== -->
+        <article id="c2" class="space-y-6">
+          <div class="space-y-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-amber-300 bg-amber-900/50 px-2 py-0.5 rounded">Worth exploring</span>
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-200 bg-slate-700 px-2 py-0.5 rounded">ports &amp; adapters</span>
+              <span class="text-xs uppercase tracking-wider text-slate-500">Candidate 2</span>
+            </div>
+            <h2 class="font-serif text-2xl">One shared Feed per client, not one per view-model</h2>
+          </div>
+
+          <div class="font-mono text-sm text-slate-400 space-y-0.5">
+            <div>frontend/src/lib/websocket.ts <span class="text-slate-500">(useWebSocket — the port)</span></div>
+            <div>frontend/src/lib/conversationWorkspace.ts:157</div>
+            <div>frontend/src/lib/createConvMessages.ts:52 ← components/MessagePanel.tsx:17</div>
+            <div>frontend/src/routes/fullstack.tsx <span class="text-slate-500">(the authenticated boundary)</span></div>
+          </div>
+
+          <!-- BEFORE / AFTER -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before — two sockets per client</div>
+              <pre class="mermaid">
+flowchart TB
+  fs[fullstack.tsx] --> ws[conversationWorkspace]
+  fs --> mp[MessagePanel]
+  ws -->|useWebSocket| s1["Socket #1<br/>subs: agents, convs<br/>own reconnect + back-off"]
+  mp -->|useWebSocket| s2["Socket #2<br/>subs: conv:{id}<br/>own reconnect + back-off"]
+  s1 --> be[("/ws")]
+  s2 --> be
+  classDef dup fill:#7f1d1d,stroke:#fca5a5,color:#fee2e2;
+  class s1,s2 dup
+              </pre>
+              <p class="text-xs text-slate-400 mt-2">
+                Each view-model calls <span class="font-mono">useWebSocket</span> itself, so an
+                authenticated tab dials <span class="font-mono">/ws</span> twice — two lots of
+                reconnect, back-off, and subscription replay.
+              </p>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">After — one adapter, provided</div>
+              <pre class="mermaid">
+flowchart TB
+  fs["fullstack.tsx<br/>useWebSocket() once"] --> feed
+  subgraph feed["shared MessageFeed adapter"]
+    one["Socket · subs: agents, convs, conv:{id}<br/>reconnect + back-off once"]
+  end
+  ws[conversationWorkspace] -->|feed dep| feed
+  mp[MessagePanel] -->|feed dep| feed
+  feed --> be[("/ws")]
+  style feed fill:#1e293b,color:#e2e8f0,stroke:#94a3b8
+  style one fill:#0f172a,color:#e2e8f0,stroke:#334155
+              </pre>
+              <p class="text-xs text-slate-400 mt-2">
+                The port already exists — both view-models accept <span class="font-mono">feed?</span>.
+                Create one adapter at the boundary (like <span class="font-mono">AuthProvider</span>) and pass it down.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="font-semibold text-slate-100">Problem.</span> The Feed adapter is instantiated per view-model, so one client holds two live sockets, each with its own reconnect machinery.</p>
+            <p><span class="font-semibold text-slate-100">Solution.</span> Instantiate one <span class="font-mono">MessageFeed</span> at the authenticated boundary and inject it through the seam both view-models already accept.</p>
+          </div>
+
+          <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-amber-400">
+            <li>one socket per client, not two</li>
+            <li>locality: reconnect + back-off run once</li>
+            <li>leverage: the port already exists</li>
+            <li>fewer connections for #91 rate-limiting</li>
+            <li>tests unchanged — same <span class="font-mono">feed</span> seam</li>
+          </ul>
+
+          <div class="rounded bg-amber-950/50 border border-amber-800 px-3 py-2 text-sm text-amber-200">
+            <span class="font-semibold text-amber-100">Compatible with ADR-0015.</span>
+            One connection still subscribes per-channel and is authorized per-channel at subscribe-time;
+            sharing the socket does not widen the push scope.
+          </div>
+        </article>
+
+        <!-- =================================================================
+             CANDIDATE 3 — FRONT-END CHANNEL MODULE
+        ================================================================== -->
+        <article id="c3" class="space-y-6">
+          <div class="space-y-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-amber-300 bg-amber-900/50 px-2 py-0.5 rounded">Worth exploring</span>
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-200 bg-slate-700 px-2 py-0.5 rounded">in-process</span>
+              <span class="text-xs uppercase tracking-wider text-slate-500">Candidate 3</span>
+            </div>
+            <h2 class="font-serif text-2xl">Mirror the back-end <span class="font-mono text-xl">Channel</span> on the front-end</h2>
+          </div>
+
+          <div class="font-mono text-sm text-slate-400 space-y-0.5">
+            <div>frontend/src/lib/websocket.ts <span class="text-slate-500">(subscribe(channel: string, id?))</span></div>
+            <div>frontend/src/lib/conversationWorkspace.ts:174-175 <span class="text-slate-500">("agents" · "convs")</span></div>
+            <div>frontend/src/lib/createConvMessages.ts:65,80 <span class="text-slate-500">("conv")</span></div>
+            <div class="text-slate-500">↔ backend/…/web/routes_ws.rs <span>(the Channel enum)</span></div>
+          </div>
+
+          <!-- BEFORE / AFTER : hand-built mass/contrast -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- before: asymmetry -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before — typed one side, strings the other</div>
+              <div class="grid grid-cols-2 gap-3 items-stretch text-center" style="min-height:300px">
+                <!-- backend deep -->
+                <div class="flex flex-col">
+                  <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">back-end</div>
+                  <div class="deep text-slate-100 rounded-md flex-1 flex flex-col justify-center gap-2 p-3">
+                    <div class="text-xs uppercase tracking-wider text-slate-400">Channel</div>
+                    <div class="font-mono text-xs space-y-1 text-slate-200">
+                      <div>parse()</div><div>key()</div><div>authorize()</div>
+                    </div>
+                    <div class="text-[10px] text-slate-400 mt-1">“the one place <span class="lit">conv:{id}</span> lives”</div>
+                  </div>
+                </div>
+                <!-- frontend scattered -->
+                <div class="flex flex-col">
+                  <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">front-end</div>
+                  <div class="flex-1 flex flex-col justify-center gap-2">
+                    <div class="border border-slate-700 rounded px-2 py-1 font-mono text-xs text-slate-200">"agents"</div>
+                    <div class="border border-slate-700 rounded px-2 py-1 font-mono text-xs text-slate-200">"convs"</div>
+                    <div class="border border-slate-700 rounded px-2 py-1 font-mono text-xs text-slate-200">"conv", id</div>
+                    <div class="border border-red-800 bg-red-950/60 rounded px-2 py-1 font-mono text-xs text-red-300">"agent" ⟶ silent no-op</div>
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-slate-400 mt-2">
+                A front-end typo can't be caught — <span class="font-mono">Channel::parse</span> returns
+                <span class="font-mono">None</span> for an unknown kind, so the client just receives nothing.
+              </p>
+            </div>
+            <!-- after: symmetry -->
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">After — one small module names them</div>
+              <div class="flex flex-col text-center" style="min-height:300px">
+                <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">front-end</div>
+                <div class="deep text-slate-100 rounded-md flex flex-col justify-center gap-2 p-3 mb-3">
+                  <div class="text-xs uppercase tracking-wider text-slate-400">Channel</div>
+                  <div class="font-mono text-xs text-slate-200 space-y-1">
+                    <div>Channel.agents</div><div>Channel.convs</div><div>Channel.conv(id)</div>
+                  </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-[11px] font-mono text-slate-400">
+                  <div class="border border-slate-700 rounded px-1 py-1">workspace</div>
+                  <div class="border border-slate-700 rounded px-1 py-1">messages</div>
+                  <div class="border border-slate-700 rounded px-1 py-1">socket</div>
+                </div>
+                <div class="text-xs text-slate-400 mt-3">call sites name a Channel; a typo is a type error.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="font-semibold text-slate-100">Problem.</span> Channel names are a typed enum on the back-end but bare string literals scattered across front-end call sites.</p>
+            <p><span class="font-semibold text-slate-100">Solution.</span> Mint a small front-end <span class="font-mono">Channel</span> module (<span class="font-mono">agents</span>, <span class="font-mono">convs</span>, <span class="font-mono">conv(id)</span>) that mirrors the back-end.</p>
+          </div>
+
+          <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-amber-400">
+            <li>locality: channel names in one module</li>
+            <li>a typo becomes a type error</li>
+            <li>leverage: one module, every subscriber</li>
+            <li>symmetry with the back-end <span class="font-mono">Channel</span></li>
+          </ul>
+
+          <div class="rounded bg-amber-950/50 border border-amber-800 px-3 py-2 text-sm text-amber-200">
+            <span class="font-semibold text-amber-100">Complements AR C02.</span>
+            The back-end already gave the routing key a <span class="font-mono">Channel</span> type (commit <span class="font-mono">5660782</span>).
+            This is the front-end mirror — the smaller, cheaper half of that seam.
+          </div>
+        </article>
+
+        <!-- =================================================================
+             CANDIDATE 4 — SELECTABLE-LIST (SPECULATIVE, CAVEATED)
+        ================================================================== -->
+        <article id="c4" class="space-y-6">
+          <div class="space-y-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-200 bg-slate-700 px-2 py-0.5 rounded">Speculative</span>
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-200 bg-slate-700 px-2 py-0.5 rounded">in-process</span>
+              <span class="text-xs uppercase tracking-wider text-slate-500">Candidate 4</span>
+            </div>
+            <h2 class="font-serif text-2xl">The selectable-list shape, repeated for Agent and Conversation</h2>
+          </div>
+
+          <div class="font-mono text-sm text-slate-400 space-y-0.5">
+            <div>frontend/src/lib/conversationWorkspace.ts <span class="text-slate-500">(interface lines 15–49)</span></div>
+            <div class="text-slate-500">agents block :122-202 · convs block :134-212</div>
+          </div>
+
+          <!-- BEFORE / AFTER : mass diagram, wide interface -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before — ~24-member interface, paired</div>
+              <div class="flex gap-2 items-end justify-center" style="min-height:300px">
+                <div class="text-center">
+                  <div class="w-28 bg-slate-600 rounded-t" style="height:210px"></div>
+                  <div class="text-[10px] uppercase tracking-wider text-slate-400 mt-1">interface</div>
+                  <div class="text-[10px] text-slate-500">agents* / convs* pairs</div>
+                </div>
+                <div class="text-center">
+                  <div class="w-28 deep rounded-t" style="height:250px"></div>
+                  <div class="text-[10px] uppercase tracking-wider text-slate-400 mt-1">implementation</div>
+                </div>
+              </div>
+              <p class="text-xs text-slate-400 mt-2">
+                Each half repeats resource → <span class="font-mono">sortByLabel</span> → create via
+                <span class="font-mono">createRpcAction</span> → refetch → select. The interface is wide
+                with near-identical <span class="font-mono">agent*/conv*</span> pairs.
+              </p>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">After — one createSelectableList&lt;T&gt;?</div>
+              <div class="flex gap-2 items-end justify-center" style="min-height:300px">
+                <div class="text-center">
+                  <div class="w-28 bg-slate-600 rounded-t" style="height:90px"></div>
+                  <div class="text-[10px] uppercase tracking-wider text-slate-400 mt-1">interface</div>
+                  <div class="text-[10px] text-slate-500">one generic + 2 configs</div>
+                </div>
+                <div class="text-center">
+                  <div class="w-28 deep rounded-t" style="height:250px"></div>
+                  <div class="text-[10px] uppercase tracking-wider text-slate-400 mt-1">implementation</div>
+                </div>
+              </div>
+              <p class="text-xs text-slate-400 mt-2">
+                A generic <span class="font-mono">createSelectableList</span> owning resource + reconcile
+                + select + create — <em>if</em> the two halves truly share a shape.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="font-semibold text-slate-100">Problem.</span> Agent and Conversation each repeat the resource/select/create shape; the interface exposes ~24 members in matched pairs.</p>
+            <p><span class="font-semibold text-slate-100">Solution.</span> Consider a <span class="font-mono">createSelectableList&lt;T&gt;</span> deep sub-module the two halves configure.</p>
+          </div>
+
+          <div class="rounded bg-rose-950/50 border border-rose-800 px-3 py-2.5 text-sm text-rose-200">
+            <span class="font-semibold text-rose-100">Caveat — may be a false economy.</span>
+            The halves diverge: the conv resource keys on the selected Agent <em>and</em> <span class="font-mono">showArchived</span>;
+            the agent side carries a delete-cascade selection collapse the conv side lacks. Forcing a shared
+            generic could add complexity, not concentrate it — the deletion test may come back “just moves it.”
+            Flagged Speculative for exactly that reason; worth a design-it-twice pass before any change.
+          </div>
+        </article>
+
+      </section>
+
+      <!-- ============================ TOP RECOMMENDATION ============================ -->
+      <section id="top-recommendation" class="space-y-4">
+        <h2 class="font-serif text-3xl tracking-tight">Top recommendation</h2>
+        <a href="#c1" class="block rounded-xl deep text-slate-100 p-6 md:p-8 no-underline ring-1 ring-slate-700 hover:ring-2 hover:ring-emerald-400 transition">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-emerald-300 bg-emerald-900/60 px-2 py-0.5 rounded">Strong</span>
+            <span class="text-xs uppercase tracking-wider text-slate-400">Candidate 1 →</span>
+          </div>
+          <h3 class="font-serif text-2xl mb-2">Give the Poke rule a structural home</h3>
+          <p class="text-slate-300 max-w-3xl">
+            It sits on the hottest files, and the ~270-line text-scanning guard is prima-facie proof of a
+            missing seam: a domain rule with no module to own it. Three real pokes justify the seam. Deepen it
+            and six hand-written mutations collapse to a macro, the guard shrinks to one tested pairing, and the
+            next entity pokes for free — the clearest <span class="italic">locality</span> and
+            <span class="italic">leverage</span> win of the four.
+          </p>
+        </a>
+      </section>
+
+      <footer class="text-xs text-slate-500 pt-4 border-t border-slate-800">
+        Generated for branch <span class="font-mono">Arch-review-8-29-26</span> · terms from
+        <span class="font-mono">CONTEXT.md</span> + <span class="font-mono">/codebase-design</span> · no proposed interfaces yet.
+      </footer>
+    </main>
+  </body>
+</html>
