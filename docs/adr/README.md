@@ -26,3 +26,4 @@ flat "what has been decided" view.
 | [0014](0014-backend-row-scoped-authorization-seam.md) | Row-scoped authorization lives in a per-Bmc `access_scope` hook | Accepted |
 | [0015](0015-realtime-push-authorization-at-subscribe-time.md) | Realtime push authorization lives at subscribe-time, reusing the read scope | Accepted |
 | [0016](0016-poke-rule-typed-receipt.md) | The Poke rule is enforced by a typed poke receipt, not a source-scan guard | Accepted |
+| [0017](0017-shared-client-feed-multiplexed.md) | One client Feed, shared across view-models | Accepted |

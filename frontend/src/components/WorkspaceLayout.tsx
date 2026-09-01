@@ -1,10 +1,14 @@
 import { useDisclosure } from "~/lib/useDisclosure";
 import type { ConversationWorkspace } from "~/lib/conversationWorkspace";
+import type { MessageFeedFactory } from "~/lib/websocket";
 import ConversationTree from "~/components/ConversationTree";
 import MessagePanel from "~/components/MessagePanel";
 
 export interface WorkspaceLayoutProps {
   ws: ConversationWorkspace;
+  /** The one shared Feed for this client (ADR-0017), threaded to MessagePanel.
+   *  Defaults to the live socket when absent (a view-model used standalone). */
+  feed?: MessageFeedFactory;
 }
 
 /**
@@ -47,7 +51,7 @@ export default function WorkspaceLayout(props: WorkspaceLayoutProps) {
         </div>
 
         <div class="card-style p-4 md:col-span-3">
-          <MessagePanel conv={props.ws.selectedConv()} />
+          <MessagePanel conv={props.ws.selectedConv()} feed={props.feed} />
         </div>
       </div>
     </div>

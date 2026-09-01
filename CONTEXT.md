@@ -103,12 +103,14 @@ what it carries.
 
 **Feed**:
 The live stream a User's client receives Conversation Events on, without polling.
+One per client: every view a client shows shares the single Feed.
 Access-scoped: a client receives an Event only for a Channel it holds a
 Subscription to.
 _Avoid_: socket (as the concept), push.
 _BE_: a WebSocket at `GET /ws` (auth-required); one broadcast fans Events to all
 connections, each filtered to its Subscriptions (`web/routes_ws.rs`).
-_FE_: the `MessageFeed` port (`lib/websocket.ts`).
+_FE_: the `MessageFeed` port (`lib/websocket.ts`); one shared Feed per client,
+consumed by each view ([ADR-0017](docs/adr/0017-shared-client-feed-multiplexed.md)).
 
 **Channel**:
 The routing key an Event is addressed to and a Subscription names. One
