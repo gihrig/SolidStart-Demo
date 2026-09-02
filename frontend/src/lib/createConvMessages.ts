@@ -2,6 +2,7 @@ import { createSignal, createEffect } from "solid-js";
 import { backendRpc, type ConvMsgClient } from "~/lib/backend-rpc";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { useWebSocket, type MessageFeedFactory } from "~/lib/websocket";
+import { Channel } from "~/lib/channel";
 import type { Conv, ConvMsg } from "~/types/backend";
 
 /** The live-message protocol for one conversation, behind a small interface. */
@@ -62,7 +63,7 @@ export function createConvMessages(
     const c = conv();
     if (!c) return;
     listStale = false;
-    subscribe("conv", c.id);
+    subscribe(Channel.conv(c.id));
     setMessages([]);
     convMsgApi
       .list(c.id)
@@ -77,7 +78,7 @@ export function createConvMessages(
   // Unsubscribe from the previous conversation on change / cleanup.
   createEffect((prevConvId: number | null) => {
     const currentConvId = conv()?.id ?? null;
-    if (prevConvId && prevConvId !== currentConvId) unsubscribe("conv", prevConvId);
+    if (prevConvId && prevConvId !== currentConvId) unsubscribe(Channel.conv(prevConvId));
     return currentConvId;
   }, null);
 

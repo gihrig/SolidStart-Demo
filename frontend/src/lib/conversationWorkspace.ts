@@ -3,6 +3,7 @@ import { createStore, reconcile } from "solid-js/store";
 import { backendRpc, type WorkspaceRpcClient } from "~/lib/backend-rpc";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { useWebSocket, type MessageFeedFactory } from "~/lib/websocket";
+import { Channel } from "~/lib/channel";
 import type { Agent, Conv, ConvState } from "~/types/backend";
 
 /**
@@ -174,8 +175,8 @@ export function createConversationWorkspace(
       }),
     onConvUpdate: () => void refetchConvs(),
   });
-  feed.subscribe("agents");
-  feed.subscribe("convs");
+  feed.subscribe(Channel.agents);
+  feed.subscribe(Channel.convs);
 
   const selectAgent = (agent: Agent) => {
     // Accordion toggle: re-selecting the open agent collapses it back to none;

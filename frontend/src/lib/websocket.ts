@@ -1,5 +1,6 @@
 import { createSignal, onCleanup, onMount } from "solid-js";
 import type { WsEvent, ConvMsg } from "~/types/backend";
+import type { Channel } from "~/lib/channel";
 
 const WS_URL = "ws://localhost:8080/ws";
 
@@ -30,8 +31,8 @@ export interface MessageFeedOptions {
 /** The slice of a live socket a message view actually consumes. */
 export interface MessageFeed {
   connected: () => boolean;
-  subscribe: (channel: string, id?: number) => void;
-  unsubscribe: (channel: string, id?: number) => void;
+  subscribe: (channel: Channel) => void;
+  unsubscribe: (channel: Channel) => void;
 }
 
 /** Port: live socket in prod, in-memory adapter in tests. A Feed factory satisfies it. */
@@ -78,32 +79,32 @@ export function createFeed(): MessageFeedFactory {
   // socket must re-subscribe or it silently receives nothing. The count tells the
   // server only at the edges, so overlapping consumers never cut each other's
   // Channel.
-  const desired = new Map<string, { channel: string; id?: number; count: number }>();
-  const subKey = (channel: string, id?: number) => `${channel}:${id ?? ""}`;
-  const sendSub = (action: "subscribe" | "unsubscribe", channel: string, id?: number) => {
+  const desired = new Map<string, { channel: Channel; count: number }>();
+  const subKey = (channel: Channel) => `${channel.kind}:${channel.id ?? ""}`;
+  const sendSub = (action: "subscribe" | "unsubscribe", channel: Channel) => {
     if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ action, channel, id }));
+      ws.send(JSON.stringify({ action, channel: channel.kind, id: channel.id }));
     }
   };
 
   // First holder subscribes on the wire; a later holder just bumps the count.
-  const holdSub = (channel: string, id?: number) => {
-    const entry = desired.get(subKey(channel, id));
+  const holdSub = (channel: Channel) => {
+    const entry = desired.get(subKey(channel));
     if (entry) {
       entry.count += 1;
       return;
     }
-    desired.set(subKey(channel, id), { channel, id, count: 1 });
-    sendSub("subscribe", channel, id);
+    desired.set(subKey(channel), { channel, count: 1 });
+    sendSub("subscribe", channel);
   };
   // Last holder unsubscribes on the wire; earlier releases just drop the count.
-  const releaseSub = (channel: string, id?: number) => {
-    const entry = desired.get(subKey(channel, id));
+  const releaseSub = (channel: Channel) => {
+    const entry = desired.get(subKey(channel));
     if (!entry) return;
     entry.count -= 1;
     if (entry.count > 0) return;
-    desired.delete(subKey(channel, id));
-    sendSub("unsubscribe", channel, id);
+    desired.delete(subKey(channel));
+    sendSub("unsubscribe", channel);
   };
 
   const fail = (message: string) => {
@@ -121,8 +122,8 @@ export function createFeed(): MessageFeedFactory {
         // A successful connection resets the back-off.
         retryCount = 0;
         // Replay desired subscriptions onto the (re)connected socket, once per key.
-        for (const { channel, id } of desired.values()) {
-          sendSub("subscribe", channel, id);
+        for (const { channel } of desired.values()) {
+          sendSub("subscribe", channel);
         }
       };
 
@@ -184,17 +185,17 @@ export function createFeed(): MessageFeedFactory {
     // and a repeated subscribe of the same Channel is idempotent per view.
     const held = new Set<string>();
 
-    const subscribe = (channel: string, id?: number) => {
-      const key = subKey(channel, id);
+    const subscribe = (channel: Channel) => {
+      const key = subKey(channel);
       if (held.has(key)) return;
       held.add(key);
-      holdSub(channel, id);
+      holdSub(channel);
     };
 
-    const unsubscribe = (channel: string, id?: number) => {
-      const key = subKey(channel, id);
+    const unsubscribe = (channel: Channel) => {
+      const key = subKey(channel);
       if (!held.delete(key)) return;
-      releaseSub(channel, id);
+      releaseSub(channel);
     };
 
     onCleanup(() => {
@@ -202,7 +203,7 @@ export function createFeed(): MessageFeedFactory {
       // itself is torn down by the Feed's own `onCleanup`, at the boundary.
       for (const key of held) {
         const entry = desired.get(key);
-        if (entry) releaseSub(entry.channel, entry.id);
+        if (entry) releaseSub(entry.channel);
       }
       held.clear();
       consumers.delete(options);

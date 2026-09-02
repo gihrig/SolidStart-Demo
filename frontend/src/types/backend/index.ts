@@ -10,6 +10,7 @@ import type { ConvMsg as ConvMsgWire } from "~backend-bindings/ConvMsg.d";
 import type { ConvUser as ConvUserWire } from "~backend-bindings/ConvUser.d";
 import type { User as UserWire } from "~backend-bindings/User.d";
 import type { WsEvent as WsEventWire } from "~backend-bindings/WsEvent.d";
+import type { ChannelKind } from "~backend-bindings/ChannelKind.d";
 
 /** Rewrite a binding's bigint id fields to the number they already are at runtime. */
 type NumericIds<T> = { [K in keyof T]: T[K] extends bigint ? number : T[K] };
@@ -21,6 +22,7 @@ export type ConvUser = NumericIds<ConvUserWire>;
 export type User = NumericIds<UserWire>;
 
 // String-union bindings carry no ids — re-export unchanged.
+export type { ChannelKind };
 export type { ConvKind } from "~backend-bindings/ConvKind.d";
 export type { ConvState } from "~backend-bindings/ConvState.d";
 export type { UserTyp } from "~backend-bindings/UserTyp.d";
@@ -106,12 +108,13 @@ export function isRpcError(response: JsonRpcResponse): response is JsonRpcErrorR
 }
 
 // WebSocket subscription request (client → server). The event envelope is the
-// generated `WsEvent` re-exported above; this request shape is declared here
-// because the backend `SubscriptionRequest` is not a ts-rs binding. `channel` is
-// `"conv"` (one Conversation, needs `id`) or the two id-less global list feeds
-// `"agents"` / `"convs"` (#85); the backend routes no other kind (ADR-0015).
+// generated `WsEvent` re-exported above; the `channel` kinds are the generated
+// `ChannelKind` (ADR-0018), which the front-end `Channel` module (`lib/channel.ts`)
+// builds its constructors on. `conv` names one Conversation (needs `id`); the
+// id-less global list feeds `agents` / `convs` do not (#85). The full request
+// struct stays hand-declared — only its `channel` vocabulary is a binding.
 export interface WsSubscription {
   action: "subscribe" | "unsubscribe";
-  channel: "conv" | "agents" | "convs";
+  channel: ChannelKind;
   id?: number;
 }
