@@ -4,6 +4,7 @@ import { makeAgent, makeConv } from "./conversationWorkspace.stub";
 import { createConversationWorkspace } from "./conversationWorkspace";
 import type { WorkspaceRpcClient } from "./backend-rpc";
 import type { MessageFeedFactory, MessageFeedOptions } from "~/lib/websocket";
+import { Channel } from "~/lib/channel";
 
 // The workspace is the seam: it owns selection + the create→refetch→select dance
 // + live list propagation, so the flow is tested here once, not through three
@@ -260,8 +261,8 @@ describe("createConversationWorkspace", () => {
       const rpc = createFakeRpc();
       await createRoot(async (dispose) => {
         createConversationWorkspace({ feed: feed.factory, rpc: rpc.rpc });
-        expect(feed.subscribe).toHaveBeenCalledWith("agents");
-        expect(feed.subscribe).toHaveBeenCalledWith("convs");
+        expect(feed.subscribe).toHaveBeenCalledWith(Channel.agents);
+        expect(feed.subscribe).toHaveBeenCalledWith(Channel.convs);
         dispose();
       });
     });

@@ -103,12 +103,14 @@ what it carries.
 
 **Feed**:
 The live stream a User's client receives Conversation Events on, without polling.
+One per client: every view a client shows shares the single Feed.
 Access-scoped: a client receives an Event only for a Channel it holds a
 Subscription to.
 _Avoid_: socket (as the concept), push.
 _BE_: a WebSocket at `GET /ws` (auth-required); one broadcast fans Events to all
 connections, each filtered to its Subscriptions (`web/routes_ws.rs`).
-_FE_: the `MessageFeed` port (`lib/websocket.ts`).
+_FE_: the `MessageFeed` port (`lib/websocket.ts`); one shared Feed per client,
+consumed by each view ([ADR-0017](docs/adr/0017-shared-client-feed-multiplexed.md)).
 
 **Channel**:
 The routing key an Event is addressed to and a Subscription names. One
@@ -116,9 +118,13 @@ Conversation's is `conv:{id}`. Two id-less global list feeds also exist: `agents
 and `convs`, each a contentless "poke" that some Agent list or Conversation list
 may have changed (#85); a subscriber refetches through the scoped `list_*` RPC,
 so no row crosses the push path. Distinct from the planned Agent → **Topic**
-rename (#31): a Channel routes live Events; a Topic groups Threads.
+rename (#31): a Channel routes live Events; a Topic groups Threads. A channel
+string tracks its entity's domain name, so when Agent → **Topic** and `Conv*` →
+`Thread*` land, `agents` / `convs` / `conv` rename with them
+([ADR-0018](docs/adr/0018-channel-strings-track-domain-names.md)).
 _Avoid_: topic (that names the Agent rename); room.
-_BE_: `WsEvent.channel` (and `SubscriptionRequest.channel` + `id`).
+_BE_: `WsEvent.channel` (derived from the variant) and the inbound `SubscriptionRequest.channel` — now the ts-rs-exported `ChannelKind` enum, not a bare string (ADR-0018).
+_FE_: the `Channel` module (`lib/channel.ts`): `conv(id)` / `agents` / `convs` constructors over the generated `ChannelKind`; `subscribe` / `unsubscribe` take a `Channel`.
 
 **Subscription**:
 A client's standing request to receive Events on a Channel; permitted only for a
@@ -282,6 +288,7 @@ token rename — see the Jedi `_Brand_` note; both are parked in #31.)
 | `UserTyp` values `Sys` / `User`                    | `admin` / `standard`                                         | tier values                    |
 | `ConvKind` values `OwnerOnly` / `MultiUsers`       | `Private` / `Public`                                         | access scope                   |
 | `Conv` `ConvMsg` `ConvUser` `ConvKind` `ConvState` | `Thread` `ThreadMsg` `ThreadUser` `ThreadKind` `ThreadState` | the `Conv*` family → `Thread*` |
+| `ChannelKind` values `conv` / `agents` / `convs`   | `thread` / `topics` / `threads`                             | channels track their entity (ADR-0018) |
 
 ## Front-end surface
 

@@ -53,10 +53,28 @@ impl WsEvent {
 	}
 }
 
+/// The Channel *kind* a Subscription names — the wire vocabulary. ts-rs exports it
+/// so the front-end mirrors these names instead of hand-typing them (ADR-0018); as
+/// a typed field on [`SubscriptionRequest`] it also makes an unknown kind a
+/// deserialize error, not a silent miss. `conv` names one Conversation's Event
+/// stream and needs an `id`; `agents` and `convs` are the two id-less global
+/// list-feed pokes (#85). Distinct from [`Channel`], which pairs a kind with its id
+/// and owns the routing-key and authorize logic.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, TS)]
+#[ts(export, export_to = "ChannelKind.d.ts")]
+enum ChannelKind {
+	#[serde(rename = "conv")]
+	Conv,
+	#[serde(rename = "agents")]
+	Agents,
+	#[serde(rename = "convs")]
+	Convs,
+}
+
 #[derive(Debug, Deserialize)]
 struct SubscriptionRequest {
-	action: String,  // "subscribe" | "unsubscribe"
-	channel: String, // "conv"
+	action: String, // "subscribe" | "unsubscribe"
+	channel: ChannelKind,
 	id: Option<i64>,
 }
 
@@ -123,15 +141,14 @@ enum Channel {
 }
 
 impl Channel {
-	/// Parse a subscription request into a Channel, or `None` for an unknown
-	/// kind or a missing id. The one boundary where a wire string becomes a
-	/// Channel; an unknown kind is ignored rather than errored.
+	/// Pair a subscription request's [`ChannelKind`] with its id, or `None` when a
+	/// `conv` request omits the id. An unknown kind cannot reach here — serde
+	/// rejects it while deserializing `SubscriptionRequest` (ADR-0018).
 	fn parse(req: &SubscriptionRequest) -> Option<Self> {
-		match req.channel.as_str() {
-			"conv" => req.id.map(Channel::Conv),
-			"agents" => Some(Channel::Agents),
-			"convs" => Some(Channel::Convs),
-			_ => None,
+		match req.channel {
+			ChannelKind::Conv => req.id.map(Channel::Conv),
+			ChannelKind::Agents => Some(Channel::Agents),
+			ChannelKind::Convs => Some(Channel::Convs),
 		}
 	}
 
@@ -253,7 +270,7 @@ async fn handle_socket(
 						serde_json::from_str::<SubscriptionRequest>(&text)
 					{
 						debug!(
-							"Subscription request: action={}, channel={}, id={:?}",
+							"Subscription request: action={}, channel={:?}, id={:?}",
 							req.action, req.channel, req.id
 						);
 						match req.action.as_str() {
@@ -350,10 +367,14 @@ mod tests {
 	use lib_core::model::conv::{ConvForCreate, ConvKind};
 	use serial_test::serial;
 
-	fn sub(action: &str, channel: &str, id: Option<i64>) -> SubscriptionRequest {
+	fn sub(
+		action: &str,
+		channel: ChannelKind,
+		id: Option<i64>,
+	) -> SubscriptionRequest {
 		SubscriptionRequest {
 			action: action.to_string(),
-			channel: channel.to_string(),
+			channel,
 			id,
 		}
 	}
@@ -378,31 +399,47 @@ mod tests {
 	#[test]
 	fn channel_key_conv_requires_id() {
 		assert_eq!(
-			channel_key(&sub("subscribe", "conv", Some(5))),
+			channel_key(&sub("subscribe", ChannelKind::Conv, Some(5))),
 			Some("conv:5".to_string())
 		);
-		assert_eq!(channel_key(&sub("subscribe", "conv", None)), None);
+		assert_eq!(
+			channel_key(&sub("subscribe", ChannelKind::Conv, None)),
+			None
+		);
 	}
 
 	#[test]
-	fn channel_key_rejects_unknown_kind() {
-		assert_eq!(channel_key(&sub("subscribe", "agent", Some(1))), None);
-		assert_eq!(channel_key(&sub("subscribe", "", Some(1))), None);
+	fn unknown_channel_kind_fails_to_deserialize() {
+		// `channel` is a typed `ChannelKind`, so an unknown kind is rejected while
+		// deserializing the request — it never reaches `parse` (ADR-0018). A known
+		// kind still deserializes.
+		assert!(serde_json::from_str::<SubscriptionRequest>(
+			r#"{"action":"subscribe","channel":"agent","id":1}"#
+		)
+		.is_err());
+		assert!(serde_json::from_str::<SubscriptionRequest>(
+			r#"{"action":"subscribe","channel":"","id":1}"#
+		)
+		.is_err());
+		assert!(serde_json::from_str::<SubscriptionRequest>(
+			r#"{"action":"subscribe","channel":"conv","id":1}"#
+		)
+		.is_ok());
 	}
 
 	#[test]
 	fn channel_key_list_feeds_are_idless() {
 		// The two global list-feed channels carry no id; a stray id is ignored.
 		assert_eq!(
-			channel_key(&sub("subscribe", "agents", None)),
+			channel_key(&sub("subscribe", ChannelKind::Agents, None)),
 			Some("agents".to_string())
 		);
 		assert_eq!(
-			channel_key(&sub("subscribe", "agents", Some(7))),
+			channel_key(&sub("subscribe", ChannelKind::Agents, Some(7))),
 			Some("agents".to_string())
 		);
 		assert_eq!(
-			channel_key(&sub("subscribe", "convs", None)),
+			channel_key(&sub("subscribe", ChannelKind::Convs, None)),
 			Some("convs".to_string())
 		);
 	}
@@ -457,6 +494,25 @@ mod tests {
 		let v = serde_json::to_value(WsEvent::ConvMsg { payload: msg }).unwrap();
 		assert_eq!(v["event_type"].as_str(), Some("conv_msg"));
 		assert_eq!(v["payload"]["conv_id"].as_i64(), Some(7));
+	}
+
+	/// Wire-lock for the subscription vocabulary: `ChannelKind` serializes to the
+	/// exact kind strings the front-end mirror is built on (ADR-0018). A rename here
+	/// is a wire change; the ts-rs binding carries it to the front-end.
+	#[test]
+	fn channelkind_wire_shape_is_stable() {
+		assert_eq!(
+			serde_json::to_value(ChannelKind::Conv).unwrap(),
+			serde_json::json!("conv")
+		);
+		assert_eq!(
+			serde_json::to_value(ChannelKind::Agents).unwrap(),
+			serde_json::json!("agents")
+		);
+		assert_eq!(
+			serde_json::to_value(ChannelKind::Convs).unwrap(),
+			serde_json::json!("convs")
+		);
 	}
 
 	#[test]
@@ -538,7 +594,7 @@ mod tests {
 			authorize_subscription(
 				&ctx_b,
 				&mm,
-				&sub("subscribe", "conv", Some(multi_conv_id))
+				&sub("subscribe", ChannelKind::Conv, Some(multi_conv_id))
 			)
 			.await,
 			Some(format!("conv:{multi_conv_id}")),
@@ -548,28 +604,18 @@ mod tests {
 			authorize_subscription(
 				&ctx_b,
 				&mm,
-				&sub("subscribe", "conv", Some(owner_conv_id))
+				&sub("subscribe", ChannelKind::Conv, Some(owner_conv_id))
 			)
 			.await,
 			None,
 			"B must not subscribe to A's OwnerOnly conv",
-		);
-		// Unknown channel kind is refused.
-		assert_eq!(
-			authorize_subscription(
-				&ctx_b,
-				&mm,
-				&sub("subscribe", "agent", Some(agent_id))
-			)
-			.await,
-			None,
 		);
 		// A may subscribe to its own private conv.
 		assert_eq!(
 			authorize_subscription(
 				&ctx_a,
 				&mm,
-				&sub("subscribe", "conv", Some(owner_conv_id))
+				&sub("subscribe", ChannelKind::Conv, Some(owner_conv_id))
 			)
 			.await,
 			Some(format!("conv:{owner_conv_id}")),
@@ -578,13 +624,21 @@ mod tests {
 		// The list-feed channels are contentless pokes: any authenticated caller
 		// may subscribe (#85), so B is admitted to both without a DB scope check.
 		assert_eq!(
-			authorize_subscription(&ctx_b, &mm, &sub("subscribe", "agents", None))
-				.await,
+			authorize_subscription(
+				&ctx_b,
+				&mm,
+				&sub("subscribe", ChannelKind::Agents, None)
+			)
+			.await,
 			Some("agents".to_string()),
 		);
 		assert_eq!(
-			authorize_subscription(&ctx_b, &mm, &sub("subscribe", "convs", None))
-				.await,
+			authorize_subscription(
+				&ctx_b,
+				&mm,
+				&sub("subscribe", ChannelKind::Convs, None)
+			)
+			.await,
 			Some("convs".to_string()),
 		);
 

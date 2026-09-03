@@ -3,6 +3,7 @@ import { createRoot, createSignal } from "solid-js";
 import { createConvMessages } from "./createConvMessages";
 import type { ConvMsgClient } from "./backend-rpc";
 import type { MessageFeedFactory, MessageFeedOptions } from "~/lib/websocket";
+import { Channel } from "~/lib/channel";
 import type { Conv, ConvMsg } from "~/types/backend";
 
 // createConvMessages is the seam: history load, live merge, dedupe, and the
@@ -74,7 +75,7 @@ describe("createConvMessages", () => {
     await createRoot(async (dispose) => {
       const cm = createConvMessages(() => mockConv, { feed: feed.factory, convMsg: convMsg.api });
       await flush();
-      expect(feed.subscribe).toHaveBeenCalledWith("conv", mockConv.id);
+      expect(feed.subscribe).toHaveBeenCalledWith(Channel.conv(mockConv.id));
       expect(cm.messages().map((m) => m.content)).toEqual(["old"]);
       expect(cm.connected()).toBe(true);
       dispose();
@@ -263,8 +264,8 @@ describe("createConvMessages", () => {
 
       setConv(otherConv);
       await flush();
-      expect(feed.unsubscribe).toHaveBeenCalledWith("conv", mockConv.id);
-      expect(feed.subscribe).toHaveBeenCalledWith("conv", otherConv.id);
+      expect(feed.unsubscribe).toHaveBeenCalledWith(Channel.conv(mockConv.id));
+      expect(feed.subscribe).toHaveBeenCalledWith(Channel.conv(otherConv.id));
       expect(cm.messages().map((m) => m.content)).toEqual(["conv20"]);
       dispose();
     });

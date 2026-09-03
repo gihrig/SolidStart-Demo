@@ -4,6 +4,7 @@ import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import MessagePanel from "./MessagePanel";
 import type { MessageFeedFactory, MessageFeedOptions } from "~/lib/websocket";
+import { Channel } from "~/lib/channel";
 import type { Conv, ConvMsg } from "~/types/backend";
 
 const mockConv: Conv = {
@@ -80,7 +81,7 @@ describe("<MessagePanel />", () => {
   it("subscribes to the conversation channel on mount", async () => {
     const feed = createFakeFeed();
     render(() => <MessagePanel conv={mockConv} feed={feed.factory} />);
-    await waitFor(() => expect(feed.subscribe).toHaveBeenCalledWith("conv", mockConv.id));
+    await waitFor(() => expect(feed.subscribe).toHaveBeenCalledWith(Channel.conv(mockConv.id)));
   });
 
   it("unsubscribes from the previous conversation when conv changes", async () => {
@@ -91,7 +92,7 @@ describe("<MessagePanel />", () => {
 
     setConv(otherConv);
 
-    await waitFor(() => expect(feed.unsubscribe).toHaveBeenCalledWith("conv", mockConv.id));
+    await waitFor(() => expect(feed.unsubscribe).toHaveBeenCalledWith(Channel.conv(mockConv.id)));
   });
 
   it("calls convMsg.add with correct params on send", async () => {

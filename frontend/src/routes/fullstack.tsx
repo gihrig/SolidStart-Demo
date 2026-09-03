@@ -1,6 +1,7 @@
 import { Title } from "@solidjs/meta";
 import { Show, type Accessor } from "solid-js";
 import { createConversationWorkspace } from "~/lib/conversationWorkspace";
+import { createFeed } from "~/lib/websocket";
 import { useAuth } from "~/components/AuthContext";
 import LoginForm from "~/components/LoginForm";
 import WorkspaceLayout from "~/components/WorkspaceLayout";
@@ -15,7 +16,12 @@ interface AuthenticatedWorkspaceProps {
 // unauthenticated request that 401s and crashes the render. Logging out unmounts
 // this subtree, disposing the selection for free.
 function AuthenticatedWorkspace(props: AuthenticatedWorkspaceProps) {
-  const ws = createConversationWorkspace();
+  // One shared Feed per client (ADR-0017): create it once here, at the
+  // authenticated boundary, and inject it into both view-models — the workspace
+  // and (threaded through WorkspaceLayout) the message panel. So the client holds
+  // one socket, not one per view-model.
+  const feed = createFeed();
+  const ws = createConversationWorkspace({ feed });
 
   return (
     <>
@@ -26,7 +32,7 @@ function AuthenticatedWorkspace(props: AuthenticatedWorkspaceProps) {
         </button>
       </div>
 
-      <WorkspaceLayout ws={ws} />
+      <WorkspaceLayout ws={ws} feed={feed} />
     </>
   );
 }

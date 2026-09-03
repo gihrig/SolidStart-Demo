@@ -3,6 +3,7 @@ import { createStore, reconcile } from "solid-js/store";
 import { backendRpc, type WorkspaceRpcClient } from "~/lib/backend-rpc";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { useWebSocket, type MessageFeedFactory } from "~/lib/websocket";
+import { Channel } from "~/lib/channel";
 import type { Agent, Conv, ConvState } from "~/types/backend";
 
 /**
@@ -130,7 +131,10 @@ export function createConversationWorkspace(
   // `showArchived` refetches (and yields [] with no agent), so the list never
   // shows another agent's convs. Archived filtering is the back-end's (#25): the
   // default request is the working set; `includeArchived` asks for both states.
-  const convSource = () => ({ agent: selectedAgent(), includeArchived: showArchived() });
+  const convSource = () => ({
+    agent: selectedAgent(),
+    includeArchived: showArchived(),
+  });
   const [convs, { refetch: refetchConvs }] = createResource(
     convSource,
     async ({ agent, includeArchived }) => {
@@ -171,8 +175,8 @@ export function createConversationWorkspace(
       }),
     onConvUpdate: () => void refetchConvs(),
   });
-  feed.subscribe("agents");
-  feed.subscribe("convs");
+  feed.subscribe(Channel.agents);
+  feed.subscribe(Channel.convs);
 
   const selectAgent = (agent: Agent) => {
     // Accordion toggle: re-selecting the open agent collapses it back to none;
@@ -214,7 +218,7 @@ export function createConversationWorkspace(
   // Flip a Conversation's `state`, then refetch so the list reflects it. Pending
   // and error are keyed by conv id (not one shared action), so overlapping
   // operations never clear each other's spinner or failure. Only the update is
-  // failable to the caller: a refetch rejection is swallowed because the convs
+  // fallible to the caller: a refetch rejection is swallowed because the convs
   // feed poke (#25) and the resource's own error (convsError) already reconcile
   // the list — reporting it as an archive failure would be wrong (the mutation
   // persisted).

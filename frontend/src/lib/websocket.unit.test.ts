@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { renderHook } from "@solidjs/testing-library";
-import { useWebSocket } from "./websocket";
+import { useWebSocket, createFeed } from "./websocket";
+import { Channel } from "./channel";
 
 // Mock WebSocket. `useWebSocket` connects from onMount, which renderHook fires by
 // mounting the hook — so the socket appears at instances[0] with no public
@@ -137,7 +138,7 @@ describe("useWebSocket", () => {
     const ws = MockWebSocket.instances[0];
     ws.open();
 
-    result.subscribe("conv", 5);
+    result.subscribe(Channel.conv(5));
 
     expect(ws.send).toHaveBeenCalledWith(
       JSON.stringify({ action: "subscribe", channel: "conv", id: 5 }),
@@ -149,7 +150,10 @@ describe("useWebSocket", () => {
     const ws = MockWebSocket.instances[0];
     ws.open();
 
-    result.unsubscribe("conv", 5);
+    // Per-holder (ADR-0017): a view releases only a Channel it holds, so
+    // subscribe first, then the unsubscribe reaches the wire.
+    result.subscribe(Channel.conv(5));
+    result.unsubscribe(Channel.conv(5));
 
     expect(ws.send).toHaveBeenCalledWith(
       JSON.stringify({ action: "unsubscribe", channel: "conv", id: 5 }),
@@ -170,7 +174,7 @@ describe("useWebSocket", () => {
     const { result } = renderHook(() => useWebSocket());
     // Do NOT open — readyState stays 0.
 
-    result.subscribe("conv", 5);
+    result.subscribe(Channel.conv(5));
 
     expect(MockWebSocket.instances[0].send).not.toHaveBeenCalled();
   });
@@ -198,7 +202,7 @@ describe("useWebSocket", () => {
     const ws = MockWebSocket.instances[0];
 
     // Subscribing before open cannot send yet, but the intent is remembered.
-    result.subscribe("conv", 5);
+    result.subscribe(Channel.conv(5));
     expect(ws.send).not.toHaveBeenCalled();
 
     ws.open();
@@ -214,7 +218,7 @@ describe("useWebSocket", () => {
       const { result } = renderHook(() => useWebSocket());
       const first = MockWebSocket.instances[0];
       first.open();
-      result.subscribe("conv", 5);
+      result.subscribe(Channel.conv(5));
       expect(first.send).toHaveBeenCalledWith(
         JSON.stringify({ action: "subscribe", channel: "conv", id: 5 }),
       );
@@ -237,8 +241,8 @@ describe("useWebSocket", () => {
     const { result } = renderHook(() => useWebSocket());
     const ws = MockWebSocket.instances[0];
 
-    result.subscribe("conv", 5);
-    result.unsubscribe("conv", 5);
+    result.subscribe(Channel.conv(5));
+    result.unsubscribe(Channel.conv(5));
 
     ws.open();
 
@@ -313,5 +317,88 @@ describe("useWebSocket", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+// createFeed is the shared Feed (ADR-0017): one socket for the whole client, many
+// per-consumer views. useWebSocket above is just createFeed used for one consumer.
+describe("createFeed (one shared socket)", () => {
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    MockWebSocket.instances = [];
+    vi.stubGlobal("WebSocket", MockWebSocket);
+    errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    errorSpy.mockRestore();
+  });
+
+  it("opens a single socket for many consumers", () => {
+    renderHook(() => {
+      const feed = createFeed();
+      feed({});
+      feed({});
+      return feed;
+    });
+    expect(MockWebSocket.instances).toHaveLength(1);
+  });
+
+  it("fans a conv_msg out to every registered consumer", () => {
+    const a = vi.fn();
+    const b = vi.fn();
+    renderHook(() => {
+      const feed = createFeed();
+      feed({ onConvMsg: a });
+      feed({ onConvMsg: b });
+      return feed;
+    });
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+
+    const fakeMsg = { id: 1, conv_id: 7, content: "hi" };
+    ws.simulateMessage({ event_type: "conv_msg", payload: fakeMsg });
+
+    expect(a).toHaveBeenCalledWith(7, fakeMsg);
+    expect(b).toHaveBeenCalledWith(7, fakeMsg);
+  });
+
+  it("subscribes the server once when two views hold the same Channel", () => {
+    const { result } = renderHook(() => {
+      const feed = createFeed();
+      return { v1: feed({}), v2: feed({}) };
+    });
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+
+    result.v1.subscribe(Channel.conv(5));
+    result.v2.subscribe(Channel.conv(5));
+
+    expect(ws.send).toHaveBeenCalledTimes(1);
+    expect(ws.send).toHaveBeenCalledWith(
+      JSON.stringify({ action: "subscribe", channel: "conv", id: 5 }),
+    );
+  });
+
+  it("unsubscribes the server only when the last holder releases", () => {
+    const { result } = renderHook(() => {
+      const feed = createFeed();
+      return { v1: feed({}), v2: feed({}) };
+    });
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    result.v1.subscribe(Channel.conv(5));
+    result.v2.subscribe(Channel.conv(5));
+    ws.send.mockClear();
+
+    result.v1.unsubscribe(Channel.conv(5)); // one holder remains
+    expect(ws.send).not.toHaveBeenCalled();
+
+    result.v2.unsubscribe(Channel.conv(5)); // last holder releases
+    expect(ws.send).toHaveBeenCalledWith(
+      JSON.stringify({ action: "unsubscribe", channel: "conv", id: 5 }),
+    );
   });
 });

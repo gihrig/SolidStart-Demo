@@ -1,5 +1,6 @@
 import { createSignal, onCleanup, onMount } from "solid-js";
 import type { WsEvent, ConvMsg } from "~/types/backend";
+import type { Channel } from "~/lib/channel";
 
 const WS_URL = "ws://localhost:8080/ws";
 
@@ -9,7 +10,7 @@ const WS_URL = "ws://localhost:8080/ws";
 // remaining case — a mid-session token expiry, where the upgrade 401s and a
 // browser cannot read that status. Exponential from a 3s base, capped and
 // jittered, giving up after a bounded number of attempts (a new login remounts
-// this adapter with a fresh counter — the resume path). NOTE: cooperative client
+// this Feed with a fresh counter — the resume path). NOTE: cooperative client
 // robustness, not a security boundary — server-side connection rate-limiting is
 // tracked separately (#91 "Realtime hardening II").
 const RECONNECT_BASE_MS = 3000;
@@ -30,52 +31,85 @@ export interface MessageFeedOptions {
 /** The slice of a live socket a message view actually consumes. */
 export interface MessageFeed {
   connected: () => boolean;
-  subscribe: (channel: string, id?: number) => void;
-  unsubscribe: (channel: string, id?: number) => void;
+  subscribe: (channel: Channel) => void;
+  unsubscribe: (channel: Channel) => void;
 }
 
-/** Port: live socket in prod, in-memory adapter in tests. `useWebSocket` satisfies it. */
+/** Port: live socket in prod, in-memory adapter in tests. A Feed factory satisfies it. */
 export type MessageFeedFactory = (options: MessageFeedOptions) => MessageFeed;
 
 /**
- * The live WebSocket adapter behind the {@link MessageFeed} port. Connects on
- * mount (client only — `onMount` is the SSR guard, so no socket is opened during
- * server render) and reconnects with exponential back-off after an unintended
- * drop, pausing after {@link RECONNECT_MAX_RETRIES} consecutive failures.
- * Desired subscriptions are remembered and replayed on every (re)connect, since
- * the server authorizes per connection and default-denies (ADR-0015).
- * `conv_msg` events and errors reach the consumer through the registered
- * callbacks; a failure is also logged at this boundary via `console.error`.
+ * The one live **Feed** (CONTEXT.md) for a client: a single WebSocket every
+ * view-model shares, created once at the authenticated boundary
+ * (`routes/fullstack.tsx`) and injected through the `feed?` seam (ADR-0017).
+ * Connects on mount (client only — `onMount` is the SSR guard, so no socket is
+ * opened during server render) and reconnects with exponential back-off after an
+ * unintended drop, pausing after {@link RECONNECT_MAX_RETRIES} consecutive
+ * failures. Desired subscriptions are remembered and replayed on every
+ * (re)connect, since the server authorizes per connection and default-denies
+ * (ADR-0015).
  *
- * Its public surface is exactly `MessageFeed`: reconnect and disconnect stay
- * private (driven by the reconnect timer and `onCleanup`), and there is no
- * readable error signal — errors flow only through `onError`.
+ * It returns a {@link MessageFeedFactory}. Each `factory(options)` call registers
+ * that consumer's callbacks and returns a per-consumer {@link MessageFeed} view:
+ * - **Fan-out.** Every `conv_msg`/`agent_update`/`conv_update` Event, and every
+ *   error, reaches *all* registered consumers; each keeps its own guard.
+ * - **Per-holder subscriptions.** A view refcounts its own Channels, so the server
+ *   hears one `subscribe` at the first holder and one `unsubscribe` at the last —
+ *   an unsubscribe never cuts a Channel another view still holds. The view's
+ *   cleanup releases only what it held.
  */
-export function useWebSocket(options: MessageFeedOptions = {}): MessageFeed {
+export function createFeed(): MessageFeedFactory {
   const [connected, setConnected] = createSignal(false);
   let ws: WebSocket | null = null;
   let reconnectTimeout: number | null = null;
   // Set while we close on purpose (cleanup/disconnect) so the resulting
-  // `onclose` does not schedule a reconnect after the consumer is gone.
+  // `onclose` does not schedule a reconnect after the consumers are gone.
   let intentionalClose = false;
   // Consecutive failed reconnects; drives the back-off and the give-up cap. A
   // successful open resets it to 0.
   let retryCount = 0;
 
-  // Desired subscriptions, replayed on every (re)connect. The server authorizes
-  // per connection and default-denies (ADR-0015), so a fresh socket must
-  // re-subscribe or it silently receives nothing.
-  const desired = new Map<string, { channel: string; id?: number }>();
-  const subKey = (channel: string, id?: number) => `${channel}:${id ?? ""}`;
-  const sendSub = (action: "subscribe" | "unsubscribe", channel: string, id?: number) => {
+  // Registered consumers. Each view-model registers its own callbacks; every
+  // Event fans out to all of them. The per-consumer guard (e.g. the conv-id
+  // match) stays in the consumer.
+  const consumers = new Set<MessageFeedOptions>();
+
+  // Desired subscriptions with a holder count, replayed on every (re)connect. The
+  // server authorizes per connection and default-denies (ADR-0015), so a fresh
+  // socket must re-subscribe or it silently receives nothing. The count tells the
+  // server only at the edges, so overlapping consumers never cut each other's
+  // Channel.
+  const desired = new Map<string, { channel: Channel; count: number }>();
+  const subKey = (channel: Channel) => `${channel.kind}:${channel.id ?? ""}`;
+  const sendSub = (action: "subscribe" | "unsubscribe", channel: Channel) => {
     if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ action, channel, id }));
+      ws.send(JSON.stringify({ action, channel: channel.kind, id: channel.id }));
     }
+  };
+
+  // First holder subscribes on the wire; a later holder just bumps the count.
+  const holdSub = (channel: Channel) => {
+    const entry = desired.get(subKey(channel));
+    if (entry) {
+      entry.count += 1;
+      return;
+    }
+    desired.set(subKey(channel), { channel, count: 1 });
+    sendSub("subscribe", channel);
+  };
+  // Last holder unsubscribes on the wire; earlier releases just drop the count.
+  const releaseSub = (channel: Channel) => {
+    const entry = desired.get(subKey(channel));
+    if (!entry) return;
+    entry.count -= 1;
+    if (entry.count > 0) return;
+    desired.delete(subKey(channel));
+    sendSub("unsubscribe", channel);
   };
 
   const fail = (message: string) => {
     console.error(message);
-    options.onError?.(message);
+    for (const c of consumers) c.onError?.(message);
   };
 
   const connect = () => {
@@ -87,9 +121,9 @@ export function useWebSocket(options: MessageFeedOptions = {}): MessageFeed {
         setConnected(true);
         // A successful connection resets the back-off.
         retryCount = 0;
-        // Replay desired subscriptions onto the (re)connected socket.
-        for (const { channel, id } of desired.values()) {
-          sendSub("subscribe", channel, id);
+        // Replay desired subscriptions onto the (re)connected socket, once per key.
+        for (const { channel } of desired.values()) {
+          sendSub("subscribe", channel);
         }
       };
 
@@ -98,7 +132,7 @@ export function useWebSocket(options: MessageFeedOptions = {}): MessageFeed {
         if (intentionalClose) return;
         if (retryCount >= RECONNECT_MAX_RETRIES) {
           // Give up rather than retry a doomed upgrade forever (e.g. an expired
-          // session that keeps 401ing). A new login remounts this adapter with a
+          // session that keeps 401ing). A new login remounts this Feed with a
           // fresh counter — that is the resume path.
           fail(`WebSocket reconnect paused after ${RECONNECT_MAX_RETRIES} attempts`);
           return;
@@ -117,14 +151,14 @@ export function useWebSocket(options: MessageFeedOptions = {}): MessageFeed {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data) as WsEvent;
-          if (data.event_type === "conv_msg" && options.onConvMsg) {
+          if (data.event_type === "conv_msg") {
             // Narrowed by the discriminant: `payload` is a typed ConvMsg, no cast.
             const msg = data.payload;
-            options.onConvMsg(msg.conv_id, msg);
+            for (const c of consumers) c.onConvMsg?.(msg.conv_id, msg);
           } else if (data.event_type === "agent_update") {
-            options.onAgentUpdate?.();
+            for (const c of consumers) c.onAgentUpdate?.();
           } else if (data.event_type === "conv_update") {
-            options.onConvUpdate?.();
+            for (const c of consumers) c.onConvUpdate?.();
           }
         } catch (e) {
           console.error("Failed to parse WebSocket message:", e);
@@ -133,16 +167,6 @@ export function useWebSocket(options: MessageFeedOptions = {}): MessageFeed {
     } catch {
       fail("Failed to connect to WebSocket");
     }
-  };
-
-  const subscribe = (channel: string, id?: number) => {
-    desired.set(subKey(channel, id), { channel, id });
-    sendSub("subscribe", channel, id);
-  };
-
-  const unsubscribe = (channel: string, id?: number) => {
-    desired.delete(subKey(channel, id));
-    sendSub("unsubscribe", channel, id);
   };
 
   const disconnect = () => {
@@ -155,5 +179,46 @@ export function useWebSocket(options: MessageFeedOptions = {}): MessageFeed {
   onMount(connect);
   onCleanup(disconnect);
 
-  return { connected, subscribe, unsubscribe };
+  return (options: MessageFeedOptions): MessageFeed => {
+    consumers.add(options);
+    // This view's own subscriptions, so its cleanup releases only what it held
+    // and a repeated subscribe of the same Channel is idempotent per view.
+    const held = new Set<string>();
+
+    const subscribe = (channel: Channel) => {
+      const key = subKey(channel);
+      if (held.has(key)) return;
+      held.add(key);
+      holdSub(channel);
+    };
+
+    const unsubscribe = (channel: Channel) => {
+      const key = subKey(channel);
+      if (!held.delete(key)) return;
+      releaseSub(channel);
+    };
+
+    onCleanup(() => {
+      // Release only this view's holds, then deregister its callbacks. The socket
+      // itself is torn down by the Feed's own `onCleanup`, at the boundary.
+      for (const key of held) {
+        const entry = desired.get(key);
+        if (entry) releaseSub(entry.channel);
+      }
+      held.clear();
+      consumers.delete(options);
+    });
+
+    return { connected, subscribe, unsubscribe };
+  };
+}
+
+/**
+ * A private Feed for a single consumer: {@link createFeed} used standalone. Kept
+ * as the default when no shared Feed is injected (`?? useWebSocket`). In the
+ * authenticated app the boundary injects one shared `createFeed()` instead, so a
+ * client holds one socket, not one per view-model (ADR-0017).
+ */
+export function useWebSocket(options: MessageFeedOptions = {}): MessageFeed {
+  return createFeed()(options);
 }
