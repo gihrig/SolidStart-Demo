@@ -401,6 +401,13 @@ flowchart TB
             generic could add complexity, not concentrate it — the deletion test may come back “just moves it.”
             Flagged Speculative for exactly that reason; worth a design-it-twice pass before any change.
           </div>
+
+          <div class="rounded bg-slate-800/60 border border-slate-600 px-3 py-2.5 text-sm text-slate-200">
+            <span class="font-semibold text-slate-100">Resolved 2026-09-03 — no-go.</span>
+            Grilled to a verdict: two divergent callers today, <span class="font-mono">Message</span> is a stream, and the
+            <span class="font-mono">#31</span> merge dissolves the shape — top level static, the rest WebSocket streams.
+            No generic; the code stays as-is.
+          </div>
         </article>
 
       </section>
