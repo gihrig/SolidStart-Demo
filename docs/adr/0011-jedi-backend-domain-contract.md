@@ -68,3 +68,91 @@ the convergence set out in [ADR-0007](0007-consolidate-jedi-shell-unified-identi
 - All new schema is authored in that portable subset from the start (enums →
   `TEXT`, app-generated salts, RFC3339 timestamps); ids are DB-generated, rendered
   per dialect by the single sea-query schema ([ADR-0012](0012-postgres-turso-db-swap-seam.md)).
+
+---
+
+## Addendum: the merged real-time model (#110)
+
+The merge (#105) **evolves** the live Conversations back-end into Jedi's
+vocabulary, rather than building the Jedi back-end fresh. This addendum records
+the locked model's architectural decisions and supersedes the parts noted below.
+The full entity, RPC, and real-time contract lives in issue **#110**; this ADR
+keeps the decisions and their rationale. The map writes no code.
+
+### Entity lineage — two layers, do not conflate
+
+The rename spans two namespaces. An **entity** (a table / ts-rs type) is renamed
+and lives on; a real-time **channel** (a routing key) is renamed or retired
+independently ([ADR-0018](0018-channel-strings-track-domain-names.md), #109):
+
+| Layer   | Before      | After                            | Why                                                    |
+| ------- | ----------- | -------------------------------- | ------------------------------------------------------ |
+| Entity  | `Agent`     | `Category`                       | renamed and re-modeled (#107); the table lives on      |
+| Entity  | `Conv`      | `Post`                           | renamed and re-modeled (#106); the table lives on      |
+| Entity  | `ConvMsg`   | `PostComment` + `CaptionComment` | split into two (#108)                                  |
+| Channel | `agents`    | retired                          | a Category is static — no real-time (#107, #109)       |
+| Channel | `convs`     | `posts`                          | list poke, renamed (#109)                              |
+| Channel | `conv:{id}` | retired                          | message push splits to the two comment channels (#108) |
+
+So the `Agent` **entity** survives as `Category`, while the `agents` **channel**
+is gone. The two facts are consistent.
+
+### Decisions the merge locks
+
+- **The live model is evolved, not rebuilt.** The merged entities are `Post`,
+  `Category`, `Caption`, `PostComment`, `CaptionComment`, `post_like`,
+  `caption_like`, and `Hero`, alongside the unified `User`. Every Post is public;
+  ownership is `owner_id → User` (#106). A Post carries many Categories, minimum
+  one, via a `post_category` join (#107).
+- **A Like gains a surrogate `id` and an explicit parent FK.** `post_like =
+  { id, owner_id, post_id, ctime }` and `caption_like = { id, owner_id,
+  caption_id, ctime }`, each `unique(owner, parent)`. This **supersedes** the
+  original `{ owner_id, target_id, ctime }` generic-`target_id` shape above. A
+  Like is write-once (insert or delete, never updated), so it carries no `mid` /
+  `mtime`. Counts stay derived by counting rows.
+- **A Comment is two entities, not one.** `PostComment` and `CaptionComment`,
+  each with one direct-parent FK and an `owner_id` author (#108). This
+  **supersedes** the single `Comment` named in the entity list above. An owner
+  may edit or delete their own comment.
+- **Hero drops `cta_href`.** The CTA runs fixed front-end code (create a new
+  account), not an admin-set link, so the target is not a stored, editable field.
+  `Hero = { id, title, subtitle, cta_text, background_image, + audit }`, one row.
+  This **supersedes** the `cta_href` field above.
+- **`User` gains a persisted `avatar_url`.** The avatar moves from the front-end
+  seam to a back-end-owned column, realizing the identity convergence of
+  [ADR-0007](0007-consolidate-jedi-shell-unified-identity.md).
+- **The server is the authoritative sanitization boundary for persisted URLs.**
+  The create / update path validates and **rejects** an unsafe URL before it
+  persists it — `Post.image_src` / `photographer_url` / `source_url`,
+  `Hero.background_image`, and `User.avatar_url`. The front-end `SafeUrl` brand
+  ([ADR-0006](0006-safeurl-brand-enforces-sanitize-boundary.md)) stays as
+  cooperative, defense-in-depth, but is no longer the only line. A blanket policy
+  for user-supplied **text** is a separate decision, tracked in **#112**.
+- **Admin-only writes are deferred.** `Category` and `Hero` drop `owner_id`, and
+  no privilege check exists yet, so their model-layer writes are unscoped pending
+  the privilege ACS. Read stays open; write gating waits.
+
+### Read model
+
+`Post` and `Caption` reads return enriched views — author, resolved categories,
+and derived counts — while `Category` and `Hero` return bare rows. Top Photos and
+Top Captions are the same list RPCs ordered by the derived like count, not stored
+tables.
+
+### Real-time
+
+The merged `WsEvent` carries one variant per #109 channel: a payload for the two
+comment kinds, and contentless pokes for `posts`, `post_like`, `caption_like`,
+and `post_caption`. Because a comment may now be edited or deleted — not only
+appended — each comment channel carries a small tagged payload (an upsert or a
+removal). This **refines**, but does not change, #109's channel set and keys.
+
+### Considered and rejected (merge)
+
+- **One polymorphic Comment** — rejected in #108: two tables give each parent a
+  real FK and match the BMC-per-entity pattern.
+- **Client-only URL sanitization** — rejected: the front-end brand is
+  cooperative, so a direct API client bypasses it; the server must sanitize
+  persisted URLs.
+- **Enforcing Admin writes now** — deferred: no privilege system exists, and
+  enforcing it needs `Ctx` to carry the user type, which is outside this map.
