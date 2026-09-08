@@ -97,3 +97,58 @@ the renames later, each riding the safety this ADR installs.
   authorized it; 0016 gave the poke a typed receipt; 0017 made the client Feed
   singular. This one makes the Channel *vocabulary* a single generated source the
   front-end mirrors. All four sharpen the same realtime seam.
+
+## Addendum (2026-09-08): the merged Jedi channel map (#109)
+
+The Jedi/FullStack merge (map #105) fixes the realtime vocabulary this ADR left to
+a later rename. This ADR predicted `agents → topics` and `conv` / `convs → thread`
+/ `threads`; the merge redirects them. #109 records the actual merged map. The
+mechanism this ADR installed — a generated `ChannelKind`, the internal `Channel`,
+the front-end constructor mirror — is unchanged; only the vocabulary and the
+channel set change, each a compile-checked edit as designed.
+
+**Vocabulary redirect.**
+
+- `convs` → `posts` — the id-less Post list-feed poke.
+- `agents` → *(retired)* — Category is static and loads once (#107); it has no
+  list-feed poke.
+- `conv` (`conv:{id}`) → *(retired as an id-bearing kind)* — its message-stream job
+  splits into the two comment channels below (#108).
+
+**The merged map.** `ChannelKind` holds six variants after the merge, each keyed as
+shown:
+
+| Wire string       | Key                          | Semantics |
+| ----------------- | ---------------------------- | --------- |
+| `posts`           | `posts`                      | poke      |
+| `post_comment`    | `post_comment:{post_id}`     | payload   |
+| `caption_comment` | `caption_comment:{caption_id}` | payload |
+| `post_like`       | `post_like:{post_id}`        | poke      |
+| `caption_like`    | `caption_like:{caption_id}`  | poke      |
+| `post_caption`    | `post_caption:{post_id}`     | poke      |
+
+**The organizing rule — a channel's semantics follow its data shape.**
+
+- **Threads push.** An append-only thread carries the new item as a typed payload —
+  the two comment channels (#108, "mirror the message").
+- **Lists and counts poke.** A ranked or derived view sends a contentless poke; the
+  client refetches through the scoped `list_*` RPC, so no row crosses the push path
+  (#85). This covers `posts` (list), `post_like` / `caption_like` (counts derived by
+  counting rows, `CONTEXT.md`), and `post_caption` (the Top Captions ranking, which
+  also reshuffles on every like-poke — one refresh path for the caption list).
+
+**Naming.** Multi-word kinds take snake_case wire strings (`post_comment`), matching
+the existing lowercase style; the Rust variant stays PascalCase with
+`#[serde(rename = "…")]`. The routing key is `string:{id}`. With
+`ConvKind { OwnerOnly, MultiUsers }` dropped (#106), `ChannelKind` is the only
+surviving "kind" — the wire carries no field named `kind`.
+
+**Authorization simplifies.** Every Post is public after the merge (#106), so no
+channel needs a per-row read scope. Every channel becomes authenticated-read: any
+logged-in socket may subscribe. The `conv:{id}` owner ∪ `MultiUsers` check
+(ADR-0014 / ADR-0015) is dropped.
+
+**Scope.** This addendum records the decision. The implementation — renaming the
+`ChannelKind` variants, adding the `WsEvent` variants, and rewriting `Channel` /
+`key` / `authorize` — rides #110; the `CONTEXT.md` glossary and rename-table rewrite
+rides #111.
