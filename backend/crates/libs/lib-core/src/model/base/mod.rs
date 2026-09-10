@@ -1,11 +1,13 @@
 // region:    --- Modules
 
 mod crud_fns;
+mod hygiene;
 mod macro_utils;
 mod utils;
 
 // -- Flatten hierarchy for user code.
 pub use crud_fns::*;
+pub use hygiene::*;
 pub use utils::*;
 
 use crate::ctx::Ctx;
@@ -90,5 +92,16 @@ pub trait DbBmc {
 	/// (owner-only). The root context bypasses this hook entirely (see `base`).
 	fn access_scope(_ctx: &Ctx, _access: Access) -> Option<Condition> {
 		None
+	}
+
+	/// Optional per-field write-path hygiene rules for this entity.
+	///
+	/// Each rule names a free-text column and an optional length cap. The
+	/// shared write path (`base::create`/`create_many`/`update`) NFC-normalizes
+	/// and trims each declared field, rejects control / zero-width /
+	/// bidirectional characters, and enforces the cap. Returns `&[]` by default
+	/// (no hygiene). This is the seam each later entity ticket adds its rules to.
+	fn hygiene_rules() -> &'static [FieldHygiene] {
+		&[]
 	}
 }

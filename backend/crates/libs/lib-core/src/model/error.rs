@@ -23,6 +23,12 @@ pub enum Error {
 		actual: i64,
 	},
 
+	// -- Write-path hygiene (rejected input; field + reason)
+	Validation {
+		field: String,
+		reason: String,
+	},
+
 	CountFail,
 
 	// -- DB

@@ -30,6 +30,7 @@ time = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 tracing = { workspace = true }
 ts-rs = { workspace = true }
+unicode-normalization = { workspace = true }
 uuid = { workspace = true, features = ["v4","fast-rng",] }
 
 [dev-dependencies]

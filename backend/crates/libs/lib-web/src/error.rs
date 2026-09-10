@@ -169,6 +169,13 @@ impl Error {
 				StatusCode::BAD_REQUEST,
 				ClientError::ENTITY_NOT_FOUND { entity, id: *id },
 			),
+			Model(model::Error::Validation { field, reason }) => (
+				StatusCode::BAD_REQUEST,
+				ClientError::VALIDATION_FAIL {
+					field: field.clone(),
+					reason: reason.clone(),
+				},
+			),
 
 			// -- Rpc
 			RpcRequestParsing(req_parsing_err) => (
@@ -219,6 +226,7 @@ pub enum ClientError {
 	LOGIN_FAIL,
 	NO_AUTH,
 	ENTITY_NOT_FOUND { entity: &'static str, id: i64 },
+	VALIDATION_FAIL { field: String, reason: String },
 
 	RPC_REQUEST_INVALID(String),
 	RPC_REQUEST_METHOD_UNKNOWN(String),

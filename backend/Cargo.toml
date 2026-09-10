@@ -71,4 +71,5 @@ tower-http = { version = "0.6.8", features = ["fs", "cors"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 ts-rs = "11.1.0"
+unicode-normalization = "0.1.24"
 uuid = { version = "1.19.0", features = ["fast-rng", "v4"] }
