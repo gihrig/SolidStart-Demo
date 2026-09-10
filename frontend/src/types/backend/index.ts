@@ -31,12 +31,14 @@ export type { ParamsForUpdate } from "~backend-bindings/ParamsForUpdate.d";
 
 // Realtime feed envelope — generated from the backend `WsEvent` (ADR-0015), a
 // discriminated union tagged by `event_type`. Consumed through the barrel (not
-// raw) so the nested `conv_msg` payload gets the same bigint→number id rewrite
-// as every entity (ADR-0003); the two list-feed pokes carry no payload. The
-// consumer narrows by `event_type` and reads a typed payload — no cast.
+// raw) so ids get the same bigint→number rewrite as every entity (ADR-0003). A
+// payload variant (`conv_msg`) has its nested row rewritten; a Jedi poke variant
+// (`post_like` / `caption_like` / `post_caption`) carries its routing id at the
+// top level, so that id is rewritten in place (#115); `agent_update` / `conv_update`
+// / `posts` carry nothing. The consumer narrows by `event_type` — no cast.
 type NumericIdsEvent<T> = T extends { payload: infer P }
-  ? Omit<T, "payload"> & { payload: NumericIds<P> }
-  : T;
+  ? Omit<NumericIds<T>, "payload"> & { payload: NumericIds<P> }
+  : NumericIds<T>;
 export type WsEvent = NumericIdsEvent<WsEventWire>;
 
 // Input types for create operations (not in generated bindings)
@@ -110,9 +112,11 @@ export function isRpcError(response: JsonRpcResponse): response is JsonRpcErrorR
 // WebSocket subscription request (client → server). The event envelope is the
 // generated `WsEvent` re-exported above; the `channel` kinds are the generated
 // `ChannelKind` (ADR-0018), which the front-end `Channel` module (`lib/channel.ts`)
-// builds its constructors on. `conv` names one Conversation (needs `id`); the
-// id-less global list feeds `agents` / `convs` do not (#85). The full request
-// struct stays hand-declared — only its `channel` vocabulary is a binding.
+// builds its constructors on. The id-less feeds `agents` / `convs` / `posts` take
+// no `id`; the id-bearing kinds do — `conv` (#85) and the five Jedi channels
+// `post_comment` / `caption_comment` / `post_like` / `caption_like` / `post_caption`
+// (#115). The full request struct stays hand-declared — only its `channel`
+// vocabulary is a binding.
 export interface WsSubscription {
   action: "subscribe" | "unsubscribe";
   channel: ChannelKind;
