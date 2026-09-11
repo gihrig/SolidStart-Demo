@@ -5,8 +5,10 @@
  * so the front-end mirrors these names instead of hand-typing them (ADR-0018); as
  * a typed field on [`SubscriptionRequest`] it also makes an unknown kind a
  * deserialize error, not a silent miss. `conv` names one Conversation's Event
- * stream and needs an `id`; `agents` and `convs` are the two id-less global
- * list-feed pokes (#85). Distinct from [`Channel`], which pairs a kind with its id
- * and owns the routing-key and authorize logic.
+ * stream and needs an `id`; `agents` and `convs` are id-less global list-feed
+ * pokes (#85). The Jedi channels ride alongside (#115): `posts` is also id-less;
+ * the other five (`post_comment`, `caption_comment`, `post_like`, `caption_like`,
+ * `post_caption`) name one entity and need an `id`. Distinct from [`Channel`],
+ * which pairs a kind with its id and owns the routing-key and authorize logic.
  */
-export type ChannelKind = "conv" | "agents" | "convs";
+export type ChannelKind = "conv" | "agents" | "convs" | "posts" | "post_comment" | "caption_comment" | "post_like" | "caption_like" | "post_caption";

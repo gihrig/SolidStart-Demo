@@ -4,9 +4,13 @@ import type { ConvMsg } from "./ConvMsg.d";
 /**
  * The realtime feed envelope, a discriminated union tagged by `event_type`
  * (internal serde tagging). ts-rs exports it, so the front-end narrows on the
- * tag and reads a typed payload — no cast. `conv_msg` carries the new `ConvMsg`;
- * the two list-feed pokes are payload-less (#85). The routing `channel` is
- * derived from the variant (see the `channel` method below), not carried on the
- * wire.
+ * tag and reads a typed payload — no cast. `conv_msg` carries the new `ConvMsg`.
+ * The pokes carry no domain row (#85): `agent_update` / `conv_update` / `posts`
+ * carry nothing; `post_like` / `caption_like` / `post_caption` carry only the id
+ * their routing key needs. The two Jedi comment channels (`post_comment`,
+ * `caption_comment`) push a payload (`CommentView`); that payload is not built
+ * yet, so they gain no variant here in this expand step — they are subscribe-only
+ * (#115). The routing `channel` is derived from the variant (see the `channel`
+ * method below), not carried on the wire.
  */
-export type WsEvent = { "event_type": "conv_msg", payload: ConvMsg, } | { "event_type": "agent_update" } | { "event_type": "conv_update" };
+export type WsEvent = { "event_type": "conv_msg", payload: ConvMsg, } | { "event_type": "agent_update" } | { "event_type": "conv_update" } | { "event_type": "posts" } | { "event_type": "post_like", post_id: bigint, } | { "event_type": "caption_like", caption_id: bigint, } | { "event_type": "post_caption", post_id: bigint, };
