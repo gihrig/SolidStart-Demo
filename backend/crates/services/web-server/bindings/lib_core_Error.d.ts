@@ -2,4 +2,4 @@
 import type { LibAuthError } from "./lib_auth_Error.d";
 import type { LibCoreDbxError } from "./lib_core_dbx_Error.d";
 
-export type LibCoreError = { "EntityNotFound": { entity: string, id: bigint, } } | { "ListLimitOverMax": { max: bigint, actual: bigint, } } | "CountFail" | { "UserAlreadyExists": { username: string, } } | { "UniqueViolation": { table: string, constraint: string, } } | { "CantCreateModelManagerProvider": string } | { "Pwd": LibAuthError } | { "Dbx": LibCoreDbxError } | { "SeaQuery": string } | { "ModqlIntoSea": string };
+export type LibCoreError = { "EntityNotFound": { entity: string, id: bigint, } } | { "ListLimitOverMax": { max: bigint, actual: bigint, } } | { "Validation": { field: string, reason: string, } } | "CountFail" | { "UserAlreadyExists": { username: string, } } | { "UniqueViolation": { table: string, constraint: string, } } | { "CantCreateModelManagerProvider": string } | { "Pwd": LibAuthError } | { "Dbx": LibCoreDbxError } | { "SeaQuery": string } | { "ModqlIntoSea": string };

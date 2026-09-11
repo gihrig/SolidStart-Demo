@@ -1,7 +1,7 @@
 use crate::ctx::Ctx;
 use crate::model::base::{
-	prep_fields_for_create, prep_fields_for_update, Access, CommonIden, DbBmc,
-	LIST_LIMIT_DEFAULT, LIST_LIMIT_MAX,
+	apply_hygiene, prep_fields_for_create, prep_fields_for_update, Access,
+	CommonIden, DbBmc, LIST_LIMIT_DEFAULT, LIST_LIMIT_MAX,
 };
 use crate::model::ModelManager;
 use crate::model::{Error, Result};
@@ -33,7 +33,9 @@ where
 	let user_id = ctx.user_id();
 
 	// -- Extract fields (name / sea-query value expression)
-	let mut fields = data.not_none_sea_fields();
+	let fields = data.not_none_sea_fields();
+	// -- Write-path hygiene: normalize/trim and reject bad free-text input.
+	let mut fields = apply_hygiene::<MC>(fields)?;
 	prep_fields_for_create::<MC>(&mut fields, user_id);
 
 	// -- Build query
@@ -71,7 +73,8 @@ where
 	let mut query = Query::insert();
 
 	for item in data {
-		let mut fields = item.not_none_sea_fields();
+		let fields = item.not_none_sea_fields();
+		let mut fields = apply_hygiene::<MC>(fields)?;
 		prep_fields_for_create::<MC>(&mut fields, user_id);
 		let (columns, sea_values) = fields.for_sea_insert();
 
@@ -257,7 +260,9 @@ where
 	E: HasSeaFields,
 {
 	// -- Prep Fields
-	let mut fields = data.not_none_sea_fields();
+	let fields = data.not_none_sea_fields();
+	// -- Write-path hygiene: normalize/trim and reject bad free-text input.
+	let mut fields = apply_hygiene::<MC>(fields)?;
 	prep_fields_for_update::<MC>(&mut fields, ctx.user_id());
 
 	// -- Build query
