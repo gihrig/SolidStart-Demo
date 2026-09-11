@@ -169,7 +169,14 @@ impl Error {
 				StatusCode::BAD_REQUEST,
 				ClientError::ENTITY_NOT_FOUND { entity, id: *id },
 			),
-			Model(model::Error::Validation { field, reason }) => (
+			// A model validation error surfaces both directly and — the common
+			// case — wrapped by an RPC handler as `RpcLibRpc(Model(..))`. Both
+			// map to HTTP 400, so an RPC create/update reject is not a 500.
+			Model(model::Error::Validation { field, reason })
+			| RpcLibRpc(lib_rpc_core::Error::Model(model::Error::Validation {
+				field,
+				reason,
+			})) => (
 				StatusCode::BAD_REQUEST,
 				ClientError::VALIDATION_FAIL {
 					field: field.clone(),
@@ -235,3 +242,39 @@ pub enum ClientError {
 	SERVICE_ERROR,
 }
 // endregion: --- Client Error
+
+// region:    --- Tests
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	/// A model validation error maps to HTTP 400 both directly and when an RPC
+	/// handler wraps it as `RpcLibRpc(Model(..))`. The RPC path is the common
+	/// one; without its arm it fell through to a 500.
+	#[test]
+	fn validation_maps_to_400_direct_and_via_rpc() {
+		let make = || model::Error::Validation {
+			field: "title".to_string(),
+			reason: "control character not allowed".to_string(),
+		};
+
+		for err in [
+			Error::Model(make()),
+			Error::RpcLibRpc(lib_rpc_core::Error::Model(make())),
+		] {
+			let (status, client) = err.client_status_and_error();
+			assert_eq!(
+				status,
+				StatusCode::BAD_REQUEST,
+				"validation must be 400, not 500: {err:?}"
+			);
+			assert!(
+				matches!(client, ClientError::VALIDATION_FAIL { .. }),
+				"expected VALIDATION_FAIL: {err:?}"
+			);
+		}
+	}
+}
+
+// endregion: --- Tests
