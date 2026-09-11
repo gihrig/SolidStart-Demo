@@ -48,13 +48,25 @@ pub enum WsEvent {
 	// the scoped `list_*` RPC (#85). The two comment channels push a payload; that
 	// payload (`CommentView`) is not built yet, so `post_comment` / `caption_comment`
 	// gain no `WsEvent` variant in this expand step — they are subscribe-only.
+	//
+	// `allow(dead_code)`: no RPC handler constructs these yet — the pokes are wired
+	// into the mutation handlers in the follow-up contract step (#113). The tests
+	// construct them, but test-only use does not satisfy the bin target's dead-code
+	// analysis. `expect` is unusable here: `--all-targets` also builds the test
+	// target, where the variants are used, so `expect` would fire
+	// `unfulfilled_lint_expectations` there. Drop each `allow` when its poke gets a
+	// caller.
 	#[serde(rename = "posts")]
+	#[allow(dead_code)]
 	Posts,
 	#[serde(rename = "post_like")]
+	#[allow(dead_code)]
 	PostLike { post_id: i64 },
 	#[serde(rename = "caption_like")]
+	#[allow(dead_code)]
 	CaptionLike { caption_id: i64 },
 	#[serde(rename = "post_caption")]
+	#[allow(dead_code)]
 	PostCaption { post_id: i64 },
 }
 
@@ -69,9 +81,7 @@ impl WsEvent {
 			WsEvent::ConvUpdate => Channel::Convs,
 			WsEvent::Posts => Channel::Posts,
 			WsEvent::PostLike { post_id } => Channel::PostLike(*post_id),
-			WsEvent::CaptionLike { caption_id } => {
-				Channel::CaptionLike(*caption_id)
-			}
+			WsEvent::CaptionLike { caption_id } => Channel::CaptionLike(*caption_id),
 			WsEvent::PostCaption { post_id } => Channel::PostCaption(*post_id),
 		}
 	}
@@ -425,9 +435,15 @@ impl WsState {
 		self.broadcast(WsEvent::ConvUpdate);
 	}
 
+	// The four Jedi poke helpers below have no caller yet: the mutation handlers
+	// call them in the follow-up contract step (#113). Each carries `allow(dead_code)`
+	// for the same reason as the poke variants above — remove it when the handler
+	// wires the poke.
+
 	/// Poke the global Post-list channel: the Post list may have changed (#115).
 	/// Contentless — a subscriber refetches through the scoped `list_*` RPC, so no
 	/// Post row crosses the push path (#85).
+	#[allow(dead_code)]
 	pub fn broadcast_posts_update(&self) {
 		self.broadcast(WsEvent::Posts);
 	}
@@ -435,12 +451,14 @@ impl WsState {
 	/// Poke one Post's like-count channel (`post_like:{post_id}`): the like count
 	/// changed (#115). Carries only the `post_id` for routing — the count is
 	/// derived by refetch, never pushed.
+	#[allow(dead_code)]
 	pub fn broadcast_post_like(&self, post_id: i64) {
 		self.broadcast(WsEvent::PostLike { post_id });
 	}
 
 	/// Poke one Caption's like-count channel (`caption_like:{caption_id}`): the
 	/// like count changed (#115). Carries only the `caption_id` for routing.
+	#[allow(dead_code)]
 	pub fn broadcast_caption_like(&self, caption_id: i64) {
 		self.broadcast(WsEvent::CaptionLike { caption_id });
 	}
@@ -448,6 +466,7 @@ impl WsState {
 	/// Poke one Post's Caption-list channel (`post_caption:{post_id}`): the
 	/// competing Captions changed or re-ranked (#115). Carries only the `post_id`;
 	/// the client refetches the Top Captions list.
+	#[allow(dead_code)]
 	pub fn broadcast_post_caption(&self, post_id: i64) {
 		self.broadcast(WsEvent::PostCaption { post_id });
 	}
