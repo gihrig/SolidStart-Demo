@@ -41,6 +41,19 @@ pub struct Category {
 	pub mtime: OffsetDateTime,
 }
 
+/// The public projection of a Category: only the fields an anonymous consumer
+/// needs. The audit columns (`cid` / `mid` actor ids, `ctime` / `mtime`) are
+/// deliberately absent, so the public `/api/rpc-public` response never exposes
+/// internal storage detail (#116 review). `base::list` selects exactly these
+/// columns for this type, so the audit columns are never even queried.
+#[derive(Debug, Clone, Fields, FromRow, Serialize, TS)]
+#[ts(export, export_to = "CategoryPublic.d.ts")]
+pub struct CategoryPublic {
+	pub id: i64,
+	pub name: String,
+	pub icon: String,
+}
+
 #[derive(Fields, Deserialize)]
 pub struct CategoryForCreate {
 	pub name: String,
@@ -98,6 +111,19 @@ generate_common_bmc_fns!(
 	ForUpdate: CategoryForUpdate,
 	Filter: CategoryFilter,
 );
+
+impl CategoryBmc {
+	/// List the taxonomy as the public projection (`id`, `name`, `icon`). The
+	/// public RPC uses this so the anonymous response carries no audit columns.
+	pub async fn list_public(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		filter: Option<Vec<CategoryFilter>>,
+		list_options: Option<ListOptions>,
+	) -> Result<Vec<CategoryPublic>> {
+		base::list::<Self, CategoryPublic, _>(ctx, mm, filter, list_options).await
+	}
+}
 
 // endregion: --- CategoryBmc
 
@@ -241,6 +267,30 @@ mod tests {
 		let categories = CategoryBmc::list(&ctx, &mm, None, None).await?;
 
 		// -- Check: the six seeded rows are all readable.
+		let names = categories
+			.iter()
+			.map(|c| c.name.as_str())
+			.collect::<Vec<_>>();
+		assert!(names.contains(&"Landscape"), "got {names:?}");
+		assert!(names.contains(&"Cute"), "got {names:?}");
+
+		Ok(())
+	}
+
+	/// `list_public` returns the taxonomy as the public projection. The type
+	/// carries only `id` / `name` / `icon` (no audit columns), so the anonymous
+	/// response cannot leak actor ids or timestamps (#116 review).
+	#[serial]
+	#[tokio::test]
+	async fn test_list_public_ok() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let ctx = Ctx::new(1000)?; // an ordinary (non-root) User ctx
+
+		// -- Exec
+		let categories = CategoryBmc::list_public(&ctx, &mm, None, None).await?;
+
+		// -- Check: the seeded rows come back as the public projection.
 		let names = categories
 			.iter()
 			.map(|c| c.name.as_str())

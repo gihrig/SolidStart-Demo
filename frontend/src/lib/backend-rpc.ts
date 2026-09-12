@@ -2,7 +2,7 @@ import type {
   Agent,
   AgentForCreate,
   AgentForUpdate,
-  Category,
+  CategoryPublic,
   Conv,
   ConvForCreate,
   ConvForUpdate,
@@ -160,7 +160,7 @@ export function createRpcClient() {
   // list is public — the anonymous Jedi landing page reads it — so it posts to
   // the public surface (#116).
   const category = {
-    list: () => rpcCall<Category[]>("list_categories", undefined, "/api/rpc-public"),
+    list: () => rpcCall<CategoryPublic[]>("list_categories", undefined, "/api/rpc-public"),
   };
 
   // Conversation Message RPC methods

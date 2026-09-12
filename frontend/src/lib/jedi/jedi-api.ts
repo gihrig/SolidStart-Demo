@@ -2,7 +2,7 @@ import data from "./data.json";
 import { sanitizeUrl, trustedUrl, type SafeUrl } from "~/lib/sanitizeUrl";
 import { category as categoryRpc } from "~/lib/backend-rpc";
 import { ICON_NAMES, type IconName } from "~/components/Icon";
-import type { Category } from "~/types/backend";
+import type { CategoryPublic } from "~/types/backend";
 import type {
   JediData,
   JediPost,
@@ -30,7 +30,7 @@ const ICON_FALLBACK: IconName = "menu";
 const toIconName = (icon: string): IconName =>
   (ICON_NAMES as readonly string[]).includes(icon) ? (icon as IconName) : ICON_FALLBACK;
 
-const toJediCategory = (c: Category): JediCategory => ({
+const toJediCategory = (c: CategoryPublic): JediCategory => ({
   id: c.id,
   name: c.name,
   icon: toIconName(c.icon),
