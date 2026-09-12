@@ -17,6 +17,10 @@ what this back-end does. Later ADRs extend it:
 
 ---
 
+## Skills
+
+- Use `rust-clean-architecture` skill
+
 ## Commands
 
 This subtree runs via `cgs <script>` (`cargo-run` on `backend/Scripts.toml`);
