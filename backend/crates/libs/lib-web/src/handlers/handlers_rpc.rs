@@ -2,6 +2,7 @@ use crate::middleware::mw_auth::CtxW;
 use axum::extract::State;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
+use lib_core::ctx::Ctx;
 use rpc_router::resources_builder;
 use serde_json::{json, Value};
 use std::sync::Arc;
@@ -16,13 +17,37 @@ pub struct RpcInfo {
 	pub method: String,
 }
 
+/// Authenticated RPC endpoint (`/api/rpc`): requires a resolved `Ctx` (the
+/// `CtxW` extractor forces auth via `mw_ctx_require`). The caller's own `Ctx` is
+/// the one every handler acts under.
 pub async fn rpc_axum_handler(
 	State(rpc_router): State<rpc_router::Router>,
 	ctx: CtxW,
 	Json(rpc_req): Json<Value>,
 ) -> Response {
-	let ctx = ctx.0;
+	rpc_dispatch(rpc_router, ctx.0, rpc_req).await
+}
 
+/// Public RPC endpoint (`/api/rpc-public`): needs no auth, so an anonymous
+/// visitor can read it. It dispatches under `Ctx::root_ctx()`, which bypasses
+/// row-scoping and returns the whole set. This is safe ONLY because its router
+/// (`public_rpc_router_builder`) registers a hand-picked set of public reads —
+/// never a mutation or a scoped read. See `routes_rpc::routes_public`.
+pub async fn rpc_axum_handler_public(
+	State(rpc_router): State<rpc_router::Router>,
+	Json(rpc_req): Json<Value>,
+) -> Response {
+	rpc_dispatch(rpc_router, Ctx::root_ctx(), rpc_req).await
+}
+
+/// Shared dispatch: overlay the per-request `Ctx` resource, run the rpc-router
+/// call, and shape the JSON-RPC success envelope. Both endpoints funnel here so
+/// they differ only in how the `Ctx` is obtained.
+async fn rpc_dispatch(
+	rpc_router: rpc_router::Router,
+	ctx: Ctx,
+	rpc_req: Value,
+) -> Response {
 	// -- Parse and RpcRequest validate the rpc_request
 	let rpc_req = match rpc_router::RpcRequest::try_from(rpc_req) {
 		Ok(rpc_req) => rpc_req,

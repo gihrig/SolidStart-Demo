@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
-import { auth, agent, conv, convMsg, backendRpc, createRpcClient } from "./backend-rpc";
+import { auth, agent, category, conv, convMsg, backendRpc, createRpcClient } from "./backend-rpc";
 
 // Test credentials sourced from .env.test (VITE_-prefixed vars reach import.meta.env).
 const TEST_USERNAME = import.meta.env.VITE_TEST_USERNAME;
@@ -264,6 +264,22 @@ describe("agent", () => {
     const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
     expect(body.method).toBe("delete_agent");
     expect(body.params).toEqual({ id: 3 });
+  });
+});
+
+// -- category methods --
+
+describe("category", () => {
+  it("category.list sends list_categories to the public RPC surface", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await category.list();
+
+    // The taxonomy is public, so it posts to /api/rpc-public (no auth), not /api/rpc.
+    expect((fetchMock.mock.calls[0] as any[])[0]).toBe("http://localhost:8080/api/rpc-public");
+    const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
+    expect(body.method).toBe("list_categories");
   });
 });
 

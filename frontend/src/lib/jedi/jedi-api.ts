@@ -1,5 +1,8 @@
 import data from "./data.json";
 import { sanitizeUrl, trustedUrl, type SafeUrl } from "~/lib/sanitizeUrl";
+import { category as categoryRpc } from "~/lib/backend-rpc";
+import { ICON_NAMES, type IconName } from "~/components/Icon";
+import type { Category } from "~/types/backend";
 import type {
   JediData,
   JediPost,
@@ -18,6 +21,20 @@ const db = data as unknown as JediData;
 /** The single sanitize boundary (ADR-0002): every URL field passes through here.
  *  A rejected URL collapses to the empty `SafeUrl`; consumers bind it raw. */
 const safe = (url: string): SafeUrl => sanitizeUrl(url) ?? trustedUrl("");
+
+// The back-end owns `Category.icon` as an opaque string (ADR-0011). This seam
+// maps that key to a sprite `IconName`, falling back to "menu" for any key the
+// front-end sprite does not carry — so an unknown icon renders a placeholder
+// rather than a broken reference.
+const ICON_FALLBACK: IconName = "menu";
+const toIconName = (icon: string): IconName =>
+  (ICON_NAMES as readonly string[]).includes(icon) ? (icon as IconName) : ICON_FALLBACK;
+
+const toJediCategory = (c: Category): JediCategory => ({
+  id: c.id,
+  name: c.name,
+  icon: toIconName(c.icon),
+});
 
 const byLikesDesc = <T extends { likeCount: number }>(a: T, b: T): number =>
   b.likeCount - a.likeCount;
@@ -77,7 +94,9 @@ const heroContent = (): HeroView => ({
  */
 export const jediApi = {
   categories: {
-    list: (): Promise<JediCategory[]> => Promise.resolve(db.categories),
+    // Real back-end call now (ADR-0011): the static taxonomy comes from
+    // `list_categories`, each row's opaque `icon` mapped to an `IconName`.
+    list: async (): Promise<JediCategory[]> => (await categoryRpc.list()).map(toJediCategory),
   },
   posts: {
     list: (): Promise<PostView[]> => Promise.resolve(rankedPosts()),

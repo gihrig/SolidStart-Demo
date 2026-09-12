@@ -1,5 +1,23 @@
-import { describe, it, expect } from "vite-plus/test";
+import { describe, it, expect, vi } from "vite-plus/test";
 import { createRoot } from "solid-js";
+
+// `jediApi.categories.list` calls the `list_categories` RPC (ADR-0011); the
+// back-end client is mocked so this seam test stays offline. The rows mirror the
+// seeded taxonomy (frontend/src/lib/jedi/data.json ↔ 02-dev-seed.sql).
+vi.mock("~/lib/backend-rpc", () => ({
+  category: {
+    list: () =>
+      Promise.resolve([
+        { id: 1, name: "Landscape", icon: "landscape" },
+        { id: 2, name: "People", icon: "portrait" },
+        { id: 3, name: "Animals", icon: "dog" },
+        { id: 4, name: "Abstract", icon: "collage" },
+        { id: 5, name: "Black & White", icon: "180-degrees" },
+        { id: 6, name: "Cute", icon: "fire-heart" },
+      ]),
+  },
+}));
+
 import { createJediFeed, type JediFeed } from "./createJediFeed";
 
 // The resources back onto pre-resolved promises; two macrotask ticks drain the

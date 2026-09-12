@@ -4,6 +4,7 @@ mod dev_db;
 
 use crate::ctx::Ctx;
 use crate::model::agent::{AgentBmc, AgentFilter, AgentForCreate};
+use crate::model::category::{CategoryBmc, CategoryFilter, CategoryForCreate};
 use crate::model::conv::{ConvBmc, ConvForCreate};
 use crate::model::{self, ModelManager};
 use modql::filter::OpValString;
@@ -226,3 +227,65 @@ pub async fn clean_agents(
 }
 
 // endregion: --- Agent seed/clean
+
+// region:    --- Category seed/clean
+
+pub async fn seed_categories(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	names: &[&str],
+	icon: &str,
+) -> model::Result<Vec<i64>> {
+	let mut ids = Vec::new();
+
+	for name in names {
+		let id = seed_category(ctx, mm, name, icon).await?;
+		ids.push(id);
+	}
+
+	Ok(ids)
+}
+
+pub async fn seed_category(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	name: &str,
+	icon: &str,
+) -> model::Result<i64> {
+	CategoryBmc::create(
+		ctx,
+		mm,
+		CategoryForCreate {
+			name: name.to_string(),
+			icon: icon.to_string(),
+		},
+	)
+	.await
+}
+
+/// Delete all categories whose name contains `contains_name`.
+pub async fn clean_categories(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	contains_name: &str,
+) -> model::Result<usize> {
+	let categories = CategoryBmc::list(
+		ctx,
+		mm,
+		Some(vec![CategoryFilter {
+			name: Some(OpValString::Contains(contains_name.to_string()).into()),
+			..Default::default()
+		}]),
+		None,
+	)
+	.await?;
+	let count = categories.len();
+
+	for category in categories {
+		CategoryBmc::delete(ctx, mm, category.id).await?;
+	}
+
+	Ok(count)
+}
+
+// endregion: --- Category seed/clean

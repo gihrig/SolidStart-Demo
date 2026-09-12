@@ -5,6 +5,7 @@
 // re-exports it under the same name, so downstream code compares ids directly
 // with no coercion while the generated .d.ts files stay untouched.
 import type { Agent as AgentWire } from "~backend-bindings/Agent.d";
+import type { Category as CategoryWire } from "~backend-bindings/Category.d";
 import type { Conv as ConvWire } from "~backend-bindings/Conv.d";
 import type { ConvMsg as ConvMsgWire } from "~backend-bindings/ConvMsg.d";
 import type { ConvUser as ConvUserWire } from "~backend-bindings/ConvUser.d";
@@ -16,6 +17,7 @@ import type { ChannelKind } from "~backend-bindings/ChannelKind.d";
 type NumericIds<T> = { [K in keyof T]: T[K] extends bigint ? number : T[K] };
 
 export type Agent = NumericIds<AgentWire>;
+export type Category = NumericIds<CategoryWire>;
 export type Conv = NumericIds<ConvWire>;
 export type ConvMsg = NumericIds<ConvMsgWire>;
 export type ConvUser = NumericIds<ConvUserWire>;

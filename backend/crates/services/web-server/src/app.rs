@@ -22,6 +22,11 @@ pub fn app(mm: ModelManager, ws_state: Arc<WsState>) -> Router {
 	let routes_rpc = routes_rpc::routes(mm.clone(), ws_state.clone())
 		.route_layer(middleware::from_fn(mw_ctx_require));
 
+	// Public API endpoints (no auth): the Jedi feed's static reads, e.g.
+	// `list_categories`, so an anonymous visitor to `/` can load them. Merged
+	// into `/api` WITHOUT the `mw_ctx_require` layer.
+	let routes_rpc_public = routes_rpc::routes_public(mm.clone());
+
 	// WebSocket routes require auth like the RPC routes; the handler then captures
 	// the caller's identity at the upgrade to authorize per-connection subscriptions.
 	let routes_ws = routes_ws::routes(ws_state.clone(), mm.clone())
@@ -43,7 +48,7 @@ pub fn app(mm: ModelManager, ws_state: Arc<WsState>) -> Router {
 
 	Router::new()
 		.merge(routes_login::routes(mm.clone()))
-		.nest("/api", routes_rpc)
+		.nest("/api", routes_rpc.merge(routes_rpc_public))
 		.merge(routes_ws)
 		.layer(middleware::map_response(mw_response_map))
 		.layer(middleware::from_fn_with_state(mm.clone(), mw_ctx_resolver))
@@ -159,6 +164,49 @@ mod tests {
 		let ctx = Ctx::root_ctx();
 		clean_convs(&ctx, &mm, "test_web_login_rpc_logoff_ok").await?;
 		clean_agents(&ctx, &mm, "test_web_login_rpc_logoff_ok").await?;
+
+		Ok(())
+	}
+
+	/// The public RPC surface serves the Jedi feed's static taxonomy to an
+	/// anonymous visitor: `list_categories` on `/api/rpc-public` returns the
+	/// seeded rows with NO login, while the same method on the authed `/api/rpc`
+	/// is rejected (it is not registered there and the surface requires auth).
+	/// This guards the regression that the auth-gated feed would break the
+	/// anonymous landing page (#116).
+	#[serial]
+	#[tokio::test]
+	async fn test_web_public_list_categories_anonymous_ok() -> Result<()> {
+		// -- Setup & Fixtures (no login — an anonymous client)
+		let mm = _dev_utils::init_test().await;
+		let server = TestServer::new(app(mm.clone(), Arc::new(WsState::new())));
+
+		// -- Exec & Check: the public endpoint returns the seeded taxonomy.
+		let body: Value = server
+			.post("/api/rpc-public")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "list_categories"
+			}))
+			.await
+			.json();
+		let names: Vec<&str> = body
+			.pointer("/result/data")
+			.and_then(Value::as_array)
+			.ok_or("list_categories: missing /result/data array")?
+			.iter()
+			.filter_map(|c| c.pointer("/name").and_then(Value::as_str))
+			.collect();
+		assert!(names.contains(&"Landscape"), "got {names:?}");
+		assert!(names.contains(&"Cute"), "got {names:?}");
+
+		// -- Exec & Check: the authed surface rejects the anonymous call.
+		server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "list_categories"
+			}))
+			.await
+			.assert_status(axum::http::StatusCode::UNAUTHORIZED);
 
 		Ok(())
 	}

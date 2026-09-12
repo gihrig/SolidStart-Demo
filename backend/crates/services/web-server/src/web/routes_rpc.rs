@@ -1,5 +1,5 @@
 use crate::web::routes_ws::WsState;
-use crate::web::rpcs::all_rpc_router_builder;
+use crate::web::rpcs::{all_rpc_router_builder, public_rpc_router_builder};
 use axum::routing::post;
 use axum::Router;
 use lib_core::model::ModelManager;
@@ -21,5 +21,18 @@ pub fn routes(mm: ModelManager, ws_state: Arc<WsState>) -> Router {
 	// Build the Axum Router for '/rpc'
 	Router::new()
 		.route("/rpc", post(handlers_rpc::rpc_axum_handler))
+		.with_state(rpc_router)
+}
+
+/// Build the Axum router for the public '/rpc-public' endpoint.
+/// Note: This surface carries no auth (it is merged into '/api' WITHOUT the
+///       `mw_ctx_require` layer, see `app.rs`), so an anonymous visitor to the
+///       Jedi feed can read it. It only needs the `ModelManager` resource; the
+///       public handler injects a root `Ctx` per call.
+pub fn routes_public(mm: ModelManager) -> Router {
+	let rpc_router = public_rpc_router_builder().append_resource(mm).build();
+
+	Router::new()
+		.route("/rpc-public", post(handlers_rpc::rpc_axum_handler_public))
 		.with_state(rpc_router)
 }

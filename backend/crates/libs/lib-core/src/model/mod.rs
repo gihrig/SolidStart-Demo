@@ -25,6 +25,7 @@ mod error;
 mod store;
 
 pub mod agent;
+pub mod category;
 pub mod conv;
 pub mod conv_msg;
 pub mod conv_user;
