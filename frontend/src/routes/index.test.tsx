@@ -2,6 +2,24 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test"
 import { render, screen, within, waitFor, fireEvent } from "@solidjs/testing-library";
 import { MetaProvider } from "@solidjs/meta";
 import { Suspense } from "solid-js";
+
+// The sidebar Categories now load from the `list_categories` RPC (ADR-0011); the
+// back-end client is mocked so this route test stays offline. The rows mirror the
+// seeded taxonomy (frontend/src/lib/jedi/data.json ↔ 02-dev-seed.sql).
+vi.mock("~/lib/backend-rpc", () => ({
+  category: {
+    list: () =>
+      Promise.resolve([
+        { id: 1, name: "Landscape", icon: "landscape" },
+        { id: 2, name: "People", icon: "portrait" },
+        { id: 3, name: "Animals", icon: "dog" },
+        { id: 4, name: "Abstract", icon: "collage" },
+        { id: 5, name: "Black & White", icon: "180-degrees" },
+        { id: 6, name: "Cute", icon: "fire-heart" },
+      ]),
+  },
+}));
+
 import Home from "./index";
 
 function setupMatchMedia(mobile: boolean) {

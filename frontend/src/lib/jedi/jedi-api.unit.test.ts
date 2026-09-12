@@ -8,6 +8,14 @@ vi.mock("~/lib/sanitizeUrl", () => ({
   trustedUrl: (u: string) => u,
 }));
 
+// `categories.list` now calls the real `list_categories` RPC (ADR-0011), so the
+// back-end client is mocked here — the seam under test is the icon mapping, not
+// the network. The hoisted fn lets each test program its own taxonomy rows.
+const { categoryListMock } = vi.hoisted(() => ({ categoryListMock: vi.fn() }));
+vi.mock("~/lib/backend-rpc", () => ({
+  category: { list: categoryListMock },
+}));
+
 import { sanitizeUrl } from "~/lib/sanitizeUrl";
 import { ICON_NAMES } from "~/components/Icon";
 import { jediApi } from "./jedi-api";
@@ -15,7 +23,19 @@ import { jediApi } from "./jedi-api";
 const sanitizeSpy = sanitizeUrl as unknown as ReturnType<typeof vi.fn>;
 beforeEach(() => sanitizeSpy.mockClear());
 
+// The seeded taxonomy (frontend/src/lib/jedi/data.json ↔ 02-dev-seed.sql).
+const SEEDED_CATEGORIES = [
+  { id: 1, name: "Landscape", icon: "landscape" },
+  { id: 2, name: "People", icon: "portrait" },
+  { id: 3, name: "Animals", icon: "dog" },
+  { id: 4, name: "Abstract", icon: "collage" },
+  { id: 5, name: "Black & White", icon: "180-degrees" },
+  { id: 6, name: "Cute", icon: "fire-heart" },
+];
+
 describe("jediApi.categories", () => {
+  beforeEach(() => categoryListMock.mockResolvedValue(SEEDED_CATEGORIES));
+
   it("lists all categories including the added 'Cute'", async () => {
     const cats = await jediApi.categories.list();
     expect(cats.map((c) => c.name)).toEqual([
@@ -28,8 +48,16 @@ describe("jediApi.categories", () => {
     ]);
   });
 
-  it("every category icon is a real sprite name", async () => {
+  // Relaxed from "every icon is a real sprite name": the back-end `icon` is now
+  // an opaque key, so the seam maps a known key to itself and any unknown key to
+  // the fallback. Either way the result is always a valid IconName.
+  it("maps each opaque icon key to a known IconName or the fallback", async () => {
+    categoryListMock.mockResolvedValueOnce([
+      { id: 1, name: "Known", icon: "dog" },
+      { id: 2, name: "Unknown", icon: "no-such-icon" },
+    ]);
     const cats = await jediApi.categories.list();
+    expect(cats.map((c) => c.icon)).toEqual(["dog", "menu"]);
     for (const c of cats) expect(ICON_NAMES).toContain(c.icon);
   });
 });

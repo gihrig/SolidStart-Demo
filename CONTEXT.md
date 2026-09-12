@@ -308,6 +308,17 @@ locally-defined types. Consumers never import raw `bindings/` files directly. Se
 `ParamsForUpdate<D> = { id, data }` carries an update. Both are exported through the
 same ts-rs seam as the entities.
 
+**RPC surfaces** (authenticated vs public):
+The back-end exposes two JSON-RPC endpoints. `/api/rpc` is **authenticated** (behind
+`mw_ctx_require`) and carries every mutation and every row-scoped read, dispatching
+under the caller's own `Ctx`. `/api/rpc-public` is **public** (no auth) and carries a
+hand-picked set of anonymous reads, dispatching under `root_ctx`. The Jedi feed's
+static, back-end-owned content is public — the front-end reads it without a login —
+so `list_categories` lives on the public surface (#116), and the other `data.json`
+reads (Posts, Captions, Hero) join it as they land. Register ONLY safe public reads
+there — never a mutation or a row-scoped read.
+_Avoid_: putting an anonymous read behind auth (it breaks the public landing page).
+
 **Audit columns** (`cid` / `ctime` / `mid` / `mtime`):
 Most back-end entities carry rust10x audit fields — creator id / create time,
 modifier id / modify time. `ctime` and `mtime` are RFC3339 `TEXT` in the portable
@@ -377,12 +388,11 @@ the shared domain and consumes the contract seam.
 
 **`IconName`** (↔ `Category.icon`):
 `IconName = (typeof ICON_NAMES)[number]` (`components/Icon.tsx`) — a union of the
-sprite ids. **Today** the mock's `JediCategory.icon` is typed `IconName` directly,
-and the unit test asserts strict membership (`expect(ICON_NAMES).toContain(c.icon)`,
-`lib/jedi/jedi-api.unit.test.ts`).
-_Planned_: once the back-end owns `Category.icon` as an opaque `String`, the barrel
-maps that key to `IconName` **with a fallback** and the test relaxes to "known key
-or fallback" ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md)).
+sprite ids. The back-end now owns `Category.icon` as an opaque `String` (#116),
+so the `jedi-api` seam maps that key to an `IconName` **with a fallback** to
+`"menu"` (`toIconName`, `lib/jedi/jedi-api.ts`). The unit test is relaxed to
+"known key or fallback" (`lib/jedi/jedi-api.unit.test.ts`)
+([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md)).
 
 **`SafeUrl` / `HeroView`** (↔ `Hero`):
 The seam returns the `Hero` as a sanitized `HeroView` (`types/jedi.ts`) whose URL

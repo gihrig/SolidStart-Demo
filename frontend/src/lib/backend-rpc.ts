@@ -2,6 +2,7 @@ import type {
   Agent,
   AgentForCreate,
   AgentForUpdate,
+  CategoryPublic,
   Conv,
   ConvForCreate,
   ConvForUpdate,
@@ -78,7 +79,14 @@ export interface WorkspaceRpcClient {
 export function createRpcClient() {
   let rpcId = 0;
 
-  async function rpcCall<T>(method: string, params?: Record<string, unknown>): Promise<T> {
+  // `path` selects the RPC surface: the default authed "/api/rpc", or the public
+  // "/api/rpc-public" for reads an anonymous visitor may run (e.g. the Jedi feed
+  // taxonomy). Both send the cookie; the public surface simply does not require it.
+  async function rpcCall<T>(
+    method: string,
+    params?: Record<string, unknown>,
+    path = "/api/rpc",
+  ): Promise<T> {
     const request: JsonRpcRequest = {
       jsonrpc: "2.0",
       id: ++rpcId,
@@ -86,7 +94,7 @@ export function createRpcClient() {
       params,
     };
 
-    const response = await fetch(`${BACKEND_URL}/api/rpc`, {
+    const response = await fetch(`${BACKEND_URL}${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include", // Include cookies for auth
@@ -147,6 +155,14 @@ export function createRpcClient() {
     },
   };
 
+  // Category RPC methods. Categories are a static, back-end-owned taxonomy
+  // (ADR-0011): read-only, no create/update/delete and no realtime feed. The
+  // list is public — the anonymous Jedi landing page reads it — so it posts to
+  // the public surface (#116).
+  const category = {
+    list: () => rpcCall<CategoryPublic[]>("list_categories", undefined, "/api/rpc-public"),
+  };
+
   // Conversation Message RPC methods
   const convMsg = {
     add: (data: ConvMsgForCreate) => rpcCall<ConvMsg>("add_conv_msg", { data }),
@@ -156,12 +172,13 @@ export function createRpcClient() {
       }),
   };
 
-  return { agent, conv, convMsg };
+  return { agent, category, conv, convMsg };
 }
 
 // Default singleton used across the app.
 const client = createRpcClient();
 export const agent = client.agent;
+export const category = client.category;
 export const conv = client.conv;
 export const convMsg = client.convMsg;
 
