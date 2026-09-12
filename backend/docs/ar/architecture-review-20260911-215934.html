@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — SolidStart-Demo (#105 merge)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose" });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 5 5; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      /* "deep module" panel — on a dark page it reads as a raised, accented slab */
+      .deep { background: linear-gradient(135deg, #064e3b, #065f46); }
+      .faded { opacity: 0.45; }
+      .lbl { letter-spacing: 0.08em; }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-100 font-sans">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-14">
+      <!-- ===== HEADER ===== -->
+      <header class="space-y-5">
+        <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Architecture review</p>
+        <h1 class="text-4xl font-serif font-semibold leading-tight text-white">
+          SolidStart-Demo — the Jedi + FullStack merge
+        </h1>
+        <p class="text-sm text-slate-400">
+          Branch <span class="mono">#105-merge-Jedi+FullStack</span> · 2026-09-11 · scope: the merge hot spots
+          (<span class="mono">routes_ws.rs</span>, <span class="mono">category.rs</span>,
+          <span class="mono">hygiene.rs</span>, the RPC surface).
+        </p>
+
+        <!-- legend -->
+        <div class="flex flex-wrap gap-4 text-xs text-slate-400 pt-2">
+          <span class="flex items-center gap-2"><span class="inline-block w-5 h-4 border border-slate-600 bg-slate-900"></span> module</span>
+          <span class="flex items-center gap-2">
+            <svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" class="seam" stroke="#94a3b8" stroke-width="2"/></svg> seam
+          </span>
+          <span class="flex items-center gap-2"><span class="inline-block w-5 h-4 deep"></span> deep module</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-5 h-4 border-2 border-red-500"></span> duplicated / leaking</span>
+        </div>
+
+        <div class="rounded-lg border border-emerald-800 bg-emerald-950/60 px-4 py-3 text-sm text-emerald-200">
+          One module on this branch is the model to copy: the <strong>write-path hygiene seam</strong>
+          (<span class="mono">hygiene.rs</span>). A tiny interface — an entity declares
+          <span class="mono">&amp;[FieldHygiene]</span> — hides all normalize/reject/cap behaviour,
+          applied once in <span class="mono">base::create/update</span>. Deep. The candidates below
+          are where the branch did <em>not</em> reach that shape.
+        </div>
+      </header>
+
+      <!-- ===== CANDIDATES ===== -->
+      <section id="candidates" class="space-y-12">
+
+        <!-- ============ CANDIDATE A ============ -->
+        <article id="cand-a" class="rounded-xl border border-slate-800 bg-slate-900 shadow-sm p-7 space-y-6">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="text-2xl font-serif font-semibold text-white">A · Collapse the realtime Channel vocabulary</h2>
+            <div class="flex gap-2 shrink-0">
+              <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/20 text-emerald-300 rounded-full px-3 py-1">Strong</span>
+              <span class="text-xs uppercase tracking-wide bg-slate-700/50 text-slate-300 rounded-full px-3 py-1">in-process</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500">
+            backend/crates/services/web-server/src/web/routes_ws.rs
+          </p>
+
+          <!-- before / after -->
+          <div class="grid md:grid-cols-2 gap-5">
+            <!-- BEFORE -->
+            <div class="rounded-lg border border-slate-800 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — one concept, three enums</p>
+              <div class="space-y-3">
+                <div class="border-2 border-red-500/70 rounded p-2">
+                  <p class="text-[11px] uppercase lbl text-red-400 mb-1">enum WsEvent <span class="text-slate-500">(+ channel())</span></p>
+                  <p class="mono text-xs text-slate-400">Posts · PostLike · CaptionLike · PostCaption …</p>
+                </div>
+                <div class="border-2 border-red-500/70 rounded p-2">
+                  <p class="text-[11px] uppercase lbl text-red-400 mb-1">enum ChannelKind <span class="text-slate-500">(wire)</span></p>
+                  <p class="mono text-xs text-slate-400">Posts · PostComment · CaptionComment · PostLike …</p>
+                </div>
+                <div class="border-2 border-red-500/70 rounded p-2">
+                  <p class="text-[11px] uppercase lbl text-red-400 mb-1">enum Channel <span class="text-slate-500">(+ parse + key + authorize)</span></p>
+                  <p class="mono text-xs text-slate-400">Posts · PostComment · PostLike · PostCaption …</p>
+                </div>
+                <p class="text-xs text-red-400 pt-1">One channel = up to 7 edit sites. Three lists held in sync by hand.</p>
+              </div>
+            </div>
+            <!-- AFTER -->
+            <div class="rounded-lg border border-slate-700 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — one Channel descriptor</p>
+              <div class="deep text-emerald-50 rounded-lg p-4 h-[236px] flex flex-col justify-center gap-3">
+                <p class="text-[11px] uppercase lbl text-emerald-200">one place per channel</p>
+                <p class="mono text-xs text-emerald-100 leading-relaxed">
+                  Channel::PostLike(id)<br/>
+                  &nbsp;&nbsp;.kind = "post_like"<br/>
+                  &nbsp;&nbsp;.key = "post_like:{id}"<br/>
+                  &nbsp;&nbsp;.arity = id-bearing<br/>
+                  &nbsp;&nbsp;.authorize = authed-read
+                </p>
+                <p class="text-[11px] text-emerald-200/70 mono">WsEvent carries a Channel — no re-enumeration</p>
+              </div>
+              <p class="text-xs text-emerald-400 pt-3">Add a channel in one place. The type carries the rest.</p>
+            </div>
+          </div>
+
+          <!-- the soft spot -->
+          <div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
+            <pre class="mermaid">
+flowchart LR
+  subgraph OUT["outbound"]
+    WE["enum WsEvent"]
+  end
+  subgraph IN["inbound"]
+    CK["enum ChannelKind"] --> CH["enum Channel"]
+  end
+  WE -. "channel() — hand-written, compiler checks only exhaustiveness" .-> CH
+  CH --> KEY["key() string"]
+  CH --> AUTH["authorize()"]
+  classDef leak stroke:#f87171,stroke-width:2px;
+  class WE,CH leak
+            </pre>
+            <p class="text-xs text-slate-500 mt-2">
+              The compiler forces each match to be exhaustive, but <span class="mono">WsEvent::channel()</span>
+              maps variant→variant by hand — a wrong arm still compiles. Tests
+              (<span class="mono">jedi_poke_wire_shape_is_stable</span>, <span class="mono">jedi_channel_keys_are_stable</span>)
+              backfill the guarantee the structure does not carry.
+            </p>
+          </div>
+
+          <dl class="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+            <div><dt class="font-semibold text-slate-500 text-xs uppercase tracking-wider">Problem</dt>
+              <dd class="text-slate-300">A channel is spelled in three enums plus four match arms; they stay in sync by hand and by test.</dd></div>
+            <div><dt class="font-semibold text-slate-500 text-xs uppercase tracking-wider">Solution</dt>
+              <dd class="text-slate-300">One <span class="mono">Channel</span> descriptor owns kind string, id-arity, routing key, and authorize rule; <span class="mono">WsEvent</span> holds a <span class="mono">Channel</span>.</dd></div>
+          </dl>
+
+          <div>
+            <p class="font-semibold text-slate-500 text-xs uppercase tracking-wider mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-2 text-sm text-slate-300">
+              <li class="flex gap-2"><span class="text-emerald-400">→</span> locality: one place per channel</li>
+              <li class="flex gap-2"><span class="text-emerald-400">→</span> leverage: #113 payloads add once, not 7×</li>
+              <li class="flex gap-2"><span class="text-emerald-400">→</span> interface shrinks; routing absorbs the matches</li>
+              <li class="flex gap-2"><span class="text-emerald-400">→</span> wire-shape tests stop being the guarantee</li>
+            </ul>
+          </div>
+
+          <div class="rounded-lg border border-amber-800 bg-amber-950/50 px-4 py-3 text-sm text-amber-200">
+            Keeps ADR-0018 intact: wire strings still come from the ts-rs-exported
+            <span class="mono">ChannelKind</span>, so the front-end <span class="mono">channel.ts</span> mirror is unchanged.
+            The deepening is internal to the back-end module.
+          </div>
+        </article>
+
+        <!-- ============ CANDIDATE B ============ -->
+        <article id="cand-b" class="rounded-xl border border-slate-800 bg-slate-900 shadow-sm p-7 space-y-6">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="text-2xl font-serif font-semibold text-white">B · Build the typed poke receipt ADR-0016 already chose</h2>
+            <div class="flex gap-2 shrink-0">
+              <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/20 text-emerald-300 rounded-full px-3 py-1">Strong</span>
+              <span class="text-xs uppercase tracking-wide bg-slate-700/50 text-slate-300 rounded-full px-3 py-1">in-process</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500">
+            backend/crates/services/web-server/src/web/rpcs/mod.rs · docs/adr/0016-poke-rule-typed-receipt.md
+          </p>
+
+          <!-- cross-section: layers of the text guard vs one type -->
+          <div class="grid md:grid-cols-2 gap-5">
+            <div class="rounded-lg border border-slate-800 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — ~260-line source-scan guard</p>
+              <div class="space-y-1.5">
+                <div class="h-9 border-l-4 border-red-500/70 bg-red-950/40 px-3 flex items-center text-xs mono text-slate-300">strip_line_comments()</div>
+                <div class="h-9 border-l-4 border-red-500/70 bg-red-950/40 px-3 flex items-center text-xs mono text-slate-300">balanced_parens()</div>
+                <div class="h-9 border-l-4 border-red-500/70 bg-red-950/40 px-3 flex items-center text-xs mono text-slate-300">handler_idents()</div>
+                <div class="h-9 border-l-4 border-red-500/70 bg-red-950/40 px-3 flex items-center text-xs mono text-slate-300">router_builder_names()</div>
+                <div class="h-9 border-l-4 border-red-500/70 bg-red-950/40 px-3 flex items-center text-xs mono text-slate-300">fn_body() — assumes column-0 brace</div>
+                <div class="h-9 border-l-4 border-red-500/70 bg-red-950/40 px-3 flex items-center text-xs mono text-slate-300">POKE_TABLE — hand-maintained</div>
+              </div>
+              <p class="text-xs text-red-400 pt-3">Test-time. Proves presence, not execution. Blind outside 4 name prefixes.</p>
+            </div>
+            <div class="rounded-lg border border-slate-700 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — one compile-time obligation</p>
+              <div class="deep text-emerald-50 rounded-lg p-4 h-[210px] flex flex-col justify-center gap-3">
+                <p class="mono text-xs text-emerald-100 leading-relaxed">
+                  broadcast_*() → PokeReceipt&lt;C&gt;<br/><br/>
+                  create_agent()<br/>
+                  &nbsp;&nbsp;-> PokedRpcResult&lt;Agent, Agents&gt;
+                </p>
+                <p class="text-[11px] text-emerald-200/80">No poke → no receipt → no return value → no compile.</p>
+              </div>
+              <p class="text-xs text-emerald-400 pt-3">Wrong-feed poke is a type error. Wire shape byte-identical.</p>
+            </div>
+          </div>
+
+          <dl class="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+            <div><dt class="font-semibold text-slate-500 text-xs uppercase tracking-wider">Problem</dt>
+              <dd class="text-slate-300">The Poke rule rides on a fragile Rust-text parser run at test time — the guard's own notes call it heavy and leaky.</dd></div>
+            <div><dt class="font-semibold text-slate-500 text-xs uppercase tracking-wider">Solution</dt>
+              <dd class="text-slate-300">The decided <span class="mono">PokeReceipt&lt;C&gt;</span> / <span class="mono">PokedRpcResult&lt;T, C&gt;</span>; delete the scanner and <span class="mono">POKE_TABLE</span>.</dd></div>
+          </dl>
+
+          <div>
+            <p class="font-semibold text-slate-500 text-xs uppercase tracking-wider mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-2 text-sm text-slate-300">
+              <li class="flex gap-2"><span class="text-emerald-400">→</span> delete ~260 lines of parser</li>
+              <li class="flex gap-2"><span class="text-emerald-400">→</span> compile-time, not test-time</li>
+              <li class="flex gap-2"><span class="text-emerald-400">→</span> covers every mutation, any name</li>
+              <li class="flex gap-2"><span class="text-emerald-400">→</span> locality: the type is the rule</li>
+            </ul>
+          </div>
+
+          <div class="rounded-lg border border-amber-800 bg-amber-950/50 px-4 py-3 text-sm text-amber-200">
+            <strong>Not a conflict — implements ADR-0016.</strong> The ADR is accepted but the receipt type is
+            not in the tree yet (no <span class="mono">PokeReceipt</span> in <span class="mono">crates/</span>), and the
+            source-scan guard still stands. This is decided work, not yet built.
+          </div>
+        </article>
+
+        <!-- ============ CANDIDATE C ============ -->
+        <article id="cand-c" class="rounded-xl border border-slate-800 bg-slate-900 shadow-sm p-7 space-y-6">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="text-2xl font-serif font-semibold text-white">C · A seam for the public projection — at the second one</h2>
+            <div class="flex gap-2 shrink-0">
+              <span class="text-xs font-semibold uppercase tracking-wide bg-amber-500/20 text-amber-300 rounded-full px-3 py-1">Worth exploring</span>
+              <span class="text-xs uppercase tracking-wide bg-slate-700/50 text-slate-300 rounded-full px-3 py-1">in-process</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500">
+            backend/crates/libs/lib-core/src/model/category.rs · .../web/rpcs/category_rpc.rs
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-5">
+            <div class="rounded-lg border border-slate-800 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Today — one adapter</p>
+              <div class="space-y-3 text-xs mono text-slate-400">
+                <div class="border border-slate-700 rounded p-3">
+                  CategoryPublic { id, name, icon }<br/>
+                  CategoryBmc::list_public()<br/>
+                  &nbsp;&nbsp;→ base::list::&lt;Self, CategoryPublic&gt;
+                </div>
+                <p class="text-slate-500">One projection. One <span class="mono">list_public</span>. This is correct now.</p>
+              </div>
+            </div>
+            <div class="rounded-lg border border-slate-700 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Contracted next (CONTEXT.md)</p>
+              <div class="space-y-2 text-xs mono text-slate-400">
+                <div class="border border-dashed border-slate-600 rounded p-2">PostPublic + list_public</div>
+                <div class="border border-dashed border-slate-600 rounded p-2">CaptionPublic + list_public</div>
+                <div class="border border-dashed border-slate-600 rounded p-2">HeroPublic + get_public</div>
+                <p class="text-amber-300" style="font-family:inherit">
+                  At the 2nd, concentrate into a <span class="mono">PublicProjection</span> seam:
+                  an entity names its public type; one read serves all.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <dl class="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+            <div><dt class="font-semibold text-slate-500 text-xs uppercase tracking-wider">Problem</dt>
+              <dd class="text-slate-300">None yet. CONTEXT.md contracts Posts, Captions, and Hero as public reads — the pattern will recur.</dd></div>
+            <div><dt class="font-semibold text-slate-500 text-xs uppercase tracking-wider">Solution</dt>
+              <dd class="text-slate-300">Hold the line at one adapter now; add the projection seam when the second public read lands.</dd></div>
+          </dl>
+
+          <div class="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-slate-300">
+            One adapter is a hypothetical seam; two is a real one. Do <strong>not</strong> build the seam for
+            <span class="mono">Category</span> alone — the deletion test fails, it just moves complexity.
+            This card is a marker for the next ticket, not a refactor for today.
+          </div>
+        </article>
+
+      </section>
+
+      <!-- ===== TOP RECOMMENDATION ===== -->
+      <section id="top-recommendation" class="rounded-xl deep text-emerald-50 p-8 space-y-4">
+        <p class="text-xs uppercase tracking-[0.2em] text-emerald-300/70">Top recommendation</p>
+        <h2 class="text-2xl font-serif font-semibold text-white">
+          <a href="#cand-a" class="underline decoration-emerald-300 decoration-2 underline-offset-4">A · Collapse the Channel vocabulary</a>
+        </h2>
+        <p class="text-sm text-emerald-100/90 max-w-3xl">
+          It is live friction and it grows. #109 and #115 already paid the three-enum tax; #113 (comment payloads)
+          pays it again. Deepen to one <span class="mono">Channel</span> descriptor and the next
+          channel costs one edit, not seven — with the invariant carried by the type, not by wire-shape tests.
+        </p>
+        <p class="text-sm text-emerald-100/70">
+          <strong class="text-white">B</strong> is shovel-ready too — ADR-0016 already decided it and it deletes ~260 lines —
+          but it is queued work, not a new finding. Do A first; do B whenever #113 touches the RPC handlers.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
