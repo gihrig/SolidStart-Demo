@@ -3,10 +3,12 @@ import type { WsEvent } from "./index";
 
 // The barrel's `NumericIdsEvent` is the seam that makes the declared `WsEvent`
 // match the runtime value (ADR-0003): every id arrives as a `number` via
-// JSON.parse, never a `bigint`. These assertions guard that boundary so a future
-// generated-binding change (a new poke id, a ConvMsg field) or a rewrite of the
-// utility cannot silently leave an id as `bigint`. The checks are compile-time —
-// `vpr check:type` (tsc) validates them; `Expect` fails to compile on any drift.
+// JSON.parse, never a `bigint`. After the Channel merge (ADR-0020) every poke is
+// one `poke` variant carrying a `Channel`; its id (where the channel carries one)
+// is rewritten through the same `Channel` type. These assertions guard that
+// boundary so a future generated-binding change cannot silently leave an id as
+// `bigint`. The checks are compile-time — `vpr check:type` (tsc) validates them;
+// `Expect` fails to compile on any drift.
 
 // Standard type-equality helper: true only when X and Y are the exact same type.
 type Equal<X, Y> =
@@ -15,14 +17,17 @@ type Expect<T extends true> = T;
 
 // Narrow the union to one variant by its `event_type` discriminant.
 type Variant<K extends WsEvent["event_type"]> = Extract<WsEvent, { event_type: K }>;
+// Narrow the poke variant further by its Channel `kind`.
+type Poke<K> = Extract<Variant<"poke">, { kind: K }>;
 
 // Exported so the assertions are referenced (no unused-type noise). A failed
 // `Expect` is a compile error regardless.
 export type WsEventConversionAssertions = [
-  // Top-level poke ids are rewritten bigint -> number.
-  Expect<Equal<Variant<"post_like">["post_id"], number>>,
-  Expect<Equal<Variant<"caption_like">["caption_id"], number>>,
-  Expect<Equal<Variant<"post_caption">["post_id"], number>>,
+  // A poke carries its Channel; an id-bearing channel's id is rewritten to number.
+  Expect<Equal<Poke<"post_like">["id"], number>>,
+  Expect<Equal<Poke<"caption_like">["id"], number>>,
+  Expect<Equal<Poke<"post_caption">["id"], number>>,
+  Expect<Equal<Poke<"conv">["id"], number>>,
 
   // Nested conv_msg payload ids are rewritten bigint -> number...
   Expect<Equal<Variant<"conv_msg">["payload"]["id"], number>>,
@@ -34,21 +39,30 @@ export type WsEventConversionAssertions = [
   Expect<Equal<Variant<"conv_msg">["payload"]["content"], string>>,
   Expect<Equal<Variant<"conv_msg">["payload"]["ctime"], string>>,
 
-  // The contentless pokes carry nothing but the discriminant.
-  Expect<Equal<keyof Variant<"posts">, "event_type">>,
-  Expect<Equal<keyof Variant<"agent_update">, "event_type">>,
-  Expect<Equal<keyof Variant<"conv_update">, "event_type">>,
+  // The id-less pokes carry only the discriminant and the channel `kind`.
+  Expect<Equal<keyof Poke<"posts">, "event_type" | "kind">>,
+  Expect<Equal<keyof Poke<"agents">, "event_type" | "kind">>,
+  Expect<Equal<keyof Poke<"convs">, "event_type" | "kind">>,
 ];
 
 describe("WsEvent discriminated-union narrowing", () => {
-  test("narrowing by event_type exposes the poke id as a number", () => {
-    const event: WsEvent = { event_type: "post_like", post_id: 5 };
-    if (event.event_type === "post_like") {
+  test("a poke narrows by event_type then by channel kind, id as a number", () => {
+    const event: WsEvent = { event_type: "poke", kind: "post_like", id: 5 };
+    if (event.event_type === "poke" && event.kind === "post_like") {
       // Assignable to number (compile-time) and a number at runtime.
-      const id: number = event.post_id;
+      const id: number = event.id;
       expect(id).toBe(5);
     } else {
-      throw new Error("expected the post_like variant");
+      throw new Error("expected the post_like poke");
+    }
+  });
+
+  test("an id-less poke carries only its kind", () => {
+    const event: WsEvent = { event_type: "poke", kind: "agents" };
+    if (event.event_type === "poke") {
+      expect(event.kind).toBe("agents");
+    } else {
+      throw new Error("expected a poke");
     }
   });
 

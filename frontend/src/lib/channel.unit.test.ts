@@ -1,11 +1,11 @@
 import { describe, test, expect } from "vite-plus/test";
 import { Channel } from "./channel";
 
-// The front-end mirror of the back-end Channel vocabulary (ADR-0018). These
-// assertions lock each constructor to the exact wire `kind` string the back-end
-// `ChannelKind` serializes to. The back-end `channelkind_wire_shape_is_stable` /
-// `jedi_channelkind_wire_shape_is_stable` tests lock the same strings from Rust;
-// together they guard the two sides against drift.
+// The front-end mirror of the back-end Channel vocabulary (ADR-0020). These
+// assertions lock each constructor to the exact wire `kind` string and id shape
+// the back-end `Channel` serializes to. The back-end `channel_wire_shape_is_stable`
+// test locks the same shape from Rust; together they guard the two sides against
+// drift.
 describe("Channel constructors mirror the wire kinds", () => {
   test("existing conversation channels", () => {
     expect(Channel.conv(5)).toEqual({ kind: "conv", id: 5 });

@@ -11,10 +11,13 @@ import type { ConvMsg as ConvMsgWire } from "~backend-bindings/ConvMsg.d";
 import type { ConvUser as ConvUserWire } from "~backend-bindings/ConvUser.d";
 import type { User as UserWire } from "~backend-bindings/User.d";
 import type { WsEvent as WsEventWire } from "~backend-bindings/WsEvent.d";
-import type { ChannelKind } from "~backend-bindings/ChannelKind.d";
+import type { Channel as ChannelWire } from "~backend-bindings/Channel.d";
 
 /** Rewrite a binding's bigint id fields to the number they already are at runtime. */
 type NumericIds<T> = { [K in keyof T]: T[K] extends bigint ? number : T[K] };
+
+/** Distribute {@link NumericIds} over each member of a union (e.g. `Channel`). */
+type NumericIdsUnion<T> = T extends unknown ? NumericIds<T> : never;
 
 export type Agent = NumericIds<AgentWire>;
 /** The public Category projection (id, name, icon) — the anonymous read contract. */
@@ -24,24 +27,32 @@ export type ConvMsg = NumericIds<ConvMsgWire>;
 export type ConvUser = NumericIds<ConvUserWire>;
 export type User = NumericIds<UserWire>;
 
+// The merged realtime `Channel` vocabulary (ADR-0020), one exported enum that
+// replaces the former `ChannelKind`. Id-bearing variants carry `id: bigint` on
+// the wire, so rewrite each member's id to the number it already is at runtime
+// (ADR-0003); the front-end `channel.ts` builds its constructors on this type.
+export type Channel = NumericIdsUnion<ChannelWire>;
+
 // String-union bindings carry no ids — re-export unchanged.
-export type { ChannelKind };
 export type { ConvKind } from "~backend-bindings/ConvKind.d";
 export type { ConvState } from "~backend-bindings/ConvState.d";
 export type { UserTyp } from "~backend-bindings/UserTyp.d";
 export type { ParamsIded } from "~backend-bindings/ParamsIded.d";
 export type { ParamsForUpdate } from "~backend-bindings/ParamsForUpdate.d";
 
-// Realtime feed envelope — generated from the backend `WsEvent` (ADR-0015), a
-// discriminated union tagged by `event_type`. Consumed through the barrel (not
-// raw) so ids get the same bigint→number rewrite as every entity (ADR-0003). A
-// payload variant (`conv_msg`) has its nested row rewritten; a Jedi poke variant
-// (`post_like` / `caption_like` / `post_caption`) carries its routing id at the
-// top level, so that id is rewritten in place (#115); `agent_update` / `conv_update`
-// / `posts` carry nothing. The consumer narrows by `event_type` — no cast.
+// Realtime feed envelope — generated from the backend `WsEvent` (ADR-0015,
+// ADR-0020), a discriminated union tagged by `event_type`. Consumed through the
+// barrel (not raw) so ids get the same bigint→number rewrite as every entity
+// (ADR-0003). The `conv_msg` payload variant has its nested row rewritten. Every
+// contentless poke is one `poke` variant carrying a `Channel`; its `kind` selects
+// the channel and its `id` (where the channel carries one) is rewritten via the
+// same `Channel` type. The consumer narrows by `event_type`, then by `kind` for a
+// poke — no cast.
 type NumericIdsEvent<T> = T extends { payload: infer P }
   ? Omit<NumericIds<T>, "payload"> & { payload: NumericIds<P> }
-  : NumericIds<T>;
+  : T extends { event_type: "poke" }
+    ? { event_type: "poke" } & Channel
+    : NumericIds<T>;
 export type WsEvent = NumericIdsEvent<WsEventWire>;
 
 // Input types for create operations (not in generated bindings)
@@ -110,18 +121,4 @@ export type JsonRpcResponse<T = unknown> = JsonRpcSuccessResponse<T> | JsonRpcEr
 // Type guard for error response
 export function isRpcError(response: JsonRpcResponse): response is JsonRpcErrorResponse {
   return "error" in response;
-}
-
-// WebSocket subscription request (client → server). The event envelope is the
-// generated `WsEvent` re-exported above; the `channel` kinds are the generated
-// `ChannelKind` (ADR-0018), which the front-end `Channel` module (`lib/channel.ts`)
-// builds its constructors on. The id-less feeds `agents` / `convs` / `posts` take
-// no `id`; the id-bearing kinds do — `conv` (#85) and the five Jedi channels
-// `post_comment` / `caption_comment` / `post_like` / `caption_like` / `post_caption`
-// (#115). The full request struct stays hand-declared — only its `channel`
-// vocabulary is a binding.
-export interface WsSubscription {
-  action: "subscribe" | "unsubscribe";
-  channel: ChannelKind;
-  id?: number;
 }

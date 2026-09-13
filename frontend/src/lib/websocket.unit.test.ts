@@ -106,29 +106,29 @@ describe("useWebSocket", () => {
     const ws = MockWebSocket.instances[0];
     ws.open();
 
-    ws.simulateMessage({ event_type: "agent_update" });
+    ws.simulateMessage({ event_type: "poke", kind: "agents" });
 
     expect(onConvMsg).not.toHaveBeenCalled();
   });
 
-  it("calls onAgentUpdate for an agent_update poke", () => {
+  it("calls onAgentUpdate for an agents poke", () => {
     const onAgentUpdate = vi.fn();
     renderHook(() => useWebSocket({ onAgentUpdate }));
     const ws = MockWebSocket.instances[0];
     ws.open();
 
-    ws.simulateMessage({ event_type: "agent_update" });
+    ws.simulateMessage({ event_type: "poke", kind: "agents" });
 
     expect(onAgentUpdate).toHaveBeenCalledTimes(1);
   });
 
-  it("calls onConvUpdate for a conv_update poke", () => {
+  it("calls onConvUpdate for a convs poke", () => {
     const onConvUpdate = vi.fn();
     renderHook(() => useWebSocket({ onConvUpdate }));
     const ws = MockWebSocket.instances[0];
     ws.open();
 
-    ws.simulateMessage({ event_type: "conv_update" });
+    ws.simulateMessage({ event_type: "poke", kind: "convs" });
 
     expect(onConvUpdate).toHaveBeenCalledTimes(1);
   });
@@ -141,7 +141,7 @@ describe("useWebSocket", () => {
     result.subscribe(Channel.conv(5));
 
     expect(ws.send).toHaveBeenCalledWith(
-      JSON.stringify({ action: "subscribe", channel: "conv", id: 5 }),
+      JSON.stringify({ action: "subscribe", kind: "conv", id: 5 }),
     );
   });
 
@@ -156,7 +156,7 @@ describe("useWebSocket", () => {
     result.unsubscribe(Channel.conv(5));
 
     expect(ws.send).toHaveBeenCalledWith(
-      JSON.stringify({ action: "unsubscribe", channel: "conv", id: 5 }),
+      JSON.stringify({ action: "unsubscribe", kind: "conv", id: 5 }),
     );
   });
 
@@ -208,7 +208,7 @@ describe("useWebSocket", () => {
     ws.open();
 
     expect(ws.send).toHaveBeenCalledWith(
-      JSON.stringify({ action: "subscribe", channel: "conv", id: 5 }),
+      JSON.stringify({ action: "subscribe", kind: "conv", id: 5 }),
     );
   });
 
@@ -220,7 +220,7 @@ describe("useWebSocket", () => {
       first.open();
       result.subscribe(Channel.conv(5));
       expect(first.send).toHaveBeenCalledWith(
-        JSON.stringify({ action: "subscribe", channel: "conv", id: 5 }),
+        JSON.stringify({ action: "subscribe", kind: "conv", id: 5 }),
       );
 
       first.close(); // unintended drop
@@ -230,7 +230,7 @@ describe("useWebSocket", () => {
       second.open();
 
       expect(second.send).toHaveBeenCalledWith(
-        JSON.stringify({ action: "subscribe", channel: "conv", id: 5 }),
+        JSON.stringify({ action: "subscribe", kind: "conv", id: 5 }),
       );
     } finally {
       vi.useRealTimers();
@@ -247,7 +247,7 @@ describe("useWebSocket", () => {
     ws.open();
 
     expect(ws.send).not.toHaveBeenCalledWith(
-      JSON.stringify({ action: "subscribe", channel: "conv", id: 5 }),
+      JSON.stringify({ action: "subscribe", kind: "conv", id: 5 }),
     );
   });
 
@@ -378,7 +378,7 @@ describe("createFeed (one shared socket)", () => {
 
     expect(ws.send).toHaveBeenCalledTimes(1);
     expect(ws.send).toHaveBeenCalledWith(
-      JSON.stringify({ action: "subscribe", channel: "conv", id: 5 }),
+      JSON.stringify({ action: "subscribe", kind: "conv", id: 5 }),
     );
   });
 
@@ -398,7 +398,7 @@ describe("createFeed (one shared socket)", () => {
 
     result.v2.unsubscribe(Channel.conv(5)); // last holder releases
     expect(ws.send).toHaveBeenCalledWith(
-      JSON.stringify({ action: "unsubscribe", channel: "conv", id: 5 }),
+      JSON.stringify({ action: "unsubscribe", kind: "conv", id: 5 }),
     );
   });
 });
