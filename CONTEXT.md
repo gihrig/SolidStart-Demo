@@ -215,7 +215,7 @@ view ([ADR-0017](docs/adr/0017-shared-client-feed-multiplexed.md)).
 
 **Channel**:
 The routing key an Event is addressed to and a Subscription names. After the merge
-`ChannelKind` holds **six variants** (#109):
+the exported `Channel` type holds **six variants** (#109; [ADR-0020](docs/adr/0020-collapse-channel-vocabulary.md)):
 
 | Wire string       | Routing key                    | Semantics |
 | ----------------- | ------------------------------ | --------- |
@@ -227,13 +227,15 @@ The routing key an Event is addressed to and a Subscription names. After the mer
 | `post_caption`    | `post_caption:{post_id}`       | poke      |
 
 _Avoid_: topic, room; the retired `agents` / `conv` / `convs` strings.
-_BE_ (Planned): the ts-rs-exported `ChannelKind` enum — snake_case wire strings,
-PascalCase Rust variants. The live `agents` channel is **retired** (Category
+_BE_ (Planned): one ts-rs-exported `Channel` enum — one typed variant per channel,
+id where the routing key needs it, snake_case wire strings, PascalCase Rust variants;
+`ChannelKind` is merged into it ([ADR-0020](docs/adr/0020-collapse-channel-vocabulary.md)). The live `agents` channel is **retired** (Category
 static), the id-bearing `conv:{id}` is **retired** (its message stream splits into
 the two comment channels), and `convs` becomes `posts`
 ([ADR-0018](docs/adr/0018-channel-strings-track-domain-names.md) addendum, #109).
 _FE_ (Planned): the `Channel` constructor module (`lib/channel.ts`) over the
-generated `ChannelKind` ([ADR-0018](docs/adr/0018-channel-strings-track-domain-names.md)).
+generated `Channel` ([ADR-0018](docs/adr/0018-channel-strings-track-domain-names.md),
+[ADR-0020](docs/adr/0020-collapse-channel-vocabulary.md)).
 
 **Subscription**:
 A client's standing request to receive Events on a Channel. After the merge every
@@ -243,9 +245,11 @@ Post is public (#106, #109). The former owner ∪ `MultiUsers` per-row scope
 [ADR-0015](docs/adr/0015-realtime-push-authorization-at-subscribe-time.md)) is
 dropped. A connection with no Subscription receives nothing.
 _Avoid_: listener, watch.
-_BE_ (Planned): `SubscriptionRequest { action, channel, id }` with
-`channel: ChannelKind`; authorized as authenticated-read and held per-connection
-([ADR-0018](docs/adr/0018-channel-strings-track-domain-names.md) addendum).
+_BE_ (Planned): `SubscriptionRequest { action, channel }` with `channel: Channel` —
+the id rides inside the variant, so `conv` without an id fails to deserialize; held
+per-connection and authorized per variant (`Conv` keeps the read scope until #128, the
+rest authenticated-read) ([ADR-0018](docs/adr/0018-channel-strings-track-domain-names.md) addendum,
+[ADR-0020](docs/adr/0020-collapse-channel-vocabulary.md)).
 _FE_: `subscribe` / `unsubscribe` on the Feed, replayed on (re)connect.
 
 **Event**:
@@ -254,10 +258,11 @@ PostComment or CaptionComment, as a tagged upsert-or-removal (a Comment may be
 edited or deleted, not only appended). A **poke** Event is contentless; the client
 refetches (`posts`, `post_like`, `caption_like`, `post_caption`).
 _Avoid_: notification, broadcast (the mechanism, not the item).
-_BE_ (Planned): the merged `WsEvent` — one variant per Channel, tagged by
-`event_type` (ts-rs-exported). The routing Channel is derived from the variant, not
-carried on the wire ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md)
-addendum, #109).
+_BE_ (Planned): the merged `WsEvent` — payload variants (`conv_msg` and the two
+comment channels) plus one `Poke(Channel)` for the contentless pokes, tagged by
+`event_type` (ts-rs-exported). A poke carries its `Channel`; a payload derives its
+`Channel` from the payload ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md)
+addendum, #109; [ADR-0020](docs/adr/0020-collapse-channel-vocabulary.md)).
 
 **Channel semantics rule**:
 A Channel's semantics follow its data shape (#109):

@@ -14,6 +14,14 @@ renames are also coming: Agent → Topic (#31) and the `Conv*` family → `Threa
 This ADR records mirroring the Channel vocabulary on the front-end, sourcing it from
 the back-end, and deciding that a channel string tracks its entity's domain name.
 
+<!-- index-status: superseded-in-part by ADR-0020 (see the blockquote below) -->
+
+> **Superseded in part (2026-09-13):** [ADR-0020](0020-collapse-channel-vocabulary.md)
+> reverses the two decisions named below — "Keep `Channel` and `ChannelKind` as two
+> types" and the rejection of merging them. The realtime vocabulary is now one exported
+> `Channel` type; `ChannelKind` is merged into it. The generation mechanism and the
+> domain-name Track rule this ADR installed are unchanged.
+
 ## Decisions
 
 **The back-end is the one source; generate `ChannelKind`.** A kind-only enum
@@ -31,7 +39,7 @@ generation reliable: the parsed vocabulary and the exported vocabulary are the s
 type, so they cannot drift. Export without this step would only relocate the
 hand-sync from front-end↔back-end to a back-end-internal enum↔`parse` gap.
 
-**Keep `Channel` and `ChannelKind` as two types.** `ChannelKind` is the id-less
+**Keep `Channel` and `ChannelKind` as two types.** _(Reversed in part by [ADR-0020](0020-collapse-channel-vocabulary.md).)_ `ChannelKind` is the id-less
 wire and binding vocabulary. `Channel` (`Conv(i64)`, kind + id) stays internal for the
 routing key `conv:{id}` (`web/routes_ws.rs:142`) and the subscribe-time authorization
 `ConvBmc::get` (ADR-0014 / ADR-0015). Two jobs, two types; `key` and `authorize` are
@@ -74,7 +82,7 @@ the renames later, each riding the safety this ADR installs.
   compiles.
 - **Merge `Channel` and `ChannelKind`** into one type holding a kind + `Option<i64>`.
   Rejected: it churns `key` / `authorize` / `WsEvent::channel` for no gain; the id-less
-  wire kind and the id-bearing routed key are genuinely different jobs.
+  wire kind and the id-bearing routed key are genuinely different jobs. _(Reversed by [ADR-0020](0020-collapse-channel-vocabulary.md): the merged `Channel` uses typed id-bearing variants, not `kind + Option<i64>`, so arity survives.)_
 
 ## Consequences
 
