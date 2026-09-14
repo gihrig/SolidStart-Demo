@@ -60,7 +60,7 @@
             <h2 class="text-2xl font-serif font-semibold text-white">C-04 · Collapse the realtime Channel vocabulary</h2>
             <div class="flex gap-2 shrink-0">
               <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/20 text-emerald-300 rounded-full px-3 py-1">Strong</span>
-              <span class="text-xs uppercase tracking-wide bg-slate-700/50 text-slate-300 rounded-full px-3 py-1">in-process</span>
+              <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/30 text-emerald-200 rounded-full px-3 py-1">✓ Shipped</span>
             </div>
           </div>
 
@@ -148,14 +148,13 @@ flowchart LR
             </ul>
           </div>
 
-          <div class="rounded-lg border border-amber-800 bg-amber-950/50 px-4 py-3 text-sm text-amber-200">
-            <span class="font-semibold">Superseded by <a href="../../../docs/adr/0020-collapse-channel-vocabulary.md" class="underline">ADR-0020</a>.</span>
-            This sketch kept <span class="mono">ChannelKind</span> and left the front-end
-            <span class="mono">channel.ts</span> mirror unchanged. ADR-0020 went further: it merges
-            the three types into one exported <span class="mono">Channel</span>, removes
-            <span class="mono">ChannelKind</span>, and rebuilds <span class="mono">channel.ts</span> on the
-            generated <span class="mono">Channel</span>. The wire is broken by design — back-end and
-            front-end ship together.
+          <div class="rounded-lg border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-200">
+            <span class="font-semibold">Shipped per <a href="../../../docs/adr/0020-collapse-channel-vocabulary.md" class="underline">ADR-0020</a>
+            (commit <span class="mono">00f2790</span>).</span> The final form went further than this sketch:
+            the three types merge into one exported <span class="mono">Channel</span>,
+            <span class="mono">ChannelKind</span> is removed, and the front-end <span class="mono">channel.ts</span>
+            mirror is rebuilt on the generated <span class="mono">Channel</span>. The wire is broken by design —
+            back-end and front-end shipped together.
           </div>
         </article>
 
