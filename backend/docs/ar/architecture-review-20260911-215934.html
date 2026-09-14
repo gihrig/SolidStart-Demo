@@ -149,9 +149,13 @@ flowchart LR
           </div>
 
           <div class="rounded-lg border border-amber-800 bg-amber-950/50 px-4 py-3 text-sm text-amber-200">
-            Keeps ADR-0018 intact: wire strings still come from the ts-rs-exported
-            <span class="mono">ChannelKind</span>, so the front-end <span class="mono">channel.ts</span> mirror is unchanged.
-            The deepening is internal to the back-end module.
+            <span class="font-semibold">Superseded by <a href="../../../docs/adr/0020-collapse-channel-vocabulary.md" class="underline">ADR-0020</a>.</span>
+            This sketch kept <span class="mono">ChannelKind</span> and left the front-end
+            <span class="mono">channel.ts</span> mirror unchanged. ADR-0020 went further: it merges
+            the three types into one exported <span class="mono">Channel</span>, removes
+            <span class="mono">ChannelKind</span>, and rebuilds <span class="mono">channel.ts</span> on the
+            generated <span class="mono">Channel</span>. The wire is broken by design — back-end and
+            front-end ship together.
           </div>
         </article>
 
