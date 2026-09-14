@@ -276,6 +276,12 @@ A Channel's semantics follow its data shape (#109):
   like).
 
 _Avoid_: refresh, notify.
+_BE_: a list-or-count mutation proves its poke at compile time. A `broadcast_*`
+mints a channel-typed `PokeReceipt<C>`, and the handler returns
+`PokedRpcResult<T, C>`, which `::new` cannot build without the matching receipt —
+no poke, no receipt, no compile. A wrong-feed poke is a type error. The wire stays
+`{ data: … }` (the marker is skipped), so no binding changes
+([ADR-0016](docs/adr/0016-poke-rule-typed-receipt.md), #102).
 
 ## Back-end surface & contract seam
 

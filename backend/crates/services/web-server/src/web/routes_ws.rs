@@ -1,3 +1,4 @@
+use crate::web::poke::{Agents, Conv, Convs};
 use axum::{
 	extract::{
 		ws::{Message, WebSocket, WebSocketUpgrade},
@@ -15,6 +16,7 @@ use lib_core::model::ModelManager;
 use lib_web::middleware::mw_auth::CtxW;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::marker::PhantomData;
 use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 use tracing::{debug, warn};
@@ -355,29 +357,58 @@ async fn handle_socket(
 
 // endregion: --- WebSocket Handler
 
+// region:    --- Poke receipt (ADR-0016)
+
+/// A channel-typed proof that a list-feed poke fired. Its field is private, so
+/// only this ws module mints one — a handler cannot fabricate a receipt without
+/// calling a `broadcast_*`. [`PokedRpcResult::new`](crate::web::poke::PokedRpcResult::new)
+/// consumes it, so a mutation must poke its own feed to build its return value:
+/// no poke, no receipt, no compile (ADR-0016). The marker `C` binds the receipt to
+/// one feed (`Convs` / `Agents` / `Conv`), so a wrong-feed poke is a type error.
+pub struct PokeReceipt<C> {
+	_channel: PhantomData<C>,
+}
+
+impl<C> PokeReceipt<C> {
+	/// Mint a receipt. Private to the ws module: only a `broadcast_*` calls it.
+	fn new() -> Self {
+		Self {
+			_channel: PhantomData,
+		}
+	}
+}
+
+// endregion: --- Poke receipt (ADR-0016)
+
 // region:    --- Helper Functions for Broadcasting
 
 impl WsState {
 	/// Broadcast a conversation message event. Takes the typed `ConvMsg`; the
-	/// envelope derives its `conv:{id}` channel from the payload.
-	pub fn broadcast_conv_msg(&self, msg: &ConvMsg) {
+	/// envelope derives its `conv:{id}` channel from the payload. Returns the
+	/// [`PokeReceipt<Conv>`] the `add_conv_msg` handler needs to build its result.
+	pub fn broadcast_conv_msg(&self, msg: &ConvMsg) -> PokeReceipt<Conv> {
 		self.broadcast(WsEvent::ConvMsg {
 			payload: msg.clone(),
 		});
+		PokeReceipt::new()
 	}
 
 	/// Poke the global Agent-list channel: the Agent list may have changed (#85).
 	/// Carries no payload — a subscriber refetches through the scoped
-	/// `list_agents` RPC, so no Agent row crosses the push path.
-	pub fn broadcast_agent_update(&self) {
+	/// `list_agents` RPC, so no Agent row crosses the push path. Returns the
+	/// [`PokeReceipt<Agents>`] the Agent mutations need to build their result.
+	pub fn broadcast_agent_update(&self) -> PokeReceipt<Agents> {
 		self.broadcast(WsEvent::Poke(Channel::Agents));
+		PokeReceipt::new()
 	}
 
 	/// Poke the global Conversation-list channel: some Conversation list may have
 	/// changed (#85). Contentless for the same reason as `broadcast_agent_update`;
-	/// the refetch re-applies the read scope, so no Conversation row leaks.
-	pub fn broadcast_conv_update(&self) {
+	/// the refetch re-applies the read scope, so no Conversation row leaks. Returns
+	/// the [`PokeReceipt<Convs>`] the Conversation mutations need for their result.
+	pub fn broadcast_conv_update(&self) -> PokeReceipt<Convs> {
 		self.broadcast(WsEvent::Poke(Channel::Convs));
+		PokeReceipt::new()
 	}
 
 	// The four Jedi poke helpers below have no caller yet: the mutation handlers
@@ -651,6 +682,23 @@ mod tests {
 		let event = rx.try_recv().expect("an event was broadcast");
 		assert!(matches!(event, WsEvent::Poke(Channel::Convs)));
 		assert_eq!(event.channel().key(), "convs");
+	}
+
+	/// Wire-lock for the typed poke receipt (ADR-0016). A `PokedRpcResult`
+	/// serializes as `{ "data": … }` — byte-identical to `DataRpcResult`, the
+	/// channel marker skipped — so a mutation's wire shape does not change. The
+	/// receipt comes from a real broadcast; only the ws module can mint one.
+	#[test]
+	fn poked_rpc_result_serializes_as_data_only() {
+		use crate::web::poke::PokedRpcResult;
+
+		let ws = WsState::new();
+		let receipt = ws.broadcast_conv_update(); // PokeReceipt<Convs>
+		let result = PokedRpcResult::new(42_i64, receipt);
+		assert_eq!(
+			serde_json::to_value(result).unwrap(),
+			serde_json::json!({ "data": 42 }),
+		);
 	}
 
 	/// Each Jedi broadcast helper emits its poke on the right channel (#115).
