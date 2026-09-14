@@ -80,10 +80,13 @@ export function createFeed(): MessageFeedFactory {
   // server only at the edges, so overlapping consumers never cut each other's
   // Channel.
   const desired = new Map<string, { channel: Channel; count: number }>();
-  const subKey = (channel: Channel) => `${channel.kind}:${channel.id ?? ""}`;
+  // A poke has no id, so read it only where the variant carries one.
+  const channelId = (channel: Channel) => ("id" in channel ? channel.id : undefined);
+  const subKey = (channel: Channel) => `${channel.kind}:${channelId(channel) ?? ""}`;
   const sendSub = (action: "subscribe" | "unsubscribe", channel: Channel) => {
     if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ action, channel: channel.kind, id: channel.id }));
+      // The wire flattens the Channel onto the request: `{ action, kind, id? }`.
+      ws.send(JSON.stringify({ action, ...channel }));
     }
   };
 
@@ -155,10 +158,13 @@ export function createFeed(): MessageFeedFactory {
             // Narrowed by the discriminant: `payload` is a typed ConvMsg, no cast.
             const msg = data.payload;
             for (const c of consumers) c.onConvMsg?.(msg.conv_id, msg);
-          } else if (data.event_type === "agent_update") {
-            for (const c of consumers) c.onAgentUpdate?.();
-          } else if (data.event_type === "conv_update") {
-            for (const c of consumers) c.onConvUpdate?.();
+          } else if (data.event_type === "poke") {
+            // A poke carries its Channel; narrow on `kind` to route the refetch.
+            if (data.kind === "agents") {
+              for (const c of consumers) c.onAgentUpdate?.();
+            } else if (data.kind === "convs") {
+              for (const c of consumers) c.onConvUpdate?.();
+            }
           }
         } catch (e) {
           console.error("Failed to parse WebSocket message:", e);
