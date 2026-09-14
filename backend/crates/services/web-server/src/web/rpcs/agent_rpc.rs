@@ -1,3 +1,4 @@
+use crate::web::poke::{self, PokedRpcResult};
 use crate::web::routes_ws::WsState;
 use lib_core::model::agent::{
 	Agent, AgentBmc, AgentFilter, AgentForCreate, AgentForUpdate,
@@ -24,32 +25,35 @@ generate_common_rpc_read_fns!(
 	Suffix: agent
 );
 
-/// Create an Agent, then poke the Agent-list feed so every client refetches.
+/// Create an Agent, then poke the Agent-list feed so every client refetches. The
+/// poke fires on write-commit, before the re-get, so a committed change reaches
+/// clients even if the re-get fails (ADR-0016).
 pub async fn create_agent(
 	ctx: Ctx,
 	mm: ModelManager,
 	ws_state: WsState,
 	params: ParamsForCreate<AgentForCreate>,
-) -> Result<DataRpcResult<Agent>> {
+) -> Result<PokedRpcResult<Agent, poke::Agents>> {
 	let ParamsForCreate { data } = params;
 	let id = AgentBmc::create(&ctx, &mm, data).await?;
+	let receipt = ws_state.broadcast_agent_update();
 	let entity = AgentBmc::get(&ctx, &mm, id).await?;
-	ws_state.broadcast_agent_update();
-	Ok(entity.into())
+	Ok(PokedRpcResult::new(entity, receipt))
 }
 
-/// Update an Agent, then poke the Agent-list feed.
+/// Update an Agent, then poke the Agent-list feed. The poke fires on write-commit,
+/// before the re-get (ADR-0016).
 pub async fn update_agent(
 	ctx: Ctx,
 	mm: ModelManager,
 	ws_state: WsState,
 	params: ParamsForUpdate<AgentForUpdate>,
-) -> Result<DataRpcResult<Agent>> {
+) -> Result<PokedRpcResult<Agent, poke::Agents>> {
 	let ParamsForUpdate { id, data } = params;
 	AgentBmc::update(&ctx, &mm, id, data).await?;
+	let receipt = ws_state.broadcast_agent_update();
 	let entity = AgentBmc::get(&ctx, &mm, id).await?;
-	ws_state.broadcast_agent_update();
-	Ok(entity.into())
+	Ok(PokedRpcResult::new(entity, receipt))
 }
 
 /// Delete an Agent, then poke the Agent-list feed.
@@ -58,10 +62,10 @@ pub async fn delete_agent(
 	mm: ModelManager,
 	ws_state: WsState,
 	params: ParamsIded,
-) -> Result<DataRpcResult<Agent>> {
+) -> Result<PokedRpcResult<Agent, poke::Agents>> {
 	let ParamsIded { id } = params;
 	let entity = AgentBmc::get(&ctx, &mm, id).await?;
 	AgentBmc::delete(&ctx, &mm, id).await?;
-	ws_state.broadcast_agent_update();
-	Ok(entity.into())
+	let receipt = ws_state.broadcast_agent_update();
+	Ok(PokedRpcResult::new(entity, receipt))
 }

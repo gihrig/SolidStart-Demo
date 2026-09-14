@@ -1,3 +1,4 @@
+use crate::web::poke::{self, PokedRpcResult};
 use crate::web::routes_ws::WsState;
 use lib_core::model::conv::{
 	Conv, ConvBmc, ConvFilter, ConvForCreate, ConvForUpdate,
@@ -48,32 +49,34 @@ pub async fn list_convs(
 }
 
 /// Create a Conversation, then poke the Conversation-list feed so every client
-/// refetches its list.
+/// refetches its list. The poke fires on write-commit, before the re-get, so a
+/// committed change reaches clients even if the re-get fails (ADR-0016).
 pub async fn create_conv(
 	ctx: Ctx,
 	mm: ModelManager,
 	ws_state: WsState,
 	params: ParamsForCreate<ConvForCreate>,
-) -> Result<DataRpcResult<Conv>> {
+) -> Result<PokedRpcResult<Conv, poke::Convs>> {
 	let ParamsForCreate { data } = params;
 	let id = ConvBmc::create(&ctx, &mm, data).await?;
+	let receipt = ws_state.broadcast_conv_update();
 	let entity = ConvBmc::get(&ctx, &mm, id).await?;
-	ws_state.broadcast_conv_update();
-	Ok(entity.into())
+	Ok(PokedRpcResult::new(entity, receipt))
 }
 
-/// Update a Conversation, then poke the Conversation-list feed.
+/// Update a Conversation, then poke the Conversation-list feed. The poke fires on
+/// write-commit, before the re-get (ADR-0016).
 pub async fn update_conv(
 	ctx: Ctx,
 	mm: ModelManager,
 	ws_state: WsState,
 	params: ParamsForUpdate<ConvForUpdate>,
-) -> Result<DataRpcResult<Conv>> {
+) -> Result<PokedRpcResult<Conv, poke::Convs>> {
 	let ParamsForUpdate { id, data } = params;
 	ConvBmc::update(&ctx, &mm, id, data).await?;
+	let receipt = ws_state.broadcast_conv_update();
 	let entity = ConvBmc::get(&ctx, &mm, id).await?;
-	ws_state.broadcast_conv_update();
-	Ok(entity.into())
+	Ok(PokedRpcResult::new(entity, receipt))
 }
 
 /// Delete a Conversation, then poke the Conversation-list feed.
@@ -82,30 +85,30 @@ pub async fn delete_conv(
 	mm: ModelManager,
 	ws_state: WsState,
 	params: ParamsIded,
-) -> Result<DataRpcResult<Conv>> {
+) -> Result<PokedRpcResult<Conv, poke::Convs>> {
 	let ParamsIded { id } = params;
 	let entity = ConvBmc::get(&ctx, &mm, id).await?;
 	ConvBmc::delete(&ctx, &mm, id).await?;
-	ws_state.broadcast_conv_update();
-	Ok(entity.into())
+	let receipt = ws_state.broadcast_conv_update();
+	Ok(PokedRpcResult::new(entity, receipt))
 }
 
-/// Add conv_msg with WebSocket broadcast
+/// Add conv_msg, then poke its Conversation's message channel (payload poke).
 pub async fn add_conv_msg(
 	ctx: Ctx,
 	mm: ModelManager,
 	ws_state: WsState,
 	params: ParamsForCreate<ConvMsgForCreate>,
-) -> Result<DataRpcResult<ConvMsg>> {
+) -> Result<PokedRpcResult<ConvMsg, poke::Conv>> {
 	let ParamsForCreate { data: msg_c } = params;
 
 	let msg_id = ConvBmc::add_msg(&ctx, &mm, msg_c).await?;
 	let msg = ConvBmc::get_msg(&ctx, &mm, msg_id).await?;
 
 	// Broadcast the new message on its Conversation's channel.
-	ws_state.broadcast_conv_msg(&msg);
+	let receipt = ws_state.broadcast_conv_msg(&msg);
 
-	Ok(msg.into())
+	Ok(PokedRpcResult::new(msg, receipt))
 }
 
 /// List conv_msgs, typically filtered by conv_id
