@@ -330,6 +330,21 @@ reads (Posts, Captions, Hero) join it as they land. Register ONLY safe public re
 there — never a mutation or a row-scoped read.
 _Avoid_: putting an anonymous read behind auth (it breaks the public landing page).
 
+**Public projection** (an entity's audit-stripped public shape):
+A **public projection** is an entity's public-facing shape — its fields **minus** the
+internal audit columns (`cid` / `ctime` / `mid` / `mtime`), so an anonymous
+`/api/rpc-public` response never leaks actor ids or timestamps. Each public read names
+one such type; **one read serves it** — `CategoryPublic` + `CategoryBmc::list_public`
+is the first (#116). A projection may be **enriched** (an author-and-counts `PostView`)
+or a bare **narrowing** (`CategoryPublic`); either way it carries no audit columns.
+Audit visibility is chosen by **surface**, not by the caller's role: the public surface
+strips; a future admin surface reads the full row (the admin read is deferred with the
+admin system). Visitor and logged-in user share one read shape and differ only in
+**write** ([ADR-0021](docs/adr/0021-public-projection-surface-selected.md), C-06).
+_Avoid_: **Public view** (**View** means the _enriched_ read model — see `PostView` /
+`CaptionView` / `HeroView`); a single role-keyed read returning different columns per
+caller (it gives ts-rs one call two shapes and breaks the one-source-of-truth seam).
+
 **Audit columns** (`cid` / `ctime` / `mid` / `mtime`):
 Most back-end entities carry rust10x audit fields — creator id / create time,
 modifier id / modify time. `ctime` and `mtime` are RFC3339 `TEXT` in the portable

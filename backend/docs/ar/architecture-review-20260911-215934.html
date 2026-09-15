@@ -60,7 +60,7 @@
             <h2 class="text-2xl font-serif font-semibold text-white">C-04 · Collapse the realtime Channel vocabulary</h2>
             <div class="flex gap-2 shrink-0">
               <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/20 text-emerald-300 rounded-full px-3 py-1">Strong</span>
-              <span class="text-xs uppercase tracking-wide bg-slate-700/50 text-slate-300 rounded-full px-3 py-1">in-process</span>
+              <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/30 text-emerald-200 rounded-full px-3 py-1">✓ Shipped</span>
             </div>
           </div>
 
@@ -148,14 +148,13 @@ flowchart LR
             </ul>
           </div>
 
-          <div class="rounded-lg border border-amber-800 bg-amber-950/50 px-4 py-3 text-sm text-amber-200">
-            <span class="font-semibold">Superseded by <a href="../../../docs/adr/0020-collapse-channel-vocabulary.md" class="underline">ADR-0020</a>.</span>
-            This sketch kept <span class="mono">ChannelKind</span> and left the front-end
-            <span class="mono">channel.ts</span> mirror unchanged. ADR-0020 went further: it merges
-            the three types into one exported <span class="mono">Channel</span>, removes
-            <span class="mono">ChannelKind</span>, and rebuilds <span class="mono">channel.ts</span> on the
-            generated <span class="mono">Channel</span>. The wire is broken by design — back-end and
-            front-end ship together.
+          <div class="rounded-lg border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-200">
+            <span class="font-semibold">Shipped per <a href="../../../docs/adr/0020-collapse-channel-vocabulary.md" class="underline">ADR-0020</a>
+            (commit <span class="mono">00f2790</span>).</span> The final form went further than this sketch:
+            the three types merge into one exported <span class="mono">Channel</span>,
+            <span class="mono">ChannelKind</span> is removed, and the front-end <span class="mono">channel.ts</span>
+            mirror is rebuilt on the generated <span class="mono">Channel</span>. The wire is broken by design —
+            back-end and front-end shipped together.
           </div>
         </article>
 
@@ -165,7 +164,7 @@ flowchart LR
             <h2 class="text-2xl font-serif font-semibold text-white">C-05 · Build the typed poke receipt ADR-0016 already chose</h2>
             <div class="flex gap-2 shrink-0">
               <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/20 text-emerald-300 rounded-full px-3 py-1">Strong</span>
-              <span class="text-xs uppercase tracking-wide bg-slate-700/50 text-slate-300 rounded-full px-3 py-1">in-process</span>
+              <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/30 text-emerald-200 rounded-full px-3 py-1">✓ Shipped</span>
             </div>
           </div>
 
@@ -218,10 +217,13 @@ flowchart LR
             </ul>
           </div>
 
-          <div class="rounded-lg border border-amber-800 bg-amber-950/50 px-4 py-3 text-sm text-amber-200">
-            <strong>Not a conflict — implements ADR-0016.</strong> The ADR is accepted but the receipt type is
-            not in the tree yet (no <span class="mono">PokeReceipt</span> in <span class="mono">crates/</span>), and the
-            source-scan guard still stands. This is decided work, not yet built.
+          <div class="rounded-lg border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-200">
+            <strong>Shipped — implements ADR-0016.</strong> <span class="mono">PokeReceipt&lt;C&gt;</span> /
+            <span class="mono">PokedRpcResult&lt;T, C&gt;</span> are in the tree; the source-scan guard and
+            <span class="mono">POKE_TABLE</span> are deleted (net −215 lines). Delivered in
+            <span class="mono">#135</span> (merged, <span class="mono">404c12f</span>), closing
+            <span class="mono">#102</span>. Accepted limit: a mutation typed as <span class="mono">DataRpcResult&lt;T&gt;</span>
+            bypasses the token; the <span class="mono">crud_with_poke!</span> macro stays deferred (#66).
           </div>
         </article>
 
@@ -231,7 +233,7 @@ flowchart LR
             <h2 class="text-2xl font-serif font-semibold text-white">C-06 · A seam for the public projection — at the second one</h2>
             <div class="flex gap-2 shrink-0">
               <span class="text-xs font-semibold uppercase tracking-wide bg-amber-500/20 text-amber-300 rounded-full px-3 py-1">Worth exploring</span>
-              <span class="text-xs uppercase tracking-wide bg-slate-700/50 text-slate-300 rounded-full px-3 py-1">in-process</span>
+              <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/30 text-emerald-200 rounded-full px-3 py-1">✓ Resolved</span>
             </div>
           </div>
 
@@ -277,6 +279,17 @@ flowchart LR
             <span class="mono">Category</span> alone — the deletion test fails, it just moves complexity.
             This card is a marker for the next ticket, not a refactor for today.
           </div>
+
+          <div class="rounded-lg border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-200">
+            <span class="font-semibold">Resolved per <a href="../../../docs/adr/0021-public-projection-surface-selected.md" class="underline">ADR-0021</a>.</span>
+            The seam is owned, not built early. <a href="https://github.com/gihrig/SolidStart-Demo/issues/117" class="underline">#117</a>
+            (the second public read) introduces the shared <span class="mono">public-projection</span> convention and absorbs
+            <span class="mono">CategoryPublic</span> / <span class="mono">list_public</span>; <a href="https://github.com/gihrig/SolidStart-Demo/issues/118" class="underline">#118</a>
+            and <a href="https://github.com/gihrig/SolidStart-Demo/issues/119" class="underline">#119</a> conform. Refinements to the sketch:
+            the Post / Caption / Hero public reads are the enriched <span class="mono">*View</span> types (audit-free), not separate
+            <span class="mono">*Public</span> types; audit visibility is selected by <strong>surface</strong>, so a role-keyed read was
+            rejected. The concept is defined in <span class="mono">CONTEXT.md</span> ("Public projection").
+          </div>
         </article>
 
       </section>
@@ -293,8 +306,9 @@ flowchart LR
           channel costs one edit, not seven — with the invariant carried by the type, not by wire-shape tests.
         </p>
         <p class="text-sm text-emerald-100/70">
-          <strong class="text-white">C-05</strong> is shovel-ready too — ADR-0016 already decided it and it deletes ~260 lines —
-          but it is queued work, not a new finding. Do C-04 first; do C-05 whenever #113 touches the RPC handlers.
+          <strong class="text-white">C-05</strong> is now <strong class="text-white">shipped</strong> — the typed poke
+          receipt ADR-0016 decided, delivered in #135 (closing #102), deleting the ~260-line source-scan guard. Both
+          Strong candidates are landed; C-06 is resolved — its seam owned by #117–#119 and recorded in ADR-0021.
         </p>
       </section>
     </main>
