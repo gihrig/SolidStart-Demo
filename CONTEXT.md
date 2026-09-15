@@ -335,7 +335,10 @@ A **public projection** is an entity's public-facing shape — its fields **minu
 internal audit columns (`cid` / `ctime` / `mid` / `mtime`), so an anonymous
 `/api/rpc-public` response never leaks actor ids or timestamps. Each public read names
 one such type; **one read serves it** — `CategoryPublic` + `CategoryBmc::list_public`
-is the first (#116). A projection may be **enriched** (an author-and-counts `PostView`)
+is the first (#116), `PostView` / `AuthorRef` (via `PostBmc`) the second (#117). The
+shared convention is the `PublicProjection` marker in the model `base`: `base::list_public`
+requires it, so the audit-bearing entity row can never be served from a public read.
+A projection may be **enriched** (an author-and-counts `PostView`)
 or a bare **narrowing** (`CategoryPublic`); either way it carries no audit columns.
 Audit visibility is chosen by **surface**, not by the caller's role: the public surface
 strips; a future admin surface reads the full row (the admin read is deferred with the

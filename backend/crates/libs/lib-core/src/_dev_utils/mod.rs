@@ -6,6 +6,7 @@ use crate::ctx::Ctx;
 use crate::model::agent::{AgentBmc, AgentFilter, AgentForCreate};
 use crate::model::category::{CategoryBmc, CategoryFilter, CategoryForCreate};
 use crate::model::conv::{ConvBmc, ConvForCreate};
+use crate::model::post::{PostBmc, PostForCreate};
 use crate::model::{self, ModelManager};
 use modql::filter::OpValString;
 use tokio::sync::OnceCell;
@@ -289,3 +290,57 @@ pub async fn clean_categories(
 }
 
 // endregion: --- Category seed/clean
+
+// region:    --- Post seed/clean
+
+/// Seed one Post owned by `ctx`, with the given Categories (at least one). The
+/// image/URL fields are placeholders; tests that assert on them set their own.
+pub async fn seed_post(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	title: &str,
+	category_ids: &[i64],
+) -> model::Result<i64> {
+	PostBmc::create(
+		ctx,
+		mm,
+		PostForCreate {
+			title: title.to_string(),
+			image_src: "https://example.test/img.jpg".to_string(),
+			image_alt: "seed alt".to_string(),
+			photographer: "Seed Photographer".to_string(),
+			photographer_url: "https://example.test/photographer".to_string(),
+			source_url: "https://example.test/source".to_string(),
+		},
+		category_ids,
+	)
+	.await
+}
+
+/// Delete all Posts whose title contains `contains_title` (owner delete cascades
+/// the `post_category` links). Uses the root ctx so it bypasses the owner scope.
+pub async fn clean_posts(
+	mm: &ModelManager,
+	contains_title: &str,
+) -> model::Result<usize> {
+	let root = Ctx::root_ctx();
+	let posts = PostBmc::list(
+		&root,
+		mm,
+		Some(vec![model::post::PostFilter {
+			title: Some(OpValString::Contains(contains_title.to_string()).into()),
+			..Default::default()
+		}]),
+		None,
+	)
+	.await?;
+	let count = posts.len();
+
+	for post in posts {
+		PostBmc::delete(&root, mm, post.id).await?;
+	}
+
+	Ok(count)
+}
+
+// endregion: --- Post seed/clean

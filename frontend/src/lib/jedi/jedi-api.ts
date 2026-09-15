@@ -1,11 +1,14 @@
 import data from "./data.json";
 import { sanitizeUrl, trustedUrl, type SafeUrl } from "~/lib/sanitizeUrl";
-import { category as categoryRpc } from "~/lib/backend-rpc";
+import { category as categoryRpc, post as postRpc } from "~/lib/backend-rpc";
 import { ICON_NAMES, type IconName } from "~/components/Icon";
-import type { CategoryPublic } from "~/types/backend";
+import type {
+  CategoryPublic,
+  PostView as PostViewWire,
+  AuthorRef as AuthorRefWire,
+} from "~/types/backend";
 import type {
   JediData,
-  JediPost,
   JediCaption,
   JediCategory,
   HeroView,
@@ -45,29 +48,29 @@ function authorOf(ownerId: number): AuthorRef {
   return { id: u.id, name: u.name, avatarUrl: safe(u.avatarUrl) };
 }
 
-function categoriesOf(ids: number[]): JediCategory[] {
-  return ids.map((id) => {
-    const c = db.categories.find((x) => x.id === id);
-    if (!c) throw new Error(`jedi-api: unknown category id ${id}`);
-    return c;
-  });
-}
+// Real back-end call now (#117): Posts come from `list_posts` / `featured_post`
+// as the enriched `PostView` wire type. These seams re-shape one wire view into
+// the contract the components consume — URL fields routed through the single
+// sanitize boundary, opaque Category icons mapped to sprite names. The back-end
+// already ranks and derives the counts, so the front-end never re-ranks.
+const toAuthorRef = (a: AuthorRefWire): AuthorRef => ({
+  id: a.id,
+  name: a.name,
+  avatarUrl: safe(a.avatar_url ?? ""),
+});
 
-const commentCountOf = (postId: number): number =>
-  db.comments.filter((c) => c.post_id === postId).length;
-
-const toPostView = (p: JediPost): PostView => ({
+const toPostView = (p: PostViewWire): PostView => ({
   id: p.id,
-  author: authorOf(p.owner_id),
+  author: toAuthorRef(p.author),
   title: p.title,
-  imageSrc: safe(p.imageSrc),
-  imageAlt: p.imageAlt,
+  imageSrc: safe(p.image_src),
+  imageAlt: p.image_alt,
   photographer: p.photographer,
-  photographerUrl: safe(p.photographerUrl),
-  sourceUrl: safe(p.sourceUrl),
-  categories: categoriesOf(p.category_ids),
-  likeCount: p.likeCount,
-  commentCount: commentCountOf(p.id),
+  photographerUrl: safe(p.photographer_url),
+  sourceUrl: safe(p.source_url),
+  categories: p.categories.map(toJediCategory),
+  likeCount: p.like_count,
+  commentCount: p.comment_count,
 });
 
 const toCaptionView = (c: JediCaption): CaptionView => ({
@@ -77,8 +80,6 @@ const toCaptionView = (c: JediCaption): CaptionView => ({
   text: c.text,
   likeCount: c.likeCount,
 });
-
-const rankedPosts = (): PostView[] => db.posts.map(toPostView).sort(byLikesDesc);
 
 const heroContent = (): HeroView => ({
   title: db.hero.title,
@@ -99,8 +100,10 @@ export const jediApi = {
     list: async (): Promise<JediCategory[]> => (await categoryRpc.list()).map(toJediCategory),
   },
   posts: {
-    list: (): Promise<PostView[]> => Promise.resolve(rankedPosts()),
-    featured: (): Promise<PostView> => Promise.resolve(rankedPosts()[0]),
+    // Real back-end calls now (#117): the ranked Post list and the featured Post
+    // come from the public RPCs, each wire `PostView` re-shaped for the components.
+    list: async (): Promise<PostView[]> => (await postRpc.list()).map(toPostView),
+    featured: async (): Promise<PostView> => toPostView(await postRpc.featured()),
   },
   captions: {
     listForPost: (postId: number): Promise<CaptionView[]> =>

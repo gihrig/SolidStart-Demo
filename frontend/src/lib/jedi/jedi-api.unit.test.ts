@@ -8,12 +8,18 @@ vi.mock("~/lib/sanitizeUrl", () => ({
   trustedUrl: (u: string) => u,
 }));
 
-// `categories.list` now calls the real `list_categories` RPC (ADR-0011), so the
-// back-end client is mocked here — the seam under test is the icon mapping, not
-// the network. The hoisted fn lets each test program its own taxonomy rows.
-const { categoryListMock } = vi.hoisted(() => ({ categoryListMock: vi.fn() }));
+// `categories.list` / `posts.*` now call the real RPCs (ADR-0011, #117), so the
+// back-end client is mocked here — the seam under test is the wire→contract
+// mapping (icon mapping, URL sanitize, author/category re-shape), not the network.
+// The hoisted fns let each test program its own rows.
+const { categoryListMock, postListMock, postFeaturedMock } = vi.hoisted(() => ({
+  categoryListMock: vi.fn(),
+  postListMock: vi.fn(),
+  postFeaturedMock: vi.fn(),
+}));
 vi.mock("~/lib/backend-rpc", () => ({
   category: { list: categoryListMock },
+  post: { list: postListMock, featured: postFeaturedMock },
 }));
 
 import { sanitizeUrl } from "~/lib/sanitizeUrl";
@@ -62,15 +68,61 @@ describe("jediApi.categories", () => {
   });
 });
 
+// The wire `PostView` shape the back-end returns (snake_case, enriched: author +
+// resolved Categories + derived counts). `list_posts` is already ranked by the
+// back-end, so the fixture is pre-ranked; the front-end never re-ranks (#117).
+const WIRE_POST_1 = {
+  id: 1,
+  author: {
+    id: 1,
+    name: "Lisa",
+    avatar_url: "https://img.icons8.com/doodle/96/null/lisa-simpson.png",
+  },
+  title: "Little Jedi",
+  image_src: "https://live.staticflickr.com/1.jpg",
+  image_alt: "Little Jedi cat",
+  photographer: "Felicity Berkleef",
+  photographer_url: "https://www.flickr.com/photos/felicefelines/",
+  source_url: "https://www.flickr.com/photos/felicefelines/1/",
+  categories: [
+    { id: 3, name: "Animals", icon: "dog" },
+    { id: 6, name: "Cute", icon: "fire-heart" },
+  ],
+  like_count: 5,
+  comment_count: 3,
+};
+const WIRE_POST_2 = {
+  id: 2,
+  author: {
+    id: 2,
+    name: "Homer",
+    avatar_url: "https://img.icons8.com/doodle/96/null/homer-simpson.png",
+  },
+  title: "Brilliant tree",
+  image_src: "https://live.staticflickr.com/2.jpg",
+  image_alt: "Brilliant tree",
+  photographer: "Sunsword & Moonsabre",
+  photographer_url: "https://www.flickr.com/photos/sunsward7/",
+  source_url: "https://www.flickr.com/photos/sunsward7/2/",
+  categories: [{ id: 1, name: "Landscape", icon: "landscape" }],
+  like_count: 4,
+  comment_count: 1,
+};
+
 describe("jediApi.posts", () => {
-  it("ranks posts by likeCount desc (Top Photos order)", async () => {
-    const posts = await jediApi.posts.list();
-    const likes = posts.map((p) => p.likeCount);
-    expect(likes).toEqual([...likes].sort((a, b) => b - a));
-    expect(posts[0].title).toBe("Little Jedi");
+  beforeEach(() => {
+    postListMock.mockResolvedValue([WIRE_POST_1, WIRE_POST_2]);
+    postFeaturedMock.mockResolvedValue(WIRE_POST_1);
   });
 
-  it("embeds the author snapshot joined from users", async () => {
+  it("preserves the back-end ranking order (does not re-rank)", async () => {
+    const posts = await jediApi.posts.list();
+    expect(posts.map((p) => p.id)).toEqual([1, 2]);
+    expect(posts[0].title).toBe("Little Jedi");
+    expect(posts.map((p) => p.likeCount)).toEqual([5, 4]);
+  });
+
+  it("re-shapes the author snapshot from the wire view", async () => {
     const [first] = await jediApi.posts.list();
     expect(first.author).toEqual({
       id: 1,
@@ -79,17 +131,18 @@ describe("jediApi.posts", () => {
     });
   });
 
-  it("resolves category_ids to full categories (tags == categories)", async () => {
+  it("maps the resolved Categories, opaque icons mapped to sprite names", async () => {
     const [first] = await jediApi.posts.list();
     expect(first.categories.map((c) => c.name)).toEqual(["Animals", "Cute"]);
+    for (const c of first.categories) expect(ICON_NAMES).toContain(c.icon);
   });
 
-  it("derives commentCount from the comments collection", async () => {
+  it("carries the back-end-derived commentCount", async () => {
     const [first] = await jediApi.posts.list();
     expect(first.commentCount).toBe(3);
   });
 
-  it("featured() returns the top-ranked post", async () => {
+  it("featured() re-shapes the top-ranked wire post", async () => {
     const featured = await jediApi.posts.featured();
     expect(featured.id).toBe(1);
     expect(featured.title).toBe("Little Jedi");

@@ -211,6 +211,90 @@ mod tests {
 		Ok(())
 	}
 
+	/// The public RPC surface serves the Jedi Post feed to an anonymous visitor
+	/// (#117): `list_posts` / `featured_post` / `get_post` on `/api/rpc-public`
+	/// return the enriched `PostView` — author, resolved Categories, derived counts
+	/// — with NO login, and the response carries no audit columns (ADR-0021).
+	#[serial]
+	#[tokio::test]
+	async fn test_web_public_posts_anonymous_ok() -> Result<()> {
+		// -- Setup & Fixtures (no login — an anonymous client)
+		let mm = _dev_utils::init_test().await;
+		let server = TestServer::new(app(mm.clone(), Arc::new(WsState::new())));
+
+		// -- Exec & Check: the public endpoint returns the seeded Posts as views.
+		let body: Value = server
+			.post("/api/rpc-public")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "list_posts"
+			}))
+			.await
+			.json();
+		let posts = body
+			.pointer("/result/data")
+			.and_then(Value::as_array)
+			.ok_or("list_posts: missing /result/data array")?;
+		assert_eq!(posts.len(), 4, "four Posts are seeded");
+
+		// The first Post carries the assembled view: an author snapshot, resolved
+		// Category tags, and derived counts (0 — no likes / comments seeded).
+		let first = &posts[0];
+		assert!(
+			first
+				.pointer("/author/name")
+				.and_then(Value::as_str)
+				.is_some(),
+			"PostView carries an author snapshot"
+		);
+		assert!(
+			first
+				.pointer("/categories/0/name")
+				.and_then(Value::as_str)
+				.is_some(),
+			"PostView carries resolved Categories"
+		);
+		assert_eq!(
+			first.pointer("/like_count").and_then(Value::as_i64),
+			Some(0)
+		);
+		// No audit columns leak on the public surface (ADR-0021).
+		for audit in ["cid", "mid", "ctime", "mtime"] {
+			assert!(
+				first.get(audit).is_none(),
+				"PostView must not expose `{audit}`"
+			);
+		}
+
+		// -- Exec & Check: featured_post returns the single top-ranked view.
+		let body: Value = server
+			.post("/api/rpc-public")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "featured_post"
+			}))
+			.await
+			.json();
+		let featured_id = body
+			.pointer("/result/data/id")
+			.and_then(Value::as_i64)
+			.ok_or("featured_post: missing /result/data/id")?;
+
+		// -- Exec & Check: get_post fetches that same Post by id.
+		let body: Value = server
+			.post("/api/rpc-public")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "get_post",
+				"params": { "id": featured_id }
+			}))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data/id").and_then(Value::as_i64),
+			Some(featured_id)
+		);
+
+		Ok(())
+	}
+
 	/// C01 cross-user scope over HTTP (Q10): a private (`OwnerOnly`) conv created
 	/// by `demo1` is invisible to a second logged-in user — `get_conv` errors
 	/// for them and they cannot `add_conv_msg` into it (#89), while its owner

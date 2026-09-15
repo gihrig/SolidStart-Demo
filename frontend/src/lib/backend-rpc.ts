@@ -12,6 +12,7 @@ import type {
   JsonRpcResponse,
   LoginPayload,
   LogoffPayload,
+  PostView,
 } from "~/types/backend";
 import { isRpcError } from "~/types/backend";
 
@@ -163,6 +164,17 @@ export function createRpcClient() {
     list: () => rpcCall<CategoryPublic[]>("list_categories", undefined, "/api/rpc-public"),
   };
 
+  // Post RPC methods. Every Post is public (#106), so the reads post to the
+  // public surface — the anonymous Jedi landing page reads them (#117). Each
+  // returns the enriched `PostView` (author, resolved Categories, derived counts).
+  // `list_posts` is ranked by like count by the back-end; the front-end never
+  // re-ranks. Post mutations are owner-scoped and land in later tickets.
+  const post = {
+    list: () => rpcCall<PostView[]>("list_posts", undefined, "/api/rpc-public"),
+    featured: () => rpcCall<PostView>("featured_post", undefined, "/api/rpc-public"),
+    get: (id: number) => rpcCall<PostView>("get_post", { id }, "/api/rpc-public"),
+  };
+
   // Conversation Message RPC methods
   const convMsg = {
     add: (data: ConvMsgForCreate) => rpcCall<ConvMsg>("add_conv_msg", { data }),
@@ -172,7 +184,7 @@ export function createRpcClient() {
       }),
   };
 
-  return { agent, category, conv, convMsg };
+  return { agent, category, conv, convMsg, post };
 }
 
 // Default singleton used across the app.
@@ -181,6 +193,7 @@ export const agent = client.agent;
 export const category = client.category;
 export const conv = client.conv;
 export const convMsg = client.convMsg;
+export const post = client.post;
 
 // Unified export
 export const backendRpc = { auth, ...client };

@@ -1,5 +1,5 @@
 use crate::ctx::Ctx;
-use crate::model::base::{self, prep_fields_for_update, DbBmc};
+use crate::model::base::{self, prep_fields_for_update, DbBmc, PublicProjection};
 use crate::model::modql_utils::time_to_sea_value;
 use crate::model::ModelManager;
 use crate::model::{Error, Result};
@@ -8,7 +8,7 @@ use modql::field::{Fields, HasSeaFields, SeaField, SeaFields};
 use modql::filter::{
 	FilterNodes, ListOptions, OpValsInt64, OpValsString, OpValsValue,
 };
-use sea_query::{Expr, Iden, PostgresQueryBuilder, Query};
+use sea_query::{Alias, Expr, Iden, PostgresQueryBuilder, Query};
 use sea_query_binder::SqlxBinder;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgRow;
@@ -38,7 +38,30 @@ pub struct User {
 	pub id: i64,
 	pub username: String,
 	pub typ: UserTyp,
+
+	// Persisted avatar URL (#117). Nullable: the system Users (root, demo1) carry
+	// none, while the seeded author Users do. The author snapshot on a Post reads
+	// it (see `AuthorRef`).
+	pub avatar_url: Option<String>,
 }
+
+/// The **author snapshot** a content entity carries: the owning User's public
+/// identity — `id`, display `name` (the `username`), and `avatar_url`. It is the
+/// author half of a `PostView` (and, later, `CaptionView` / `CommentView`), so a
+/// consumer renders authorship without a second read.
+///
+/// A public projection (ADR-0021): it carries no audit columns. `name` is the
+/// User's `username`; the query aliases it so a rename of the wire field does not
+/// touch the column.
+#[derive(Debug, Clone, FromRow, Serialize, TS)]
+#[ts(export, export_to = "AuthorRef.d.ts")]
+pub struct AuthorRef {
+	pub id: i64,
+	pub name: String,
+	pub avatar_url: Option<String>,
+}
+
+impl PublicProjection for AuthorRef {}
 
 #[derive(Deserialize)]
 pub struct UserForCreate {
@@ -86,6 +109,7 @@ enum UserIden {
 	Id,
 	Username,
 	Pwd,
+	AvatarUrl,
 }
 
 #[derive(FilterNodes, Deserialize, Default, Debug)]
@@ -195,6 +219,38 @@ impl UserBmc {
 		list_options: Option<ListOptions>,
 	) -> Result<Vec<User>> {
 		base::list::<Self, _, _>(ctx, mm, filter, list_options).await
+	}
+
+	/// Batch-resolve the author snapshots for a set of owner ids (#117). One
+	/// `WHERE id IN (...)` read, portable across the Postgres/Turso seam
+	/// (ADR-0012) — never one query per author. Returns an `AuthorRef` per found
+	/// id, in no guaranteed order; the caller keys them by `id`. An empty id set
+	/// makes no query. `name` is the User's `username`, aliased in the SELECT so
+	/// the wire field name is decoupled from the column.
+	pub async fn author_refs_by_ids(
+		_ctx: &Ctx,
+		mm: &ModelManager,
+		ids: &[i64],
+	) -> Result<Vec<AuthorRef>> {
+		if ids.is_empty() {
+			return Ok(Vec::new());
+		}
+
+		// -- Build query
+		let mut query = Query::select();
+		query
+			.from(Self::table_ref())
+			.column(UserIden::Id)
+			.expr_as(Expr::col(UserIden::Username), Alias::new("name"))
+			.column(UserIden::AvatarUrl)
+			.and_where(Expr::col(UserIden::Id).is_in(ids.iter().copied()));
+
+		// -- Execute query
+		let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+		let sqlx_query = sqlx::query_as_with::<_, AuthorRef, _>(&sql, values);
+		let refs = mm.dbx().fetch_all(sqlx_query).await?;
+
+		Ok(refs)
 	}
 
 	pub async fn update_pwd(

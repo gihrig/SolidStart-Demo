@@ -1,6 +1,6 @@
 use crate::ctx::Ctx;
 use crate::generate_common_bmc_fns;
-use crate::model::base::{self, DbBmc, FieldHygiene};
+use crate::model::base::{self, DbBmc, FieldHygiene, PublicProjection};
 use crate::model::modql_utils::time_to_sea_value;
 use crate::model::ModelManager;
 use crate::model::Result;
@@ -53,6 +53,11 @@ pub struct CategoryPublic {
 	pub name: String,
 	pub icon: String,
 }
+
+// `CategoryPublic` is Category's public projection — the shared convention every
+// public read shares (ADR-0021). The bound on `base::list_public` is what keeps a
+// public read from ever returning the audit-bearing `Category` row.
+impl PublicProjection for CategoryPublic {}
 
 #[derive(Fields, Deserialize)]
 pub struct CategoryForCreate {
@@ -121,7 +126,8 @@ impl CategoryBmc {
 		filter: Option<Vec<CategoryFilter>>,
 		list_options: Option<ListOptions>,
 	) -> Result<Vec<CategoryPublic>> {
-		base::list::<Self, CategoryPublic, _>(ctx, mm, filter, list_options).await
+		base::list_public::<Self, CategoryPublic, _>(ctx, mm, filter, list_options)
+			.await
 	}
 }
 
