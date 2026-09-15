@@ -439,8 +439,11 @@ fn dedup(ids: impl Iterator<Item = i64>) -> Vec<i64> {
 	ids.filter(|id| seen.insert(*id)).collect()
 }
 
-/// The default page size for a ranked list when the caller sets no `limit`,
-/// mirroring `base`'s read cap so an unbounded feed never loads the whole table.
+/// The page size for a ranked list: the default when the caller sets no `limit`,
+/// and the **hard cap** on any `limit` a caller may request. `list_posts` is on
+/// the public, unauthenticated surface, so an anonymous caller must not be able to
+/// ask for an unbounded page (a DoS guard); a larger requested `limit` is clamped
+/// to this value.
 const RANKED_LIMIT_DEFAULT: u64 = 1000;
 
 /// Rank Posts by like count at the **database** and return the ordered ids for
@@ -502,15 +505,17 @@ async fn ranked_post_ids(
 }
 
 /// Resolve a caller's `list_options` into a `(limit, offset)` for the ranked
-/// query, defaulting the limit to [`RANKED_LIMIT_DEFAULT`] and the offset to 0.
-/// Negative values are clamped to 0.
+/// query. The limit defaults to [`RANKED_LIMIT_DEFAULT`] and is **clamped** to it
+/// as a hard cap, so a public caller cannot request an unbounded page. The offset
+/// defaults to 0. Negative values clamp to 0.
 fn window_bounds(list_options: Option<ListOptions>) -> (u64, u64) {
 	let (limit, offset) = match list_options {
 		Some(lo) => (lo.limit, lo.offset),
 		None => (None, None),
 	};
+	let cap = RANKED_LIMIT_DEFAULT as i64;
 	let limit = limit
-		.map(|l| l.max(0) as u64)
+		.map(|l| l.clamp(0, cap) as u64)
 		.unwrap_or(RANKED_LIMIT_DEFAULT);
 	let offset = offset.map(|o| o.max(0) as u64).unwrap_or(0);
 	(limit, offset)
@@ -869,6 +874,61 @@ mod tests {
 				"PostView must not expose the `{audit}` audit column"
 			);
 		}
+	}
+
+	/// The public list cap: a caller's `limit` is clamped to
+	/// `RANKED_LIMIT_DEFAULT`, so an anonymous request cannot ask for an unbounded
+	/// page. A small limit passes through; negatives clamp to 0.
+	#[test]
+	fn test_window_bounds_caps_limit() {
+		let lo = |limit, offset| {
+			Some(ListOptions {
+				limit,
+				offset,
+				order_bys: None,
+			})
+		};
+		// No options: the default page size, offset 0.
+		assert_eq!(window_bounds(None), (RANKED_LIMIT_DEFAULT, 0));
+		// A huge requested limit is clamped to the cap; offset is honored.
+		assert_eq!(
+			window_bounds(lo(Some(1_000_000), Some(5))),
+			(RANKED_LIMIT_DEFAULT, 5)
+		);
+		// A small limit passes through.
+		assert_eq!(window_bounds(lo(Some(3), None)), (3, 0));
+		// Negative limit / offset clamp to 0.
+		assert_eq!(window_bounds(lo(Some(-1), Some(-9))), (0, 0));
+	}
+
+	/// At most one Like per (Post, User): the DB unique constraint rejects a
+	/// second Like by the same User, so the one-endorsement invariant holds even
+	/// under a double insert (#106, #122). The like write path lands in #122; this
+	/// guards the schema the write path relies on.
+	#[serial]
+	#[tokio::test]
+	async fn test_post_like_unique_per_user() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_like_unique-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+		let post_id = seed_post(&ctx, &mm, "test_like_unique post", &[1]).await?;
+
+		// -- Exec & Check: the first Like commits; a second by the same User fails.
+		//    Collapse to a bool so the non-Send error is not held across the await.
+		seed_post_like(&mm, post_id, owner_id).await?;
+		let duplicate_rejected =
+			seed_post_like(&mm, post_id, owner_id).await.is_err();
+		assert!(
+			duplicate_rejected,
+			"a second Like by the same User must violate the unique constraint"
+		);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_like_unique-owner").await?;
+
+		Ok(())
 	}
 }
 

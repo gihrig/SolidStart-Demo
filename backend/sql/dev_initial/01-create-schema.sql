@@ -219,9 +219,12 @@ ALTER TABLE post_category ADD CONSTRAINT fk_post_category_post
   FOREIGN KEY (post_id) REFERENCES "post"(id)
   ON DELETE CASCADE;
 
+-- RESTRICT, not CASCADE: a Category in use may not be deleted, because a Post
+-- must keep at least one Category (#107). Cascading here would silently orphan a
+-- Post whose only Category is removed. The post side (below) still cascades.
 ALTER TABLE post_category ADD CONSTRAINT fk_post_category_category
   FOREIGN KEY (category_id) REFERENCES "category"(id)
-  ON DELETE CASCADE;
+  ON DELETE RESTRICT;
 
 -- Post Likes
 --   One User's endorsement of one Post (#106). Empty at seed, so a Post's derived
@@ -234,6 +237,11 @@ CREATE TABLE post_like (
   -- FKs
   post_id BIGINT NOT NULL,
   user_id BIGINT NOT NULL,
+
+  -- At most one Like per (Post, User): a User's endorsement counts once even if
+  -- they click twice (#106, #122). The one-like invariant lives at the DB, not in
+  -- application code, so a double-insert race cannot create a second Like.
+  CONSTRAINT uq_post_like_post_user UNIQUE (post_id, user_id),
 
   -- Timestamps
   cid bigint NOT NULL,
