@@ -439,13 +439,6 @@ fn dedup(ids: impl Iterator<Item = i64>) -> Vec<i64> {
 	ids.filter(|id| seen.insert(*id)).collect()
 }
 
-/// The page size for a ranked list: the default when the caller sets no `limit`,
-/// and the **hard cap** on any `limit` a caller may request. `list_posts` is on
-/// the public, unauthenticated surface, so an anonymous caller must not be able to
-/// ask for an unbounded page (a DoS guard); a larger requested `limit` is clamped
-/// to this value.
-const RANKED_LIMIT_DEFAULT: u64 = 1000;
-
 /// Rank Posts by like count at the **database** and return the ordered ids for
 /// one page (#117 review). The like count is derived, so the ranking is an
 /// `ORDER BY` on a correlated `COUNT` subquery over `post_like`, with the tie
@@ -491,7 +484,7 @@ async fn ranked_post_ids(
 		.order_by((Alias::new("post"), CommonIden::Id), Order::Asc);
 
 	// Window at the DB.
-	let (limit, offset) = window_bounds(list_options);
+	let (limit, offset) = window_bounds(list_options)?;
 	query.limit(limit);
 	if offset > 0 {
 		query.offset(offset);
@@ -505,20 +498,18 @@ async fn ranked_post_ids(
 }
 
 /// Resolve a caller's `list_options` into a `(limit, offset)` for the ranked
-/// query. The limit defaults to [`RANKED_LIMIT_DEFAULT`] and is **clamped** to it
-/// as a hard cap, so a public caller cannot request an unbounded page. The offset
-/// defaults to 0. Negative values clamp to 0.
-fn window_bounds(list_options: Option<ListOptions>) -> (u64, u64) {
-	let (limit, offset) = match list_options {
-		Some(lo) => (lo.limit, lo.offset),
-		None => (None, None),
-	};
-	let cap = RANKED_LIMIT_DEFAULT as i64;
-	let limit = limit
-		.map(|l| l.clamp(0, cap) as u64)
-		.unwrap_or(RANKED_LIMIT_DEFAULT);
-	let offset = offset.map(|o| o.max(0) as u64).unwrap_or(0);
-	(limit, offset)
+/// query, using the **shared** list-read limit check (`base::compute_list_options`)
+/// so a ranked read obeys the same contract as every other list read: no limit
+/// defaults to 1000, a limit up to the shared max (5000) is honored verbatim, and
+/// a larger limit is rejected with `ListLimitOverMax`. Honoring valid limits (not
+/// silently clamping them) is what keeps a paginating caller from skipping rows —
+/// a clamp would return fewer rows than the `offset` step assumes. A negative
+/// offset clamps to 0.
+fn window_bounds(list_options: Option<ListOptions>) -> Result<(u64, u64)> {
+	let lo = base::compute_list_options(list_options)?;
+	let limit = lo.limit.unwrap_or(0).max(0) as u64;
+	let offset = lo.offset.unwrap_or(0).max(0) as u64;
+	Ok((limit, offset))
 }
 
 /// Read every `post_category` link for a set of Post ids, ordered by
@@ -876,11 +867,12 @@ mod tests {
 		}
 	}
 
-	/// The public list cap: a caller's `limit` is clamped to
-	/// `RANKED_LIMIT_DEFAULT`, so an anonymous request cannot ask for an unbounded
-	/// page. A small limit passes through; negatives clamp to 0.
+	/// The ranked read obeys the shared list-read limit contract
+	/// (`base::compute_list_options`): no limit -> 1000; a valid limit up to the
+	/// shared max (5000) is honored verbatim (NOT clamped, so a paginating caller
+	/// never skips rows); a limit over the max is rejected.
 	#[test]
-	fn test_window_bounds_caps_limit() {
+	fn test_window_bounds_uses_shared_limit_check() {
 		let lo = |limit, offset| {
 			Some(ListOptions {
 				limit,
@@ -888,17 +880,15 @@ mod tests {
 				order_bys: None,
 			})
 		};
-		// No options: the default page size, offset 0.
-		assert_eq!(window_bounds(None), (RANKED_LIMIT_DEFAULT, 0));
-		// A huge requested limit is clamped to the cap; offset is honored.
-		assert_eq!(
-			window_bounds(lo(Some(1_000_000), Some(5))),
-			(RANKED_LIMIT_DEFAULT, 5)
-		);
-		// A small limit passes through.
-		assert_eq!(window_bounds(lo(Some(3), None)), (3, 0));
-		// Negative limit / offset clamp to 0.
-		assert_eq!(window_bounds(lo(Some(-1), Some(-9))), (0, 0));
+		// No options: the shared default page size, offset 0.
+		assert_eq!(window_bounds(None).unwrap(), (1000, 0));
+		// A valid explicit limit up to the shared max is honored, not clamped to
+		// 1000; offset is honored.
+		assert_eq!(window_bounds(lo(Some(5000), Some(10))).unwrap(), (5000, 10));
+		assert_eq!(window_bounds(lo(Some(3), None)).unwrap(), (3, 0));
+		// Over the shared max (5000) is rejected, so a paginating caller cannot get
+		// a short page silently and then skip rows on the next offset step.
+		assert!(window_bounds(lo(Some(5001), None)).is_err());
 	}
 
 	/// At most one Like per (Post, User): the DB unique constraint rejects a
