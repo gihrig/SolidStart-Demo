@@ -10,10 +10,12 @@ use crate::model::ModelManager;
 use crate::model::{Error, Result};
 use modql::field::Fields;
 use modql::filter::{
-	FilterNodes, ListOptions, OpValInt64, OpValsInt64, OpValsString, OpValsValue,
+	FilterGroups, FilterNodes, ListOptions, OpValInt64, OpValsInt64, OpValsString,
+	OpValsValue,
 };
 use sea_query::{
 	Alias, Asterisk, Condition, Expr, Order, PostgresQueryBuilder, Query,
+	SimpleExpr, SubQueryStatement,
 };
 use sea_query_binder::SqlxBinder;
 use serde::{Deserialize, Serialize};
@@ -269,37 +271,71 @@ impl PostBmc {
 	/// Top Photos order (#117). Ties break by id ascending, so the order is stable
 	/// while every count is 0 (no likes yet). Read is unscoped: every Post is public.
 	///
-	/// Ranking is **global**: the like count is derived (not a stored column), so
-	/// the ranking cannot be an `ORDER BY` inside `base::list`. The whole filtered
-	/// set is fetched and ranked, and only then does `list_options` `offset` /
-	/// `limit` window the ranked result — otherwise a `limit` would slice by id
-	/// first and return the wrong Top Photos page. The caller's `order_bys` is
-	/// ignored: "Top Photos" is defined by like count.
+	/// Ranking and windowing happen at the **database** (`ranked_post_ids`): the
+	/// like count is derived, so an ORDER BY on a correlated `COUNT` subquery ranks
+	/// it, and `LIMIT` / `OFFSET` page it — the DB returns only the ids for the
+	/// requested page. Only those Posts are then fetched and assembled, so a large
+	/// feed never loads or enriches the whole table. `base::list` re-applies the
+	/// read scope on the fetch; the ids are re-ordered to the ranked order because
+	/// an `IN` fetch does not preserve it. The caller's `order_bys` is ignored:
+	/// "Top Photos" is defined by like count.
 	pub async fn list_posts(
 		ctx: &Ctx,
 		mm: &ModelManager,
 		filter: Option<Vec<PostFilter>>,
 		list_options: Option<ListOptions>,
 	) -> Result<Vec<PostView>> {
-		// Fetch the full filtered set (no limit/offset), so the ranking sees every
-		// row. `base::list` still applies the default 1000-row safety cap.
-		let posts = base::list::<Self, Post, _>(ctx, mm, filter, None).await?;
-		let mut views = Self::assemble_views(ctx, mm, posts).await?;
-		views.sort_by(|a, b| b.like_count.cmp(&a.like_count).then(a.id.cmp(&b.id)));
-		Ok(window_ranked(views, list_options))
+		// 1. Rank + window at the DB: the ordered ids for this page only.
+		let ranked_ids = ranked_post_ids(mm, filter, list_options).await?;
+		if ranked_ids.is_empty() {
+			return Ok(Vec::new());
+		}
+
+		// 2. Fetch exactly those Posts. `base::list` re-applies the read scope, so a
+		//    (future) scoped Post that ranked in but is unreadable drops out here.
+		let posts = base::list::<Self, Post, _>(
+			ctx,
+			mm,
+			Some(vec![PostFilter {
+				id: Some(OpValInt64::In(ranked_ids.clone()).into()),
+				..Default::default()
+			}]),
+			None,
+		)
+		.await?;
+
+		// 3. Assemble the page, then restore the ranked order (an `IN` fetch returns
+		//    rows by id, not by rank).
+		let mut by_id: HashMap<i64, PostView> = Self::assemble_views(ctx, mm, posts)
+			.await?
+			.into_iter()
+			.map(|v| (v.id, v))
+			.collect();
+		Ok(ranked_ids
+			.into_iter()
+			.filter_map(|id| by_id.remove(&id))
+			.collect())
 	}
 
-	/// The single featured Post: the top-ranked Post (most likes). Returns
+	/// The single featured Post: the top-ranked Post (most likes). Ranked and
+	/// limited to one at the DB, so exactly one `PostView` is assembled. Returns
 	/// `EntityNotFound` when no Post exists.
 	pub async fn featured_post(ctx: &Ctx, mm: &ModelManager) -> Result<PostView> {
-		let mut views = Self::list_posts(ctx, mm, None, None).await?;
-		if views.is_empty() {
-			return Err(Error::EntityNotFound {
-				entity: Self::TABLE,
-				id: 0,
-			});
-		}
-		Ok(views.remove(0))
+		let views = Self::list_posts(
+			ctx,
+			mm,
+			None,
+			Some(ListOptions {
+				limit: Some(1),
+				offset: None,
+				order_bys: None,
+			}),
+		)
+		.await?;
+		views.into_iter().next().ok_or(Error::EntityNotFound {
+			entity: Self::TABLE,
+			id: 0,
+		})
 	}
 
 	/// Assemble `PostView`s from base `Post` rows with a fixed, small number of
@@ -318,17 +354,26 @@ impl PostBmc {
 		}
 
 		let post_ids: Vec<i64> = posts.iter().map(|p| p.id).collect();
-
-		// -- Authors: one batched read, keyed by id.
 		let owner_ids = dedup(posts.iter().map(|p| p.owner_id));
-		let authors = UserBmc::author_refs_by_ids(ctx, mm, &owner_ids).await?;
+
+		// -- Four independent batched reads run concurrently: the author snapshots,
+		//    the Category link rows, and the two derived counts have no data
+		//    dependency on each other, so `try_join!` collapses their round trips
+		//    into one (the read path holds no txn, so each takes its own pooled
+		//    connection). Only the Category resolve (below) depends on `links`.
+		let (authors, links, likes_by_post, comments_by_post) = tokio::try_join!(
+			UserBmc::author_refs_by_ids(ctx, mm, &owner_ids),
+			post_category_links(mm, &post_ids),
+			counts_by_post(mm, "post_like", &post_ids),
+			counts_by_post(mm, "post_comment", &post_ids),
+		)?;
+
 		let author_by_id: HashMap<i64, AuthorRef> =
 			authors.into_iter().map(|a| (a.id, a)).collect();
 
-		// -- Categories: one link read + one public Category resolve, grouped by
-		//    post_id. The links come back ordered by (post_id, category_id), so each
+		// -- Categories: resolve the linked ids to the public projection, grouped by
+		//    post_id. The links came back ordered by (post_id, category_id), so each
 		//    Post's tags are ordered by Category id.
-		let links = post_category_links(mm, &post_ids).await?;
 		let cat_ids = dedup(links.iter().map(|l| l.category_id));
 		let categories = if cat_ids.is_empty() {
 			Vec::new()
@@ -356,11 +401,7 @@ impl PostBmc {
 			}
 		}
 
-		// -- Derived counts: one COUNT read each, defaulting a missing post to 0.
-		let likes_by_post = counts_by_post(mm, "post_like", &post_ids).await?;
-		let comments_by_post = counts_by_post(mm, "post_comment", &post_ids).await?;
-
-		// -- Compose the views.
+		// -- Compose the views (a missing post in a count map defaults to 0).
 		let views = posts
 			.into_iter()
 			.map(|p| PostView {
@@ -398,25 +439,81 @@ fn dedup(ids: impl Iterator<Item = i64>) -> Vec<i64> {
 	ids.filter(|id| seen.insert(*id)).collect()
 }
 
-/// Apply a caller's `list_options` `offset` / `limit` to an already-ranked list,
-/// in memory. Ranking must happen before windowing (see `list_posts`), so the
-/// window is applied here rather than in the SQL. `order_bys` is ignored — the
-/// ranking is fixed. `None` returns the full ranked list unchanged.
-fn window_ranked(
-	mut views: Vec<PostView>,
+/// The default page size for a ranked list when the caller sets no `limit`,
+/// mirroring `base`'s read cap so an unbounded feed never loads the whole table.
+const RANKED_LIMIT_DEFAULT: u64 = 1000;
+
+/// Rank Posts by like count at the **database** and return the ordered ids for
+/// one page (#117 review). The like count is derived, so the ranking is an
+/// `ORDER BY` on a correlated `COUNT` subquery over `post_like`, with the tie
+/// broken by id ascending. `LIMIT` / `OFFSET` page the result at the DB, so only
+/// the page's ids come back — never the whole table. The caller's `filter`
+/// applies to `post` (the only table in `FROM`, so its columns are unambiguous);
+/// `order_bys` is ignored, since the ranking is fixed. This query does not apply
+/// the read scope — `Post` read is unscoped (every Post is public), and
+/// `list_posts` re-applies the scope when it fetches the rows.
+async fn ranked_post_ids(
+	mm: &ModelManager,
+	filter: Option<Vec<PostFilter>>,
 	list_options: Option<ListOptions>,
-) -> Vec<PostView> {
-	let Some(lo) = list_options else {
-		return views;
+) -> Result<Vec<i64>> {
+	// Correlated like-count subquery: COUNT(*) of post_like for the outer Post row.
+	let like_count = SimpleExpr::SubQuery(
+		None,
+		Box::new(SubQueryStatement::SelectStatement(
+			Query::select()
+				.expr(Expr::col(Asterisk).count())
+				.from(Alias::new("post_like"))
+				.and_where(
+					Expr::col((Alias::new("post_like"), Alias::new("post_id")))
+						.equals((Alias::new("post"), CommonIden::Id)),
+				)
+				.to_owned(),
+		)),
+	);
+
+	let mut query = Query::select();
+	query
+		.from(PostBmc::table_ref())
+		.column((Alias::new("post"), CommonIden::Id));
+
+	if let Some(filter) = filter {
+		let filters: FilterGroups = filter.into();
+		let cond: Condition = filters.try_into()?;
+		query.cond_where(cond);
+	}
+
+	query
+		.order_by_expr(like_count, Order::Desc)
+		.order_by((Alias::new("post"), CommonIden::Id), Order::Asc);
+
+	// Window at the DB.
+	let (limit, offset) = window_bounds(list_options);
+	query.limit(limit);
+	if offset > 0 {
+		query.offset(offset);
+	}
+
+	let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+	let sqlx_query = sqlx::query_as_with::<_, (i64,), _>(&sql, values);
+	let rows = mm.dbx().fetch_all(sqlx_query).await?;
+
+	Ok(rows.into_iter().map(|(id,)| id).collect())
+}
+
+/// Resolve a caller's `list_options` into a `(limit, offset)` for the ranked
+/// query, defaulting the limit to [`RANKED_LIMIT_DEFAULT`] and the offset to 0.
+/// Negative values are clamped to 0.
+fn window_bounds(list_options: Option<ListOptions>) -> (u64, u64) {
+	let (limit, offset) = match list_options {
+		Some(lo) => (lo.limit, lo.offset),
+		None => (None, None),
 	};
-	if let Some(offset) = lo.offset {
-		let skip = offset.max(0) as usize;
-		views.drain(..skip.min(views.len()));
-	}
-	if let Some(limit) = lo.limit {
-		views.truncate(limit.max(0) as usize);
-	}
-	views
+	let limit = limit
+		.map(|l| l.max(0) as u64)
+		.unwrap_or(RANKED_LIMIT_DEFAULT);
+	let offset = offset.map(|o| o.max(0) as u64).unwrap_or(0);
+	(limit, offset)
 }
 
 /// Read every `post_category` link for a set of Post ids, ordered by
@@ -617,6 +714,26 @@ mod tests {
 		assert_eq!(views.len(), 1);
 		assert_eq!(views[0].id, top, "limit must window the RANKED list");
 		assert_ne!(views[0].id, first);
+
+		// -- Check: OFFSET pages the ranked list at the DB. Rank is [top, first,
+		//    third] (top has the only like; the two 0-like Posts tie by id asc), so
+		//    offset 1 / limit 1 returns `first`, the second-ranked Post.
+		let page2 = PostBmc::list_posts(
+			&ctx,
+			&mm,
+			Some(vec![PostFilter {
+				owner_id: Some(owner_id.into()),
+				..Default::default()
+			}]),
+			Some(ListOptions {
+				limit: Some(1),
+				offset: Some(1),
+				order_bys: None,
+			}),
+		)
+		.await?;
+		assert_eq!(page2.len(), 1);
+		assert_eq!(page2[0].id, first, "offset must page the RANKED list");
 
 		// -- Clean
 		_dev_utils::clean_users(&root, &mm, "test_window-owner").await?;
