@@ -233,7 +233,7 @@ flowchart LR
             <h2 class="text-2xl font-serif font-semibold text-white">C-06 · A seam for the public projection — at the second one</h2>
             <div class="flex gap-2 shrink-0">
               <span class="text-xs font-semibold uppercase tracking-wide bg-amber-500/20 text-amber-300 rounded-full px-3 py-1">Worth exploring</span>
-              <span class="text-xs uppercase tracking-wide bg-slate-700/50 text-slate-300 rounded-full px-3 py-1">in-process</span>
+              <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/30 text-emerald-200 rounded-full px-3 py-1">✓ Resolved</span>
             </div>
           </div>
 
@@ -279,6 +279,17 @@ flowchart LR
             <span class="mono">Category</span> alone — the deletion test fails, it just moves complexity.
             This card is a marker for the next ticket, not a refactor for today.
           </div>
+
+          <div class="rounded-lg border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-200">
+            <span class="font-semibold">Resolved per <a href="../../../docs/adr/0021-public-projection-surface-selected.md" class="underline">ADR-0021</a>.</span>
+            The seam is owned, not built early. <a href="https://github.com/gihrig/SolidStart-Demo/issues/117" class="underline">#117</a>
+            (the second public read) introduces the shared <span class="mono">public-projection</span> convention and absorbs
+            <span class="mono">CategoryPublic</span> / <span class="mono">list_public</span>; <a href="https://github.com/gihrig/SolidStart-Demo/issues/118" class="underline">#118</a>
+            and <a href="https://github.com/gihrig/SolidStart-Demo/issues/119" class="underline">#119</a> conform. Refinements to the sketch:
+            the Post / Caption / Hero public reads are the enriched <span class="mono">*View</span> types (audit-free), not separate
+            <span class="mono">*Public</span> types; audit visibility is selected by <strong>surface</strong>, so a role-keyed read was
+            rejected. The concept is defined in <span class="mono">CONTEXT.md</span> ("Public projection").
+          </div>
         </article>
 
       </section>
@@ -297,7 +308,7 @@ flowchart LR
         <p class="text-sm text-emerald-100/70">
           <strong class="text-white">C-05</strong> is now <strong class="text-white">shipped</strong> — the typed poke
           receipt ADR-0016 decided, delivered in #135 (closing #102), deleting the ~260-line source-scan guard. Both
-          Strong candidates are landed; C-06 stays a marker for the second public read.
+          Strong candidates are landed; C-06 is resolved — its seam owned by #117–#119 and recorded in ADR-0021.
         </p>
       </section>
     </main>
