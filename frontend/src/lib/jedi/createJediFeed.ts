@@ -1,5 +1,7 @@
 import { createResource, createSignal, type Accessor, type Setter } from "solid-js";
 import { jediApi } from "~/lib/jedi/jedi-api";
+import { type MessageFeedFactory } from "~/lib/websocket";
+import { Channel } from "~/lib/channel";
 import type { JediCategory, PostView, CaptionView, HeroView } from "~/types/jedi";
 
 /**
@@ -51,14 +53,39 @@ export interface JediFeed {
 /** The synthetic "no filter" row. Id 0 is unused by the real categories. */
 const ALL_CATEGORIES: JediCategory = { id: 0, name: "All", icon: "menu" };
 
-export function createJediFeed(): JediFeed {
+/** Injectable seams for the view-model. */
+export interface CreateJediFeedDeps {
+  /**
+   * The live **Feed** (`CONTEXT.md`). When present, a `posts` poke refetches the
+   * ranked Post list and the featured Post (#117) — the poke carries no row, so
+   * the refetch re-reads through the scoped public RPC. Absent on the anonymous
+   * landing page, whose WebSocket needs auth; the initial fetch still renders.
+   */
+  feed?: MessageFeedFactory;
+}
+
+export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const [selectedCategory, setSelectedCategory] = createSignal(0);
   const [selectedPostId, setSelectedPostId] = createSignal<number | undefined>();
   const [selectedCaptionId, setSelectedCaptionId] = createSignal<number | undefined>();
 
   const [realCategories] = createResource(() => jediApi.categories.list());
-  const [posts] = createResource(() => jediApi.posts.list());
-  const [featured] = createResource(() => jediApi.posts.featured());
+  const [posts, { refetch: refetchPosts }] = createResource(() => jediApi.posts.list());
+  // The featured post IS the ranked list's first element, so it is derived, not a
+  // second fetch (`list_posts` is already ranked by the back-end). It is the
+  // loading fallback for `selectedPost` below.
+  const featured = (): PostView | undefined => posts()?.[0];
+
+  // Live propagation (#117): a `posts` poke means the Post list may have changed,
+  // so refetch the list (the featured post re-derives from it). The feed is
+  // optional — the anonymous landing page has no socket — so this wiring only
+  // runs when injected.
+  if (deps.feed) {
+    const feed = deps.feed({
+      onPostsUpdate: () => void refetchPosts(),
+    });
+    feed.subscribe(Channel.posts);
+  }
 
   const categories = (): JediCategory[] | undefined => {
     const list = realCategories();

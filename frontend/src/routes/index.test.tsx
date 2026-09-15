@@ -3,22 +3,65 @@ import { render, screen, within, waitFor, fireEvent } from "@solidjs/testing-lib
 import { MetaProvider } from "@solidjs/meta";
 import { Suspense } from "solid-js";
 
-// The sidebar Categories now load from the `list_categories` RPC (ADR-0011); the
-// back-end client is mocked so this route test stays offline. The rows mirror the
-// seeded taxonomy (frontend/src/lib/jedi/data.json ↔ 02-dev-seed.sql).
-vi.mock("~/lib/backend-rpc", () => ({
-  category: {
-    list: () =>
-      Promise.resolve([
-        { id: 1, name: "Landscape", icon: "landscape" },
-        { id: 2, name: "People", icon: "portrait" },
-        { id: 3, name: "Animals", icon: "dog" },
-        { id: 4, name: "Abstract", icon: "collage" },
-        { id: 5, name: "Black & White", icon: "180-degrees" },
-        { id: 6, name: "Cute", icon: "fire-heart" },
-      ]),
-  },
-}));
+// The sidebar Categories and the Post feed now load from the RPCs (ADR-0011,
+// #117); the back-end client is mocked so this route test stays offline. The rows
+// mirror the seeded fixture (frontend/src/lib/jedi/data.json ↔ 02-dev-seed.sql).
+// Posts arrive as the wire `PostView` (snake_case, already ranked [1, 3, 2, 4]).
+vi.mock("~/lib/backend-rpc", () => {
+  const cat = (id: number, name: string, icon: string) => ({ id, name, icon });
+  const author = (id: number, name: string) => ({
+    id,
+    name,
+    avatar_url: `https://example.test/${name}.png`,
+  });
+  const post = (
+    id: number,
+    title: string,
+    owner: { id: number; name: string },
+    categories: { id: number; name: string; icon: string }[],
+    likeCount: number,
+  ) => ({
+    id,
+    author: author(owner.id, owner.name),
+    title,
+    image_src: `https://example.test/${id}.jpg`,
+    image_alt: title,
+    photographer: "Photographer",
+    photographer_url: "https://example.test/photographer",
+    source_url: "https://example.test/source",
+    categories,
+    like_count: likeCount,
+    comment_count: 0,
+  });
+  const ANIMALS = cat(3, "Animals", "dog");
+  const CUTE = cat(6, "Cute", "fire-heart");
+  const LANDSCAPE = cat(1, "Landscape", "landscape");
+  const lisa = { id: 1, name: "Lisa" };
+  const homer = { id: 2, name: "Homer" };
+  const posts = [
+    post(1, "Little Jedi", lisa, [ANIMALS, CUTE], 5),
+    post(3, "Camouflage", lisa, [ANIMALS, CUTE], 5),
+    post(2, "Brilliant tree", homer, [LANDSCAPE], 4),
+    post(4, "Serene Beach", homer, [LANDSCAPE], 3),
+  ];
+  return {
+    category: {
+      list: () =>
+        Promise.resolve([
+          cat(1, "Landscape", "landscape"),
+          cat(2, "People", "portrait"),
+          cat(3, "Animals", "dog"),
+          cat(4, "Abstract", "collage"),
+          cat(5, "Black & White", "180-degrees"),
+          cat(6, "Cute", "fire-heart"),
+        ]),
+    },
+    post: {
+      list: () => Promise.resolve(posts),
+      featured: () => Promise.resolve(posts[0]),
+    },
+  };
+});
 
 import Home from "./index";
 

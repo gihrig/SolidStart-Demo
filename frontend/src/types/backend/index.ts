@@ -5,8 +5,10 @@
 // re-exports it under the same name, so downstream code compares ids directly
 // with no coercion while the generated .d.ts files stay untouched.
 import type { Agent as AgentWire } from "~backend-bindings/Agent.d";
+import type { AuthorRef as AuthorRefWire } from "~backend-bindings/AuthorRef.d";
 import type { CategoryPublic as CategoryPublicWire } from "~backend-bindings/CategoryPublic.d";
 import type { Conv as ConvWire } from "~backend-bindings/Conv.d";
+import type { PostView as PostViewWire } from "~backend-bindings/PostView.d";
 import type { ConvMsg as ConvMsgWire } from "~backend-bindings/ConvMsg.d";
 import type { ConvUser as ConvUserWire } from "~backend-bindings/ConvUser.d";
 import type { User as UserWire } from "~backend-bindings/User.d";
@@ -22,6 +24,18 @@ type NumericIdsUnion<T> = T extends unknown ? NumericIds<T> : never;
 export type Agent = NumericIds<AgentWire>;
 /** The public Category projection (id, name, icon) — the anonymous read contract. */
 export type CategoryPublic = NumericIds<CategoryPublicWire>;
+/** The author snapshot on a content view (#117): id + display name + avatar URL. */
+export type AuthorRef = NumericIds<AuthorRefWire>;
+/**
+ * The enriched public Post projection (#117, ADR-0021). `NumericIds` rewrites the
+ * top-level bigint ids/counts to number, but its nested `author` and `categories`
+ * carry their own bigint ids, so they are re-typed to the already-rewritten
+ * {@link AuthorRef} / {@link CategoryPublic} barrel exports.
+ */
+export type PostView = Omit<NumericIds<PostViewWire>, "author" | "categories"> & {
+  author: AuthorRef;
+  categories: CategoryPublic[];
+};
 export type Conv = NumericIds<ConvWire>;
 export type ConvMsg = NumericIds<ConvMsgWire>;
 export type ConvUser = NumericIds<ConvUserWire>;

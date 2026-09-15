@@ -1,0 +1,758 @@
+use crate::ctx::Ctx;
+use crate::generate_common_bmc_fns;
+use crate::model::base::{
+	self, Access, CommonIden, DbBmc, FieldHygiene, PublicProjection,
+};
+use crate::model::category::{CategoryBmc, CategoryFilter, CategoryPublic};
+use crate::model::modql_utils::time_to_sea_value;
+use crate::model::user::{AuthorRef, UserBmc};
+use crate::model::ModelManager;
+use crate::model::{Error, Result};
+use modql::field::Fields;
+use modql::filter::{
+	FilterNodes, ListOptions, OpValInt64, OpValsInt64, OpValsString, OpValsValue,
+};
+use sea_query::{
+	Alias, Asterisk, Condition, Expr, Order, PostgresQueryBuilder, Query,
+};
+use sea_query_binder::SqlxBinder;
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+use std::collections::HashMap;
+use ts_rs::TS;
+
+// region:    --- Post Types
+
+/// The `post` base row (#117). Every Post is public — read is unscoped, write is
+/// owner-only (`ConvBmc`'s `kind`/`state` scope is dropped, #106). The audit
+/// columns exist in the table but are intentionally absent from this struct: the
+/// model never reads them, and `PostView` (the public projection) is audit-free.
+/// `like` / `comment` counts are derived by COUNT, never stored here.
+#[derive(Debug, Clone, Fields, FromRow)]
+pub struct Post {
+	pub id: i64,
+
+	// -- Relations
+	pub owner_id: i64,
+
+	// -- Properties
+	pub title: String,
+	pub image_src: String,
+	pub image_alt: String,
+	pub photographer: String,
+	pub photographer_url: String,
+	pub source_url: String,
+}
+
+/// The enriched **public projection** of a Post (ADR-0021): the author snapshot,
+/// the resolved Categories, and the derived like / comment counts, assembled at
+/// the model seam so the front-end renders without joining. It carries no audit
+/// columns (`cid` / `mid` / `ctime` / `mtime`).
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "PostView.d.ts")]
+pub struct PostView {
+	pub id: i64,
+
+	// -- Author snapshot (owner_id resolved to a public identity)
+	pub author: AuthorRef,
+
+	// -- Properties
+	pub title: String,
+	pub image_src: String,
+	pub image_alt: String,
+	pub photographer: String,
+	pub photographer_url: String,
+	pub source_url: String,
+
+	// -- Resolved Categories (tags), at least one, ordered by Category id
+	pub categories: Vec<CategoryPublic>,
+
+	// -- Derived counts (0 until likes / comments land, #118)
+	pub like_count: i64,
+	pub comment_count: i64,
+}
+
+impl PublicProjection for PostView {}
+
+#[derive(Fields, Deserialize, Default)]
+pub struct PostForCreate {
+	pub title: String,
+	pub image_src: String,
+	pub image_alt: String,
+	pub photographer: String,
+	pub photographer_url: String,
+	pub source_url: String,
+}
+
+#[derive(Fields, Deserialize, Default)]
+pub struct PostForUpdate {
+	// Note: `owner_id` is intentionally not updatable — the owner-only Write scope
+	//       keys on it (see `ConvForUpdate`). Ownership transfer belongs to a
+	//       future privilege ACS.
+	pub title: Option<String>,
+	pub image_src: Option<String>,
+	pub image_alt: Option<String>,
+	pub photographer: Option<String>,
+	pub photographer_url: Option<String>,
+	pub source_url: Option<String>,
+}
+
+#[derive(FilterNodes, Deserialize, Default, Debug)]
+pub struct PostFilter {
+	pub id: Option<OpValsInt64>,
+	pub owner_id: Option<OpValsInt64>,
+	pub title: Option<OpValsString>,
+
+	pub cid: Option<OpValsInt64>,
+	#[modql(to_sea_value_fn = "time_to_sea_value")]
+	pub ctime: Option<OpValsValue>,
+	pub mid: Option<OpValsInt64>,
+	#[modql(to_sea_value_fn = "time_to_sea_value")]
+	pub mtime: Option<OpValsValue>,
+}
+
+// endregion: --- Post Types
+
+// region:    --- post_category join
+
+/// The `post_category` insert row: one Post-to-Category link. `post_category`
+/// carries at least one row per Post (#107).
+#[derive(Fields)]
+struct PostCategoryForInsert {
+	post_id: i64,
+	category_id: i64,
+}
+
+struct PostCategoryBmc;
+
+impl DbBmc for PostCategoryBmc {
+	const TABLE: &'static str = "post_category";
+}
+
+/// One `(post_id, category_id)` link row read back from the join.
+#[derive(FromRow)]
+struct PostCategoryLink {
+	post_id: i64,
+	category_id: i64,
+}
+
+/// One `(post_id, count)` row from a derived-count query.
+#[derive(FromRow)]
+struct CountRow {
+	post_id: i64,
+	cnt: i64,
+}
+
+// endregion: --- post_category join
+
+// region:    --- PostBmc
+
+pub struct PostBmc;
+
+impl DbBmc for PostBmc {
+	const TABLE: &'static str = "post";
+
+	fn has_owner_id() -> bool {
+		true
+	}
+
+	/// Every Post is public (#106): Read is unscoped (`None`), so any caller lists
+	/// and reads every Post. Write is owner-only (`owner_id = me`), so only the
+	/// Owner may update or delete. The root context bypasses this hook (see `base`).
+	fn access_scope(ctx: &Ctx, access: Access) -> Option<Condition> {
+		match access {
+			Access::Read => None,
+			Access::Write => Some(
+				Condition::all()
+					.add(Expr::col(CommonIden::OwnerId).eq(ctx.user_id())),
+			),
+		}
+	}
+
+	/// The user-visible free-text fields submit to write-path hygiene (ADR-0019):
+	/// NFC-normalize, trim, and reject control / zero-width / bidirectional
+	/// characters, with a length cap on the display fields. The URL fields carry
+	/// no cap here (they are long by nature) but still reject the hidden-text
+	/// character classes; the front-end is the URL-scheme sanitize boundary on read.
+	fn hygiene_rules() -> &'static [FieldHygiene] {
+		const RULES: &[FieldHygiene] = &[
+			FieldHygiene {
+				field: "title",
+				max_len: Some(200),
+			},
+			FieldHygiene {
+				field: "image_alt",
+				max_len: Some(200),
+			},
+			FieldHygiene {
+				field: "photographer",
+				max_len: Some(120),
+			},
+			FieldHygiene {
+				field: "image_src",
+				max_len: None,
+			},
+			FieldHygiene {
+				field: "photographer_url",
+				max_len: None,
+			},
+			FieldHygiene {
+				field: "source_url",
+				max_len: None,
+			},
+		];
+		RULES
+	}
+}
+
+// `create` is hand-written (below) so it can insert the `post_category` links in
+// the same transaction; the macro therefore gets no `ForCreate`.
+generate_common_bmc_fns!(
+	Bmc: PostBmc,
+	Entity: Post,
+	ForUpdate: PostForUpdate,
+	Filter: PostFilter,
+);
+
+impl PostBmc {
+	/// Create a Post with at least one Category, atomically (#107). The Post row
+	/// and its `post_category` links commit together, so a Post never persists
+	/// without its mandatory Category. `owner_id` is `ctx.user_id()` (owner-only
+	/// write). An empty `category_ids` is rejected before any insert.
+	pub async fn create(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		post_c: PostForCreate,
+		category_ids: &[i64],
+	) -> Result<i64> {
+		if category_ids.is_empty() {
+			return Err(Error::Validation {
+				field: "category_ids".to_string(),
+				reason: "a Post requires at least one Category".to_string(),
+			});
+		}
+
+		let mm = mm.new_with_txn()?;
+		mm.dbx().begin_txn().await?;
+
+		let post_id = base::create::<Self, _>(ctx, &mm, post_c).await?;
+
+		let links: Vec<PostCategoryForInsert> = category_ids
+			.iter()
+			.map(|&category_id| PostCategoryForInsert {
+				post_id,
+				category_id,
+			})
+			.collect();
+		base::create_many::<PostCategoryBmc, _>(ctx, &mm, links).await?;
+
+		mm.dbx().commit_txn().await?;
+
+		Ok(post_id)
+	}
+
+	/// Read a single Post as its enriched `PostView` (public read, unscoped).
+	pub async fn get_post(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		id: i64,
+	) -> Result<PostView> {
+		let post = base::get::<Self, Post>(ctx, mm, id).await?;
+		let mut views = Self::assemble_views(ctx, mm, vec![post]).await?;
+		views.pop().ok_or(Error::EntityNotFound {
+			entity: Self::TABLE,
+			id,
+		})
+	}
+
+	/// List Posts as enriched `PostView`s, ranked by like count descending — the
+	/// Top Photos order (#117). Ties break by id ascending, so the order is stable
+	/// while every count is 0 (no likes yet). Read is unscoped: every Post is public.
+	///
+	/// Ranking is **global**: the like count is derived (not a stored column), so
+	/// the ranking cannot be an `ORDER BY` inside `base::list`. The whole filtered
+	/// set is fetched and ranked, and only then does `list_options` `offset` /
+	/// `limit` window the ranked result — otherwise a `limit` would slice by id
+	/// first and return the wrong Top Photos page. The caller's `order_bys` is
+	/// ignored: "Top Photos" is defined by like count.
+	pub async fn list_posts(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		filter: Option<Vec<PostFilter>>,
+		list_options: Option<ListOptions>,
+	) -> Result<Vec<PostView>> {
+		// Fetch the full filtered set (no limit/offset), so the ranking sees every
+		// row. `base::list` still applies the default 1000-row safety cap.
+		let posts = base::list::<Self, Post, _>(ctx, mm, filter, None).await?;
+		let mut views = Self::assemble_views(ctx, mm, posts).await?;
+		views.sort_by(|a, b| b.like_count.cmp(&a.like_count).then(a.id.cmp(&b.id)));
+		Ok(window_ranked(views, list_options))
+	}
+
+	/// The single featured Post: the top-ranked Post (most likes). Returns
+	/// `EntityNotFound` when no Post exists.
+	pub async fn featured_post(ctx: &Ctx, mm: &ModelManager) -> Result<PostView> {
+		let mut views = Self::list_posts(ctx, mm, None, None).await?;
+		if views.is_empty() {
+			return Err(Error::EntityNotFound {
+				entity: Self::TABLE,
+				id: 0,
+			});
+		}
+		Ok(views.remove(0))
+	}
+
+	/// Assemble `PostView`s from base `Post` rows with a fixed, small number of
+	/// batched reads — never one read per Post (the N+1 trap). For any set of
+	/// Posts it runs: one author batch (`UserBmc::author_refs_by_ids`), one
+	/// `post_category` link read, one Category resolve (`CategoryBmc::list_public`),
+	/// and one COUNT per derived count. Category resolution uses portable `IN`
+	/// reads, never `array_agg`, so the Postgres/Turso DB-swap seam holds (ADR-0012).
+	async fn assemble_views(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		posts: Vec<Post>,
+	) -> Result<Vec<PostView>> {
+		if posts.is_empty() {
+			return Ok(Vec::new());
+		}
+
+		let post_ids: Vec<i64> = posts.iter().map(|p| p.id).collect();
+
+		// -- Authors: one batched read, keyed by id.
+		let owner_ids = dedup(posts.iter().map(|p| p.owner_id));
+		let authors = UserBmc::author_refs_by_ids(ctx, mm, &owner_ids).await?;
+		let author_by_id: HashMap<i64, AuthorRef> =
+			authors.into_iter().map(|a| (a.id, a)).collect();
+
+		// -- Categories: one link read + one public Category resolve, grouped by
+		//    post_id. The links come back ordered by (post_id, category_id), so each
+		//    Post's tags are ordered by Category id.
+		let links = post_category_links(mm, &post_ids).await?;
+		let cat_ids = dedup(links.iter().map(|l| l.category_id));
+		let categories = if cat_ids.is_empty() {
+			Vec::new()
+		} else {
+			CategoryBmc::list_public(
+				ctx,
+				mm,
+				Some(vec![CategoryFilter {
+					id: Some(OpValInt64::In(cat_ids).into()),
+					..Default::default()
+				}]),
+				None,
+			)
+			.await?
+		};
+		let cat_by_id: HashMap<i64, CategoryPublic> =
+			categories.into_iter().map(|c| (c.id, c)).collect();
+		let mut cats_by_post: HashMap<i64, Vec<CategoryPublic>> = HashMap::new();
+		for link in links {
+			if let Some(cat) = cat_by_id.get(&link.category_id) {
+				cats_by_post
+					.entry(link.post_id)
+					.or_default()
+					.push(cat.clone());
+			}
+		}
+
+		// -- Derived counts: one COUNT read each, defaulting a missing post to 0.
+		let likes_by_post = counts_by_post(mm, "post_like", &post_ids).await?;
+		let comments_by_post = counts_by_post(mm, "post_comment", &post_ids).await?;
+
+		// -- Compose the views.
+		let views = posts
+			.into_iter()
+			.map(|p| PostView {
+				id: p.id,
+				author: author_by_id.get(&p.owner_id).cloned().unwrap_or(
+					AuthorRef {
+						id: p.owner_id,
+						name: String::new(),
+						avatar_url: None,
+					},
+				),
+				title: p.title,
+				image_src: p.image_src,
+				image_alt: p.image_alt,
+				photographer: p.photographer,
+				photographer_url: p.photographer_url,
+				source_url: p.source_url,
+				categories: cats_by_post.get(&p.id).cloned().unwrap_or_default(),
+				like_count: *likes_by_post.get(&p.id).unwrap_or(&0),
+				comment_count: *comments_by_post.get(&p.id).unwrap_or(&0),
+			})
+			.collect();
+
+		Ok(views)
+	}
+}
+
+// endregion: --- PostBmc
+
+// region:    --- Batched read helpers
+
+/// Distinct ids, preserving first-seen order.
+fn dedup(ids: impl Iterator<Item = i64>) -> Vec<i64> {
+	let mut seen = std::collections::HashSet::new();
+	ids.filter(|id| seen.insert(*id)).collect()
+}
+
+/// Apply a caller's `list_options` `offset` / `limit` to an already-ranked list,
+/// in memory. Ranking must happen before windowing (see `list_posts`), so the
+/// window is applied here rather than in the SQL. `order_bys` is ignored — the
+/// ranking is fixed. `None` returns the full ranked list unchanged.
+fn window_ranked(
+	mut views: Vec<PostView>,
+	list_options: Option<ListOptions>,
+) -> Vec<PostView> {
+	let Some(lo) = list_options else {
+		return views;
+	};
+	if let Some(offset) = lo.offset {
+		let skip = offset.max(0) as usize;
+		views.drain(..skip.min(views.len()));
+	}
+	if let Some(limit) = lo.limit {
+		views.truncate(limit.max(0) as usize);
+	}
+	views
+}
+
+/// Read every `post_category` link for a set of Post ids, ordered by
+/// `(post_id, category_id)`. One portable `IN` read — the batched Category
+/// resolution the model seam needs (#117), never `array_agg`.
+async fn post_category_links(
+	mm: &ModelManager,
+	post_ids: &[i64],
+) -> Result<Vec<PostCategoryLink>> {
+	if post_ids.is_empty() {
+		return Ok(Vec::new());
+	}
+
+	let mut query = Query::select();
+	query
+		.from(Alias::new("post_category"))
+		.column(Alias::new("post_id"))
+		.column(Alias::new("category_id"))
+		.and_where(Expr::col(Alias::new("post_id")).is_in(post_ids.iter().copied()))
+		.order_by(Alias::new("post_id"), Order::Asc)
+		.order_by(Alias::new("category_id"), Order::Asc);
+
+	let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+	let sqlx_query = sqlx::query_as_with::<_, PostCategoryLink, _>(&sql, values);
+	let links = mm.dbx().fetch_all(sqlx_query).await?;
+
+	Ok(links)
+}
+
+/// Count rows in `table` (`post_like` or `post_comment`) grouped by `post_id`,
+/// for a set of Post ids. One portable `GROUP BY` read; a Post with no rows is
+/// simply absent from the result and defaults to 0 at the call site. `table` is a
+/// fixed literal, never user input.
+async fn counts_by_post(
+	mm: &ModelManager,
+	table: &str,
+	post_ids: &[i64],
+) -> Result<HashMap<i64, i64>> {
+	if post_ids.is_empty() {
+		return Ok(HashMap::new());
+	}
+
+	let mut query = Query::select();
+	query
+		.from(Alias::new(table))
+		.column(Alias::new("post_id"))
+		.expr_as(Expr::col(Asterisk).count(), Alias::new("cnt"))
+		.and_where(Expr::col(Alias::new("post_id")).is_in(post_ids.iter().copied()))
+		.add_group_by([Expr::col(Alias::new("post_id")).into()]);
+
+	let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+	let sqlx_query = sqlx::query_as_with::<_, CountRow, _>(&sql, values);
+	let rows = mm.dbx().fetch_all(sqlx_query).await?;
+
+	Ok(rows.into_iter().map(|r| (r.post_id, r.cnt)).collect())
+}
+
+// endregion: --- Batched read helpers
+
+// region:    --- Tests
+
+#[cfg(test)]
+mod tests {
+	type Error = Box<dyn std::error::Error>;
+	type Result<T> = core::result::Result<T, Error>; // For tests.
+
+	use super::*;
+	use crate::_dev_utils::{self, seed_post, seed_user};
+	use crate::model;
+	use serial_test::serial;
+
+	/// Insert one `post_like` row directly (test-only): `post_like` has no Bmc yet
+	/// (#118), so the ranking test seeds likes at the SQL layer.
+	async fn seed_post_like(
+		mm: &ModelManager,
+		post_id: i64,
+		user_id: i64,
+	) -> Result<()> {
+		sqlx::query(
+			"INSERT INTO post_like (post_id, user_id, cid, ctime, mid, mtime) \
+			 VALUES ($1, $2, 0, now(), 0, now())",
+		)
+		.bind(post_id)
+		.bind(user_id)
+		.execute(mm.dbx().db())
+		.await?;
+		Ok(())
+	}
+
+	/// `get_post` assembles the enriched view: the author snapshot, the resolved
+	/// Categories (ordered by id), and derived counts that resolve to 0 with no
+	/// likes / comments.
+	#[serial]
+	#[tokio::test]
+	async fn test_get_post_assembles_view() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id =
+			seed_user(&root, &mm, "test_get_post_assembles-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+		// Category ids 3 (Animals) and 6 (Cute) are seeded; order by id.
+		let post_id =
+			seed_post(&ctx, &mm, "test_get_post_assembles post", &[6, 3]).await?;
+
+		// -- Exec
+		let view = PostBmc::get_post(&ctx, &mm, post_id).await?;
+
+		// -- Check
+		assert_eq!(view.id, post_id);
+		assert_eq!(view.author.id, owner_id);
+		let cat_ids: Vec<i64> = view.categories.iter().map(|c| c.id).collect();
+		assert_eq!(cat_ids, vec![3, 6], "categories ordered by id");
+		assert_eq!(view.like_count, 0, "no likes seeded");
+		assert_eq!(view.comment_count, 0, "no comments seeded");
+
+		// -- Clean (owner delete cascades the post + its links)
+		_dev_utils::clean_users(&root, &mm, "test_get_post_assembles").await?;
+
+		Ok(())
+	}
+
+	/// `list_posts` ranks by like count descending; ties break by id ascending.
+	#[serial]
+	#[tokio::test]
+	async fn test_list_posts_ranked_by_like_count() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_rank-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+
+		let low = seed_post(&ctx, &mm, "test_rank low", &[1]).await?;
+		let high = seed_post(&ctx, &mm, "test_rank high", &[1]).await?;
+		// `high` gets two likes, `low` gets none.
+		seed_post_like(&mm, high, owner_id).await?;
+		seed_post_like(&mm, high, 1).await?;
+
+		// -- Exec
+		let views = PostBmc::list_posts(
+			&ctx,
+			&mm,
+			Some(vec![PostFilter {
+				owner_id: Some(owner_id.into()),
+				..Default::default()
+			}]),
+			None,
+		)
+		.await?;
+
+		// -- Check: `high` (2 likes) ranks before `low` (0 likes).
+		let ids: Vec<i64> = views.iter().map(|v| v.id).collect();
+		assert_eq!(ids, vec![high, low], "ranked by like count desc");
+		assert_eq!(views[0].like_count, 2);
+		assert_eq!(views[1].like_count, 0);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_rank-owner").await?;
+
+		Ok(())
+	}
+
+	/// A `limit` windows the ranked list AFTER ranking, not before (regression
+	/// guard, #117 review). The most-liked Post is not the lowest id, so a
+	/// limit-1 read must return the top-liked Post, never the lowest-id one.
+	#[serial]
+	#[tokio::test]
+	async fn test_list_posts_limit_windows_after_ranking() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_window-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+
+		// Three Posts; the second-created (higher id) gets the only likes.
+		let first = seed_post(&ctx, &mm, "test_window a", &[1]).await?;
+		let top = seed_post(&ctx, &mm, "test_window b", &[1]).await?;
+		let _third = seed_post(&ctx, &mm, "test_window c", &[1]).await?;
+		seed_post_like(&mm, top, owner_id).await?;
+
+		// -- Exec: rank the owner's Posts, take only the top 1.
+		let views = PostBmc::list_posts(
+			&ctx,
+			&mm,
+			Some(vec![PostFilter {
+				owner_id: Some(owner_id.into()),
+				..Default::default()
+			}]),
+			Some(ListOptions {
+				limit: Some(1),
+				offset: None,
+				order_bys: None,
+			}),
+		)
+		.await?;
+
+		// -- Check: the single returned Post is the most-liked one, not `first`.
+		assert_eq!(views.len(), 1);
+		assert_eq!(views[0].id, top, "limit must window the RANKED list");
+		assert_ne!(views[0].id, first);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_window-owner").await?;
+
+		Ok(())
+	}
+
+	/// Every Post is public: Read is unscoped, so a non-owner reads any Post.
+	/// Write is owner-only: a non-owner update / delete is `EntityNotFound`, while
+	/// the Owner may update. (#106)
+	#[serial]
+	#[tokio::test]
+	async fn test_post_write_is_owner_only() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let a_id = seed_user(&root, &mm, "test_owner_only-A").await?;
+		let b_id = seed_user(&root, &mm, "test_owner_only-B").await?;
+		let ctx_a = Ctx::new(a_id)?;
+		let ctx_b = Ctx::new(b_id)?;
+
+		let post_id = seed_post(&ctx_a, &mm, "test_owner_only post", &[1]).await?;
+
+		// -- Check: B reads A's Post (public read).
+		let view = PostBmc::get_post(&ctx_b, &mm, post_id).await?;
+		assert_eq!(view.id, post_id);
+
+		// -- Check: B cannot update or delete A's Post (owner-only write).
+		assert!(
+			matches!(
+				PostBmc::update(
+					&ctx_b,
+					&mm,
+					post_id,
+					PostForUpdate {
+						title: Some("hijack".to_string()),
+						..Default::default()
+					},
+				)
+				.await,
+				Err(model::Error::EntityNotFound { .. })
+			),
+			"B update A's Post should be EntityNotFound"
+		);
+		assert!(
+			matches!(
+				PostBmc::delete(&ctx_b, &mm, post_id).await,
+				Err(model::Error::EntityNotFound { .. })
+			),
+			"B delete A's Post should be EntityNotFound"
+		);
+
+		// -- Check: A (the Owner) may update.
+		PostBmc::update(
+			&ctx_a,
+			&mm,
+			post_id,
+			PostForUpdate {
+				title: Some("owner edit".to_string()),
+				..Default::default()
+			},
+		)
+		.await?;
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_owner_only").await?;
+
+		Ok(())
+	}
+
+	/// A Post requires at least one Category: an empty `category_ids` is rejected
+	/// before any row is inserted (#107).
+	#[serial]
+	#[tokio::test]
+	async fn test_create_requires_a_category() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_requires_cat-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+
+		// -- Exec
+		let res = PostBmc::create(
+			&ctx,
+			&mm,
+			PostForCreate {
+				title: "no categories".to_string(),
+				..Default::default()
+			},
+			&[],
+		)
+		.await;
+
+		// -- Check
+		assert!(
+			matches!(&res, Err(model::Error::Validation { field, .. })
+				if field == "category_ids"),
+			"got {res:?}"
+		);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_requires_cat").await?;
+
+		Ok(())
+	}
+
+	/// `PostView` is a public projection: its serialized shape carries no audit
+	/// columns (`cid` / `mid` / `ctime` / `mtime`) — ADR-0021.
+	#[test]
+	fn test_post_view_has_no_audit_columns() {
+		let view = PostView {
+			id: 1,
+			author: AuthorRef {
+				id: 2,
+				name: "Lisa".to_string(),
+				avatar_url: None,
+			},
+			title: "t".to_string(),
+			image_src: "s".to_string(),
+			image_alt: "a".to_string(),
+			photographer: "p".to_string(),
+			photographer_url: "pu".to_string(),
+			source_url: "su".to_string(),
+			categories: Vec::new(),
+			like_count: 0,
+			comment_count: 0,
+		};
+		let value = serde_json::to_value(&view).unwrap();
+		let obj = value.as_object().unwrap();
+		for audit in ["cid", "mid", "ctime", "mtime"] {
+			assert!(
+				!obj.contains_key(audit),
+				"PostView must not expose the `{audit}` audit column"
+			);
+		}
+	}
+}
+
+// endregion: --- Tests

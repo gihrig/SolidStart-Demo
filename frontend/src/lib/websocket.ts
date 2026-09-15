@@ -25,6 +25,9 @@ export interface MessageFeedOptions {
   // the event carries no row, so nothing here narrows access.
   onAgentUpdate?: () => void;
   onConvUpdate?: () => void;
+  // A `posts` poke: the Jedi Post list may have changed (#117). Contentless — the
+  // consumer refetches through the scoped public RPC.
+  onPostsUpdate?: () => void;
   onError?: (error: string) => void;
 }
 
@@ -164,6 +167,8 @@ export function createFeed(): MessageFeedFactory {
               for (const c of consumers) c.onAgentUpdate?.();
             } else if (data.kind === "convs") {
               for (const c of consumers) c.onConvUpdate?.();
+            } else if (data.kind === "posts") {
+              for (const c of consumers) c.onPostsUpdate?.();
             }
           }
         } catch (e) {

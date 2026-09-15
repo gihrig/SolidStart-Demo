@@ -28,6 +28,24 @@ pub enum Access {
 
 // endregion: --- Access
 
+// region:    --- Public projection (ADR-0021)
+
+/// Marker for an entity's **public projection**: the audit-free shape a public
+/// read returns on `/api/rpc-public` (under `root_ctx`). A public projection
+/// carries an entity's public-facing fields minus the audit columns (`cid` /
+/// `mid` actor ids, `ctime` / `mtime`), so an anonymous response never leaks
+/// internal storage detail.
+///
+/// This is the shared convention ADR-0021 records: each entity names exactly one
+/// such type, and one read serves it. `CategoryPublic` is the first (#116);
+/// `PostView` and `AuthorRef` are the second (#117). A projection may **enrich**
+/// (an author-and-counts `PostView`) or **narrow** (`CategoryPublic`); either way
+/// it is audit-free. `base::list_public` requires this bound, so the full
+/// audit-bearing entity row can never be served from a public read by mistake.
+pub trait PublicProjection {}
+
+// endregion: --- Public projection (ADR-0021)
+
 // region:    --- Consts
 
 const LIST_LIMIT_DEFAULT: i64 = 1000;

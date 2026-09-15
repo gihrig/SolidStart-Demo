@@ -3,6 +3,7 @@
 pub mod agent_rpc;
 pub mod category_rpc;
 pub mod conv_rpc;
+pub mod post_rpc;
 
 use rpc_router::{Router, RouterBuilder};
 
@@ -23,5 +24,7 @@ pub fn all_rpc_router_builder() -> RouterBuilder {
 /// here — never a mutation or a row-scoped read — because this endpoint
 /// dispatches under `root_ctx` (see `handlers_rpc::rpc_axum_handler_public`).
 pub fn public_rpc_router_builder() -> RouterBuilder {
-	Router::builder().extend(category_rpc::rpc_router_builder())
+	Router::builder()
+		.extend(category_rpc::rpc_router_builder())
+		.extend(post_rpc::rpc_router_builder())
 }

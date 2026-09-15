@@ -1,7 +1,7 @@
 use crate::ctx::Ctx;
 use crate::model::base::{
 	apply_hygiene, prep_fields_for_create, prep_fields_for_update, Access,
-	CommonIden, DbBmc, LIST_LIMIT_DEFAULT, LIST_LIMIT_MAX,
+	CommonIden, DbBmc, PublicProjection, LIST_LIMIT_DEFAULT, LIST_LIMIT_MAX,
 };
 use crate::model::ModelManager;
 use crate::model::{Error, Result};
@@ -208,6 +208,28 @@ where
 	let entities = mm.dbx().fetch_all(sqlx_query).await?;
 
 	Ok(entities)
+}
+
+/// List an entity as its **public projection** (ADR-0021). Identical to [`list`]
+/// but the row type `P` must implement [`PublicProjection`], so the full
+/// audit-bearing entity row can never be served from a public read by mistake:
+/// `list_public::<CategoryBmc, Category, _>` does not compile — only
+/// `CategoryPublic` (audit-free) satisfies the bound. `P: HasSeaFields` selects
+/// exactly the projection's columns, so the audit columns are never queried.
+pub async fn list_public<MC, P, F>(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	filter: Option<F>,
+	list_options: Option<ListOptions>,
+) -> Result<Vec<P>>
+where
+	MC: DbBmc,
+	F: Into<FilterGroups>,
+	P: PublicProjection,
+	P: for<'r> FromRow<'r, PgRow> + Unpin + Send,
+	P: HasSeaFields,
+{
+	list::<MC, P, F>(ctx, mm, filter, list_options).await
 }
 
 pub async fn count<MC, F>(

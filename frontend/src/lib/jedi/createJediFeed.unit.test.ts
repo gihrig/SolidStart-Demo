@@ -1,9 +1,14 @@
-import { describe, it, expect, vi } from "vite-plus/test";
+import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { createRoot } from "solid-js";
+import { Channel } from "~/lib/channel";
 
-// `jediApi.categories.list` calls the `list_categories` RPC (ADR-0011); the
-// back-end client is mocked so this seam test stays offline. The rows mirror the
-// seeded taxonomy (frontend/src/lib/jedi/data.json ↔ 02-dev-seed.sql).
+// `jediApi.categories.list` / `posts.*` call the real RPCs (ADR-0011, #117); the
+// back-end client is mocked so this seam test stays offline. Categories mirror the
+// seeded taxonomy; Posts are hoisted spies each test programs (default set below).
+const { postListMock, postFeaturedMock } = vi.hoisted(() => ({
+  postListMock: vi.fn(),
+  postFeaturedMock: vi.fn(),
+}));
 vi.mock("~/lib/backend-rpc", () => ({
   category: {
     list: () =>
@@ -16,9 +21,56 @@ vi.mock("~/lib/backend-rpc", () => ({
         { id: 6, name: "Cute", icon: "fire-heart" },
       ]),
   },
+  post: { list: postListMock, featured: postFeaturedMock },
 }));
 
 import { createJediFeed, type JediFeed } from "./createJediFeed";
+
+// The wire `PostView`s the back-end returns, already ranked (#117 — the front-end
+// never re-ranks). Order [1, 3, 2, 4] mirrors data.json's like counts; categories
+// match the fixture (post 1/3 -> Animals+Cute, post 2/4 -> Landscape).
+const wireAuthor = (id: number, name: string) => ({
+  id,
+  name,
+  avatar_url: `https://example.test/${name}.png`,
+});
+const CAT = {
+  1: { id: 1, name: "Landscape", icon: "landscape" },
+  3: { id: 3, name: "Animals", icon: "dog" },
+  6: { id: 6, name: "Cute", icon: "fire-heart" },
+};
+const wirePost = (
+  id: number,
+  title: string,
+  author: { id: number; name: string },
+  categories: { id: number; name: string; icon: string }[],
+  likeCount: number,
+) => ({
+  id,
+  author: wireAuthor(author.id, author.name),
+  title,
+  image_src: `https://example.test/${id}.jpg`,
+  image_alt: title,
+  photographer: "Photographer",
+  photographer_url: "https://example.test/photographer",
+  source_url: "https://example.test/source",
+  categories,
+  like_count: likeCount,
+  comment_count: 0,
+});
+const LISA = { id: 1, name: "Lisa" };
+const HOMER = { id: 2, name: "Homer" };
+const RANKED_POSTS = [
+  wirePost(1, "Little Jedi", LISA, [CAT[3], CAT[6]], 5),
+  wirePost(3, "Camouflage", LISA, [CAT[3], CAT[6]], 5),
+  wirePost(2, "Brilliant tree", HOMER, [CAT[1]], 4),
+  wirePost(4, "Serene Beach", HOMER, [CAT[1]], 3),
+];
+
+beforeEach(() => {
+  postListMock.mockResolvedValue(RANKED_POSTS);
+  postFeaturedMock.mockResolvedValue(RANKED_POSTS[0]);
+});
 
 // The resources back onto pre-resolved promises; two macrotask ticks drain the
 // microtask queue including the selectedPost -> captions chain. Every assertion
@@ -209,4 +261,50 @@ describe("createJediFeed — the captions of the selected post", () => {
       expect(feed.selectedCaption()).toBe(feed.visibleCaptions()?.[0]);
       expect(feed.selectedCaption()?.postId).toBe(2);
     }));
+});
+
+describe("createJediFeed — the realtime posts poke (#117)", () => {
+  // A fake Feed factory: it captures the consumer's callbacks so the test can
+  // fire a `posts` poke, and records the channel the view-model subscribes to.
+  function fakeFeed() {
+    let options: { onPostsUpdate?: () => void } = {};
+    const subscribe = vi.fn();
+    const factory = (opts: { onPostsUpdate?: () => void }) => {
+      options = opts;
+      return { connected: () => true, subscribe, unsubscribe: vi.fn() };
+    };
+    return { factory, subscribe, poke: () => options.onPostsUpdate?.() };
+  }
+
+  it("subscribes to the posts channel and refetches on a poke", async () => {
+    const feed = fakeFeed();
+    await createRoot(async (dispose) => {
+      createJediFeed({ feed: feed.factory });
+      await tick();
+      await tick();
+
+      // The view-model subscribes to the id-less `posts` list feed.
+      expect(feed.subscribe).toHaveBeenCalledWith(Channel.posts);
+
+      // A `posts` poke refetches the ranked list; the featured Post re-derives.
+      const listCallsBefore = postListMock.mock.calls.length;
+      feed.poke();
+      await tick();
+      await tick();
+      expect(postListMock.mock.calls.length).toBeGreaterThan(listCallsBefore);
+
+      dispose();
+    });
+  });
+
+  it("does not subscribe when no feed is injected (anonymous landing)", async () => {
+    // No feed: the view-model still loads Posts, but wires no subscription.
+    await createRoot(async (dispose) => {
+      const feed = createJediFeed();
+      await tick();
+      await tick();
+      expect(feed.visiblePosts()?.map((p) => p.id)).toEqual([1, 3, 2, 4]);
+      dispose();
+    });
+  });
 });
