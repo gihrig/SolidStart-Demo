@@ -17,6 +17,8 @@
 "adr:index" = { command = "./scripts/adr-index.sh write", info = "Regenerate docs/adr/README.md from the ADR files" }
 "adr:index:check" = { command = "./scripts/adr-index.sh check", info = "Verify docs/adr/README.md is current (CI guard)" }
 "adr:list" = { command = "./scripts/adr-index.sh list", info = "Print the ADR index as a console table" }
+sbom = { command = "./scripts/sbom.sh write", info = "Regenerate the project-wide CycloneDX SBOM at /sbom.cdx.json (syft + normalize)" }
+"sbom:check" = { command = "./scripts/sbom.sh check", info = "Verify /sbom.cdx.json is current (CI drift guard)" }
 bindings = { command = "(cd backend && cgs bindings)", info = "Regenerate ts-rs bindings (backend)" }
 build = { command = "(cd frontend && cgs build) && (cd backend && cgs build)", info = "Build both subtrees" }
 check = { command = "(cd frontend && cgs check) && (cd backend && cgs check)", info = "Format + lint + type-check both subtrees" }

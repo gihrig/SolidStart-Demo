@@ -113,3 +113,29 @@ T4 cargo-deny; T5 the remaining crates (`cargo-udeps` needs a nightly toolchain)
   unit.
 - **Primary-source record.** The two research files under `backend/docs/research/` hold
   the cited evidence for every tool fact above.
+
+## Addendum — T1 SBOM implementation (#138)
+
+Building T1 found that the front-end lockfile is **`bun.lock`**, and syft 1.51.1's
+`bun.lock` cataloger is **partial and non-deterministic** — repeated runs return a
+different, small subset of the ~969 packages (measured: 30 / 33 / 35). It cannot back a
+drift guard. This refines the mechanism; the decisions above stand.
+
+- **npm source is a derived `yarn.lock`, not `bun.lock`.** `cgs sbom` runs
+  `bun install --frozen-lockfile --yarn` to convert `bun.lock` into a throwaway
+  `yarn.lock`, which syft reads completely and deterministically (969 / 969 / 969). The
+  `yarn.lock` is staged in a temp tree and never committed. `bun` is therefore a
+  dependency of the SBOM step (local + the `sbom-drift` CI job).
+- **Normalization is more than the two ADR fields.** Beyond stripping `serialNumber` and
+  `metadata.timestamp`, `scripts/sbom.sh` scans a temp staging tree (so no absolute path
+  leaks), drops the source `file` components, pins `metadata.component.bom-ref`, and sorts
+  `components` + `dependencies` — syft's per-run ordering churn would otherwise flap the
+  guard.
+- **syft version is pinned.** The committed SBOM records the generating syft version in
+  `metadata.tools`; a syft upgrade changes catalog output, so the `sbom-drift` CI job
+  pins syft to the same version (`v1.51.1`). Regenerating locally needs the same version.
+- **Output is CycloneDX 1.6.** syft 1.51.1 defaults to 1.7, so the command pins
+  `-o cyclonedx-json@1.6` per this ADR.
+- **Command surface.** `cgs sbom` (write) and `cgs sbom:check` (drift guard) live in the
+  root `Scripts.toml`; `scripts/sbom.sh` and `scripts/sbom.test.sh` mirror
+  `scripts/adr-index.sh`.

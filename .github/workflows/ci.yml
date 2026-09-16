@@ -152,6 +152,46 @@ jobs:
           echo "::error::docs/adr/README.md lags the ADR files."
           echo "Run 'cgs adr:index' (from the repo root) and commit docs/adr/README.md."
 
+  # -- SBOM drift guard (ADR-0022, #138): regenerate the project-wide CycloneDX
+  #    SBOM and fail if the committed /sbom.cdx.json lags the lockfiles. Mirrors
+  #    the bindings-drift / adr-index guards. syft is PINNED: an upgrade changes
+  #    catalog output, so the runner must match the version that wrote the file
+  #    (recorded in metadata.tools). The front-end needs bun because sbom.sh
+  #    derives a yarn.lock from bun.lock (syft's bun.lock reader is unreliable).
+  sbom-drift:
+    name: SBOM drift guard
+    runs-on: ubuntu-latest
+    env:
+      SYFT_VERSION: v1.51.1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - name: Install syft (pinned)
+        run: curl -sSfL https://get.anchore.io/syft | sh -s -- -b /usr/local/bin "$SYFT_VERSION"
+
+      # sbom.sh runs `bun install --frozen-lockfile --yarn`; prime the cache.
+      - name: Install front-end dependencies
+        working-directory: frontend
+        run: bun install --frozen-lockfile
+
+      # Equivalent to `cgs sbom:check`; must run before the determinism test,
+      # which overwrites /sbom.cdx.json in the checkout.
+      - name: Verify /sbom.cdx.json is current
+        run: ./scripts/sbom.sh check
+
+      - name: Prove determinism + ecosystem coverage
+        run: ./scripts/sbom.test.sh
+
+      - name: Explain drift
+        if: failure()
+        run: |
+          echo "::error::/sbom.cdx.json lags the dependency lockfiles."
+          echo "Run 'cgs sbom' (from the repo root) and commit /sbom.cdx.json."
+
   # -- End-to-end (Playwright). Non-blocking at first (ADR-0010/#74): the job
   #    boots the Postgres BE itself and runs the FE e2e suite, but
   #    continue-on-error keeps a failure from blocking merge. #81 replaces this
