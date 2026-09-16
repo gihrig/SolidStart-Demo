@@ -13,6 +13,12 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Daily security re-scan (#139): a freshly disclosed RustSec advisory can trip
+  # an unchanged Cargo.lock, so the cargo-audit job runs on a schedule too. Only
+  # the security jobs run on this trigger; every other job is guarded with
+  # `if: github.event_name != 'schedule'` so the full CI matrix stays PR/push-only.
+  schedule:
+    - cron: "17 6 * * *"
 
 # One in-flight run per ref; newer pushes cancel older runs.
 concurrency:
@@ -25,6 +31,7 @@ jobs:
   #    vite-plus install after `bun install`.
   frontend:
     name: Front-end (vp check / test / build)
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -56,6 +63,7 @@ jobs:
   #    dev SQL are wired through backend/.cargo/config.toml).
   backend:
     name: Back-end (fmt / clippy / build / nextest — postgres)
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -109,6 +117,7 @@ jobs:
   #    the committed copies lag the Rust types. ts-rs export tests need no DB.
   bindings-drift:
     name: Bindings drift guard
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -139,6 +148,7 @@ jobs:
   #    underlying script, per the CI convention above — no cargo/cgs, no DB.
   adr-index:
     name: ADR index guard
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -160,6 +170,7 @@ jobs:
   #    derives a yarn.lock from bun.lock (syft's bun.lock reader is unreliable).
   sbom-drift:
     name: SBOM drift guard
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     env:
       SYFT_VERSION: v1.51.1
@@ -192,12 +203,43 @@ jobs:
           echo "::error::/sbom.cdx.json lags the dependency lockfiles."
           echo "Run 'cgs sbom' (from the repo root) and commit /sbom.cdx.json."
 
+  # -- Back-end RustSec gate (#139, ADR-0022): cargo-audit scans backend/Cargo.lock
+  #    against the RustSec advisory database. `--deny warnings` fails on ANY
+  #    advisory, including the RustSec-only signals grype does not carry
+  #    (unmaintained / unsound / notice / yanked). Accepted risks live in
+  #    backend/.cargo/audit.toml. Runs on every PR, on push to main, and on the
+  #    daily schedule (a fresh advisory can trip an unchanged Cargo.lock): this
+  #    job carries no `if:` guard. Mirrors `cgs audit`.
+  cargo-audit:
+    name: cargo-audit (back-end RustSec)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+
+      # Mirrors `cgs audit` (backend/Scripts.toml). Fetches the advisory DB, then
+      # fails on any advisory not accepted in backend/.cargo/audit.toml.
+      - name: Audit (fails on any advisory)
+        working-directory: backend
+        run: cargo audit --deny warnings
+
+      # Proves the gate: an advisory trips it, a clean lockfile passes, an
+      # unmaintained advisory is caught, and an accepted advisory is ignored.
+      - name: Prove gate behaviour (advisory / clean / unmaintained / ignore-list)
+        run: ./scripts/cargo-audit.test.sh
+
   # -- End-to-end (Playwright). Non-blocking at first (ADR-0010/#74): the job
   #    boots the Postgres BE itself and runs the FE e2e suite, but
   #    continue-on-error keeps a failure from blocking merge. #81 replaces this
   #    with the self-booting `cgs test:e2e` on the Turso track.
   e2e:
     name: e2e (non-blocking)
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     continue-on-error: true
     services:

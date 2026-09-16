@@ -1,0 +1,20 @@
+# cargo-audit configuration — back-end RustSec gate (#139, ADR-0022, spec #137).
+#
+# `cgs audit` (backend/Scripts.toml) and the CI `cargo-audit` job both run
+# `cargo audit --deny warnings`, so this file is the single accepted-risk
+# ignore-list. `--deny warnings` fails the build on ANY advisory, including the
+# RustSec-only signals grype does not carry: unmaintained / unsound / yanked.
+#
+# Accepted-risk ignore-list: record a triaged, accepted advisory here so it does
+# not block every future build. Each entry states the advisory id, the crate,
+# and why it is accepted. Remove an entry once the advisory is fixed.
+[advisories]
+ignore = [
+  # rsa 0.9.10 — Marvin timing side-channel. No fixed upgrade is available
+  # upstream, so we cannot resolve it by bumping the version. Accepted.
+  "RUSTSEC-2023-0071",
+  # scc 2.4.0 — `Array::insert` exception-safety (unsound). Test-only transitive
+  # dependency via serial_test; 2.4.0 is the highest version serial_test allows,
+  # and it is not a runtime vulnerability. Accepted.
+  "RUSTSEC-2026-0205",
+]

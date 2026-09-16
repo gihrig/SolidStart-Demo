@@ -2,6 +2,7 @@
 [global_env]
 
 [scripts]
+audit = { command = "cargo audit --deny warnings", info = "RustSec advisory scan (fails on any advisory: vuln/unmaintained/unsound/yanked; ignore-list in .cargo/audit.toml)" }
 bindings = { command = "cargo test export_bindings", info = "Regenerate ts-rs TypeScript bindings (exported via cargo test)" }
 build = { command = "cargo build", info = "Build w/ debug symbols", env = { RUST_LOG = "info" } }
 check = { command = "cargo fmt --all && cargo clippy --all-targets -- -D warnings", info = "Format (fix) and lint (warnings gate CI on)" }

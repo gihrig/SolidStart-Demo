@@ -1761,12 +1761,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/chacha20@0.10.1?package-id=2a4bb66420c507c1",
+      "bom-ref": "pkg:cargo/chacha20@0.10.2?package-id=dffdc8508e1a0068",
       "type": "library",
       "name": "chacha20",
-      "version": "0.10.1",
-      "cpe": "cpe:2.3:a:chacha20_project:chacha20:0.10.1:*:*:*:*:rust:*:*",
-      "purl": "pkg:cargo/chacha20@0.10.1",
+      "version": "0.10.2",
+      "cpe": "cpe:2.3:a:chacha20_project:chacha20:0.10.2:*:*:*:*:rust:*:*",
+      "purl": "pkg:cargo/chacha20@0.10.2",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -1792,7 +1792,7 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:chacha20:chacha20:0.10.1:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:chacha20:chacha20:0.10.2:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -1833,70 +1833,6 @@
         {
           "name": "syft:cpe23",
           "value": "cpe:2.3:a:chrono:chrono:0.4.45:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:location:0:path",
-          "value": "/backend/Cargo.lock"
-        }
-      ]
-    },
-    {
-      "bom-ref": "pkg:cargo/concurrent-queue@2.5.0?package-id=e9f8ef5acada111c",
-      "type": "library",
-      "name": "concurrent-queue",
-      "version": "2.5.0",
-      "cpe": "cpe:2.3:a:concurrent-queue_project:concurrent-queue:2.5.0:*:*:*:*:rust:*:*",
-      "purl": "pkg:cargo/concurrent-queue@2.5.0",
-      "externalReferences": [
-        {
-          "url": "registry+https://github.com/rust-lang/crates.io-index",
-          "type": "distribution"
-        }
-      ],
-      "properties": [
-        {
-          "name": "syft:package:foundBy",
-          "value": "rust-cargo-lock-cataloger"
-        },
-        {
-          "name": "syft:package:language",
-          "value": "rust"
-        },
-        {
-          "name": "syft:package:type",
-          "value": "rust-crate"
-        },
-        {
-          "name": "syft:package:metadataType",
-          "value": "rust-cargo-lock-entry"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:concurrent-queue_project:concurrent_queue:2.5.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:concurrent-queue:concurrent-queue:2.5.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:concurrent-queue:concurrent_queue:2.5.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:concurrent_queue:concurrent-queue:2.5.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:concurrent_queue:concurrent_queue:2.5.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:concurrent:concurrent-queue:2.5.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:concurrent:concurrent_queue:2.5.0:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -4453,12 +4389,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/event-listener@5.4.1?package-id=95aae7f43ec46d76",
+      "bom-ref": "pkg:cargo/event-listener@5.4.2?package-id=4f87344381ab9640",
       "type": "library",
       "name": "event-listener",
-      "version": "5.4.1",
-      "cpe": "cpe:2.3:a:event-listener_project:event-listener:5.4.1:*:*:*:*:rust:*:*",
-      "purl": "pkg:cargo/event-listener@5.4.1",
+      "version": "5.4.2",
+      "cpe": "cpe:2.3:a:event-listener_project:event-listener:5.4.2:*:*:*:*:rust:*:*",
+      "purl": "pkg:cargo/event-listener@5.4.2",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -4484,31 +4420,31 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:event-listener_project:event_listener:5.4.1:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:event-listener_project:event_listener:5.4.2:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:event-listener:event-listener:5.4.1:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:event-listener:event-listener:5.4.2:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:event-listener:event_listener:5.4.1:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:event-listener:event_listener:5.4.2:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:event_listener:event-listener:5.4.1:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:event_listener:event-listener:5.4.2:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:event_listener:event_listener:5.4.1:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:event_listener:event_listener:5.4.2:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:event:event-listener:5.4.1:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:event:event-listener:5.4.2:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:event:event_listener:5.4.1:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:event:event_listener:5.4.2:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -13273,12 +13209,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/rustls@0.23.31?package-id=9f8fb5ca4f6309b8",
+      "bom-ref": "pkg:cargo/rustls@0.23.45?package-id=f0967623c92578ff",
       "type": "library",
       "name": "rustls",
-      "version": "0.23.31",
-      "cpe": "cpe:2.3:a:rustls_project:rustls:0.23.31:*:*:*:*:rust:*:*",
-      "purl": "pkg:cargo/rustls@0.23.31",
+      "version": "0.23.45",
+      "cpe": "cpe:2.3:a:rustls_project:rustls:0.23.45:*:*:*:*:rust:*:*",
+      "purl": "pkg:cargo/rustls@0.23.45",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -13304,7 +13240,7 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:rustls:rustls:0.23.31:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:rustls:rustls:0.23.45:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -13393,12 +13329,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/scc@2.3.4?package-id=69a42f0fd2c3401c",
+      "bom-ref": "pkg:cargo/scc@2.4.0?package-id=e01de439e1aee62c",
       "type": "library",
       "name": "scc",
-      "version": "2.3.4",
-      "cpe": "cpe:2.3:a:scc_project:scc:2.3.4:*:*:*:*:rust:*:*",
-      "purl": "pkg:cargo/scc@2.3.4",
+      "version": "2.4.0",
+      "cpe": "cpe:2.3:a:scc_project:scc:2.4.0:*:*:*:*:rust:*:*",
+      "purl": "pkg:cargo/scc@2.4.0",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -13424,7 +13360,7 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scc:scc:2.3.4:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:scc:scc:2.4.0:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -15137,12 +15073,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/spin@0.9.8?package-id=22eb08f4678b72b5",
+      "bom-ref": "pkg:cargo/spin@0.9.9?package-id=35e3a8c21cb0fa78",
       "type": "library",
       "name": "spin",
-      "version": "0.9.8",
-      "cpe": "cpe:2.3:a:spin_project:spin:0.9.8:*:*:*:*:rust:*:*",
-      "purl": "pkg:cargo/spin@0.9.8",
+      "version": "0.9.9",
+      "cpe": "cpe:2.3:a:spin_project:spin:0.9.9:*:*:*:*:rust:*:*",
+      "purl": "pkg:cargo/spin@0.9.9",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -15168,7 +15104,7 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:spin:spin:0.9.8:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:spin:spin:0.9.9:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -74012,7 +73948,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/chacha20@0.10.1?package-id=2a4bb66420c507c1",
+      "ref": "pkg:cargo/chacha20@0.10.2?package-id=dffdc8508e1a0068",
       "dependsOn": [
         "pkg:cargo/cfg-if@1.0.1?package-id=e3bd45d1c5990d5d",
         "pkg:cargo/cpufeatures@0.3.0?package-id=5def4181482c071d",
@@ -74028,12 +73964,6 @@
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
         "pkg:cargo/wasm-bindgen@0.2.100?package-id=cdecfcdcb2c272b5",
         "pkg:cargo/windows-link@0.2.1?package-id=4c64750e352341b4"
-      ]
-    },
-    {
-      "ref": "pkg:cargo/concurrent-queue@2.5.0?package-id=e9f8ef5acada111c",
-      "dependsOn": [
-        "pkg:cargo/crossbeam-utils@0.8.21?package-id=d5ed9533d087f983"
       ]
     },
     {
@@ -74303,9 +74233,8 @@
       ]
     },
     {
-      "ref": "pkg:cargo/event-listener@5.4.1?package-id=95aae7f43ec46d76",
+      "ref": "pkg:cargo/event-listener@5.4.2?package-id=4f87344381ab9640",
       "dependsOn": [
-        "pkg:cargo/concurrent-queue@2.5.0?package-id=e9f8ef5acada111c",
         "pkg:cargo/parking@2.2.1?package-id=35fe2d325ebb0bed",
         "pkg:cargo/pin-project-lite@0.2.16?package-id=3bf6cbc61136d164"
       ]
@@ -74338,7 +74267,7 @@
       "dependsOn": [
         "pkg:cargo/futures-core@0.3.34?package-id=ddf6a5fd6d897245",
         "pkg:cargo/futures-sink@0.3.34?package-id=84db6894ef52e4d5",
-        "pkg:cargo/spin@0.9.8?package-id=22eb08f4678b72b5"
+        "pkg:cargo/spin@0.9.9?package-id=35e3a8c21cb0fa78"
       ]
     },
     {
@@ -74534,7 +74463,7 @@
         "pkg:cargo/hyper-util@0.1.20?package-id=e727c636c33c7edf",
         "pkg:cargo/hyper@1.11.0?package-id=0b2f5f14889ab26e",
         "pkg:cargo/rustls-pki-types@1.12.0?package-id=7ca7560b3799eb9e",
-        "pkg:cargo/rustls@0.23.31?package-id=9f8fb5ca4f6309b8",
+        "pkg:cargo/rustls@0.23.45?package-id=f0967623c92578ff",
         "pkg:cargo/tokio-rustls@0.26.2?package-id=8d0efe6b9806d5ff",
         "pkg:cargo/tokio@1.53.1?package-id=e57801ef50f6cc5a",
         "pkg:cargo/tower-service@0.3.3?package-id=f7b00c4ded946e92"
@@ -74785,7 +74714,7 @@
     {
       "ref": "pkg:cargo/lazy_static@1.5.0?package-id=ecd9ee8d6583d966",
       "dependsOn": [
-        "pkg:cargo/spin@0.9.8?package-id=22eb08f4678b72b5"
+        "pkg:cargo/spin@0.9.9?package-id=35e3a8c21cb0fa78"
       ]
     },
     {
@@ -75063,7 +74992,7 @@
     {
       "ref": "pkg:cargo/rand@0.10.2?package-id=fa262b1b915d14c5",
       "dependsOn": [
-        "pkg:cargo/chacha20@0.10.1?package-id=2a4bb66420c507c1",
+        "pkg:cargo/chacha20@0.10.2?package-id=dffdc8508e1a0068",
         "pkg:cargo/getrandom@0.4.3?package-id=ae94408da611520c",
         "pkg:cargo/rand_core@0.10.1?package-id=4ddefa39e7643d45"
       ]
@@ -75293,7 +75222,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/rustls@0.23.31?package-id=9f8fb5ca4f6309b8",
+      "ref": "pkg:cargo/rustls@0.23.45?package-id=f0967623c92578ff",
       "dependsOn": [
         "pkg:cargo/once_cell@1.21.3?package-id=9eaa89b4722ccb24",
         "pkg:cargo/rustls-pki-types@1.12.0?package-id=7ca7560b3799eb9e",
@@ -75303,7 +75232,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/scc@2.3.4?package-id=69a42f0fd2c3401c",
+      "ref": "pkg:cargo/scc@2.4.0?package-id=e01de439e1aee62c",
       "dependsOn": [
         "pkg:cargo/sdd@3.0.10?package-id=9695a5a6e733e8bc"
       ]
@@ -75460,7 +75389,7 @@
         "pkg:cargo/log@0.4.27?package-id=6888c946d9b471f9",
         "pkg:cargo/once_cell@1.21.3?package-id=9eaa89b4722ccb24",
         "pkg:cargo/parking_lot@0.12.4?package-id=8949cb7943b0a2cb",
-        "pkg:cargo/scc@2.3.4?package-id=69a42f0fd2c3401c",
+        "pkg:cargo/scc@2.4.0?package-id=e01de439e1aee62c",
         "pkg:cargo/serial_test_derive@3.3.1?package-id=aa95ee13e044cb53"
       ]
     },
@@ -75521,7 +75450,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/spin@0.9.8?package-id=22eb08f4678b72b5",
+      "ref": "pkg:cargo/spin@0.9.9?package-id=35e3a8c21cb0fa78",
       "dependsOn": [
         "pkg:cargo/lock_api@0.4.13?package-id=05980e9f9ac65a15"
       ]
@@ -75541,7 +75470,7 @@
         "pkg:cargo/crc@3.3.0?package-id=54fddf190917e8d4",
         "pkg:cargo/crossbeam-queue@0.3.12?package-id=c3ba26b44d8b7ffe",
         "pkg:cargo/either@1.15.0?package-id=2e30492bd65894da",
-        "pkg:cargo/event-listener@5.4.1?package-id=95aae7f43ec46d76",
+        "pkg:cargo/event-listener@5.4.2?package-id=4f87344381ab9640",
         "pkg:cargo/futures-core@0.3.34?package-id=ddf6a5fd6d897245",
         "pkg:cargo/futures-intrusive@0.5.0?package-id=c25c62ea3ec75024",
         "pkg:cargo/futures-io@0.3.34?package-id=f85d84fc160830e4",
@@ -75869,7 +75798,7 @@
     {
       "ref": "pkg:cargo/tokio-rustls@0.26.2?package-id=8d0efe6b9806d5ff",
       "dependsOn": [
-        "pkg:cargo/rustls@0.23.31?package-id=9f8fb5ca4f6309b8",
+        "pkg:cargo/rustls@0.23.45?package-id=f0967623c92578ff",
         "pkg:cargo/tokio@1.53.1?package-id=e57801ef50f6cc5a"
       ]
     },
