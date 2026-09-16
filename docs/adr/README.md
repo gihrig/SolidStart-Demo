@@ -31,3 +31,4 @@ flat "what has been decided" view.
 | [0019](0019-layered-user-text-sanitization.md) | Layered user-text sanitization: hygiene on write, server markdown→sanitized-HTML on read, escape at every sink | Accepted |
 | [0020](0020-collapse-channel-vocabulary.md) | Collapse the realtime Channel vocabulary into one exported type | Accepted |
 | [0021](0021-public-projection-surface-selected.md) | The public read is a per-entity public projection, audit visibility selected by surface | Accepted |
+| [0022](0022-fullstack-sbom-vuln-scanning-syft-grype.md) | Full-stack SBOM + vulnerability scanning with syft + grype; Snyk abandoned | Accepted |
