@@ -240,6 +240,39 @@ jobs:
       - name: Prove gate behaviour (advisory / clean / unmaintained / ignore-list)
         run: ./scripts/cargo-audit.test.sh
 
+  # -- Back-end dependency-policy gate (#140, ADR-0022): cargo-deny enforces the
+  #    license allow-list, crate bans, and source rules in backend/deny.toml.
+  #    Scope is `licenses bans sources` — NOT `advisories`, which is the separate
+  #    cargo-audit gate (#139); running it here would need a second RustSec
+  #    ignore-list. These checks change only when the lockfile changes, so unlike
+  #    cargo-audit this job needs no daily schedule: it is guarded PR/push-only.
+  #    Mirrors `cgs deny`.
+  cargo-deny:
+    name: cargo-deny (back-end dependency policy)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # stable
+        with:
+          toolchain: stable
+
+      - uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2
+        with:
+          tool: cargo-deny
+
+      # Mirrors `cgs deny` (backend/Scripts.toml). Fails on a disallowed license,
+      # a banned crate, or an untrusted source.
+      - name: Deny (licenses / bans / sources)
+        working-directory: backend
+        run: cargo deny check licenses bans sources
+
+      # Proves the gate: a banned crate fails, a disallowed license fails, and
+      # the real policy passes on a clean tree.
+      - name: Prove gate behaviour (banned crate / disallowed license / clean)
+        run: ./scripts/cargo-deny.test.sh
+
   # -- End-to-end (Playwright). Non-blocking at first (ADR-0010/#74): the job
   #    boots the Postgres BE itself and runs the FE e2e suite, but
   #    continue-on-error keeps a failure from blocking merge. #81 replaces this

@@ -49,6 +49,7 @@ that have no recipe (e.g. `cargo run -p gen-key`).
 | `cgs start`     | Build + run web-server in release (`cargo run -p web-server --release`)|
 | `cgs bindings`  | Regenerate ts-rs bindings (`cargo test export_bindings`) |
 | `cgs audit`     | RustSec advisory scan (`cargo audit --deny warnings`; ignore-list in `.cargo/audit.toml`)|
+| `cgs deny`      | Dependency-policy gate (`cargo deny check licenses bans sources`; policy in `deny.toml`)|
 | `cgs doc`       | Build & open project docs                                |
 | `cgs update`    | Update dependencies (`cargo update`)                     |
 | `cgs upgrade`   | Update the Rust toolchain (`rustup update`)              |

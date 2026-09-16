@@ -1,0 +1,47 @@
+# cargo-deny dependency policy — back-end (#140, ADR-0022 / spec #137, T4).
+#
+# `cgs deny` (backend/Scripts.toml) and the CI `cargo-deny` job both run
+# `cargo deny check licenses bans sources` from backend/. This file is that
+# policy. Keep the checked list in step with the recipe if either changes.
+#
+# Scope: licenses, crate bans, and sources. The RustSec advisory scan is a
+# separate gate (`cgs audit`, #139), so cargo-deny's own `advisories` check is
+# deliberately NOT run here — one RustSec ignore-list (.cargo/audit.toml), not two.
+
+[licenses]
+version = 2
+# Allow-list: every license the resolved tree needs (`cargo deny list`). A crate
+# with an OR expression passes when ANY allowed license matches, so a copyleft
+# alternative in an OR (e.g. LGPL-2.1-or-later on r-efi) never needs allowing.
+allow = [
+  "Apache-2.0",
+  "MIT",
+  "Unicode-3.0",  # icu_* crates — single-license, not an OR
+  "BSD-2-Clause", # arrayref — single-license
+  "BSD-3-Clause", # subtle — single-license
+  "Zlib",         # foldhash — single-license
+]
+confidence-threshold = 0.8
+# The workspace's own crates declare no license field; skip them. `ignore = true`
+# skips crates marked `publish = false` (set on every member of this workspace).
+private = { ignore = true }
+
+[bans]
+# Transitive duplicate versions (rand, windows-sys, syn, …) are outside our
+# control and clear only when upstream version bounds converge. Surface them in
+# the log; do not gate — a hard gate would break the weekly deps updater (#140).
+multiple-versions = "warn"
+# Forbid a `crate = "*"` version requirement; a wildcard defeats pinning.
+wildcards = "deny"
+# Exempt the workspace's own path deps (e.g. `lib-utils = { path = ... }`), which
+# carry no version and would otherwise read as wildcards.
+allow-wildcard-paths = true
+# Crates we refuse to depend on. Empty today. Add e.g. `{ name = "openssl" }` to
+# enforce a rustls-only TLS stack.
+deny = []
+
+[sources]
+# Every crate must come from crates.io. No unknown registry, no git source.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
