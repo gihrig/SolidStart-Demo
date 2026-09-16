@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 #
 # Test for the back-end dependency-policy gate (cargo-deny, #140, ADR-0022 /
-# spec #137, T4). Proves the three properties the CI `cargo-deny` job depends on:
-#   1. Banned crate    — a banned crate makes the scan fail (error[banned]).
-#   2. Disallowed lic. — a license outside the allow-list fails (error[rejected]).
-#   3. Clean           — the real policy (backend/deny.toml) passes (exit 0).
-# Checks 1 and 2 run against the real back-end crate graph with a fixture config
-# that adds one violation, because the real policy bans nothing and rejects no
-# license — it cannot show its own failure mode. Check 3 runs the real policy.
+# spec #137, T4). Proves the four properties the CI `cargo-deny` job depends on:
+#   1. Banned crate      — a banned crate makes the scan fail (error[banned]).
+#   2. Disallowed lic.   — a license outside the allow-list fails (error[rejected]).
+#   3. Untrusted source  — a source outside allow-registry fails
+#                          (error[source-not-allowed]).
+#   4. Clean             — the real policy (backend/deny.toml) passes (exit 0).
+# Checks 1-3 run against the real back-end crate graph with a fixture config that
+# adds one violation, because the real policy bans nothing, rejects no license,
+# and allows crates.io — it cannot show its own failure modes. Check 4 runs the
+# real policy.
 #
 # The scan runs `check licenses bans sources` — never `advisories` — so it needs
 # no network (no advisory-DB fetch) and stays offline and deterministic. The
@@ -37,7 +40,7 @@ run_gate() {
   fi
 }
 
-echo "1/3 banned crate: fixture must report error[banned] for serde"
+echo "1/4 banned crate: fixture must report error[banned] for serde"
 run_gate "$FIX/banned-crate.toml" bans
 if [[ "$RC" -eq 0 ]] || ! grep -q "error\[banned\]" <<<"$REPORT"; then
   echo "FAIL: banned-crate fixture did not report a ban (rc=$RC)." >&2
@@ -46,7 +49,7 @@ if [[ "$RC" -eq 0 ]] || ! grep -q "error\[banned\]" <<<"$REPORT"; then
 fi
 echo "  ok — banned crate detected"
 
-echo "2/3 disallowed license: fixture must report error[rejected]"
+echo "2/4 disallowed license: fixture must report error[rejected]"
 run_gate "$FIX/disallowed-license.toml" licenses
 if [[ "$RC" -eq 0 ]] || ! grep -q "error\[rejected\]" <<<"$REPORT"; then
   echo "FAIL: disallowed-license fixture did not reject a license (rc=$RC)." >&2
@@ -55,7 +58,16 @@ if [[ "$RC" -eq 0 ]] || ! grep -q "error\[rejected\]" <<<"$REPORT"; then
 fi
 echo "  ok — disallowed license rejected"
 
-echo "3/3 clean: the real policy (backend/deny.toml) must pass"
+echo "3/4 untrusted source: fixture must report error[source-not-allowed]"
+run_gate "$FIX/untrusted-source.toml" sources
+if [[ "$RC" -eq 0 ]] || ! grep -q "error\[source-not-allowed\]" <<<"$REPORT"; then
+  echo "FAIL: untrusted-source fixture did not reject a source (rc=$RC)." >&2
+  echo "$REPORT" >&2
+  exit 1
+fi
+echo "  ok — untrusted source rejected"
+
+echo "4/4 clean: the real policy (backend/deny.toml) must pass"
 run_gate "$ROOT/backend/deny.toml" licenses bans sources
 if [[ "$RC" -ne 0 ]]; then
   echo "FAIL: the real policy tripped the gate on a clean tree (rc=$RC)." >&2

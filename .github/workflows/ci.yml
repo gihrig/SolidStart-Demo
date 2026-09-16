@@ -258,9 +258,11 @@ jobs:
         with:
           toolchain: stable
 
+      # cargo-deny is PINNED: a new version can change lint output or defaults,
+      # so the runner must match the version the policy was written against.
       - uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2
         with:
-          tool: cargo-deny
+          tool: cargo-deny@0.20.2
 
       # Mirrors `cgs deny` (backend/Scripts.toml). Fails on a disallowed license,
       # a banned crate, or an untrusted source.
@@ -268,9 +270,9 @@ jobs:
         working-directory: backend
         run: cargo deny check licenses bans sources
 
-      # Proves the gate: a banned crate fails, a disallowed license fails, and
-      # the real policy passes on a clean tree.
-      - name: Prove gate behaviour (banned crate / disallowed license / clean)
+      # Proves the gate: a banned crate fails, a disallowed license fails, an
+      # untrusted source fails, and the real policy passes on a clean tree.
+      - name: Prove gate behaviour (banned crate / disallowed license / source / clean)
         run: ./scripts/cargo-deny.test.sh
 
   # -- End-to-end (Playwright). Non-blocking at first (ADR-0010/#74): the job
