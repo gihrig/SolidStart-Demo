@@ -1,0 +1,20 @@
+# Dependabot — keeps SHA-pinned GitHub Actions current (#139, PR #145).
+# Actions in .github/workflows/*.yml are pinned to commit SHAs per the
+# pin-everything policy. Dependabot bumps each pinned SHA and updates its
+# trailing `# <tag>` comment, so pinning does not mean going stale.
+#
+# Scope: github-actions only. Cargo and npm/bun deps are pinned by Cargo.lock /
+# bun.lock and are updated through the existing `cgs update` flow.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      # One PR per week for all action bumps, not one PR per action.
+      github-actions:
+        patterns:
+          - "*"
