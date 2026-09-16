@@ -10,8 +10,11 @@
 # and why it is accepted. Remove an entry once the advisory is fixed.
 [advisories]
 ignore = [
-  # rsa 0.9.10 — Marvin timing side-channel. No fixed upgrade is available
-  # upstream, so we cannot resolve it by bumping the version. Accepted.
+  # rsa 0.9.10 — Marvin timing side-channel. Not reachable in this build: rsa is
+  # an optional dep of sqlx-mysql, which sqlx pulls into Cargo.lock but never
+  # compiles here (the back-end is Postgres-only; `cargo tree -i rsa` is empty).
+  # cargo scans the whole lockfile, and cargo cannot prune an unactivated
+  # optional dep, so we accept it. No fixed upgrade is available upstream either.
   "RUSTSEC-2023-0071",
   # scc 2.4.0 — `Array::insert` exception-safety (unsound). Test-only transitive
   # dependency via serial_test; 2.4.0 is the highest version serial_test allows,
