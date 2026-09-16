@@ -17,7 +17,7 @@ name: Weekly deps
 
 on:
   schedule:
-    - cron: "0 5 * * 1"   # Mondays 05:00 UTC
+    - cron: "0 11 * * 1"   # Mondays 11:00 UTC
   workflow_dispatch: {}     # also runnable on demand from the Actions tab
 
 permissions:
