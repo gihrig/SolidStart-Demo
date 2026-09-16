@@ -1,0 +1,10 @@
+# Fixture config for scripts/cargo-deny.test.sh (#140).
+#
+# Proves the sources check fails on an untrusted source. `allow-registry` is
+# empty, so every crate's crates.io source counts as an unknown registry and
+# `cargo deny check sources` with this config must report
+# `error[source-not-allowed]`. The real policy (backend/deny.toml) allows only
+# crates.io; this fixture is the negative case the real policy cannot show.
+[sources]
+unknown-registry = "deny"
+allow-registry = []

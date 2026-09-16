@@ -1,0 +1,12 @@
+# Fixture config for scripts/cargo-deny.test.sh (#140).
+#
+# Proves the licenses check fails on a disallowed license. The allow-list holds
+# only `Zlib`, so almost every crate (MIT / Apache-2.0) is rejected and
+# `cargo deny check licenses` with this config must report `error[rejected]`.
+#
+# `private.ignore` mirrors the real policy so the workspace's own (publish=false)
+# crates are skipped and the rejection is a real third-party license rejection.
+[licenses]
+version = 2
+allow = ["Zlib"]
+private = { ignore = true }

@@ -1,0 +1,12 @@
+# Fixture config for scripts/cargo-deny.test.sh (#140).
+#
+# Proves the bans check fails on a banned crate. It bans `serde`, which the
+# back-end tree always contains, so `cargo deny check bans` with this config must
+# report `error[banned]` for serde. The real policy (backend/deny.toml) bans
+# nothing today; this fixture is the negative case the real policy cannot show.
+#
+# `allow-wildcard-paths` mirrors the real policy so the workspace's own path deps
+# do not trip a second, unrelated error and mask the ban.
+[bans]
+allow-wildcard-paths = true
+deny = [{ name = "serde" }]

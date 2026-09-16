@@ -2,6 +2,7 @@
 name = "lib-utils"
 version = "0.1.0"
 edition = "2021"
+publish = false # internal crate, never published (cargo-deny licenses.private.ignore)
 
 [lib]
 doctest = false
