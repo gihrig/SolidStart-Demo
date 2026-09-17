@@ -275,6 +275,135 @@ jobs:
       - name: Prove gate behaviour (banned crate / disallowed license / source / clean)
         run: ./scripts/cargo-deny.test.sh
 
+  # -- Back-end unused-dependency report (#141, ADR-0022): cargo-udeps lists
+  #    dependencies declared in a Cargo.toml but never compiled in. It needs a
+  #    NIGHTLY toolchain (it reads unstable compiler dep-info). REPORT-ONLY —
+  #    `continue-on-error` surfaces findings without blocking merge. Two reasons
+  #    it does not gate: (1) it runs on nightly, whose output drifts on its own
+  #    schedule, and (2) cargo-udeps itself warns a finding "might be
+  #    false-positive" (a dep used only in a doc-test or via a macro). The hard
+  #    dependency gates are cargo-deny (#140) and cargo-audit (#139). Findings
+  #    change only with the lockfile/manifests, so this job is guarded
+  #    PR/push-only. Mirrors `cgs udeps`.
+  cargo-udeps:
+    name: cargo-udeps (unused dependencies — report-only)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # Same pinned dtolnay/rust-toolchain commit as the other jobs; the
+      # `toolchain: nightly` input selects the channel (cargo-udeps needs
+      # nightly). Pin the commit AND name the channel — the ref name alone would
+      # otherwise decide the channel.
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # stable
+        with:
+          toolchain: nightly
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: backend
+
+      # cargo-udeps is PINNED for reproducibility. Bump it if a newer nightly
+      # stops it building — it links cargo's own internals.
+      - uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2
+        with:
+          tool: cargo-udeps@0.1.61
+
+      # Mirrors `cgs udeps` (backend/Scripts.toml). Lists unused dependencies;
+      # `continue-on-error` above keeps a finding from failing the workflow.
+      - name: Report unused dependencies
+        working-directory: backend
+        run: cargo +nightly udeps --workspace --all-targets
+
+  # -- Back-end release-binary embedding (#141, ADR-0022): cargo-auditable builds
+  #    the release binary with its dependency list embedded, so a shipped binary
+  #    can be audited after the fact (`cargo audit bin`). This is a BUILD
+  #    INTEGRATION, not a gate: the job fails only if the shipped binary lacks
+  #    the embedded data. It never fails on an advisory — cargo-audit (#139) owns
+  #    that. The embedding changes only with the lockfile, so this job is guarded
+  #    PR/push-only. Mirrors `cgs release`, which now wraps `cargo auditable
+  #    build --release`.
+  cargo-auditable:
+    name: cargo-auditable (release binary carries dependency list)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # stable
+        with:
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: backend
+
+      # cargo-auditable writes the embedded section; cargo-audit reads it back.
+      # cargo-auditable is PINNED for reproducibility.
+      - uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2
+        with:
+          tool: cargo-auditable@0.7.6,cargo-audit
+
+      # Mirrors the build in `cgs auditable`: build the shipped web-server
+      # binary with its dependency list embedded (`cgs release` embeds the same
+      # way, over the whole workspace).
+      - name: Build release with embedded dependency data
+        working-directory: backend
+        run: cargo auditable build --release -p web-server
+
+      # Assert the binary carries the list. Grep the marker, not the exit code:
+      # `cargo audit bin` also exits non-zero on an advisory, which is the
+      # separate cargo-audit gate's concern, not this one.
+      - name: Verify the release binary carries its dependency list
+        working-directory: backend
+        run: |
+          report="$(cargo audit bin target/release/web-server 2>&1 || true)"
+          echo "$report"
+          grep -q "Found 'cargo auditable' data" <<<"$report" || {
+            echo "::error::Release binary lacks embedded cargo-auditable data."
+            exit 1
+          }
+
+      # Proves the tool distinguishes an embedded binary from a plain one.
+      - name: Prove embedding behaviour (auditable vs plain build)
+        run: ./scripts/cargo-auditable.test.sh
+
+  # -- Back-end unsafe-code report (#141, ADR-0022): cargo-geiger counts `unsafe`
+  #    usage across the crate graph. REPORT-ONLY (`continue-on-error`): the
+  #    workspace crates already forbid unsafe (`unsafe_code = "forbid"` in
+  #    backend/Cargo.toml [workspace.lints.rust]), so our own code is unsafe-free
+  #    by compiler enforcement. geiger's value is visibility into the dependency
+  #    tree's unsafe, which we do not control and cannot gate on. Findings change
+  #    only with the lockfile, so this job is guarded PR/push-only. cargo-geiger
+  #    is not in taiki-e/install-action, so it is `cargo install`ed and PINNED.
+  #    Mirrors `cgs geiger`.
+  cargo-geiger:
+    name: cargo-geiger (unsafe-code report — report-only)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # stable
+        with:
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: backend
+
+      - name: Install cargo-geiger (pinned)
+        run: cargo install cargo-geiger --version 0.12.0 --locked
+
+      # Mirrors `cgs geiger` (backend/Scripts.toml). Prints the unsafe-usage
+      # table; `continue-on-error` above keeps it report-only.
+      - name: Report unsafe-code usage
+        working-directory: backend
+        run: cargo geiger --workspace
+
   # -- End-to-end (Playwright). Non-blocking at first (ADR-0010/#74): the job
   #    boots the Postgres BE itself and runs the FE e2e suite, but
   #    continue-on-error keeps a failure from blocking merge. #81 replaces this

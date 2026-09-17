@@ -198,13 +198,22 @@ codegen-units = 1
 panic = "abort"
 ```
 
-Consider using these rust crates to enhance production security
+These Rust security crates are wired in (ADR-0022; `cgs` recipe + CI job each).
+"Gate" fails the build; "report" surfaces findings without blocking merge.
 
-- [cargo-deny](https://crates.io/crates/cargo-deny)
-- [cargo-udeps](https://crates.io/crates/cargo-udeps)
-- [cargo-auditable](https://crates.io/crates/cargo-auditable)
-- [cargo-audit](https://crates.io/crates/cargo-audit)
-- [cargo-geiger](https://crates.io/crates/cargo-geiger)
+- [cargo-audit](https://crates.io/crates/cargo-audit) — RustSec advisory **gate**
+  (`cgs audit`; also runs on a daily schedule). Ignore-list: `.cargo/audit.toml`.
+- [cargo-deny](https://crates.io/crates/cargo-deny) — license / bans / sources
+  policy **gate** (`cgs deny`). Policy: `deny.toml`.
+- [cargo-udeps](https://crates.io/crates/cargo-udeps) — unused-dependency
+  **report** (`cgs udeps`; needs nightly). Report-only: nightly output drifts and
+  findings can be false positives.
+- [cargo-auditable](https://crates.io/crates/cargo-auditable) — embeds the
+  dependency list in the release binary (**build integration**). `cgs release`
+  and `cgs start` wrap it; `cgs auditable` builds and reads the list back.
+- [cargo-geiger](https://crates.io/crates/cargo-geiger) — `unsafe`-code
+  **report** (`cgs geiger`). Report-only: our crates forbid unsafe, so this
+  reports the dependency tree, which we do not gate on.
 
 <br />
 
