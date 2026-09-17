@@ -311,11 +311,13 @@ jobs:
         with:
           tool: cargo-udeps@0.1.61
 
-      # Mirrors `cgs udeps` (backend/Scripts.toml). Lists unused dependencies;
-      # `continue-on-error` above keeps a finding from failing the workflow.
+      # Mirrors `cgs udeps` (backend/Scripts.toml). Lists unused dependencies.
+      # `|| true` keeps the step green on a finding (cargo-udeps exits 1 when it
+      # finds one); this job is a report, not a gate. `continue-on-error` above
+      # is a second guard, for a tool/install failure.
       - name: Report unused dependencies
         working-directory: backend
-        run: cargo +nightly udeps --workspace --all-targets
+        run: cargo +nightly udeps --workspace --all-targets || true
 
   # -- Back-end release-binary embedding (#141, ADR-0022): cargo-auditable builds
   #    the release binary with its dependency list embedded, so a shipped binary
@@ -355,11 +357,13 @@ jobs:
 
       # Assert the binary carries the list. Grep the marker, not the exit code:
       # `cargo audit bin` also exits non-zero on an advisory, which is the
-      # separate cargo-audit gate's concern, not this one.
+      # separate cargo-audit gate's concern, not this one. Strip ANSI first:
+      # CARGO_TERM_COLOR=always makes cargo-audit write a colour reset inside the
+      # marker ("Found\e[0m 'cargo auditable' data"), which breaks a literal grep.
       - name: Verify the release binary carries its dependency list
         working-directory: backend
         run: |
-          report="$(cargo audit bin target/release/web-server 2>&1 || true)"
+          report="$(cargo audit bin target/release/web-server 2>&1 | sed $'s/\x1b\\[[0-9;]*m//g')" || true
           echo "$report"
           grep -q "Found 'cargo auditable' data" <<<"$report" || {
             echo "::error::Release binary lacks embedded cargo-auditable data."
@@ -378,7 +382,9 @@ jobs:
   #    tree's unsafe, which we do not control and cannot gate on. Findings change
   #    only with the lockfile, so this job is guarded PR/push-only. cargo-geiger
   #    is not in taiki-e/install-action, so it is `cargo install`ed and PINNED.
-  #    Mirrors `cgs geiger`.
+  #    It runs from the web-server package dir: geiger 0.12 rejects the virtual
+  #    workspace manifest (backend/Cargo.toml has no [package]). Mirrors `cgs
+  #    geiger`.
   cargo-geiger:
     name: cargo-geiger (unsafe-code report — report-only)
     if: github.event_name != 'schedule'
@@ -399,10 +405,11 @@ jobs:
         run: cargo install cargo-geiger --version 0.12.0 --locked
 
       # Mirrors `cgs geiger` (backend/Scripts.toml). Prints the unsafe-usage
-      # table; `continue-on-error` above keeps it report-only.
+      # table from the web-server package dir. `|| true` keeps the step green;
+      # `continue-on-error` above is a second guard. This job is a report.
       - name: Report unsafe-code usage
-        working-directory: backend
-        run: cargo geiger --workspace
+        working-directory: backend/crates/services/web-server
+        run: cargo geiger || true
 
   # -- End-to-end (Playwright). Non-blocking at first (ADR-0010/#74): the job
   #    boots the Postgres BE itself and runs the FE e2e suite, but

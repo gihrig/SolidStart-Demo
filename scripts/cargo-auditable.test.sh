@@ -41,11 +41,14 @@ printf 'fn main() { let mut b = itoa::Buffer::new(); println!("{}", b.format(42u
 
 BIN="$work/target/debug/auditable_probe"
 
-# Run `cargo audit bin` over $BIN. Sets REPORT (combined stdout+stderr). The
-# `|| true` guards set -e: the scan exits non-zero on any advisory, but this
-# test reads the embedding marker, not the advisory result.
+# Run `cargo audit bin` over $BIN. Sets REPORT (combined stdout+stderr, ANSI
+# stripped). The `|| true` guards set -e: the scan exits non-zero on any
+# advisory, but this test reads the embedding marker, not the advisory result.
+# ANSI must be stripped: CI sets CARGO_TERM_COLOR=always, and cargo-audit then
+# writes a colour reset inside the marker ("Found\e[0m 'cargo auditable' data"),
+# which would break a literal grep.
 scan() {
-  REPORT="$(cargo audit bin "$BIN" 2>&1)" || true
+  REPORT="$(cargo audit bin "$BIN" 2>&1 | sed $'s/\x1b\\[[0-9;]*m//g')" || true
 }
 
 echo "1/2 not embedded: a plain build carries no dependency list"

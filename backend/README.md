@@ -141,10 +141,12 @@ cgs cover
 Note that codegen-units = 1 and lto = true increase compilation time but often yield the best size and performance results.
 
 ```sh
-# build for minimal binary size (cargo build --release)
+# build for minimal binary size, with an embedded dependency list
+# (cargo auditable build --release)
 cgs release
 
-# build AND run the server in release mode (cargo run -p web-server --release).
+# build AND run the server in release mode, with the embedded list
+# (cargo auditable run -p web-server --release).
 # Assumes Postgres is running (cgs db).
 cgs start
 ```
