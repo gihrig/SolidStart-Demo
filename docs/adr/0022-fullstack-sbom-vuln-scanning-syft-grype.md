@@ -139,3 +139,49 @@ drift guard. This refines the mechanism; the decisions above stand.
 - **Command surface.** `cgs sbom` (write) and `cgs sbom:check` (drift guard) live in the
   root `Scripts.toml`; `scripts/sbom.sh` and `scripts/sbom.test.sh` mirror
   `scripts/adr-index.sh`.
+
+## Addendum — T5 remaining Rust crates (#141)
+
+T5 wires the last three suggested crates. Each acceptance item asks a "gate or report"
+decision; this records the choice and why. All three run on the back-end only, mirror a
+`cgs` recipe, and — because their findings change only with the lockfile — are guarded
+PR/push-only (no daily schedule; cargo-audit remains the only scheduled gate).
+
+- **`cargo-udeps` — report-only.** It lists dependencies declared but never compiled in.
+  It needs a **nightly** toolchain, which the CI job provisions with the same pinned
+  `dtolnay/rust-toolchain` commit and a `toolchain: nightly` input. It does not gate for
+  two reasons: (1) nightly output drifts on its own schedule, independent of our code, and
+  (2) cargo-udeps itself warns a finding "might be false-positive" (a dep used only in a
+  doc-test or via a macro). The hard dependency gates stay cargo-deny (#140) and
+  cargo-audit (#139); udeps is advisory. The CI job uses `continue-on-error`. Recipe:
+  `cgs udeps` (`cargo +nightly udeps --workspace --all-targets`). Baseline finding on
+  adoption: `lib-web` declares `tracing-subscriber` but never uses it (the only real use
+  is `web-server/src/main.rs`) — left for a follow-up so this CI-wiring change stays
+  focused and does not touch `Cargo.lock` / the SBOM drift guard.
+- **`cargo-auditable` — build integration (not gate, not report).** It embeds the
+  dependency list into the compiled binary, so a shipped binary can be audited later with
+  `cargo audit bin`. Both release paths now wrap it — `cgs release` (`cargo auditable
+  build --release`) and `cgs start` (`cargo auditable run -p web-server --release`) — so
+  every release build carries the data. The CI job builds the real `web-server` release
+  binary and fails only if the embedded data is missing; it never fails on an advisory
+  (that is cargo-audit's gate). It greps `cargo audit bin` for the marker `Found 'cargo
+  auditable' data`, not the exit code, because `cargo audit bin` also exits non-zero on a
+  real advisory. Recipes: `cgs release` and `cgs auditable`
+  (`scripts/cargo-auditable.test.sh` proves an auditable binary carries the list and a
+  plain one does not).
+- **`cargo-geiger` — report-only.** It counts `unsafe` usage across `web-server` and its
+  dependency tree. The workspace already forbids unsafe in our own code —
+  `unsafe_code = "forbid"` under `[workspace.lints.rust]` in `backend/Cargo.toml` — so our
+  crates are unsafe-free by compiler enforcement; geiger's value is visibility into the
+  dependency tree's unsafe, which we neither control nor can gate on. cargo-geiger is not
+  in `taiki-e/install-action`, so the CI job `cargo install`s it at a pinned version and
+  uses `continue-on-error`. Recipe: `cgs geiger`, run from the `web-server` package dir —
+  geiger 0.12 rejects the virtual workspace manifest (`backend/Cargo.toml` has no
+  `[package]`), so `--workspace` is not available.
+  - **Scope: `web-server` + its deps; `gen-key` is deliberately out of scope.** Rooting at
+    `web-server` covers all five `lib-*` crates (it depends on each) and every external
+    crate they pull in. It omits the `gen-key` tool crate, which `web-server` does not
+    depend on. That omission is intentional and carries no risk: `gen-key` is a dev-only
+    key-generation utility, its own source forbids unsafe, and its only dependencies
+    (`lib-utils` and `rand`) already appear in `web-server`'s tree. Scanning it too would
+    add build time for no new unsafe signal.

@@ -45,11 +45,14 @@ that have no recipe (e.g. `cargo run -p gen-key`).
 | `cgs cover`     | Run tests with coverage + open report (`cargo llvm-cov --open`)|
 | `cgs check`     | Format (fix) + lint (`cargo fmt --all && cargo clippy --all-targets`)|
 | `cgs build`     | Build with debug symbols                                 |
-| `cgs release`   | Build in release mode (`cargo build --release`)          |
-| `cgs start`     | Build + run web-server in release (`cargo run -p web-server --release`)|
+| `cgs release`   | Build in release mode with an embedded dependency list (`cargo auditable build --release`; needs cargo-auditable)|
+| `cgs start`     | Build (with an embedded dep list) + run web-server in release (`cargo auditable run -p web-server --release`)|
 | `cgs bindings`  | Regenerate ts-rs bindings (`cargo test export_bindings`) |
-| `cgs audit`     | RustSec advisory scan (`cargo audit --deny warnings`; ignore-list in `.cargo/audit.toml`)|
-| `cgs deny`      | Dependency-policy gate (`cargo deny check licenses bans sources`; policy in `deny.toml`)|
+| `cgs audit`     | RustSec advisory **gate** (`cargo audit --deny warnings`; ignore-list in `.cargo/audit.toml`)|
+| `cgs deny`      | Dependency-policy **gate** (`cargo deny check licenses bans sources`; policy in `deny.toml`)|
+| `cgs udeps`     | Unused-dependency **report** (`cargo +nightly udeps --workspace --all-targets`; needs nightly, report-only)|
+| `cgs auditable` | Build the release binary with an embedded dep list, then read it back (`cargo auditable build` + `cargo audit bin`)|
+| `cgs geiger`    | `unsafe`-code **report** for web-server + its deps (`cargo geiger` from the web-server package dir; report-only; omits the `gen-key` tool crate by design)|
 | `cgs doc`       | Build & open project docs                                |
 | `cgs update`    | Update dependencies (`cargo update`)                     |
 | `cgs upgrade`   | Update the Rust toolchain (`rustup update`)              |
