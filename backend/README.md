@@ -214,8 +214,10 @@ These Rust security crates are wired in (ADR-0022; `cgs` recipe + CI job each).
   dependency list in the release binary (**build integration**). `cgs release`
   and `cgs start` wrap it; `cgs auditable` builds and reads the list back.
 - [cargo-geiger](https://crates.io/crates/cargo-geiger) — `unsafe`-code
-  **report** (`cgs geiger`). Report-only: our crates forbid unsafe, so this
-  reports the dependency tree, which we do not gate on.
+  **report** for `web-server` + its deps (`cgs geiger`). Report-only: our crates
+  forbid unsafe, so this reports the dependency tree, which we do not gate on.
+  The `gen-key` tool crate is out of scope by design (dev-only, unsafe-free, its
+  deps are already covered).
 
 <br />
 

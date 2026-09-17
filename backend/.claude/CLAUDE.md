@@ -52,7 +52,7 @@ that have no recipe (e.g. `cargo run -p gen-key`).
 | `cgs deny`      | Dependency-policy **gate** (`cargo deny check licenses bans sources`; policy in `deny.toml`)|
 | `cgs udeps`     | Unused-dependency **report** (`cargo +nightly udeps --workspace --all-targets`; needs nightly, report-only)|
 | `cgs auditable` | Build the release binary with an embedded dep list, then read it back (`cargo auditable build` + `cargo audit bin`)|
-| `cgs geiger`    | `unsafe`-code **report** over the crate graph (`cargo geiger --workspace`; report-only)|
+| `cgs geiger`    | `unsafe`-code **report** for web-server + its deps (`cargo geiger` from the web-server package dir; report-only; omits the `gen-key` tool crate by design)|
 | `cgs doc`       | Build & open project docs                                |
 | `cgs update`    | Update dependencies (`cargo update`)                     |
 | `cgs upgrade`   | Update the Rust toolchain (`rustup update`)              |

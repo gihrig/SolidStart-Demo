@@ -169,10 +169,19 @@ PR/push-only (no daily schedule; cargo-audit remains the only scheduled gate).
   real advisory. Recipes: `cgs release` and `cgs auditable`
   (`scripts/cargo-auditable.test.sh` proves an auditable binary carries the list and a
   plain one does not).
-- **`cargo-geiger` — report-only.** It counts `unsafe` usage across the crate graph. The
-  workspace already forbids unsafe in our own code — `unsafe_code = "forbid"` under
-  `[workspace.lints.rust]` in `backend/Cargo.toml` — so our crates are unsafe-free by
-  compiler enforcement; geiger's value is visibility into the dependency tree's unsafe,
-  which we neither control nor can gate on. cargo-geiger is not in
-  `taiki-e/install-action`, so the CI job `cargo install`s it at a pinned version and uses
-  `continue-on-error`. Recipe: `cgs geiger` (`cargo geiger --workspace`).
+- **`cargo-geiger` — report-only.** It counts `unsafe` usage across `web-server` and its
+  dependency tree. The workspace already forbids unsafe in our own code —
+  `unsafe_code = "forbid"` under `[workspace.lints.rust]` in `backend/Cargo.toml` — so our
+  crates are unsafe-free by compiler enforcement; geiger's value is visibility into the
+  dependency tree's unsafe, which we neither control nor can gate on. cargo-geiger is not
+  in `taiki-e/install-action`, so the CI job `cargo install`s it at a pinned version and
+  uses `continue-on-error`. Recipe: `cgs geiger`, run from the `web-server` package dir —
+  geiger 0.12 rejects the virtual workspace manifest (`backend/Cargo.toml` has no
+  `[package]`), so `--workspace` is not available.
+  - **Scope: `web-server` + its deps; `gen-key` is deliberately out of scope.** Rooting at
+    `web-server` covers all five `lib-*` crates (it depends on each) and every external
+    crate they pull in. It omits the `gen-key` tool crate, which `web-server` does not
+    depend on. That omission is intentional and carries no risk: `gen-key` is a dev-only
+    key-generation utility, its own source forbids unsafe, and its only dependencies
+    (`lib-utils` and `rand`) already appear in `web-server`'s tree. Scanning it too would
+    add build time for no new unsafe signal.
