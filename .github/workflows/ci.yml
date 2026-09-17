@@ -311,13 +311,26 @@ jobs:
         with:
           tool: cargo-udeps@0.1.61
 
-      # Mirrors `cgs udeps` (backend/Scripts.toml). Lists unused dependencies.
-      # `|| true` keeps the step green on a finding (cargo-udeps exits 1 when it
-      # finds one); this job is a report, not a gate. `continue-on-error` above
-      # is a second guard, for a tool/install failure.
+      # Mirrors `cgs udeps` (backend/Scripts.toml). Report-only, but a real tool
+      # failure must not masquerade as success: pass only when cargo-udeps
+      # actually produced a report. It exits 0 when clean, or 1 with an "unused
+      # dependencies:" list on a finding — both are a report, so the step stays
+      # green. Any other non-zero exit (nightly drift, a compile error) prints no
+      # list, so the step fails and the crash is visible. `continue-on-error`
+      # above keeps even that failure from blocking merge. ANSI is stripped
+      # because CARGO_TERM_COLOR=always can colour the marker.
       - name: Report unused dependencies
         working-directory: backend
-        run: cargo +nightly udeps --workspace --all-targets || true
+        run: |
+          if out="$(cargo +nightly udeps --workspace --all-targets 2>&1)"; then rc=0; else rc=$?; fi
+          echo "$out"
+          clean="$(printf '%s' "$out" | sed $'s/\x1b\\[[0-9;]*m//g')"
+          if [ "$rc" -eq 0 ] || grep -q "unused dependencies:" <<<"$clean"; then
+            echo "cargo-udeps produced a report (report-only; a finding does not gate)."
+          else
+            echo "::error::cargo-udeps produced no report (exit $rc) — likely a tool or toolchain failure."
+            exit 1
+          fi
 
   # -- Back-end release-binary embedding (#141, ADR-0022): cargo-auditable builds
   #    the release binary with its dependency list embedded, so a shipped binary
@@ -404,12 +417,27 @@ jobs:
       - name: Install cargo-geiger (pinned)
         run: cargo install cargo-geiger --version 0.12.0 --locked
 
-      # Mirrors `cgs geiger` (backend/Scripts.toml). Prints the unsafe-usage
-      # table from the web-server package dir. `|| true` keeps the step green;
-      # `continue-on-error` above is a second guard. This job is a report.
+      # Mirrors `cgs geiger` (backend/Scripts.toml). Report-only, but a real tool
+      # failure must not masquerade as success: pass only when cargo-geiger
+      # actually produced its report. geiger exits non-zero even on a good run
+      # (it counts build warnings as errors), so the exit code cannot signal
+      # success — the presence of the report header ("Metric output format") does.
+      # No header means geiger never scanned (a build/tool failure), so the step
+      # fails and the crash is visible; `continue-on-error` above keeps that from
+      # blocking merge. ANSI is stripped because CARGO_TERM_COLOR=always can
+      # colour the output.
       - name: Report unsafe-code usage
         working-directory: backend/crates/services/web-server
-        run: cargo geiger || true
+        run: |
+          if out="$(cargo geiger 2>&1)"; then :; else :; fi
+          echo "$out"
+          clean="$(printf '%s' "$out" | sed $'s/\x1b\\[[0-9;]*m//g')"
+          if grep -q "Metric output format" <<<"$clean"; then
+            echo "cargo-geiger produced a report (report-only)."
+          else
+            echo "::error::cargo-geiger produced no report — likely a build or tool failure."
+            exit 1
+          fi
 
   # -- End-to-end (Playwright). Non-blocking at first (ADR-0010/#74): the job
   #    boots the Postgres BE itself and runs the FE e2e suite, but
