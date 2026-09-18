@@ -187,3 +187,57 @@ PR/push-only (no daily schedule; cargo-audit remains the only scheduled gate).
     key-generation utility, its own source forbids unsafe, and its only dependencies
     (`lib-utils` and `rand`) already appear in `web-server`'s tree. Scanning it too would
     add build time for no new unsafe signal.
+
+## Addendum — T2 grype vulnerability gate (#142)
+
+Building T2 wired the grype gate the decisions above call for, and remediated the
+findings the first scan surfaced. The decisions stand; this records the mechanism and
+one scoping refinement.
+
+- **One script, one recipe, one CI job.** `scripts/grype-scan.sh` runs
+  `grype sbom:/sbom.cdx.json --fail-on high` and maps grype's exit codes, mirroring
+  `scripts/sbom.sh`. `cgs scan` (root `Scripts.toml`) and the `grype-scan` CI job both
+  call it, so the gate logic lives in one place. `scripts/grype-scan.test.sh` proves the
+  gate with two fixture SBOMs — a planted `log4j-core 2.14.1` (CVE-2021-44228, Critical)
+  fails, a package no DB matches passes. The fixtures, not `/sbom.cdx.json`, back the
+  test, so it does not flap as new CVEs are disclosed.
+- **Exit-code mapping is explicit.** The script treats grype `2` as findings (fail), `0`
+  as clean, `100` as "DB upgrade available, nothing above threshold" (pass with a notice),
+  and any other non-zero as a tool error (fail with a distinct message). A broken run
+  cannot pass as clean, nor a tool error as a real finding.
+- **One CI job covers PR and schedule.** Like `cargo-audit`, `grype-scan` carries no
+  `if:` guard, so it runs on every PR, on push to `main`, and on the daily `schedule`.
+  grype auto-updates its DB each run, so the scheduled run catches a new CVE in an
+  unchanged dependency. It scans the COMMITTED SBOM; the `sbom-drift` job proves that SBOM
+  matches the lockfiles, so a stale SBOM cannot hide a finding. grype is pinned
+  (`v0.119.0`) for reproducible behaviour; the DB it downloads is always current.
+- **The first scan found ~40 high/critical findings; all were remediated by upgrade.**
+  Every finding was a transitive dependency of the front-end build toolchain
+  (vinxi / nitro / vite / rollup / vitest), each with a published fix. Direct front-end
+  deps are exact-pinned and were already clean. The fixes are pinned in `frontend/`
+  `package.json` `overrides` (bun forces the fixed version regardless of a parent's range)
+  — seventeen packages: `brace-expansion`, `browserslist`, `defu`, `h3`, `lodash`,
+  `minimatch`, `nanoid`, `node-forge`, `picomatch`, `postcss`, `rollup`,
+  `serialize-javascript`, `seroval`, `seroval-plugins`, `shell-quote`, `tar`, `undici`.
+- **`seroval` must move with `seroval-plugins`.** Only `seroval 1.5.2` was flagged
+  (GHSA-mv8w-475r-vwqw, Critical, fix 1.5.3), but the tree paired it with
+  `seroval-plugins 1.5.2`, and the two share a private API: `seroval-plugins`'s web module
+  imports `isStream` from `seroval`. Overriding `seroval` alone to a version whose runtime
+  no longer exports `isStream` breaks server-side rendering — the front-end server fails to
+  start with "The requested module 'seroval' does not provide an export named 'isStream'",
+  which only the e2e suite catches (unit and component tests do not exercise the SSR
+  serializer). The fix pins BOTH to the matched `1.5.6` — same 1.5.x line, so their private
+  API stays consistent. This is why the override list carries `seroval-plugins` even though
+  grype never flagged it.
+- **`vite` needed a fresh resolve, not an override.** The vulnerable `vite 6.4.1` is a
+  transitive under `vinxi` (range `^6.4.1`), while the clean direct `vite 8.1.5` is a
+  separate copy. bun `overrides` are global by package name and cannot scope to one copy,
+  and bun does not support nested overrides. Forcing all `vite` to one version would
+  either downgrade the direct 8.1.5 or push `vinxi` off its `^6` range. Re-resolving the
+  lockfile from ranges lifted `vinxi`'s copy to `6.4.3` (still `^6`) and left the direct
+  copy at `8.1.5`. Both are clean.
+- **The gate passes; only sub-threshold Mediums remain.** After remediation
+  `grype --fail-on high` exits `0`. A few Medium findings persist below the threshold
+  (`serialize-javascript`, `vitest`, `esbuild`, `h3`), consistent with the `--fail-on
+  high` decision. The full front-end suite passes on the new lockfile: `vp check`, 362 unit
+  + component tests, the production `vinxi build`, and 234 Playwright e2e tests.

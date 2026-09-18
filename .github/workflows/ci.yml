@@ -208,6 +208,41 @@ jobs:
           echo "::error::/sbom.cdx.json lags the dependency lockfiles."
           echo "Run 'cgs sbom' (from the repo root) and commit /sbom.cdx.json."
 
+  # -- Project-wide vulnerability gate (#142, ADR-0022): grype scans the
+  #    committed /sbom.cdx.json (Rust + TypeScript in one pass) and fails on high
+  #    or critical findings. syft inventories; grype gates. This job scans the
+  #    COMMITTED SBOM, not a freshly generated one — the `sbom-drift` job above
+  #    already proves the committed SBOM matches the lockfiles, so a stale SBOM
+  #    cannot hide a finding here. Runs on every PR, on push to main, AND on the
+  #    daily schedule: grype auto-updates its vulnerability DB each run, so the
+  #    scheduled run surfaces a newly disclosed CVE in an unchanged dependency.
+  #    Like cargo-audit, this job carries no `if:` guard. Mirrors `cgs scan`.
+  #    grype is PINNED so its behaviour is reproducible; the DB it downloads is
+  #    always current regardless of the pinned binary.
+  grype-scan:
+    name: grype (project-wide vulnerability gate)
+    runs-on: ubuntu-latest
+    env:
+      GRYPE_VERSION: v0.119.0
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install grype (pinned)
+        run: curl -sSfL https://get.anchore.io/grype | sh -s -- -b /usr/local/bin "$GRYPE_VERSION"
+
+      # Mirrors `cgs scan`: grype over /sbom.cdx.json with --fail-on high. The
+      # script maps grype's exit codes (2 = findings, 100 = DB upgrade, other =
+      # tool error) so a finding fails the build and a tool error does not pass
+      # silently.
+      - name: Scan the committed SBOM (fails on high/critical)
+        run: ./scripts/grype-scan.sh
+
+      # Proves the gate: a planted high/critical finding fails, a clean SBOM
+      # passes. Uses fixture SBOMs, not /sbom.cdx.json, so it does not flap as
+      # new CVEs are disclosed.
+      - name: Prove gate behaviour (planted finding / clean SBOM)
+        run: ./scripts/grype-scan.test.sh
+
   # -- Back-end RustSec gate (#139, ADR-0022): cargo-audit scans backend/Cargo.lock
   #    against the RustSec advisory database. `--deny warnings` fails on ANY
   #    advisory, including the RustSec-only signals grype does not carry
