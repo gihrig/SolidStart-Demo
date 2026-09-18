@@ -155,9 +155,11 @@ PR/push-only (no daily schedule; cargo-audit remains the only scheduled gate).
   doc-test or via a macro). The hard dependency gates stay cargo-deny (#140) and
   cargo-audit (#139); udeps is advisory. The CI job uses `continue-on-error`. Recipe:
   `cgs udeps` (`cargo +nightly udeps --workspace --all-targets`). Baseline finding on
-  adoption: `lib-web` declares `tracing-subscriber` but never uses it (the only real use
-  is `web-server/src/main.rs`) — left for a follow-up so this CI-wiring change stays
-  focused and does not touch `Cargo.lock` / the SBOM drift guard.
+  adoption: `lib-web` declared `tracing-subscriber` but never used it (the only real use
+  is `web-server/src/main.rs`); #141 left it as a follow-up so that CI-wiring change stayed
+  focused and did not touch `Cargo.lock` / the SBOM drift guard. Resolved since: the
+  unused dependency is removed from `lib-web/Cargo.toml`, and `sbom.cdx.json` is
+  regenerated (the crate stays in the SBOM because `web-server` still uses it).
 - **`cargo-auditable` — build integration (not gate, not report).** It embeds the
   dependency list into the compiled binary, so a shipped binary can be audited later with
   `cargo audit bin`. Both release paths now wrap it — `cgs release` (`cargo auditable
