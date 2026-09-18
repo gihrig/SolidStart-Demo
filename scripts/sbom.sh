@@ -59,6 +59,8 @@ generate() {
     -o cyclonedx-json@1.6 \
   | jq '
       del(.serialNumber, .metadata.timestamp)
+      | .["$schema"] = "https://cyclonedx.org/schema/bom-1.6.schema.json"
+      | .metadata.tools.components |= map(if has("author") then .publisher = .author | del(.author) else . end)
       | .metadata.component."bom-ref" = "solidstart-demo"
       | .components |= (map(select(.type != "file")) | sort_by(.["bom-ref"]))
       | .dependencies |= (sort_by(.ref) | map(.dependsOn |= sort))
