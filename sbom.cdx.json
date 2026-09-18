@@ -1,5 +1,5 @@
 {
-  "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
+  "$schema": "https://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
   "version": 1,
@@ -8,9 +8,9 @@
       "components": [
         {
           "type": "application",
-          "author": "anchore",
           "name": "syft",
-          "version": "1.51.1"
+          "version": "1.51.1",
+          "publisher": "anchore"
         }
       ]
     },
@@ -307,63 +307,6 @@
       ]
     },
     {
-      "bom-ref": "abd9f32ece033fbd",
-      "type": "library",
-      "name": "lib-web",
-      "version": "0.1.0",
-      "cpe": "cpe:2.3:a:lib-web_project:lib-web:0.1.0:*:*:*:*:rust:*:*",
-      "properties": [
-        {
-          "name": "syft:package:foundBy",
-          "value": "rust-cargo-lock-cataloger"
-        },
-        {
-          "name": "syft:package:language",
-          "value": "rust"
-        },
-        {
-          "name": "syft:package:type",
-          "value": "rust-crate"
-        },
-        {
-          "name": "syft:package:metadataType",
-          "value": "rust-cargo-lock-entry"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:lib-web_project:lib_web:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:lib-web:lib-web:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:lib-web:lib_web:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:lib_web:lib-web:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:lib_web:lib_web:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:lib:lib-web:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:lib:lib_web:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:location:0:path",
-          "value": "/backend/Cargo.lock"
-        }
-      ]
-    },
-    {
       "bom-ref": "b7ceed91a44c6a82",
       "type": "library",
       "name": "lib-rpc-core",
@@ -429,6 +372,63 @@
         {
           "name": "syft:cpe23",
           "value": "cpe:2.3:a:lib:lib_rpc_core:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
+      "bom-ref": "ea3fd038697bb8be",
+      "type": "library",
+      "name": "lib-web",
+      "version": "0.1.0",
+      "cpe": "cpe:2.3:a:lib-web_project:lib-web:0.1.0:*:*:*:*:rust:*:*",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:lib-web_project:lib_web:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:lib-web:lib-web:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:lib-web:lib_web:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:lib_web:lib-web:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:lib_web:lib_web:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:lib:lib-web:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:lib:lib_web:0.1.0:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -73715,8 +73715,8 @@
         "5ade56a75949e6dd",
         "801cdd34bb945759",
         "a28e3be3cddd262a",
-        "abd9f32ece033fbd",
         "b7ceed91a44c6a82",
+        "ea3fd038697bb8be",
         "pkg:cargo/axum-test@21.0.0?package-id=af2c718052a1b2cf",
         "pkg:cargo/axum@0.8.9?package-id=0d5e786421fee975",
         "pkg:cargo/derive_more@2.1.1?package-id=ef571d363c5852ab",
@@ -73756,7 +73756,23 @@
       ]
     },
     {
-      "ref": "abd9f32ece033fbd",
+      "ref": "b7ceed91a44c6a82",
+      "dependsOn": [
+        "5ade56a75949e6dd",
+        "pkg:cargo/derive_more@2.1.1?package-id=ef571d363c5852ab",
+        "pkg:cargo/futures@0.3.31?package-id=0f7d9dafe4db512e",
+        "pkg:cargo/modql@0.4.1?package-id=eb66ebac3b0278b2",
+        "pkg:cargo/pastey@0.2.1?package-id=eda8dc202450c56f",
+        "pkg:cargo/rpc-router@0.2.0?package-id=425f0f818cb5f82e",
+        "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
+        "pkg:cargo/serde_json@1.0.151?package-id=f8f15e470d62e1df",
+        "pkg:cargo/serde_with@3.22.0?package-id=d8a97457239bc0db",
+        "pkg:cargo/tokio@1.53.1?package-id=e57801ef50f6cc5a",
+        "pkg:cargo/ts-rs@11.1.0?package-id=b595542d28b5777a"
+      ]
+    },
+    {
+      "ref": "ea3fd038697bb8be",
       "dependsOn": [
         "5ade56a75949e6dd",
         "801cdd34bb945759",
@@ -73773,26 +73789,9 @@
         "pkg:cargo/tokio@1.53.1?package-id=e57801ef50f6cc5a",
         "pkg:cargo/tower-cookies@0.11.0?package-id=622c6094f7a71060",
         "pkg:cargo/tower-http@0.6.8?package-id=64fd3397ffbe4491",
-        "pkg:cargo/tracing-subscriber@0.3.22?package-id=199ae9a612948c9c",
         "pkg:cargo/tracing@0.1.44?package-id=786dd48d017b508c",
         "pkg:cargo/ts-rs@11.1.0?package-id=b595542d28b5777a",
         "pkg:cargo/uuid@1.24.1?package-id=d2667f309eb709be"
-      ]
-    },
-    {
-      "ref": "b7ceed91a44c6a82",
-      "dependsOn": [
-        "5ade56a75949e6dd",
-        "pkg:cargo/derive_more@2.1.1?package-id=ef571d363c5852ab",
-        "pkg:cargo/futures@0.3.31?package-id=0f7d9dafe4db512e",
-        "pkg:cargo/modql@0.4.1?package-id=eb66ebac3b0278b2",
-        "pkg:cargo/pastey@0.2.1?package-id=eda8dc202450c56f",
-        "pkg:cargo/rpc-router@0.2.0?package-id=425f0f818cb5f82e",
-        "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
-        "pkg:cargo/serde_json@1.0.151?package-id=f8f15e470d62e1df",
-        "pkg:cargo/serde_with@3.22.0?package-id=d8a97457239bc0db",
-        "pkg:cargo/tokio@1.53.1?package-id=e57801ef50f6cc5a",
-        "pkg:cargo/ts-rs@11.1.0?package-id=b595542d28b5777a"
       ]
     },
     {

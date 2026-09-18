@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 publish = false # internal crate, never published (cargo-deny licenses.private.ignore)
 
+[lints]
+workspace = true
+
 [dependencies]
 # -- App Crates
 lib-utils = { path = "../../libs/lib-utils"}
