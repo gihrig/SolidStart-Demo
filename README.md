@@ -11,15 +11,12 @@ A SolidJS/SolidStart front-end (`frontend/`) and a Rust/Axum back-end
 ## Security scanning
 
 The project scans dependencies for known vulnerabilities and policy breaks
-(ADR-0022). The commands sit in three scopes: **Global**, **Front-end**, and
-**Back-end**. Run each command from the directory its heading names.
-
-The front-end and back-end each expose a `cgs audit` command. They are different
-commands. The directory you run from selects which one runs.
+(ADR-0022). The commands sit in two scopes: **Global** and **Back-end**. Run each
+command from the directory its heading names.
 
 ### Global — run from the repo root
 
-The SBOM and the `grype` gate cover both subtrees in one pass.
+The SBOM, the `grype` gate, and the audit recipes cover both subtrees.
 
 The SBOM is one file, `/sbom.cdx.json`. It lists every Rust and TypeScript
 dependency in CycloneDX format. `syft` writes it; `grype` scans it.
@@ -29,6 +26,15 @@ dependency in CycloneDX format. `syft` writes it; `grype` scans it.
 | `cgs sbom`       | Regenerate `/sbom.cdx.json` from the lockfiles.                    |
 | `cgs sbom:check` | Verify `/sbom.cdx.json` is current (CI drift guard).              |
 | `cgs scan`       | Scan `/sbom.cdx.json` with grype; fail on a high/critical finding. |
+
+The audit recipes run each subtree's native advisory scan from the repo root.
+Each delegates into the subtree, so you never change directory.
+
+| Command        | What it does                                                                 |
+| -------------- | ---------------------------------------------------------------------------- |
+| `cgs audit`    | Audit both subtrees (front-end `bun audit`, then back-end `cargo-audit`).    |
+| `cgs audit:fe` | Audit front-end dependencies (`bun audit`).                                  |
+| `cgs audit:be` | Audit back-end dependencies (`cargo audit --deny warnings`).                 |
 
 A VEX file, `/vex.openvex.json`, records accepted or not-affected findings so
 the gate can pass. Maintain it with these recipes:
@@ -44,23 +50,13 @@ the gate can pass. Maintain it with these recipes:
 vulnerability. The common assumption of exit `1` is wrong. The `cgs scan`
 wrapper (`scripts/grype-scan.sh`) reads that `2` and fails the gate.
 
-### Front-end — run from `frontend/`
-
-`cgs audit` here runs `bun audit` against the front-end lockfile. It is a local
-check. The global `grype` gate covers the front-end dependencies in CI.
-
-| Command     | What it does                                    |
-| ----------- | ----------------------------------------------- |
-| `cgs audit` | Audit front-end dependencies (`bun audit`).     |
-
 ### Back-end — run from `backend/`
 
-`cgs audit` here is the Rust gate. It is a different command from the front-end
-`cgs audit`.
+The back-end RustSec gate is `cgs audit:be` from the root (above), or `cgs audit`
+from `backend/`. These recipes have no root delegate; run them from `backend/`.
 
 | Command     | What it does                                                                       |
 | ----------- | ---------------------------------------------------------------------------------- |
-| `cgs audit` | RustSec advisory gate: fail on any advisory (`cargo audit --deny warnings`). Accept-list `backend/.cargo/audit.toml`. |
 | `cgs deny`  | Dependency-policy gate: `licenses`, `bans`, `sources` from `backend/deny.toml`.    |
 
 The back-end also adds these crates. A **report** surfaces findings but does not

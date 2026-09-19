@@ -24,6 +24,9 @@ vex = { command = "./scripts/vex-help.sh", info = "Show the VEX maintenance chea
 "vex:check" = { command = "./scripts/vex-check.sh", info = "Verify every VEX statement in /vex.openvex.json still matches a current finding (CI guard)" }
 "vex:add" = { command = "./scripts/vex-add.sh", info = "Append a VEX statement to /vex.openvex.json via vexctl (pass fields with -e VEX_PRODUCT=... -e VEX_VULN=...)" }
 "vex:rm" = { command = "./scripts/vex-rm.sh", info = "Remove a VEX statement from /vex.openvex.json by advisory id (-e VEX_VULN=... [-e VEX_PRODUCT=...])" }
+audit = { command = "(cd frontend && cgs audit) && (cd backend && cgs audit)", info = "Audit dependencies in both subtrees (front-end bun audit + back-end cargo-audit)" }
+"audit:fe" = { command = "(cd frontend && cgs audit)", info = "Audit front-end dependencies (bun audit)" }
+"audit:be" = { command = "(cd backend && cgs audit)", info = "Audit back-end dependencies (cargo audit --deny warnings)" }
 bindings = { command = "(cd backend && cgs bindings)", info = "Regenerate ts-rs bindings (backend)" }
 build = { command = "(cd frontend && cgs build) && (cd backend && cgs build)", info = "Build both subtrees" }
 check = { command = "(cd frontend && cgs check) && (cd backend && cgs check)", info = "Format + lint + type-check both subtrees" }
