@@ -224,11 +224,27 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GRYPE_VERSION: v0.119.0
+      # sha256 of grype_<version>_linux_amd64.tar.gz from the release's
+      # grype_<version>_checksums.txt. Bump both together on a version change.
+      GRYPE_SHA256: 3fa2dc4b924621ab65404cf08d0b8438d896d80ab949c9d5a4ca283c36004c9b
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Install grype (pinned)
-        run: curl -sSfL https://get.anchore.io/grype | sh -s -- -b /usr/local/bin "$GRYPE_VERSION"
+      # Install grype from its pinned GitHub release and verify the tarball's
+      # sha256 BEFORE running it, rather than piping the mutable
+      # get.anchore.io/grype installer straight to `sh`. A compromised installer
+      # endpoint therefore cannot execute arbitrary code in the runner: the job
+      # fails unless the download matches the pinned checksum above.
+      - name: Install grype (pinned release, checksum-verified)
+        run: |
+          set -euo pipefail
+          tarball="grype_${GRYPE_VERSION#v}_linux_amd64.tar.gz"
+          curl -sSfL "https://github.com/anchore/grype/releases/download/${GRYPE_VERSION}/${tarball}" -o "$tarball"
+          echo "${GRYPE_SHA256}  ${tarball}" | sha256sum -c -
+          tar -xzf "$tarball" grype
+          sudo install -m 0755 grype /usr/local/bin/grype
+          rm -f "$tarball" grype
+          grype version
 
       # Mirrors `cgs scan`: grype over /sbom.cdx.json with --fail-on high. The
       # script maps grype's exit codes (2 = findings, 100 = DB upgrade, other =

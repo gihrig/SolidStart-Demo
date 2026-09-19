@@ -197,10 +197,12 @@ one scoping refinement.
 - **One script, one recipe, one CI job.** `scripts/grype-scan.sh` runs
   `grype sbom:/sbom.cdx.json --fail-on high` and maps grype's exit codes, mirroring
   `scripts/sbom.sh`. `cgs scan` (root `Scripts.toml`) and the `grype-scan` CI job both
-  call it, so the gate logic lives in one place. `scripts/grype-scan.test.sh` proves the
-  gate with two fixture SBOMs — a planted `log4j-core 2.14.1` (CVE-2021-44228, Critical)
-  fails, a package no DB matches passes. The fixtures, not `/sbom.cdx.json`, back the
-  test, so it does not flap as new CVEs are disclosed.
+  call it, so the gate logic lives in one place. `scripts/grype-scan.test.sh` proves all
+  four exit-code branches: with the REAL grype, a planted `log4j-core 2.14.1`
+  (CVE-2021-44228, Critical) fails and a package no DB matches passes; with a STUB `grype`
+  on `PATH`, exit `100` passes with a notice and any other non-zero fails as a tool error.
+  The fixtures, not `/sbom.cdx.json`, back the real-grype cases, so they do not flap as new
+  CVEs are disclosed.
 - **Exit-code mapping is explicit.** The script treats grype `2` as findings (fail), `0`
   as clean, `100` as "DB upgrade available, nothing above threshold" (pass with a notice),
   and any other non-zero as a tool error (fail with a distinct message). A broken run
@@ -210,40 +212,38 @@ one scoping refinement.
   grype auto-updates its DB each run, so the scheduled run catches a new CVE in an
   unchanged dependency. It scans the COMMITTED SBOM; the `sbom-drift` job proves that SBOM
   matches the lockfiles, so a stale SBOM cannot hide a finding. grype is pinned
-  (`v0.119.0`) for reproducible behaviour; the DB it downloads is always current.
-- **The first scan found ~40 high/critical findings; all were remediated by upgrade.**
-  Every finding was a transitive dependency of the front-end build toolchain
-  (vinxi / nitro / vite / rollup / vitest), each with a published fix. Direct front-end
-  deps are exact-pinned and were already clean. The fixes are pinned in `frontend/`
-  `package.json` `overrides` (bun forces the fixed version regardless of a parent's range)
-  — seventeen packages: `brace-expansion`, `browserslist`, `defu`, `h3`, `lodash`,
-  `minimatch`, `nanoid`, `node-forge`, `picomatch`, `postcss`, `rollup`,
-  `serialize-javascript`, `seroval`, `seroval-plugins`, `shell-quote`, `tar`, `undici`.
-- **`seroval` must move with `seroval-plugins`.** Only `seroval 1.5.2` was flagged
-  (GHSA-mv8w-475r-vwqw, Critical, fix 1.5.3), but the tree paired it with
-  `seroval-plugins 1.5.2`, and the two share a private API: `seroval-plugins`'s web module
-  imports `isStream` from `seroval`. Overriding `seroval` alone to a version whose runtime
-  no longer exports `isStream` breaks server-side rendering — the front-end server fails to
-  start with "The requested module 'seroval' does not provide an export named 'isStream'",
-  which only the e2e suite catches (unit and component tests do not exercise the SSR
-  serializer). The fix pins BOTH to the matched `1.5.6` — same 1.5.x line, so their private
-  API stays consistent. This is why the override list carries `seroval-plugins` even though
-  grype never flagged it.
-- **`vite` needed a fresh resolve, not an override.** The vulnerable `vite 6.4.1` is a
-  transitive under `vinxi` (range `^6.4.1`), while the clean direct `vite 8.1.5` is a
-  separate copy. bun `overrides` are global by package name and cannot scope to one copy,
-  and bun does not support nested overrides. Forcing all `vite` to one version would
-  either downgrade the direct 8.1.5 or push `vinxi` off its `^6` range. Re-resolving the
-  lockfile from ranges lifted `vinxi`'s copy to `6.4.3` (still `^6`) and left the direct
-  copy at `8.1.5`. Both are clean.
-- **The gate passes; sub-threshold Mediums were then cleared where the update was
-  simple.** After the high/critical remediation `grype --fail-on high` exits `0`. Six
-  Medium findings persisted below the threshold; a follow-up cleared five by same-major
-  bumps in `overrides`: `serialize-javascript` → `7.0.5`, `h3` → `1.15.9` (two advisories),
-  and the whole `vitest` family (`vitest` + the eleven `@vitest/*` packages) → `4.1.11`.
-  The `vitest` family moves in lockstep — its packages depend on each other at an exact
-  version — so all twelve are pinned together even though `vite-plus` (the `vp` test runner)
-  requires `4.1.10`; `vp test` runs the 362 tests unchanged on `4.1.11`.
+  (`v0.119.0`) for reproducible behaviour; the DB it downloads is always current. The job
+  installs grype from its pinned GitHub release and verifies the tarball's sha256 before
+  running it, rather than piping the mutable `get.anchore.io` installer to `sh` — a
+  compromised installer endpoint cannot then run arbitrary code in the runner.
+- **Remediation: a minimal `overrides` set, not a blanket one.** The first scan found ~40
+  high/critical findings, all transitive in the front-end build toolchain
+  (vinxi / nitro / vite / rollup / vitest). The key finding is that **regenerating
+  `bun.lock` from ranges fixes almost all of them on its own**: the upstream toolchain has
+  released newer versions (e.g. `nitropack 2.13.4`) whose ranges pull fixed transitive deps
+  — `defu`, `minimatch`, `picomatch`, `rollup`, `seroval`, `tar`, `undici` and others all
+  resolve to non-vulnerable versions with no override. A `frontend/package.json` `overrides`
+  entry is used ONLY where a parent exact-pins a vulnerable transitive, so a re-resolve
+  cannot reach the fix. Three remain:
+  - `h3` → `1.15.11`: `vinxi 0.5.11` exact-pins `h3 1.15.3` (a High). `1.15.11` clears it
+    and also satisfies `nitropack`'s `^1.15.11`; it is a patch-level bump within `1.15.x`,
+    so `vinxi` still works (the e2e suite exercises its SSR server).
+  - `shell-quote` → `1.9.0`: a transitive exact-pins the vulnerable `1.8.4` (a High).
+  - the `vitest` family (`vitest` + eleven `@vitest/*`) → `4.1.11`: clears a Medium
+    (GHSA-82fw-gwwq-j7x9). The family moves in lockstep (its packages depend on each other
+    at an exact version), so all twelve are pinned together. `vite-plus` (the `vp` runner)
+    pins `4.1.10`, but `vp test` runs the 362 tests unchanged on `4.1.11`.
+- **Why not a broader override set (code-review correction).** An earlier draft overrode
+  seventeen packages. Because a bun `override` bypasses a parent's declared range, several
+  of those forced a version BELOW a consumer's minimum once the toolchain moved forward
+  (e.g. `h3 1.15.9` and `rollup 4.59.0` fell under `nitropack 2.13.4`'s `^1.15.11` / `^4.60.2`).
+  Dropping the unnecessary overrides removed those range violations AND let the resolver pick
+  a correct in-range copy for each consumer — e.g. `minimatch` now resolves to `5.1.9`,
+  `9.0.9` and `10.2.6`, each satisfying its own consumer, where one global override could
+  satisfy none. The three overrides that remain each intentionally exceed an exact upstream
+  pin; that is unavoidable when fixing a security bug in an exact-pinned transitive, and each
+  is a same-line bump verified by the full suite. bun overrides are global by package name
+  and support no nested/scoped form, so a per-copy override is not available.
 - **One Medium is left unfixed: `esbuild 0.18.7` (GHSA-67mh-4wv8-2f99, fix 0.25.0).** It is
   pinned EXACTLY by `@vinxi/plugin-mdx@3.7.2`, and `3.7.2` is the latest release — no
   upstream version bumps esbuild. A global `esbuild` override is not safe: it would downgrade
@@ -253,6 +253,6 @@ one scoping refinement.
   esbuild only for build-time MDX transform, not as a dev server, so the vulnerable path is
   not exercised. It is a sub-threshold Medium and does not gate. Revisit when
   `@vinxi/plugin-mdx` bumps esbuild upstream.
-- **Validation after the Medium follow-up.** The full front-end suite passes on the new
-  lockfile: `vp check`, 362 unit + component tests, the production `vinxi build`, and 234
-  Playwright e2e tests; `cgs scan` exits `0`.
+- **Validation.** `grype --fail-on high` exits `0` (only the `esbuild` Medium remains). The
+  full front-end suite passes on the resolved lockfile: `vp check`, 362 unit + component
+  tests, the production `vinxi build`, and 234 Playwright e2e tests; `cgs scan` exits `0`.
