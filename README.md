@@ -11,8 +11,8 @@ A SolidJS/SolidStart front-end (`frontend/`) and a Rust/Axum back-end
 ## Security scanning
 
 The project scans dependencies for known vulnerabilities and policy breaks
-(ADR-0022). The commands sit in two scopes: **Global** and **Back-end**. Run each
-command from the directory its heading names.
+(ADR-0022). The commands sit in three scopes: **Global**, **Front-end**, and
+**Back-end**. Run each command from the directory its heading names.
 
 ### Global — run from the repo root
 
@@ -56,6 +56,13 @@ the gate can pass. Maintain it with these recipes:
 **Exit-code note.** `grype` exits `2` when it finds a high or critical
 vulnerability. The common assumption of exit `1` is wrong. The `cgs scan`
 wrapper (`scripts/grype-scan.sh`) reads that `2` and fails the gate.
+
+### Front-end — run from `frontend/`
+
+The front-end has no front-end-only security recipe. Audit its dependencies with
+`cgs audit:fe` from the root (above), or `cgs audit` from `frontend/`. Both run
+`bun audit`. The global `grype` gate also covers the front-end dependencies
+through the shared SBOM.
 
 ### Back-end — run from `backend/`
 
