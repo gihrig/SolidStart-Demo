@@ -1,1 +1,8 @@
-vp staged
+#!/usr/bin/env sh
+# git runs hooks from the repo root, but `vp staged` needs frontend/, where
+# vite.config.ts (its `staged` config) lives. Since the #68 move into frontend/,
+# running it from the root fails with "No staged config found". cd into frontend/
+# (the parent of .vite-hooks) first. Vite+ runs this via .vite-hooks/_/pre-commit.
+# CDPATH= keeps a user's CDPATH from redirecting the cd (SC1007 is a false positive here).
+# shellcheck disable=SC1007
+CDPATH= cd -- "$(dirname -- "$0")/.." && exec vp staged
