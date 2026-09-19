@@ -49,6 +49,7 @@ package.json scripts (ADR-0010 addendum).
 | `cgs adr:list`        | Print the ADR index as a console table        |
 | `cgs sbom`            | Regenerate `/sbom.cdx.json` (project-wide SBOM) |
 | `cgs sbom:check`      | Verify `/sbom.cdx.json` is current (CI guard)  |
+| `cgs scan`            | Scan `/sbom.cdx.json` with grype (fail on high/critical) |
 
 Single-side work: `cd frontend` or `cd backend` and use `cgs …` (both subtrees now
 expose a `cgs` surface); `vpr …` still works in `frontend/`. See the subtree

@@ -1,0 +1,21 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "grype-gate-clean-fixture",
+      "bom-ref": "grype-gate-clean-fixture"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "solidstart-demo-clean-fixture",
+      "version": "0.0.0",
+      "purl": "pkg:cargo/solidstart-demo-clean-fixture@0.0.0",
+      "bom-ref": "pkg:cargo/solidstart-demo-clean-fixture@0.0.0"
+    }
+  ]
+}
