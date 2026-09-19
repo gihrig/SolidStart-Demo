@@ -95,7 +95,9 @@ Four surfaces run the scans. Each surface has a clear job.
    `git push --no-verify`. This is a convenience gate; CI is the real gate.
 3. **PR.** GitHub Actions (`.github/workflows/ci.yml`) runs every gate on each
    pull request: `sbom-drift`, `grype-scan`, `cargo-audit`, `cargo-deny`, and
-   the report-only jobs (`cargo-udeps`, `cargo-geiger`, `cargo-auditable`).
+   `cargo-auditable`. `cargo-auditable` blocks the merge if the release binary
+   lacks its embedded dependency list, but never on an advisory. The report-only
+   jobs `cargo-udeps` and `cargo-geiger` also run, but never block the merge.
 4. **Daily schedule.** A cron trigger (`17 6 * * *`) re-runs only `cargo-audit`
    and `grype-scan`. A newly disclosed advisory can trip an unchanged lockfile,
    so these two gates run daily; every other job is guarded PR/push-only.
