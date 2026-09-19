@@ -2,23 +2,23 @@
 [global_env]
 
 [scripts]
-audit = { command = "cargo audit --deny warnings", info = "RustSec advisory scan (fails on any advisory: vuln/unmaintained/unsound/yanked; ignore-list in .cargo/audit.toml)" }
-auditable = { command = "cargo auditable build --release -p web-server && cargo audit bin target/release/web-server", info = "Build the release binary with an embedded dependency list (cargo-auditable), then read it back (cargo audit bin)" }
+audit = { command = "cargo audit --deny warnings", info = "RustSec advisory scan (vuln/unmaintained/unsound/yanked fails; ignore: .cargo/audit.toml)" }
+auditable = { command = "cargo auditable build --release -p web-server && cargo audit bin target/release/web-server", info = "Build release w/ embedded dependencies (cargo-auditable), validate (cargo audit bin)" }
 bindings = { command = "cargo test export_bindings", info = "Regenerate ts-rs TypeScript bindings (exported via cargo test)" }
 build = { command = "cargo build", info = "Build w/ debug symbols", env = { RUST_LOG = "info" } }
 check = { command = "cargo fmt --all && cargo clippy --all-targets -- -D warnings", info = "Format (fix) and lint (warnings gate CI on)" }
 cover = { command = "cargo llvm-cov --open", info = "Run tests with coverage and open the HTML report" }
 db = { command = "docker run --rm --name pg -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=welcome postgres:17;", info = "Start Postgres DB Docker container" }
-deny = { command = "cargo deny check licenses bans sources", info = "Dependency-policy gate (licenses/bans/sources; policy in deny.toml). RustSec is the separate `audit` gate" }
+deny = { command = "cargo deny check licenses bans sources", info = "Dependency-policy gate (licenses/bans/sources; policy: deny.toml). RustSec is in `audit`" }
 dev = { command = "cargo run -p web-server", info = "Start a dev server" }
 dev-watch = { command = "cargo watch -q -c -w crates/services/web-server/src/ -w crates/libs/ -w .cargo/ -x 'run -p web-server'", info = "Start dev server in watch mode" }
 doc = { command = "cargo doc --no-deps --open", info = "Build project documentation" }
-geiger = { command = "(cd crates/services/web-server && cargo geiger || true)", info = "Unsafe-code report for web-server + its deps (report-only; run from the package dir — geiger rejects the virtual workspace manifest)" }
+geiger = { command = "(cd crates/services/web-server && cargo geiger || true)", info = "Unsafe-code for web-server + deps (report-only; run in ./backend)" }
 quick = { command = "cargo run -p web-server --example quick_dev", info = "Run the quick-dev example program" }
 release = { command = "cargo auditable build --release", info = "Build in release mode with an embedded dependency list (needs cargo-auditable)" }
-start = { command = "cargo auditable run -p web-server --release", info = "Build (with an embedded dependency list) and run the web-server in release mode (assumes Postgres is running)" }
+start = { command = "cargo auditable run -p web-server --release", info = "Build release /w dependency list; run web-server (requires Postgres)" }
 test = { command = "cargo nextest run -j1", env = { RUST_LOG = "warn" }, info = "Run project tests" }
 "test:watch" = { command = "cargo watch -q -c -x 'nextest run -j1'", env = { RUST_LOG = "warn" }, info = "Run tests in watch mode" }
-udeps = { command = "cargo +nightly udeps --workspace --all-targets", info = "Unused-dependency report (needs a nightly toolchain; report-only, does not gate CI)" }
+udeps = { command = "cargo +nightly udeps --workspace --all-targets", info = "Unused-dependency report (requires nightly; report-only, no CI gate)" }
 update = { command = "cargo update", info = "Update dependencies (Cargo.lock)" }
 upgrade = { command = "rustup update", info = "Update the Rust toolchain" }

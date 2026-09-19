@@ -19,11 +19,11 @@
 "adr:list" = { command = "./scripts/adr-index.sh list", info = "Print the ADR index as a console table" }
 sbom = { command = "./scripts/sbom.sh write", info = "Regenerate the project-wide CycloneDX SBOM at /sbom.cdx.json (syft + normalize)" }
 "sbom:check" = { command = "./scripts/sbom.sh check", info = "Verify /sbom.cdx.json is current (CI drift guard)" }
-scan = { command = "./scripts/grype-scan.sh", info = "Scan /sbom.cdx.json with grype; fail on high/critical vulnerabilities (grype exit 2)" }
-vex = { command = "./scripts/vex-help.sh", info = "Show the VEX maintenance cheat-sheet (find values / add / rm / check / scan)" }
-"vex:check" = { command = "./scripts/vex-check.sh", info = "Verify every VEX statement in /vex.openvex.json still matches a current finding (CI guard)" }
-"vex:add" = { command = "./scripts/vex-add.sh", info = "Append a VEX statement to /vex.openvex.json via vexctl (pass fields with -e VEX_PRODUCT=... -e VEX_VULN=...)" }
-"vex:rm" = { command = "./scripts/vex-rm.sh", info = "Remove a VEX statement from /vex.openvex.json by advisory id (-e VEX_VULN=... [-e VEX_PRODUCT=...])" }
+scan = { command = "./scripts/grype-scan.sh", info = "Scan /sbom.cdx.json with grype; high/critical vulnerabilities fail (grype exit 2)" }
+vex = { command = "./scripts/vex-help.sh", info = "VEX maintenance cheat-sheet (find values / add / rm / check / scan)" }
+"vex:check" = { command = "./scripts/vex-check.sh", info = "Verify /vex.openvex.json matches current findings (CI guard)" }
+"vex:add" = { command = "./scripts/vex-add.sh", info = "Append to /vex.openvex.json via vexctl (fields: -e VEX_PRODUCT=... -e VEX_VULN=...)" }
+"vex:rm" = { command = "./scripts/vex-rm.sh", info = "Remove from /vex.openvex.json by advisory id (-e VEX_VULN=... [-e VEX_PRODUCT=...])" }
 # audit:fe calls `vpr audit` (not `cgs audit`) and swallows its non-zero: bun
 # audit exits 1 on any finding, which cargo-run would otherwise report as a
 # misleading "Script execution failed". bun already prints the finding. Use
@@ -36,7 +36,7 @@ build = { command = "(cd frontend && cgs build) && (cd backend && cgs build)", i
 check = { command = "(cd frontend && cgs check) && (cd backend && cgs check)", info = "Format + lint + type-check both subtrees" }
 cover = { command = "(cd frontend && cgs test:cover) && (cd backend && cgs cover)", info = "Run both test suites with coverage" }
 dev = { command = "(cd frontend && vpx concurrently -k -n backend,frontend -c blue,green '(cd ../backend && cgs dev)' 'cgs dev')", info = "Start both dev servers (concurrently, kill-both)" }
-start = { command = "(cd frontend && cgs build) && (cd backend && cgs release) && (cd frontend && vpx concurrently -k -n backend,frontend -c blue,green '(cd ../backend && cgs start)' 'cgs start')", info = "Build and run both subtrees in release mode (concurrently, kill-both; assumes Postgres is running)" }
+start = { command = "(cd frontend && cgs build) && (cd backend && cgs release) && (cd frontend && vpx concurrently -k -n backend,frontend -c blue,green '(cd ../backend && cgs start)' 'cgs start')", info = "Build release Fe/Be (concurrently, kill-both; Requires Postgres)" }
 test = { command = "(cd frontend && cgs test:all) && (cd backend && cgs test)", info = "Run unit + component tests (frontend) and cargo tests (backend)" }
 "test:e2e" = { command = "(cd frontend && cgs test:e2e)", info = "Run e2e tests (boots back-end + front-end; assumes Postgres is running)" }
 update = { command = "(cd frontend && cgs update) && (cd backend && cgs update)", info = "Update dependencies in both subtrees (sequential)" }
