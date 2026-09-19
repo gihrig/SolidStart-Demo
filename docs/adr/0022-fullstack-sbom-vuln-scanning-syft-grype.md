@@ -252,7 +252,47 @@ one scoping refinement.
   override to one copy. The advisory is a dev-server CORS issue; `@vinxi/plugin-mdx` uses
   esbuild only for build-time MDX transform, not as a dev server, so the vulnerable path is
   not exercised. It is a sub-threshold Medium and does not gate. Revisit when
-  `@vinxi/plugin-mdx` bumps esbuild upstream.
-- **Validation.** `grype --fail-on high` exits `0` (only the `esbuild` Medium remains). The
-  full front-end suite passes on the resolved lockfile: `vp check`, 362 unit + component
-  tests, the production `vinxi build`, and 234 Playwright e2e tests; `cgs scan` exits `0`.
+  `@vinxi/plugin-mdx` bumps esbuild upstream. That "not exercised" judgement is now recorded
+  as machine-readable VEX (below), not prose alone.
+- **VEX records the `esbuild` finding as `not_affected`.** `/vex.openvex.json` is an OpenVEX
+  0.2.0 document with one statement: `esbuild 0.18.7` is `not_affected` by GHSA-67mh-4wv8-2f99,
+  justification `vulnerable_code_not_in_execute_path`, with an impact statement explaining the
+  dev-server path is never started. `scripts/grype-scan.sh` passes it to grype via `--vex`
+  (only when the file exists; the `GRYPE_VEX_FILE` env var overrides the path for the test).
+  grype moves the finding to its ignored set with `vex-status: not_affected`, so the rationale
+  travels in the scan result rather than an opaque ignore-list. **grype matching gotcha:** for
+  an SBOM (file) scan, grype matches a statement by the affected package's purl as the PRODUCT
+  (either `products[].@id` or `products[].identifiers.purl` works) — the conventional
+  app-as-product + `subcomponents` form does NOT match, because the SBOM's main component is a
+  `file` with no purl. `scripts/grype-scan.test.sh` case 5 proves a `not_affected` statement
+  drops an otherwise-gating finding.
+- **A validity guard keeps the VEX honest.** `scripts/vex-check.sh` (`cgs vex:check`, and a
+  step in the `grype-scan` CI job) scans the SBOM WITHOUT the VEX, then fails if any
+  `not_affected` / `affected` statement no longer matches a real finding. This catches the
+  orphan case — the dependency was fixed or its version moved, leaving a statement that
+  suppresses nothing and misleads readers — the same way `sbom.sh check` catches SBOM drift.
+  `scripts/vex-check.test.sh` proves a live statement passes and an orphan fails. So a stale
+  VEX statement fails CI rather than lingering; when `@vinxi/plugin-mdx` bumps esbuild, this
+  guard is what flags the esbuild statement for removal.
+- **Authoring is scripted with vexctl.** `scripts/vex-add.sh` (`cgs vex:add`) wraps
+  `vexctl add --in-place`, so a maintainer appends a statement with one command instead of
+  hand-editing JSON: vexctl bumps the document `version`, timestamps the statement, and
+  validates the status/justification against the OpenVEX spec. Because the `cgs` runner
+  forwards no positional args, the recipe reads fields from env vars
+  (`cgs vex:add -e VEX_PRODUCT=… -e VEX_VULN=… -e VEX_JUSTIFICATION=…`); calling the script
+  directly instead forwards flags straight to vexctl. vexctl's default product form (a bare
+  `@id` purl) is grype-compatible — verified. vexctl is a LOCAL authoring tool, not a CI
+  dependency: CI runs only the gate (`grype-scan`) and the guards (`vex-check`), never
+  `vex:add`. It does not read the SBOM, so it cannot choose which finding needs a statement
+  or detect a stale one — that division of labour is grype (find), `vex-check` (validate),
+  vexctl (author), human (justify). Removal is `scripts/vex-rm.sh` (`cgs vex:rm -e VEX_VULN=…`):
+  vexctl has no remove command, so it deletes the matching statement with jq, bumps `version`,
+  and refreshes the timestamp, failing loudly if nothing matches. `scripts/vex-help.sh`
+  (`cgs vex`) prints a numbered cheat-sheet of the whole flow (find values → add → rm → check
+  → scan). All four `vex*` recipes read fields from `-e` env vars because `cgs` forwards no
+  positional args.
+- **Validation.** `grype --fail-on high` exits `0` and, with the VEX applied, reports no
+  findings at all (the `esbuild` Medium is ignored with a recorded justification). The full
+  front-end suite passes on the resolved lockfile: `vp check`, 362 unit + component tests, the
+  production `vinxi build`, and 234 Playwright e2e tests; `cgs scan` exits `0`; the five-case
+  `grype-scan.test.sh` and the `vex-check.test.sh` guard test pass.

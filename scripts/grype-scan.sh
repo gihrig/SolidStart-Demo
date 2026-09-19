@@ -22,19 +22,36 @@
 # This script maps 2 to a hard failure, 100 to a pass with a notice, and any
 # other non-zero to a distinct tool-error failure, so a broken run cannot
 # masquerade as either a clean scan or a real finding.
+#
+# VEX (Vulnerability Exploitability eXchange): grype reads `vex.openvex.json` and
+# moves any finding a `not_affected` / `fixed` statement covers into its ignored
+# set, so an accepted, non-exploitable finding no longer gates — with the machine-
+# readable rationale travelling in the result, not an opaque ignore-list. grype
+# matches an SBOM-scan statement by the affected package's purl as the PRODUCT
+# (either `products[].@id` or `products[].identifiers.purl`), NOT the
+# app-as-product + `subcomponents` form (the SBOM's main component is a file with
+# no purl). The `GRYPE_VEX_FILE` env var overrides the document path (the test uses it).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SBOM="${1:-$ROOT/sbom.cdx.json}"
+VEX="${GRYPE_VEX_FILE:-$ROOT/vex.openvex.json}"
 
 if [[ ! -f "$SBOM" ]]; then
   echo "grype: SBOM not found: $SBOM. Run 'cgs sbom' first." >&2
   exit 1
 fi
 
+# Pass --vex only when the document exists, so the gate still runs without one.
+# The `${arr[@]+"${arr[@]}"}` form expands an empty array safely under `set -u`.
+vex_opt=()
+if [[ -f "$VEX" ]]; then
+  vex_opt=(--vex "$VEX")
+fi
+
 # Run grype over the SBOM. It prints its finding table to stdout; capture the
 # exit code without letting `set -e` abort on a non-zero (the `if` guards it).
-if grype "sbom:$SBOM" --fail-on high; then
+if grype "sbom:$SBOM" --fail-on high ${vex_opt[@]+"${vex_opt[@]}"}; then
   rc=0
 else
   rc=$?
