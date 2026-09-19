@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+# Pre-push convenience gate (ADR-0022, #143): block a push on a high/critical
+# vulnerability. Vite+ runs this via .vite-hooks/_/pre-push. CI is the real
+# enforcement; bypass in an emergency with `git push --no-verify`.
+# The logic and its test live in scripts/pre-push-scan{,.test}.sh.
+# CDPATH= keeps a user's CDPATH from redirecting the cd (SC1007 is a false positive here).
+# shellcheck disable=SC1007
+root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+exec "$root/scripts/pre-push-scan.sh"

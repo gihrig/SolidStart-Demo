@@ -285,6 +285,12 @@ jobs:
       - name: Prove VEX guard behaviour (live / orphan)
         run: ./scripts/vex-check.test.sh
 
+      # Proves the pre-push hook wrapper (#143): it forces grype offline
+      # (GRYPE_DB_AUTO_UPDATE=false) and a finding blocks the push. The hook is a
+      # local convenience gate; this job is the real enforcement.
+      - name: Prove pre-push gate behaviour (offline / blocks / passes)
+        run: ./scripts/pre-push-scan.test.sh
+
   # -- Back-end RustSec gate (#139, ADR-0022): cargo-audit scans backend/Cargo.lock
   #    against the RustSec advisory database. `--deny warnings` fails on ANY
   #    advisory, including the RustSec-only signals grype does not carry
