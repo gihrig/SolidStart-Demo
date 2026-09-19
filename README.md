@@ -11,30 +11,24 @@ A SolidJS/SolidStart front-end (`frontend/`) and a Rust/Axum back-end
 ## Security scanning
 
 The project scans dependencies for known vulnerabilities and policy breaks
-(ADR-0022). This section lists every scan and its `cgs` command.
+(ADR-0022). The commands sit in three scopes: **Global**, **Front-end**, and
+**Back-end**. Run each command from the directory its heading names.
 
-Run the SBOM, `grype`, `cgs vex:*` and `cgs scan` recipes from the **repo root**.
-Run the back-end crate recipes (`audit`, `deny`, `udeps`, `auditable`, `geiger`)
-from **`backend/`**.
+The front-end and back-end each expose a `cgs audit` command. They are different
+commands. The directory you run from selects which one runs.
 
-### SBOM (software bill of materials)
+### Global — run from the repo root
+
+The SBOM and the `grype` gate cover both subtrees in one pass.
 
 The SBOM is one file, `/sbom.cdx.json`. It lists every Rust and TypeScript
 dependency in CycloneDX format. `syft` writes it; `grype` scans it.
 
-| Command          | What it does                                        |
-| ---------------- | --------------------------------------------------- |
-| `cgs sbom`       | Regenerate `/sbom.cdx.json` from the lockfiles.     |
-| `cgs sbom:check` | Verify `/sbom.cdx.json` is current (CI drift guard).|
-
-### grype — project-wide vulnerability gate
-
-`grype` scans the committed `/sbom.cdx.json` (Rust + TypeScript in one pass).
-The gate fails on any high or critical finding (`--fail-on high`).
-
-| Command     | What it does                                             |
-| ----------- | -------------------------------------------------------- |
-| `cgs scan`  | Scan `/sbom.cdx.json`; fail on a high/critical finding.  |
+| Command          | What it does                                                       |
+| ---------------- | ------------------------------------------------------------------ |
+| `cgs sbom`       | Regenerate `/sbom.cdx.json` from the lockfiles.                    |
+| `cgs sbom:check` | Verify `/sbom.cdx.json` is current (CI drift guard).              |
+| `cgs scan`       | Scan `/sbom.cdx.json` with grype; fail on a high/critical finding. |
 
 A VEX file, `/vex.openvex.json`, records accepted or not-affected findings so
 the gate can pass. Maintain it with these recipes:
@@ -50,29 +44,28 @@ the gate can pass. Maintain it with these recipes:
 vulnerability. The common assumption of exit `1` is wrong. The `cgs scan`
 wrapper (`scripts/grype-scan.sh`) reads that `2` and fails the gate.
 
-### cargo-audit — back-end RustSec gate
+### Front-end — run from `frontend/`
 
-`cargo-audit` scans `backend/Cargo.lock` against the RustSec advisory database.
-`--deny warnings` fails on any advisory: vulnerable, unmaintained, unsound, or
-yanked. The accept-list is `backend/.cargo/audit.toml`.
-
-| Command      | What it does                                    |
-| ------------ | ----------------------------------------------- |
-| `cgs audit`  | Fail on any RustSec advisory (`--deny warnings`).|
-
-### cargo-deny — back-end dependency-policy gate
-
-`cargo-deny` enforces the license allow-list, crate bans, and source rules in
-`backend/deny.toml`. RustSec advisories stay with the `cargo-audit` gate.
+`cgs audit` here runs `bun audit` against the front-end lockfile. It is a local
+check. The global `grype` gate covers the front-end dependencies in CI.
 
 | Command     | What it does                                    |
 | ----------- | ----------------------------------------------- |
-| `cgs deny`  | Check `licenses`, `bans`, and `sources`.        |
+| `cgs audit` | Audit front-end dependencies (`bun audit`).     |
 
-### Extra crates
+### Back-end — run from `backend/`
 
-These crates add coverage. A **report** surfaces findings but does not block a
-merge. A **build integration** embeds the dependency list in the release binary.
+`cgs audit` here is the Rust gate. It is a different command from the front-end
+`cgs audit`.
+
+| Command     | What it does                                                                       |
+| ----------- | ---------------------------------------------------------------------------------- |
+| `cgs audit` | RustSec advisory gate: fail on any advisory (`cargo audit --deny warnings`). Accept-list `backend/.cargo/audit.toml`. |
+| `cgs deny`  | Dependency-policy gate: `licenses`, `bans`, `sources` from `backend/deny.toml`.    |
+
+The back-end also adds these crates. A **report** surfaces findings but does not
+block a merge. A **build integration** embeds the dependency list in the release
+binary.
 
 | Command          | Crate           | Role              | What it does                                                              |
 | ---------------- | --------------- | ----------------- | ------------------------------------------------------------------------- |
