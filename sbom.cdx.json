@@ -42945,12 +42945,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40vitest/browser-preview@4.1.10?package-id=af2404fab8c5862a",
+      "bom-ref": "pkg:npm/%40vitest/browser-preview@4.1.11?package-id=a12838be94b037a7",
       "type": "library",
       "name": "@vitest/browser-preview",
-      "version": "4.1.10",
-      "cpe": "cpe:2.3:a:\\@vitest\\/browser-preview:\\@vitest\\/browser-preview:4.1.10:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40vitest/browser-preview@4.1.10",
+      "version": "4.1.11",
+      "cpe": "cpe:2.3:a:\\@vitest\\/browser-preview:\\@vitest\\/browser-preview:4.1.11:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40vitest/browser-preview@4.1.11",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -42970,23 +42970,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@vitest\\/browser-preview:\\@vitest\\/browser_preview:4.1.10:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@vitest\\/browser-preview:\\@vitest\\/browser_preview:4.1.11:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@vitest\\/browser_preview:\\@vitest\\/browser-preview:4.1.10:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@vitest\\/browser_preview:\\@vitest\\/browser-preview:4.1.11:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@vitest\\/browser_preview:\\@vitest\\/browser_preview:4.1.10:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@vitest\\/browser_preview:\\@vitest\\/browser_preview:4.1.11:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@vitest\\/browser:\\@vitest\\/browser-preview:4.1.10:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@vitest\\/browser:\\@vitest\\/browser-preview:4.1.11:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@vitest\\/browser:\\@vitest\\/browser_preview:4.1.10:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@vitest\\/browser:\\@vitest\\/browser_preview:4.1.11:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -42995,12 +42995,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40vitest/browser@4.1.10?package-id=701c6688a141837a",
+      "bom-ref": "pkg:npm/%40vitest/browser@4.1.11?package-id=bcec40694c30680e",
       "type": "library",
       "name": "@vitest/browser",
-      "version": "4.1.10",
-      "cpe": "cpe:2.3:a:\\@vitest\\/browser:\\@vitest\\/browser:4.1.10:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40vitest/browser@4.1.10",
+      "version": "4.1.11",
+      "cpe": "cpe:2.3:a:\\@vitest\\/browser:\\@vitest\\/browser:4.1.11:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40vitest/browser@4.1.11",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -43025,12 +43025,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40vitest/coverage-v8@4.1.10?package-id=0d7b0e18e21d2926",
+      "bom-ref": "pkg:npm/%40vitest/coverage-v8@4.1.11?package-id=830ab4c7939b02fc",
       "type": "library",
       "name": "@vitest/coverage-v8",
-      "version": "4.1.10",
-      "cpe": "cpe:2.3:a:\\@vitest\\/coverage-v8:\\@vitest\\/coverage-v8:4.1.10:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40vitest/coverage-v8@4.1.10",
+      "version": "4.1.11",
+      "cpe": "cpe:2.3:a:\\@vitest\\/coverage-v8:\\@vitest\\/coverage-v8:4.1.11:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40vitest/coverage-v8@4.1.11",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -43050,23 +43050,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@vitest\\/coverage-v8:\\@vitest\\/coverage_v8:4.1.10:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@vitest\\/coverage-v8:\\@vitest\\/coverage_v8:4.1.11:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@vitest\\/coverage_v8:\\@vitest\\/coverage-v8:4.1.10:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@vitest\\/coverage_v8:\\@vitest\\/coverage-v8:4.1.11:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@vitest\\/coverage_v8:\\@vitest\\/coverage_v8:4.1.10:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@vitest\\/coverage_v8:\\@vitest\\/coverage_v8:4.1.11:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@vitest\\/coverage:\\@vitest\\/coverage-v8:4.1.10:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@vitest\\/coverage:\\@vitest\\/coverage-v8:4.1.11:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@vitest\\/coverage:\\@vitest\\/coverage_v8:4.1.10:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@vitest\\/coverage:\\@vitest\\/coverage_v8:4.1.11:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -43075,12 +43075,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40vitest/expect@4.1.10?package-id=303ae0cf1aa1cd75",
+      "bom-ref": "pkg:npm/%40vitest/expect@4.1.11?package-id=a91ba08094076ecd",
       "type": "library",
       "name": "@vitest/expect",
-      "version": "4.1.10",
-      "cpe": "cpe:2.3:a:\\@vitest\\/expect:\\@vitest\\/expect:4.1.10:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40vitest/expect@4.1.10",
+      "version": "4.1.11",
+      "cpe": "cpe:2.3:a:\\@vitest\\/expect:\\@vitest\\/expect:4.1.11:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40vitest/expect@4.1.11",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -43105,12 +43105,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40vitest/mocker@4.1.10?package-id=eba181b7d22d55e9",
+      "bom-ref": "pkg:npm/%40vitest/mocker@4.1.11?package-id=dc15e9f47ac12b0e",
       "type": "library",
       "name": "@vitest/mocker",
-      "version": "4.1.10",
-      "cpe": "cpe:2.3:a:\\@vitest\\/mocker:\\@vitest\\/mocker:4.1.10:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40vitest/mocker@4.1.10",
+      "version": "4.1.11",
+      "cpe": "cpe:2.3:a:\\@vitest\\/mocker:\\@vitest\\/mocker:4.1.11:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40vitest/mocker@4.1.11",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -43135,12 +43135,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40vitest/pretty-format@4.1.10?package-id=e578c427bf4d8061",
+      "bom-ref": "pkg:npm/%40vitest/pretty-format@4.1.11?package-id=de492666f110d394",
       "type": "library",
       "name": "@vitest/pretty-format",
-      "version": "4.1.10",
-      "cpe": "cpe:2.3:a:\\@vitest\\/pretty-format:\\@vitest\\/pretty-format:4.1.10:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40vitest/pretty-format@4.1.10",
+      "version": "4.1.11",
+      "cpe": "cpe:2.3:a:\\@vitest\\/pretty-format:\\@vitest\\/pretty-format:4.1.11:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40vitest/pretty-format@4.1.11",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -43160,23 +43160,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@vitest\\/pretty-format:\\@vitest\\/pretty_format:4.1.10:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@vitest\\/pretty-format:\\@vitest\\/pretty_format:4.1.11:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@vitest\\/pretty_format:\\@vitest\\/pretty-format:4.1.10:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@vitest\\/pretty_format:\\@vitest\\/pretty-format:4.1.11:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@vitest\\/pretty_format:\\@vitest\\/pretty_format:4.1.10:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@vitest\\/pretty_format:\\@vitest\\/pretty_format:4.1.11:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@vitest\\/pretty:\\@vitest\\/pretty-format:4.1.10:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@vitest\\/pretty:\\@vitest\\/pretty-format:4.1.11:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@vitest\\/pretty:\\@vitest\\/pretty_format:4.1.10:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@vitest\\/pretty:\\@vitest\\/pretty_format:4.1.11:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -43185,12 +43185,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40vitest/runner@4.1.10?package-id=091353fc885dab25",
+      "bom-ref": "pkg:npm/%40vitest/runner@4.1.11?package-id=bc32007822224876",
       "type": "library",
       "name": "@vitest/runner",
-      "version": "4.1.10",
-      "cpe": "cpe:2.3:a:\\@vitest\\/runner:\\@vitest\\/runner:4.1.10:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40vitest/runner@4.1.10",
+      "version": "4.1.11",
+      "cpe": "cpe:2.3:a:\\@vitest\\/runner:\\@vitest\\/runner:4.1.11:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40vitest/runner@4.1.11",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -43215,12 +43215,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40vitest/snapshot@4.1.10?package-id=1e3390aceaf52712",
+      "bom-ref": "pkg:npm/%40vitest/snapshot@4.1.11?package-id=ff60d378a73afa51",
       "type": "library",
       "name": "@vitest/snapshot",
-      "version": "4.1.10",
-      "cpe": "cpe:2.3:a:\\@vitest\\/snapshot:\\@vitest\\/snapshot:4.1.10:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40vitest/snapshot@4.1.10",
+      "version": "4.1.11",
+      "cpe": "cpe:2.3:a:\\@vitest\\/snapshot:\\@vitest\\/snapshot:4.1.11:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40vitest/snapshot@4.1.11",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -43245,12 +43245,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40vitest/spy@4.1.10?package-id=52d12407ed9ddfd1",
+      "bom-ref": "pkg:npm/%40vitest/spy@4.1.11?package-id=20030755010d76ea",
       "type": "library",
       "name": "@vitest/spy",
-      "version": "4.1.10",
-      "cpe": "cpe:2.3:a:\\@vitest\\/spy:\\@vitest\\/spy:4.1.10:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40vitest/spy@4.1.10",
+      "version": "4.1.11",
+      "cpe": "cpe:2.3:a:\\@vitest\\/spy:\\@vitest\\/spy:4.1.11:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40vitest/spy@4.1.11",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -43275,12 +43275,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40vitest/ui@4.1.10?package-id=7ace565a633dd7d3",
+      "bom-ref": "pkg:npm/%40vitest/ui@4.1.11?package-id=a0991f427bf469fa",
       "type": "library",
       "name": "@vitest/ui",
-      "version": "4.1.10",
-      "cpe": "cpe:2.3:a:\\@vitest\\/ui:\\@vitest\\/ui:4.1.10:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40vitest/ui@4.1.10",
+      "version": "4.1.11",
+      "cpe": "cpe:2.3:a:\\@vitest\\/ui:\\@vitest\\/ui:4.1.11:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40vitest/ui@4.1.11",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -43305,12 +43305,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40vitest/utils@4.1.10?package-id=e99ac3c1cacfb3e4",
+      "bom-ref": "pkg:npm/%40vitest/utils@4.1.11?package-id=6939126a68c638f3",
       "type": "library",
       "name": "@vitest/utils",
-      "version": "4.1.10",
-      "cpe": "cpe:2.3:a:\\@vitest\\/utils:\\@vitest\\/utils:4.1.10:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40vitest/utils@4.1.10",
+      "version": "4.1.11",
+      "cpe": "cpe:2.3:a:\\@vitest\\/utils:\\@vitest\\/utils:4.1.11:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40vitest/utils@4.1.11",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -55077,12 +55077,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/h3@1.15.6?package-id=b98a415d20df95c4",
+      "bom-ref": "pkg:npm/h3@1.15.9?package-id=4dccec071f562c8d",
       "type": "library",
       "name": "h3",
-      "version": "1.15.6",
-      "cpe": "cpe:2.3:a:h3:h3:1.15.6:*:*:*:*:node.js:*:*",
-      "purl": "pkg:npm/h3@1.15.6",
+      "version": "1.15.9",
+      "cpe": "cpe:2.3:a:h3:h3:1.15.9:*:*:*:*:node.js:*:*",
+      "purl": "pkg:npm/h3@1.15.9",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -68435,12 +68435,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/serialize-javascript@7.0.3?package-id=c0be2e3e28bf5709",
+      "bom-ref": "pkg:npm/serialize-javascript@7.0.5?package-id=b87158a46ae84821",
       "type": "library",
       "name": "serialize-javascript",
-      "version": "7.0.3",
-      "cpe": "cpe:2.3:a:verizon:serialize-javascript:7.0.3:*:*:*:*:node.js:*:*",
-      "purl": "pkg:npm/serialize-javascript@7.0.3",
+      "version": "7.0.5",
+      "cpe": "cpe:2.3:a:verizon:serialize-javascript:7.0.5:*:*:*:*:node.js:*:*",
+      "purl": "pkg:npm/serialize-javascript@7.0.5",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -68460,7 +68460,7 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:yahoo:serialize_javascript:7.0.3:*:*:*:*:node.js:*:*"
+          "value": "cpe:2.3:a:yahoo:serialize_javascript:7.0.5:*:*:*:*:node.js:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -74043,12 +74043,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/vitest@4.1.10?package-id=7a0bd375ded0433a",
+      "bom-ref": "pkg:npm/vitest@4.1.11?package-id=01c43a0d2ecaff8b",
       "type": "library",
       "name": "vitest",
-      "version": "4.1.10",
-      "cpe": "cpe:2.3:a:vitest.dev:vitest:4.1.10:*:*:*:*:node.js:*:*",
-      "purl": "pkg:npm/vitest@4.1.10",
+      "version": "4.1.11",
+      "cpe": "cpe:2.3:a:vitest.dev:vitest:4.1.11:*:*:*:*:node.js:*:*",
+      "purl": "pkg:npm/vitest@4.1.11",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -78555,7 +78555,7 @@
     {
       "ref": "pkg:npm/%40rollup/plugin-terser@1.0.0?package-id=fa22d95be3791022",
       "dependsOn": [
-        "pkg:npm/serialize-javascript@7.0.3?package-id=c0be2e3e28bf5709",
+        "pkg:npm/serialize-javascript@7.0.5?package-id=b87158a46ae84821",
         "pkg:npm/smob@1.6.2?package-id=52c5d6da3c0e1252",
         "pkg:npm/terser@5.51.2?package-id=f1d9ec158f2ba842"
       ]
@@ -78904,7 +78904,7 @@
         "pkg:npm/consola@3.4.2?package-id=eeec00322b1cd02b",
         "pkg:npm/defu@6.1.5?package-id=1496ae4245676d85",
         "pkg:npm/get-port-please@3.2.0?package-id=1432ac937d7baad5",
-        "pkg:npm/h3@1.15.6?package-id=b98a415d20df95c4",
+        "pkg:npm/h3@1.15.9?package-id=4dccec071f562c8d",
         "pkg:npm/http-shutdown@1.2.2?package-id=02f901aae91713d9",
         "pkg:npm/jiti@1.21.7?package-id=9612f125ce34ebaf",
         "pkg:npm/jiti@2.7.0?package-id=a0dd11c399ed4b31",
@@ -78964,19 +78964,19 @@
       ]
     },
     {
-      "ref": "pkg:npm/%40vitest/browser-preview@4.1.10?package-id=af2404fab8c5862a",
+      "ref": "pkg:npm/%40vitest/browser-preview@4.1.11?package-id=a12838be94b037a7",
       "dependsOn": [
         "pkg:npm/%40testing-library/dom@10.4.2?package-id=c3ff9b3427dcf52a",
         "pkg:npm/%40testing-library/user-event@14.6.1?package-id=c47db52bfa65a021",
-        "pkg:npm/%40vitest/browser@4.1.10?package-id=701c6688a141837a"
+        "pkg:npm/%40vitest/browser@4.1.11?package-id=bcec40694c30680e"
       ]
     },
     {
-      "ref": "pkg:npm/%40vitest/browser@4.1.10?package-id=701c6688a141837a",
+      "ref": "pkg:npm/%40vitest/browser@4.1.11?package-id=bcec40694c30680e",
       "dependsOn": [
         "pkg:npm/%40blazediff/core@1.9.1?package-id=7560484f90bfd41e",
-        "pkg:npm/%40vitest/mocker@4.1.10?package-id=eba181b7d22d55e9",
-        "pkg:npm/%40vitest/utils@4.1.10?package-id=e99ac3c1cacfb3e4",
+        "pkg:npm/%40vitest/mocker@4.1.11?package-id=dc15e9f47ac12b0e",
+        "pkg:npm/%40vitest/utils@4.1.11?package-id=6939126a68c638f3",
         "pkg:npm/magic-string@0.30.21?package-id=453cb825694a1a76",
         "pkg:npm/magic-string@1.4.1?package-id=807cce417daede43",
         "pkg:npm/pngjs@7.0.0?package-id=838cf22686fda848",
@@ -78986,10 +78986,10 @@
       ]
     },
     {
-      "ref": "pkg:npm/%40vitest/coverage-v8@4.1.10?package-id=0d7b0e18e21d2926",
+      "ref": "pkg:npm/%40vitest/coverage-v8@4.1.11?package-id=830ab4c7939b02fc",
       "dependsOn": [
         "pkg:npm/%40bcoe/v8-coverage@1.0.2?package-id=ed2db5aee0506a16",
-        "pkg:npm/%40vitest/utils@4.1.10?package-id=e99ac3c1cacfb3e4",
+        "pkg:npm/%40vitest/utils@4.1.11?package-id=6939126a68c638f3",
         "pkg:npm/ast-v8-to-istanbul@1.0.6?package-id=2599278cb9ef15f7",
         "pkg:npm/istanbul-lib-coverage@3.2.2?package-id=59d35c7cc4af72bf",
         "pkg:npm/istanbul-lib-report@3.0.1?package-id=56343747ba9d3f6f",
@@ -79003,20 +79003,20 @@
       ]
     },
     {
-      "ref": "pkg:npm/%40vitest/expect@4.1.10?package-id=303ae0cf1aa1cd75",
+      "ref": "pkg:npm/%40vitest/expect@4.1.11?package-id=a91ba08094076ecd",
       "dependsOn": [
         "pkg:npm/%40standard-schema/spec@1.1.0?package-id=15135bae04c75aab",
         "pkg:npm/%40types/chai@5.2.3?package-id=b7c95209a0dd5f5b",
-        "pkg:npm/%40vitest/spy@4.1.10?package-id=52d12407ed9ddfd1",
-        "pkg:npm/%40vitest/utils@4.1.10?package-id=e99ac3c1cacfb3e4",
+        "pkg:npm/%40vitest/spy@4.1.11?package-id=20030755010d76ea",
+        "pkg:npm/%40vitest/utils@4.1.11?package-id=6939126a68c638f3",
         "pkg:npm/chai@6.2.2?package-id=706eae4d4bdc9f94",
         "pkg:npm/tinyrainbow@3.1.1?package-id=3f57ca0bc69fd690"
       ]
     },
     {
-      "ref": "pkg:npm/%40vitest/mocker@4.1.10?package-id=eba181b7d22d55e9",
+      "ref": "pkg:npm/%40vitest/mocker@4.1.11?package-id=dc15e9f47ac12b0e",
       "dependsOn": [
-        "pkg:npm/%40vitest/spy@4.1.10?package-id=52d12407ed9ddfd1",
+        "pkg:npm/%40vitest/spy@4.1.11?package-id=20030755010d76ea",
         "pkg:npm/estree-walker@2.0.2?package-id=98da359edd3069d9",
         "pkg:npm/estree-walker@3.0.3?package-id=cebc18a67669cf4c",
         "pkg:npm/magic-string@0.30.21?package-id=453cb825694a1a76",
@@ -79024,24 +79024,24 @@
       ]
     },
     {
-      "ref": "pkg:npm/%40vitest/pretty-format@4.1.10?package-id=e578c427bf4d8061",
+      "ref": "pkg:npm/%40vitest/pretty-format@4.1.11?package-id=de492666f110d394",
       "dependsOn": [
         "pkg:npm/tinyrainbow@3.1.1?package-id=3f57ca0bc69fd690"
       ]
     },
     {
-      "ref": "pkg:npm/%40vitest/runner@4.1.10?package-id=091353fc885dab25",
+      "ref": "pkg:npm/%40vitest/runner@4.1.11?package-id=bc32007822224876",
       "dependsOn": [
-        "pkg:npm/%40vitest/utils@4.1.10?package-id=e99ac3c1cacfb3e4",
+        "pkg:npm/%40vitest/utils@4.1.11?package-id=6939126a68c638f3",
         "pkg:npm/pathe@1.1.2?package-id=5ecb0c907a1952c0",
         "pkg:npm/pathe@2.0.3?package-id=e0040e6131f732fe"
       ]
     },
     {
-      "ref": "pkg:npm/%40vitest/snapshot@4.1.10?package-id=1e3390aceaf52712",
+      "ref": "pkg:npm/%40vitest/snapshot@4.1.11?package-id=ff60d378a73afa51",
       "dependsOn": [
-        "pkg:npm/%40vitest/pretty-format@4.1.10?package-id=e578c427bf4d8061",
-        "pkg:npm/%40vitest/utils@4.1.10?package-id=e99ac3c1cacfb3e4",
+        "pkg:npm/%40vitest/pretty-format@4.1.11?package-id=de492666f110d394",
+        "pkg:npm/%40vitest/utils@4.1.11?package-id=6939126a68c638f3",
         "pkg:npm/magic-string@0.30.21?package-id=453cb825694a1a76",
         "pkg:npm/magic-string@1.4.1?package-id=807cce417daede43",
         "pkg:npm/pathe@1.1.2?package-id=5ecb0c907a1952c0",
@@ -79049,9 +79049,9 @@
       ]
     },
     {
-      "ref": "pkg:npm/%40vitest/ui@4.1.10?package-id=7ace565a633dd7d3",
+      "ref": "pkg:npm/%40vitest/ui@4.1.11?package-id=a0991f427bf469fa",
       "dependsOn": [
-        "pkg:npm/%40vitest/utils@4.1.10?package-id=e99ac3c1cacfb3e4",
+        "pkg:npm/%40vitest/utils@4.1.11?package-id=6939126a68c638f3",
         "pkg:npm/fflate@0.8.3?package-id=04a051b63df811f8",
         "pkg:npm/flatted@3.4.4?package-id=c5979509699c6b47",
         "pkg:npm/pathe@1.1.2?package-id=5ecb0c907a1952c0",
@@ -79062,9 +79062,9 @@
       ]
     },
     {
-      "ref": "pkg:npm/%40vitest/utils@4.1.10?package-id=e99ac3c1cacfb3e4",
+      "ref": "pkg:npm/%40vitest/utils@4.1.11?package-id=6939126a68c638f3",
       "dependsOn": [
-        "pkg:npm/%40vitest/pretty-format@4.1.10?package-id=e578c427bf4d8061",
+        "pkg:npm/%40vitest/pretty-format@4.1.11?package-id=de492666f110d394",
         "pkg:npm/convert-source-map@2.0.0?package-id=7c8121ba5cd2773c",
         "pkg:npm/tinyrainbow@3.1.1?package-id=3f57ca0bc69fd690"
       ]
@@ -79888,7 +79888,7 @@
       ]
     },
     {
-      "ref": "pkg:npm/h3@1.15.6?package-id=b98a415d20df95c4",
+      "ref": "pkg:npm/h3@1.15.9?package-id=4dccec071f562c8d",
       "dependsOn": [
         "pkg:npm/cookie-es@1.2.3?package-id=7fb76505f51d1d2a",
         "pkg:npm/cookie-es@2.0.1?package-id=f63b6e9f40325794",
@@ -80213,7 +80213,7 @@
         "pkg:npm/crossws@0.4.12?package-id=78e3e9f843babe75",
         "pkg:npm/defu@6.1.5?package-id=1496ae4245676d85",
         "pkg:npm/get-port-please@3.2.0?package-id=1432ac937d7baad5",
-        "pkg:npm/h3@1.15.6?package-id=b98a415d20df95c4",
+        "pkg:npm/h3@1.15.9?package-id=4dccec071f562c8d",
         "pkg:npm/http-shutdown@1.2.2?package-id=02f901aae91713d9",
         "pkg:npm/jiti@1.21.7?package-id=9612f125ce34ebaf",
         "pkg:npm/jiti@2.7.0?package-id=a0dd11c399ed4b31",
@@ -80740,7 +80740,7 @@
         "pkg:npm/exsolve@1.1.1?package-id=d6621d7e2e99b860",
         "pkg:npm/globby@16.2.4?package-id=c851259e47752391",
         "pkg:npm/gzip-size@7.0.0?package-id=b5c3cca3cb73639e",
-        "pkg:npm/h3@1.15.6?package-id=b98a415d20df95c4",
+        "pkg:npm/h3@1.15.9?package-id=4dccec071f562c8d",
         "pkg:npm/hookable@5.5.3?package-id=7ac04281d3ca3f26",
         "pkg:npm/httpxy@0.5.5?package-id=a0bba0046a154eb9",
         "pkg:npm/ioredis@5.11.1?package-id=3be948bc368dedb9",
@@ -81796,7 +81796,7 @@
         "pkg:npm/chokidar@4.0.3?package-id=6edd5c1a298cbb78",
         "pkg:npm/chokidar@5.0.0?package-id=3666bae9027d1cf8",
         "pkg:npm/destr@2.0.5?package-id=6dce74a7d6964ea9",
-        "pkg:npm/h3@1.15.6?package-id=b98a415d20df95c4",
+        "pkg:npm/h3@1.15.9?package-id=4dccec071f562c8d",
         "pkg:npm/lru-cache@10.4.3?package-id=502f1c60b15b6fba",
         "pkg:npm/lru-cache@11.5.2?package-id=7b63b9d39fe42316",
         "pkg:npm/lru-cache@5.1.1?package-id=f079069ecb4dd1f3",
@@ -81940,7 +81940,7 @@
         "pkg:npm/esbuild@0.25.12?package-id=2b93810227c4864d",
         "pkg:npm/esbuild@0.28.2?package-id=e762d26391ef5da3",
         "pkg:npm/get-port-please@3.2.0?package-id=1432ac937d7baad5",
-        "pkg:npm/h3@1.15.6?package-id=b98a415d20df95c4",
+        "pkg:npm/h3@1.15.9?package-id=4dccec071f562c8d",
         "pkg:npm/hookable@5.5.3?package-id=7ac04281d3ca3f26",
         "pkg:npm/http-proxy@1.18.1?package-id=25b8d757baf9d9e9",
         "pkg:npm/micromatch@4.0.8?package-id=84665792c2c219f7",
@@ -81981,15 +81981,15 @@
       "dependsOn": [
         "pkg:npm/%40oxc-project/types@0.139.0?package-id=969cbd4f3ededfe3",
         "pkg:npm/%40oxlint/plugins@1.73.0?package-id=4c80ad784923483e",
-        "pkg:npm/%40vitest/browser-preview@4.1.10?package-id=af2404fab8c5862a",
-        "pkg:npm/%40vitest/browser@4.1.10?package-id=701c6688a141837a",
-        "pkg:npm/%40vitest/expect@4.1.10?package-id=303ae0cf1aa1cd75",
-        "pkg:npm/%40vitest/mocker@4.1.10?package-id=eba181b7d22d55e9",
-        "pkg:npm/%40vitest/pretty-format@4.1.10?package-id=e578c427bf4d8061",
-        "pkg:npm/%40vitest/runner@4.1.10?package-id=091353fc885dab25",
-        "pkg:npm/%40vitest/snapshot@4.1.10?package-id=1e3390aceaf52712",
-        "pkg:npm/%40vitest/spy@4.1.10?package-id=52d12407ed9ddfd1",
-        "pkg:npm/%40vitest/utils@4.1.10?package-id=e99ac3c1cacfb3e4",
+        "pkg:npm/%40vitest/browser-preview@4.1.11?package-id=a12838be94b037a7",
+        "pkg:npm/%40vitest/browser@4.1.11?package-id=bcec40694c30680e",
+        "pkg:npm/%40vitest/expect@4.1.11?package-id=a91ba08094076ecd",
+        "pkg:npm/%40vitest/mocker@4.1.11?package-id=dc15e9f47ac12b0e",
+        "pkg:npm/%40vitest/pretty-format@4.1.11?package-id=de492666f110d394",
+        "pkg:npm/%40vitest/runner@4.1.11?package-id=bc32007822224876",
+        "pkg:npm/%40vitest/snapshot@4.1.11?package-id=ff60d378a73afa51",
+        "pkg:npm/%40vitest/spy@4.1.11?package-id=20030755010d76ea",
+        "pkg:npm/%40vitest/utils@4.1.11?package-id=6939126a68c638f3",
         "pkg:npm/%40voidzero-dev/vite-plus-core@0.2.5?package-id=36e123316e228834",
         "pkg:npm/%40voidzero-dev/vite-plus-darwin-arm64@0.2.5?package-id=4f6565d67ce32581",
         "pkg:npm/%40voidzero-dev/vite-plus-darwin-x64@0.2.5?package-id=678c9a72e7f97b7d",
@@ -82002,7 +82002,7 @@
         "pkg:npm/oxfmt@0.58.0?package-id=6db730ae9b614b0a",
         "pkg:npm/oxlint-tsgolint@0.24.0?package-id=6eb320847db8a2ac",
         "pkg:npm/oxlint@1.73.0?package-id=65d3ae2d78bcc6fc",
-        "pkg:npm/vitest@4.1.10?package-id=7a0bd375ded0433a"
+        "pkg:npm/vitest@4.1.11?package-id=01c43a0d2ecaff8b"
       ]
     },
     {
@@ -82034,15 +82034,15 @@
       ]
     },
     {
-      "ref": "pkg:npm/vitest@4.1.10?package-id=7a0bd375ded0433a",
+      "ref": "pkg:npm/vitest@4.1.11?package-id=01c43a0d2ecaff8b",
       "dependsOn": [
-        "pkg:npm/%40vitest/expect@4.1.10?package-id=303ae0cf1aa1cd75",
-        "pkg:npm/%40vitest/mocker@4.1.10?package-id=eba181b7d22d55e9",
-        "pkg:npm/%40vitest/pretty-format@4.1.10?package-id=e578c427bf4d8061",
-        "pkg:npm/%40vitest/runner@4.1.10?package-id=091353fc885dab25",
-        "pkg:npm/%40vitest/snapshot@4.1.10?package-id=1e3390aceaf52712",
-        "pkg:npm/%40vitest/spy@4.1.10?package-id=52d12407ed9ddfd1",
-        "pkg:npm/%40vitest/utils@4.1.10?package-id=e99ac3c1cacfb3e4",
+        "pkg:npm/%40vitest/expect@4.1.11?package-id=a91ba08094076ecd",
+        "pkg:npm/%40vitest/mocker@4.1.11?package-id=dc15e9f47ac12b0e",
+        "pkg:npm/%40vitest/pretty-format@4.1.11?package-id=de492666f110d394",
+        "pkg:npm/%40vitest/runner@4.1.11?package-id=bc32007822224876",
+        "pkg:npm/%40vitest/snapshot@4.1.11?package-id=ff60d378a73afa51",
+        "pkg:npm/%40vitest/spy@4.1.11?package-id=20030755010d76ea",
+        "pkg:npm/%40vitest/utils@4.1.11?package-id=6939126a68c638f3",
         "pkg:npm/es-module-lexer@1.7.0?package-id=f050c1fc7560e16c",
         "pkg:npm/es-module-lexer@2.3.2?package-id=ea8c1696cdd3ddee",
         "pkg:npm/expect-type@1.4.0?package-id=0a8b4cce42ad829c",

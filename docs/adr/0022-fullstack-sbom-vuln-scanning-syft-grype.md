@@ -236,8 +236,23 @@ one scoping refinement.
   either downgrade the direct 8.1.5 or push `vinxi` off its `^6` range. Re-resolving the
   lockfile from ranges lifted `vinxi`'s copy to `6.4.3` (still `^6`) and left the direct
   copy at `8.1.5`. Both are clean.
-- **The gate passes; only sub-threshold Mediums remain.** After remediation
-  `grype --fail-on high` exits `0`. A few Medium findings persist below the threshold
-  (`serialize-javascript`, `vitest`, `esbuild`, `h3`), consistent with the `--fail-on
-  high` decision. The full front-end suite passes on the new lockfile: `vp check`, 362 unit
-  + component tests, the production `vinxi build`, and 234 Playwright e2e tests.
+- **The gate passes; sub-threshold Mediums were then cleared where the update was
+  simple.** After the high/critical remediation `grype --fail-on high` exits `0`. Six
+  Medium findings persisted below the threshold; a follow-up cleared five by same-major
+  bumps in `overrides`: `serialize-javascript` → `7.0.5`, `h3` → `1.15.9` (two advisories),
+  and the whole `vitest` family (`vitest` + the eleven `@vitest/*` packages) → `4.1.11`.
+  The `vitest` family moves in lockstep — its packages depend on each other at an exact
+  version — so all twelve are pinned together even though `vite-plus` (the `vp` test runner)
+  requires `4.1.10`; `vp test` runs the 362 tests unchanged on `4.1.11`.
+- **One Medium is left unfixed: `esbuild 0.18.7` (GHSA-67mh-4wv8-2f99, fix 0.25.0).** It is
+  pinned EXACTLY by `@vinxi/plugin-mdx@3.7.2`, and `3.7.2` is the latest release — no
+  upstream version bumps esbuild. A global `esbuild` override is not safe: it would downgrade
+  vite's own newer copies (`0.25.12`, `0.28.2`) and force `@vinxi/plugin-mdx` onto an esbuild
+  it was never built against (0.18 → 0.25 changes the transform API), and bun cannot scope an
+  override to one copy. The advisory is a dev-server CORS issue; `@vinxi/plugin-mdx` uses
+  esbuild only for build-time MDX transform, not as a dev server, so the vulnerable path is
+  not exercised. It is a sub-threshold Medium and does not gate. Revisit when
+  `@vinxi/plugin-mdx` bumps esbuild upstream.
+- **Validation after the Medium follow-up.** The full front-end suite passes on the new
+  lockfile: `vp check`, 362 unit + component tests, the production `vinxi build`, and 234
+  Playwright e2e tests; `cgs scan` exits `0`.
