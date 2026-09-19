@@ -36,10 +36,12 @@ Each delegates into the subtree, so you never change directory.
 | `cgs audit:fe` | Audit front-end dependencies (`bun audit`).                                  |
 | `cgs audit:be` | Audit back-end dependencies (`cargo audit --deny warnings`).                 |
 
-**Exit-code note.** `bun audit` (via `cgs audit:fe`) exits `1` on any finding, at
-any severity. `cgs audit` joins the two sides with `;`, so both always run, but
-its exit code reflects only the back-end. Use `cgs audit:fe` or `cgs audit:be`
-when you need a per-side exit code, such as in a gate.
+**Exit-code note.** `bun audit` exits `1` on any finding, at any severity. The
+front-end recipes swallow that non-zero, so `cgs audit:fe` always exits `0` and
+prints the findings. This stops cargo-run from printing a misleading "Script
+execution failed" banner. `cgs audit` joins the two sides with `;`, so both
+always run; its exit code reflects only the back-end. Use `cgs audit:be` for a
+real gate exit code.
 
 A VEX file, `/vex.openvex.json`, records accepted or not-affected findings so
 the gate can pass. Maintain it with these recipes:

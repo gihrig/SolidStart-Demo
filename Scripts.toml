@@ -24,8 +24,12 @@ vex = { command = "./scripts/vex-help.sh", info = "Show the VEX maintenance chea
 "vex:check" = { command = "./scripts/vex-check.sh", info = "Verify every VEX statement in /vex.openvex.json still matches a current finding (CI guard)" }
 "vex:add" = { command = "./scripts/vex-add.sh", info = "Append a VEX statement to /vex.openvex.json via vexctl (pass fields with -e VEX_PRODUCT=... -e VEX_VULN=...)" }
 "vex:rm" = { command = "./scripts/vex-rm.sh", info = "Remove a VEX statement from /vex.openvex.json by advisory id (-e VEX_VULN=... [-e VEX_PRODUCT=...])" }
-audit = { command = "(cd frontend && cgs audit); (cd backend && cgs audit)", info = "Audit dependencies in both subtrees (front-end bun audit + back-end cargo-audit)" }
-"audit:fe" = { command = "(cd frontend && cgs audit)", info = "Audit front-end dependencies (bun audit)" }
+# audit:fe calls `vpr audit` (not `cgs audit`) and swallows its non-zero: bun
+# audit exits 1 on any finding, which cargo-run would otherwise report as a
+# misleading "Script execution failed". bun already prints the finding. Use
+# audit:be for a real gate exit code.
+audit = { command = "((cd frontend && vpr audit) || true); (cd backend && cgs audit)", info = "Audit dependencies in both subtrees (front-end bun audit + back-end cargo-audit)" }
+"audit:fe" = { command = "(cd frontend && vpr audit) || true", info = "Audit front-end dependencies (bun audit; always exits 0, prints findings)" }
 "audit:be" = { command = "(cd backend && cgs audit)", info = "Audit back-end dependencies (cargo audit --deny warnings)" }
 bindings = { command = "(cd backend && cgs bindings)", info = "Regenerate ts-rs bindings (backend)" }
 build = { command = "(cd frontend && cgs build) && (cd backend && cgs build)", info = "Build both subtrees" }
