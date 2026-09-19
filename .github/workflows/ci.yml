@@ -263,7 +263,9 @@ jobs:
       # Mirrors `cgs scan`: grype over /sbom.cdx.json with --fail-on high. The
       # script maps grype's exit codes (2 = findings, 100 = DB upgrade, other =
       # tool error) so a finding fails the build and a tool error does not pass
-      # silently.
+      # silently. It also passes the committed /vex.openvex.json via --vex, so a
+      # finding recorded `not_affected` (e.g. esbuild GHSA-67mh-4wv8-2f99) is
+      # ignored with its justification rather than gating.
       - name: Scan the committed SBOM (fails on high/critical)
         run: ./scripts/grype-scan.sh
 
@@ -272,6 +274,16 @@ jobs:
       # new CVEs are disclosed.
       - name: Prove gate behaviour (planted finding / clean SBOM)
         run: ./scripts/grype-scan.test.sh
+
+      # Mirrors `cgs vex:check`: fail if any VEX statement no longer matches a
+      # current finding (a stale/orphaned suppression — the dependency was fixed
+      # or its version moved). Keeps /vex.openvex.json honest as deps change.
+      - name: Verify VEX statements are not stale
+        run: ./scripts/vex-check.sh
+
+      # Proves the guard: a statement matching a live finding passes, an orphan fails.
+      - name: Prove VEX guard behaviour (live / orphan)
+        run: ./scripts/vex-check.test.sh
 
   # -- Back-end RustSec gate (#139, ADR-0022): cargo-audit scans backend/Cargo.lock
   #    against the RustSec advisory database. `--deny warnings` fails on ANY

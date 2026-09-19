@@ -50,6 +50,10 @@ package.json scripts (ADR-0010 addendum).
 | `cgs sbom`            | Regenerate `/sbom.cdx.json` (project-wide SBOM) |
 | `cgs sbom:check`      | Verify `/sbom.cdx.json` is current (CI guard)  |
 | `cgs scan`            | Scan `/sbom.cdx.json` with grype (fail on high/critical) |
+| `cgs vex`             | Show the VEX maintenance cheat-sheet (find/add/rm/check/scan) |
+| `cgs vex:check`       | Verify VEX statements still match current findings (CI guard) |
+| `cgs vex:add`         | Append a VEX statement via vexctl (`-e VEX_PRODUCT=… -e VEX_VULN=…`) |
+| `cgs vex:rm`          | Remove a VEX statement by advisory id (`-e VEX_VULN=…`) |
 
 Single-side work: `cd frontend` or `cd backend` and use `cgs …` (both subtrees now
 expose a `cgs` surface); `vpr …` still works in `frontend/`. See the subtree

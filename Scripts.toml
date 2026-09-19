@@ -20,6 +20,10 @@
 sbom = { command = "./scripts/sbom.sh write", info = "Regenerate the project-wide CycloneDX SBOM at /sbom.cdx.json (syft + normalize)" }
 "sbom:check" = { command = "./scripts/sbom.sh check", info = "Verify /sbom.cdx.json is current (CI drift guard)" }
 scan = { command = "./scripts/grype-scan.sh", info = "Scan /sbom.cdx.json with grype; fail on high/critical vulnerabilities (grype exit 2)" }
+vex = { command = "./scripts/vex-help.sh", info = "Show the VEX maintenance cheat-sheet (find values / add / rm / check / scan)" }
+"vex:check" = { command = "./scripts/vex-check.sh", info = "Verify every VEX statement in /vex.openvex.json still matches a current finding (CI guard)" }
+"vex:add" = { command = "./scripts/vex-add.sh", info = "Append a VEX statement to /vex.openvex.json via vexctl (pass fields with -e VEX_PRODUCT=... -e VEX_VULN=...)" }
+"vex:rm" = { command = "./scripts/vex-rm.sh", info = "Remove a VEX statement from /vex.openvex.json by advisory id (-e VEX_VULN=... [-e VEX_PRODUCT=...])" }
 bindings = { command = "(cd backend && cgs bindings)", info = "Regenerate ts-rs bindings (backend)" }
 build = { command = "(cd frontend && cgs build) && (cd backend && cgs build)", info = "Build both subtrees" }
 check = { command = "(cd frontend && cgs check) && (cd backend && cgs check)", info = "Format + lint + type-check both subtrees" }

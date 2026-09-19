@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 #
 # Test for the project-wide vulnerability gate (grype, ADR-0022 / spec #137, T2;
-# #142). Proves the four exit-code branches the CI `grype-scan` job depends on:
+# #142). Proves the five behaviours the CI `grype-scan` job depends on:
 #   1. Finding    — a planted high/critical vulnerability fails the gate (grype 2).
 #   2. Clean      — an SBOM with no known vulnerability passes the gate (grype 0).
 #   3. DB upgrade — grype exit 100 passes with a notice, NOT a failure.
 #   4. Tool error — any other non-zero exit fails the gate as a tool error.
+#   5. VEX        — a `not_affected` VEX statement drops an otherwise-gating finding.
 #
 # Cases 1-2 run the REAL grype against fixtures, so they prove grype integration.
 # Fixtures are minimal CycloneDX 1.6 SBOMs, not the real /sbom.cdx.json: the real
@@ -52,7 +53,7 @@ STUB
   if REPORT="$(PATH="$STUB_DIR:$PATH" "$SCAN" "$FIX/clean.cdx.json" 2>&1)"; then RC=0; else RC=$?; fi
 }
 
-echo "1/4 finding: the vuln fixture must fail the gate"
+echo "1/5 finding: the vuln fixture must fail the gate"
 run_gate "$FIX/vuln.cdx.json"
 # Two assertions, like the sibling gate tests: a grype-native token
 # (`log4j-core`, the planted package) proves grype actually MATCHED the finding,
@@ -66,7 +67,7 @@ if [[ "$RC" -eq 0 ]] \
 fi
 echo "  ok — finding trips the gate"
 
-echo "2/4 clean: the clean fixture must pass the gate"
+echo "2/5 clean: the clean fixture must pass the gate"
 run_gate "$FIX/clean.cdx.json"
 if [[ "$RC" -ne 0 ]] || ! grep -q "no high or critical vulnerabilities" <<<"$REPORT"; then
   echo "FAIL: the gate did not pass on a clean SBOM (rc=$RC)." >&2
@@ -75,7 +76,7 @@ if [[ "$RC" -ne 0 ]] || ! grep -q "no high or critical vulnerabilities" <<<"$REP
 fi
 echo "  ok — clean SBOM passes"
 
-echo "3/4 DB upgrade: grype exit 100 must pass with a notice, not fail"
+echo "3/5 DB upgrade: grype exit 100 must pass with a notice, not fail"
 run_gate_stub 100
 if [[ "$RC" -ne 0 ]] || ! grep -q "DB upgrade is available" <<<"$REPORT"; then
   echo "FAIL: exit 100 did not pass with the DB-upgrade notice (rc=$RC)." >&2
@@ -84,7 +85,7 @@ if [[ "$RC" -ne 0 ]] || ! grep -q "DB upgrade is available" <<<"$REPORT"; then
 fi
 echo "  ok — exit 100 passes with a notice"
 
-echo "4/4 tool error: any other non-zero exit must fail as a tool error"
+echo "4/5 tool error: any other non-zero exit must fail as a tool error"
 run_gate_stub 1
 if [[ "$RC" -eq 0 ]] || ! grep -q "tool error" <<<"$REPORT"; then
   echo "FAIL: a tool error did not fail the gate with the tool-error marker (rc=$RC)." >&2
@@ -92,5 +93,35 @@ if [[ "$RC" -eq 0 ]] || ! grep -q "tool error" <<<"$REPORT"; then
   exit 1
 fi
 echo "  ok — tool error fails distinctly"
+
+echo "5/5 VEX: a not_affected statement must drop the otherwise-gating finding"
+# Case 1 proved the vuln fixture fails the gate. Build a VEX marking every
+# high/critical on log4j-core as not_affected — its IDs are read from grype so the
+# test does not hard-code advisory IDs that drift — then point the gate at it via
+# GRYPE_VEX_FILE. The gate must now pass, proving the --vex wiring filters findings.
+vex_doc="$STUB_DIR/suppress.vex.json"
+purl="pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1"
+ids="$(grype "sbom:$FIX/vuln.cdx.json" -o json 2>/dev/null \
+  | jq '[.matches[] | select(.vulnerability.severity=="High" or .vulnerability.severity=="Critical") | .vulnerability.id] | unique')"
+jq -n --argjson ids "$ids" --arg purl "$purl" '{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "vex-test-suppress",
+  author: "grype-scan.test.sh",
+  timestamp: "2026-09-19T00:00:00Z",
+  version: 1,
+  statements: ($ids | map({
+    vulnerability: { name: . },
+    products: [ { "@id": $purl, identifiers: { purl: $purl } } ],
+    status: "not_affected",
+    justification: "vulnerable_code_not_in_execute_path"
+  }))
+}' > "$vex_doc"
+if REPORT="$(GRYPE_VEX_FILE="$vex_doc" "$SCAN" "$FIX/vuln.cdx.json" 2>&1)"; then RC=0; else RC=$?; fi
+if [[ "$RC" -ne 0 ]] || ! grep -q "no high or critical vulnerabilities" <<<"$REPORT"; then
+  echo "FAIL: a not_affected VEX did not suppress the gating finding (rc=$RC)." >&2
+  echo "$REPORT" >&2
+  exit 1
+fi
+echo "  ok — VEX not_affected drops the finding"
 
 echo "PASS"

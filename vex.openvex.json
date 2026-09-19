@@ -1,0 +1,26 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/gihrig/SolidStart-Demo/security/vex/openvex",
+  "author": "SolidStart-Demo maintainers",
+  "role": "Project maintainers",
+  "timestamp": "2026-09-19T00:00:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "GHSA-67mh-4wv8-2f99",
+        "description": "esbuild enables any website to send any requests to the development server and read the response"
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/esbuild@0.18.7",
+          "identifiers": { "purl": "pkg:npm/esbuild@0.18.7" }
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "esbuild 0.18.7 is a build-time-only transitive dependency of @vinxi/plugin-mdx, used solely for MDX-to-JS transform during the build. The advisory affects esbuild's development server (`esbuild serve`), which this project never starts. The vulnerable code is therefore never in the execution path. There is no fix reachable by upgrade: @vinxi/plugin-mdx 3.7.2 (the latest release) pins esbuild to exactly 0.18.7, and a bun override would downgrade vite's own newer esbuild copies.",
+      "timestamp": "2026-09-19T00:00:00Z"
+    }
+  ]
+}
