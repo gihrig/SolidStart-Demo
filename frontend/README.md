@@ -49,6 +49,13 @@ See [json-client-rpc](https://github.com/pkoretic/json_rpc)
 4. Error Handling: RPC calls can throw; handle with try-catch or Solid's error boundaries
 5. SolidStart Integration: Use createResource for reactive data fetching
 
+## Security scanning
+
+The root [`README.md`](../README.md#security-scanning) documents the full
+security posture: the SBOM, every scan, its `cgs` command, and the four
+run-surfaces (local, pre-push, PR, daily schedule). The front-end dependencies
+appear in the shared SBOM (`/sbom.cdx.json`) that `cgs scan` gates.
+
 ## Developing
 
 Once you've created a project, etc. as in `Creating a project` above:

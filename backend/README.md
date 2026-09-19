@@ -200,6 +200,10 @@ codegen-units = 1
 panic = "abort"
 ```
 
+The root [`README.md`](../README.md#security-scanning) documents the full
+security posture: the SBOM, every scan, its `cgs` command, and the four
+run-surfaces (local, pre-push, PR, daily schedule).
+
 These Rust security crates are wired in (ADR-0022; `cgs` recipe + CI job each).
 "Gate" fails the build; "report" surfaces findings without blocking merge.
 
