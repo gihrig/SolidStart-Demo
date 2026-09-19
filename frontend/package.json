@@ -8,6 +8,7 @@
     "check:type": "vpx tsc --noEmit",
     "dev": "vinxi dev",
     "lighthouse": "concurrently -g 'vinxi build' 'vinxi start' 'CHROME_PATH=\"/Applications/Brave Browser.app/Contents/MacOS/Brave Browser\" lighthouse http://localhost:3000 --output html --output-path ./reports/lighthouse/lighthouse-report.html --view'",
+    "prepare": "vp config --no-agent",
     "start": "vinxi start",
     "test:all": "vp test",
     "test:all:watch": "vp test --watch",
