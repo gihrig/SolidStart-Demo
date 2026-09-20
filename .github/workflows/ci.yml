@@ -495,10 +495,11 @@ jobs:
         with:
           toolchain: stable
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
-        with:
-          workspaces: backend
-
+      # No Swatinem/rust-cache here on purpose. That action prunes the registry
+      # `src/` (re-extractable from the .crate archives), but cargo-geiger reads
+      # crate source files directly to count `unsafe`. A restored cache can then
+      # miss a crate's `src/lib.rs` and the scan fails (seen: tinyvec_macros
+      # NotFound). A fresh, complete registry keeps this report-only job reliable.
       - name: Install cargo-geiger (pinned)
         run: cargo install cargo-geiger --version 0.12.0 --locked
 
