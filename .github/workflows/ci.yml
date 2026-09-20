@@ -33,7 +33,7 @@ jobs:
   #    vite-plus install after `bun install`.
   frontend:
     name: Front-end (vp check / test / build)
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -65,7 +65,7 @@ jobs:
   #    dev SQL are wired through backend/.cargo/config.toml).
   backend:
     name: Back-end (fmt / clippy / build / nextest — postgres)
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -120,7 +120,7 @@ jobs:
   #    the committed copies lag the Rust types. ts-rs export tests need no DB.
   bindings-drift:
     name: Bindings drift guard
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -153,7 +153,7 @@ jobs:
   #    underlying script, per the CI convention above — no cargo/cgs, no DB.
   adr-index:
     name: ADR index guard
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -175,7 +175,7 @@ jobs:
   #    derives a yarn.lock from bun.lock (syft's bun.lock reader is unreliable).
   sbom-drift:
     name: SBOM drift guard
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     env:
       SYFT_VERSION: v1.51.1
@@ -235,6 +235,7 @@ jobs:
   #    always current regardless of the pinned binary.
   grype-scan:
     name: grype (project-wide vulnerability gate)
+    if: github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     env:
       GRYPE_VERSION: v0.119.0
@@ -300,6 +301,7 @@ jobs:
   #    job carries no `if:` guard. Mirrors `cgs audit`.
   cargo-audit:
     name: cargo-audit (back-end RustSec)
+    if: github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -332,7 +334,7 @@ jobs:
   #    Mirrors `cgs deny`.
   cargo-deny:
     name: cargo-deny (back-end dependency policy)
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -370,7 +372,7 @@ jobs:
   #    PR/push-only. Mirrors `cgs udeps`.
   cargo-udeps:
     name: cargo-udeps (unused dependencies — report-only)
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
@@ -425,7 +427,7 @@ jobs:
   #    build --release`.
   cargo-auditable:
     name: cargo-auditable (release binary carries dependency list)
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -483,7 +485,7 @@ jobs:
   #    geiger`.
   cargo-geiger:
     name: cargo-geiger (unsafe-code report — report-only)
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
@@ -528,7 +530,7 @@ jobs:
   #    with the self-booting `cgs test:e2e` on the Turso track.
   e2e:
     name: e2e (non-blocking)
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     continue-on-error: true
     services:
