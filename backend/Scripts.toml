@@ -13,7 +13,7 @@ deny = { command = "cargo deny check licenses bans sources", info = "Dependency-
 dev = { command = "cargo run -p web-server", info = "Start a dev server" }
 dev-watch = { command = "cargo watch -q -c -w crates/services/web-server/src/ -w crates/libs/ -w .cargo/ -x 'run -p web-server'", info = "Start dev server in watch mode" }
 doc = { command = "cargo doc --no-deps --open", info = "Build project documentation" }
-geiger = { command = "(cd crates/services/web-server && cargo geiger || true)", info = "Unsafe-code for web-server + deps (report-only; run in ./backend)" }
+geiger = { command = "(cd crates/services/web-server && cargo geiger -q 2>/dev/null || true)", info = "Unsafe-code for web-server + deps (report-only; ≅ 2 min.)" }
 quick = { command = "cargo run -p web-server --example quick_dev", info = "Run the quick-dev example program" }
 release = { command = "cargo auditable build --release", info = "Build in release mode with an embedded dependency list (needs cargo-auditable)" }
 start = { command = "cargo auditable run -p web-server --release", info = "Build release /w dependency list; run web-server (requires Postgres)" }
