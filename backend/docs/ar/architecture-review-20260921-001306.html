@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Architecture review — lib-core</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose", flowchart: { curve: "basis" } });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 5 5; }
+      .deep { background: linear-gradient(135deg, #020617, #0f172a); }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .card-mermaid .mermaid { display: flex; justify-content: center; }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-100 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-14">
+
+      <!-- ============ HEADER ============ -->
+      <header class="space-y-6">
+        <div class="flex items-baseline justify-between flex-wrap gap-3">
+          <h1 class="text-4xl font-serif tracking-tight text-slate-50">Architecture review — <span class="mono text-indigo-400">lib-core</span></h1>
+          <span class="text-sm text-slate-500">2026-09-21 · issue #165 · continues C-09</span>
+        </div>
+        <p class="text-slate-400 max-w-3xl">
+          Deepening pass on <span class="mono text-sm text-slate-300">backend/crates/libs/lib-core</span> (the domain / model / store crate).
+          The mechanical <span class="mono text-sm text-slate-300">mod.rs</span> pass (#161) already landed.
+          <span class="text-slate-300">lib-core is a faithful rust10x model layer — deeply layered already</span>: the generic
+          <span class="mono text-xs text-slate-300">base</span> CRUD sits behind <span class="mono text-xs text-slate-300">DbBmc</span>, the
+          <span class="mono text-xs text-slate-300">store</span> is private, and each entity BMC hides real work (the
+          <span class="mono text-xs text-slate-300">PostView</span> assembly is a deep module). So these candidates target internal
+          <em>locality</em> and interface <em>curation</em>, not a shallow public seam. The one large shallowness — Postgres welded
+          through every layer — is <span class="text-amber-300">already owned by ADR-0012</span> and deferred (see C-12).
+        </p>
+        <!-- legend -->
+        <div class="flex flex-wrap gap-5 text-xs uppercase tracking-wider text-slate-500 border-t border-b border-slate-800 py-3">
+          <span class="flex items-center gap-2"><span class="inline-block w-6 h-4 border-2 border-slate-500 rounded-sm"></span>module</span>
+          <span class="flex items-center gap-2"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="#94a3b8" stroke-width="2" class="seam"/></svg>seam</span>
+          <span class="flex items-center gap-2"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="#ef4444" stroke-width="2"/></svg>leak</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-6 h-4 rounded-sm deep border border-slate-700"></span>deep module</span>
+        </div>
+      </header>
+
+      <!-- ============ CANDIDATES ============ -->
+      <section id="candidates" class="space-y-12">
+
+        <!-- ===================== C-10 ===================== -->
+        <article id="c10" class="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
+          <div class="p-7 space-y-6">
+            <div class="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <div class="text-xs uppercase tracking-widest text-slate-500 mb-1">Candidate C-10</div>
+                <h2 class="text-2xl font-serif text-slate-100">Give the Post child-tables a typed BMC owner</h2>
+              </div>
+              <div class="flex gap-2 flex-wrap">
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-amber-400/15 text-amber-300">Worth exploring</span>
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">locality</span>
+              </div>
+            </div>
+
+            <div class="mono text-sm text-slate-500 space-y-0.5">
+              <div>model/post.rs</div>
+              <div>model/base/bmc.rs <span class="text-slate-600">(DbBmc::table_ref — the identity seam)</span></div>
+            </div>
+
+            <!-- before / after : hand-built boxes -->
+            <div class="grid md:grid-cols-2 gap-4">
+              <!-- BEFORE -->
+              <div class="rounded-xl border border-slate-800 p-4">
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — table identity smeared as strings</div>
+                <div class="space-y-2" style="min-height:250px">
+                  <div class="border-2 border-slate-600 rounded-lg p-3 bg-slate-800/40">
+                    <div class="text-xs uppercase tracking-wider text-slate-400 mb-2 mono">post.rs — one table named 4 ways</div>
+                    <ul class="text-[11px] space-y-1.5 text-slate-300">
+                      <li class="bg-red-500/10 border border-red-500/30 rounded px-2 py-1"><span class="text-slate-400">ranked_post_ids</span><br><span class="mono text-red-200">.from(Alias::new("post_like"))</span></li>
+                      <li class="bg-red-500/10 border border-red-500/30 rounded px-2 py-1"><span class="text-slate-400">assemble_views</span><br><span class="mono text-red-200">counts_by_post(mm, "post_like", …)</span></li>
+                      <li class="bg-red-500/10 border border-red-500/30 rounded px-2 py-1"><span class="text-slate-400">assemble_views</span><br><span class="mono text-red-200">counts_by_post(mm, "post_comment", …)</span></li>
+                      <li class="bg-red-500/10 border border-red-500/30 rounded px-2 py-1"><span class="text-slate-400">test seed</span><br><span class="mono text-red-200">"INSERT INTO post_like …"</span></li>
+                    </ul>
+                  </div>
+                  <div class="border-2 border-slate-600 rounded-lg p-3 bg-slate-800/40">
+                    <div class="text-xs uppercase tracking-wider text-slate-400 mb-1 mono">the typed owner exists — and is bypassed</div>
+                    <div class="text-[11px] text-slate-300 space-y-1">
+                      <div class="bg-indigo-400/10 border border-indigo-500/30 rounded px-2 py-1 mono">struct PostCategoryBmc; TABLE = "post_category"</div>
+                      <div class="flex items-center gap-2 text-red-400 mt-1">
+                        <svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#ef4444" stroke-width="2"/><polygon points="24,5 18,2 18,8" fill="#ef4444"/></svg>
+                        <span class="mono text-[11px] text-red-200">post_category_links: .from(Alias::new("post_category"))</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- AFTER -->
+              <div class="rounded-xl border border-slate-800 p-4">
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — identity behind one small seam</div>
+                <div class="flex flex-col gap-3" style="min-height:250px">
+                  <div class="deep text-white rounded-lg p-4 border border-slate-700">
+                    <div class="text-xs uppercase tracking-wider text-slate-400 mb-2 mono">child-table BMCs (deep)</div>
+                    <div class="text-[11px] text-slate-200 space-y-1 mono">
+                      <div>PostCategoryBmc &nbsp;TABLE = "post_category"</div>
+                      <div>PostLikeBmc &nbsp;&nbsp;&nbsp;&nbsp;TABLE = "post_like"</div>
+                      <div>PostCommentBmc &nbsp;TABLE = "post_comment"</div>
+                    </div>
+                    <div class="mt-3 text-[11px] text-emerald-300 mono">one table name, one place — via DbBmc::table_ref()</div>
+                  </div>
+                  <div class="text-center text-slate-600 text-xs">helpers take ↓ a type, not a string</div>
+                  <div class="border-2 border-slate-600 rounded-lg p-3 bg-slate-800/40">
+                    <div class="text-[11px] text-slate-300 space-y-1 mono">
+                      <div>counts_by_post::&lt;PostLikeBmc&gt;(mm, ids)</div>
+                      <div>links.from(PostCategoryBmc::table_ref())</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+              <div>
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</div>
+                <p class="text-slate-300">The tables <span class="mono text-xs text-slate-200">post_like</span> / <span class="mono text-xs text-slate-200">post_comment</span> / <span class="mono text-xs text-slate-200">post_category</span> are named as string literals in four spots, and <span class="mono text-xs text-slate-200">PostCategoryBmc</span> — the typed owner that already exists — is bypassed with <span class="mono text-xs text-slate-200">Alias::new("post_category")</span>.</p>
+              </div>
+              <div>
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</div>
+                <p class="text-slate-300">Add <span class="mono text-xs text-slate-200">PostLikeBmc</span> / <span class="mono text-xs text-slate-200">PostCommentBmc</span> marker BMCs (like <span class="mono text-xs text-slate-200">PostCategoryBmc</span>), make <span class="mono text-xs text-slate-200">counts_by_post</span> take <span class="mono text-xs text-slate-200">MC: DbBmc</span>, and route every read through <span class="mono text-xs text-slate-200">MC::table_ref()</span>.</p>
+              </div>
+              <div class="sm:col-span-2">
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</div>
+                <ul class="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-slate-300 text-sm list-disc list-inside marker:text-emerald-400">
+                  <li>locality: each table name lives in one BMC</li>
+                  <li>the like / comment write path (#118, #122) reuses the seam</li>
+                  <li>the compiler, not a string, checks the table</li>
+                  <li>kills the defined-but-bypassed <span class="mono text-xs">PostCategoryBmc</span></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="rounded-lg bg-slate-800/60 border border-slate-700 p-3 text-xs text-slate-400">
+              <span class="font-semibold text-slate-200">Deletion test:</span> weak leverage today — the counts feed one caller (<span class="mono">assemble_views</span>). The win is locality now, and a real seam once <span class="mono">post_like</span> / <span class="mono">post_comment</span> gain a write path (#118, #122). The tell that it is not speculative: <span class="mono">post.rs:585</span> already notes “<span class="mono">post_like</span> has no Bmc yet (#118)”, and <span class="mono">PostCategoryBmc</span> is defined at <span class="mono">post.rs:128</span> yet bypassed at <span class="mono">post.rs:528</span>.
+            </div>
+          </div>
+        </article>
+
+        <!-- ===================== C-11 ===================== -->
+        <article id="c11" class="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
+          <div class="p-7 space-y-6">
+            <div class="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <div class="text-xs uppercase tracking-widest text-slate-500 mb-1">Candidate C-11</div>
+                <h2 class="text-2xl font-serif text-slate-100">Shrink the model seam to what callers use</h2>
+              </div>
+              <div class="flex gap-2 flex-wrap">
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-amber-400/15 text-amber-300">Worth exploring</span>
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">curation</span>
+              </div>
+            </div>
+
+            <div class="mono text-sm text-slate-500 space-y-0.5">
+              <div>model/mod.rs</div>
+              <div>model/modql_utils.rs</div>
+            </div>
+
+            <!-- before / after : mass diagram (interface vs implementation) -->
+            <div class="grid md:grid-cols-2 gap-4">
+              <div class="rounded-xl border border-slate-800 p-4">
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — an internal helper on the public seam</div>
+                <div class="flex gap-3 items-end" style="min-height:250px">
+                  <div class="flex-1 flex flex-col justify-end">
+                    <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1 text-center">interface (pub)</div>
+                    <div class="border-2 border-red-500/50 bg-red-500/10 rounded-lg p-2 text-[11px] text-slate-200 mono space-y-1" style="height:200px">
+                      <div>ModelManager · Ctx</div>
+                      <div>agent · category · conv</div>
+                      <div>conv_msg · post · user</div>
+                      <div class="bg-red-500/25 border border-red-500/50 rounded px-1">pub mod modql_utils ←</div>
+                      <div class="text-red-200 text-[10px]">time_to_sea_value (internal)</div>
+                    </div>
+                  </div>
+                  <div class="flex-1 flex flex-col justify-end">
+                    <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1 text-center">implementation</div>
+                    <div class="border-2 border-slate-600 bg-slate-800/40 rounded-lg p-2 text-[11px] text-slate-400" style="height:120px">base · store · acs (private ✓)</div>
+                  </div>
+                </div>
+              </div>
+              <div class="rounded-xl border border-slate-800 p-4">
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — helper tucked inside</div>
+                <div class="flex gap-3 items-end" style="min-height:250px">
+                  <div class="flex-1 flex flex-col justify-end">
+                    <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1 text-center">interface (pub)</div>
+                    <div class="border-2 border-emerald-500/50 bg-emerald-500/10 rounded-lg p-2 text-[11px] text-slate-200 mono space-y-1" style="height:150px">
+                      <div>ModelManager · Ctx</div>
+                      <div>agent · category · conv</div>
+                      <div>conv_msg · post · user</div>
+                    </div>
+                  </div>
+                  <div class="flex-1 flex flex-col justify-end">
+                    <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1 text-center">implementation</div>
+                    <div class="border-2 border-slate-600 bg-slate-800/40 rounded-lg p-2 text-[11px] text-slate-400" style="height:170px">base · store · acs<br><span class="text-emerald-300">+ modql_utils (pub(crate))</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+              <div>
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</div>
+                <p class="text-slate-300"><span class="mono text-xs text-slate-200">model/mod.rs:33</span> declares <span class="mono text-xs text-slate-200">pub mod modql_utils;</span>, but its only item, <span class="mono text-xs text-slate-200">time_to_sea_value</span>, is a sea-query decode helper used only inside the crate. No consumer imports it.</p>
+              </div>
+              <div>
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</div>
+                <p class="text-slate-300">Tighten <span class="mono text-xs text-slate-200">modql_utils</span> to <span class="mono text-xs text-slate-200">pub(crate)</span>. The entity files keep their <span class="mono text-xs text-slate-200">use crate::model::modql_utils::time_to_sea_value;</span> unchanged.</p>
+              </div>
+              <div class="sm:col-span-2">
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</div>
+                <ul class="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-slate-300 text-sm list-disc list-inside marker:text-emerald-400">
+                  <li>interface shrinks; implementation keeps the helper</li>
+                  <li>serves #165’s “curated public API” criterion</li>
+                  <li>the seam reads as: ModelManager, Ctx, BMCs</li>
+                  <li>low risk: an in-crate <span class="mono text-xs">use</span> path, not the export surface</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="rounded-lg bg-slate-800/60 border border-slate-700 p-3 text-xs text-slate-400">
+              <span class="font-semibold text-slate-200">Adjacent (note, not this pass):</span> <span class="mono">model/mod.rs:32</span> also exposes <span class="mono">pub mod conv_user;</span>, whose <span class="mono">ConvUserBmc</span> is unimplemented scaffolding (<span class="mono">conv_user.rs:51</span>) that the Jedi merge drops (#106, every Post public). Retiring it belongs to the merge, not this curation pass.
+            </div>
+          </div>
+        </article>
+
+        <!-- ===================== C-12 ===================== -->
+        <article id="c12" class="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
+          <div class="p-7 space-y-6">
+            <div class="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <div class="text-xs uppercase tracking-widest text-slate-500 mb-1">Candidate C-12</div>
+                <h2 class="text-2xl font-serif text-slate-100">The store is welded to Postgres — but ADR-0012 owns it</h2>
+              </div>
+              <div class="flex gap-2 flex-wrap">
+                <span class="text-xs font-semibold uppercase tracking-wide bg-slate-700 text-slate-200 rounded-full px-3 py-1">⏸ Deferred</span>
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">ports &amp; adapters</span>
+              </div>
+            </div>
+
+            <div class="mono text-sm text-slate-500 space-y-0.5">
+              <div>model/store/pool.rs · model/store/dbx/executor.rs</div>
+              <div>model/base/crud_fns.rs · every model/*.rs (FromRow&lt;PgRow&gt;)</div>
+            </div>
+
+            <!-- cross-section: Postgres stamped through every band -->
+            <div class="rounded-xl border border-slate-800 p-4">
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Cross-section — one driver threaded through every layer</div>
+              <div class="space-y-1.5">
+                <div class="flex items-center gap-3 border-l-4 border-red-500/60 bg-slate-800/40 rounded-r px-3 py-2">
+                  <span class="text-[11px] uppercase tracking-wider text-slate-400 w-40 mono">model/*.rs decode</span>
+                  <span class="mono text-[11px] text-red-200">E: for&lt;'r&gt; FromRow&lt;'r, PgRow&gt;</span>
+                </div>
+                <div class="flex items-center gap-3 border-l-4 border-red-500/60 bg-slate-800/40 rounded-r px-3 py-2">
+                  <span class="text-[11px] uppercase tracking-wider text-slate-400 w-40 mono">base/crud_fns.rs</span>
+                  <span class="mono text-[11px] text-red-200">build_sqlx(PostgresQueryBuilder)</span>
+                </div>
+                <div class="flex items-center gap-3 border-l-4 border-red-500/60 bg-slate-800/40 rounded-r px-3 py-2">
+                  <span class="text-[11px] uppercase tracking-wider text-slate-400 w-40 mono">store/dbx/executor.rs</span>
+                  <span class="mono text-[11px] text-red-200">QueryAs&lt;'q, Postgres, …&gt; · Transaction&lt;'static, Postgres&gt;</span>
+                </div>
+                <div class="flex items-center gap-3 border-l-4 border-red-500/60 bg-slate-800/40 rounded-r px-3 py-2">
+                  <span class="text-[11px] uppercase tracking-wider text-slate-400 w-40 mono">store/pool.rs</span>
+                  <span class="mono text-[11px] text-red-200">pub type Db = Pool&lt;Postgres&gt;</span>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-3">The interface (<span class="mono">DbBmc</span>, <span class="mono">ModelManager</span>) is small, but the implementation names one concrete driver at every band — a real, wide shallowness. A second backend has no seam to enter.</p>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+              <div>
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Why it is deferred, not proposed</div>
+                <p class="text-slate-300">ADR-0012 already maps this exact coupling and calls it “<span class="italic">total, not one module</span>”. It picks a <span class="mono text-xs text-slate-200">cfg</span>-selected backend module at <em>compile time</em>, and explicitly rejects the runtime trait / <span class="mono text-xs text-slate-200">sqlx::Any</span> shape.</p>
+              </div>
+              <div>
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Scope</div>
+                <p class="text-slate-300">ADR-0012 breaks this out into “<span class="italic">its own back-end-expansion track</span>”, separate from the Jedi merge. It is not part of the #165 clean-architecture pass, and a runtime-trait version would fight the decision (as C-08 / C-09 fought the blueprint).</p>
+              </div>
+            </div>
+
+            <div class="rounded-lg bg-amber-400/10 border border-amber-500/40 p-3 text-sm text-amber-100">
+              <span class="font-semibold text-amber-200">⚠ Contradicts nothing worth reopening.</span> This card exists so a future review sees the coupling was <em>observed</em> and is <em>owned</em> by <a href="../../../docs/adr/0012-postgres-turso-db-swap-seam.md" class="underline">ADR-0012</a> (2026-09-19). Do not re-suggest a store trait here — take it on the Turso track, per the ADR.
+            </div>
+          </div>
+        </article>
+
+      </section>
+
+      <!-- ============ TOP RECOMMENDATION ============ -->
+      <section id="top-recommendation">
+        <div class="rounded-2xl deep text-white p-8 shadow-md border border-slate-700">
+          <div class="text-xs uppercase tracking-widest text-emerald-300 mb-2">Top recommendation</div>
+          <h2 class="text-2xl font-serif mb-3 text-slate-50"><a href="#c10" class="underline decoration-emerald-400 underline-offset-4">C-10 — give the Post child-tables a typed BMC owner</a></h2>
+          <p class="text-slate-300 text-sm max-w-3xl">
+            C-10 is the closest match to issue #165’s “BMC ownership”, and it follows the shipped
+            <a href="../../../docs/adr/0023-typed-scheme-name-lib-auth.md" class="underline decoration-emerald-400">C-07</a> pattern:
+            concentrate a scattered identity behind one small seam. It is in-process, blueprint-faithful, and it pays forward into the
+            like / comment write path (#118, #122).
+            <span class="block mt-2">Pair it with <a href="#c11" class="underline decoration-emerald-400">C-11</a> — a one-line
+            curation (<span class="mono">pub mod modql_utils</span> → <span class="mono">pub(crate)</span>) that directly serves the
+            “curated public API” criterion. <a href="#c12" class="underline decoration-amber-300">C-12</a> is the real big shallowness,
+            but it stays on ADR-0012’s Turso track — out of scope here.</span>
+          </p>
+        </div>
+      </section>
+
+      <footer class="text-center text-xs text-slate-600 pt-6">
+        lib-core · rust-clean-architecture pass · candidates C-10 · C-11 · C-12 (C-12 deferred to ADR-0012)
+      </footer>
+
+    </main>
+  </body>
+</html>
