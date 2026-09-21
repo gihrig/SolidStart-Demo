@@ -33,3 +33,4 @@ flat "what has been decided" view.
 | [0021](0021-public-projection-surface-selected.md) | The public read is a per-entity public projection, audit visibility selected by surface | Accepted |
 | [0022](0022-fullstack-sbom-vuln-scanning-syft-grype.md) | Full-stack SBOM + vulnerability scanning with syft + grype; Snyk abandoned | Accepted |
 | [0023](0023-typed-scheme-name-lib-auth.md) | The lib-auth password scheme is a typed `SchemeName`, identity owned by the scheme module | Accepted |
+| [0024](0024-typed-bmc-owner-post-child-tables.md) | The Post child tables own their table identity through typed marker BMCs, routed via `table_ref()` | Accepted |
