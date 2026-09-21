@@ -1,7 +1,6 @@
-use super::scheme::{get_scheme, Scheme, DEFAULT_SCHEME};
+use super::pwd_parts::PwdParts;
+use super::scheme::{get_scheme, Scheme, SchemeName, DEFAULT_SCHEME};
 use super::{Error, Result, SchemeStatus};
-use lazy_regex::regex_captures;
-use std::str::FromStr;
 use uuid::Uuid;
 
 // region:    --- Types
@@ -33,69 +32,38 @@ pub async fn validate_pwd(
 	to_hash: ContentToHash,
 	pwd_ref: String,
 ) -> Result<SchemeStatus> {
-	let PwdParts {
-		scheme_name,
-		hashed,
-	} = pwd_ref.parse()?;
+	let PwdParts { scheme, hashed } = pwd_ref.parse()?;
 
-	// Note: We do first, so that we do not have to clonse the scheme_name.
-	let scheme_status = if scheme_name == DEFAULT_SCHEME {
-		SchemeStatus::Ok
-	} else {
-		SchemeStatus::Outdated
-	};
+	// Determine status before validating, from the parsed scheme.
+	let scheme_status = scheme.status();
 
 	// Note: Since validate might take some time depending on algo
 	//       doing a spawn_blocking to avoid
 	tokio::task::spawn_blocking(move || {
-		validate_for_scheme(&scheme_name, to_hash, hashed)
+		validate_for_scheme(scheme, to_hash, hashed)
 	})
 	.await
 	.map_err(|_| Error::FailSpawnBlockForValidate)??;
 
-	// validate_for_scheme(&scheme_name, to_hash, &hashed).await?;
 	Ok(scheme_status)
 }
 // endregion: --- Public Functions
 
 // region:    --- Privates
 
-fn hash_for_scheme(scheme_name: &str, to_hash: ContentToHash) -> Result<String> {
-	let pwd_hashed = get_scheme(scheme_name)?.hash(&to_hash)?;
+fn hash_for_scheme(scheme: SchemeName, to_hash: ContentToHash) -> Result<String> {
+	let hashed = get_scheme(scheme).hash(&to_hash)?;
 
-	Ok(format!("#{scheme_name}#{pwd_hashed}"))
+	Ok(PwdParts { scheme, hashed }.to_string())
 }
 
 fn validate_for_scheme(
-	scheme_name: &str,
+	scheme: SchemeName,
 	to_hash: ContentToHash,
 	pwd_ref: String,
 ) -> Result<()> {
-	get_scheme(scheme_name)?.validate(&to_hash, &pwd_ref)?;
+	get_scheme(scheme).validate(&to_hash, &pwd_ref)?;
 	Ok(())
-}
-
-struct PwdParts {
-	/// The scheme only (e.g., "01")
-	scheme_name: String,
-	/// The hashed password,
-	hashed: String,
-}
-
-impl FromStr for PwdParts {
-	type Err = Error;
-
-	fn from_str(pwd_with_scheme: &str) -> Result<Self> {
-		regex_captures!(
-			r#"^#(\w+)#(.*)"#, // a literal regex
-			pwd_with_scheme
-		)
-		.map(|(_, scheme, hashed)| Self {
-			scheme_name: scheme.to_string(),
-			hashed: hashed.to_string(),
-		})
-		.ok_or(Error::PwdWithSchemeFailedParse)
-	}
 }
 
 // endregion: --- Privates
@@ -118,7 +86,7 @@ mod tests {
 		};
 
 		// -- Exec
-		let pwd_hashed = hash_for_scheme("01", fx_to_hash.clone())?;
+		let pwd_hashed = hash_for_scheme(SchemeName::Scheme01, fx_to_hash.clone())?;
 		let pwd_validate = validate_pwd(fx_to_hash.clone(), pwd_hashed).await?;
 
 		// -- Check

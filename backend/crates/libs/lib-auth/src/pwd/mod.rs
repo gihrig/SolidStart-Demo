@@ -18,6 +18,7 @@
 
 mod error;
 mod hasher;
+mod pwd_parts;
 mod scheme;
 
 pub use self::error::{Error, Result};

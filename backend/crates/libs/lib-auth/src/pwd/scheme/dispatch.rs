@@ -1,16 +1,8 @@
 use super::scheme_01::Scheme01;
 use super::scheme_02::Scheme02;
-use super::{Error, Result};
+use super::{Result, SchemeName};
 use crate::pwd::ContentToHash;
 use enum_dispatch::enum_dispatch;
-
-pub const DEFAULT_SCHEME: &str = "02";
-
-#[derive(Debug)]
-pub enum SchemeStatus {
-	Ok,       // The pwd uses the latest scheme. All good.
-	Outdated, // The pwd uses an old scheme.
-}
 
 #[enum_dispatch]
 pub trait Scheme {
@@ -25,10 +17,12 @@ pub enum SchemeDispatcher {
 	Scheme02(Scheme02),
 }
 
-pub fn get_scheme(scheme_name: &str) -> Result<impl Scheme> {
+/// Map a typed scheme to its implementation.
+///
+/// Total: every `SchemeName` variant has an implementation, so this never fails.
+pub fn get_scheme(scheme_name: SchemeName) -> impl Scheme {
 	match scheme_name {
-		"01" => Ok(SchemeDispatcher::Scheme01(Scheme01)),
-		"02" => Ok(SchemeDispatcher::Scheme02(Scheme02)),
-		_ => Err(Error::SchemeNotFound(scheme_name.to_string())),
+		SchemeName::Scheme01 => SchemeDispatcher::Scheme01(Scheme01),
+		SchemeName::Scheme02 => SchemeDispatcher::Scheme02(Scheme02),
 	}
 }
