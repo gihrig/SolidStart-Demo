@@ -53,6 +53,7 @@
                 <h2 class="text-2xl font-serif text-slate-100">Concentrate scheme identity behind one seam</h2>
               </div>
               <div class="flex gap-2 flex-wrap">
+                <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/30 text-emerald-200 rounded-full px-3 py-1">✓ Shipped</span>
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-amber-400/15 text-amber-300">Worth exploring</span>
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
               </div>
@@ -62,6 +63,11 @@
               <div>pwd/hasher.rs</div>
               <div>pwd/scheme/dispatch.rs</div>
               <div>pwd/scheme/error.rs</div>
+            </div>
+
+            <div class="rounded-lg bg-emerald-500/10 border border-emerald-500/40 p-3 text-sm text-emerald-100">
+              <span class="font-semibold text-emerald-200">✓ Shipped per <a href="../../../docs/adr/0023-typed-scheme-name-lib-auth.md" class="underline">ADR-0023</a> (#164).</span>
+              Typed <span class="mono text-xs">SchemeName</span>; <span class="mono text-xs">get_scheme</span> is total; the <span class="mono text-xs">PwdParts</span> codec moved to <span class="mono text-xs">pwd/pwd_parts.rs</span>. Public seam and ts-rs bindings unchanged.
             </div>
 
             <!-- before / after : hand-built boxes -->
@@ -318,13 +324,13 @@ flowchart TD
       <!-- ============ TOP RECOMMENDATION ============ -->
       <section id="top-recommendation">
         <div class="rounded-2xl deep text-white p-8 shadow-md border border-slate-700">
-          <div class="text-xs uppercase tracking-widest text-emerald-300 mb-2">Top recommendation</div>
-          <h2 class="text-2xl font-serif mb-3 text-slate-50">Start with <a href="#c07" class="underline decoration-emerald-400 underline-offset-4">C-07 — concentrate scheme identity</a></h2>
+          <div class="text-xs uppercase tracking-widest text-emerald-300 mb-2">Status</div>
+          <h2 class="text-2xl font-serif mb-3 text-slate-50"><a href="#c07" class="underline decoration-emerald-400 underline-offset-4">C-07 — concentrate scheme identity</a> is shipped</h2>
           <p class="text-slate-300 text-sm max-w-3xl">
-            C-07 is the least invasive and does not fight the rust10x blueprint. It buys locality now
-            and opens the door to a typed scheme name. C-08 is the bigger testability win, but it
-            inverts the global-config idiom — tackle it second, as a deliberate decision.
-            C-09 is listed for completeness; its deletion test fails.
+            C-07 landed via <a href="../../../docs/adr/0023-typed-scheme-name-lib-auth.md" class="underline decoration-emerald-400">ADR-0023</a> (#164): a typed
+            <span class="mono">SchemeName</span>, a total <span class="mono">get_scheme</span>, and the codec owned by <span class="mono">pwd</span>.
+            The public seam and ts-rs bindings held. C-08 is the next candidate — the bigger
+            testability win, but it inverts the global-config idiom. C-09's deletion test fails.
           </p>
         </div>
       </section>
