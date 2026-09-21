@@ -6789,12 +6789,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/hyper-rustls@0.27.9?package-id=c84f1a7fb5bec5fc",
+      "bom-ref": "pkg:cargo/hyper-rustls@0.27.10?package-id=42f9920985616467",
       "type": "library",
       "name": "hyper-rustls",
-      "version": "0.27.9",
-      "cpe": "cpe:2.3:a:hyper-rustls_project:hyper-rustls:0.27.9:*:*:*:*:rust:*:*",
-      "purl": "pkg:cargo/hyper-rustls@0.27.9",
+      "version": "0.27.10",
+      "cpe": "cpe:2.3:a:hyper-rustls_project:hyper-rustls:0.27.10:*:*:*:*:rust:*:*",
+      "purl": "pkg:cargo/hyper-rustls@0.27.10",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -6820,31 +6820,31 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:hyper-rustls_project:hyper_rustls:0.27.9:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:hyper-rustls_project:hyper_rustls:0.27.10:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:hyper-rustls:hyper-rustls:0.27.9:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:hyper-rustls:hyper-rustls:0.27.10:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:hyper-rustls:hyper_rustls:0.27.9:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:hyper-rustls:hyper_rustls:0.27.10:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:hyper_rustls:hyper-rustls:0.27.9:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:hyper_rustls:hyper-rustls:0.27.10:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:hyper_rustls:hyper_rustls:0.27.9:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:hyper_rustls:hyper_rustls:0.27.10:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:hyper:hyper-rustls:0.27.9:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:hyper:hyper-rustls:0.27.10:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:hyper:hyper_rustls:0.27.9:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:hyper:hyper_rustls:0.27.10:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -8821,12 +8821,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/libredox@0.1.24?package-id=fe395b87d9f5c2c5",
+      "bom-ref": "pkg:cargo/libredox@0.1.25?package-id=589f9da1a4fdae74",
       "type": "library",
       "name": "libredox",
-      "version": "0.1.24",
-      "cpe": "cpe:2.3:a:libredox_project:libredox:0.1.24:*:*:*:*:rust:*:*",
-      "purl": "pkg:cargo/libredox@0.1.24",
+      "version": "0.1.25",
+      "cpe": "cpe:2.3:a:libredox_project:libredox:0.1.25:*:*:*:*:rust:*:*",
+      "purl": "pkg:cargo/libredox@0.1.25",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -8852,7 +8852,7 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:libredox:libredox:0.1.24:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:libredox:libredox:0.1.25:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -12169,12 +12169,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/rand@0.10.2?package-id=fa262b1b915d14c5",
+      "bom-ref": "pkg:cargo/rand@0.10.3?package-id=5508e40fd133187c",
       "type": "library",
       "name": "rand",
-      "version": "0.10.2",
-      "cpe": "cpe:2.3:a:rust-random:rand:0.10.2:*:*:*:*:rust:*:*",
-      "purl": "pkg:cargo/rand@0.10.2",
+      "version": "0.10.3",
+      "cpe": "cpe:2.3:a:rust-random:rand:0.10.3:*:*:*:*:rust:*:*",
+      "purl": "pkg:cargo/rand@0.10.3",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -13357,7 +13357,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/rust-multipart-rfc7578_2@0.9.0?package-id=24934888d21d3452",
+      "bom-ref": "pkg:cargo/rust-multipart-rfc7578_2@0.9.0?package-id=1bdfc63bb45371da",
       "type": "library",
       "name": "rust-multipart-rfc7578_2",
       "version": "0.9.0",
@@ -19277,7 +19277,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/uuid@1.26.1?package-id=840fa2c3cb9c3cac",
+      "bom-ref": "pkg:cargo/uuid@1.26.1?package-id=adb71c17227f0b3a",
       "type": "library",
       "name": "uuid",
       "version": "1.26.1",
@@ -75222,7 +75222,7 @@
         "pkg:cargo/tracing@0.1.44?package-id=786dd48d017b508c",
         "pkg:cargo/ts-rs@11.1.0?package-id=b595542d28b5777a",
         "pkg:cargo/unicode-normalization@0.1.25?package-id=9266d74a460c11c9",
-        "pkg:cargo/uuid@1.26.1?package-id=840fa2c3cb9c3cac"
+        "pkg:cargo/uuid@1.26.1?package-id=adb71c17227f0b3a"
       ]
     },
     {
@@ -75251,7 +75251,7 @@
         "pkg:cargo/tracing-subscriber@0.3.23?package-id=dba5ac01188a7d4a",
         "pkg:cargo/tracing@0.1.44?package-id=786dd48d017b508c",
         "pkg:cargo/ts-rs@11.1.0?package-id=b595542d28b5777a",
-        "pkg:cargo/uuid@1.26.1?package-id=840fa2c3cb9c3cac"
+        "pkg:cargo/uuid@1.26.1?package-id=adb71c17227f0b3a"
       ]
     },
     {
@@ -75268,7 +75268,7 @@
         "pkg:cargo/sha2@0.10.9?package-id=8bcde39728461694",
         "pkg:cargo/tokio@1.53.1?package-id=e57801ef50f6cc5a",
         "pkg:cargo/ts-rs@11.1.0?package-id=b595542d28b5777a",
-        "pkg:cargo/uuid@1.26.1?package-id=840fa2c3cb9c3cac"
+        "pkg:cargo/uuid@1.26.1?package-id=adb71c17227f0b3a"
       ]
     },
     {
@@ -75307,7 +75307,7 @@
         "pkg:cargo/tower-http@0.6.11?package-id=5b1ab4046b79379f",
         "pkg:cargo/tracing@0.1.44?package-id=786dd48d017b508c",
         "pkg:cargo/ts-rs@11.1.0?package-id=b595542d28b5777a",
-        "pkg:cargo/uuid@1.26.1?package-id=840fa2c3cb9c3cac"
+        "pkg:cargo/uuid@1.26.1?package-id=adb71c17227f0b3a"
       ]
     },
     {
@@ -75378,7 +75378,7 @@
         "pkg:cargo/mime@0.3.17?package-id=0b319840f4fd73b9",
         "pkg:cargo/pretty_assertions@1.4.1?package-id=06bce4fb9d3848f3",
         "pkg:cargo/reserve-port@2.5.0?package-id=d89858af3cab15c2",
-        "pkg:cargo/rust-multipart-rfc7578_2@0.9.0?package-id=24934888d21d3452",
+        "pkg:cargo/rust-multipart-rfc7578_2@0.9.0?package-id=1bdfc63bb45371da",
         "pkg:cargo/serde@1.0.229?package-id=5aca60f1fff7abda",
         "pkg:cargo/serde_json@1.0.151?package-id=f8f15e470d62e1df",
         "pkg:cargo/serde_urlencoded@0.7.1?package-id=b15793bd5fd72a0f",
@@ -75802,7 +75802,7 @@
         "pkg:cargo/serde_json@1.0.151?package-id=f8f15e470d62e1df",
         "pkg:cargo/thiserror@2.0.20?package-id=b04fd4a455e11369",
         "pkg:cargo/typetag@0.2.23?package-id=544e93654578ff84",
-        "pkg:cargo/uuid@1.26.1?package-id=840fa2c3cb9c3cac"
+        "pkg:cargo/uuid@1.26.1?package-id=adb71c17227f0b3a"
       ]
     },
     {
@@ -76000,7 +76000,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/hyper-rustls@0.27.9?package-id=c84f1a7fb5bec5fc",
+      "ref": "pkg:cargo/hyper-rustls@0.27.10?package-id=42f9920985616467",
       "dependsOn": [
         "pkg:cargo/http@1.5.0?package-id=9d50ca1018bf1ec5",
         "pkg:cargo/hyper-util@0.1.20?package-id=14f3784dee2e3fc5",
@@ -76253,7 +76253,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/libredox@0.1.24?package-id=fe395b87d9f5c2c5",
+      "ref": "pkg:cargo/libredox@0.1.25?package-id=589f9da1a4fdae74",
       "dependsOn": [
         "pkg:cargo/bitflags@2.13.2?package-id=13a2f36fbf0625da",
         "pkg:cargo/libc@0.2.189?package-id=72d602e6de6c3aa8",
@@ -76539,7 +76539,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/rand@0.10.2?package-id=fa262b1b915d14c5",
+      "ref": "pkg:cargo/rand@0.10.3?package-id=5508e40fd133187c",
       "dependsOn": [
         "pkg:cargo/chacha20@0.10.2?package-id=78b95fb4c11c55cf",
         "pkg:cargo/getrandom@0.4.3?package-id=ae94408da611520c",
@@ -76643,7 +76643,7 @@
         "pkg:cargo/http-body-util@0.1.5?package-id=6c55578f0e67d34d",
         "pkg:cargo/http-body@1.1.0?package-id=1e6d03f8443eedb6",
         "pkg:cargo/http@1.5.0?package-id=9d50ca1018bf1ec5",
-        "pkg:cargo/hyper-rustls@0.27.9?package-id=c84f1a7fb5bec5fc",
+        "pkg:cargo/hyper-rustls@0.27.10?package-id=42f9920985616467",
         "pkg:cargo/hyper-tls@0.6.0?package-id=91a098fc612a7f30",
         "pkg:cargo/hyper-util@0.1.20?package-id=14f3784dee2e3fc5",
         "pkg:cargo/hyper@1.11.1?package-id=1b1e274cf3bf5560",
@@ -76714,7 +76714,7 @@
         "pkg:cargo/serde@1.0.229?package-id=5aca60f1fff7abda",
         "pkg:cargo/serde_json@1.0.151?package-id=f8f15e470d62e1df",
         "pkg:cargo/serde_with@3.23.0?package-id=bc9b70012d0e6b0f",
-        "pkg:cargo/uuid@1.26.1?package-id=840fa2c3cb9c3cac"
+        "pkg:cargo/uuid@1.26.1?package-id=adb71c17227f0b3a"
       ]
     },
     {
@@ -76735,14 +76735,14 @@
       ]
     },
     {
-      "ref": "pkg:cargo/rust-multipart-rfc7578_2@0.9.0?package-id=24934888d21d3452",
+      "ref": "pkg:cargo/rust-multipart-rfc7578_2@0.9.0?package-id=1bdfc63bb45371da",
       "dependsOn": [
         "pkg:cargo/bytes@1.12.1?package-id=41ee8e1dc97dab89",
         "pkg:cargo/futures-core@0.3.34?package-id=ddf6a5fd6d897245",
         "pkg:cargo/futures-util@0.3.34?package-id=f556c8e931a643fb",
         "pkg:cargo/http@1.5.0?package-id=9d50ca1018bf1ec5",
         "pkg:cargo/mime@0.3.17?package-id=0b319840f4fd73b9",
-        "pkg:cargo/rand@0.10.2?package-id=fa262b1b915d14c5",
+        "pkg:cargo/rand@0.10.3?package-id=5508e40fd133187c",
         "pkg:cargo/thiserror@2.0.20?package-id=b04fd4a455e11369"
       ]
     },
@@ -76816,7 +76816,7 @@
         "pkg:cargo/sea-query@0.32.7?package-id=ab1663bf95fedc18",
         "pkg:cargo/sqlx@0.8.6?package-id=238ae5835b3e0071",
         "pkg:cargo/time@0.3.55?package-id=4a2597d427d5e20d",
-        "pkg:cargo/uuid@1.26.1?package-id=840fa2c3cb9c3cac"
+        "pkg:cargo/uuid@1.26.1?package-id=adb71c17227f0b3a"
       ]
     },
     {
@@ -76836,7 +76836,7 @@
         "pkg:cargo/inherent@1.0.14?package-id=4c901315ad9e0650",
         "pkg:cargo/sea-query-derive@0.4.3?package-id=d8c3d2f452ba84f7",
         "pkg:cargo/time@0.3.55?package-id=4a2597d427d5e20d",
-        "pkg:cargo/uuid@1.26.1?package-id=840fa2c3cb9c3cac"
+        "pkg:cargo/uuid@1.26.1?package-id=adb71c17227f0b3a"
       ]
     },
     {
@@ -77042,7 +77042,7 @@
         "pkg:cargo/tokio@1.53.1?package-id=e57801ef50f6cc5a",
         "pkg:cargo/tracing@0.1.44?package-id=786dd48d017b508c",
         "pkg:cargo/url@2.5.8?package-id=68851047824bfa99",
-        "pkg:cargo/uuid@1.26.1?package-id=840fa2c3cb9c3cac"
+        "pkg:cargo/uuid@1.26.1?package-id=adb71c17227f0b3a"
       ]
     },
     {
@@ -77114,7 +77114,7 @@
         "pkg:cargo/thiserror@2.0.20?package-id=b04fd4a455e11369",
         "pkg:cargo/time@0.3.55?package-id=4a2597d427d5e20d",
         "pkg:cargo/tracing@0.1.44?package-id=786dd48d017b508c",
-        "pkg:cargo/uuid@1.26.1?package-id=840fa2c3cb9c3cac",
+        "pkg:cargo/uuid@1.26.1?package-id=adb71c17227f0b3a",
         "pkg:cargo/whoami@1.6.1?package-id=096abf56412787c5"
       ]
     },
@@ -77150,7 +77150,7 @@
         "pkg:cargo/thiserror@2.0.20?package-id=b04fd4a455e11369",
         "pkg:cargo/time@0.3.55?package-id=4a2597d427d5e20d",
         "pkg:cargo/tracing@0.1.44?package-id=786dd48d017b508c",
-        "pkg:cargo/uuid@1.26.1?package-id=840fa2c3cb9c3cac",
+        "pkg:cargo/uuid@1.26.1?package-id=adb71c17227f0b3a",
         "pkg:cargo/whoami@1.6.1?package-id=096abf56412787c5"
       ]
     },
@@ -77174,7 +77174,7 @@
         "pkg:cargo/time@0.3.55?package-id=4a2597d427d5e20d",
         "pkg:cargo/tracing@0.1.44?package-id=786dd48d017b508c",
         "pkg:cargo/url@2.5.8?package-id=68851047824bfa99",
-        "pkg:cargo/uuid@1.26.1?package-id=840fa2c3cb9c3cac"
+        "pkg:cargo/uuid@1.26.1?package-id=adb71c17227f0b3a"
       ]
     },
     {
@@ -77548,11 +77548,11 @@
       ]
     },
     {
-      "ref": "pkg:cargo/uuid@1.26.1?package-id=840fa2c3cb9c3cac",
+      "ref": "pkg:cargo/uuid@1.26.1?package-id=adb71c17227f0b3a",
       "dependsOn": [
         "pkg:cargo/getrandom@0.4.3?package-id=ae94408da611520c",
         "pkg:cargo/js-sys@0.3.105?package-id=f6eb3b03a1713bef",
-        "pkg:cargo/rand@0.10.2?package-id=fa262b1b915d14c5",
+        "pkg:cargo/rand@0.10.3?package-id=5508e40fd133187c",
         "pkg:cargo/wasm-bindgen@0.2.128?package-id=c55c907734c40311"
       ]
     },
@@ -77618,7 +77618,7 @@
     {
       "ref": "pkg:cargo/whoami@1.6.1?package-id=096abf56412787c5",
       "dependsOn": [
-        "pkg:cargo/libredox@0.1.24?package-id=fe395b87d9f5c2c5",
+        "pkg:cargo/libredox@0.1.25?package-id=589f9da1a4fdae74",
         "pkg:cargo/wasite@0.1.0?package-id=bc31b09047a487e5"
       ]
     },
