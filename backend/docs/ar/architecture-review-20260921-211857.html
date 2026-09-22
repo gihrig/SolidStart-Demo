@@ -252,6 +252,7 @@
                 <h2 class="text-2xl font-serif text-slate-100">Flatten RPC-wrapped model errors so the client map matches once</h2>
               </div>
               <div class="flex gap-2 flex-wrap">
+                <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/30 text-emerald-200 rounded-full px-3 py-1">✓ Shipped</span>
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">Strong</span>
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">locality</span>
@@ -260,6 +261,11 @@
 
             <div class="mono text-sm text-slate-500 space-y-0.5">
               <div>error.rs <span class="text-slate-600">(From&lt;CallError&gt; · client_status_and_error)</span></div>
+            </div>
+
+            <div class="rounded-lg bg-emerald-500/10 border border-emerald-500/40 p-3 text-sm text-emerald-100">
+              <span class="font-semibold text-emerald-200">✓ Shipped in #166.</span>
+              <span class="mono text-xs">From&lt;CallError&gt;</span> now flattens the handler's <span class="mono text-xs">lib_rpc_core::Error</span> into <span class="mono text-xs">Error::Model</span> / <span class="mono text-xs">Error::SerdeJson</span>; the <span class="mono text-xs">RpcLibRpc</span> variant and the dead <span class="mono text-xs">Rpc</span> variant are deleted; the client map has one <span class="mono text-xs">Model(..)</span> arm per kind. An RPC "entity not found" is now <span class="text-emerald-300">400</span>, not <span class="text-red-300">500</span> (#114). New test <span class="mono text-xs">rpc_wrapped_model_error_flattens_to_400</span> drives the real <span class="mono text-xs">From&lt;CallError&gt;</span> path. Bindings regenerated (both variants leave <span class="mono text-xs">lib_web_Error.d.ts</span>; FE unaffected); <span class="mono text-xs">docs/error.md</span> updated. Gate green: check · build · test (99/99) · bindings.
             </div>
 
             <!-- before / after : Mermaid flow (path collapse) -->
@@ -329,19 +335,19 @@ flowchart TD
       <section id="top-recommendation">
         <div class="rounded-2xl deep text-white p-8 shadow-md border border-slate-700">
           <div class="text-xs uppercase tracking-widest text-emerald-300 mb-2">Status</div>
-          <h2 class="text-2xl font-serif mb-3 text-slate-50"><a href="#c13" class="underline decoration-emerald-400 underline-offset-4">C-13</a> is shipped</h2>
+          <h2 class="text-2xl font-serif mb-3 text-slate-50"><a href="#c13" class="underline decoration-emerald-400 underline-offset-4">C-13</a> and <a href="#c15" class="underline decoration-emerald-400 underline-offset-4">C-15</a> are shipped</h2>
           <p class="text-slate-300 text-sm max-w-3xl">
-            C-13 shipped in #166 — the "curated public API" criterion, visibility-only, no caller changes. It mirrors
-            <a href="architecture-review-20260921-001306.html" class="underline decoration-emerald-400">C-11</a>, shipped for lib-core the same way. The public seam is now the 8 consumed items plus <span class="mono">Error</span>.
-            <span class="block mt-2"><a href="#c15" class="underline decoration-emerald-400">C-15</a> is the recommended next pass — it turns an RPC "entity not found" from a
-            <span class="text-red-300">500</span> into a <span class="text-emerald-300">400</span> and deletes a pass-through variant.
+            C-13 shipped in #166 — the "curated public API" criterion, visibility-only. The public seam is now the 8 consumed items plus <span class="mono">Error</span>. It mirrors
+            <a href="architecture-review-20260921-001306.html" class="underline decoration-emerald-400">C-11</a>, shipped for lib-core the same way.
+            <span class="block mt-2">C-15 shipped alongside it — the error flatten turns an RPC "entity not found" from a
+            <span class="text-red-300">500</span> into a <span class="text-emerald-300">400</span> (#114) and deletes the <span class="mono">RpcLibRpc</span> and dead <span class="mono">Rpc</span> variants.
             <a href="#c14" class="underline decoration-amber-300">C-14</a> stays <span class="text-amber-300">Speculative</span> — it diverges from the rust10x blueprint, as C-08 / C-09 did.</span>
           </p>
         </div>
       </section>
 
       <footer class="text-center text-xs text-slate-600 pt-6">
-        lib-web · rust-clean-architecture pass · C-13 shipped (#166) · C-14 · C-15 proposed · continues C-12
+        lib-web · rust-clean-architecture pass · C-13 · C-15 shipped (#166) · C-14 proposed · continues C-12
       </footer>
 
     </main>
