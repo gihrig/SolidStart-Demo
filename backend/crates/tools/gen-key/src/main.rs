@@ -2,7 +2,7 @@ pub type Result<T> = core::result::Result<T, Error>;
 pub type Error = Box<dyn std::error::Error>; // Ok for tools.
 
 use lib_utils::b64::b64u_encode;
-use rand::RngCore;
+use rand::Rng;
 
 fn main() -> Result<()> {
 	let mut key = [0u8; 64]; // 512 bits = 64 bytes
