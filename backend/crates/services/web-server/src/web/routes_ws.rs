@@ -10,58 +10,18 @@ use axum::{
 };
 use futures::{SinkExt, StreamExt};
 use lib_core::ctx::Ctx;
-use lib_core::model::conv::ConvBmc;
 use lib_core::model::conv_msg::ConvMsg;
 use lib_core::model::ModelManager;
+use lib_core::realtime::{Channel, WsEvent};
 use lib_web::middleware::mw_auth::CtxW;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashSet;
 use std::marker::PhantomData;
 use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 use tracing::{debug, warn};
-use ts_rs::TS;
 
 // region:    --- WebSocket Event Types
-
-/// The realtime feed envelope, a discriminated union tagged by `event_type`
-/// (internal serde tagging). ts-rs exports it, so the front-end narrows on the
-/// tag and reads a typed payload — no cast. `conv_msg` carries the new `ConvMsg`.
-/// Every contentless poke is one `Poke` variant carrying its [`Channel`] (#85):
-/// the poke pushes no domain row, only the id its routing key needs, held inside
-/// the `Channel`. A subscriber refetches through the scoped `list_*` RPC. The two
-/// Jedi comment channels (`post_comment`, `caption_comment`) push a payload
-/// (`CommentView`); that payload is not built yet (#113), so they gain no payload
-/// variant here — they are subscribe-only (#115). The routing `Channel` is derived
-/// from the event (see the `channel` method below), not carried as a separate
-/// field: a payload event reads it from the payload, a poke carries it (ADR-0020).
-#[derive(Clone, Debug, Serialize, TS)]
-#[serde(tag = "event_type")]
-#[ts(export, export_to = "WsEvent.d.ts")]
-pub enum WsEvent {
-	#[serde(rename = "conv_msg")]
-	ConvMsg { payload: ConvMsg },
-	/// A contentless poke on its [`Channel`]. It replaces the former
-	/// one-variant-per-poke set (`agent_update` / `conv_update` / `posts` /
-	/// `post_like` / `caption_like` / `post_caption`), so adding a poke channel
-	/// touches only [`Channel`] — the hand-written variant→variant map is gone
-	/// (ADR-0020).
-	#[serde(rename = "poke")]
-	Poke(Channel),
-}
-
-impl WsEvent {
-	/// The [`Channel`] this event is addressed to. A payload event derives it from
-	/// the payload (`conv_msg` reads `payload.conv_id`); a poke carries it. The send
-	/// task matches its key against a connection's authorized subscription set
-	/// (ADR-0015).
-	fn channel(&self) -> Channel {
-		match self {
-			WsEvent::ConvMsg { payload } => Channel::Conv(payload.conv_id),
-			WsEvent::Poke(channel) => *channel,
-		}
-	}
-}
 
 /// The client → server subscribe/unsubscribe request. It carries a [`Channel`]
 /// flattened onto the request, so the wire stays `{ action, kind, id? }`: `kind`
@@ -125,85 +85,6 @@ pub fn routes(ws_state: Arc<WsState>, mm: ModelManager) -> Router {
 // endregion: --- WebSocket Routes
 
 // region:    --- Subscription authorization
-
-/// The one exported realtime **Channel** vocabulary (CONTEXT.md "Channel"): the
-/// routing key an Event is addressed to and a Subscription names. It is the wire
-/// kind a [`SubscriptionRequest`] carries, the key the send task routes on, and
-/// the authorize rule — the three types ADR-0018 kept apart (`WsEvent` mapping,
-/// `ChannelKind` wire, `Channel` routing), merged into one (ADR-0020). ts-rs
-/// exports it, so the front-end mirrors it. Adjacently tagged: the wire is
-/// `{ "kind": <string>, "id": <i64> }`, with `id` present only where the variant
-/// carries one. `conv:{id}` names one Conversation's Event stream (C03/Q9);
-/// `agents`, `convs` and `posts` are id-less global list-feed pokes — a subscriber
-/// refetches through the scoped `list_*` RPC, so no row crosses the push path
-/// (#85). The five id-bearing Jedi channels key on their entity id (#115):
-/// `post_comment:{id}`, `caption_comment:{id}`, `post_like:{id}`,
-/// `caption_like:{id}`, `post_caption:{id}`.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, TS)]
-#[serde(tag = "kind", content = "id")]
-#[ts(export, export_to = "Channel.d.ts")]
-pub(crate) enum Channel {
-	#[serde(rename = "conv")]
-	Conv(i64),
-	#[serde(rename = "agents")]
-	Agents,
-	#[serde(rename = "convs")]
-	Convs,
-	// --- Jedi channels (expand step, #115) ---
-	#[serde(rename = "posts")]
-	Posts,
-	#[serde(rename = "post_comment")]
-	PostComment(i64),
-	#[serde(rename = "caption_comment")]
-	CaptionComment(i64),
-	#[serde(rename = "post_like")]
-	PostLike(i64),
-	#[serde(rename = "caption_like")]
-	CaptionLike(i64),
-	#[serde(rename = "post_caption")]
-	PostCaption(i64),
-}
-
-impl Channel {
-	/// The routing key string. The one place the `post_like:{id}` format lives; the
-	/// send task matches it against a connection's authorized subscription set.
-	fn key(&self) -> String {
-		match self {
-			Channel::Conv(id) => format!("conv:{id}"),
-			Channel::Agents => "agents".to_string(),
-			Channel::Convs => "convs".to_string(),
-			Channel::Posts => "posts".to_string(),
-			Channel::PostComment(id) => format!("post_comment:{id}"),
-			Channel::CaptionComment(id) => format!("caption_comment:{id}"),
-			Channel::PostLike(id) => format!("post_like:{id}"),
-			Channel::CaptionLike(id) => format!("caption_like:{id}"),
-			Channel::PostCaption(id) => format!("post_caption:{id}"),
-		}
-	}
-
-	/// Whether this caller may subscribe. Fails closed. A Conversation channel
-	/// reuses the ADR-0014 read scope: entitled iff `ConvBmc::get` (owner ∪
-	/// `MultiUsers`) returns the row. Every other channel is authenticated-read —
-	/// the list-feed pokes are contentless (#85) and every Post is public (#106),
-	/// so a logged-in socket suffices; identity is fixed at upgrade and a poke leaks
-	/// no row. #128 removes `Conv` and collapses this to uniform authenticated-read.
-	async fn authorize(&self, ctx: &Ctx, mm: &ModelManager) -> bool {
-		// Exhaustive on purpose (no `_` arm): `Channel` is the shared vocabulary, so
-		// a new variant must force an authorization decision here — a bare `_ => true`
-		// would silently open a future scoped channel to any authenticated socket.
-		match self {
-			Channel::Conv(id) => ConvBmc::get(ctx, mm, *id).await.is_ok(),
-			Channel::Agents
-			| Channel::Convs
-			| Channel::Posts
-			| Channel::PostComment(_)
-			| Channel::CaptionComment(_)
-			| Channel::PostLike(_)
-			| Channel::CaptionLike(_)
-			| Channel::PostCaption(_) => true,
-		}
-	}
-}
 
 /// Default-deny fan-out: a connection receives an event only for a channel it
 /// holds an authorized subscription to.
@@ -455,92 +336,7 @@ impl WsState {
 
 #[cfg(test)]
 mod tests {
-	type Result<T> = core::result::Result<T, Box<dyn std::error::Error>>;
-
 	use super::*;
-	use lib_core::_dev_utils::{self, seed_agent, seed_user};
-	use lib_core::model::conv::{ConvForCreate, ConvKind};
-	use serial_test::serial;
-
-	fn sub(action: &str, channel: Channel) -> SubscriptionRequest {
-		SubscriptionRequest {
-			action: action.to_string(),
-			channel,
-		}
-	}
-
-	/// Test sugar: the full subscribe resolution `handle_socket` performs
-	/// (`authorize` → `key`). `None` on a scope miss.
-	async fn authorize_subscription(
-		ctx: &Ctx,
-		mm: &ModelManager,
-		req: &SubscriptionRequest,
-	) -> Option<String> {
-		req.channel
-			.authorize(ctx, mm)
-			.await
-			.then(|| req.channel.key())
-	}
-
-	/// Wire-lock for the merged `Channel` (ADR-0020). Adjacently tagged: `kind`
-	/// selects the variant, `id` rides alongside only where the variant carries one.
-	/// These are the strings the front-end `channel.ts` mirror is built on; a rename
-	/// or an id-placement change here is a wire change carried to the front-end by
-	/// the ts-rs binding.
-	#[test]
-	fn channel_wire_shape_is_stable() {
-		assert_eq!(
-			serde_json::to_value(Channel::Conv(5)).unwrap(),
-			serde_json::json!({ "kind": "conv", "id": 5 })
-		);
-		assert_eq!(
-			serde_json::to_value(Channel::Agents).unwrap(),
-			serde_json::json!({ "kind": "agents" })
-		);
-		assert_eq!(
-			serde_json::to_value(Channel::Convs).unwrap(),
-			serde_json::json!({ "kind": "convs" })
-		);
-		assert_eq!(
-			serde_json::to_value(Channel::Posts).unwrap(),
-			serde_json::json!({ "kind": "posts" })
-		);
-		assert_eq!(
-			serde_json::to_value(Channel::PostComment(3)).unwrap(),
-			serde_json::json!({ "kind": "post_comment", "id": 3 })
-		);
-		assert_eq!(
-			serde_json::to_value(Channel::CaptionComment(4)).unwrap(),
-			serde_json::json!({ "kind": "caption_comment", "id": 4 })
-		);
-		assert_eq!(
-			serde_json::to_value(Channel::PostLike(5)).unwrap(),
-			serde_json::json!({ "kind": "post_like", "id": 5 })
-		);
-		assert_eq!(
-			serde_json::to_value(Channel::CaptionLike(6)).unwrap(),
-			serde_json::json!({ "kind": "caption_like", "id": 6 })
-		);
-		assert_eq!(
-			serde_json::to_value(Channel::PostCaption(8)).unwrap(),
-			serde_json::json!({ "kind": "post_caption", "id": 8 })
-		);
-	}
-
-	/// Routing-key lock (ADR-0020). `key()` is the one place the `post_like:{id}`
-	/// format lives; `agents` / `convs` / `posts` are id-less.
-	#[test]
-	fn channel_keys_are_stable() {
-		assert_eq!(Channel::Conv(5).key(), "conv:5");
-		assert_eq!(Channel::Agents.key(), "agents");
-		assert_eq!(Channel::Convs.key(), "convs");
-		assert_eq!(Channel::Posts.key(), "posts");
-		assert_eq!(Channel::PostComment(3).key(), "post_comment:3");
-		assert_eq!(Channel::CaptionComment(4).key(), "caption_comment:4");
-		assert_eq!(Channel::PostLike(5).key(), "post_like:5");
-		assert_eq!(Channel::CaptionLike(6).key(), "caption_like:6");
-		assert_eq!(Channel::PostCaption(8).key(), "post_caption:8");
-	}
 
 	/// A `SubscriptionRequest` carries a `Channel` flattened onto `{ action, kind,
 	/// id? }`. An id-bearing kind with no id fails to deserialize; an id-less kind
@@ -597,73 +393,6 @@ mod tests {
 		)
 		.unwrap();
 		assert_eq!(req.channel.key(), "post_like:9");
-	}
-
-	/// Wire-lock for the envelope the front-end parses (ADR-0010, ADR-0020).
-	/// Internal tagging puts `event_type` at the top level; a poke flattens its
-	/// `Channel` (`kind`, plus `id` where the channel carries one) alongside the
-	/// tag. This guards a serde-shape drift the generated `.d.ts` cannot show.
-	#[test]
-	fn wsevent_wire_shape_is_stable() {
-		use time::OffsetDateTime;
-
-		// Pokes: `event_type` plus the flattened `Channel`.
-		assert_eq!(
-			serde_json::to_value(WsEvent::Poke(Channel::Agents)).unwrap(),
-			serde_json::json!({ "event_type": "poke", "kind": "agents" }),
-		);
-		assert_eq!(
-			serde_json::to_value(WsEvent::Poke(Channel::Convs)).unwrap(),
-			serde_json::json!({ "event_type": "poke", "kind": "convs" }),
-		);
-		assert_eq!(
-			serde_json::to_value(WsEvent::Poke(Channel::Posts)).unwrap(),
-			serde_json::json!({ "event_type": "poke", "kind": "posts" }),
-		);
-		assert_eq!(
-			serde_json::to_value(WsEvent::Poke(Channel::PostLike(5))).unwrap(),
-			serde_json::json!({ "event_type": "poke", "kind": "post_like", "id": 5 }),
-		);
-
-		// Payload: `event_type` plus the typed `ConvMsg`.
-		let msg = ConvMsg {
-			id: 1,
-			conv_id: 7,
-			user_id: 2,
-			content: "hi".to_string(),
-			cid: 2,
-			ctime: OffsetDateTime::UNIX_EPOCH,
-			mid: 2,
-			mtime: OffsetDateTime::UNIX_EPOCH,
-		};
-		let v = serde_json::to_value(WsEvent::ConvMsg { payload: msg }).unwrap();
-		assert_eq!(v["event_type"].as_str(), Some("conv_msg"));
-		assert_eq!(v["payload"]["conv_id"].as_i64(), Some(7));
-	}
-
-	/// The routing key is derived from the event, not carried by hand (ADR-0020): a
-	/// poke reads it from its `Channel`, a `conv_msg` from its payload.
-	#[test]
-	fn wsevent_channel_derives_the_routing_key() {
-		use time::OffsetDateTime;
-
-		assert_eq!(WsEvent::Poke(Channel::Agents).channel().key(), "agents");
-		assert_eq!(
-			WsEvent::Poke(Channel::PostLike(5)).channel().key(),
-			"post_like:5"
-		);
-
-		let msg = ConvMsg {
-			id: 1,
-			conv_id: 7,
-			user_id: 2,
-			content: "hi".to_string(),
-			cid: 2,
-			ctime: OffsetDateTime::UNIX_EPOCH,
-			mid: 2,
-			mtime: OffsetDateTime::UNIX_EPOCH,
-		};
-		assert_eq!(WsEvent::ConvMsg { payload: msg }.channel().key(), "conv:7");
 	}
 
 	#[test]
@@ -753,112 +482,6 @@ mod tests {
 			!has_subscription_capacity(&subs),
 			"a full set admits no more subscriptions"
 		);
-	}
-
-	/// C03 subscribe gate: entitlement reuses the C01 read scope. User B may
-	/// subscribe to A's `MultiUsers` conv but not A's `OwnerOnly` one. Every other
-	/// channel is authenticated-read, so B is admitted without a DB scope check.
-	/// (The scope itself is proven in `lib-core`'s `test_access_scope_conv_two_user`.)
-	#[serial]
-	#[tokio::test]
-	async fn test_authorize_subscription_two_user() -> Result<()> {
-		let mm = _dev_utils::init_test().await;
-		let root = Ctx::root_ctx();
-		let fx_prefix = "test_authorize_subscription_two_user";
-
-		let a_id = seed_user(&root, &mm, &format!("{fx_prefix}-A")).await?;
-		let b_id = seed_user(&root, &mm, &format!("{fx_prefix}-B")).await?;
-		let ctx_a = Ctx::new(a_id)?;
-		let ctx_b = Ctx::new(b_id)?;
-
-		let agent_id =
-			seed_agent(&ctx_a, &mm, &format!("{fx_prefix} agent")).await?;
-		let owner_conv_id = ConvBmc::create(
-			&ctx_a,
-			&mm,
-			ConvForCreate {
-				agent_id,
-				title: Some(format!("{fx_prefix} owner-only")),
-				kind: Some(ConvKind::OwnerOnly),
-			},
-		)
-		.await?;
-		let multi_conv_id = ConvBmc::create(
-			&ctx_a,
-			&mm,
-			ConvForCreate {
-				agent_id,
-				title: Some(format!("{fx_prefix} multi-users")),
-				kind: Some(ConvKind::MultiUsers),
-			},
-		)
-		.await?;
-
-		// B may subscribe to the public conv.
-		assert_eq!(
-			authorize_subscription(
-				&ctx_b,
-				&mm,
-				&sub("subscribe", Channel::Conv(multi_conv_id))
-			)
-			.await,
-			Some(format!("conv:{multi_conv_id}")),
-		);
-		// B may NOT subscribe to A's private conv (scope miss → None).
-		assert_eq!(
-			authorize_subscription(
-				&ctx_b,
-				&mm,
-				&sub("subscribe", Channel::Conv(owner_conv_id))
-			)
-			.await,
-			None,
-			"B must not subscribe to A's OwnerOnly conv",
-		);
-		// A may subscribe to its own private conv.
-		assert_eq!(
-			authorize_subscription(
-				&ctx_a,
-				&mm,
-				&sub("subscribe", Channel::Conv(owner_conv_id))
-			)
-			.await,
-			Some(format!("conv:{owner_conv_id}")),
-		);
-
-		// The list-feed channels are contentless pokes: any authenticated caller
-		// may subscribe (#85), so B is admitted to both without a DB scope check.
-		assert_eq!(
-			authorize_subscription(&ctx_b, &mm, &sub("subscribe", Channel::Agents))
-				.await,
-			Some("agents".to_string()),
-		);
-		assert_eq!(
-			authorize_subscription(&ctx_b, &mm, &sub("subscribe", Channel::Convs))
-				.await,
-			Some("convs".to_string()),
-		);
-
-		// Every Jedi channel is authenticated-read (#115): B, a logged-in socket
-		// with no relation to A's rows, may subscribe to the id-less `posts` feed
-		// and to any Post's comment thread. No per-row scope applies.
-		assert_eq!(
-			authorize_subscription(&ctx_b, &mm, &sub("subscribe", Channel::Posts))
-				.await,
-			Some("posts".to_string()),
-		);
-		assert_eq!(
-			authorize_subscription(
-				&ctx_b,
-				&mm,
-				&sub("subscribe", Channel::PostComment(999))
-			)
-			.await,
-			Some("post_comment:999".to_string()),
-			"any logged-in socket may subscribe to any Post comment thread",
-		);
-
-		Ok(())
 	}
 }
 
