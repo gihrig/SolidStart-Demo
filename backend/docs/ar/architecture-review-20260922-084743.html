@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — web-server</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose", flowchart: { curve: "basis" } });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 6 5; }
+      .deep { background: linear-gradient(135deg, #1e1b4b, #0f172a); }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .card-shadow { box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 18px 44px -24px rgba(0,0,0,.8); }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-100 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+
+      <!-- ============ HEADER ============ -->
+      <header class="space-y-5">
+        <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <h1 class="font-serif text-4xl tracking-tight">Architecture review</h1>
+          <span class="mono text-lg text-slate-500">crates/services/web-server</span>
+        </div>
+        <p class="text-slate-400 max-w-3xl">
+          SolidStart Demo back-end · issue
+          <span class="mono text-slate-300">#167</span> · 2026-09-22. The service crate after the
+          <span class="mono text-slate-300">mod.rs</span> pass (<span class="mono text-slate-300">#163</span>). The lens is
+          <b class="text-slate-200">depth</b>, <b class="text-slate-200">seam</b> placement, and
+          <b class="text-slate-200">locality</b> — where does the service stop being thin?
+        </p>
+
+        <!-- legend -->
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs uppercase tracking-wider text-slate-500 border-t border-b border-slate-800 py-3">
+          <span class="flex items-center gap-2"><span class="inline-block w-4 h-4 border border-slate-500 bg-slate-800"></span> module</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-6 border-t-2 seam border-slate-400"></span> seam</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-6 border-t-2 border-red-400"></span> leak / misplacement</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-4 h-4 deep ring-1 ring-indigo-500/40 rounded-sm"></span> deep module</span>
+        </div>
+
+        <!-- reading note -->
+        <p class="text-sm text-slate-500 max-w-3xl">
+          No <b class="text-slate-300">shallow</b> pass-through survived the deletion test here. The
+          friction is not thin modules — it is a deep subsystem in the wrong crate, one rule split across
+          two files, and a <span class="mono text-slate-400">pub</span> surface wider than the wiring.
+          Candidates continue the durable <span class="mono text-slate-400">C-##</span> sequence
+          (last shipped: C-15).
+        </p>
+      </header>
+
+      <section id="candidates" class="space-y-12">
+
+        <!-- ============ C-16 ============ -->
+        <article id="c16" class="bg-slate-900 rounded-2xl border border-slate-800 card-shadow p-7 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-serif text-2xl text-slate-100">C-16 · Relocate the realtime <span class="italic text-indigo-300">Feed</span> behind a lib seam</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Worth exploring</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500">
+            src/web/routes_ws.rs (863) · src/web/poke.rs · src/web/rpcs/{agent,conv}_rpc.rs · src/app.rs · src/main.rs
+          </p>
+
+          <!-- before / after -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before — the odd handler out</p>
+              <pre class="mermaid">
+flowchart TB
+  subgraph SVC["web-server · service crate"]
+    RL["routes_login (11)"]
+    RR["routes_rpc (38)"]
+    WS["routes_ws (863)<br/>contract · hub · authz · socket"]
+  end
+  subgraph LIB["lib-web"]
+    HL["handlers_login"]
+    HR["handlers_rpc"]
+  end
+  RL --> HL
+  RR --> HR
+  classDef fat fill:#4f46e5,color:#fff,stroke:#818cf8,stroke-width:1px;
+  classDef leak stroke:#f87171,stroke-width:3px;
+  class WS fat
+  class WS leak
+              </pre>
+              <p class="text-xs text-slate-500 mt-2">The Feed handler is the only one with no lib seam.</p>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">After — thin service, deep Feed</p>
+              <pre class="mermaid">
+flowchart TB
+  subgraph SVC["web-server · service crate"]
+    WSR["routes_ws::routes()<br/>+ ws_handler upgrade"]
+  end
+  subgraph LIB["lib-web / lib-core"]
+    FEED["realtime Feed module<br/>Channel · WsEvent · WsState<br/>authorize · socket driver"]
+  end
+  WSR -. seam .-> FEED
+  classDef fat fill:#4f46e5,color:#fff,stroke:#818cf8,stroke-width:1px;
+  class FEED fat
+              </pre>
+              <p class="text-xs text-slate-500 mt-2">The service keeps the seam; the Feed is a deep module in a lib.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</p>
+              <p class="text-slate-300">The realtime <b class="text-slate-100">Feed</b> lives inline in the service binary. Login and RPC handlers delegate to <span class="mono text-slate-400">lib-web</span>; the Feed does not.</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</p>
+              <p class="text-slate-300">Move the Feed module to a lib. The service keeps <span class="mono text-slate-400">routes()</span> and the upgrade only.</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+              <li><b class="text-slate-100">locality</b>: Feed logic + ~400 test lines in one module</li>
+              <li><b class="text-slate-100">leverage</b>: the service interface shrinks to wiring</li>
+              <li>the interface is the test surface: <span class="mono text-slate-400">authorize</span> / <span class="mono text-slate-400">broadcast_*</span> tested without the service</li>
+              <li>contract seam uniform: <span class="mono text-slate-400">Channel</span> / <span class="mono text-slate-400">WsEvent</span> join the other exported types in a lib</li>
+            </ul>
+          </div>
+
+          <!-- ADR callout -->
+          <div class="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4 text-sm text-amber-200 space-y-1">
+            <p class="font-semibold text-amber-100">⚠ Echoes ADR-0025 — worth reopening, not settled.</p>
+            <p>ADR-0025 rejected extracting the login flow (card C-14) because that handler is a
+              <i>line-for-line copy of the rust10x blueprint</i>. This Feed is
+              <b class="text-amber-100">project-specific</b> — its own lineage
+              (ADR-0016 / 0018 / 0020, <span class="mono">#85 / #106 / #109 / #115</span>), not blueprint
+              code — and issue <span class="mono">#167</span> asks to <i>“delegate to the libs.”</i>
+              Two cautions carry over from ADR-0025: the handler has one caller, and
+              <span class="mono">authorize</span> is DB-bound. <b class="text-amber-100">Verify rust10x
+              ships no ws layer</b> before committing.</p>
+          </div>
+        </article>
+
+        <!-- ============ C-17 ============ -->
+        <article id="c17" class="bg-slate-900 rounded-2xl border border-slate-800 card-shadow p-7 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-serif text-2xl text-slate-100">C-17 · Co-locate the <span class="italic text-indigo-300">Poke</span> rule</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Worth exploring</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500">src/web/poke.rs · src/web/routes_ws.rs</p>
+
+          <!-- before / after: hand-built -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- before -->
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — one rule, two files</p>
+              <div class="flex items-stretch gap-2">
+                <div class="flex-1 border border-slate-600 rounded-md bg-slate-800/50 p-3">
+                  <p class="mono text-xs text-slate-500">poke.rs</p>
+                  <p class="text-sm mt-1 text-slate-200"><span class="mono">PokedRpcResult&lt;T,C&gt;</span></p>
+                  <p class="text-sm text-slate-300"><span class="mono">markers: Convs · Agents · Conv</span></p>
+                </div>
+                <div class="flex flex-col items-center justify-center text-red-400">
+                  <span class="text-2xl leading-none">⇄</span>
+                  <span class="text-[10px] uppercase tracking-wider mt-1 text-center leading-tight">bounce<br/>to read</span>
+                </div>
+                <div class="flex-1 border border-slate-600 rounded-md bg-slate-800/50 p-3">
+                  <p class="mono text-xs text-slate-500">routes_ws.rs</p>
+                  <p class="text-sm mt-1 text-slate-200"><span class="mono">PokeReceipt&lt;C&gt;</span></p>
+                  <p class="text-sm text-slate-500"><span class="mono">new()</span> private</p>
+                </div>
+              </div>
+              <div class="mt-3 rounded-md border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-300">
+                markers <span class="mono">Convs / Agents / Conv</span> shadow the
+                <span class="mono">Channel</span> variants — two vocabularies for the same channels.
+              </div>
+            </div>
+            <!-- after -->
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — one rule, one module</p>
+              <div class="deep border border-indigo-500/40 ring-1 ring-indigo-500/20 rounded-md p-3 h-[calc(100%-1.75rem)]">
+                <p class="mono text-xs text-indigo-300/80">poke module</p>
+                <ul class="text-sm mt-1 space-y-1 text-slate-200">
+                  <li><span class="mono">PokeReceipt&lt;C&gt;</span> · mint stays private</li>
+                  <li><span class="mono">PokedRpcResult&lt;T,C&gt;</span></li>
+                  <li><span class="mono">markers</span> beside the variants they mirror</li>
+                </ul>
+                <div class="mt-3 text-xs text-slate-400 border-t border-slate-700 pt-2">
+                  <span class="mono">broadcast_* → mint receipt</span> — the invariant reads top-to-bottom.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</p>
+              <p class="text-slate-300">One rule (ADR-0016) spans two files. <span class="mono text-slate-400">PokeReceipt</span> sits in <span class="mono text-slate-400">routes_ws.rs</span>; <span class="mono text-slate-400">PokedRpcResult</span> and the markers sit in <span class="mono text-slate-400">poke.rs</span>.</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</p>
+              <p class="text-slate-300">Put <span class="mono text-slate-400">PokeReceipt</span>, <span class="mono text-slate-400">PokedRpcResult</span>, and the markers in one <span class="mono text-slate-400">poke</span> module. Keep the mint private.</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+              <li><b class="text-slate-100">locality</b>: the poke invariant sits in one module</li>
+              <li>no bounce between files to read one rule</li>
+              <li>the marker/variant shadow is visible in one place</li>
+              <li>the receipt mint stays private — ADR-0016 intact</li>
+            </ul>
+          </div>
+
+          <div class="rounded-lg bg-slate-800/60 border border-slate-700 p-4 text-sm text-slate-400">
+            <b class="text-slate-300">Note:</b> C-16 subsumes this. If the Feed moves to a lib, the poke types co-locate on the way.
+          </div>
+        </article>
+
+        <!-- ============ C-18 ============ -->
+        <article id="c18" class="bg-slate-900 rounded-2xl border border-slate-800 card-shadow p-7 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-serif text-2xl text-slate-100">C-18 · Curate the service’s public surface</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Strong</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500">src/web/routes_ws.rs · src/web/mod.rs</p>
+
+          <!-- before / after: mass diagram (interface vs implementation) -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- before: shallow -->
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — interface as wide as the crate</p>
+              <div class="mx-auto max-w-[16rem]">
+                <div class="border-2 border-red-500/50 rounded-t-md bg-red-500/10 px-3 py-3 text-center">
+                  <p class="text-[10px] uppercase tracking-wider text-red-300">pub surface</p>
+                  <ul class="mono text-xs mt-1 space-y-0.5 text-slate-300">
+                    <li>routes() · WsState · broadcast_*</li>
+                    <li class="text-red-300 font-semibold">WsRouteState · broadcast()</li>
+                    <li class="text-red-300">PokeReceipt (pub)</li>
+                    <li>pub mod poke/routes_*/rpcs</li>
+                  </ul>
+                </div>
+                <div class="border-2 border-t-0 border-slate-700 rounded-b-md bg-slate-800/40 px-3 py-2 text-center">
+                  <p class="text-[10px] uppercase tracking-wider text-slate-500">implementation</p>
+                </div>
+                <p class="text-xs text-red-300 mt-2 text-center"><span class="mono">WsRouteState</span> (3 refs) &amp; raw <span class="mono">broadcast</span> (7 calls) — all in-file.</p>
+              </div>
+            </div>
+            <!-- after: deep -->
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — surface = what app.rs wires</p>
+              <div class="mx-auto max-w-[16rem]">
+                <div class="border-2 border-emerald-500/50 rounded-t-md bg-emerald-500/10 px-3 py-2 text-center">
+                  <p class="text-[10px] uppercase tracking-wider text-emerald-300">pub surface</p>
+                  <p class="mono text-xs mt-1 text-slate-200">routes() · WsState · broadcast_*</p>
+                </div>
+                <div class="border-2 border-t-0 border-indigo-500/40 rounded-b-md deep text-white px-3 py-6 text-center">
+                  <p class="text-[10px] uppercase tracking-wider text-indigo-300/80">implementation</p>
+                  <p class="mono text-xs mt-1 text-slate-300">WsRouteState · broadcast() · PokeReceipt<br/>→ pub(crate) / private</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</p>
+              <p class="text-slate-300">The binary exports <span class="mono text-slate-400">pub</span> items nothing outside the crate reads. <span class="mono text-slate-400">WsRouteState</span> and the raw <span class="mono text-slate-400">broadcast</span> method are <span class="mono text-slate-400">pub</span> but used only in <span class="mono text-slate-400">routes_ws.rs</span>.</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</p>
+              <p class="text-slate-300">Narrow them. <span class="mono text-slate-400">WsRouteState</span> → private; <span class="mono text-slate-400">broadcast</span> → private. Keep <span class="mono text-slate-400">WsState</span>, <span class="mono text-slate-400">routes()</span>, <span class="mono text-slate-400">broadcast_*</span> public.</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+              <li><b class="text-slate-100">interface</b> shrinks to what <span class="mono text-slate-400">app.rs</span> wires</li>
+              <li>a smaller seam — the crate hides its internals</li>
+              <li>follows C-13 (curate lib-web, shipped)</li>
+              <li>meets the <span class="mono text-slate-400">#167</span> “curate the public surface” criterion</li>
+            </ul>
+          </div>
+
+          <div class="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4 text-sm text-amber-200">
+            <b class="text-amber-100">Watch:</b> under <span class="mono">-D warnings</span>, a type in a still-<span class="mono">pub</span> item’s signature cannot be tightened (<span class="mono">private_interfaces</span>). Tighten the type only when its enclosing item is also narrowed. Run <span class="mono">cgs check</span> before done.
+          </div>
+        </article>
+
+      </section>
+
+      <!-- ============ TOP RECOMMENDATION ============ -->
+      <section id="top-recommendation">
+        <div class="rounded-2xl deep text-white p-8 card-shadow border border-indigo-500/30 space-y-3">
+          <p class="text-xs uppercase tracking-widest text-indigo-300/80">Top recommendation</p>
+          <h2 class="font-serif text-3xl text-slate-50">Start with <a href="#c18" class="underline decoration-emerald-400 underline-offset-4">C-18</a> — curate the surface.</h2>
+          <p class="text-slate-300 max-w-3xl">
+            It is the issue’s explicit ask. It is provable and low-risk:
+            <span class="mono text-slate-200">WsRouteState</span> and raw <span class="mono text-slate-200">broadcast</span> are read only in-file.
+            It follows C-13, which shipped. It moves the acceptance criteria forward with no design debate.
+          </p>
+          <p class="text-slate-300 max-w-3xl">
+            Then grill <a href="#c16" class="underline decoration-amber-300 underline-offset-4">C-16</a>. It is the
+            larger prize — the service stops owning a deep subsystem — but ADR-0025 just rejected a nearby
+            extraction. That decision is the maintainer’s. C-17 rides along with C-16.
+          </p>
+        </div>
+      </section>
+
+      <footer class="text-xs text-slate-500 pt-4 border-t border-slate-800">
+        Vocabulary: module · interface · implementation · depth · seam · leverage · locality (/codebase-design).
+        Domain: Feed · Channel · Event · Subscription · Poke (CONTEXT.md). Candidates C-16 – C-18 continue the C-## sequence.
+      </footer>
+
+    </main>
+  </body>
+</html>
