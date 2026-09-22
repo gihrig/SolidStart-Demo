@@ -34,11 +34,9 @@ pub enum Error {
     Model(model::Error),
     Pwd(pwd::Error),
     Token(token::Error),
-    Rpc(lib_rpc_core::Error),
 
     // RPC processing errors
     RpcRequestParsing(rpc_router::RequestParsingError),
-    RpcLibRpc(lib_rpc_core::Error),
     RpcHandlerErrorUnhandled(&'static str),
     RpcRouter { id: Value, method: String, error: rpc_router::Error },
 
@@ -127,7 +125,7 @@ impl From<rpc_router::CallError> for Error {
 **Process:**
 1. Extracts error details from `CallError` (id, method, error)
 2. Matches on `rpc_router::Error::Handler` to extract known error types
-3. Attempts to extract `lib_rpc_core::Error` from handler error
+3. Extracts `lib_rpc_core::Error` and flattens it into the matching concrete variant (`Model` or `SerdeJson`), so the client mapping matches each kind once (a wrapped `Model(..)` is not a 500)
 4. Falls back to `RpcHandlerErrorUnhandled` for unknown types or `RpcRouter` for non-handler errors
 
 **Example Usage:**
@@ -196,9 +194,13 @@ The module implements sophisticated RPC error handling for dynamic error type ma
 
 #### Handler Error Processing
 ```rust
-// Extract known error types from RpcHandlerError
+// Extract and flatten known error types from RpcHandlerError, so a wrapped
+// model error maps like a direct one (no RPC 500).
 if let Some(lib_rpc_error) = rpc_handler_error.remove::<lib_rpc_core::Error>() {
-    Error::RpcLibRpc(lib_rpc_error)
+    match lib_rpc_error {
+        lib_rpc_core::Error::Model(model_error) => Error::Model(model_error),
+        lib_rpc_core::Error::SerdeJson(serde_error) => Error::SerdeJson(serde_error),
+    }
 }
 // Handle unknown error types
 else {
@@ -276,6 +278,9 @@ RpcRouter { id: Value, method: String, error: rpc_router::Error }
 - **Audit Trail**: Error information provides complete audit trail for security analysis
 
 ## Flow Diagram
+
+> Note: `images/error.svg` predates the C-15 error flatten (#166) and may be
+> stale — the `Rpc` / `RpcLibRpc` variants it shows were removed.
 
 ![Error Module Flow Diagram](images/error.svg)
 
