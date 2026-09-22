@@ -115,7 +115,7 @@ pub struct PostFilter {
 
 // endregion: --- Post Types
 
-// region:    --- post_category join
+// region:    --- child-table BMCs
 
 /// The `post_category` insert row: one Post-to-Category link. `post_category`
 /// carries at least one row per Post (#107).
@@ -129,6 +129,22 @@ struct PostCategoryBmc;
 
 impl DbBmc for PostCategoryBmc {
 	const TABLE: &'static str = "post_category";
+}
+
+// A marker BMC owns its child table's identity — the `TABLE` name — so every read
+// routes its `FROM` through `DbBmc::table_ref()`, keeping one table name in one
+// place. A marker is not a write path; the like / comment writes land in
+// #118 / #122.
+struct PostLikeBmc;
+
+impl DbBmc for PostLikeBmc {
+	const TABLE: &'static str = "post_like";
+}
+
+struct PostCommentBmc;
+
+impl DbBmc for PostCommentBmc {
+	const TABLE: &'static str = "post_comment";
 }
 
 /// One `(post_id, category_id)` link row read back from the join.
@@ -145,7 +161,7 @@ struct CountRow {
 	cnt: i64,
 }
 
-// endregion: --- post_category join
+// endregion: --- child-table BMCs
 
 // region:    --- PostBmc
 
@@ -364,8 +380,8 @@ impl PostBmc {
 		let (authors, links, likes_by_post, comments_by_post) = tokio::try_join!(
 			UserBmc::author_refs_by_ids(ctx, mm, &owner_ids),
 			post_category_links(mm, &post_ids),
-			counts_by_post(mm, "post_like", &post_ids),
-			counts_by_post(mm, "post_comment", &post_ids),
+			counts_by_post::<PostLikeBmc>(mm, &post_ids),
+			counts_by_post::<PostCommentBmc>(mm, &post_ids),
 		)?;
 
 		let author_by_id: HashMap<i64, AuthorRef> =
@@ -459,7 +475,7 @@ async fn ranked_post_ids(
 		Box::new(SubQueryStatement::SelectStatement(
 			Query::select()
 				.expr(Expr::col(Asterisk).count())
-				.from(Alias::new("post_like"))
+				.from(PostLikeBmc::table_ref())
 				.and_where(
 					Expr::col((Alias::new("post_like"), Alias::new("post_id")))
 						.equals((Alias::new("post"), CommonIden::Id)),
@@ -525,7 +541,7 @@ async fn post_category_links(
 
 	let mut query = Query::select();
 	query
-		.from(Alias::new("post_category"))
+		.from(PostCategoryBmc::table_ref())
 		.column(Alias::new("post_id"))
 		.column(Alias::new("category_id"))
 		.and_where(Expr::col(Alias::new("post_id")).is_in(post_ids.iter().copied()))
@@ -539,13 +555,13 @@ async fn post_category_links(
 	Ok(links)
 }
 
-/// Count rows in `table` (`post_like` or `post_comment`) grouped by `post_id`,
-/// for a set of Post ids. One portable `GROUP BY` read; a Post with no rows is
-/// simply absent from the result and defaults to 0 at the call site. `table` is a
-/// fixed literal, never user input.
-async fn counts_by_post(
+/// Count rows in a child table (`post_like` or `post_comment`) grouped by
+/// `post_id`, for a set of Post ids. The child table's identity is the marker BMC
+/// `MC`, so the `FROM` routes through `MC::table_ref()` — no string literal. One
+/// portable `GROUP BY` read; a Post with no rows is simply absent from the result
+/// and defaults to 0 at the call site.
+async fn counts_by_post<MC: DbBmc>(
 	mm: &ModelManager,
-	table: &str,
 	post_ids: &[i64],
 ) -> Result<HashMap<i64, i64>> {
 	if post_ids.is_empty() {
@@ -554,7 +570,7 @@ async fn counts_by_post(
 
 	let mut query = Query::select();
 	query
-		.from(Alias::new(table))
+		.from(MC::table_ref())
 		.column(Alias::new("post_id"))
 		.expr_as(Expr::col(Asterisk).count(), Alias::new("cnt"))
 		.and_where(Expr::col(Alias::new("post_id")).is_in(post_ids.iter().copied()))
@@ -581,8 +597,9 @@ mod tests {
 	use crate::model;
 	use serial_test::serial;
 
-	/// Insert one `post_like` row directly (test-only): `post_like` has no Bmc yet
-	/// (#118), so the ranking test seeds likes at the SQL layer.
+	/// Insert one `post_like` row directly (test-only). `PostLikeBmc` now owns the
+	/// table identity, but the like *write path* lands in #118, so the ranking test
+	/// still seeds likes at the SQL layer.
 	async fn seed_post_like(
 		mm: &ModelManager,
 		post_id: i64,
