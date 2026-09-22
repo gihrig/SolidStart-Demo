@@ -32,4 +32,4 @@ uuid = { workspace = true, features = ["v4","fast-rng",] }
 [dev-dependencies]
 axum-test = "21.1.0"
 httpc-test = "0.1.10"
-serial_test = "3.5.0"
+serial_test = "4.0.1"
