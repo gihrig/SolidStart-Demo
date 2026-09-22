@@ -96,7 +96,9 @@ impl WsState {
 		Self { tx }
 	}
 
-	pub fn broadcast(&self, event: WsEvent) {
+	/// The private broadcast primitive: every send goes through a typed
+	/// `broadcast_*` helper, so this is not part of the crate's public surface.
+	fn broadcast(&self, event: WsEvent) {
 		// Ignore send errors (no subscribers)
 		let _ = self.tx.send(event);
 	}
@@ -105,9 +107,9 @@ impl WsState {
 /// Axum state for the `/ws` route: the broadcast channel plus a `ModelManager`,
 /// so the receive task can authorize subscriptions against the read scope.
 #[derive(Clone)]
-pub struct WsRouteState {
-	pub ws: Arc<WsState>,
-	pub mm: ModelManager,
+struct WsRouteState {
+	ws: Arc<WsState>,
+	mm: ModelManager,
 }
 
 // endregion: --- WebSocket State
