@@ -150,7 +150,7 @@ impl std::error::Error for Error {}
 
 /// From the root error to the http status code and ClientError
 impl Error {
-	pub fn client_status_and_error(&self) -> (StatusCode, ClientError) {
+	pub(crate) fn client_status_and_error(&self) -> (StatusCode, ClientError) {
 		use Error::*; // TODO: should change to `use web::Error as E`
 
 		match self {
@@ -229,7 +229,7 @@ impl Error {
 #[derive(Debug, Serialize, strum_macros::AsRefStr)]
 #[serde(tag = "message", content = "detail")]
 #[allow(non_camel_case_types)]
-pub enum ClientError {
+pub(crate) enum ClientError {
 	LOGIN_FAIL,
 	NO_AUTH,
 	ENTITY_NOT_FOUND { entity: &'static str, id: i64 },

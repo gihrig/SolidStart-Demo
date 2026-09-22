@@ -12,7 +12,7 @@ use std::sync::Arc;
 ///       it can be used downstream by the `mw_res_map` for logging and eventual
 ///       error client JSON-RPC serialization
 #[derive(Debug)]
-pub struct RpcInfo {
+pub(crate) struct RpcInfo {
 	pub id: Option<Value>,
 	pub method: String,
 }
