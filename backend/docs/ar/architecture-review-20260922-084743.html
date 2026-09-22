@@ -58,6 +58,7 @@
           <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="font-serif text-2xl text-slate-100">C-16 · Relocate the realtime <span class="italic text-indigo-300">Feed</span> behind a lib seam</h2>
             <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/30 text-emerald-200 rounded-full px-2.5 py-1">✓ Shipped</span>
               <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Worth exploring</span>
               <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
             </div>
@@ -66,6 +67,10 @@
           <p class="mono text-sm text-slate-500">
             src/web/routes_ws.rs (863) · src/web/poke.rs · src/web/rpcs/{agent,conv}_rpc.rs · src/app.rs · src/main.rs
           </p>
+
+          <div class="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-4 text-sm text-emerald-200">
+            <span class="font-semibold text-emerald-100">✓ Shipped in #167</span> (ADR-0026). Move A — the contract (<span class="mono">Channel</span>, <span class="mono">WsEvent</span>) → <span class="mono">lib-core::realtime</span> (commit <span class="mono">d920a92</span>). Move B — the mechanism → <span class="mono">lib-web::ws</span> (commit <span class="mono">f1bc769</span>). The service now only mounts <span class="mono">lib_web::ws::routes</span>. rust10x ships no ws layer, so the ADR-0025 objection did not apply.
+          </div>
 
           <!-- before / after -->
           <div class="grid md:grid-cols-2 gap-4">
@@ -149,12 +154,17 @@ flowchart TB
           <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="font-serif text-2xl text-slate-100">C-17 · Co-locate the <span class="italic text-indigo-300">Poke</span> rule</h2>
             <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/30 text-emerald-200 rounded-full px-2.5 py-1">✓ Shipped</span>
               <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Worth exploring</span>
               <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
             </div>
           </div>
 
           <p class="mono text-sm text-slate-500">src/web/poke.rs · src/web/routes_ws.rs</p>
+
+          <div class="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-4 text-sm text-emerald-200">
+            <span class="font-semibold text-emerald-100">✓ Shipped in #167</span> (with C-16, commit <span class="mono">f1bc769</span>). <span class="mono">PokeReceipt</span>, <span class="mono">PokedRpcResult</span>, and the markers now share one module — <span class="mono">lib-web::ws::poke</span>. The mint is <span class="mono">pub(super)</span>, so only ws-internal <span class="mono">broadcast_*</span> helpers mint a receipt; ADR-0016 holds.
+          </div>
 
           <!-- before / after: hand-built -->
           <div class="grid md:grid-cols-2 gap-4">
@@ -314,16 +324,16 @@ flowchart TB
       <section id="top-recommendation">
         <div class="rounded-2xl deep text-white p-8 card-shadow border border-indigo-500/30 space-y-3">
           <p class="text-xs uppercase tracking-widest text-indigo-300/80">Top recommendation</p>
-          <h2 class="font-serif text-3xl text-slate-50"><a href="#c18" class="underline decoration-emerald-400 underline-offset-4">C-18</a> is shipped — grill <a href="#c16" class="underline decoration-amber-300 underline-offset-4">C-16</a> next.</h2>
+          <h2 class="font-serif text-3xl text-slate-50">All three shipped — <a href="#c18" class="underline decoration-emerald-400 underline-offset-4">C-18</a>, <a href="#c16" class="underline decoration-emerald-400 underline-offset-4">C-16</a>, and <a href="#c17" class="underline decoration-emerald-400 underline-offset-4">C-17</a>.</h2>
           <p class="text-slate-300 max-w-3xl">
-            C-18 was the issue’s explicit ask — provable and low-risk:
-            <span class="mono text-slate-200">WsRouteState</span> and raw <span class="mono text-slate-200">broadcast</span> are read only in-file.
-            It shipped in #167 (commit <span class="mono text-slate-200">66a2c11</span>) with cgs check, build, and 99 tests green.
+            C-18 curated the service surface (commit <span class="mono text-slate-200">66a2c11</span>). A grill then settled
+            C-16: rust10x ships no ws layer, so the ADR-0025 objection did not hold, and the Feed — the one
+            non-delegating handler — moved out.
           </p>
           <p class="text-slate-300 max-w-3xl">
-            Then grill <a href="#c16" class="underline decoration-amber-300 underline-offset-4">C-16</a>. It is the
-            larger prize — the service stops owning a deep subsystem — but ADR-0025 just rejected a nearby
-            extraction. That decision is the maintainer’s. C-17 rides along with C-16.
+            C-16 landed as two commits: the contract to <span class="mono text-slate-200">lib-core::realtime</span>
+            (<span class="mono text-slate-200">d920a92</span>) and the mechanism to <span class="mono text-slate-200">lib-web::ws</span>
+            (<span class="mono text-slate-200">f1bc769</span>), with C-17 co-locating the Poke rule. Recorded as ADR-0026.
           </p>
         </div>
       </section>

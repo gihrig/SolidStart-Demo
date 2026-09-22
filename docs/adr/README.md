@@ -35,3 +35,4 @@ flat "what has been decided" view.
 | [0023](0023-typed-scheme-name-lib-auth.md) | The lib-auth password scheme is a typed `SchemeName`, identity owned by the scheme module | Accepted |
 | [0024](0024-typed-bmc-owner-post-child-tables.md) | The Post child tables own their table identity through typed marker BMCs, routed via `table_ref()` | Accepted |
 | [0025](0025-login-handler-keeps-blueprint-inline-orchestration.md) | The login handler keeps the rust10x blueprint's inline orchestration | Accepted |
+| [0026](0026-realtime-feed-in-lib-web-contract-in-lib-core.md) | The realtime Feed lives in `lib-web::ws`, its exported contract in `lib-core::realtime` | Accepted |
