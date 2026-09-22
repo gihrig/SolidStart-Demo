@@ -68,6 +68,6 @@ tower-cookies = "0.11.0"
 tower-http = { version = "0.7.1", features = ["fs", "cors"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
-ts-rs = "11.1.0"
+ts-rs = "12.0.1"
 unicode-normalization = "0.1.25"
 uuid = { version = "1.26.1", features = ["fast-rng", "v4"] }
