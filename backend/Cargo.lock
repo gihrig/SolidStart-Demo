@@ -1584,6 +1584,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "derive_more",
+ "futures",
  "lib-auth",
  "lib-core",
  "lib-rpc-core",
@@ -3728,7 +3729,6 @@ dependencies = [
  "axum",
  "axum-test",
  "derive_more",
- "futures",
  "httpc-test",
  "lib-auth",
  "lib-core",
@@ -3741,13 +3741,11 @@ dependencies = [
  "serde_with",
  "serial_test",
  "strum_macros",
- "time",
  "tokio",
  "tower-cookies",
  "tower-http",
  "tracing",
  "tracing-subscriber",
- "ts-rs",
  "uuid",
 ]
 

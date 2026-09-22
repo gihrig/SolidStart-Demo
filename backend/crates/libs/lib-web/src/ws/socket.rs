@@ -1,4 +1,5 @@
-use crate::web::poke::{Agents, Conv, Convs};
+use super::hub::WsState;
+use crate::middleware::mw_auth::CtxW;
 use axum::{
 	extract::{
 		ws::{Message, WebSocket, WebSocketUpgrade},
@@ -10,18 +11,15 @@ use axum::{
 };
 use futures::{SinkExt, StreamExt};
 use lib_core::ctx::Ctx;
-use lib_core::model::conv_msg::ConvMsg;
 use lib_core::model::ModelManager;
-use lib_core::realtime::{Channel, WsEvent};
-use lib_web::middleware::mw_auth::CtxW;
+use lib_core::realtime::Channel;
 use serde::Deserialize;
 use std::collections::HashSet;
-use std::marker::PhantomData;
 use std::sync::Arc;
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::RwLock;
 use tracing::{debug, warn};
 
-// region:    --- WebSocket Event Types
+// region:    --- Subscription request
 
 /// The client → server subscribe/unsubscribe request. It carries a [`Channel`]
 /// flattened onto the request, so the wire stays `{ action, kind, id? }`: `kind`
@@ -35,34 +33,9 @@ struct SubscriptionRequest {
 	channel: Channel,
 }
 
-// endregion: --- WebSocket Event Types
+// endregion: --- Subscription request
 
 // region:    --- WebSocket State
-
-#[derive(Clone, rpc_router::RpcResource)]
-pub struct WsState {
-	pub tx: broadcast::Sender<WsEvent>,
-}
-
-impl Default for WsState {
-	fn default() -> Self {
-		Self::new()
-	}
-}
-
-impl WsState {
-	pub fn new() -> Self {
-		let (tx, _) = broadcast::channel(100);
-		Self { tx }
-	}
-
-	/// The private broadcast primitive: every send goes through a typed
-	/// `broadcast_*` helper, so this is not part of the crate's public surface.
-	fn broadcast(&self, event: WsEvent) {
-		// Ignore send errors (no subscribers)
-		let _ = self.tx.send(event);
-	}
-}
 
 /// Axum state for the `/ws` route: the broadcast channel plus a `ModelManager`,
 /// so the receive task can authorize subscriptions against the read scope.
@@ -240,98 +213,6 @@ async fn handle_socket(
 
 // endregion: --- WebSocket Handler
 
-// region:    --- Poke receipt (ADR-0016)
-
-/// A channel-typed proof that a list-feed poke fired. Its field is private, so
-/// only this ws module mints one — a handler cannot fabricate a receipt without
-/// calling a `broadcast_*`. [`PokedRpcResult::new`](crate::web::poke::PokedRpcResult::new)
-/// consumes it, so a mutation must poke its own feed to build its return value:
-/// no poke, no receipt, no compile (ADR-0016). The marker `C` binds the receipt to
-/// one feed (`Convs` / `Agents` / `Conv`), so a wrong-feed poke is a type error.
-pub struct PokeReceipt<C> {
-	_channel: PhantomData<C>,
-}
-
-impl<C> PokeReceipt<C> {
-	/// Mint a receipt. Private to the ws module: only a `broadcast_*` calls it.
-	fn new() -> Self {
-		Self {
-			_channel: PhantomData,
-		}
-	}
-}
-
-// endregion: --- Poke receipt (ADR-0016)
-
-// region:    --- Helper Functions for Broadcasting
-
-impl WsState {
-	/// Broadcast a conversation message event. Takes the typed `ConvMsg`; the
-	/// envelope derives its `conv:{id}` channel from the payload. Returns the
-	/// [`PokeReceipt<Conv>`] the `add_conv_msg` handler needs to build its result.
-	pub fn broadcast_conv_msg(&self, msg: &ConvMsg) -> PokeReceipt<Conv> {
-		self.broadcast(WsEvent::ConvMsg {
-			payload: msg.clone(),
-		});
-		PokeReceipt::new()
-	}
-
-	/// Poke the global Agent-list channel: the Agent list may have changed (#85).
-	/// Carries no payload — a subscriber refetches through the scoped
-	/// `list_agents` RPC, so no Agent row crosses the push path. Returns the
-	/// [`PokeReceipt<Agents>`] the Agent mutations need to build their result.
-	pub fn broadcast_agent_update(&self) -> PokeReceipt<Agents> {
-		self.broadcast(WsEvent::Poke(Channel::Agents));
-		PokeReceipt::new()
-	}
-
-	/// Poke the global Conversation-list channel: some Conversation list may have
-	/// changed (#85). Contentless for the same reason as `broadcast_agent_update`;
-	/// the refetch re-applies the read scope, so no Conversation row leaks. Returns
-	/// the [`PokeReceipt<Convs>`] the Conversation mutations need for their result.
-	pub fn broadcast_conv_update(&self) -> PokeReceipt<Convs> {
-		self.broadcast(WsEvent::Poke(Channel::Convs));
-		PokeReceipt::new()
-	}
-
-	// The four Jedi poke helpers below have no caller yet: the mutation handlers
-	// call them in the follow-up contract step (#113). Each carries `allow(dead_code)`
-	// until the handler wires the poke; the tests construct them.
-
-	/// Poke the global Post-list channel: the Post list may have changed (#115).
-	/// Contentless — a subscriber refetches through the scoped `list_*` RPC, so no
-	/// Post row crosses the push path (#85).
-	#[allow(dead_code)]
-	pub fn broadcast_posts_update(&self) {
-		self.broadcast(WsEvent::Poke(Channel::Posts));
-	}
-
-	/// Poke one Post's like-count channel (`post_like:{post_id}`): the like count
-	/// changed (#115). Carries only the `post_id` for routing — the count is
-	/// derived by refetch, never pushed.
-	#[allow(dead_code)]
-	pub fn broadcast_post_like(&self, post_id: i64) {
-		self.broadcast(WsEvent::Poke(Channel::PostLike(post_id)));
-	}
-
-	/// Poke one Caption's like-count channel (`caption_like:{caption_id}`): the
-	/// like count changed (#115). Carries only the `caption_id` for routing.
-	#[allow(dead_code)]
-	pub fn broadcast_caption_like(&self, caption_id: i64) {
-		self.broadcast(WsEvent::Poke(Channel::CaptionLike(caption_id)));
-	}
-
-	/// Poke one Post's Caption-list channel (`post_caption:{post_id}`): the
-	/// competing Captions changed or re-ranked (#115). Carries only the `post_id`;
-	/// the client refetches the Top Captions list.
-	#[allow(dead_code)]
-	pub fn broadcast_post_caption(&self, post_id: i64) {
-		self.broadcast(WsEvent::Poke(Channel::PostCaption(post_id)));
-	}
-}
-
-// endregion: --- Helper Functions for Broadcasting
-
 // region:    --- Tests
 
 #[cfg(test)]
@@ -393,60 +274,6 @@ mod tests {
 		)
 		.unwrap();
 		assert_eq!(req.channel.key(), "post_like:9");
-	}
-
-	#[test]
-	fn broadcast_agent_update_pokes_agents_channel() {
-		let ws = WsState::new();
-		let mut rx = ws.tx.subscribe();
-		ws.broadcast_agent_update();
-		let event = rx.try_recv().expect("an event was broadcast");
-		assert!(matches!(event, WsEvent::Poke(Channel::Agents)));
-		assert_eq!(event.channel().key(), "agents");
-	}
-
-	#[test]
-	fn broadcast_conv_update_pokes_convs_channel() {
-		let ws = WsState::new();
-		let mut rx = ws.tx.subscribe();
-		ws.broadcast_conv_update();
-		let event = rx.try_recv().expect("an event was broadcast");
-		assert!(matches!(event, WsEvent::Poke(Channel::Convs)));
-		assert_eq!(event.channel().key(), "convs");
-	}
-
-	/// Wire-lock for the typed poke receipt (ADR-0016). A `PokedRpcResult`
-	/// serializes as `{ "data": … }` — byte-identical to `DataRpcResult`, the
-	/// channel marker skipped — so a mutation's wire shape does not change. The
-	/// receipt comes from a real broadcast; only the ws module can mint one.
-	#[test]
-	fn poked_rpc_result_serializes_as_data_only() {
-		use crate::web::poke::PokedRpcResult;
-
-		let ws = WsState::new();
-		let receipt = ws.broadcast_conv_update(); // PokeReceipt<Convs>
-		let result = PokedRpcResult::new(42_i64, receipt);
-		assert_eq!(
-			serde_json::to_value(result).unwrap(),
-			serde_json::json!({ "data": 42 }),
-		);
-	}
-
-	/// Each Jedi broadcast helper emits its poke on the right channel (#115).
-	#[test]
-	fn jedi_broadcast_helpers_poke_their_channels() {
-		let ws = WsState::new();
-		let mut rx = ws.tx.subscribe();
-
-		ws.broadcast_posts_update();
-		ws.broadcast_post_like(5);
-		ws.broadcast_caption_like(6);
-		ws.broadcast_post_caption(8);
-
-		assert_eq!(rx.try_recv().unwrap().channel().key(), "posts");
-		assert_eq!(rx.try_recv().unwrap().channel().key(), "post_like:5");
-		assert_eq!(rx.try_recv().unwrap().channel().key(), "caption_like:6");
-		assert_eq!(rx.try_recv().unwrap().channel().key(), "post_caption:8");
 	}
 
 	#[test]
