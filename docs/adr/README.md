@@ -34,3 +34,4 @@ flat "what has been decided" view.
 | [0022](0022-fullstack-sbom-vuln-scanning-syft-grype.md) | Full-stack SBOM + vulnerability scanning with syft + grype; Snyk abandoned | Accepted |
 | [0023](0023-typed-scheme-name-lib-auth.md) | The lib-auth password scheme is a typed `SchemeName`, identity owned by the scheme module | Accepted |
 | [0024](0024-typed-bmc-owner-post-child-tables.md) | The Post child tables own their table identity through typed marker BMCs, routed via `table_ref()` | Accepted |
+| [0025](0025-login-handler-keeps-blueprint-inline-orchestration.md) | The login handler keeps the rust10x blueprint's inline orchestration | Accepted |
