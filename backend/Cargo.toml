@@ -48,7 +48,7 @@ blake3 = "1.8.7"
 derive_more = { version = "2.1.1", features = ["display", "from"] }
 enum_dispatch = "0.3.13"
 futures = "0.3.34"
-hmac = "0.12.1"
+hmac = "0.13.0"
 lazy-regex = "3.6.1"
 modql = { version = "0.4.1", features = ["with-sea-query"] }
 pastey = "0.2.3"
@@ -59,7 +59,7 @@ sea-query-binder = { version = "0.7.0", features = ["sqlx-postgres", "with-time"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 serde_with = { version = "3.23.0", features = ["time_0_3"] }
-sha2 = "0.10.9"
+sha2 = "0.11.0"
 sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio", "uuid"] }
 strum_macros = "0.28.0"
 time = { version = "0.3.55", features = ["formatting", "parsing", "serde"] }
