@@ -57,6 +57,7 @@
                 <h2 class="text-2xl font-serif text-slate-100">Give the Post child-tables a typed BMC owner</h2>
               </div>
               <div class="flex gap-2 flex-wrap">
+                <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/30 text-emerald-200 rounded-full px-3 py-1">✓ Shipped</span>
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-amber-400/15 text-amber-300">Worth exploring</span>
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">locality</span>
@@ -66,6 +67,11 @@
             <div class="mono text-sm text-slate-500 space-y-0.5">
               <div>model/post.rs</div>
               <div>model/base/bmc.rs <span class="text-slate-600">(DbBmc::table_ref — the identity seam)</span></div>
+            </div>
+
+            <div class="rounded-lg bg-emerald-500/10 border border-emerald-500/40 p-3 text-sm text-emerald-100">
+              <span class="font-semibold text-emerald-200">✓ Shipped per <a href="../../../docs/adr/0024-typed-bmc-owner-post-child-tables.md" class="underline">ADR-0024</a> (#165).</span>
+              <span class="mono text-xs">PostLikeBmc</span> / <span class="mono text-xs">PostCommentBmc</span> join <span class="mono text-xs">PostCategoryBmc</span>; <span class="mono text-xs">counts_by_post</span> is generic over <span class="mono text-xs">MC: DbBmc</span>; every child-table <span class="mono text-xs">FROM</span> routes through <span class="mono text-xs">table_ref()</span>. Query, result, and ts-rs bindings unchanged.
             </div>
 
             <!-- before / after : hand-built boxes -->
@@ -154,6 +160,7 @@
                 <h2 class="text-2xl font-serif text-slate-100">Shrink the model seam to what callers use</h2>
               </div>
               <div class="flex gap-2 flex-wrap">
+                <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/30 text-emerald-200 rounded-full px-3 py-1">✓ Shipped</span>
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-amber-400/15 text-amber-300">Worth exploring</span>
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">curation</span>
@@ -163,6 +170,11 @@
             <div class="mono text-sm text-slate-500 space-y-0.5">
               <div>model/mod.rs</div>
               <div>model/modql_utils.rs</div>
+            </div>
+
+            <div class="rounded-lg bg-emerald-500/10 border border-emerald-500/40 p-3 text-sm text-emerald-100">
+              <span class="font-semibold text-emerald-200">✓ Shipped in #165.</span>
+              <span class="mono text-xs">pub mod modql_utils</span> → <span class="mono text-xs">pub(in crate::model)</span>, matching the <span class="mono text-xs">dbx</span> precedent. The <span class="mono text-xs">time_to_sea_value</span> callers are unchanged; no ADR (a one-line visibility curation).
             </div>
 
             <!-- before / after : mass diagram (interface vs implementation) -->
@@ -293,26 +305,25 @@
 
       </section>
 
-      <!-- ============ TOP RECOMMENDATION ============ -->
+      <!-- ============ STATUS ============ -->
       <section id="top-recommendation">
         <div class="rounded-2xl deep text-white p-8 shadow-md border border-slate-700">
-          <div class="text-xs uppercase tracking-widest text-emerald-300 mb-2">Top recommendation</div>
-          <h2 class="text-2xl font-serif mb-3 text-slate-50"><a href="#c10" class="underline decoration-emerald-400 underline-offset-4">C-10 — give the Post child-tables a typed BMC owner</a></h2>
+          <div class="text-xs uppercase tracking-widest text-emerald-300 mb-2">Status</div>
+          <h2 class="text-2xl font-serif mb-3 text-slate-50"><a href="#c10" class="underline decoration-emerald-400 underline-offset-4">C-10</a> and <a href="#c11" class="underline decoration-emerald-400 underline-offset-4">C-11</a> are shipped</h2>
           <p class="text-slate-300 text-sm max-w-3xl">
-            C-10 is the closest match to issue #165’s “BMC ownership”, and it follows the shipped
-            <a href="../../../docs/adr/0023-typed-scheme-name-lib-auth.md" class="underline decoration-emerald-400">C-07</a> pattern:
-            concentrate a scattered identity behind one small seam. It is in-process, blueprint-faithful, and it pays forward into the
-            like / comment write path (#118, #122).
-            <span class="block mt-2">Pair it with <a href="#c11" class="underline decoration-emerald-400">C-11</a> — a one-line
-            curation (<span class="mono">pub mod modql_utils</span> → <span class="mono">pub(crate)</span>) that directly serves the
-            “curated public API” criterion. <a href="#c12" class="underline decoration-amber-300">C-12</a> is the real big shallowness,
-            but it stays on ADR-0012’s Turso track — out of scope here.</span>
+            C-10 landed via <a href="../../../docs/adr/0024-typed-bmc-owner-post-child-tables.md" class="underline decoration-emerald-400">ADR-0024</a> (#165): typed
+            <span class="mono">PostLikeBmc</span> / <span class="mono">PostCommentBmc</span> owners, a generic <span class="mono">counts_by_post</span>, and every child-table <span class="mono">FROM</span> routed through <span class="mono">table_ref()</span>.
+            It pays forward into the like / comment write path (#118, #122).
+            <span class="block mt-2">C-11 landed alongside it — a one-line curation
+            (<span class="mono">pub mod modql_utils</span> → <span class="mono">pub(in crate::model)</span>) serving the
+            “curated public API” criterion. <a href="#c12" class="underline decoration-amber-300">C-12</a> stays <span class="text-amber-300">deferred</span>
+            on ADR-0012’s Turso track — out of scope here.</span>
           </p>
         </div>
       </section>
 
       <footer class="text-center text-xs text-slate-600 pt-6">
-        lib-core · rust-clean-architecture pass · candidates C-10 · C-11 · C-12 (C-12 deferred to ADR-0012)
+        lib-core · rust-clean-architecture pass · C-10 · C-11 shipped (#165) · C-12 deferred to ADR-0012
       </footer>
 
     </main>
