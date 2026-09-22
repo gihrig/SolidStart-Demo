@@ -230,12 +230,20 @@ flowchart TB
           <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="font-serif text-2xl text-slate-100">C-18 · Curate the service’s public surface</h2>
             <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/30 text-emerald-200 rounded-full px-2.5 py-1">✓ Shipped</span>
               <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Strong</span>
               <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
             </div>
           </div>
 
           <p class="mono text-sm text-slate-500">src/web/routes_ws.rs · src/web/mod.rs</p>
+
+          <div class="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-4 text-sm text-emerald-200">
+            <span class="font-semibold text-emerald-100">✓ Shipped in #167</span> (commit <span class="mono">66a2c11</span>).
+            <span class="mono">WsState::broadcast</span> and <span class="mono">WsRouteState</span> (+ fields) are now private.
+            <span class="mono">PokeReceipt</span> stays <span class="mono">pub</span> — <span class="mono">private_interfaces</span> blocks it under <span class="mono">-D warnings</span>.
+            cgs check / build green; 99/99 tests pass.
+          </div>
 
           <!-- before / after: mass diagram (interface vs implementation) -->
           <div class="grid md:grid-cols-2 gap-4">
@@ -306,11 +314,11 @@ flowchart TB
       <section id="top-recommendation">
         <div class="rounded-2xl deep text-white p-8 card-shadow border border-indigo-500/30 space-y-3">
           <p class="text-xs uppercase tracking-widest text-indigo-300/80">Top recommendation</p>
-          <h2 class="font-serif text-3xl text-slate-50">Start with <a href="#c18" class="underline decoration-emerald-400 underline-offset-4">C-18</a> — curate the surface.</h2>
+          <h2 class="font-serif text-3xl text-slate-50"><a href="#c18" class="underline decoration-emerald-400 underline-offset-4">C-18</a> is shipped — grill <a href="#c16" class="underline decoration-amber-300 underline-offset-4">C-16</a> next.</h2>
           <p class="text-slate-300 max-w-3xl">
-            It is the issue’s explicit ask. It is provable and low-risk:
+            C-18 was the issue’s explicit ask — provable and low-risk:
             <span class="mono text-slate-200">WsRouteState</span> and raw <span class="mono text-slate-200">broadcast</span> are read only in-file.
-            It follows C-13, which shipped. It moves the acceptance criteria forward with no design debate.
+            It shipped in #167 (commit <span class="mono text-slate-200">66a2c11</span>) with cgs check, build, and 99 tests green.
           </p>
           <p class="text-slate-300 max-w-3xl">
             Then grill <a href="#c16" class="underline decoration-amber-300 underline-offset-4">C-16</a>. It is the
