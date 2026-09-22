@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Architecture review — lib-web</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose", flowchart: { curve: "basis" } });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 5 5; }
+      .deep { background: linear-gradient(135deg, #020617, #0f172a); }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .card-mermaid .mermaid { display: flex; justify-content: center; }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-100 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-14">
+
+      <!-- ============ HEADER ============ -->
+      <header class="space-y-6">
+        <div class="flex items-baseline justify-between flex-wrap gap-3">
+          <h1 class="text-4xl font-serif tracking-tight text-slate-50">Architecture review — <span class="mono text-indigo-400">lib-web</span></h1>
+          <span class="text-sm text-slate-500">2026-09-21 · issue #166 · continues C-12</span>
+        </div>
+        <p class="text-slate-400 max-w-3xl">
+          Deepening pass on <span class="mono text-sm text-slate-300">backend/crates/libs/lib-web</span> (the presentation crate:
+          Axum handlers, middleware, the web <span class="mono text-xs text-slate-300">Error</span>). The mechanical
+          <span class="mono text-sm text-slate-300">mod.rs</span> pass (#162) already landed — every <span class="mono text-xs text-slate-300">mod.rs</span> is wiring-only.
+          <span class="text-slate-300">The crate is a faithful rust10x web layer and small (896 lines)</span>: the RPC handlers already delegate to one
+          <span class="mono text-xs text-slate-300">rpc_dispatch</span>, and <span class="mono text-xs text-slate-300">error.rs</span> is a genuinely deep
+          module (small interface, dense mapping). So the friction is narrow: an over-wide <em>public interface</em>, one handler that is not thin
+          (and matches the blueprint), and an error <em>seam</em> that maps RPC-wrapped model errors twice — with a gap.
+        </p>
+        <!-- legend -->
+        <div class="flex flex-wrap gap-5 text-xs uppercase tracking-wider text-slate-500 border-t border-b border-slate-800 py-3">
+          <span class="flex items-center gap-2"><span class="inline-block w-6 h-4 border-2 border-slate-500 rounded-sm"></span>module</span>
+          <span class="flex items-center gap-2"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="#94a3b8" stroke-width="2" class="seam"/></svg>seam</span>
+          <span class="flex items-center gap-2"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="#ef4444" stroke-width="2"/></svg>leak</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-6 h-4 rounded-sm deep border border-slate-700"></span>deep module</span>
+        </div>
+      </header>
+
+      <!-- ============ CANDIDATES ============ -->
+      <section id="candidates" class="space-y-12">
+
+        <!-- ===================== C-13 ===================== -->
+        <article id="c13" class="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
+          <div class="p-7 space-y-6">
+            <div class="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <div class="text-xs uppercase tracking-widest text-slate-500 mb-1">Candidate C-13</div>
+                <h2 class="text-2xl font-serif text-slate-100">Shrink the lib-web public interface to what web-server uses</h2>
+              </div>
+              <div class="flex gap-2 flex-wrap">
+                <span class="text-xs font-semibold uppercase tracking-wide bg-emerald-500/30 text-emerald-200 rounded-full px-3 py-1">✓ Shipped</span>
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">Strong</span>
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">curation</span>
+              </div>
+            </div>
+
+            <div class="mono text-sm text-slate-500 space-y-0.5">
+              <div>lib.rs <span class="text-slate-600">(the export surface)</span></div>
+              <div>utils/token.rs · handlers/handlers_rpc.rs · error.rs</div>
+            </div>
+
+            <div class="rounded-lg bg-emerald-500/10 border border-emerald-500/40 p-3 text-sm text-emerald-100">
+              <span class="font-semibold text-emerald-200">✓ Shipped in #166 (Full scope).</span>
+              <span class="mono text-xs">log</span> / <span class="mono text-xs">utils</span> → <span class="mono text-xs">pub(crate)</span>; <span class="mono text-xs">RpcInfo</span> → <span class="mono text-xs">pub(crate)</span>; the <span class="mono text-xs">token.rs</span> Error/Result/ClientError re-exports dropped; the error→client map (<span class="mono text-xs">client_status_and_error</span> + <span class="mono text-xs">ClientError</span>) → <span class="mono text-xs">pub(crate)</span>. The public error seam is now <span class="mono text-xs">Error</span> alone. <span class="mono text-xs">ReqStamp</span> stays <span class="mono text-xs">pub</span> — it is a by-value param of the public <span class="mono text-xs">mw_response_map</span>. No ADR. Gate green: check · build · test (98/98) · bindings no-drift.
+            </div>
+
+            <!-- before / after : hand-built boxes (interface shrink) -->
+            <div class="grid md:grid-cols-2 gap-4">
+              <!-- BEFORE -->
+              <div class="rounded-xl border border-slate-800 p-4">
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — every module public; two of them unused</div>
+                <div class="space-y-2" style="min-height:270px">
+                  <div class="border-2 border-slate-600 rounded-lg p-3 bg-slate-800/40">
+                    <div class="text-xs uppercase tracking-wider text-slate-400 mb-2 mono">lib.rs — 5 pub mod</div>
+                    <ul class="text-[11px] space-y-1.5 text-slate-300">
+                      <li class="bg-slate-700/40 border border-slate-600 rounded px-2 py-1 mono">pub mod handlers · middleware · routes <span class="text-emerald-300/80">(used ✓)</span></li>
+                      <li class="bg-red-500/10 border border-red-500/30 rounded px-2 py-1 mono">pub mod log <span class="text-red-200">← no external caller</span></li>
+                      <li class="bg-red-500/10 border border-red-500/30 rounded px-2 py-1 mono">pub mod utils <span class="text-red-200">← no external caller</span></li>
+                      <li class="bg-red-500/10 border border-red-500/30 rounded px-2 py-1"><span class="mono">pub use error::Error;</span><br><span class="text-red-200 text-[10px]">+ token.rs re-exports Error/Result/ClientError → duplicate paths</span></li>
+                    </ul>
+                  </div>
+                  <div class="border-2 border-slate-600 rounded-lg p-3 bg-slate-800/40">
+                    <div class="text-xs uppercase tracking-wider text-slate-400 mb-1 mono">what web-server actually imports</div>
+                    <div class="text-[11px] text-slate-300 space-y-0.5 mono">
+                      <div>mw_ctx_require · mw_ctx_resolver · CtxW</div>
+                      <div>mw_req_stamp_resolver · mw_response_map</div>
+                      <div>routes_static · handlers_login · handlers_rpc</div>
+                      <div class="text-slate-500 text-[10px] mt-1">8 items — nothing from log or utils</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- AFTER -->
+              <div class="rounded-xl border border-slate-800 p-4">
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — a curated seam; internals tucked inside</div>
+                <div class="flex flex-col gap-3" style="min-height:270px">
+                  <div class="deep text-white rounded-lg p-4 border border-slate-700">
+                    <div class="text-xs uppercase tracking-wider text-slate-400 mb-2 mono">public seam (the 8 consumed items)</div>
+                    <div class="text-[11px] text-slate-200 space-y-0.5 mono">
+                      <div>pub mod handlers · middleware · routes</div>
+                      <div>pub use error::Error;</div>
+                    </div>
+                    <div class="mt-3 text-[11px] text-emerald-300 mono">one path to Error — no duplicates</div>
+                  </div>
+                  <div class="text-center text-slate-600 text-xs">internals ↓ off the seam</div>
+                  <div class="border-2 border-slate-600 rounded-lg p-3 bg-slate-800/40">
+                    <div class="text-[11px] text-slate-400 space-y-0.5 mono">
+                      <div>pub(crate) mod log</div>
+                      <div>pub(crate) mod utils</div>
+                      <div>token.rs: use crate::error::Result;</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+              <div>
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</div>
+                <p class="text-slate-300"><span class="mono text-xs text-slate-200">lib.rs:6</span> and <span class="mono text-xs text-slate-200">lib.rs:9</span> export <span class="mono text-xs text-slate-200">pub mod log</span> and <span class="mono text-xs text-slate-200">pub mod utils</span>, but no crate outside <span class="mono text-xs text-slate-200">lib-web</span> imports either. <span class="mono text-xs text-slate-200">utils/token.rs:1-2</span> also re-exports <span class="mono text-xs text-slate-200">Error</span> / <span class="mono text-xs text-slate-200">Result</span> / <span class="mono text-xs text-slate-200">ClientError</span>, so the web <span class="mono text-xs text-slate-200">Error</span> is reachable by two paths.</p>
+              </div>
+              <div>
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</div>
+                <p class="text-slate-300">Make <span class="mono text-xs text-slate-200">log</span> and <span class="mono text-xs text-slate-200">utils</span> <span class="mono text-xs text-slate-200">pub(crate)</span> (their callers are all in-crate). Drop the <span class="mono text-xs text-slate-200">Error</span> / <span class="mono text-xs text-slate-200">Result</span> / <span class="mono text-xs text-slate-200">ClientError</span> re-exports in <span class="mono text-xs text-slate-200">token.rs</span>; keep the one <span class="mono text-xs text-slate-200">use crate::error::Result</span> it needs.</p>
+              </div>
+              <div class="sm:col-span-2">
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</div>
+                <ul class="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-slate-300 text-sm list-disc list-inside marker:text-emerald-400">
+                  <li>interface shrinks; implementation unchanged (deeper)</li>
+                  <li>serves #166's "curated public API" criterion</li>
+                  <li>one public path to <span class="mono text-xs">Error</span></li>
+                  <li>low risk: visibility only, no caller changes</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="rounded-lg bg-slate-800/60 border border-slate-700 p-3 text-xs text-slate-400">
+              <span class="font-semibold text-slate-200">Deletion test:</span> removing <span class="mono">pub</span> from <span class="mono">log</span> / <span class="mono">utils</span> deletes zero external callers — a grep for <span class="mono">lib_web::log</span> / <span class="mono">lib_web::utils</span> across <span class="mono">crates/services</span> is empty. Pure surface reduction. This mirrors <a href="architecture-review-20260921-001306.html" class="underline decoration-slate-500">C-11</a>, shipped for lib-core the same way.
+            </div>
+          </div>
+        </article>
+
+        <!-- ===================== C-14 ===================== -->
+        <article id="c14" class="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
+          <div class="p-7 space-y-6">
+            <div class="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <div class="text-xs uppercase tracking-widest text-slate-500 mb-1">Candidate C-14</div>
+                <h2 class="text-2xl font-serif text-slate-100">Give the login use-case its own seam</h2>
+              </div>
+              <div class="flex gap-2 flex-wrap">
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-700 text-slate-300 border border-slate-600">Speculative</span>
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">testability</span>
+              </div>
+            </div>
+
+            <div class="mono text-sm text-slate-500 space-y-0.5">
+              <div>handlers/handlers_login.rs</div>
+            </div>
+
+            <!-- before / after : cross-section (layered shallowness) -->
+            <div class="grid md:grid-cols-2 gap-4">
+              <!-- BEFORE -->
+              <div class="rounded-xl border border-slate-800 p-4">
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — one handler, four jobs</div>
+                <div class="space-y-1.5" style="min-height:250px">
+                  <div class="flex items-center gap-3 border-l-4 border-slate-500 bg-slate-800/40 rounded-r px-3 py-2">
+                    <span class="text-[11px] uppercase tracking-wider text-slate-400 w-28 mono">presentation</span>
+                    <span class="mono text-[11px] text-slate-300">State / Cookies / Json&lt;LoginPayload&gt;</span>
+                  </div>
+                  <div class="flex items-center gap-3 border-l-4 border-red-500/60 bg-slate-800/40 rounded-r px-3 py-2">
+                    <span class="text-[11px] uppercase tracking-wider text-slate-400 w-28 mono">use-case</span>
+                    <span class="mono text-[11px] text-red-200">UserBmc::first_by_username</span>
+                  </div>
+                  <div class="flex items-center gap-3 border-l-4 border-red-500/60 bg-slate-800/40 rounded-r px-3 py-2">
+                    <span class="text-[11px] uppercase tracking-wider text-slate-400 w-28 mono">use-case</span>
+                    <span class="mono text-[11px] text-red-200">validate_pwd + scheme upgrade</span>
+                  </div>
+                  <div class="flex items-center gap-3 border-l-4 border-red-500/60 bg-slate-800/40 rounded-r px-3 py-2">
+                    <span class="text-[11px] uppercase tracking-wider text-slate-400 w-28 mono">presentation</span>
+                    <span class="mono text-[11px] text-red-200">set_token_cookie + body</span>
+                  </div>
+                  <p class="text-[11px] text-slate-500 mt-2">The scheme-upgrade branch (<span class="mono">handlers_login.rs:50-53</span>) can be exercised only by driving HTTP — the handler is the sole interface.</p>
+                </div>
+              </div>
+              <!-- AFTER -->
+              <div class="rounded-xl border border-slate-800 p-4">
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — thin handler over a deep use-case</div>
+                <div class="flex flex-col gap-3" style="min-height:250px">
+                  <div class="border-2 border-slate-600 rounded-lg p-3 bg-slate-800/40">
+                    <div class="text-xs uppercase tracking-wider text-slate-400 mb-1 mono">api_login_handler (thin)</div>
+                    <div class="text-[11px] text-slate-300 mono">parse payload → login(…) → set cookie → body</div>
+                  </div>
+                  <div class="text-center text-slate-600 text-xs">delegates ↓</div>
+                  <div class="deep text-white rounded-lg p-4 border border-slate-700">
+                    <div class="text-xs uppercase tracking-wider text-slate-400 mb-2 mono">login use-case (deep)</div>
+                    <div class="text-[11px] text-slate-200 mono space-y-0.5">
+                      <div>lookup · validate_pwd · scheme upgrade</div>
+                    </div>
+                    <div class="mt-2 text-[11px] text-emerald-300 mono">interface = a call, tested without HTTP</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+              <div>
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</div>
+                <p class="text-slate-300"><span class="mono text-xs text-slate-200">api_login_handler</span> (<span class="mono text-xs text-slate-200">handlers_login.rs:15-66</span>) mixes Axum extraction with the login flow — user lookup, <span class="mono text-xs text-slate-200">validate_pwd</span>, scheme upgrade, cookie. The flow has no interface but the HTTP handler.</p>
+              </div>
+              <div>
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</div>
+                <p class="text-slate-300">Extract a <span class="mono text-xs text-slate-200">login</span> function taking the model and credentials; the handler parses the payload, calls it, sets the cookie, and shapes the body — thin and delegating.</p>
+              </div>
+              <div class="sm:col-span-2">
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</div>
+                <ul class="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-slate-300 text-sm list-disc list-inside marker:text-emerald-400">
+                  <li>the scheme-upgrade branch testable directly</li>
+                  <li>handler becomes thin (the #166 ask)</li>
+                  <li>locality: the login flow lives in one module</li>
+                  <li>the interface is the test surface, not HTTP</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="rounded-lg bg-amber-400/10 border border-amber-500/40 p-3 text-sm text-amber-100">
+              <span class="font-semibold text-amber-200">⚠ Diverges from the rust10x blueprint.</span> The blueprint keeps this exact flow inside <span class="mono text-xs">api_login_handler</span>. C-08 / C-09 were <span class="text-amber-300">rejected in favor of the blueprint</span> (commit <span class="mono">4a613da</span>), so this may go the same way. Surfaced because #166 asks for "thin handlers that delegate"; the RPC handlers already are (they delegate to <span class="mono">rpc_dispatch</span>), so login is the one exception — and it matches the blueprint.
+            </div>
+
+            <div class="rounded-lg bg-slate-800/60 border border-slate-700 p-3 text-xs text-slate-400">
+              <span class="font-semibold text-slate-200">Deletion test:</span> weak leverage — one caller. The flow is not a pass-through, so extracting concentrates the login logic where its bugs live (pwd match, scheme upgrade) rather than moving it. The gain is test locality, not a second adapter — hence <em>Speculative</em>. An in-process HTTP test already covers login end-to-end (<span class="mono">web-server/src/app.rs</span>).
+            </div>
+          </div>
+        </article>
+
+        <!-- ===================== C-15 ===================== -->
+        <article id="c15" class="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
+          <div class="p-7 space-y-6">
+            <div class="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <div class="text-xs uppercase tracking-widest text-slate-500 mb-1">Candidate C-15</div>
+                <h2 class="text-2xl font-serif text-slate-100">Flatten RPC-wrapped model errors so the client map matches once</h2>
+              </div>
+              <div class="flex gap-2 flex-wrap">
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">Strong</span>
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">locality</span>
+              </div>
+            </div>
+
+            <div class="mono text-sm text-slate-500 space-y-0.5">
+              <div>error.rs <span class="text-slate-600">(From&lt;CallError&gt; · client_status_and_error)</span></div>
+            </div>
+
+            <!-- before / after : Mermaid flow (path collapse) -->
+            <div class="grid md:grid-cols-2 gap-4">
+              <div class="rounded-lg border border-slate-800 bg-white/5 p-4 card-mermaid">
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — two paths; one arm missing</div>
+                <pre class="mermaid">
+flowchart TD
+  D["direct: Error::Model(EntityNotFound)"] --> A400a["400 ✓"]
+  V1["direct: Error::Model(Validation)"] --> A400b["400 ✓"]
+  R["RPC handler error"] --> W["RpcLibRpc(Model(..))"]
+  W --> V2["Validation arm matched"] --> A400c["400 ✓"]
+  W --> E["EntityNotFound: no wrapped arm"] --> F["_ =&gt; fallback"] --> A500["500 ✗"]
+  classDef bad stroke:#ef4444,stroke-width:2px,fill:#7f1d1d33;
+  classDef ok stroke:#10b981,stroke-width:1px;
+  class E,F,A500 bad
+  class A400a,A400b,A400c ok
+                </pre>
+              </div>
+              <div class="rounded-lg border border-slate-800 bg-white/5 p-4 card-mermaid">
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — both paths flatten to one arm</div>
+                <pre class="mermaid">
+flowchart TD
+  D["direct: Error::Model(x)"] --> M["one Model(..) arm"]
+  R["RPC handler error"] --> FL["flatten in From: Model(x)"] --> M
+  M --> N{"which model error?"}
+  N --> NF["EntityNotFound → 400"]
+  N --> VL["Validation → 400"]
+  classDef ok stroke:#10b981,stroke-width:1px;
+  class M,NF,VL ok
+                </pre>
+              </div>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+              <div>
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</div>
+                <p class="text-slate-300"><span class="mono text-xs text-slate-200">client_status_and_error</span> maps model errors twice. <span class="mono text-xs text-slate-200">Validation</span> has a direct arm and an <span class="mono text-xs text-slate-200">RpcLibRpc(Model(..))</span> arm (<span class="mono text-xs text-slate-200">error.rs:172-185</span>). <span class="mono text-xs text-slate-200">EntityNotFound</span> has only the direct arm (<span class="mono text-xs text-slate-200">error.rs:168-171</span>), so an RPC read of a missing entity falls to the <span class="mono text-xs text-slate-200">_ =&gt;</span> fallback (<span class="mono text-xs text-slate-200">error.rs:221-224</span>) → <span class="text-red-300">HTTP 500</span>.</p>
+              </div>
+              <div>
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</div>
+                <p class="text-slate-300">At the <span class="mono text-xs text-slate-200">From&lt;rpc_router::CallError&gt;</span> deconstruction (<span class="mono text-xs text-slate-200">error.rs:96-101</span>), flatten the known <span class="mono text-xs text-slate-200">lib_rpc_core::Error::Model</span> / <span class="mono text-xs text-slate-200">SerdeJson</span> into lib-web's own <span class="mono text-xs text-slate-200">Model</span> / <span class="mono text-xs text-slate-200">SerdeJson</span>. Then the client map matches each model error once.</p>
+              </div>
+              <div class="sm:col-span-2">
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</div>
+                <ul class="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-slate-300 text-sm list-disc list-inside marker:text-emerald-400">
+                  <li>fixes EntityNotFound-via-RPC 500 → 400</li>
+                  <li>locality: one arm per model error kind</li>
+                  <li>leverage: new model errors map once, not twice</li>
+                  <li>deletes the <span class="mono text-xs">RpcLibRpc</span> pass-through variant</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="rounded-lg bg-slate-800/60 border border-slate-700 p-3 text-xs text-slate-400">
+              <span class="font-semibold text-slate-200">Deletion test:</span> delete <span class="mono">RpcLibRpc</span> (<span class="mono">error.rs:55</span>). Its construction at <span class="mono">error.rs:100</span> unwraps into <span class="mono">Model</span> / <span class="mono">SerdeJson</span>, and the wrapped <span class="mono">Validation</span> arm collapses into the direct one — complexity concentrates in <span class="mono">From</span>, not spread across the match. This finishes the #114 fix (the double-arm was added to stop the same 500), rather than re-litigating it.
+            </div>
+            <div class="rounded-lg bg-amber-400/10 border border-amber-500/40 p-3 text-xs text-amber-100">
+              <span class="font-semibold text-amber-200">Consider during grilling:</span> flattening makes the log's <span class="mono">error_type</span> read <span class="mono">Model</span> for the RPC path instead of <span class="mono">RpcLibRpc</span>. The <span class="mono">RpcInfo</span> method / id are logged separately, and <span class="mono">RpcRouter</span> / <span class="mono">RpcHandlerErrorUnhandled</span> still catch the other rpc-router cases.
+            </div>
+          </div>
+        </article>
+
+      </section>
+
+      <!-- ============ TOP RECOMMENDATION ============ -->
+      <section id="top-recommendation">
+        <div class="rounded-2xl deep text-white p-8 shadow-md border border-slate-700">
+          <div class="text-xs uppercase tracking-widest text-emerald-300 mb-2">Status</div>
+          <h2 class="text-2xl font-serif mb-3 text-slate-50"><a href="#c13" class="underline decoration-emerald-400 underline-offset-4">C-13</a> is shipped</h2>
+          <p class="text-slate-300 text-sm max-w-3xl">
+            C-13 shipped in #166 — the "curated public API" criterion, visibility-only, no caller changes. It mirrors
+            <a href="architecture-review-20260921-001306.html" class="underline decoration-emerald-400">C-11</a>, shipped for lib-core the same way. The public seam is now the 8 consumed items plus <span class="mono">Error</span>.
+            <span class="block mt-2"><a href="#c15" class="underline decoration-emerald-400">C-15</a> is the recommended next pass — it turns an RPC "entity not found" from a
+            <span class="text-red-300">500</span> into a <span class="text-emerald-300">400</span> and deletes a pass-through variant.
+            <a href="#c14" class="underline decoration-amber-300">C-14</a> stays <span class="text-amber-300">Speculative</span> — it diverges from the rust10x blueprint, as C-08 / C-09 did.</span>
+          </p>
+        </div>
+      </section>
+
+      <footer class="text-center text-xs text-slate-600 pt-6">
+        lib-web · rust-clean-architecture pass · C-13 shipped (#166) · C-14 · C-15 proposed · continues C-12
+      </footer>
+
+    </main>
+  </body>
+</html>
