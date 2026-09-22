@@ -42,32 +42,32 @@ uninlined_format_args = "allow"
 # Features are additive, increasing binary size, only declare here if universal
 [workspace.dependencies]
 argon2 = "0.5.3"
-axum = { version = "0.8.8", features = ["macros", "ws"] }
+axum = { version = "0.8.9", features = ["macros", "ws"] }
 base64 = "0.22.1"
-blake3 = "1.8.3"
+blake3 = "1.8.7"
 derive_more = { version = "2.1.1", features = ["display", "from"] }
 enum_dispatch = "0.3.13"
-futures = "0.3.31"
+futures = "0.3.34"
 hmac = "0.12.1"
-lazy-regex = "3.5.1"
+lazy-regex = "3.6.1"
 modql = { version = "0.4.1", features = ["with-sea-query"] }
-pastey = "0.2.1"
-rand = "0.9.2"
+pastey = "0.2.3"
+rand = "0.9.5"
 rpc-router = "0.2.0"
 sea-query = "0.32.7"
 sea-query-binder = { version = "0.7.0", features = ["sqlx-postgres", "with-time", "with-uuid"] }
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
-serde_with = { version = "3.16.1", features = ["time_0_3"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+serde_with = { version = "3.23.0", features = ["time_0_3"] }
 sha2 = "0.10.9"
 sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio", "uuid"] }
 strum_macros = "0.27.2"
-time = { version = "0.3.45", features = ["formatting", "parsing", "serde"] }
-tokio = { version = "1.49.0", features = ["full"] }
+time = { version = "0.3.55", features = ["formatting", "parsing", "serde"] }
+tokio = { version = "1.53.1", features = ["full"] }
 tower-cookies = "0.11.0"
-tower-http = { version = "0.6.8", features = ["fs", "cors"] }
+tower-http = { version = "0.6.11", features = ["fs", "cors"] }
 tracing = "0.1.44"
-tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 ts-rs = "11.1.0"
-unicode-normalization = "0.1.24"
-uuid = { version = "1.19.0", features = ["fast-rng", "v4"] }
+unicode-normalization = "0.1.25"
+uuid = { version = "1.26.1", features = ["fast-rng", "v4"] }
