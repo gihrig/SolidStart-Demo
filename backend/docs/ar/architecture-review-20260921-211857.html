@@ -158,6 +158,7 @@
                 <h2 class="text-2xl font-serif text-slate-100">Give the login use-case its own seam</h2>
               </div>
               <div class="flex gap-2 flex-wrap">
+                <span class="text-xs font-semibold uppercase tracking-wide bg-slate-700 text-slate-200 rounded-full px-3 py-1">✗ Rejected</span>
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-700 text-slate-300 border border-slate-600">Speculative</span>
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400">testability</span>
@@ -166,6 +167,11 @@
 
             <div class="mono text-sm text-slate-500 space-y-0.5">
               <div>handlers/handlers_login.rs</div>
+            </div>
+
+            <div class="rounded-lg bg-slate-800/80 border border-slate-600 p-3 text-sm text-slate-200">
+              <span class="font-semibold text-slate-100">✗ Rejected in #166 — kept the blueprint shape.</span>
+              Grilling confirmed <span class="mono text-xs">api_login_handler</span> is a line-for-line copy of the rust10x blueprint's, and the testability gain is marginal and DB-bound (an extracted <span class="mono text-xs">login()</span> still calls <span class="mono text-xs">UserBmc</span> → Postgres; the happy path is already covered by the HTTP integration test). Recorded as <a href="../../../docs/adr/0025-login-handler-keeps-blueprint-inline-orchestration.md" class="underline decoration-slate-400">ADR-0025</a> so future reviews do not re-suggest it.
             </div>
 
             <!-- before / after : cross-section (layered shallowness) -->
@@ -341,13 +347,13 @@ flowchart TD
             <a href="architecture-review-20260921-001306.html" class="underline decoration-emerald-400">C-11</a>, shipped for lib-core the same way.
             <span class="block mt-2">C-15 shipped alongside it — the error flatten turns an RPC "entity not found" from a
             <span class="text-red-300">500</span> into a <span class="text-emerald-300">400</span> (#114) and deletes the <span class="mono">RpcLibRpc</span> and dead <span class="mono">Rpc</span> variants.
-            <a href="#c14" class="underline decoration-amber-300">C-14</a> stays <span class="text-amber-300">Speculative</span> — it diverges from the rust10x blueprint, as C-08 / C-09 did.</span>
+            <a href="#c14" class="underline decoration-slate-400">C-14</a> is <span class="text-slate-300">rejected</span> — the login handler keeps the blueprint's inline orchestration (<a href="../../../docs/adr/0025-login-handler-keeps-blueprint-inline-orchestration.md" class="underline decoration-slate-400">ADR-0025</a>), as C-08 / C-09 were.</span>
           </p>
         </div>
       </section>
 
       <footer class="text-center text-xs text-slate-600 pt-6">
-        lib-web · rust-clean-architecture pass · C-13 · C-15 shipped (#166) · C-14 proposed · continues C-12
+        lib-web · rust-clean-architecture pass · C-13 · C-15 shipped, C-14 rejected (ADR-0025) (#166) · continues C-12
       </footer>
 
     </main>
