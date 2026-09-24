@@ -90,22 +90,27 @@ ensure_syft() {
     platform="${os}_${arch}"
     sha="$(syft_sha256 "$platform")" || { syft_help; return 1; }
     tarball="syft_${SYFT_VERSION}_${platform}.tar.gz"
-    tmp="$(mktemp -d)"
-    echo "Installing pinned syft $SYFT_VERSION ($platform) into .tools/ ..." >&2
-    curl -sSfL "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/${tarball}" -o "$tmp/$tarball" \
-      || { rm -rf "$tmp"; syft_help; return 1; }
     local sha_cmd=(shasum -a 256)
     command -v sha256sum >/dev/null && sha_cmd=(sha256sum)
-    echo "$sha  $tmp/$tarball" | "${sha_cmd[@]}" -c - >&2 \
-      || { rm -rf "$tmp"; syft_help; return 1; }
-    tar -xzf "$tmp/$tarball" -C "$tmp" syft
-    mkdir -p "$(dirname "$bin")"
-    install -m 0755 "$tmp/syft" "$bin"
-    rm -rf "$tmp"
+    tmp="$(mktemp -d)"
+    echo "Installing pinned syft $SYFT_VERSION ($platform) into .tools/ ..." >&2
+    # One subshell, one exit path: its EXIT trap cleans up on success or any
+    # failed step, and the `||` below prints the pin help once. The binary is
+    # staged beside $bin, then renamed into place (atomic on one filesystem),
+    # so a concurrent run never executes a half-written file.
+    (
+      trap 'rm -rf "$tmp" "$bin.$$"' EXIT
+      curl -sSfL "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/${tarball}" -o "$tmp/$tarball" &&
+        echo "$sha  $tmp/$tarball" | "${sha_cmd[@]}" -c - >&2 &&
+        tar -xzf "$tmp/$tarball" -C "$tmp" syft &&
+        mkdir -p "$(dirname "$bin")" &&
+        install -m 0755 "$tmp/syft" "$bin.$$" &&
+        mv -f "$bin.$$" "$bin"
+    ) || { syft_help; return 1; }
   fi
   # Guard against a swapped or corrupt cached binary.
   local got
-  got="$("$bin" version -o json | jq -r .version)"
+  got="$("$bin" version -o json | jq -r .version)" || got="(version check failed)"
   if [[ "$got" != "$SYFT_VERSION" ]]; then
     echo "sbom.sh: $bin reports syft $got, expected $SYFT_VERSION. Delete .tools/ and retry." >&2
     syft_help
