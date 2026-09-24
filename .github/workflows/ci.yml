@@ -33,13 +33,13 @@ jobs:
   #    vite-plus install after `bun install`.
   frontend:
     name: Front-end (vp check / test / build)
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
@@ -65,7 +65,7 @@ jobs:
   #    dev SQL are wired through backend/.cargo/config.toml).
   backend:
     name: Back-end (fmt / clippy / build / nextest — postgres)
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -83,7 +83,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # stable
         with:
@@ -94,7 +94,7 @@ jobs:
         with:
           workspaces: backend
 
-      - uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2
+      - uses: taiki-e/install-action@9114bf4d891761788c546334fd37538eae1bf8b3 # v2
         with:
           tool: nextest
 
@@ -120,10 +120,10 @@ jobs:
   #    the committed copies lag the Rust types. ts-rs export tests need no DB.
   bindings-drift:
     name: Bindings drift guard
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # stable
         with:
@@ -153,10 +153,10 @@ jobs:
   #    underlying script, per the CI convention above — no cargo/cgs, no DB.
   adr-index:
     name: ADR index guard
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Verify docs/adr/README.md is current
         run: ./scripts/adr-index.sh check
@@ -175,7 +175,7 @@ jobs:
   #    derives a yarn.lock from bun.lock (syft's bun.lock reader is unreliable).
   sbom-drift:
     name: SBOM drift guard
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     env:
       SYFT_VERSION: v1.51.1
@@ -183,7 +183,7 @@ jobs:
       # syft_<version>_checksums.txt. Bump both together on a version change.
       SYFT_SHA256: 8fcb33017a0dc1058298c923c436d19dfa68ae93968e0b423248542e3afb9fc3
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
@@ -235,6 +235,7 @@ jobs:
   #    always current regardless of the pinned binary.
   grype-scan:
     name: grype (project-wide vulnerability gate)
+    if: github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     env:
       GRYPE_VERSION: v0.119.0
@@ -242,7 +243,7 @@ jobs:
       # grype_<version>_checksums.txt. Bump both together on a version change.
       GRYPE_SHA256: 3fa2dc4b924621ab65404cf08d0b8438d896d80ab949c9d5a4ca283c36004c9b
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Install grype from its pinned GitHub release and verify the tarball's
       # sha256 BEFORE running it, rather than piping the mutable
@@ -300,15 +301,16 @@ jobs:
   #    job carries no `if:` guard. Mirrors `cgs audit`.
   cargo-audit:
     name: cargo-audit (back-end RustSec)
+    if: github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # stable
         with:
           toolchain: stable
 
-      - uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2
+      - uses: taiki-e/install-action@9114bf4d891761788c546334fd37538eae1bf8b3 # v2
         with:
           tool: cargo-audit
 
@@ -332,10 +334,10 @@ jobs:
   #    Mirrors `cgs deny`.
   cargo-deny:
     name: cargo-deny (back-end dependency policy)
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # stable
         with:
@@ -343,7 +345,7 @@ jobs:
 
       # cargo-deny is PINNED: a new version can change lint output or defaults,
       # so the runner must match the version the policy was written against.
-      - uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2
+      - uses: taiki-e/install-action@9114bf4d891761788c546334fd37538eae1bf8b3 # v2
         with:
           tool: cargo-deny@0.20.2
 
@@ -370,11 +372,11 @@ jobs:
   #    PR/push-only. Mirrors `cgs udeps`.
   cargo-udeps:
     name: cargo-udeps (unused dependencies — report-only)
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Same pinned dtolnay/rust-toolchain commit as the other jobs; the
       # `toolchain: nightly` input selects the channel (cargo-udeps needs
@@ -390,7 +392,7 @@ jobs:
 
       # cargo-udeps is PINNED for reproducibility. Bump it if a newer nightly
       # stops it building — it links cargo's own internals.
-      - uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2
+      - uses: taiki-e/install-action@9114bf4d891761788c546334fd37538eae1bf8b3 # v2
         with:
           tool: cargo-udeps@0.1.61
 
@@ -425,10 +427,10 @@ jobs:
   #    build --release`.
   cargo-auditable:
     name: cargo-auditable (release binary carries dependency list)
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # stable
         with:
@@ -440,7 +442,7 @@ jobs:
 
       # cargo-auditable writes the embedded section; cargo-audit reads it back.
       # cargo-auditable is PINNED for reproducibility.
-      - uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2
+      - uses: taiki-e/install-action@9114bf4d891761788c546334fd37538eae1bf8b3 # v2
         with:
           tool: cargo-auditable@0.7.6,cargo-audit
 
@@ -483,20 +485,21 @@ jobs:
   #    geiger`.
   cargo-geiger:
     name: cargo-geiger (unsafe-code report — report-only)
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # stable
         with:
           toolchain: stable
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
-        with:
-          workspaces: backend
-
+      # No Swatinem/rust-cache here on purpose. That action prunes the registry
+      # `src/` (re-extractable from the .crate archives), but cargo-geiger reads
+      # crate source files directly to count `unsafe`. A restored cache can then
+      # miss a crate's `src/lib.rs` and the scan fails (seen: tinyvec_macros
+      # NotFound). A fresh, complete registry keeps this report-only job reliable.
       - name: Install cargo-geiger (pinned)
         run: cargo install cargo-geiger --version 0.12.0 --locked
 
@@ -528,7 +531,7 @@ jobs:
   #    with the self-booting `cgs test:e2e` on the Turso track.
   e2e:
     name: e2e (non-blocking)
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     continue-on-error: true
     services:
@@ -544,7 +547,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # stable
         with:

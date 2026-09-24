@@ -47,7 +47,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # stable
         with:
@@ -58,7 +58,7 @@ jobs:
         with:
           workspaces: backend
 
-      - uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2
+      - uses: taiki-e/install-action@9114bf4d891761788c546334fd37538eae1bf8b3 # v2
         with:
           tool: nextest
 
@@ -116,9 +116,20 @@ jobs:
         working-directory: frontend
         run: vinxi build
 
+      # `bun update` above runs frontend/package.json's `prepare`
+      # (`vp config`), which points core.hooksPath at the Vite+ hooks — including
+      # the pre-push grype gate. grype is not installed on this runner, so that
+      # hook would block the create-pull-request push (exit 127 -> gate fails).
+      # The hook is a local developer convenience; ci.yml's `grype-scan` job
+      # enforces the gate on the resulting PR. Disable local hooks for the push.
+      - name: Disable local git hooks for the automated push
+        run: |
+          mkdir -p "$RUNNER_TEMP/no-hooks"
+          git config core.hooksPath "$RUNNER_TEMP/no-hooks"
+
       # -- Open the PR. No-op when the updates produced no file changes.
       - name: Open pull request
-        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           branch: deps/weekly-update
           delete-branch: true
