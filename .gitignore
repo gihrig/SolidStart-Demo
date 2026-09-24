@@ -18,6 +18,8 @@ Thumbs.db
 /reports/
 /coverage/
 .superpowers/
+# Pinned tool binaries fetched by scripts (e.g. syft via scripts/sbom.sh)
+/.tools/
 
 # Environment (real secrets never committed)
 .env

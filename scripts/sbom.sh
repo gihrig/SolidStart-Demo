@@ -32,11 +32,87 @@
 #      carry a path in their name and no `pkg:` purl; the dependency graph never
 #      references them), and sort `components` and `dependencies` so syft's
 #      run-to-run ordering churn cannot leak in.
+#
+# syft pin — why this script fetches its own syft:
+# A syft upgrade changes catalog output, so the drift guard needs the SAME syft
+# version locally and in CI. A PATH syft (e.g. Homebrew) drifts on every package
+# update. This script is the single pin: it downloads the release below into
+# /.tools/, verifies the tarball's sha256 BEFORE running it, and ignores any PATH
+# syft. CI runs this script too, so it installs nothing itself. To bump: set
+# SYFT_VERSION, copy the four sha256 values from the release's
+# syft_<version>_checksums.txt, then run `cgs sbom` and commit /sbom.cdx.json.
 set -euo pipefail
 
 # Resolve repo root from this script's location so it runs from any cwd.
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SBOM="$ROOT/sbom.cdx.json"
+
+SYFT_VERSION="1.52.0"
+
+# Printed on any syft install failure: how to move the pin to another release.
+syft_help() {
+  cat >&2 <<EOF
+
+sbom.sh: could not install the pinned syft $SYFT_VERSION.
+To update the syft pin, edit scripts/sbom.sh:
+  1. Set SYFT_VERSION to the new release (e.g. 1.53.0, no leading "v").
+  2. Replace the four sha256 values in syft_sha256() with the matching lines of
+     https://github.com/anchore/syft/releases/download/v<version>/syft_<version>_checksums.txt
+     (darwin_amd64, darwin_arm64, linux_amd64, linux_arm64 .tar.gz).
+  3. Run 'cgs sbom' and commit scripts/sbom.sh + /sbom.cdx.json together.
+EOF
+}
+
+# sha256 of syft_<SYFT_VERSION>_<platform>.tar.gz. Bump with SYFT_VERSION.
+syft_sha256() {
+  case "$1" in
+    darwin_amd64) echo 56975f5d7ffa9846a1eaf64330647841b878097bc7e3730cb9325f93add96917 ;;
+    darwin_arm64) echo 014d561b6d13059124155f74a6c5a9a99501f5e209313638dd884f39eb418ee6 ;;
+    linux_amd64)  echo caeedb81fb0491615f1ebd1761e4145d41ee86dd2cc7bf80669f9f5ad9d6133d ;;
+    linux_arm64)  echo c46d5e4c28e12aa4c5becfaa343ef1c7f89045b6b895f2c21d471c62db09c706 ;;
+    *) echo "sbom.sh: no pinned syft checksum for platform '$1'." >&2; return 1 ;;
+  esac
+}
+
+# Set SYFT to the pinned syft's path, downloading + verifying it on first use.
+# Call it directly, not inside $(...): bash clears `set -e` in command
+# substitutions, so a failed checksum there would not stop the script.
+ensure_syft() {
+  local bin="$ROOT/.tools/syft-$SYFT_VERSION/syft"
+  if [[ ! -x "$bin" ]]; then
+    local os arch platform sha tarball tmp
+    os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+    case "$(uname -m)" in
+      x86_64 | amd64) arch=amd64 ;;
+      arm64 | aarch64) arch=arm64 ;;
+      *) arch="$(uname -m)" ;;
+    esac
+    platform="${os}_${arch}"
+    sha="$(syft_sha256 "$platform")" || { syft_help; return 1; }
+    tarball="syft_${SYFT_VERSION}_${platform}.tar.gz"
+    tmp="$(mktemp -d)"
+    echo "Installing pinned syft $SYFT_VERSION ($platform) into .tools/ ..." >&2
+    curl -sSfL "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/${tarball}" -o "$tmp/$tarball" \
+      || { rm -rf "$tmp"; syft_help; return 1; }
+    local sha_cmd=(shasum -a 256)
+    command -v sha256sum >/dev/null && sha_cmd=(sha256sum)
+    echo "$sha  $tmp/$tarball" | "${sha_cmd[@]}" -c - >&2 \
+      || { rm -rf "$tmp"; syft_help; return 1; }
+    tar -xzf "$tmp/$tarball" -C "$tmp" syft
+    mkdir -p "$(dirname "$bin")"
+    install -m 0755 "$tmp/syft" "$bin"
+    rm -rf "$tmp"
+  fi
+  # Guard against a swapped or corrupt cached binary.
+  local got
+  got="$("$bin" version -o json | jq -r .version)"
+  if [[ "$got" != "$SYFT_VERSION" ]]; then
+    echo "sbom.sh: $bin reports syft $got, expected $SYFT_VERSION. Delete .tools/ and retry." >&2
+    syft_help
+    return 1
+  fi
+  SYFT="$bin"
+}
 
 # Emit the normalized CycloneDX JSON to stdout. Every mode reads from this, so
 # the syft invocation and normalization live in exactly one place.
@@ -53,7 +129,7 @@ generate() {
   ( cd "$ROOT/frontend" && bun install --frozen-lockfile --yarn ) >/dev/null 2>&1
   mv "$ROOT/frontend/yarn.lock" "$stage/frontend/yarn.lock"
 
-  syft "$stage" \
+  "$SYFT" "$stage" \
     --override-default-catalogers 'rust-cargo-lock-cataloger,javascript-lock-cataloger' \
     --source-name solidstart-demo \
     -o cyclonedx-json@1.6 \
@@ -68,6 +144,10 @@ generate() {
 }
 
 mode="${1:-check}"
+
+case "$mode" in
+  write | check) ensure_syft ;;
+esac
 
 case "$mode" in
   write)

@@ -169,39 +169,21 @@ jobs:
 
   # -- SBOM drift guard (ADR-0022, #138): regenerate the project-wide CycloneDX
   #    SBOM and fail if the committed /sbom.cdx.json lags the lockfiles. Mirrors
-  #    the bindings-drift / adr-index guards. syft is PINNED: an upgrade changes
-  #    catalog output, so the runner must match the version that wrote the file
-  #    (recorded in metadata.tools). The front-end needs bun because sbom.sh
-  #    derives a yarn.lock from bun.lock (syft's bun.lock reader is unreliable).
+  #    the bindings-drift / adr-index guards. syft is PINNED in scripts/sbom.sh
+  #    (the single pin): the script downloads that release, verifies its sha256,
+  #    and runs it, so the runner and a developer machine use the same version.
+  #    The front-end needs bun because sbom.sh derives a yarn.lock from bun.lock
+  #    (syft's bun.lock reader is unreliable).
   sbom-drift:
     name: SBOM drift guard
     if: github.event_name != 'schedule' && github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
-    env:
-      SYFT_VERSION: v1.51.1
-      # sha256 of syft_<version>_linux_amd64.tar.gz from the release's
-      # syft_<version>_checksums.txt. Bump both together on a version change.
-      SYFT_SHA256: 8fcb33017a0dc1058298c923c436d19dfa68ae93968e0b423248542e3afb9fc3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: "1.3.11"
-
-      # Install syft from its pinned GitHub release and verify the tarball's
-      # sha256 BEFORE running it, rather than piping the mutable
-      # get.anchore.io/syft installer to `sh` (matches the grype-scan job).
-      - name: Install syft (pinned release, checksum-verified)
-        run: |
-          set -euo pipefail
-          tarball="syft_${SYFT_VERSION#v}_linux_amd64.tar.gz"
-          curl -sSfL "https://github.com/anchore/syft/releases/download/${SYFT_VERSION}/${tarball}" -o "$tarball"
-          echo "${SYFT_SHA256}  ${tarball}" | sha256sum -c -
-          tar -xzf "$tarball" syft
-          sudo install -m 0755 syft /usr/local/bin/syft
-          rm -f "$tarball" syft
-          syft version
 
       # sbom.sh runs `bun install --frozen-lockfile --yarn`; prime the cache.
       - name: Install front-end dependencies
