@@ -3,7 +3,7 @@
 /**
  * The one exported realtime **Channel** vocabulary (CONTEXT.md "Channel"): the
  * routing key an Event is addressed to and a Subscription names. It is the wire
- * kind a [`SubscriptionRequest`] carries, the key the send task routes on, and
+ * kind a `SubscriptionRequest` carries, the key the send task routes on, and
  * the authorize rule — the three types ADR-0018 kept apart (`WsEvent` mapping,
  * `ChannelKind` wire, `Channel` routing), merged into one (ADR-0020). ts-rs
  * exports it, so the front-end mirrors it. Adjacently tagged: the wire is
