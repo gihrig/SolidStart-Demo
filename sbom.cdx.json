@@ -9,7 +9,7 @@
         {
           "type": "application",
           "name": "syft",
-          "version": "1.51.1",
+          "version": "1.52.0",
           "publisher": "anchore"
         }
       ]
@@ -54757,10 +54757,6 @@
           "value": "javascript-yarn-lock-entry"
         },
         {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:capricorn86:happy_dom:20.14.5:*:*:*:*:nodejs:*:*"
-        },
-        {
           "name": "syft:location:0:path",
           "value": "/frontend/yarn.lock"
         }
@@ -71737,7 +71733,7 @@
       "type": "library",
       "name": "type-fest",
       "version": "4.41.0",
-      "cpe": "cpe:2.3:a:type-fest:type-fest:4.41.0:*:*:*:*:*:*:*",
+      "cpe": "cpe:2.3:a:sindresorhus:type-fest:4.41.0:*:*:*:*:node.js:*:*",
       "purl": "pkg:npm/type-fest@4.41.0",
       "properties": [
         {
@@ -71757,26 +71753,6 @@
           "value": "javascript-yarn-lock-entry"
         },
         {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:type-fest:type_fest:4.41.0:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:type_fest:type-fest:4.41.0:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:type_fest:type_fest:4.41.0:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:type:type-fest:4.41.0:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:type:type_fest:4.41.0:*:*:*:*:*:*:*"
-        },
-        {
           "name": "syft:location:0:path",
           "value": "/frontend/yarn.lock"
         }
@@ -71787,7 +71763,7 @@
       "type": "library",
       "name": "type-fest",
       "version": "5.10.0",
-      "cpe": "cpe:2.3:a:type-fest:type-fest:5.10.0:*:*:*:*:*:*:*",
+      "cpe": "cpe:2.3:a:sindresorhus:type-fest:5.10.0:*:*:*:*:node.js:*:*",
       "purl": "pkg:npm/type-fest@5.10.0",
       "properties": [
         {
@@ -71805,26 +71781,6 @@
         {
           "name": "syft:package:metadataType",
           "value": "javascript-yarn-lock-entry"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:type-fest:type_fest:5.10.0:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:type_fest:type-fest:5.10.0:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:type_fest:type_fest:5.10.0:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:type:type-fest:5.10.0:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:type:type_fest:5.10.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
