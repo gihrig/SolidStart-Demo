@@ -32,8 +32,6 @@ jobs:
   update:
     name: Update deps, gate, open PR
     runs-on: ubuntu-latest
-    env:
-      SYFT_VERSION: v1.51.1   # pinned; must match the sbom-drift job in ci.yml
     services:
       postgres:
         image: postgres:17
@@ -66,9 +64,6 @@ jobs:
         with:
           bun-version: "1.3.11"
 
-      - name: Install syft (pinned; for the SBOM regen below)
-        run: curl -sSfL https://get.anchore.io/syft | sh -s -- -b /usr/local/bin "$SYFT_VERSION"
-
       # -- Updates (== `cgs update`).
       - name: Update back-end deps (cargo update)
         working-directory: backend
@@ -84,6 +79,7 @@ jobs:
 
       # Lockfiles changed, so the committed SBOM is now stale. Regenerate it so
       # the PR is mergeable (ci.yml's sbom-drift guard runs on push/merge).
+      # sbom.sh fetches its pinned, checksum-verified syft (same as ci.yml).
       - name: Regenerate SBOM
         run: ./scripts/sbom.sh write
 
