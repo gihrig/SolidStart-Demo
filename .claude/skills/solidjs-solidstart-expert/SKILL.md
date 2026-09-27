@@ -1,7 +1,7 @@
 ---
 name: solidjs-solidstart-expert
 description: |
-  Expert-level SolidJS and SolidStart development skill with 20+ years senior/lead engineer mindset. Comprehensive guidance for building production-ready, scalable web applications with fine-grained reactivity. Use when Claude needs to: (1) Create new SolidJS/SolidStart projects, (2) Implement TanStack Query/Router/Table/Form integration, (3) Build reactive components with signals/stores/resources, (4) Handle SSR/SSG/streaming with SolidStart, (5) Implement authentication and API routes, (6) Optimize bundle size and performance, (7) Debug reactivity issues and memory leaks, (8) Structure large-scale applications, (9) Implement type-safe patterns with TypeScript, (10) Handle error boundaries and suspense, (11) Build accessible UI components, (12) Deploy to Vercel/Netlify/Cloudflare. Triggers: "solid", "solidjs", "solidstart", "createSignal", "createStore", "createResource", "tanstack solid", "vinxi", "fine-grained reactivity".
+  SolidJS and SolidStart development: signals, stores, resources, SSR and streaming, routing, server actions and API routes, performance, and reactivity debugging. Use when working on SolidJS/SolidStart code, or when the user mentions solid, solidjs, solidstart, createSignal, createStore, createResource, vinxi, or fine-grained reactivity.
 ---
 
 # SolidJS & SolidStart Expert Development Skill
