@@ -40,34 +40,34 @@ That skill comes from `modra40/claude-codex-skills-directory`, and `frontend/ski
 
 Decide on each item. Test before you remove text.
 
-- [x] **L1 — TanStack sections.** `frontend/.agents/skills/solidjs-solidstart-expert/SKILL.md:161-334`
+- [x] **L1 — TanStack sections.** `.claude/skills/solidjs-solidstart-expert/SKILL.md:161-334`
       show TanStack Query, Table, and Form. `frontend/package.json` has no TanStack dependency.
       Claude can copy these examples into project code. Remove or move them if Claude suggests TanStack. - Moved to root. See 2. above. - Keep TanStack example for future use.
-- [ ] **L2 — invalid Rust layout example.** `.claude/skills/rust-clean-architecture/SKILL.md:31-33`
+- [x] **L2 — invalid Rust layout example.** `.claude/skills/rust-clean-architecture/SKILL.md:31-33`
       shows `calc/lib.rs` ("Library root") inside `src/`. A `lib.rs` is the root file of a crate, not a sub-directory file.
       Correct the example, or remove the `calc/` entry.
-- [ ] **L3 — garbled sentence.** `frontend/.claude/CLAUDE.md:75`:
+- [x] **L3 — garbled sentence.** `frontend/.claude/CLAUDE.md:75`:
       `vp check (with --fix) — replaces ESLint + Prettier corrects errors`.
       Rewrite it to say what you mean.
-- [ ] **L4 — `concise` routing stated three times.** `.claude/CLAUDE.md:19`, `.claude/CLAUDE.md:25`
+- [x] **L4 — `concise` routing stated three times.** `.claude/CLAUDE.md:19`, `.claude/CLAUDE.md:25`
       (`- Use \`concise\` to communicate`), and `.claude/skills/concise/SKILL.md:3`.
       The three agree, so this is optional. Keep one copy if you want less text.
 
 ## 4. Out-of-scope items
 
-- [ ] **Archive notes.** `frontend/planning/archive/plan_steps_ignored.md:2818` and `:3242` use "exiting" for "existing".
+- [x] **Archive notes.** `frontend/planning/archive/plan_steps_ignored.md:2818` and `:3242` use "exiting" for "existing".
       These are archive notes, not instructions. Correct them only if Claude reads that archive.
-- [ ] **Global instructions.** `~/.claude/CLAUDE.md` requires a code quote for every claim.
+- [x] **Global instructions.** `~/.claude/CLAUDE.md` requires a code quote for every claim.
       The patched `concise` skill now agrees with that rule. No action is necessary unless you change either file.
 
 ## 5. Commit
 
-- [ ] Review `git diff` for the 7 audited files.
+- [x] Review `git diff` for the 7 audited files.
       `.claude/settings.json` was already modified before the audit. Commit it separately.
-- [ ] Commit the audit changes and this file, or delete this file when the actions are done.
+- [x] Commit the audit changes and this file, or delete this file when the actions are done.
 
 ## 6. Repeat the audit
 
-- [ ] Run `/claude-api prompt-audit` again at the next model release.
+- [x] Run `/claude-api prompt-audit` again at the next model release.
       A rule that helps one model can become an obstacle for the next model.
-- [ ] Update README.md with an Agent maintenance section. List passages that apply to future prompt audits.
+- [x] Update README.md with an Agent maintenance section. List passages that apply to future prompt audits.
