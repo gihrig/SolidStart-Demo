@@ -12,7 +12,7 @@ export default function Footer() {
         <a href="https://solidjs.com" target="_blank" class="text-(--theme-accent) hover:underline">
           solidjs.com
         </a>{" "}
-        to learn how to build Solid apps.
+        to learn how to build SolidStart apps.
       </p>
       <p class="my-4 text-center!">
         <A href="/" class={`border-b-2 ${active("/")} text-(--theme-accent) hover:underline`}>

@@ -109,11 +109,11 @@ Black icons are invisible in dark mode
 
 ## 14. Extract profile dropdown into a reusable `useMenu` hook (deferred)
 
-- Full executable plan: `planning/useMenu-plan.md`
-- From the 30th-cycle design discussion in `planning/plan_steps_ignored.md` (Issue 2 follow-up)
+- Full executable plan: `planning/archive/useMenu-plan.md`
+- From the 30th-cycle design discussion in `planning/archive/plan_steps_ignored.md` (Issue 2 follow-up)
 - **Deferred (YAGNI)**: a single two-item menu doesn't justify the abstraction. Build when a **second** menu appears, or when full menu semantics are wanted for consistency with `useListbox`.
 - Resolves 30th-cycle review Issues 1 (`aria-controls` with no matching panel `id`) and 2 (`aria-haspopup="true"` without `role="menu"`) by making the panel a real WAI-ARIA menu.
-- New: `src/lib/useMenu.ts` + `src/lib/useMenu.unit.test.ts`. Modify: `src/components/JediNav.tsx` + `JediNav.test.tsx`.
+- New: `src/lib/useMenu.ts` + `src/lib/useMenu.unit.test.ts`. Modify: `src/components/Nav.tsx` + `src/components/Nav.test.tsx`.
 - Mirrors `useListbox` (aria-activedescendant, prop-getter style) and composes `useDismiss` for click-away.
 - Until then, the cheap alternative is the disclosure fix: add the panel `id`, drop `aria-haspopup`.
 

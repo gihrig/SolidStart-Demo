@@ -25,7 +25,8 @@ vpx vinxi dev
 
 - SolidJS & SolidStart Expert Development Skill
   Senior/Lead engineer-level guidance for building production-ready applications with fine-grained reactivity.
-  https://skills.sh/modra40/claude-codex-skills-directory/solidjs-solidstart-expert
+  Project-owned copy at `.claude/skills/solidjs-solidstart-expert/` (locally edited; no longer tracked by `skills-lock.json` — do not re-install).
+  Originally from https://skills.sh/modra40/claude-codex-skills-directory/solidjs-solidstart-expert
   References: https://github.com/mOdrA40/claude-codex-skills-directory/tree/main/frontend-skills/solidjs-solidstart-mastery-skill
 
 - Superpowers
