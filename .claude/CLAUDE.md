@@ -14,10 +14,8 @@ subtree that owns them and load when Claude works there:
 
 ## Execution Notes (for Claude AI)
 
-Read this section before starting any phase.
-
 Always use the `concise` skill unless the user asks to 'explain' or for 'more detail'.
-Always refer to previously existing code as "exiting" never "hand written".
+Call previously existing code "existing", not "hand written".
 
 ### Workflow
 
@@ -55,9 +53,8 @@ package.json scripts (ADR-0010 addendum).
 | `cgs vex:add`         | Append a VEX statement via vexctl (`-e VEX_PRODUCT=… -e VEX_VULN=…`) |
 | `cgs vex:rm`          | Remove a VEX statement by advisory id (`-e VEX_VULN=…`) |
 
-Single-side work: `cd frontend` or `cd backend` and use `cgs …` (both subtrees now
-expose a `cgs` surface); `vpr …` still works in `frontend/`. See the subtree
-`CLAUDE.md` for each side's command table.
+Single-side work: `cd frontend` or `cd backend` and use `cgs …`; in `frontend/`,
+`vpr …` also works. See the subtree `CLAUDE.md` for each side's command table.
 
 ---
 
