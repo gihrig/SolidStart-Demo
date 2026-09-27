@@ -23,15 +23,20 @@ Apply Jeremy Chone's rust-10x production patterns for scalable, maintainable Rus
    - Example:
 
 ```text
-  src/
-  ├── model/          # Module root
-  │   ├── mod.rs      # Only imports + re-exports
-  │   ├── task.rs     # Logic - Private sub-modules
-  │   └── user.rs     # Logic - Private sub-modules
-  ├── calc/           # Library root
-  │   ├── lib.rs      # Only imports + re-exports
-  │   └── bmc.rs      # Library logic
-  └── main.rs         # Short and focused on orchestration
+  app/                  # Binary crate
+  ├── Cargo.toml
+  └── src/
+      ├── model/        # Module root
+      │   ├── mod.rs    # Only imports + re-exports
+      │   ├── task.rs   # Logic - Private sub-modules
+      │   └── user.rs   # Logic - Private sub-modules
+      └── main.rs       # Short and focused on orchestration
+
+  calc/                 # Library crate
+  ├── Cargo.toml
+  └── src/
+      ├── lib.rs        # Library root - only imports + re-exports
+      └── bmc.rs        # Library logic
 ```
 
 3. **`mod.rs` files are limited to dependency import/export only**
