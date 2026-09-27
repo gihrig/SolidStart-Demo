@@ -17,7 +17,6 @@ Thumbs.db
 /.vinxi/
 /reports/
 /coverage/
-.superpowers/
 # Pinned tool binaries fetched by scripts (e.g. syft via scripts/sbom.sh)
 /.tools/
 

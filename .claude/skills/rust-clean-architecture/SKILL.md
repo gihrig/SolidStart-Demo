@@ -23,15 +23,20 @@ Apply Jeremy Chone's rust-10x production patterns for scalable, maintainable Rus
    - Example:
 
 ```text
-  src/
-  ├── model/          # Module root
-  │   ├── mod.rs      # Only imports + re-exports
-  │   ├── task.rs     # Logic - Private sub-modules
-  │   └── user.rs     # Logic - Private sub-modules
-  ├── calc/           # Library root
-  │   ├── lib.rs      # Only imports + re-exports
-  │   └── bmc.rs      # Library logic
-  └── main.rs         # Short and focused on orchestration
+  app/                  # Binary crate
+  ├── Cargo.toml
+  └── src/
+      ├── model/        # Module root
+      │   ├── mod.rs    # Only imports + re-exports
+      │   ├── task.rs   # Logic - Private sub-modules
+      │   └── user.rs   # Logic - Private sub-modules
+      └── main.rs       # Short and focused on orchestration
+
+  calc/                 # Library crate
+  ├── Cargo.toml
+  └── src/
+      ├── lib.rs        # Library root - only imports + re-exports
+      └── bmc.rs        # Library logic
 ```
 
 3. **`mod.rs` files are limited to dependency import/export only**
@@ -93,7 +98,7 @@ Prefer composition and explicit dependency injection (pass `ModelManager`, `Ctx`
 
 ## When Generating or Refactoring Code
 
-- Always create the directory + `mod.rs` pair for new modules that will contain code.
+- Always create the directory + `mod.rs` pair for new modules that have (or may have) child modules.
 - Immediately put only wiring in the new `mod.rs`.
 - Move any logic out of existing `mod.rs` files into proper sibling modules.
 - Preserve the rust-10x crate layout when starting or expanding a workspace.

@@ -25,16 +25,13 @@ vpx vinxi dev
 
 - SolidJS & SolidStart Expert Development Skill
   Senior/Lead engineer-level guidance for building production-ready applications with fine-grained reactivity.
-  https://skills.sh/modra40/claude-codex-skills-directory/solidjs-solidstart-expert
+  Project-owned copy at `.claude/skills/solidjs-solidstart-expert/` (locally edited; no longer tracked by `skills-lock.json` — do not re-install).
+  Originally from https://skills.sh/modra40/claude-codex-skills-directory/solidjs-solidstart-expert
   References: https://github.com/mOdrA40/claude-codex-skills-directory/tree/main/frontend-skills/solidjs-solidstart-mastery-skill
 
-- Superpowers
-  Superpowers makes Claude stop, plan, and test first.
-  It auto-enforces brainstorming → planning → TDD → code review on every session.
-  Competitor or companion to GSD - Grok says some use both
-  /plugin marketplace add obra/superpowers-marketplace
-  /plugin install superpowers@superpowers-marketplace
-  - See rust-web-app/planning/skills_and_plugins.md for more
+- TanStack for SolidJS Skill
+  TanStack Query, Table, Form, and Virtual examples, split out of `solidjs-solidstart-expert`.
+  Project-owned at `.claude/skills/tanstack-solid/`. Not in use yet; verify examples against current TanStack docs before adoption.
 
 # JSON-RPC Client Example with SolidStart
 

@@ -299,34 +299,6 @@ export const api = ky.create({
 });
 ```
 
-### TanStack Query Debugging
-
-```typescript
-// Enable query devtools
-import { QueryClientProvider } from '@tanstack/solid-query';
-import { SolidQueryDevtools } from '@tanstack/solid-query-devtools';
-
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      {/* Your app */}
-      <SolidQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
-  );
-}
-
-// Log query state changes
-import { createQuery } from '@tanstack/solid-query';
-
-const query = createQuery(() => ({
-  queryKey: ['users'],
-  queryFn: fetchUsers,
-  onError: (error) => console.error('[Query Error]', error),
-  onSuccess: (data) => console.log('[Query Success]', data),
-  onSettled: (data, error) => console.log('[Query Settled]', { data, error }),
-}));
-```
-
 ## SSR Debugging
 
 ### Hydration Mismatch Detection

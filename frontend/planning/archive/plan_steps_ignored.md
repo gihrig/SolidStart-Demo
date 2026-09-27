@@ -2815,7 +2815,7 @@ onCleanup(() => media.removeEventListener("change", onChange));
 Single listener, checks mode() reactively inside handler. Avoids repeated add/remove cycles.
 
 ❯ Updated plan step "4. ThemeToggle: createEffect for media listener vs onMount (lines 1223-1245)" above discusses
-replacing `createEffect` with `onMount`. What happens to the exiting onMount code?
+replacing `createEffect` with `onMount`. What happens to the existing onMount code?
 
 ⏺ The earlier review item suggested replacing createEffect with onMount for the media listener, but that was actually wrong — the createEffect pattern here is correct and intentional.
 
@@ -3239,7 +3239,7 @@ Fix:
 
 Create new section `### Make use of existing hooks`
 
-Mention exiting hooks
+Mention existing hooks
 
 **Updated per Fix**
 

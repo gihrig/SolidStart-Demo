@@ -13,7 +13,7 @@ holds the front-end-specific rules and loads when Claude works in `frontend/`.
 
 ## Code Output Rules
 
-- Output complete code for each file (no truncation).
+- Write complete code, with no placeholder elisions such as `// ...rest unchanged`.
 - If tests fail, analyze the root cause and fix before proceeding (no skipping).
 - Static data arrays belong **outside** the component function.
 - Signal naming follows `[value, setValue]`.
@@ -72,7 +72,7 @@ All project-specific scripts must use `vpr <script>` (not `vp <script>`) to avoi
 - **Framework**: SolidStart (SSR) + SolidJS/Router
 - **Server**: Vinxi
 - **Styles**: Tailwind CSS v4 (Vite plugin, no config file needed)
-- **Linting**: vp check (with --fix) — replaces ESLint + Prettier corrects errors
+- **Linting**: vp check (includes --fix) — Formats and corrects errors
 - **Build**: Vinxi (Vite plus) + vite-tsconfig-paths for `~` aliases
 - **MDX**: `@vinxi/plugin-mdx` configured in `app.config.ts`; example route at `src/routes/readme.mdx`
 
@@ -86,7 +86,7 @@ Test naming: lib utilities use `.unit.test.ts`, components use `.test.tsx`, End 
 
 - **Back-end lives in `backend/` (same repo, ADR-0010)**: `src/lib/backend-rpc.ts` posts JSON-RPC to `http://localhost:8080/api/rpc` (`credentials: "include"` cookie auth); `src/lib/websocket.ts` connects to `ws://localhost:8080/ws`. Auth state lives in `src/components/AuthContext.tsx` (`AuthProvider`/`useAuth`). The back-end must be running for auth, conversations, and the `jedi` route to work — same back-end the e2e probe checks.
 - **e2e boots both servers; Postgres must already be up**: `vpr test:e2e` runs `./src/lib/test-e2e.sh`, which starts the **back-end** (release, via `cgs start`) and the **front-end** (`vinxi start`, port 3000), waits for each (probing `http://localhost:8080/api/rpc` for HTTP 401 + `NO_AUTH`), runs Playwright, then stops the servers it started. It does **not** start Postgres — run `cgs db` (from `backend/`) first. If a back-end is already listening on `:8080` the script reuses it (and leaves it running). Back-end log level defaults to `warn` (quiet); override per run with `E2E_RUST_LOG=debug vpr test:e2e`. That level only applies to a back-end the script starts — a reused one keeps its own. Back-end build/stderr goes to `reports/e2e-backend.stderr.log` (git-ignored), not the terminal.
-- **`update`/`update:latest` scripts call `bun` directly**: Bypassing `vp` invoking `bun update` directly for dependency management. It's an exception to the "don't use bun directly" rule.
+- **`update`/`update:latest` scripts call `bun` directly**: These scripts run `bun update` directly, not through `vp`. They are the only place the project calls `bun` directly.
 - **`check` script adds `--fix`**: `vpr check` runs `vp check --fix` (auto-fixes formatting/lint). Use `vp check` directly to avoid mutations.
 - **`vpr lighthouse` requires Brave Browser**: The script hardcodes `/Applications/Brave Browser.app/Contents/MacOS/Brave Browser` as `CHROME_PATH`. Will fail silently on machines without Brave installed at that path.
 - **Unit-test credentials live in `frontend/.env.test`**: `backend-rpc.unit.test.ts` reads demo login creds from `import.meta.env.VITE_TEST_USERNAME` / `VITE_TEST_PASSWORD` (Vite loads `.env.test` in test mode). The file is committed (not git-ignored, unlike `.env`), so unit tests pass on CI/fresh clones with **no extra env setup**; the test throws loudly if the vars are missing. Real secrets belong in `.env.test.local` (git-ignored).

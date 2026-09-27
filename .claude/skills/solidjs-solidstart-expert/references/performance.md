@@ -34,7 +34,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           "vendor-solid": ["solid-js", "solid-js/web", "solid-js/store"],
-          "vendor-tanstack": ["@tanstack/solid-query", "@tanstack/solid-table"],
           "vendor-utils": ["date-fns", "zod", "ky"],
         },
       },
@@ -202,57 +201,7 @@ function DynamicListOptimized() {
 
 ### Virtualization for Long Lists
 
-```typescript
-// Using @tanstack/solid-virtual
-import { createVirtualizer } from '@tanstack/solid-virtual';
-
-function VirtualizedList() {
-  let parentRef: HTMLDivElement;
-  const [items] = createSignal(Array.from({ length: 10000 }, (_, i) => ({
-    id: i,
-    name: `Item ${i}`,
-  })));
-
-  const virtualizer = createVirtualizer({
-    get count() { return items().length; },
-    getScrollElement: () => parentRef,
-    estimateSize: () => 50,
-    overscan: 5,
-  });
-
-  return (
-    <div
-      ref={parentRef!}
-      style={{ height: '400px', overflow: 'auto' }}
-    >
-      <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          width: '100%',
-          position: 'relative',
-        }}
-      >
-        <For each={virtualizer.getVirtualItems()}>
-          {(virtualRow) => (
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: `${virtualRow.size}px`,
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
-            >
-              {items()[virtualRow.index].name}
-            </div>
-          )}
-        </For>
-      </div>
-    </div>
-  );
-}
-```
+For long lists, use TanStack Virtual: see the `tanstack-solid` skill.
 
 ### Memoization
 
@@ -381,28 +330,6 @@ function PrefetchLink(props: { href: string; children: JSX.Element }) {
   });
 
   return <a ref={linkRef!} href={props.href}>{props.children}</a>;
-}
-```
-
-### Request Deduplication with TanStack Query
-
-```typescript
-// TanStack Query automatically dedupes requests
-const query = createQuery(() => ({
-  queryKey: ['users', userId()],
-  queryFn: () => fetchUser(userId()),
-  staleTime: 5 * 60 * 1000, // Don't refetch for 5 minutes
-}));
-
-// Multiple components using same query = 1 request
-function UserName() {
-  const query = useUser(userId); // Uses cache
-  return <span>{query.data?.name}</span>;
-}
-
-function UserAvatar() {
-  const query = useUser(userId); // Uses same cache
-  return <img src={query.data?.avatar} />;
 }
 ```
 
@@ -637,7 +564,7 @@ function getCachedComputation(obj: object): ComputedResult {
 
 ### Network
 
-- [ ] API responses cached (TanStack Query)
+- [ ] API responses cached
 - [ ] Critical resources preloaded
 - [ ] Fonts optimized (subset, woff2)
 - [ ] Images in modern formats (WebP/AVIF)
