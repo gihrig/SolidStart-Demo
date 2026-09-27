@@ -72,7 +72,7 @@ All project-specific scripts must use `vpr <script>` (not `vp <script>`) to avoi
 - **Framework**: SolidStart (SSR) + SolidJS/Router
 - **Server**: Vinxi
 - **Styles**: Tailwind CSS v4 (Vite plugin, no config file needed)
-- **Linting**: vp check (with --fix) — replaces ESLint + Prettier corrects errors
+- **Linting**: vp check (includes --fix) — Formats and corrects errors
 - **Build**: Vinxi (Vite plus) + vite-tsconfig-paths for `~` aliases
 - **MDX**: `@vinxi/plugin-mdx` configured in `app.config.ts`; example route at `src/routes/readme.mdx`
 
