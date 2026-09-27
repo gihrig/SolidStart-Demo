@@ -93,7 +93,7 @@ Prefer composition and explicit dependency injection (pass `ModelManager`, `Ctx`
 
 ## When Generating or Refactoring Code
 
-- Always create the directory + `mod.rs` pair for new modules that will contain code.
+- Always create the directory + `mod.rs` pair for new modules that have (or may have) child modules.
 - Immediately put only wiring in the new `mod.rs`.
 - Move any logic out of existing `mod.rs` files into proper sibling modules.
 - Preserve the rust-10x crate layout when starting or expanding a workspace.
