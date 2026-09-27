@@ -2,7 +2,7 @@ use super::{Error, Result};
 use crate::auth_config;
 use crate::pwd::scheme::Scheme;
 use crate::pwd::ContentToHash;
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use lib_utils::b64::b64u_encode;
 use sha2::Sha512;
 

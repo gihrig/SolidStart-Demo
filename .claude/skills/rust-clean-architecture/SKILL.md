@@ -9,23 +9,37 @@ Apply Jeremy Chone's rust-10x production patterns for scalable, maintainable Rus
 
 ## Core Module Rules (strict)
 
-1. **Always use the `module/mod.rs` form**
-   - Directory + `mod.rs` for any module that has (or may have) children.
+1. **Main entry point for binary crate `main.rs**
+   - Keep main.rs short and focused on orchestration.
+   - All real code lives in sibling modules or library crates.
+   - Use classic module layout (foo/mod.rs or foo.rs).
+   - Prefer Result<()> (or a well-designed error type) over panics in production paths.
+   - For async services, use #[tokio::main].
+
+2. **Always use the `module/mod.rs` form**
+   - Directory + `mod.rs` for any module that has (or may have) children - no logic code.
    - Never use the modern `module.rs` + `module/` sibling style.
+   - `lib.rs` entry point for library crate - no logic code.
    - Example:
 
 ```text
-src/
-  model/
-    mod.rs          # only imports + re-exports
-    task.rs
-    user.rs
-  task/
-    mod.rs
-    bmc.rs
+  app/                  # Binary crate
+  ├── Cargo.toml
+  └── src/
+      ├── model/        # Module root
+      │   ├── mod.rs    # Only imports + re-exports
+      │   ├── task.rs   # Logic - Private sub-modules
+      │   └── user.rs   # Logic - Private sub-modules
+      └── main.rs       # Short and focused on orchestration
+
+  calc/                 # Library crate
+  ├── Cargo.toml
+  └── src/
+      ├── lib.rs        # Library root - only imports + re-exports
+      └── bmc.rs        # Library logic
 ```
 
-2. **`mod.rs` files are limited to dependency import/export only**
+3. **`mod.rs` files are limited to dependency import/export only**
 
    - Allowed content in any `mod.rs`:
      - `mod` declarations (`mod foo;`, `pub mod bar;`)
@@ -38,7 +52,7 @@ src/
      - Anything that is not pure module wiring / public API surface
    - Put real code in sibling files (`foo.rs`) or deeper submodules.
 
-3. **Public API is curated at every level**
+4. **Public API is curated at every level**
 
    - Prefer explicit `pub use` in `mod.rs` over making everything public deeper.
    - Keep internal implementation details private (`pub(crate)` or private).
@@ -48,18 +62,18 @@ src/
 Follow the multi-crate workspace layout used in rust-web-app:
 
 ```text
-project/
-├── Cargo.toml                # workspace root
-├── crates/
-│   ├── libs/                 # reusable application libraries
-│   │   ├── lib-core/         # domain + model + store
-│   │   ├── lib-utils/
-│   │   ├── lib-auth/
-│   │   └── ...
-│   ├── services/             # runnable services
-│   │   └── web-server/
-│   └── tools/                # CLIs, generators, etc.
-└── ...
+  project/
+  ├── Cargo.toml                # Workspace root
+  ├── crates/
+  │   ├── libs/                 # Reusable application libraries
+  │   │   ├── lib-core/         # Domain + model + store
+  │   │   ├── lib-utils/
+  │   │   ├── lib-auth/
+  │   │   └── ...
+  │   ├── services/             # Runnable services
+  │   │   └── web-server/
+  │   └── tools/                # CLIs, generators, etc.
+  └── ...
 ```
 
 - Prefix application libraries with `lib-` (e.g. `lib-core`, `lib-rpc`).
@@ -84,7 +98,7 @@ Prefer composition and explicit dependency injection (pass `ModelManager`, `Ctx`
 
 ## When Generating or Refactoring Code
 
-- Always create the directory + `mod.rs` pair for new modules that will contain code.
+- Always create the directory + `mod.rs` pair for new modules that have (or may have) child modules.
 - Immediately put only wiring in the new `mod.rs`.
 - Move any logic out of existing `mod.rs` files into proper sibling modules.
 - Preserve the rust-10x crate layout when starting or expanding a workspace.

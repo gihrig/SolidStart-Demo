@@ -1,9 +1,9 @@
-use crate::web::routes_ws::WsState;
 use crate::web::rpcs::{all_rpc_router_builder, public_rpc_router_builder};
 use axum::routing::post;
 use axum::Router;
 use lib_core::model::ModelManager;
 use lib_web::handlers::handlers_rpc;
+use lib_web::ws::WsState;
 use std::sync::Arc;
 
 ///  Build the Axum router for '/api/rpc'

@@ -26,8 +26,6 @@ This is a **single-context mono-repo**: one `CONTEXT.md` + one `docs/adr/` at th
 
 Only **code and tool-config** descend into the subtrees. The domain docs stay at the root; do **not** create `frontend/CONTEXT.md`, `backend/CONTEXT.md`, or per-subtree `docs/adr/` without a new ADR superseding ADR-0010's "single root `CONTEXT.md`" decision.
 
-> **Note — `CONTEXT.md` scope.** The root `CONTEXT.md` currently documents the front-end surface only. Per ADR-0010 it is meant to cover **both** surfaces; the back-end domain (the Jedi entities and unified `User` of [ADR-0011](../adr/0011-jedi-backend-domain-contract.md)) still lives only in the ADRs. Broadening `CONTEXT.md` is a **content** task, not a layout change — the single-context layout above is already correct.
-
 `CLAUDE.md` follows the same split ([ADR-0010](../adr/0010-monorepo-structure.md)): cross-cutting rules at the root (`.claude/CLAUDE.md`, always loaded), tool-specific rules in `frontend/.claude/CLAUDE.md` and `backend/.claude/CLAUDE.md` (loaded when Claude works in that subtree). The domain docs are **not** split this way — they stay whole at the root.
 
 ## Use the glossary's vocabulary

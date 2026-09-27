@@ -132,8 +132,11 @@ drift guard. This refines the mechanism; the decisions above stand.
   `components` + `dependencies` — syft's per-run ordering churn would otherwise flap the
   guard.
 - **syft version is pinned.** The committed SBOM records the generating syft version in
-  `metadata.tools`; a syft upgrade changes catalog output, so the `sbom-drift` CI job
-  pins syft to the same version (`v1.51.1`). Regenerating locally needs the same version.
+  `metadata.tools`; a syft upgrade changes catalog output, so local and CI runs must use
+  the same version. `scripts/sbom.sh` is the single pin (`SYFT_VERSION`, now `1.52.0`,
+  plus per-platform sha256 values): it downloads that release into `/.tools/`, verifies
+  the checksum before running it, and ignores any `syft` on PATH. A Homebrew upgrade
+  therefore cannot break the drift guard. The CI jobs install no syft of their own.
 - **Output is CycloneDX 1.6.** syft 1.51.1 defaults to 1.7, so the command pins
   `-o cyclonedx-json@1.6` per this ADR.
 - **Command surface.** `cgs sbom` (write) and `cgs sbom:check` (drift guard) live in the

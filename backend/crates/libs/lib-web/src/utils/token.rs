@@ -1,5 +1,4 @@
-pub use crate::error::ClientError;
-pub use crate::error::{Error, Result};
+use crate::error::Result;
 use lib_auth::token::generate_web_token;
 use tower_cookies::{Cookie, Cookies};
 use uuid::Uuid;

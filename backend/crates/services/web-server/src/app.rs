@@ -1,6 +1,6 @@
 use crate::config::web_config;
-use crate::web::routes_ws::{self, WsState};
 use crate::web::{routes_login, routes_rpc};
+use lib_web::ws::{self, WsState};
 
 use axum::{http::Method, middleware, Router};
 use lib_core::model::ModelManager;
@@ -29,7 +29,7 @@ pub fn app(mm: ModelManager, ws_state: Arc<WsState>) -> Router {
 
 	// WebSocket routes require auth like the RPC routes; the handler then captures
 	// the caller's identity at the upgrade to authorize per-connection subscriptions.
-	let routes_ws = routes_ws::routes(ws_state.clone(), mm.clone())
+	let routes_ws = ws::routes(ws_state.clone(), mm.clone())
 		.route_layer(middleware::from_fn(mw_ctx_require));
 
 	// CORS for the SolidStart front-end (harmless in tests, which send no Origin).
@@ -65,11 +65,11 @@ mod tests {
 	type Result<T> = core::result::Result<T, Box<dyn std::error::Error>>;
 
 	use super::app;
-	use crate::web::routes_ws::WsState;
 	use axum_test::TestServer;
 	use lib_core::_dev_utils::{self, clean_agents, clean_convs};
 	use lib_core::ctx::Ctx;
 	use lib_core::model::user::{UserBmc, UserForCreate};
+	use lib_web::ws::WsState;
 	use serde_json::{json, Value};
 	use serial_test::serial;
 	use std::sync::Arc;

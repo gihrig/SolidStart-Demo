@@ -1,0 +1,340 @@
+use crate::ctx::Ctx;
+use crate::model::agent::{AgentBmc, AgentFilter, AgentForCreate};
+use crate::model::category::{CategoryBmc, CategoryFilter, CategoryForCreate};
+use crate::model::conv::{ConvBmc, ConvForCreate};
+use crate::model::post::{PostBmc, PostForCreate};
+use crate::model::{self, ModelManager};
+use modql::filter::OpValString;
+use tokio::sync::OnceCell;
+use tracing::info;
+
+/// Initialize environment for local development.
+/// (for early development, will be called from main()).
+pub async fn init_dev() {
+	static INIT: OnceCell<()> = OnceCell::const_new();
+
+	INIT.get_or_init(|| async {
+		info!("{:<12} - init_dev_all()", "FOR-DEV-ONLY");
+
+		super::dev_db::init_dev_db().await.unwrap();
+	})
+	.await;
+}
+
+/// Initialize test environment.
+pub async fn init_test() -> ModelManager {
+	static INIT: OnceCell<ModelManager> = OnceCell::const_new();
+
+	let mm = INIT
+		.get_or_init(|| async {
+			init_dev().await;
+			// NOTE: Rare occasion where unwrap is kind of ok.
+			ModelManager::new().await.unwrap()
+		})
+		.await;
+
+	mm.clone()
+}
+
+// region:    --- User seed/clean
+
+pub async fn seed_users(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	usernames: &[&str],
+) -> model::Result<Vec<i64>> {
+	let mut ids = Vec::new();
+
+	for name in usernames {
+		let id = seed_user(ctx, mm, name).await?;
+		ids.push(id);
+	}
+
+	Ok(ids)
+}
+
+pub async fn seed_user(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	username: &str,
+) -> model::Result<i64> {
+	let pwd_clear = "seed-user-pwd";
+
+	let id = model::user::UserBmc::create(
+		ctx,
+		mm,
+		model::user::UserForCreate {
+			username: username.to_string(),
+			pwd_clear: pwd_clear.to_string(),
+		},
+	)
+	.await?;
+
+	Ok(id)
+}
+
+pub async fn clean_users(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	contains_username: &str,
+) -> model::Result<usize> {
+	let users = model::user::UserBmc::list(
+		ctx,
+		mm,
+		Some(vec![model::user::UserFilter {
+			username: Some(
+				OpValString::Contains(contains_username.to_string()).into(),
+			),
+			..Default::default()
+		}]),
+		None,
+	)
+	.await?;
+	let count = users.len();
+
+	for user in users {
+		model::user::UserBmc::delete(ctx, mm, user.id).await?;
+	}
+
+	Ok(count)
+}
+
+// endregion: --- User seed/clean
+
+// region:    --- Conv seed/clean
+
+pub async fn seed_convs(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	agent_id: i64,
+	titles: &[&str],
+) -> model::Result<Vec<i64>> {
+	let mut ids = Vec::new();
+
+	for title in titles {
+		let id = seed_conv(ctx, mm, agent_id, title).await?;
+		ids.push(id);
+	}
+
+	Ok(ids)
+}
+
+pub async fn seed_conv(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	agent_id: i64,
+	title: &str,
+) -> model::Result<i64> {
+	ConvBmc::create(
+		ctx,
+		mm,
+		ConvForCreate {
+			agent_id,
+			title: Some(title.to_string()),
+			..Default::default()
+		},
+	)
+	.await
+}
+
+pub async fn clean_convs(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	contains_title: &str,
+) -> model::Result<usize> {
+	let convs = ConvBmc::list(
+		ctx,
+		mm,
+		Some(vec![model::conv::ConvFilter {
+			title: Some(OpValString::Contains(contains_title.to_string()).into()),
+			..Default::default()
+		}]),
+		None,
+	)
+	.await?;
+
+	let count = convs.len();
+
+	for conv in convs {
+		ConvBmc::delete(ctx, mm, conv.id).await?;
+	}
+
+	Ok(count)
+}
+
+// endregion: --- Conv seed/clean
+
+// region:    --- Agent seed/clean
+
+pub async fn seed_agents(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	names: &[&str],
+) -> model::Result<Vec<i64>> {
+	let mut ids = Vec::new();
+
+	for name in names {
+		let id = seed_agent(ctx, mm, name).await?;
+		ids.push(id);
+	}
+
+	Ok(ids)
+}
+
+pub async fn seed_agent(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	name: &str,
+) -> model::Result<i64> {
+	AgentBmc::create(
+		ctx,
+		mm,
+		AgentForCreate {
+			name: name.to_string(),
+		},
+	)
+	.await
+}
+
+/// Delete all agents that have their title contains contains_name
+pub async fn clean_agents(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	contains_name: &str,
+) -> model::Result<usize> {
+	let agents = AgentBmc::list(
+		ctx,
+		mm,
+		Some(vec![AgentFilter {
+			name: Some(OpValString::Contains(contains_name.to_string()).into()),
+			..Default::default()
+		}]),
+		None,
+	)
+	.await?;
+	let count = agents.len();
+
+	for agent in agents {
+		AgentBmc::delete(ctx, mm, agent.id).await?;
+	}
+
+	Ok(count)
+}
+
+// endregion: --- Agent seed/clean
+
+// region:    --- Category seed/clean
+
+pub async fn seed_categories(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	names: &[&str],
+	icon: &str,
+) -> model::Result<Vec<i64>> {
+	let mut ids = Vec::new();
+
+	for name in names {
+		let id = seed_category(ctx, mm, name, icon).await?;
+		ids.push(id);
+	}
+
+	Ok(ids)
+}
+
+pub async fn seed_category(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	name: &str,
+	icon: &str,
+) -> model::Result<i64> {
+	CategoryBmc::create(
+		ctx,
+		mm,
+		CategoryForCreate {
+			name: name.to_string(),
+			icon: icon.to_string(),
+		},
+	)
+	.await
+}
+
+/// Delete all categories whose name contains `contains_name`.
+pub async fn clean_categories(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	contains_name: &str,
+) -> model::Result<usize> {
+	let categories = CategoryBmc::list(
+		ctx,
+		mm,
+		Some(vec![CategoryFilter {
+			name: Some(OpValString::Contains(contains_name.to_string()).into()),
+			..Default::default()
+		}]),
+		None,
+	)
+	.await?;
+	let count = categories.len();
+
+	for category in categories {
+		CategoryBmc::delete(ctx, mm, category.id).await?;
+	}
+
+	Ok(count)
+}
+
+// endregion: --- Category seed/clean
+
+// region:    --- Post seed/clean
+
+/// Seed one Post owned by `ctx`, with the given Categories (at least one). The
+/// image/URL fields are placeholders; tests that assert on them set their own.
+pub async fn seed_post(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	title: &str,
+	category_ids: &[i64],
+) -> model::Result<i64> {
+	PostBmc::create(
+		ctx,
+		mm,
+		PostForCreate {
+			title: title.to_string(),
+			image_src: "https://example.test/img.jpg".to_string(),
+			image_alt: "seed alt".to_string(),
+			photographer: "Seed Photographer".to_string(),
+			photographer_url: "https://example.test/photographer".to_string(),
+			source_url: "https://example.test/source".to_string(),
+		},
+		category_ids,
+	)
+	.await
+}
+
+/// Delete all Posts whose title contains `contains_title` (owner delete cascades
+/// the `post_category` links). Uses the root ctx so it bypasses the owner scope.
+pub async fn clean_posts(
+	mm: &ModelManager,
+	contains_title: &str,
+) -> model::Result<usize> {
+	let root = Ctx::root_ctx();
+	let posts = PostBmc::list(
+		&root,
+		mm,
+		Some(vec![model::post::PostFilter {
+			title: Some(OpValString::Contains(contains_title.to_string()).into()),
+			..Default::default()
+		}]),
+		None,
+	)
+	.await?;
+	let count = posts.len();
+
+	for post in posts {
+		PostBmc::delete(&root, mm, post.id).await?;
+	}
+
+	Ok(count)
+}
+
+// endregion: --- Post seed/clean

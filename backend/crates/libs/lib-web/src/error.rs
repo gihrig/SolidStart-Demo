@@ -42,18 +42,12 @@ pub enum Error {
 	Pwd(pwd::Error),
 	#[from]
 	Token(token::Error),
-	#[from]
-	Rpc(lib_rpc_core::Error),
 
 	// -- RpcError (deconstructed from rpc_router::Error)
 	// Simple mapping for the RpcRequestParsingError. It will have the eventual id, method context.
 	#[from]
 	#[ts(skip)]
 	RpcRequestParsing(rpc_router::RpcRequestParsingError),
-
-	// When encountering `rpc_router::Error::Handler`, we deconstruct it into the appropriate concrete application error types.
-	RpcLibRpc(lib_rpc_core::Error),
-	// ... more types might be here, depending on our Error strategy. Usually, one per library crate is sufficient.
 
 	// When it's `rpc_router::Error::Handler` but we did not handle the type,
 	// we still capture the type name for information. This should not occur once the code is complete.
@@ -97,7 +91,17 @@ impl From<rpc_router::CallError> for Error {
 				if let Some(lib_rpc_error) =
 					rpc_handler_error.remove::<lib_rpc_core::Error>()
 				{
-					Error::RpcLibRpc(lib_rpc_error)
+					// Flatten the known handler error into our own concrete
+					// variants, so the client mapping matches each kind once
+					// (a wrapped `Model(..)` is not a 500).
+					match lib_rpc_error {
+						lib_rpc_core::Error::Model(model_error) => {
+							Error::Model(model_error)
+						}
+						lib_rpc_core::Error::SerdeJson(serde_error) => {
+							Error::SerdeJson(serde_error)
+						}
+					}
 				}
 				// report the unhandled error for debugging and completing code.
 				else {
@@ -150,7 +154,7 @@ impl std::error::Error for Error {}
 
 /// From the root error to the http status code and ClientError
 impl Error {
-	pub fn client_status_and_error(&self) -> (StatusCode, ClientError) {
+	pub(crate) fn client_status_and_error(&self) -> (StatusCode, ClientError) {
 		use Error::*; // TODO: should change to `use web::Error as E`
 
 		match self {
@@ -165,18 +169,15 @@ impl Error {
 			CtxExt(_) => (StatusCode::UNAUTHORIZED, ClientError::NO_AUTH),
 
 			// -- Model
+			// A model error surfaces directly and — the common case — wrapped
+			// by an RPC handler. `From<CallError>` flattens the wrapped form
+			// into `Model(..)`, so one arm per kind serves both paths, and an
+			// RPC create/update/read reject is a 400, not a 500.
 			Model(model::Error::EntityNotFound { entity, id }) => (
 				StatusCode::BAD_REQUEST,
 				ClientError::ENTITY_NOT_FOUND { entity, id: *id },
 			),
-			// A model validation error surfaces both directly and — the common
-			// case — wrapped by an RPC handler as `RpcLibRpc(Model(..))`. Both
-			// map to HTTP 400, so an RPC create/update reject is not a 500.
-			Model(model::Error::Validation { field, reason })
-			| RpcLibRpc(lib_rpc_core::Error::Model(model::Error::Validation {
-				field,
-				reason,
-			})) => (
+			Model(model::Error::Validation { field, reason }) => (
 				StatusCode::BAD_REQUEST,
 				ClientError::VALIDATION_FAIL {
 					field: field.clone(),
@@ -229,7 +230,7 @@ impl Error {
 #[derive(Debug, Serialize, strum_macros::AsRefStr)]
 #[serde(tag = "message", content = "detail")]
 #[allow(non_camel_case_types)]
-pub enum ClientError {
+pub(crate) enum ClientError {
 	LOGIN_FAIL,
 	NO_AUTH,
 	ENTITY_NOT_FOUND { entity: &'static str, id: i64 },
@@ -249,31 +250,58 @@ pub enum ClientError {
 mod tests {
 	use super::*;
 
-	/// A model validation error maps to HTTP 400 both directly and when an RPC
-	/// handler wraps it as `RpcLibRpc(Model(..))`. The RPC path is the common
-	/// one; without its arm it fell through to a 500.
+	/// Both model errors that carry client meaning map to HTTP 400 (not the
+	/// 500 fallback), each to its own `ClientError`.
 	#[test]
-	fn validation_maps_to_400_direct_and_via_rpc() {
-		let make = || model::Error::Validation {
+	fn model_errors_map_to_400() {
+		let not_found = Error::Model(model::Error::EntityNotFound {
+			entity: "post",
+			id: 42,
+		});
+		let (status, client) = not_found.client_status_and_error();
+		assert_eq!(status, StatusCode::BAD_REQUEST);
+		assert!(matches!(client, ClientError::ENTITY_NOT_FOUND { .. }));
+
+		let validation = Error::Model(model::Error::Validation {
 			field: "title".to_string(),
 			reason: "control character not allowed".to_string(),
+		});
+		let (status, client) = validation.client_status_and_error();
+		assert_eq!(status, StatusCode::BAD_REQUEST);
+		assert!(matches!(client, ClientError::VALIDATION_FAIL { .. }));
+	}
+
+	/// The real RPC path: a handler that returns `model::Error::EntityNotFound`
+	/// arrives as `rpc_router::Error::Handler`. `From<CallError>` must flatten
+	/// it to `Error::Model(..)` so the client mapping is 400, not the 500
+	/// fallback. Before the flatten this wrapped form fell through to a 500 (#114).
+	#[test]
+	fn rpc_wrapped_model_error_flattens_to_400() {
+		let handler_error = rpc_router::HandlerError::new(
+			lib_rpc_core::Error::Model(model::Error::EntityNotFound {
+				entity: "post",
+				id: 42,
+			}),
+		);
+		let call_error = rpc_router::CallError {
+			id: rpc_router::RpcId::Null,
+			method: "get_post".to_string(),
+			error: rpc_router::Error::Handler(handler_error),
 		};
 
-		for err in [
-			Error::Model(make()),
-			Error::RpcLibRpc(lib_rpc_core::Error::Model(make())),
-		] {
-			let (status, client) = err.client_status_and_error();
-			assert_eq!(
-				status,
-				StatusCode::BAD_REQUEST,
-				"validation must be 400, not 500: {err:?}"
-			);
-			assert!(
-				matches!(client, ClientError::VALIDATION_FAIL { .. }),
-				"expected VALIDATION_FAIL: {err:?}"
-			);
-		}
+		let err = Error::from(call_error);
+
+		assert!(
+			matches!(err, Error::Model(model::Error::EntityNotFound { .. })),
+			"expected flatten to Error::Model(EntityNotFound), got: {err:?}"
+		);
+		let (status, client) = err.client_status_and_error();
+		assert_eq!(
+			status,
+			StatusCode::BAD_REQUEST,
+			"RPC entity-not-found must be 400, not 500"
+		);
+		assert!(matches!(client, ClientError::ENTITY_NOT_FOUND { .. }));
 	}
 }
 

@@ -8,7 +8,7 @@ mod web;
 pub use self::error::{Error, Result};
 
 use crate::app::app;
-use crate::web::routes_ws::WsState;
+use lib_web::ws::WsState;
 
 use lib_core::_dev_utils;
 use lib_core::model::ModelManager;

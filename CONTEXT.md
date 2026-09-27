@@ -209,7 +209,9 @@ The live stream a User's client receives Events on, without polling. One per cli
 every view a client shows shares the single Feed.
 _Avoid_: socket (as the concept), push.
 _BE_: a WebSocket at `GET /ws` (auth-required); one broadcast fans Events to all
-connections, each filtered to its Subscriptions (`web/routes_ws.rs`).
+connections, each filtered to its Subscriptions. The transport is `lib-web::ws`
+(hub, socket driver, authorization fan-out); the exported contract lives in
+`lib-core::realtime`.
 _FE_: the shared client Feed (`lib/websocket.ts`); one per client, consumed by each
 view ([ADR-0017](docs/adr/0017-shared-client-feed-multiplexed.md)).
 
@@ -227,7 +229,7 @@ the exported `Channel` type holds **six variants** (#109; [ADR-0020](docs/adr/00
 | `post_caption`    | `post_caption:{post_id}`       | poke      |
 
 _Avoid_: topic, room; the retired `agents` / `conv` / `convs` strings.
-_BE_ (Planned): one ts-rs-exported `Channel` enum — one typed variant per channel,
+_BE_ (Planned): one ts-rs-exported `Channel` enum (`lib-core::realtime::channel`) — one typed variant per channel,
 id where the routing key needs it, snake_case wire strings, PascalCase Rust variants;
 `ChannelKind` is merged into it ([ADR-0020](docs/adr/0020-collapse-channel-vocabulary.md)). The live `agents` channel is **retired** (Category
 static), the id-bearing `conv:{id}` is **retired** (its message stream splits into
@@ -258,7 +260,7 @@ PostComment or CaptionComment, as a tagged upsert-or-removal (a Comment may be
 edited or deleted, not only appended). A **poke** Event is contentless; the client
 refetches (`posts`, `post_like`, `caption_like`, `post_caption`).
 _Avoid_: notification, broadcast (the mechanism, not the item).
-_BE_ (Planned): the merged `WsEvent` — payload variants (`conv_msg` and the two
+_BE_ (Planned): the merged `WsEvent` (`lib-core::realtime::event`) — payload variants (`conv_msg` and the two
 comment channels) plus one `Poke(Channel)` for the contentless pokes, tagged by
 `event_type` (ts-rs-exported). A poke carries its `Channel`; a payload derives its
 `Channel` from the payload ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md)

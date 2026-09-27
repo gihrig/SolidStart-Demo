@@ -1,9 +1,9 @@
-use crate::web::poke::{self, PokedRpcResult};
-use crate::web::routes_ws::WsState;
 use lib_core::model::agent::{
 	Agent, AgentBmc, AgentFilter, AgentForCreate, AgentForUpdate,
 };
 use lib_rpc_core::prelude::*;
+use lib_web::ws::poke::{self, PokedRpcResult};
+use lib_web::ws::WsState;
 
 pub fn rpc_router_builder() -> RouterBuilder {
 	router_builder!(

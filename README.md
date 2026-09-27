@@ -14,6 +14,11 @@ The project scans dependencies for known vulnerabilities and policy breaks
 (ADR-0022). The commands sit in three scopes: **Global**, **Front-end**, and
 **Back-end**. Run each command from the directory its heading names.
 
+## Audit agent skills, etc., on model upgrade
+
+Run `/claude-api prompt-audit` for each new model release adopted by the project.
+A rule that helps one model can become an obstacle for the next model.
+
 ### Global — run from the repo root
 
 The SBOM, the `grype` gate, and the audit recipes cover both subtrees.
@@ -24,17 +29,17 @@ dependency in CycloneDX format. `syft` writes it; `grype` scans it.
 | Command          | What it does                                                       |
 | ---------------- | ------------------------------------------------------------------ |
 | `cgs sbom`       | Regenerate `/sbom.cdx.json` from the lockfiles.                    |
-| `cgs sbom:check` | Verify `/sbom.cdx.json` is current (CI drift guard).              |
+| `cgs sbom:check` | Verify `/sbom.cdx.json` is current (CI drift guard).               |
 | `cgs scan`       | Scan `/sbom.cdx.json` with grype; fail on a high/critical finding. |
 
 The audit recipes run each subtree's native advisory scan from the repo root.
 Each delegates into the subtree, so you never change directory.
 
-| Command        | What it does                                                                 |
-| -------------- | ---------------------------------------------------------------------------- |
-| `cgs audit`    | Audit both subtrees (front-end `bun audit`, then back-end `cargo-audit`).    |
-| `cgs audit:fe` | Audit front-end dependencies (`bun audit`).                                  |
-| `cgs audit:be` | Audit back-end dependencies (`cargo audit --deny warnings`).                 |
+| Command        | What it does                                                              |
+| -------------- | ------------------------------------------------------------------------- |
+| `cgs audit`    | Audit both subtrees (front-end `bun audit`, then back-end `cargo-audit`). |
+| `cgs audit:fe` | Audit front-end dependencies (`bun audit`).                               |
+| `cgs audit:be` | Audit back-end dependencies (`cargo audit --deny warnings`).              |
 
 **Exit-code note.** `bun audit` exits `1` on any finding, at any severity. The
 front-end recipes swallow that non-zero, so `cgs audit:fe` always exits `0` and
@@ -46,12 +51,12 @@ real gate exit code.
 A VEX file, `/vex.openvex.json`, records accepted or not-affected findings so
 the gate can pass. Maintain it with these recipes:
 
-| Command         | What it does                                              |
-| --------------- | --------------------------------------------------------- |
-| `cgs vex`       | Show the VEX maintenance cheat-sheet.                     |
-| `cgs vex:check` | Verify every VEX statement still matches a finding (CI).  |
-| `cgs vex:add`   | Append a VEX statement (`-e VEX_PRODUCT=… -e VEX_VULN=…`).|
-| `cgs vex:rm`    | Remove a VEX statement by advisory id (`-e VEX_VULN=…`).  |
+| Command         | What it does                                               |
+| --------------- | ---------------------------------------------------------- |
+| `cgs vex`       | Show the VEX maintenance cheat-sheet.                      |
+| `cgs vex:check` | Verify every VEX statement still matches a finding (CI).   |
+| `cgs vex:add`   | Append a VEX statement (`-e VEX_PRODUCT=… -e VEX_VULN=…`). |
+| `cgs vex:rm`    | Remove a VEX statement by advisory id (`-e VEX_VULN=…`).   |
 
 **Exit-code note.** `grype` exits `2` when it finds a high or critical
 vulnerability. The common assumption of exit `1` is wrong. The `cgs scan`
@@ -69,20 +74,22 @@ through the shared SBOM.
 The back-end RustSec gate is `cgs audit:be` from the root (above), or `cgs audit`
 from `backend/`. These recipes have no root delegate; run them from `backend/`.
 
-| Command     | What it does                                                                       |
-| ----------- | ---------------------------------------------------------------------------------- |
-| `cgs deny`  | Dependency-policy gate: `licenses`, `bans`, `sources` from `backend/deny.toml`.    |
+| Command    | What it does                                                                    |
+| ---------- | ------------------------------------------------------------------------------- |
+| `cgs deny` | Dependency-policy gate: `licenses`, `bans`, `sources` from `backend/deny.toml`. |
 
 The back-end also adds these crates. A **report** surfaces findings but does not
 block a merge. A **build integration** embeds the dependency list in the release
 binary.
 
-| Command          | Crate           | Role              | What it does                                                              |
-| ---------------- | --------------- | ----------------- | ------------------------------------------------------------------------- |
-| `cgs udeps`      | cargo-udeps     | report            | List unused dependencies (needs nightly).                                 |
-| `cgs geiger`     | cargo-geiger    | report            | Count `unsafe` code in `web-server` and its deps.                         |
-| `cgs release`    | cargo-auditable | build integration | Build the release binary with the embedded list (does not gate).          |
-| `cgs auditable`  | cargo-auditable | build integration | Build with the embedded list, then read it back (fails on a RustSec advisory).|
+| Command         | Crate           | Role              | What it does                                      |
+| --------------- | --------------- | ----------------- | ------------------------------------------------- |
+| `cgs udeps`     | cargo-udeps     | report            | List unused dependencies (needs nightly).         |
+| `cgs geiger`    | cargo-geiger    | report            | Count `unsafe` code in `web-server` and its deps. |
+| `cgs release`   | cargo-auditable | build integration | Build the release binary with the embedded list   |
+|                 |                 |                   | (does not gate).                                  |
+| `cgs auditable` | cargo-auditable | build integration | Build with the embedded list, then read it back   |
+|                 |                 |                   | (fails on a RustSec advisory).                    |
 
 ## Where the scans run
 

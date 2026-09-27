@@ -1,8 +1,8 @@
 # useMenu Hook Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL — use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to run this task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. This plan follows the project's executable Phase/Step format (see `planning/jedi-conversion.md`).
+> **For agentic workers:** REQUIRED SUB-SKILL — use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to run this task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. This plan follows the project's executable Phase/Step format (see `planning/archive/jedi-conversion.md`).
 
-**Goal:** Extract the JediNav profile dropdown into a reusable `useMenu` hook driven by a `{ id, label, onSelect }[]` data array, turning the panel into a real WAI-ARIA menu.
+**Goal:** Extract the Nav profile dropdown into a reusable `useMenu` hook driven by a `{ id, label, onSelect }[]` data array, turning the panel into a real WAI-ARIA menu.
 
 **Architecture:** A prop-getter hook mirroring `src/lib/useListbox.ts` — it owns open/active state, ARIA wiring, keyboard nav, and focus restoration, and composes `src/lib/useDismiss.ts` for click-away. It uses the **`aria-activedescendant`** model (focus stays on the menu container, no per-item refs), exactly like `useListbox`. The consumer supplies the data array, a wrapper `ref`, `class`es, and the label text.
 
@@ -12,16 +12,18 @@
 
 ## Why this is deferred (read first)
 
-This is **Backlog item 7**, not urgent work. A single two-item profile menu does not justify the abstraction (YAGNI). The cheap fix for the open review findings is the disclosure cleanup (delete `aria-haspopup`, add the panel `id`). Build `useMenu` only when a **second** menu appears, or when full menu semantics are wanted for consistency with `useListbox`.
+This is GitHub issue **#14** (`planning/archive/Backlog.md` item 14), not urgent work. A single two-item profile menu does not justify the abstraction (YAGNI). Build `useMenu` only when a **second** menu appears, or when full menu semantics are wanted for consistency with `useListbox`.
 
-Executing this plan resolves both 30th-cycle review findings at once:
+The two 30th-cycle review findings that first motivated this plan are **already resolved** by the cheap disclosure fix: the profile dropdown now runs on `useDisclosure` (`src/lib/useDisclosure.ts`).
 
-- **Issue 1** — `aria-controls="jedi-profile-menu"` dangles (no matching `id`). `menuProps.id` supplies it.
-- **Issue 2** — `aria-haspopup="true"` names a menu the panel isn't. `menuProps.role="menu"` + `getItemProps` `role="menuitem"` make it real.
+- **Issue 1** — `aria-controls` dangled (no matching panel `id`). Resolved: `useDisclosure` sets the trigger's `aria-controls` and the panel's `id` from one option (`"profile-menu"`).
+- **Issue 2** — `aria-haspopup="true"` named a menu the panel was not. Resolved: `aria-haspopup` is gone, and the panel is an honest disclosure.
+
+So this plan fixes no open defect. What it adds is **menu semantics**: `role="menu"` / `role="menuitem"`, arrow-key / Home / End navigation through `aria-activedescendant`, Enter / Space activation, and focus that moves into the menu on open and returns to the trigger on close. With a real menu behind it, the trigger's `aria-haspopup="true"` becomes correct again.
 
 ## Decisions locked in (from the design discussion)
 
-1. **`aria-activedescendant`, not roving DOM focus.** Focus stays on the menu container; arrow keys move `activeIndex`; the active item is referenced by `aria-activedescendant`. This needs no per-item refs, so `getItemProps` stays spreadable, matching `useListbox`. Trade-off: Enter/Space are handled by the container's `onKeyDown` (the items' native button activation is used only for mouse clicks).
+1. **`aria-activedescendant`, not roving DOM focus.** Focus stays on the menu container; arrow keys move `activeIndex`; the active item is referenced by `aria-activedescendant`. This needs no per-item refs, so `getItemProps` stays spreadable, matching `useListbox`. Enter/Space on the container **click the active item's element** (found by its `id`), so keyboard and mouse share one activation path — `getItemProps`' `onClick` — and a link item (`<a href>`, e.g. the logged-out "Log In") keeps its native router navigation.
 2. **Compose `useDismiss`** for click-away + a guarded Escape fallback. `onMenuKeyDown` owns the focus-restoring Escape; because `useDismiss`'s Escape is gated by `active()` (verified `src/lib/useDismiss.ts:13`), the two coexist regardless of event order.
 3. **Spread carries `ref` and `inert` safely** in Solid 1.9.12 (verified against `node_modules/solid-js/web/dist/dev.js`):
    - `spread()` invokes a function `ref` from spread props — `dev.js:314` `createRenderEffect(() => typeof props.ref === "function" && use(props.ref, node));`
@@ -33,8 +35,8 @@ Executing this plan resolves both 30th-cycle review findings at once:
 
 - **Create** `src/lib/useMenu.ts` — the hook. One responsibility: profile-menu / generic menu-button behavior.
 - **Create** `src/lib/useMenu.unit.test.ts` — hook unit tests (jsdom, `createRoot` + direct handler calls), mirroring `src/lib/useListbox.unit.test.ts`.
-- **Modify** `src/components/JediNav.tsx` — replace the inline dropdown with `useMenu`.
-- **Modify** `src/components/JediNav.test.tsx` — existing tests stay green; add three integration tests (menu wiring, ArrowDown opens, Escape closes).
+- **Modify** `src/components/Nav.tsx` — replace the inline dropdown with `useMenu`.
+- **Modify** `src/components/Nav.test.tsx` — change the existing item role queries (`button` / `link` → `menuitem`); add four integration tests (menu wiring, ArrowDown opens, Enter on Log In, Escape closes).
 
 ---
 
@@ -59,6 +61,19 @@ function makeItems(): MenuItem[] {
     { id: "m-1", label: "Item 1", onSelect: vi.fn() },
     { id: "m-2", label: "Item 2", onSelect: vi.fn() },
   ];
+}
+
+// Keyboard activation clicks the active item's element (found by id), so the
+// Enter / Space tests need real item elements wired to getItemProps' onClick.
+function mountItems(m: ReturnType<typeof useMenu>, items: MenuItem[]) {
+  const panel = document.createElement("div");
+  items.forEach((item, i) => {
+    const el = document.createElement("button");
+    el.id = item.id;
+    el.addEventListener("click", () => m.getItemProps(i).onClick());
+    panel.append(el);
+  });
+  document.body.append(panel);
 }
 
 afterEach(() => {
@@ -181,10 +196,11 @@ describe("useMenu", () => {
       });
     });
 
-    test("Enter invokes the active item's onSelect and closes", () => {
+    test("Enter clicks the active item: its onSelect runs and the menu closes", () => {
       createRoot((dispose) => {
         const items = makeItems();
         const m = useMenu({ items, id: "menu", label: "Test" });
+        mountItems(m, items);
         m.triggerProps.onKeyDown(keyEvent("ArrowDown")); // open, active 0
         m.menuProps.onKeyDown(keyEvent("ArrowDown")); // active 1
         m.menuProps.onKeyDown(keyEvent("Enter"));
@@ -194,10 +210,11 @@ describe("useMenu", () => {
       });
     });
 
-    test("Space invokes the active item's onSelect and closes", () => {
+    test("Space clicks the active item: its onSelect runs and the menu closes", () => {
       createRoot((dispose) => {
         const items = makeItems();
         const m = useMenu({ items, id: "menu", label: "Test" });
+        mountItems(m, items);
         m.triggerProps.onClick(); // open, active 0
         m.menuProps.onKeyDown(keyEvent(" "));
         expect(items[0].onSelect).toHaveBeenCalledOnce();
@@ -379,11 +396,14 @@ export function useMenu(options: UseMenuOptions) {
         setActiveIndex(n - 1);
         break;
       case "Enter":
-      case " ":
+      case " ": {
         e.preventDefault();
-        options.items[activeIndex()]?.onSelect();
-        closeMenu(true);
+        // Activate through the item's own click, so keyboard and mouse share one
+        // path (getItemProps' onClick) and a link item keeps its native navigation.
+        const id = activeId();
+        if (id) document.getElementById(id)?.click();
         break;
+      }
       case "Escape":
         e.preventDefault();
         closeMenu(true);
@@ -481,184 +501,285 @@ git commit -m "feat(useMenu): add reusable WAI-ARIA menu-button hook"
 
 ---
 
-## Phase 2: Refactor JediNav to use `useMenu`
+## Phase 2: Refactor Nav to use `useMenu`
 
-The current dropdown lives in `src/components/JediNav.tsx` (the third `<li>` inside `.navitems`). Apply the edits below. After the refactor, the panel is a real menu and both review findings are resolved.
+The profile dropdown lives in `src/components/Nav.tsx`: a `<div class="relative">` wrapper (the click-away boundary) holding the trigger `<button>` and the panel `<div>`. Today it is a **disclosure** driven by `useDisclosure({ id: "profile-menu", mode: "popup", ref: () => dropdownRef })`, which already supplies the panel `id` / `aria-controls` pair and the closed-panel `inert` gate. This phase swaps that disclosure for `useMenu`, so the panel becomes a real WAI-ARIA menu. The mobile nav keeps its own `useDisclosure` — it is not touched.
+
+The menu's items depend on auth state, so they are not a fixed array:
+
+- **My Profile** — always shown; a `<button>` (placeholder `alert`).
+- **Log In** — logged out only; an `<a href="/fullstack">`. Enter/Space click the element (Decision 1), so the router's native anchor handling navigates on both mouse and keyboard; its `onSelect` is a no-op.
+- **Log Out** — logged in only; a `<button>` that calls `logoff()`.
+
+The hook reads `options.items` lazily on every access, so passing a **getter** backed by a `createMemo` keeps the list reactive with no Phase 1 change.
 
 ### [ ] Step 2.1: Update imports
 
-**File:** `src/components/JediNav.tsx`
-
-Change the Solid import to add `For`, and import the hook:
+**File:** `src/components/Nav.tsx`
 
 ```tsx
 // before
-import { createSignal, Show } from "solid-js";
-import { useIsMobile } from "~/lib/useIsMobile";
-import { useDismiss } from "~/lib/useDismiss";
+import { For, Show } from "solid-js";
+import { useDisclosure } from "~/lib/useDisclosure";
+import { useAuth } from "~/components/AuthContext";
+import Icon from "~/components/Icon";
+import ThemeToggle from "~/components/ThemeToggle";
 
 // after
-import { createSignal, Show, For } from "solid-js";
-import { useIsMobile } from "~/lib/useIsMobile";
-import { useDismiss } from "~/lib/useDismiss";
+import { createMemo, For, Show } from "solid-js";
+import { useDisclosure } from "~/lib/useDisclosure";
 import { useMenu, type MenuItem } from "~/lib/useMenu";
+import { useAuth } from "~/components/AuthContext";
+import Icon from "~/components/Icon";
+import ThemeToggle from "~/components/ThemeToggle";
 ```
 
-### [ ] Step 2.2: Add the menu data array outside the component
+> `useDisclosure` stays — the mobile nav still uses it.
 
-**File:** `src/components/JediNav.tsx` — above `export default function JediNav()`:
+### [ ] Step 2.2: Add the static menu data outside the component
+
+**File:** `src/components/Nav.tsx` — below `NAV_LINKS`, above `export default function Nav()`:
 
 ```tsx
-const PROFILE_MENU: MenuItem[] = [
-  { id: "jedi-menu-profile", label: "My Profile", onSelect: () => alert("Not implemented") },
-  { id: "jedi-menu-logout", label: "Log Out", onSelect: () => alert("Not implemented") },
-];
+// A profile-menu entry. `href` marks a link item: it renders as an <a>, and the
+// hook's Enter / Space click it, so the router performs the navigation.
+type ProfileMenuItem = MenuItem & { href?: string };
+
+const PROFILE_MENU_ID = "profile-menu";
+
+const MY_PROFILE: ProfileMenuItem = {
+  id: "profile-menu-profile",
+  label: "My Profile",
+  onSelect: () => alert("Not implemented"),
+};
+
+// Navigation comes from the anchor's native click, so selecting does nothing more.
+const LOG_IN: ProfileMenuItem = {
+  id: "profile-menu-login",
+  label: "Log In",
+  href: "/fullstack",
+  onSelect: () => {},
+};
 ```
 
-### [ ] Step 2.3: Replace the dropdown state with the hook
+> The panel id stays `"profile-menu"`, so the existing `document.getElementById("profile-menu")` tests keep working. "Log Out" is built inside the component (Step 2.3) because its `onSelect` needs `logoff` from `useAuth()`.
 
-**File:** `src/components/JediNav.tsx` — the top of the component body.
+### [ ] Step 2.3: Replace the dropdown disclosure with the hook
+
+**File:** `src/components/Nav.tsx` — the top of the component body.
 
 ```tsx
 // before
-export default function JediNav() {
-  const [mobileNavOpen, setMobileNavOpen] = createSignal(false);
-  const [dropdownOpen, setDropdownOpen] = createSignal(false);
-  const isMobile = useIsMobile();
-  let dropdownRef: HTMLLIElement | undefined;
+export default function Nav() {
+  let dropdownRef: HTMLDivElement | undefined;
 
-  useDismiss(
-    () => setMobileNavOpen(false),
-    () => mobileNavOpen() && !dropdownOpen(),
-  );
-  useDismiss(
-    () => setDropdownOpen(false),
-    dropdownOpen,
-    () => dropdownRef,
-  );
+  // Identity (avatar + display name) comes from the useAuth seam; the interim
+  // blend with the Jedi mock profile lives there, not here (see ADR-0007).
+  const { isAuthenticated, logoff, displayName, avatarUrl } = useAuth();
+
+  // The profile dropdown is a popup — hidden (and inert) whenever closed, on
+  // every viewport — dismissed by Escape or a click outside its wrapping <div>.
+  const dropdown = useDisclosure({
+    id: "profile-menu",
+    mode: "popup",
+    ref: () => dropdownRef,
+  });
+  const mobileNav = useDisclosure({ id: "site-mobile-nav" });
 
 // after
-export default function JediNav() {
-  const [mobileNavOpen, setMobileNavOpen] = createSignal(false);
-  const isMobile = useIsMobile();
-  const menu = useMenu({ items: PROFILE_MENU, id: "jedi-profile-menu", label: "Profile menu" });
+export default function Nav() {
+  // Identity (avatar + display name) comes from the useAuth seam; the interim
+  // blend with the Jedi mock profile lives there, not here (see ADR-0007).
+  const { isAuthenticated, logoff, displayName, avatarUrl } = useAuth();
 
-  useDismiss(
-    () => setMobileNavOpen(false),
-    () => mobileNavOpen() && !menu.open(),
-  );
+  const logOut: ProfileMenuItem = {
+    id: "profile-menu-logout",
+    label: "Log Out",
+    onSelect: () => void logoff(),
+  };
+  // Log In and Log Out swap with auth state; each item object is stable, so
+  // <For> keeps the My Profile row when the second item swaps.
+  const profileItems = createMemo(() => [MY_PROFILE, isAuthenticated() ? logOut : LOG_IN]);
+
+  // The profile menu is a WAI-ARIA menu button — hidden (and inert) whenever
+  // closed, on every viewport — dismissed by Escape, Tab, or a click outside its
+  // wrapping <div>. The getter keeps the hook reading the current item list.
+  const menu = useMenu({
+    get items() {
+      return profileItems();
+    },
+    id: PROFILE_MENU_ID,
+    label: "Profile menu",
+  });
+  const mobileNav = useDisclosure({ id: "site-mobile-nav" });
 ```
 
-> The mobile-nav Escape gate now reads `!menu.open()` (was `!dropdownOpen()`), preserving the layered-dismiss behavior: the menu's own Escape fires first, the nav's only when the menu is closed.
+### [ ] Step 2.4: Replace the dropdown JSX
 
-### [ ] Step 2.4: Replace the dropdown `<li>` JSX
-
-**File:** `src/components/JediNav.tsx` — the entire third `<li>` (the profile dropdown). Replace it with:
+**File:** `src/components/Nav.tsx` — replace the whole block from `{/* Profile dropdown — always visible */}` through the wrapper's closing `</div>` (just above `<ThemeToggle />`) with:
 
 ```tsx
-<li ref={menu.rootRef} class="relative">
+{
+  /* Profile menu — always visible */
+}
+<div ref={menu.rootRef} class="relative">
   <button
-    {...menu.triggerProps}
     type="button"
-    class="flex items-center gap-2 cursor-pointer select-none"
     aria-label="Profile menu"
+    {...menu.triggerProps}
+    class="flex items-center gap-2 cursor-pointer select-none"
   >
     <img
       class="h-8 rounded-full object-cover bg-teal-200"
-      src="https://img.icons8.com/doodle/96/null/bart-simpson.png"
-      alt="Bart avatar"
+      src={avatarUrl()}
+      alt={displayName() ? `${displayName()} avatar` : ""}
     />
-    Bart
-    <img
-      class={`w-4 transition-transform duration-300 ${menu.open() ? "rotate-180" : ""}`}
-      src="https://img.icons8.com/small/32/777777/expand-arrow.png"
-      alt=""
+    <span class="hidden sm:inline">{displayName()}</span>
+    <Icon
+      name="expand-arrow"
+      class={`w-4 h-4 transition-transform duration-300 ${menu.open() ? "rotate-180" : ""}`}
     />
   </button>
   <div
     {...menu.menuProps}
-    class={`absolute right-0 bg-(--theme-card-bg) text-(--theme-card-fg) shadow rounded-lg w-40 p-2 z-20 transition-[opacity,transform] duration-300 ease-out origin-top ${menu.open() ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 -translate-y-5 pointer-events-none"}`}
+    class={`absolute right-0 bg-(--theme-card-bg) text-(--theme-card-fg) shadow rounded-lg w-40 p-2 z-20 transition-[opacity,translate,scale] duration-300 ease-out origin-top ${menu.open() ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 -translate-y-5 pointer-events-none"}`}
   >
-    <ul class="hoverlist">
-      <For each={PROFILE_MENU}>
+    <ul class="hoverlist" role="none">
+      <For each={profileItems()}>
         {(item, i) => (
-          <li>
-            <button
-              {...menu.getItemProps(i())}
-              type="button"
-              classList={{ "bg-(--theme-highlight)": menu.activeIndex() === i() }}
+          <li role="none" classList={{ "bg-(--theme-highlight)": menu.activeIndex() === i() }}>
+            <Show
+              when={item.href}
+              fallback={
+                <button type="button" {...menu.getItemProps(i())}>
+                  {item.label}
+                </button>
+              }
             >
-              {item.label}
-            </button>
+              {(href) => (
+                <a href={href()} {...menu.getItemProps(i())}>
+                  {item.label}
+                </a>
+              )}
+            </Show>
           </li>
         )}
       </For>
     </ul>
   </div>
-</li>
+</div>;
 ```
 
-> `menu.menuProps` now provides `id`, `role`, `tabIndex`, `aria-label`, `inert`, `aria-hidden`, `aria-activedescendant`, `ref`, and `onKeyDown` — so the panel keeps its old `inert`/`aria-hidden` behavior and gains the menu semantics. Do **not** add a separate `inert={...}` attribute; it comes from the spread.
+> `menu.menuProps` provides `id`, `role`, `tabIndex`, `aria-label`, `inert`, `aria-hidden`, `aria-activedescendant`, `ref`, and `onKeyDown` — so the panel keeps its `inert` gate and gains the menu semantics. Do **not** add a separate `inert={...}`; it comes from the spread.
+>
+> `role="none"` on the `<ul>` and each `<li>` removes the list semantics, so each `menuitem` is owned directly by the `menu` (a `list` / `listitem` in between breaks the ARIA ownership chain).
+>
+> The highlight goes on the `<li>`, the element `.hoverlist > *` already styles (rounded corners + hover background, `src/app.css`). Keep `transition-[opacity,translate,scale]` as is — `transform` would not animate Tailwind v4's individual `translate` / `scale` properties.
 
-### [ ] Step 2.5: Run the existing JediNav tests — verify they still PASS
+### [ ] Step 2.5: Update the existing role queries — then verify the tests PASS
 
-Run: `vpr test:comp -t "JediNav"`
-Expected: PASS. The existing dropdown tests key off the panel's `aria-hidden` and `pointer-events-none` class plus the trigger click, all preserved. If any fail, fix the refactor before continuing — do not edit the assertions to match a regression.
+**File:** `src/components/Nav.test.tsx` — the `describe("profile avatar")` block.
+
+The menu items now carry `role="menuitem"`, which replaces the implicit `button` / `link` roles. That is the intended change of this refactor, so these queries change — and **only** these:
+
+```tsx
+// before — "offers My Profile + Log In → /fullstack when logged out"
+expect(screen.getByRole("button", { name: /my profile/i })).toBeInTheDocument();
+expect(screen.getByRole("link", { name: /log in/i })).toHaveAttribute("href", "/fullstack");
+expect(screen.queryByRole("button", { name: /log out/i })).not.toBeInTheDocument();
+
+// after
+expect(screen.getByRole("menuitem", { name: /my profile/i })).toBeInTheDocument();
+expect(screen.getByRole("menuitem", { name: /log in/i })).toHaveAttribute("href", "/fullstack");
+expect(screen.queryByRole("menuitem", { name: /log out/i })).not.toBeInTheDocument();
+```
+
+```tsx
+// before — "swaps Log In for Log Out once authenticated"
+expect(await screen.findByRole("button", { name: /log out/i })).toBeInTheDocument();
+expect(screen.queryByRole("link", { name: /log in/i })).not.toBeInTheDocument();
+
+// after
+expect(await screen.findByRole("menuitem", { name: /log out/i })).toBeInTheDocument();
+expect(screen.queryByRole("menuitem", { name: /log in/i })).not.toBeInTheDocument();
+```
+
+Run: `vpr test:comp -t "Nav"`
+Expected: PASS. The `profile dropdown` and `mobile mode` tests key off `#profile-menu`, its `inert` property, and its `pointer-events-none` / `opacity-100` classes — all preserved, so they need no edit. If any other test fails, fix the refactor before continuing — do not edit an assertion to match a regression.
 
 ### [ ] Step 2.6: Add integration tests for the menu
 
-**File:** `src/components/JediNav.test.tsx` — add inside the top-level `describe("<JediNav />")` block:
+**File:** `src/components/Nav.test.tsx` — add inside the `describe("profile dropdown")` block, after the existing test:
 
 ```tsx
 it("trigger and panel expose menu-button semantics", () => {
-  render(() => <JediNav />);
+  renderNav();
   const trigger = screen.getByRole("button", { name: /profile menu/i });
   expect(trigger).toHaveAttribute("aria-haspopup", "true");
-  expect(trigger).toHaveAttribute("aria-controls", "jedi-profile-menu");
-  const panel = screen.getByText("My Profile").closest("[role='menu']")!;
-  expect(panel).toHaveAttribute("id", "jedi-profile-menu");
+  expect(trigger).toHaveAttribute("aria-controls", "profile-menu");
+  const panel = document.getElementById("profile-menu")!;
+  expect(panel).toHaveAttribute("role", "menu");
 });
 
 it("ArrowDown on the trigger opens the menu and activates the first item", async () => {
   const user = userEvent.setup();
-  render(() => <JediNav />);
+  renderNav();
   const trigger = screen.getByRole("button", { name: /profile menu/i });
-  const panel = screen.getByText("My Profile").closest("[aria-hidden]")!;
+  const panel = document.getElementById("profile-menu")!;
   trigger.focus();
   await user.keyboard("{ArrowDown}");
   expect(panel).toHaveAttribute("aria-hidden", "false");
-  expect(panel).toHaveAttribute("aria-activedescendant", "jedi-menu-profile");
+  expect(panel).toHaveAttribute("aria-activedescendant", "profile-menu-profile");
 });
 
-it("Escape closes the menu", async () => {
+it("Enter on the Log In item clicks its link and closes the menu", async () => {
   const user = userEvent.setup();
-  render(() => <JediNav />);
+  renderNav();
   const trigger = screen.getByRole("button", { name: /profile menu/i });
-  const panel = screen.getByText("My Profile").closest("[aria-hidden]")!;
+  const panel = document.getElementById("profile-menu")!;
+  trigger.focus();
+  await user.keyboard("{ArrowDown}{ArrowDown}"); // open on My Profile, move to Log In
+  expect(panel).toHaveAttribute("aria-activedescendant", "profile-menu-login");
+
+  const link = screen.getByRole("menuitem", { name: /log in/i });
+  const onLinkClick = vi.fn((e: MouseEvent) => e.preventDefault()); // no jsdom navigation
+  link.addEventListener("click", onLinkClick);
+  await user.keyboard("{Enter}");
+
+  expect(onLinkClick).toHaveBeenCalledOnce();
+  expect(panel).toHaveAttribute("aria-hidden", "true");
+});
+
+it("Escape closes the menu and returns focus to the trigger", async () => {
+  const user = userEvent.setup();
+  renderNav();
+  const trigger = screen.getByRole("button", { name: /profile menu/i });
+  const panel = document.getElementById("profile-menu")!;
   await user.click(trigger);
   expect(panel).toHaveAttribute("aria-hidden", "false");
   await user.keyboard("{Escape}");
   expect(panel).toHaveAttribute("aria-hidden", "true");
+  expect(trigger).toHaveFocus();
 });
 ```
 
-> `JediNav.test.tsx` already imports `render`, `screen`, and `userEvent`; no new imports are required.
+> `Nav.test.tsx` already imports `vi`, `screen`, and `userEvent`, and defines `renderNav`; no new imports are required. The `beforeEach` sets desktop `matchMedia`, which these tests use.
 
-### [ ] Step 2.7: Run the JediNav tests — verify they PASS
+### [ ] Step 2.7: Run the Nav tests — verify they PASS
 
-Run: `vpr test:comp -t "JediNav"`
-Expected: PASS — existing tests plus the three new ones.
+Run: `vpr test:comp -t "Nav"`
+Expected: PASS — the existing tests (with the Step 2.5 role queries) plus the four new ones.
 
 ### [ ] Step 2.8: Lint / format / type-check
 
 Run: `vpr check`
-Expected: no errors. Confirm `dropdownOpen`, `setDropdownOpen`, and `dropdownRef` are gone (the linter flags them as unused if any reference was missed).
+Expected: no errors. Confirm `dropdownRef` and `dropdown` are gone (the linter flags them as unused if any reference was missed).
 
 ### [ ] Step 2.9: Commit
 
 ```bash
-git add src/components/JediNav.tsx src/components/JediNav.test.tsx
-git commit -m "refactor(JediNav): drive profile menu with useMenu hook"
+git add src/components/Nav.tsx src/components/Nav.test.tsx
+git commit -m "refactor(Nav): drive profile menu with useMenu hook"
 ```
 
 ---
@@ -670,7 +791,7 @@ git commit -m "refactor(JediNav): drive profile menu with useMenu hook"
 ```bash
 vpr check:type   # tsc --noEmit, no errors
 vpr test:unit    # includes useMenu
-vpr test:comp    # includes JediNav
+vpr test:comp    # includes Nav
 vpr build        # production build succeeds
 ```
 
@@ -678,17 +799,17 @@ Expected: all green, no warnings.
 
 ### [ ] Step 3.2: Update review/backlog bookkeeping
 
-- In `planning/Backlog.md`, mark item 7 done (or delete it).
-- If the 30th-cycle review issues are tracked elsewhere, note that Issues 1 and 2 are resolved by this refactor (panel `id` present; real `role="menu"`).
+- In `planning/archive/Backlog.md`, mark item 14 done (or delete it), and close GitHub issue #14.
+- The 30th-cycle review Issues 1 and 2 need no update — `useDisclosure` resolved them before this plan ran.
 
 ---
 
 ## Self-review (completed against the spec)
 
-- **Spec coverage:** data-array-driven hook (Phase 1.3), resolves Issue 1 via `menuProps.id` and Issue 2 via `role="menu"`/`menuitem` (Phase 2.4/2.6), composes `useDismiss` (Phase 1.3), aria-activedescendant model (Phase 1.3). ✓
+- **Spec coverage:** data-array-driven hook (Phase 1.3), adds menu semantics via `role="menu"`/`menuitem` (Phase 2.4/2.6) — review Issues 1 and 2 were already resolved by `useDisclosure`, composes `useDismiss` (Phase 1.3), aria-activedescendant model (Phase 1.3). ✓
 - **Placeholder scan:** no TBD/TODO; every code step shows complete code. ✓
-- **Type consistency:** `useMenu` returns `{ open, activeIndex, rootRef, triggerProps, menuProps, getItemProps }`; the JediNav consumer (2.3/2.4) uses exactly those names; `MenuItem` shape `{ id, label, onSelect }` is consistent across the hook, tests, and `PROFILE_MENU`. ✓
-- **Known caveat:** the hook was designed against the Solid 1.9.12 runtime (spread `ref`/`inert`/getters verified) but not executed — Phase 1.4 and Phase 2.7 are the gates. If jsdom focus assertions in the hook's "focus management" tests prove flaky, keep the state-machine tests and rely on the JediNav integration tests for focus.
+- **Type consistency:** `useMenu` returns `{ open, activeIndex, rootRef, triggerProps, menuProps, getItemProps }`; the Nav consumer (2.3/2.4) uses `open`, `activeIndex`, `rootRef`, `triggerProps`, `menuProps`, and `getItemProps`; `MenuItem` shape `{ id, label, onSelect }` is consistent across the hook, tests, and Nav's `ProfileMenuItem` entries. ✓
+- **Known caveat:** the hook was designed against the Solid 1.9.12 runtime (spread `ref`/`inert`/getters verified) but not executed — Phase 1.4 and Phase 2.7 are the gates. If jsdom focus assertions in the hook's "focus management" tests prove flaky, keep the state-machine tests and rely on the Nav integration tests for focus.
 
 ## Execution handoff
 
