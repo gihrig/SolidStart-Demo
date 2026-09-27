@@ -12,10 +12,10 @@ Split from `solidjs-solidstart-expert`. That skill covers core SolidJS/SolidStar
 
 The project does not use TanStack yet: `frontend/package.json` has no `@tanstack/*` dependency.
 These examples came from the upstream skill and are not verified against the current releases.
-Before you add a TanStack dependency, check each example against the current TanStack docs. Two suspected stale APIs:
+Before you add a TanStack dependency, check each example against the current TanStack docs. Two upstream APIs are removed and the examples below no longer use them:
 
-- **Query v5** — `onError` / `onSuccess` / `onSettled` on `createQuery` (see Debugging below) were removed from queries in v5; mutations keep them.
-- **Form v1** — `@tanstack/zod-form-adapter` and `validatorAdapter` (see TanStack Form below) were removed; v1 accepts a Standard Schema (Zod) directly in `validators`.
+- **Query v5** — `onError` / `onSuccess` / `onSettled` were removed from queries (mutations keep them); use `QueryCache` callbacks (see Debugging below).
+- **Form v1** — `@tanstack/zod-form-adapter` and `validatorAdapter` were removed; v1 accepts a Standard Schema (Zod) directly in `validators`.
 
 Testing helpers (`QueryClientProvider` wrappers): `references/testing.md`.
 
@@ -148,7 +148,6 @@ function UsersTable() {
 
 ```typescript
 import { createForm } from '@tanstack/solid-form';
-import { zodValidator } from '@tanstack/zod-form-adapter';
 import { z } from 'zod';
 
 const userSchema = z.object({
@@ -160,7 +159,6 @@ function UserForm() {
   const form = createForm(() => ({
     defaultValues: { name: '', email: '' },
     onSubmit: async ({ value }) => await api.createUser(value),
-    validatorAdapter: zodValidator(),
     validators: { onChange: userSchema },
   }));
 
@@ -290,15 +288,15 @@ function App() {
   );
 }
 
-// Log query state changes
-import { createQuery } from '@tanstack/solid-query';
+// Log query state changes (v5: callbacks live on the QueryCache, not on queries)
+import { QueryCache, QueryClient } from '@tanstack/solid-query';
 
-const query = createQuery(() => ({
-  queryKey: ['users'],
-  queryFn: fetchUsers,
-  onError: (error) => console.error('[Query Error]', error),
-  onSuccess: (data) => console.log('[Query Success]', data),
-  onSettled: (data, error) => console.log('[Query Settled]', { data, error }),
-}));
+const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error, query) => console.error('[Query Error]', query.queryKey, error),
+    onSuccess: (data, query) => console.log('[Query Success]', query.queryKey, data),
+    onSettled: (data, error, query) => console.log('[Query Settled]', query.queryKey, { data, error }),
+  }),
+});
 ```
 
