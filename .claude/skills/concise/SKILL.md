@@ -1,6 +1,6 @@
 ---
 name: concise
-description: Reduces output verbosity for Claude Code compatible agents. Use when user wants concise responses, minimal explanations, action-oriented language without fluff or broken English like caveman style. Always use this skill unless the user asks to 'explain' or for 'more detail'. The `Wait What` output style overrides concise.
+description: Reduces output verbosity for Claude Code compatible agents. Use to produce concise responses, minimal explanations, action-oriented language without fluff or broken English. Always use this skill unless the user asks to 'explain' or for 'more detail'. The `Wait What` output style overrides concise.
 ---
 
 # Concise Output
