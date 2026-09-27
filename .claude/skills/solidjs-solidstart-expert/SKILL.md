@@ -160,177 +160,7 @@ function UserProfile() {
 
 ## TanStack Integration
 
-### TanStack Query (Server State)
-
-```typescript
-// lib/query.ts
-import { QueryClient, QueryClientProvider } from "@tanstack/solid-query";
-
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
-      retry: 2,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
-// hooks/useUsers.ts
-import { createQuery, createMutation, useQueryClient } from "@tanstack/solid-query";
-
-export function useUsers() {
-  return createQuery(() => ({
-    queryKey: ["users"],
-    queryFn: () => api.getUsers(),
-  }));
-}
-
-export function useUser(id: Accessor<string>) {
-  return createQuery(() => ({
-    queryKey: ["users", id()],
-    queryFn: () => api.getUser(id()),
-    enabled: !!id(),
-  }));
-}
-
-export function useCreateUser() {
-  const queryClient = useQueryClient();
-  return createMutation(() => ({
-    mutationFn: (data: CreateUserDTO) => api.createUser(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
-    onError: (error) => toast.error(error.message),
-  }));
-}
-
-// ✅ Optimistic updates
-export function useUpdateUser() {
-  const queryClient = useQueryClient();
-  return createMutation(() => ({
-    mutationFn: ({ id, data }: { id: string; data: UpdateUserDTO }) => api.updateUser(id, data),
-    onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: ["users", id] });
-      const previous = queryClient.getQueryData(["users", id]);
-      queryClient.setQueryData(["users", id], (old: User) => ({ ...old, ...data }));
-      return { previous };
-    },
-    onError: (_err, { id }, context) => {
-      queryClient.setQueryData(["users", id], context?.previous);
-    },
-    onSettled: (_, __, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ["users", id] });
-    },
-  }));
-}
-```
-
-### TanStack Table
-
-```typescript
-import {
-  createSolidTable, getCoreRowModel, getSortedRowModel,
-  getFilteredRowModel, getPaginationRowModel, flexRender,
-} from '@tanstack/solid-table';
-
-function UsersTable() {
-  const [sorting, setSorting] = createSignal<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = createSignal('');
-
-  const table = createSolidTable({
-    get data() { return users() ?? []; },
-    columns,
-    state: {
-      get sorting() { return sorting(); },
-      get globalFilter() { return globalFilter(); },
-    },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-  });
-
-  return (
-    <table>
-      <thead>
-        <For each={table.getHeaderGroups()}>
-          {(headerGroup) => (
-            <tr>
-              <For each={headerGroup.headers}>
-                {(header) => (
-                  <th onClick={header.column.getToggleSortingHandler()}>
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </th>
-                )}
-              </For>
-            </tr>
-          )}
-        </For>
-      </thead>
-      <tbody>
-        <For each={table.getRowModel().rows}>
-          {(row) => (
-            <tr>
-              <For each={row.getVisibleCells()}>
-                {(cell) => <td>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>}
-              </For>
-            </tr>
-          )}
-        </For>
-      </tbody>
-    </table>
-  );
-}
-```
-
-### TanStack Form
-
-```typescript
-import { createForm } from '@tanstack/solid-form';
-import { zodValidator } from '@tanstack/zod-form-adapter';
-import { z } from 'zod';
-
-const userSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-});
-
-function UserForm() {
-  const form = createForm(() => ({
-    defaultValues: { name: '', email: '' },
-    onSubmit: async ({ value }) => await api.createUser(value),
-    validatorAdapter: zodValidator(),
-    validators: { onChange: userSchema },
-  }));
-
-  return (
-    <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
-      <form.Field name="name">
-        {(field) => (
-          <div>
-            <input
-              value={field().state.value}
-              onInput={(e) => field().handleChange(e.currentTarget.value)}
-            />
-            <Show when={field().state.meta.errors.length}>
-              <span class="error">{field().state.meta.errors.join(', ')}</span>
-            </Show>
-          </div>
-        )}
-      </form.Field>
-      <form.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting]}>
-        {([canSubmit, isSubmitting]) => (
-          <button disabled={!canSubmit() || isSubmitting()}>
-            {isSubmitting() ? 'Saving...' : 'Save'}
-          </button>
-        )}
-      </form.Subscribe>
-    </form>
-  );
-}
-```
+TanStack Query, Table, Form, and Virtual live in the `tanstack-solid` skill. The project does not use TanStack yet.
 
 ## SolidStart Features
 
@@ -510,16 +340,16 @@ onMount(() => setWidth(window.innerWidth));
 
 ## Recommended Libraries
 
-| Category   | Library               | Why                   |
-| ---------- | --------------------- | --------------------- |
-| Forms      | @tanstack/solid-form  | Type-safe forms       |
-| Data       | @tanstack/solid-query | Server state caching  |
-| Router     | @solidjs/router       | Official, SSR-ready   |
-| UI         | Kobalte               | Accessible primitives |
-| Animation  | solid-motionone       | Performant            |
-| Validation | Zod                   | Type-safe schemas     |
-| Icons      | unplugin-icons        | Tree-shakeable        |
-| HTTP       | ky                    | Modern fetch          |
+| Category   | Library               | Why                                   |
+| ---------- | --------------------- | ------------------------------------- |
+| Forms      | @tanstack/solid-form  | Type-safe forms — not in use yet      |
+| Data       | @tanstack/solid-query | Server state caching — not in use yet |
+| Router     | @solidjs/router       | Official, SSR-ready                   |
+| UI         | Kobalte               | Accessible primitives                 |
+| Animation  | solid-motionone       | Performant                            |
+| Validation | Zod                   | Type-safe schemas                     |
+| Icons      | unplugin-icons        | Tree-shakeable                        |
+| HTTP       | ky                    | Modern fetch                          |
 
 ## Additional References
 
