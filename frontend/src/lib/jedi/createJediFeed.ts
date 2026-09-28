@@ -128,21 +128,25 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   );
   // Read `.latest`, not `topCaptions()`: a suspending read here re-triggered
   // Suspense on every post re-key, reconciling the route subtree and blurring
-  // the focused sidebar listbox to <body> (#35). `.latest` is non-suspending —
-  // it shows the previous post's captions for the one microtask the refetch
-  // takes to resolve, so the caption cards stay populated instead of flashing.
-  const winningCaption = () => topCaptions.latest?.[0];
+  // the focused sidebar listbox to <body> (#35). `.latest` is non-suspending, but
+  // during a refetch it still holds the PREVIOUS post's captions — for the whole
+  // network round trip (#118). So only captions of the selected post count; while
+  // the new post's captions load, there are none (`undefined`), never stale ones.
+  const selectedPostCaptions = (): CaptionView[] | undefined => {
+    const captions = topCaptions.latest;
+    const postId = selectedPost()?.id;
+    return captions?.every((c) => c.postId === postId) ? captions : undefined;
+  };
+  const winningCaption = () => selectedPostCaptions()?.[0];
 
   // `[]` when no post is selected (empty category) so Top Captions clears: the
-  // empty branch, not the resource, drives that clear. When a post *is* selected
-  // `.latest` may briefly show the prior post's captions during a refetch (see
-  // above) — that transient is intended; the empty-category clear is not affected.
+  // empty branch, not the resource, drives that clear.
   const visibleCaptions = (): CaptionView[] | undefined =>
-    selectedPost() ? topCaptions.latest : [];
+    selectedPost() ? selectedPostCaptions() : [];
 
   // Self-resets on a post change: the old id is absent from the new captions.
   const selectedCaption = (): CaptionView | undefined =>
-    topCaptions.latest?.find((c) => c.id === selectedCaptionId()) ?? winningCaption();
+    selectedPostCaptions()?.find((c) => c.id === selectedCaptionId()) ?? winningCaption();
   const selectCaption = (id: number): void => {
     setSelectedCaptionId(id);
   };

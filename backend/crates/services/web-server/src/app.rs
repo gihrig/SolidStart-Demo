@@ -295,6 +295,84 @@ mod tests {
 		Ok(())
 	}
 
+	/// The public RPC surface serves a Post's Top Captions to an anonymous
+	/// visitor (#118): `list_captions_for_post` on `/api/rpc-public` returns the
+	/// enriched `CaptionView` — author, derived counts — with NO login, ranked by
+	/// like count, and the response carries no audit columns (ADR-0021).
+	#[serial]
+	#[tokio::test]
+	async fn test_web_public_captions_anonymous_ok() -> Result<()> {
+		// -- Setup & Fixtures (no login — an anonymous client)
+		let mm = _dev_utils::init_test().await;
+		let server = TestServer::new(app(mm.clone(), Arc::new(WsState::new())));
+
+		// -- Exec: the seeded Post 1 carries Captions 1 (Lisa) and 2 (Bart).
+		let body: Value = server
+			.post("/api/rpc-public")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "list_captions_for_post",
+				"params": { "id": 1 }
+			}))
+			.await
+			.json();
+		let captions = body
+			.pointer("/result/data")
+			.and_then(Value::as_array)
+			.ok_or("list_captions_for_post: missing /result/data array")?;
+
+		// -- Check: every seeded count is 0, so the tie breaks by id ascending.
+		let ids: Vec<i64> = captions
+			.iter()
+			.filter_map(|c| c.pointer("/id").and_then(Value::as_i64))
+			.collect();
+		assert_eq!(ids, vec![1, 2]);
+		let first = &captions[0];
+		assert_eq!(
+			first.pointer("/text").and_then(Value::as_str),
+			Some("Jedi Kitty protects the street")
+		);
+		assert_eq!(
+			first.pointer("/author/name").and_then(Value::as_str),
+			Some("Lisa")
+		);
+		assert_eq!(
+			first.pointer("/like_count").and_then(Value::as_i64),
+			Some(0)
+		);
+		assert_eq!(
+			first.pointer("/comment_count").and_then(Value::as_i64),
+			Some(0)
+		);
+		// No audit columns leak on the public surface (ADR-0021).
+		for audit in ["cid", "mid", "ctime", "mtime"] {
+			assert!(
+				first.get(audit).is_none(),
+				"CaptionView must not expose `{audit}`"
+			);
+		}
+
+		// -- Exec & Check: `list_options` pages the ranked list over the wire, so
+		//    the second one-row page is Caption 2.
+		let body: Value = server
+			.post("/api/rpc-public")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "list_captions_for_post",
+				"params": { "id": 1, "list_options": { "limit": 1, "offset": 1 } }
+			}))
+			.await
+			.json();
+		let page_ids: Vec<i64> = body
+			.pointer("/result/data")
+			.and_then(Value::as_array)
+			.ok_or("list_captions_for_post page: missing /result/data array")?
+			.iter()
+			.filter_map(|c| c.pointer("/id").and_then(Value::as_i64))
+			.collect();
+		assert_eq!(page_ids, vec![2]);
+
+		Ok(())
+	}
+
 	/// C01 cross-user scope over HTTP (Q10): a private (`OwnerOnly`) conv created
 	/// by `demo1` is invisible to a second logged-in user — `get_conv` errors
 	/// for them and they cannot `add_conv_msg` into it (#89), while its owner

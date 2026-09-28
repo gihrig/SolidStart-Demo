@@ -167,11 +167,13 @@ is _derived_ by counting Likes. Captions compete on their own Like tallies (Top
 Captions). A like-count change **pokes** its real-time channel; the client refetches
 the count.
 _Avoid_: vote, favorite, star; `likeCount` as stored truth.
-_BE_ (Planned): two tables — `post_like = { id, owner_id, post_id, ctime }` and
-`caption_like = { id, owner_id, caption_id, ctime }`, each `unique(owner, parent)`
+_BE_ (Planned): two tables — `post_like = { id, post_id, user_id, + audit }` and
+`caption_like = { id, caption_id, user_id, + audit }`, each `unique(parent, user)`
 so a toggle is idempotent. A Like is **write-once** (insert or delete, never
-updated), so it carries no `mid` / `mtime`. Counts are **derived by counting rows**,
-never stored ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md) addendum).
+updated), but both tables carry the full audit columns (`cid` / `ctime` / `mid` /
+`mtime`) like every other table (#117, #118). Counts are **derived by counting
+rows**, never stored ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md)
+addendum).
 
 **Top Photos** / **Top Captions**:
 Ranked _views_, not stored lists. Top Photos = Posts ordered by like count (within
@@ -337,7 +339,8 @@ A **public projection** is an entity's public-facing shape — its fields **minu
 internal audit columns (`cid` / `ctime` / `mid` / `mtime`), so an anonymous
 `/api/rpc-public` response never leaks actor ids or timestamps. Each public read names
 one such type; **one read serves it** — `CategoryPublic` + `CategoryBmc::list_public`
-is the first (#116), `PostView` / `AuthorRef` (via `PostBmc`) the second (#117). The
+is the first (#116), `PostView` / `AuthorRef` (via `PostBmc`) the second (#117), and
+`CaptionView` (via `CaptionBmc`) the third (#118). The
 shared convention is the `PublicProjection` marker in the model `base`: `base::list_public`
 requires it, so the audit-bearing entity row can never be served from a public read.
 A projection may be **enriched** (an author-and-counts `PostView`)
@@ -354,8 +357,8 @@ caller (it gives ts-rs one call two shapes and breaks the one-source-of-truth se
 Most back-end entities carry rust10x audit fields — creator id / create time,
 modifier id / modify time. `ctime` and `mtime` are RFC3339 `TEXT` in the portable
 schema ([ADR-0012](docs/adr/0012-postgres-turso-db-swap-seam.md)). A Like is
-write-once, so `post_like` / `caption_like` carry `ctime` only — no `mid` / `mtime`
-([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md) addendum).
+write-once, but `post_like` / `caption_like` still carry the full audit columns
+(#117, #118).
 
 **Sanitization boundary** (user text and URLs):
 The server is the authoritative sanitization boundary. **User text** is sanitized in

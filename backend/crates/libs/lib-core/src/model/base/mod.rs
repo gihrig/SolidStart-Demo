@@ -2,6 +2,7 @@
 
 mod bmc;
 mod crud_fns;
+mod derived_fns;
 mod hygiene;
 mod macro_utils;
 mod utils;
@@ -9,6 +10,7 @@ mod utils;
 // -- Flatten hierarchy for user code.
 pub use bmc::*;
 pub use crud_fns::*;
+pub use derived_fns::*;
 pub use hygiene::*;
 pub use utils::*;
 

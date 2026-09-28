@@ -6,6 +6,7 @@
 // with no coercion while the generated .d.ts files stay untouched.
 import type { Agent as AgentWire } from "~backend-bindings/Agent.d";
 import type { AuthorRef as AuthorRefWire } from "~backend-bindings/AuthorRef.d";
+import type { CaptionView as CaptionViewWire } from "~backend-bindings/CaptionView.d";
 import type { CategoryPublic as CategoryPublicWire } from "~backend-bindings/CategoryPublic.d";
 import type { Conv as ConvWire } from "~backend-bindings/Conv.d";
 import type { PostView as PostViewWire } from "~backend-bindings/PostView.d";
@@ -35,6 +36,14 @@ export type AuthorRef = NumericIds<AuthorRefWire>;
 export type PostView = Omit<NumericIds<PostViewWire>, "author" | "categories"> & {
   author: AuthorRef;
   categories: CategoryPublic[];
+};
+/**
+ * The enriched public Caption projection (#118, ADR-0021). As with
+ * {@link PostView}, the nested `author` carries its own bigint id, so it is
+ * re-typed to the already-rewritten {@link AuthorRef} barrel export.
+ */
+export type CaptionView = Omit<NumericIds<CaptionViewWire>, "author"> & {
+  author: AuthorRef;
 };
 export type Conv = NumericIds<ConvWire>;
 export type ConvMsg = NumericIds<ConvMsgWire>;

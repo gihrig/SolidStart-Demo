@@ -40,6 +40,16 @@ pub struct ParamsIded {
 }
 impl IntoParams for ParamsIded {}
 
+/// Params structure for an RPC List call scoped to one parent entity (e.g. a
+/// Post's Captions): `id` names the parent, and the optional `list_options`
+/// pages the result.
+#[derive(Deserialize)]
+pub struct ParamsIdedList {
+	pub id: i64,
+	pub list_options: Option<ListOptions>,
+}
+impl IntoParams for ParamsIdedList {}
+
 /// Params structure for any RPC List call.
 #[serde_as]
 #[derive(Deserialize, Default)]
