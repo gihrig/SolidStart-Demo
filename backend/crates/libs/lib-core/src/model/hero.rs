@@ -50,8 +50,9 @@ impl DbBmc for HeroBmc {
 	const TABLE: &'static str = "hero";
 
 	/// The display fields submit to write-path hygiene with their caps
-	/// (ADR-0019). `background_image` has no cap, but it still rejects the
-	/// hidden-text characters before its URL check.
+	/// (ADR-0019). `background_image` is capped at its `varchar(1024)` column
+	/// width, so an over-long URL is a `Validation` error, not a DB error. It
+	/// also rejects the hidden-text characters before its URL check.
 	fn hygiene_rules() -> &'static [FieldHygiene] {
 		const RULES: &[FieldHygiene] = &[
 			FieldHygiene {
@@ -68,7 +69,7 @@ impl DbBmc for HeroBmc {
 			},
 			FieldHygiene {
 				field: "background_image",
-				max_len: None,
+				max_len: Some(1024),
 			},
 		];
 		RULES
@@ -180,8 +181,8 @@ mod tests {
 		Ok(())
 	}
 
-	/// Each free-text field enforces its cap: title 40, subtitle 100,
-	/// cta_text 20 characters. One character over the cap is rejected.
+	/// Each field enforces its cap: title 40, subtitle 100, cta_text 20, and
+	/// background_image 1024 characters. One character over the cap is rejected.
 	#[serial]
 	#[tokio::test]
 	async fn test_update_hero_over_cap_rejected() -> Result<()> {
@@ -213,6 +214,17 @@ mod tests {
 				},
 				"max length 20",
 			),
+			(
+				"background_image",
+				HeroForUpdate {
+					background_image: Some(format!(
+						"https://example.com/{}",
+						"a".repeat(1005)
+					)),
+					..Default::default()
+				},
+				"max length 1024",
+			),
 		];
 
 		for (fx_field, fx_hero_u, fx_reason) in cases {
@@ -226,6 +238,42 @@ mod tests {
 				"{fx_field}: got {res:?}"
 			);
 		}
+
+		Ok(())
+	}
+
+	/// The Hero is a singleton: an update of any id but the singleton's is
+	/// `EntityNotFound`.
+	#[serial]
+	#[tokio::test]
+	async fn test_update_hero_other_id_not_found() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let ctx = Ctx::root_ctx();
+
+		// -- Exec
+		let res = HeroBmc::update(
+			&ctx,
+			&mm,
+			2,
+			HeroForUpdate {
+				title: Some("test_update_hero_other_id".to_string()),
+				..Default::default()
+			},
+		)
+		.await;
+
+		// -- Check
+		assert!(
+			matches!(
+				&res,
+				Err(model::Error::EntityNotFound {
+					entity: "hero",
+					id: 2
+				})
+			),
+			"got {res:?}"
+		);
 
 		Ok(())
 	}

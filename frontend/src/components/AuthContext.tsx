@@ -37,13 +37,17 @@ export const AuthProvider: ParentComponent = (props) => {
 
   // Nav identity (ADR-0007, #119): the logged-in User's profile. `get_profile`
   // needs a login, so the source is the login username — no fetch while logged
-  // out, and a new fetch per login. The fetcher swallows a failure: AuthProvider
-  // sits above every error boundary, so a thrown profile error would crash the
-  // app, while a missing profile only falls back to the username. `.latest` is
-  // a non-suspending read — the nav reads it outside <Suspense>.
+  // out, and a new fetch per login. The fetcher logs and absorbs a failure:
+  // AuthProvider sits above every error boundary, so a thrown profile error would
+  // crash the app, while a missing profile only falls back to the username.
+  // `.latest` is a non-suspending read — the nav reads it outside <Suspense>.
   const [profile, { mutate: setProfile }] = createResource(
     () => (isAuthenticated() ? username() : undefined),
-    () => jediApi.profile.get().catch(() => undefined),
+    () =>
+      jediApi.profile.get().catch((err: unknown) => {
+        console.warn("[AuthContext] Profile load failed:", err);
+        return undefined;
+      }),
   );
   const displayName = () =>
     isAuthenticated() ? (profile.latest?.name ?? username() ?? undefined) : undefined;
