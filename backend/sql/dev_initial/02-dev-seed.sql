@@ -33,9 +33,24 @@ INSERT INTO "user"
     (2,  'Homer',  'https://img.icons8.com/doodle/96/null/homer-simpson.png',  0,   now(), 0,   now()),
     (3,  'Bart',   'https://img.icons8.com/doodle/96/null/bart-simpson.png',   0,   now(), 0,   now());
 
--- Posts (ids 1..4), seeded from the front-end mock fixture. Every Post is public;
--- owner_id is its author. The fixture likeCount is NOT stored — the like count is
--- derived from post_like, which is empty at seed, so every Post reads 0 (#117).
+-- Liker Users (ids 4..11). They cast the seeded Likes below (#177). A Like is one
+-- per (target, User), and Caption 1 needs 8, so 8 Users are required. They have
+-- no pwd, so they cannot log in. root (a Sys User), demo1 (the login User), and
+-- the Authors cast no Likes, so a later Like toggle by demo1 starts un-liked.
+INSERT INTO "user"
+    (id, username,   cid, ctime, mid, mtime) VALUES
+    (4,  'Marge',    0,   now(), 0,   now()),
+    (5,  'Maggie',   0,   now(), 0,   now()),
+    (6,  'Milhouse', 0,   now(), 0,   now()),
+    (7,  'Ned',      0,   now(), 0,   now()),
+    (8,  'Apu',      0,   now(), 0,   now()),
+    (9,  'Moe',      0,   now(), 0,   now()),
+    (10, 'Krusty',   0,   now(), 0,   now()),
+    (11, 'Ralph',    0,   now(), 0,   now());
+
+-- Posts (ids 1..4), seeded from the front-end mock fixture. Every Post is public,
+-- and owner_id is its author. The fixture likeCount is NOT stored — the like count
+-- is derived from post_like, seeded below to match the fixture (#177).
 INSERT INTO "post"
     (id, owner_id, title,            image_src,                                                              image_alt,          photographer,             photographer_url,                              source_url,                                                                     cid, ctime, mid, mtime) VALUES
     (1,  1,        'Little Jedi',    'https://live.staticflickr.com/65535/50618365686_36f887ab88_c.jpg',     'Little Jedi cat',  'Felicity Berkleef',      'https://www.flickr.com/photos/felicefelines/', 'https://www.flickr.com/photos/felicefelines/50618365686/',                     0,   now(), 0,   now()),
@@ -55,11 +70,32 @@ INSERT INTO "post_category"
     (3, 6, 0, now(), 0, now()),
     (4, 1, 0, now(), 0, now());
 
+-- Post Likes, from the fixture likeCount (#177): post 1 -> 5, post 2 -> 4,
+-- post 3 -> 5, post 4 -> 3. Top Photos ranks [1, 3, 2, 4] (the 5-Like tie breaks
+-- by id ascending). Each Like is cast by a Liker User, as its cid.
+INSERT INTO "post_like"
+    (post_id, user_id, cid, ctime, mid, mtime) VALUES
+    (1, 4,  4,  now(), 4,  now()),
+    (1, 5,  5,  now(), 5,  now()),
+    (1, 6,  6,  now(), 6,  now()),
+    (1, 7,  7,  now(), 7,  now()),
+    (1, 8,  8,  now(), 8,  now()),
+    (2, 4,  4,  now(), 4,  now()),
+    (2, 5,  5,  now(), 5,  now()),
+    (2, 6,  6,  now(), 6,  now()),
+    (2, 7,  7,  now(), 7,  now()),
+    (3, 4,  4,  now(), 4,  now()),
+    (3, 5,  5,  now(), 5,  now()),
+    (3, 6,  6,  now(), 6,  now()),
+    (3, 7,  7,  now(), 7,  now()),
+    (3, 8,  8,  now(), 8,  now()),
+    (4, 4,  4,  now(), 4,  now()),
+    (4, 5,  5,  now(), 5,  now()),
+    (4, 6,  6,  now(), 6,  now());
 
 -- Captions (ids 1..8), seeded from the front-end mock fixture. Every Caption is
 -- public, and owner_id is its author. The fixture likeCount is NOT stored — the like
--- count is derived from caption_like, which is empty at seed, so every Caption
--- reads 0 and Top Captions ties break by id ascending (#118).
+-- count is derived from caption_like, seeded below to match the fixture (#177).
 INSERT INTO "caption"
     (id, post_id, owner_id, text,                             cid, ctime, mid, mtime) VALUES
     (1,  1,       1,        'Jedi Kitty protects the street', 0,   now(), 0,   now()),
@@ -70,3 +106,34 @@ INSERT INTO "caption"
     (6,  3,       2,        'Peek-a-Boo!',                    0,   now(), 0,   now()),
     (7,  4,       2,        'Undiscovered!',                  0,   now(), 0,   now()),
     (8,  3,       1,        'Can''t See Me!',                 0,   now(), 0,   now());
+
+-- Caption Likes, from the fixture likeCount (#177): caption 1 -> 8, caption 2 -> 5,
+-- captions 3..8 -> 2. Top Captions for post 1 ranks [1, 2], and each other Post's
+-- 2-Like tie breaks by id ascending. Each Like is cast by a Liker User, as its cid.
+INSERT INTO "caption_like"
+    (caption_id, user_id, cid, ctime, mid, mtime) VALUES
+    (1, 4,  4,  now(), 4,  now()),
+    (1, 5,  5,  now(), 5,  now()),
+    (1, 6,  6,  now(), 6,  now()),
+    (1, 7,  7,  now(), 7,  now()),
+    (1, 8,  8,  now(), 8,  now()),
+    (1, 9,  9,  now(), 9,  now()),
+    (1, 10, 10, now(), 10, now()),
+    (1, 11, 11, now(), 11, now()),
+    (2, 4,  4,  now(), 4,  now()),
+    (2, 5,  5,  now(), 5,  now()),
+    (2, 6,  6,  now(), 6,  now()),
+    (2, 7,  7,  now(), 7,  now()),
+    (2, 8,  8,  now(), 8,  now()),
+    (3, 4,  4,  now(), 4,  now()),
+    (3, 5,  5,  now(), 5,  now()),
+    (4, 4,  4,  now(), 4,  now()),
+    (4, 5,  5,  now(), 5,  now()),
+    (5, 4,  4,  now(), 4,  now()),
+    (5, 5,  5,  now(), 5,  now()),
+    (6, 4,  4,  now(), 4,  now()),
+    (6, 5,  5,  now(), 5,  now()),
+    (7, 4,  4,  now(), 4,  now()),
+    (7, 5,  5,  now(), 5,  now()),
+    (8, 4,  4,  now(), 4,  now()),
+    (8, 5,  5,  now(), 5,  now());

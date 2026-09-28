@@ -199,8 +199,8 @@ describe("jediApi.profile", () => {
 });
 
 // The wire `CaptionView`s the back-end returns for seeded Post 1 (snake_case,
-// enriched: author + derived counts). `caption_like` is empty at seed, so every
-// like count is 0 and the back-end breaks the tie by id ascending (#118).
+// enriched: author + derived counts). The seeded `caption_like` rows give Captions
+// 1 and 2 their fixture like counts, 8 and 5, ranked by like count (#177).
 const WIRE_CAPTIONS_POST_1 = [
   {
     id: 1,
@@ -211,7 +211,7 @@ const WIRE_CAPTIONS_POST_1 = [
       avatar_url: "https://img.icons8.com/doodle/96/null/lisa-simpson.png",
     },
     text: "Jedi Kitty protects the street",
-    like_count: 0,
+    like_count: 8,
     comment_count: 0,
   },
   {
@@ -223,7 +223,7 @@ const WIRE_CAPTIONS_POST_1 = [
       avatar_url: "https://img.icons8.com/doodle/96/null/bart-simpson.png",
     },
     text: "May the paws be with you",
-    like_count: 0,
+    like_count: 5,
     comment_count: 0,
   },
 ];
@@ -244,7 +244,7 @@ describe("jediApi.captions", () => {
   it("preserves the back-end ranking order (Top Captions, does not re-rank)", async () => {
     const caps = await jediApi.captions.listForPost(1);
     expect(caps.map((c) => c.id)).toEqual([1, 2]);
-    expect(caps.map((c) => c.likeCount)).toEqual([0, 0]);
+    expect(caps.map((c) => c.likeCount)).toEqual([8, 5]);
     expect(caps[0].text).toBe("Jedi Kitty protects the street");
     expect(caps[0].postId).toBe(1);
   });
