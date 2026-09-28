@@ -10,12 +10,22 @@ const NAV_LINKS = [
   { href: "/fullstack", label: "FullStack" },
 ] as const;
 
+// How many leading characters of the name fit in the avatar circle (#119).
+const AVATAR_INITIALS = 2;
+
 export default function Nav() {
   let dropdownRef: HTMLDivElement | undefined;
 
-  // Identity (avatar + display name) comes from the useAuth seam; the interim
-  // blend with the Jedi mock profile lives there, not here (see ADR-0007).
+  // Identity (avatar + display name) comes from the useAuth seam: the logged-in
+  // User's profile lives there, not here (see ADR-0007).
   const { isAuthenticated, logoff, displayName, avatarUrl } = useAuth();
+
+  // A User with no avatar gets the name's first characters in the circle;
+  // `Array.from` splits by code point, so an emoji is never cut in half.
+  const initials = () =>
+    Array.from(displayName() ?? "")
+      .slice(0, AVATAR_INITIALS)
+      .join("");
 
   // The profile dropdown is a popup — hidden (and inert) whenever closed, on
   // every viewport — dismissed by Escape or a click outside its wrapping <div>.
@@ -58,11 +68,27 @@ export default function Nav() {
               {...dropdown.triggerProps}
               class="flex items-center gap-2 cursor-pointer select-none"
             >
-              <img
-                class="h-8 rounded-full object-cover bg-teal-200"
-                src={avatarUrl()}
-                alt={displayName() ? `${displayName()} avatar` : ""}
-              />
+              <Show
+                when={avatarUrl()}
+                fallback={
+                  <span
+                    data-testid="avatar"
+                    aria-hidden="true"
+                    class="flex items-center justify-center h-8 w-8 rounded-full bg-teal-200 text-gray-900 text-sm font-bold overflow-hidden"
+                  >
+                    {initials()}
+                  </span>
+                }
+              >
+                {(url) => (
+                  <img
+                    data-testid="avatar"
+                    class="h-8 rounded-full object-cover bg-teal-200"
+                    src={url()}
+                    alt={displayName() ? `${displayName()} avatar` : ""}
+                  />
+                )}
+              </Show>
               <span class="hidden sm:inline">{displayName()}</span>
               <Icon
                 name="expand-arrow"

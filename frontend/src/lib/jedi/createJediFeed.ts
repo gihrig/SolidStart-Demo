@@ -1,5 +1,5 @@
 import { createResource, createSignal, type Accessor, type Setter } from "solid-js";
-import { jediApi } from "~/lib/jedi/jedi-api";
+import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { type MessageFeedFactory } from "~/lib/websocket";
 import { Channel } from "~/lib/channel";
 import type { JediCategory, PostView, CaptionView, HeroView } from "~/types/jedi";
@@ -56,6 +56,12 @@ const ALL_CATEGORIES: JediCategory = { id: 0, name: "All", icon: "menu" };
 /** Injectable seams for the view-model. */
 export interface CreateJediFeedDeps {
   /**
+   * The Jedi data seam. Defaults to the `jediApi` singleton (the real back-end);
+   * a test injects an in-memory `JediApi` — the same inject-or-default idiom as
+   * `feed` below (arch-review C2, #119).
+   */
+  api?: JediApi;
+  /**
    * The live **Feed** (`CONTEXT.md`). When present, a `posts` poke refetches the
    * ranked Post list and the featured Post (#117) — the poke carries no row, so
    * the refetch re-reads through the scoped public RPC. Absent on the anonymous
@@ -65,12 +71,13 @@ export interface CreateJediFeedDeps {
 }
 
 export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
+  const api = deps.api ?? jediApi;
   const [selectedCategory, setSelectedCategory] = createSignal(0);
   const [selectedPostId, setSelectedPostId] = createSignal<number | undefined>();
   const [selectedCaptionId, setSelectedCaptionId] = createSignal<number | undefined>();
 
-  const [realCategories] = createResource(() => jediApi.categories.list());
-  const [posts, { refetch: refetchPosts }] = createResource(() => jediApi.posts.list());
+  const [realCategories] = createResource(() => api.categories.list());
+  const [posts, { refetch: refetchPosts }] = createResource(() => api.posts.list());
   // The featured post IS the ranked list's first element, so it is derived, not a
   // second fetch (`list_posts` is already ranked by the back-end). It is the
   // loading fallback for `selectedPost` below.
@@ -124,7 +131,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
 
   const [topCaptions] = createResource(
     () => selectedPost()?.id,
-    (postId) => jediApi.captions.listForPost(postId),
+    (postId) => api.captions.listForPost(postId),
   );
   // Read `.latest`, not `topCaptions()`: a suspending read here re-triggered
   // Suspense on every post re-key, reconciling the route subtree and blurring
@@ -151,7 +158,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     setSelectedCaptionId(id);
   };
 
-  const [hero] = createResource(() => jediApi.hero.get());
+  const [hero] = createResource(() => api.hero.get());
 
   return {
     categories,

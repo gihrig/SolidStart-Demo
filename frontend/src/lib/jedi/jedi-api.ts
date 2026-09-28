@@ -1,25 +1,20 @@
-import data from "./data.json";
 import { sanitizeUrl, trustedUrl, type SafeUrl } from "~/lib/sanitizeUrl";
-import { caption as captionRpc, category as categoryRpc, post as postRpc } from "~/lib/backend-rpc";
+import {
+  caption as captionRpc,
+  category as categoryRpc,
+  hero as heroRpc,
+  post as postRpc,
+  profile as profileRpc,
+} from "~/lib/backend-rpc";
 import { ICON_NAMES, type IconName } from "~/components/Icon";
 import type {
   CategoryPublic,
   PostView as PostViewWire,
   CaptionView as CaptionViewWire,
   AuthorRef as AuthorRefWire,
+  HeroView as HeroViewWire,
 } from "~/types/backend";
-import type {
-  JediData,
-  JediCategory,
-  HeroView,
-  AuthorRef,
-  PostView,
-  CaptionView,
-} from "~/types/jedi";
-
-// data.json widens `icon` to `string`; the unit test asserts every
-// icon is a real sprite name, so this once-only boundary cast is safe.
-const db = data as unknown as JediData;
+import type { JediCategory, HeroView, AuthorRef, PostView, CaptionView } from "~/types/jedi";
 
 /** The single sanitize boundary (ADR-0002): every URL field passes through here.
  *  A rejected URL collapses to the empty `SafeUrl`; consumers bind it raw. */
@@ -38,12 +33,6 @@ const toJediCategory = (c: CategoryPublic): JediCategory => ({
   name: c.name,
   icon: toIconName(c.icon),
 });
-
-function authorOf(ownerId: number): AuthorRef {
-  const u = db.users.find((x) => x.id === ownerId);
-  if (!u) throw new Error(`jedi-api: unknown user id ${ownerId}`);
-  return { id: u.id, name: u.name, avatarUrl: safe(u.avatarUrl) };
-}
 
 // Real back-end calls now (#117, #118): Posts come from `list_posts` /
 // `featured_post` as the enriched `PostView` wire type, and a Post's Captions from
@@ -81,17 +70,19 @@ const toCaptionView = (c: CaptionViewWire): CaptionView => ({
   likeCount: c.like_count,
 });
 
-const heroContent = (): HeroView => ({
-  title: db.hero.title,
-  subtitle: db.hero.subtitle,
-  ctaText: db.hero.ctaText,
-  ctaHref: safe(db.hero.ctaHref),
-  backgroundImage: safe(db.hero.backgroundImage),
+// The Hero singleton (#119). The wire view has no `cta_href`: the CTA runs fixed
+// front-end code, so `HeroView` carries only the sanitized background image.
+const toHeroView = (h: HeroViewWire): HeroView => ({
+  title: h.title,
+  subtitle: h.subtitle,
+  ctaText: h.cta_text,
+  backgroundImage: safe(h.background_image),
 });
 
 /**
- * RPC-shaped mock. Swapping to the real back-end later replaces each body with a
- * `rpcCall(...)` (see src/lib/backend-rpc.ts); the signatures stay identical.
+ * The Jedi data seam. Each body calls a real back-end RPC (see
+ * src/lib/backend-rpc.ts); the signatures stayed identical through the swap
+ * from the former `data.json` mock.
  */
 export const jediApi = {
   categories: {
@@ -112,9 +103,15 @@ export const jediApi = {
       (await captionRpc.listForPost(postId)).map(toCaptionView),
   },
   hero: {
-    get: (): Promise<HeroView> => Promise.resolve(heroContent()),
+    // Real back-end call now (#119): the public `get_hero` singleton read.
+    get: async (): Promise<HeroView> => toHeroView(await heroRpc.get()),
   },
   profile: {
-    get: (): Promise<AuthorRef> => Promise.resolve(authorOf(db.profile.userId)),
+    // Real back-end call now (#119): `get_profile` returns the logged-in User,
+    // so it needs a login (the authenticated RPC surface).
+    get: async (): Promise<AuthorRef> => toAuthorRef(await profileRpc.get()),
   },
 };
+
+/** The `jediApi` contract, so a consumer can inject an in-memory stand-in. */
+export type JediApi = typeof jediApi;

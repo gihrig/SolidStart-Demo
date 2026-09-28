@@ -2,6 +2,7 @@ import type {
   Agent,
   AgentForCreate,
   AgentForUpdate,
+  AuthorRef,
   CaptionView,
   CategoryPublic,
   Conv,
@@ -9,6 +10,7 @@ import type {
   ConvForUpdate,
   ConvMsg,
   ConvMsgForCreate,
+  HeroView,
   JsonRpcRequest,
   JsonRpcResponse,
   LoginPayload,
@@ -185,6 +187,19 @@ export function createRpcClient() {
       rpcCall<CaptionView[]>("list_captions_for_post", { id: postId }, "/api/rpc-public"),
   };
 
+  // Hero RPC methods. The Hero is the home page banner singleton (#119). The
+  // anonymous landing page reads it, so `get_hero` posts to the public surface.
+  // `update_hero` is an Admin edit that no front-end surface offers yet.
+  const hero = {
+    get: () => rpcCall<HeroView>("get_hero", undefined, "/api/rpc-public"),
+  };
+
+  // Profile RPC methods. `get_profile` returns the logged-in User as an
+  // `AuthorRef` (#119), so it posts to the authenticated surface.
+  const profile = {
+    get: () => rpcCall<AuthorRef>("get_profile"),
+  };
+
   // Conversation Message RPC methods
   const convMsg = {
     add: (data: ConvMsgForCreate) => rpcCall<ConvMsg>("add_conv_msg", { data }),
@@ -194,7 +209,7 @@ export function createRpcClient() {
       }),
   };
 
-  return { agent, caption, category, conv, convMsg, post };
+  return { agent, caption, category, conv, convMsg, hero, post, profile };
 }
 
 // Default singleton used across the app.
@@ -204,7 +219,9 @@ export const caption = client.caption;
 export const category = client.category;
 export const conv = client.conv;
 export const convMsg = client.convMsg;
+export const hero = client.hero;
 export const post = client.post;
+export const profile = client.profile;
 
 // Unified export
 export const backendRpc = { auth, ...client };

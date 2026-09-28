@@ -12,18 +12,27 @@ vi.mock("~/lib/sanitizeUrl", () => ({
 // (ADR-0011, #117, #118), so the back-end client is mocked here — the seam under
 // test is the wire→contract mapping (icon mapping, URL sanitize, author/category
 // re-shape), not the network. The hoisted fns let each test program its own rows.
-const { categoryListMock, postListMock, postFeaturedMock, captionListForPostMock } = vi.hoisted(
-  () => ({
-    categoryListMock: vi.fn(),
-    postListMock: vi.fn(),
-    postFeaturedMock: vi.fn(),
-    captionListForPostMock: vi.fn(),
-  }),
-);
+const {
+  categoryListMock,
+  postListMock,
+  postFeaturedMock,
+  captionListForPostMock,
+  heroGetMock,
+  profileGetMock,
+} = vi.hoisted(() => ({
+  categoryListMock: vi.fn(),
+  postListMock: vi.fn(),
+  postFeaturedMock: vi.fn(),
+  captionListForPostMock: vi.fn(),
+  heroGetMock: vi.fn(),
+  profileGetMock: vi.fn(),
+}));
 vi.mock("~/lib/backend-rpc", () => ({
   category: { list: categoryListMock },
   post: { list: postListMock, featured: postFeaturedMock },
   caption: { listForPost: captionListForPostMock },
+  hero: { get: heroGetMock },
+  profile: { get: profileGetMock },
 }));
 
 import { sanitizeUrl } from "~/lib/sanitizeUrl";
@@ -162,39 +171,55 @@ describe("jediApi.posts", () => {
   });
 });
 
+// The wire `HeroView` the back-end returns: the seeded singleton (#119). It has
+// no `cta_href` — the CTA runs fixed front-end code.
+const WIRE_HERO = {
+  id: 1,
+  title: "Awesome Photos & Captions",
+  subtitle: "Share your favorite Photos from Flickr and add a great caption",
+  cta_text: "Get Started",
+  background_image: "https://live.staticflickr.com/65535/49909538937_3255dcf9e7_b.jpg",
+};
+
 describe("jediApi.hero", () => {
-  it("returns the externalized hero content", async () => {
+  beforeEach(() => heroGetMock.mockResolvedValue(WIRE_HERO));
+
+  it("returns the back-end Hero, re-shaped with no CTA href", async () => {
     const hero = await jediApi.hero.get();
-    expect(hero.title).toBe("Awesome Photos & Captions");
-    expect(hero.subtitle).toBe("Share your favorite Photos from Flickr and add a great caption");
-    expect(hero.ctaText).toBe("Get Started");
-    expect(hero.ctaHref).toBe("#");
-    expect(hero.backgroundImage).toBe(
-      "https://live.staticflickr.com/65535/49909538937_3255dcf9e7_b.jpg",
-    );
+    expect(hero).toEqual({
+      title: "Awesome Photos & Captions",
+      subtitle: "Share your favorite Photos from Flickr and add a great caption",
+      ctaText: "Get Started",
+      backgroundImage: "https://live.staticflickr.com/65535/49909538937_3255dcf9e7_b.jpg",
+    });
   });
 
-  it("routes hero URL fields through the sanitizer (single boundary)", async () => {
+  it("routes the background image through the sanitizer (single boundary)", async () => {
     const hero = await jediApi.hero.get();
-    const args = sanitizeSpy.mock.calls.flat();
-    expect(args).toContain(hero.ctaHref);
-    expect(args).toContain(hero.backgroundImage);
+    expect(sanitizeSpy.mock.calls.flat()).toContain(hero.backgroundImage);
   });
 });
 
 describe("jediApi.profile", () => {
-  it("returns the current user's profile (Bart) for the nav avatar", async () => {
+  it("returns the current User from get_profile for the nav avatar", async () => {
+    profileGetMock.mockResolvedValue({
+      id: 1,
+      name: "Lisa",
+      avatar_url: "https://img.icons8.com/doodle/96/null/lisa-simpson.png",
+    });
     const profile = await jediApi.profile.get();
     expect(profile).toEqual({
-      id: 3,
-      name: "Bart",
-      avatarUrl: "https://img.icons8.com/doodle/96/null/bart-simpson.png",
+      id: 1,
+      name: "Lisa",
+      avatarUrl: "https://img.icons8.com/doodle/96/null/lisa-simpson.png",
     });
+    expect(sanitizeSpy.mock.calls.flat()).toContain(profile.avatarUrl);
   });
 
-  it("routes the profile avatar through the sanitizer (single boundary)", async () => {
+  it("maps a User with no avatar to the empty URL", async () => {
+    profileGetMock.mockResolvedValue({ id: 1000, name: "demo1", avatar_url: null });
     const profile = await jediApi.profile.get();
-    expect(sanitizeSpy.mock.calls.flat()).toContain(profile.avatarUrl);
+    expect(profile).toEqual({ id: 1000, name: "demo1", avatarUrl: "" });
   });
 });
 

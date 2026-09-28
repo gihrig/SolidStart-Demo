@@ -134,6 +134,11 @@ pub struct UserBmc;
 
 impl DbBmc for UserBmc {
 	const TABLE: &'static str = "user";
+
+	/// An unsafe `avatar_url` is rejected on write (ADR-0011).
+	fn url_fields() -> &'static [&'static str] {
+		&["avatar_url"]
+	}
 }
 
 impl UserBmc {
@@ -253,6 +258,18 @@ impl UserBmc {
 		Ok(refs)
 	}
 
+	/// The current User's **profile** (#119): the `ctx` User's author snapshot,
+	/// which the nav avatar reads. A ctx with no User row is `EntityNotFound`.
+	pub async fn get_profile(ctx: &Ctx, mm: &ModelManager) -> Result<AuthorRef> {
+		let id = ctx.user_id();
+		Self::author_refs_by_ids(ctx, mm, &[id]).await?.pop().ok_or(
+			Error::EntityNotFound {
+				entity: Self::TABLE,
+				id,
+			},
+		)
+	}
+
 	pub async fn update_pwd(
 		ctx: &Ctx,
 		mm: &ModelManager,
@@ -357,6 +374,95 @@ mod tests {
 
 		// -- Check
 		assert_eq!(user.username, fx_username);
+
+		Ok(())
+	}
+
+	/// The profile is the current User's author snapshot (seeded author Lisa).
+	#[serial]
+	#[tokio::test]
+	async fn test_get_profile_ok() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let ctx = Ctx::new(1)?; // the seeded author User "Lisa"
+
+		// -- Exec
+		let profile = UserBmc::get_profile(&ctx, &mm).await?;
+
+		// -- Check
+		assert_eq!(profile.id, 1);
+		assert_eq!(profile.name, "Lisa");
+		assert_eq!(
+			profile.avatar_url.as_deref(),
+			Some("https://img.icons8.com/doodle/96/null/lisa-simpson.png")
+		);
+
+		Ok(())
+	}
+
+	/// A ctx whose User does not exist has no profile: `EntityNotFound`.
+	#[serial]
+	#[tokio::test]
+	async fn test_get_profile_unknown_user_not_found() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let ctx = Ctx::new(999_999)?;
+
+		// -- Exec
+		let res = UserBmc::get_profile(&ctx, &mm).await;
+
+		// -- Check
+		assert!(
+			matches!(
+				&res,
+				Err(crate::model::Error::EntityNotFound {
+					entity: "user",
+					id: 999_999
+				})
+			),
+			"got {res:?}"
+		);
+
+		Ok(())
+	}
+
+	/// An unsafe `avatar_url` is rejected by the shared write path, and the
+	/// stored value is unchanged. No RPC writes the avatar yet, so this drives
+	/// the `base::update` path every future avatar write goes through.
+	#[serial]
+	#[tokio::test]
+	async fn test_avatar_url_unsafe_rejected() -> Result<()> {
+		#[derive(Fields)]
+		struct AvatarForUpdate {
+			avatar_url: Option<String>,
+		}
+
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let ctx = Ctx::root_ctx();
+
+		// -- Exec
+		let res = base::update::<UserBmc, _>(
+			&ctx,
+			&mm,
+			1,
+			AvatarForUpdate {
+				avatar_url: Some("javascript:alert(1)".to_string()),
+			},
+		)
+		.await;
+
+		// -- Check
+		assert!(
+			matches!(&res, Err(crate::model::Error::Validation { field, reason })
+				if field == "avatar_url" && reason.contains("unsafe URL")),
+			"got {res:?}"
+		);
+		let user: User = UserBmc::get(&ctx, &mm, 1).await?;
+		assert_eq!(
+			user.avatar_url.as_deref(),
+			Some("https://img.icons8.com/doodle/96/null/lisa-simpson.png")
+		);
 
 		Ok(())
 	}

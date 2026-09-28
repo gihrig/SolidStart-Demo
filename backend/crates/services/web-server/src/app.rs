@@ -531,6 +531,139 @@ mod tests {
 		Ok(())
 	}
 
+	/// The public RPC surface serves the Hero singleton to an anonymous visitor
+	/// (#119): `get_hero` on `/api/rpc-public` returns the seeded `HeroView` with
+	/// NO login. The view carries exactly its public fields: no `cta_href` and no
+	/// audit columns (ADR-0021). `update_hero` is a mutation, so it is not on the
+	/// public surface, and the authed surface rejects an anonymous call.
+	#[serial]
+	#[tokio::test]
+	async fn test_web_public_hero_anonymous_ok() -> Result<()> {
+		// -- Setup & Fixtures (no login — an anonymous client)
+		let mm = _dev_utils::init_test().await;
+		let server = TestServer::new(app(mm.clone(), Arc::new(WsState::new())));
+
+		// -- Exec & Check: the public endpoint returns the seeded Hero.
+		let body: Value = server
+			.post("/api/rpc-public")
+			.json(&json!({ "jsonrpc": "2.0", "id": 1, "method": "get_hero" }))
+			.await
+			.json();
+		let hero = body
+			.pointer("/result/data")
+			.and_then(Value::as_object)
+			.ok_or("get_hero: missing /result/data object")?;
+		assert_eq!(
+			hero.get("title").and_then(Value::as_str),
+			Some("Awesome Photos & Captions")
+		);
+		let mut keys: Vec<&str> = hero.keys().map(String::as_str).collect();
+		keys.sort_unstable();
+		assert_eq!(
+			keys,
+			["background_image", "cta_text", "id", "subtitle", "title"]
+		);
+
+		// -- Exec & Check: the mutation is not registered on the public surface.
+		let body: Value = server
+			.post("/api/rpc-public")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "update_hero",
+				"params": { "id": 1, "data": { "title": "anon" } }
+			}))
+			.await
+			.json();
+		assert!(body.pointer("/result").is_none(), "got {body}");
+
+		// -- Exec & Check: the authed surface rejects the anonymous call.
+		server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "update_hero",
+				"params": { "id": 1, "data": { "title": "anon" } }
+			}))
+			.await
+			.assert_status(axum::http::StatusCode::UNAUTHORIZED);
+
+		Ok(())
+	}
+
+	/// A logged-in User reads their own profile and edits the Hero (#119):
+	/// `get_profile` returns the login User as an `AuthorRef`, and `update_hero`
+	/// returns the updated `HeroView`. An unsafe `background_image` is rejected
+	/// on write, and the stored Hero is unchanged.
+	#[serial]
+	#[tokio::test]
+	async fn test_web_profile_and_update_hero_ok() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let mut server = TestServer::new(app(mm.clone(), Arc::new(WsState::new())));
+		server.save_cookies();
+		server
+			.post("/api/login")
+			.json(&json!({ "username": "demo1", "pwd": "welcome" }))
+			.await
+			.assert_status_ok();
+
+		// -- Exec & Check: get_profile is the login User's author snapshot.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&json!({ "jsonrpc": "2.0", "id": 1, "method": "get_profile" }))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data/name").and_then(Value::as_str),
+			Some("demo1")
+		);
+		assert!(
+			body.pointer("/result/data/avatar_url")
+				.is_some_and(Value::is_null),
+			"demo1 has no avatar: got {body}"
+		);
+
+		// -- Exec & Check: an unsafe background_image is rejected.
+		server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "update_hero",
+				"params": { "id": 1, "data": { "background_image": "javascript:alert(1)" } }
+			}))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+
+		// -- Exec & Check: a valid update returns the updated view.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "update_hero",
+				"params": { "id": 1, "data": { "cta_text": "Join now" } }
+			}))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data/cta_text")
+				.and_then(Value::as_str),
+			Some("Join now")
+		);
+		assert_eq!(
+			body.pointer("/result/data/background_image")
+				.and_then(Value::as_str),
+			Some("https://live.staticflickr.com/65535/49909538937_3255dcf9e7_b.jpg")
+		);
+
+		// -- Clean: restore the seeded CTA text for the other tests.
+		server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "update_hero",
+				"params": { "id": 1, "data": { "cta_text": "Get Started" } }
+			}))
+			.await
+			.assert_status_ok();
+
+		Ok(())
+	}
+
 	/// An rpc call without the login cookie is rejected by `mw_ctx_require`.
 	#[serial]
 	#[tokio::test]

@@ -137,3 +137,9 @@ INSERT INTO "caption_like"
     (7, 5,  5,  now(), 5,  now()),
     (8, 4,  4,  now(), 4,  now()),
     (8, 5,  5,  now(), 5,  now());
+
+-- Hero singleton (id 1), seeded from the front-end mock fixture (#119). The
+-- fixture ctaHref is not stored: the CTA runs fixed front-end code.
+INSERT INTO "hero"
+    (id, title,                       subtitle,                                                          cta_text,      background_image,                                                  cid, ctime, mid, mtime) VALUES
+    (1,  'Awesome Photos & Captions', 'Share your favorite Photos from Flickr and add a great caption', 'Get Started', 'https://live.staticflickr.com/65535/49909538937_3255dcf9e7_b.jpg', 0,   now(), 0,   now());

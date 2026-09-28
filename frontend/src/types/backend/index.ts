@@ -9,6 +9,7 @@ import type { AuthorRef as AuthorRefWire } from "~backend-bindings/AuthorRef.d";
 import type { CaptionView as CaptionViewWire } from "~backend-bindings/CaptionView.d";
 import type { CategoryPublic as CategoryPublicWire } from "~backend-bindings/CategoryPublic.d";
 import type { Conv as ConvWire } from "~backend-bindings/Conv.d";
+import type { HeroView as HeroViewWire } from "~backend-bindings/HeroView.d";
 import type { PostView as PostViewWire } from "~backend-bindings/PostView.d";
 import type { ConvMsg as ConvMsgWire } from "~backend-bindings/ConvMsg.d";
 import type { ConvUser as ConvUserWire } from "~backend-bindings/ConvUser.d";
@@ -45,6 +46,8 @@ export type PostView = Omit<NumericIds<PostViewWire>, "author" | "categories"> &
 export type CaptionView = Omit<NumericIds<CaptionViewWire>, "author"> & {
   author: AuthorRef;
 };
+/** The Hero singleton's public projection (#119, ADR-0021): no audit columns, no CTA href. */
+export type HeroView = NumericIds<HeroViewWire>;
 export type Conv = NumericIds<ConvWire>;
 export type ConvMsg = NumericIds<ConvMsgWire>;
 export type ConvUser = NumericIds<ConvUserWire>;

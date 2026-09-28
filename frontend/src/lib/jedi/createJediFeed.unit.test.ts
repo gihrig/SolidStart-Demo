@@ -1,99 +1,99 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { createRoot } from "solid-js";
 import { Channel } from "~/lib/channel";
+import { trustedUrl } from "~/lib/sanitizeUrl";
+import type { JediApi } from "./jedi-api";
+import type { AuthorRef, CaptionView, JediCategory, PostView } from "~/types/jedi";
 import data from "./data.json";
-
-// `jediApi.categories.list` / `posts.*` / `captions.listForPost` call the real
-// RPCs (ADR-0011, #117, #118); the back-end client is mocked so this seam test
-// stays offline. Categories mirror the seeded taxonomy; Posts and Captions are
-// hoisted spies each test programs (defaults below).
-const { postListMock, postFeaturedMock, captionListForPostMock } = vi.hoisted(() => ({
-  postListMock: vi.fn(),
-  postFeaturedMock: vi.fn(),
-  captionListForPostMock: vi.fn(),
-}));
-vi.mock("~/lib/backend-rpc", () => ({
-  caption: { listForPost: captionListForPostMock },
-  category: {
-    list: () =>
-      Promise.resolve([
-        { id: 1, name: "Landscape", icon: "landscape" },
-        { id: 2, name: "People", icon: "portrait" },
-        { id: 3, name: "Animals", icon: "dog" },
-        { id: 4, name: "Abstract", icon: "collage" },
-        { id: 5, name: "Black & White", icon: "180-degrees" },
-        { id: 6, name: "Cute", icon: "fire-heart" },
-      ]),
-  },
-  post: { list: postListMock, featured: postFeaturedMock },
-}));
-
 import { createJediFeed, type JediFeed } from "./createJediFeed";
 
-// The wire `PostView`s the back-end returns, already ranked (#117 — the front-end
-// never re-ranks). Order [1, 3, 2, 4] mirrors data.json's like counts; categories
-// match the fixture (post 1/3 -> Animals+Cute, post 2/4 -> Landscape).
-const wireAuthor = (id: number, name: string) => ({
+// The view-model takes its `JediApi` by injection (#119 rider, arch-review C2),
+// so this seam test hands it a synthetic in-memory `JediApi` in the contract
+// shape — no back-end client mock and no wire rows. `jedi-api.unit.test.ts`
+// owns the wire→contract mapping.
+const CATEGORIES: JediCategory[] = [
+  { id: 1, name: "Landscape", icon: "landscape" },
+  { id: 2, name: "People", icon: "portrait" },
+  { id: 3, name: "Animals", icon: "dog" },
+  { id: 4, name: "Abstract", icon: "collage" },
+  { id: 5, name: "Black & White", icon: "180-degrees" },
+  { id: 6, name: "Cute", icon: "fire-heart" },
+];
+const CAT = { 1: CATEGORIES[0], 3: CATEGORIES[2], 6: CATEGORIES[5] };
+
+const author = (id: number, name: string): AuthorRef => ({
   id,
   name,
-  avatar_url: `https://example.test/${name}.png`,
+  avatarUrl: trustedUrl(`https://example.test/${name}.png`),
 });
-const CAT = {
-  1: { id: 1, name: "Landscape", icon: "landscape" },
-  3: { id: 3, name: "Animals", icon: "dog" },
-  6: { id: 6, name: "Cute", icon: "fire-heart" },
-};
-const wirePost = (
+const post = (
   id: number,
   title: string,
-  author: { id: number; name: string },
-  categories: { id: number; name: string; icon: string }[],
+  by: AuthorRef,
+  categories: JediCategory[],
   likeCount: number,
-) => ({
+): PostView => ({
   id,
-  author: wireAuthor(author.id, author.name),
+  author: by,
   title,
-  image_src: `https://example.test/${id}.jpg`,
-  image_alt: title,
+  imageSrc: trustedUrl(`https://example.test/${id}.jpg`),
+  imageAlt: title,
   photographer: "Photographer",
-  photographer_url: "https://example.test/photographer",
-  source_url: "https://example.test/source",
+  photographerUrl: trustedUrl("https://example.test/photographer"),
+  sourceUrl: trustedUrl("https://example.test/source"),
   categories,
-  like_count: likeCount,
-  comment_count: 0,
+  likeCount,
+  commentCount: 0,
 });
-const LISA = { id: 1, name: "Lisa" };
-const HOMER = { id: 2, name: "Homer" };
+
+// The Posts as the back-end ranks them (#117 — the front-end never re-ranks).
+// Order [1, 3, 2, 4] mirrors data.json's like counts; categories match the
+// fixture (post 1/3 -> Animals+Cute, post 2/4 -> Landscape).
+const LISA = author(1, "Lisa");
+const HOMER = author(2, "Homer");
 const RANKED_POSTS = [
-  wirePost(1, "Little Jedi", LISA, [CAT[3], CAT[6]], 5),
-  wirePost(3, "Camouflage", LISA, [CAT[3], CAT[6]], 5),
-  wirePost(2, "Brilliant tree", HOMER, [CAT[1]], 4),
-  wirePost(4, "Serene Beach", HOMER, [CAT[1]], 3),
+  post(1, "Little Jedi", LISA, [CAT[3], CAT[6]], 5),
+  post(3, "Camouflage", LISA, [CAT[3], CAT[6]], 5),
+  post(2, "Brilliant tree", HOMER, [CAT[1]], 4),
+  post(4, "Serene Beach", HOMER, [CAT[1]], 3),
 ];
 
-// Captions arrive as the wire `CaptionView`, built from the fixture and
-// pre-ranked as the back-end ranks them: like count desc, then id asc (#118).
+// Captions built from the fixture and pre-ranked as the back-end ranks them:
+// like count desc, then id asc (#118).
 const users = new Map(data.users.map((u) => [u.id, u]));
-const captionsFor = (postId: number) =>
+const captionsFor = (postId: number): CaptionView[] =>
   data.captions
     .filter((c) => c.post_id === postId)
     .sort((a, b) => b.likeCount - a.likeCount || a.id - b.id)
     .map((c) => ({
       id: c.id,
-      post_id: c.post_id,
-      author: {
-        id: c.owner_id,
-        name: users.get(c.owner_id)!.name,
-        avatar_url: users.get(c.owner_id)!.avatarUrl,
-      },
+      postId: c.post_id,
+      author: author(c.owner_id, users.get(c.owner_id)!.name),
       text: c.text,
-      like_count: c.likeCount,
-      comment_count: 0,
+      likeCount: c.likeCount,
     }));
 
+const postListMock = vi.fn<JediApi["posts"]["list"]>();
+const captionListForPostMock = vi.fn<JediApi["captions"]["listForPost"]>();
+const api: JediApi = {
+  categories: { list: () => Promise.resolve(CATEGORIES) },
+  posts: { list: postListMock, featured: () => Promise.resolve(RANKED_POSTS[0]) },
+  captions: { listForPost: captionListForPostMock },
+  hero: {
+    get: () =>
+      Promise.resolve({
+        title: "Awesome Photos & Captions",
+        subtitle: "Share your favorite Photos from Flickr and add a great caption",
+        ctaText: "Get Started",
+        backgroundImage: trustedUrl("https://example.test/hero.jpg"),
+      }),
+  },
+  profile: { get: () => Promise.resolve(LISA) },
+};
+
 beforeEach(() => {
+  postListMock.mockReset();
   postListMock.mockResolvedValue(RANKED_POSTS);
-  postFeaturedMock.mockResolvedValue(RANKED_POSTS[0]);
   captionListForPostMock.mockReset();
   captionListForPostMock.mockImplementation((postId: number) =>
     Promise.resolve(captionsFor(postId)),
@@ -109,7 +109,7 @@ async function withFeed(run: (feed: JediFeed) => void | Promise<void>) {
   let dispose!: () => void;
   const feed = createRoot((d) => {
     dispose = d;
-    return createJediFeed();
+    return createJediFeed({ api });
   });
   try {
     await tick();
@@ -334,7 +334,7 @@ describe("createJediFeed — the realtime posts poke (#117)", () => {
   it("subscribes to the posts channel and refetches on a poke", async () => {
     const feed = fakeFeed();
     await createRoot(async (dispose) => {
-      createJediFeed({ feed: feed.factory });
+      createJediFeed({ api, feed: feed.factory });
       await tick();
       await tick();
 
@@ -355,7 +355,7 @@ describe("createJediFeed — the realtime posts poke (#117)", () => {
   it("does not subscribe when no feed is injected (anonymous landing)", async () => {
     // No feed: the view-model still loads Posts, but wires no subscription.
     await createRoot(async (dispose) => {
-      const feed = createJediFeed();
+      const feed = createJediFeed({ api });
       await tick();
       await tick();
       expect(feed.visiblePosts()?.map((p) => p.id)).toEqual([1, 3, 2, 4]);
