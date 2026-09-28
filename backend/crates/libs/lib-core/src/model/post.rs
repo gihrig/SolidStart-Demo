@@ -10,13 +10,9 @@ use crate::model::ModelManager;
 use crate::model::{Error, Result};
 use modql::field::Fields;
 use modql::filter::{
-	FilterGroups, FilterNodes, ListOptions, OpValInt64, OpValsInt64, OpValsString,
-	OpValsValue,
+	FilterNodes, ListOptions, OpValInt64, OpValsInt64, OpValsString, OpValsValue,
 };
-use sea_query::{
-	Alias, Asterisk, Condition, Expr, Order, PostgresQueryBuilder, Query,
-	SimpleExpr, SubQueryStatement,
-};
+use sea_query::{Alias, Condition, Expr, Order, PostgresQueryBuilder, Query};
 use sea_query_binder::SqlxBinder;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
@@ -147,18 +143,14 @@ impl DbBmc for PostCommentBmc {
 	const TABLE: &'static str = "post_comment";
 }
 
+/// The parent key column of `post_like` / `post_comment`.
+const POST_ID: &str = "post_id";
+
 /// One `(post_id, category_id)` link row read back from the join.
 #[derive(FromRow)]
 struct PostCategoryLink {
 	post_id: i64,
 	category_id: i64,
-}
-
-/// One `(post_id, count)` row from a derived-count query.
-#[derive(FromRow)]
-struct CountRow {
-	post_id: i64,
-	cnt: i64,
 }
 
 // endregion: --- child-table BMCs
@@ -287,7 +279,8 @@ impl PostBmc {
 	/// Top Photos order (#117). Ties break by id ascending, so the order is stable
 	/// while every count is 0 (no likes yet). Read is unscoped: every Post is public.
 	///
-	/// Ranking and windowing happen at the **database** (`ranked_post_ids`): the
+	/// Ranking and windowing happen at the **database**
+	/// (`base::ranked_ids_by_like_count`): the
 	/// like count is derived, so an ORDER BY on a correlated `COUNT` subquery ranks
 	/// it, and `LIMIT` / `OFFSET` page it — the DB returns only the ids for the
 	/// requested page. Only those Posts are then fetched and assembled, so a large
@@ -302,7 +295,13 @@ impl PostBmc {
 		list_options: Option<ListOptions>,
 	) -> Result<Vec<PostView>> {
 		// 1. Rank + window at the DB: the ordered ids for this page only.
-		let ranked_ids = ranked_post_ids(mm, filter, list_options).await?;
+		let ranked_ids = base::ranked_ids_by_like_count::<Self, PostLikeBmc, _>(
+			mm,
+			POST_ID,
+			filter,
+			list_options,
+		)
+		.await?;
 		if ranked_ids.is_empty() {
 			return Ok(Vec::new());
 		}
@@ -370,7 +369,7 @@ impl PostBmc {
 		}
 
 		let post_ids: Vec<i64> = posts.iter().map(|p| p.id).collect();
-		let owner_ids = dedup(posts.iter().map(|p| p.owner_id));
+		let owner_ids = base::dedup(posts.iter().map(|p| p.owner_id));
 
 		// -- Four independent batched reads run concurrently: the author snapshots,
 		//    the Category link rows, and the two derived counts have no data
@@ -380,8 +379,8 @@ impl PostBmc {
 		let (authors, links, likes_by_post, comments_by_post) = tokio::try_join!(
 			UserBmc::author_refs_by_ids(ctx, mm, &owner_ids),
 			post_category_links(mm, &post_ids),
-			counts_by_post::<PostLikeBmc>(mm, &post_ids),
-			counts_by_post::<PostCommentBmc>(mm, &post_ids),
+			base::counts_by_parent::<PostLikeBmc>(mm, POST_ID, &post_ids),
+			base::counts_by_parent::<PostCommentBmc>(mm, POST_ID, &post_ids),
 		)?;
 
 		let author_by_id: HashMap<i64, AuthorRef> =
@@ -390,7 +389,7 @@ impl PostBmc {
 		// -- Categories: resolve the linked ids to the public projection, grouped by
 		//    post_id. The links came back ordered by (post_id, category_id), so each
 		//    Post's tags are ordered by Category id.
-		let cat_ids = dedup(links.iter().map(|l| l.category_id));
+		let cat_ids = base::dedup(links.iter().map(|l| l.category_id));
 		let categories = if cat_ids.is_empty() {
 			Vec::new()
 		} else {
@@ -449,85 +448,6 @@ impl PostBmc {
 
 // region:    --- Batched read helpers
 
-/// Distinct ids, preserving first-seen order.
-fn dedup(ids: impl Iterator<Item = i64>) -> Vec<i64> {
-	let mut seen = std::collections::HashSet::new();
-	ids.filter(|id| seen.insert(*id)).collect()
-}
-
-/// Rank Posts by like count at the **database** and return the ordered ids for
-/// one page (#117 review). The like count is derived, so the ranking is an
-/// `ORDER BY` on a correlated `COUNT` subquery over `post_like`, with the tie
-/// broken by id ascending. `LIMIT` / `OFFSET` page the result at the DB, so only
-/// the page's ids come back — never the whole table. The caller's `filter`
-/// applies to `post` (the only table in `FROM`, so its columns are unambiguous);
-/// `order_bys` is ignored, since the ranking is fixed. This query does not apply
-/// the read scope — `Post` read is unscoped (every Post is public), and
-/// `list_posts` re-applies the scope when it fetches the rows.
-async fn ranked_post_ids(
-	mm: &ModelManager,
-	filter: Option<Vec<PostFilter>>,
-	list_options: Option<ListOptions>,
-) -> Result<Vec<i64>> {
-	// Correlated like-count subquery: COUNT(*) of post_like for the outer Post row.
-	let like_count = SimpleExpr::SubQuery(
-		None,
-		Box::new(SubQueryStatement::SelectStatement(
-			Query::select()
-				.expr(Expr::col(Asterisk).count())
-				.from(PostLikeBmc::table_ref())
-				.and_where(
-					Expr::col((Alias::new("post_like"), Alias::new("post_id")))
-						.equals((Alias::new("post"), CommonIden::Id)),
-				)
-				.to_owned(),
-		)),
-	);
-
-	let mut query = Query::select();
-	query
-		.from(PostBmc::table_ref())
-		.column((Alias::new("post"), CommonIden::Id));
-
-	if let Some(filter) = filter {
-		let filters: FilterGroups = filter.into();
-		let cond: Condition = filters.try_into()?;
-		query.cond_where(cond);
-	}
-
-	query
-		.order_by_expr(like_count, Order::Desc)
-		.order_by((Alias::new("post"), CommonIden::Id), Order::Asc);
-
-	// Window at the DB.
-	let (limit, offset) = window_bounds(list_options)?;
-	query.limit(limit);
-	if offset > 0 {
-		query.offset(offset);
-	}
-
-	let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-	let sqlx_query = sqlx::query_as_with::<_, (i64,), _>(&sql, values);
-	let rows = mm.dbx().fetch_all(sqlx_query).await?;
-
-	Ok(rows.into_iter().map(|(id,)| id).collect())
-}
-
-/// Resolve a caller's `list_options` into a `(limit, offset)` for the ranked
-/// query, using the **shared** list-read limit check (`base::compute_list_options`)
-/// so a ranked read obeys the same contract as every other list read: no limit
-/// defaults to 1000, a limit up to the shared max (5000) is honored verbatim, and
-/// a larger limit is rejected with `ListLimitOverMax`. Honoring valid limits (not
-/// silently clamping them) is what keeps a paginating caller from skipping rows —
-/// a clamp would return fewer rows than the `offset` step assumes. A negative
-/// offset clamps to 0.
-fn window_bounds(list_options: Option<ListOptions>) -> Result<(u64, u64)> {
-	let lo = base::compute_list_options(list_options)?;
-	let limit = lo.limit.unwrap_or(0).max(0) as u64;
-	let offset = lo.offset.unwrap_or(0).max(0) as u64;
-	Ok((limit, offset))
-}
-
 /// Read every `post_category` link for a set of Post ids, ordered by
 /// `(post_id, category_id)`. One portable `IN` read — the batched Category
 /// resolution the model seam needs (#117), never `array_agg`.
@@ -553,34 +473,6 @@ async fn post_category_links(
 	let links = mm.dbx().fetch_all(sqlx_query).await?;
 
 	Ok(links)
-}
-
-/// Count rows in a child table (`post_like` or `post_comment`) grouped by
-/// `post_id`, for a set of Post ids. The child table's identity is the marker BMC
-/// `MC`, so the `FROM` routes through `MC::table_ref()` — no string literal. One
-/// portable `GROUP BY` read; a Post with no rows is simply absent from the result
-/// and defaults to 0 at the call site.
-async fn counts_by_post<MC: DbBmc>(
-	mm: &ModelManager,
-	post_ids: &[i64],
-) -> Result<HashMap<i64, i64>> {
-	if post_ids.is_empty() {
-		return Ok(HashMap::new());
-	}
-
-	let mut query = Query::select();
-	query
-		.from(MC::table_ref())
-		.column(Alias::new("post_id"))
-		.expr_as(Expr::col(Asterisk).count(), Alias::new("cnt"))
-		.and_where(Expr::col(Alias::new("post_id")).is_in(post_ids.iter().copied()))
-		.add_group_by([Expr::col(Alias::new("post_id")).into()]);
-
-	let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-	let sqlx_query = sqlx::query_as_with::<_, CountRow, _>(&sql, values);
-	let rows = mm.dbx().fetch_all(sqlx_query).await?;
-
-	Ok(rows.into_iter().map(|r| (r.post_id, r.cnt)).collect())
 }
 
 // endregion: --- Batched read helpers
@@ -882,30 +774,6 @@ mod tests {
 				"PostView must not expose the `{audit}` audit column"
 			);
 		}
-	}
-
-	/// The ranked read obeys the shared list-read limit contract
-	/// (`base::compute_list_options`): no limit -> 1000; a valid limit up to the
-	/// shared max (5000) is honored verbatim (NOT clamped, so a paginating caller
-	/// never skips rows); a limit over the max is rejected.
-	#[test]
-	fn test_window_bounds_uses_shared_limit_check() {
-		let lo = |limit, offset| {
-			Some(ListOptions {
-				limit,
-				offset,
-				order_bys: None,
-			})
-		};
-		// No options: the shared default page size, offset 0.
-		assert_eq!(window_bounds(None).unwrap(), (1000, 0));
-		// A valid explicit limit up to the shared max is honored, not clamped to
-		// 1000; offset is honored.
-		assert_eq!(window_bounds(lo(Some(5000), Some(10))).unwrap(), (5000, 10));
-		assert_eq!(window_bounds(lo(Some(3), None)).unwrap(), (3, 0));
-		// Over the shared max (5000) is rejected, so a paginating caller cannot get
-		// a short page silently and then skip rows on the next offset step.
-		assert!(window_bounds(lo(Some(5001), None)).is_err());
 	}
 
 	/// At most one Like per (Post, User): the DB unique constraint rejects a
