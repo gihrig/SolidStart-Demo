@@ -319,6 +319,9 @@ ALTER TABLE caption ADD CONSTRAINT fk_caption_owner
   FOREIGN KEY (owner_id) REFERENCES "user"(id)
   ON DELETE CASCADE;
 
+-- Top Captions filters by post_id (#118 review).
+CREATE INDEX idx_caption_post_id ON caption (post_id);
+
 -- Caption Likes
 --   One User's endorsement of one Caption (#106). Same shape as post_like. Empty
 --   at seed, so a Caption's derived like count resolves to 0 until likes land
@@ -378,3 +381,7 @@ ALTER TABLE caption_comment ADD CONSTRAINT fk_caption_comment_caption
 ALTER TABLE caption_comment ADD CONSTRAINT fk_caption_comment_owner
   FOREIGN KEY (owner_id) REFERENCES "user"(id)
   ON DELETE CASCADE;
+
+-- The derived comment count groups by caption_id (#118 review). The caption_like
+-- key needs no index: its UNIQUE (caption_id, user_id) constraint leads with it.
+CREATE INDEX idx_caption_comment_caption_id ON caption_comment (caption_id);
