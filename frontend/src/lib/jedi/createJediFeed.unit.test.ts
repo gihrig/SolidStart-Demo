@@ -1,54 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { createRoot } from "solid-js";
 import { Channel } from "~/lib/channel";
+import data from "./data.json";
 
 // `jediApi.categories.list` / `posts.*` / `captions.listForPost` call the real
 // RPCs (ADR-0011, #117, #118); the back-end client is mocked so this seam test
-// stays offline. Categories mirror the seeded taxonomy; Captions come from the
-// fixture; Posts are hoisted spies each test programs (default set below).
-const { postListMock, postFeaturedMock } = vi.hoisted(() => ({
+// stays offline. Categories mirror the seeded taxonomy; Posts and Captions are
+// hoisted spies each test programs (defaults below).
+const { postListMock, postFeaturedMock, captionListForPostMock } = vi.hoisted(() => ({
   postListMock: vi.fn(),
   postFeaturedMock: vi.fn(),
+  captionListForPostMock: vi.fn(),
 }));
-vi.mock("~/lib/backend-rpc", async () => {
-  const { default: data } = await import("./data.json");
-  // Captions arrive as the wire `CaptionView`, built from the fixture and
-  // pre-ranked as the back-end ranks them: like count desc, then id asc (#118).
-  const users = new Map(data.users.map((u) => [u.id, u]));
-  const captionsFor = (postId: number) =>
-    data.captions
-      .filter((c) => c.post_id === postId)
-      .sort((a, b) => b.likeCount - a.likeCount || a.id - b.id)
-      .map((c) => ({
-        id: c.id,
-        post_id: c.post_id,
-        author: {
-          id: c.owner_id,
-          name: users.get(c.owner_id)!.name,
-          avatar_url: users.get(c.owner_id)!.avatarUrl,
-        },
-        text: c.text,
-        like_count: c.likeCount,
-        comment_count: 0,
-      }));
-  return {
-    caption: {
-      listForPost: (postId: number) => Promise.resolve(captionsFor(postId)),
-    },
-    category: {
-      list: () =>
-        Promise.resolve([
-          { id: 1, name: "Landscape", icon: "landscape" },
-          { id: 2, name: "People", icon: "portrait" },
-          { id: 3, name: "Animals", icon: "dog" },
-          { id: 4, name: "Abstract", icon: "collage" },
-          { id: 5, name: "Black & White", icon: "180-degrees" },
-          { id: 6, name: "Cute", icon: "fire-heart" },
-        ]),
-    },
-    post: { list: postListMock, featured: postFeaturedMock },
-  };
-});
+vi.mock("~/lib/backend-rpc", () => ({
+  caption: { listForPost: captionListForPostMock },
+  category: {
+    list: () =>
+      Promise.resolve([
+        { id: 1, name: "Landscape", icon: "landscape" },
+        { id: 2, name: "People", icon: "portrait" },
+        { id: 3, name: "Animals", icon: "dog" },
+        { id: 4, name: "Abstract", icon: "collage" },
+        { id: 5, name: "Black & White", icon: "180-degrees" },
+        { id: 6, name: "Cute", icon: "fire-heart" },
+      ]),
+  },
+  post: { list: postListMock, featured: postFeaturedMock },
+}));
 
 import { createJediFeed, type JediFeed } from "./createJediFeed";
 
@@ -93,9 +71,33 @@ const RANKED_POSTS = [
   wirePost(4, "Serene Beach", HOMER, [CAT[1]], 3),
 ];
 
+// Captions arrive as the wire `CaptionView`, built from the fixture and
+// pre-ranked as the back-end ranks them: like count desc, then id asc (#118).
+const users = new Map(data.users.map((u) => [u.id, u]));
+const captionsFor = (postId: number) =>
+  data.captions
+    .filter((c) => c.post_id === postId)
+    .sort((a, b) => b.likeCount - a.likeCount || a.id - b.id)
+    .map((c) => ({
+      id: c.id,
+      post_id: c.post_id,
+      author: {
+        id: c.owner_id,
+        name: users.get(c.owner_id)!.name,
+        avatar_url: users.get(c.owner_id)!.avatarUrl,
+      },
+      text: c.text,
+      like_count: c.likeCount,
+      comment_count: 0,
+    }));
+
 beforeEach(() => {
   postListMock.mockResolvedValue(RANKED_POSTS);
   postFeaturedMock.mockResolvedValue(RANKED_POSTS[0]);
+  captionListForPostMock.mockReset();
+  captionListForPostMock.mockImplementation((postId: number) =>
+    Promise.resolve(captionsFor(postId)),
+  );
 });
 
 // The resources back onto pre-resolved promises; two macrotask ticks drain the
@@ -285,6 +287,33 @@ describe("createJediFeed — the captions of the selected post", () => {
       await tick();
       // Caption 2 belongs to post 1, so it falls back to post 2's winner.
       expect(feed.selectedCaption()).toBe(feed.visibleCaptions()?.[0]);
+      expect(feed.selectedCaption()?.postId).toBe(2);
+    }));
+
+  // The captions load by a network RPC, so the previous post's captions must not
+  // stand in for the new post's while that request is in flight (#118 review):
+  // neither Top Captions nor <main> may offer a caption of the wrong post.
+  it("shows no captions of the previous post while the new post's captions load", () =>
+    withFeed(async (feed) => {
+      let release!: () => void;
+      captionListForPostMock.mockImplementationOnce(
+        (postId: number) =>
+          new Promise((resolve) => {
+            release = () => resolve(captionsFor(postId));
+          }),
+      );
+      feed.selectCaption(2); // a caption of post 1
+      feed.selectPost(2);
+      await tick();
+      await tick();
+      // In flight: no caption at all, rather than post 1's.
+      expect(feed.visibleCaptions()).toBeUndefined();
+      expect(feed.selectedCaption()).toBeUndefined();
+
+      release();
+      await tick();
+      await tick();
+      expect(feed.visibleCaptions()?.every((c) => c.postId === 2)).toBe(true);
       expect(feed.selectedCaption()?.postId).toBe(2);
     }));
 });
