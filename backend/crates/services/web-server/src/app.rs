@@ -351,6 +351,25 @@ mod tests {
 			);
 		}
 
+		// -- Exec & Check: `list_options` pages the ranked list over the wire, so
+		//    the second one-row page is Caption 2.
+		let body: Value = server
+			.post("/api/rpc-public")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "list_captions_for_post",
+				"params": { "id": 1, "list_options": { "limit": 1, "offset": 1 } }
+			}))
+			.await
+			.json();
+		let page_ids: Vec<i64> = body
+			.pointer("/result/data")
+			.and_then(Value::as_array)
+			.ok_or("list_captions_for_post page: missing /result/data array")?
+			.iter()
+			.filter_map(|c| c.pointer("/id").and_then(Value::as_i64))
+			.collect();
+		assert_eq!(page_ids, vec![2]);
+
 		Ok(())
 	}
 

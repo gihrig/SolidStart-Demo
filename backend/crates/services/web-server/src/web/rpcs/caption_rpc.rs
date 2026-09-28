@@ -12,12 +12,19 @@ pub fn rpc_router_builder() -> RouterBuilder {
 // surface.
 
 /// List one Post's Captions as `CaptionView`s, ranked by like count descending
-/// (Top Captions, #118). `params.id` is the **Post** id.
+/// (Top Captions, #118). `params.id` is the **Post** id; the optional
+/// `params.list_options` pages the ranked list (`limit` / `offset`).
 pub async fn list_captions_for_post(
 	ctx: Ctx,
 	mm: ModelManager,
-	params: ParamsIded,
+	params: ParamsIdedList,
 ) -> Result<DataRpcResult<Vec<CaptionView>>> {
-	let views = CaptionBmc::list_captions_for_post(&ctx, &mm, params.id).await?;
+	let views = CaptionBmc::list_captions_for_post(
+		&ctx,
+		&mm,
+		params.id,
+		params.list_options,
+	)
+	.await?;
 	Ok(views.into())
 }

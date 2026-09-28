@@ -165,14 +165,17 @@ impl CaptionBmc {
 	/// Post) yields an empty list.
 	///
 	/// Ranking and windowing happen at the **database**
-	/// (`base::ranked_ids_by_like_count`, shared with `PostBmc::list_posts`), under
-	/// the shared default page size. Only the ranked Captions are then fetched and
-	/// assembled; the ids are re-ordered to the ranked order because an `IN` fetch
-	/// does not preserve it.
+	/// (`base::ranked_ids_by_like_count`, shared with `PostBmc::list_posts`):
+	/// `list_options` `limit` / `offset` page the ranked list under the shared
+	/// list-limit contract (no limit -> 1000), so every Caption stays reachable.
+	/// The caller's `order_bys` is ignored: "Top Captions" is defined by like
+	/// count. Only the ranked Captions are then fetched and assembled; the ids are
+	/// re-ordered to the ranked order because an `IN` fetch does not preserve it.
 	pub async fn list_captions_for_post(
 		ctx: &Ctx,
 		mm: &ModelManager,
 		post_id: i64,
+		list_options: Option<ListOptions>,
 	) -> Result<Vec<CaptionView>> {
 		// 1. Rank + window at the DB: the ordered ids of this Post's Captions.
 		let ranked_ids = base::ranked_ids_by_like_count::<Self, CaptionLikeBmc, _>(
@@ -182,7 +185,7 @@ impl CaptionBmc {
 				post_id: Some(post_id.into()),
 				..Default::default()
 			}]),
-			None,
+			list_options,
 		)
 		.await?;
 		if ranked_ids.is_empty() {
@@ -319,7 +322,8 @@ mod tests {
 		seed_caption_like(&mm, high, 1).await?;
 
 		// -- Exec
-		let views = CaptionBmc::list_captions_for_post(&ctx, &mm, post_id).await?;
+		let views =
+			CaptionBmc::list_captions_for_post(&ctx, &mm, post_id, None).await?;
 
 		// -- Check: `high` first, then the 0-like tie by id ascending. The other
 		//    Post's Caption is excluded.
@@ -334,6 +338,50 @@ mod tests {
 
 		// -- Clean (owner delete cascades posts, captions, and likes)
 		_dev_utils::clean_users(&root, &mm, "test_cap_rank-owner").await?;
+
+		Ok(())
+	}
+
+	/// `list_options` pages the RANKED list at the DB, so a Post with more
+	/// Captions than one page can still reach them all (#118 review): `limit` /
+	/// `offset` window after ranking, never before.
+	#[serial]
+	#[tokio::test]
+	async fn test_list_captions_for_post_pages_the_ranked_list() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_cap_page-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+		let post_id = seed_post(&ctx, &mm, "test_cap_page post", &[1]).await?;
+
+		// Rank is [top, first, third]: `top` has the only like; the 0-like Captions
+		// tie by id ascending.
+		let first = seed_caption(&ctx, &mm, post_id, "first").await?;
+		let top = seed_caption(&ctx, &mm, post_id, "top").await?;
+		let third = seed_caption(&ctx, &mm, post_id, "third").await?;
+		seed_caption_like(&mm, top, owner_id).await?;
+		let page = |offset| {
+			Some(ListOptions {
+				limit: Some(1),
+				offset: Some(offset),
+				order_bys: None,
+			})
+		};
+
+		// -- Exec & Check: each one-row page returns the next ranked Caption.
+		let mut ids = Vec::new();
+		for offset in 0..3 {
+			let views =
+				CaptionBmc::list_captions_for_post(&ctx, &mm, post_id, page(offset))
+					.await?;
+			assert_eq!(views.len(), 1, "offset {offset}");
+			ids.push(views[0].id);
+		}
+		assert_eq!(ids, vec![top, first, third]);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_cap_page-owner").await?;
 
 		Ok(())
 	}
@@ -356,7 +404,8 @@ mod tests {
 		let caption_id = seed_caption(&ctx_a, &mm, post_id, "A's caption").await?;
 
 		// -- Check: B reads A's Caption (public read).
-		let views = CaptionBmc::list_captions_for_post(&ctx_b, &mm, post_id).await?;
+		let views =
+			CaptionBmc::list_captions_for_post(&ctx_b, &mm, post_id, None).await?;
 		assert_eq!(views.len(), 1);
 		assert_eq!(views[0].id, caption_id);
 
