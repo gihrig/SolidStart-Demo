@@ -74,6 +74,19 @@ mod tests {
 	use serial_test::serial;
 	use std::sync::Arc;
 
+	/// The `(id, like_count)` pairs of a ranked public list, in response order.
+	fn ids_and_likes(items: &[Value]) -> Vec<(i64, i64)> {
+		items
+			.iter()
+			.filter_map(|v| {
+				Some((
+					v.pointer("/id").and_then(Value::as_i64)?,
+					v.pointer("/like_count").and_then(Value::as_i64)?,
+				))
+			})
+			.collect()
+	}
+
 	/// End-to-end HTTP smoke of the whole web layer — the seam the model-level
 	/// `#[tokio::test]`s do not cover: cookie login, rpc-router dispatch, logoff.
 	/// Mirrors the `quick_dev` example, but asserts instead of printing.
@@ -236,8 +249,12 @@ mod tests {
 			.ok_or("list_posts: missing /result/data array")?;
 		assert_eq!(posts.len(), 4, "four Posts are seeded");
 
+		// The seeded Likes rank the Posts as the fixture does (#177): 5, 5, 4, 3
+		// Likes, with the 5-Like tie broken by id ascending.
+		assert_eq!(ids_and_likes(posts), vec![(1, 5), (3, 5), (2, 4), (4, 3)]);
+
 		// The first Post carries the assembled view: an author snapshot, resolved
-		// Category tags, and derived counts (0 — no likes / comments seeded).
+		// Category tags, and derived counts.
 		let first = &posts[0];
 		assert!(
 			first
@@ -252,10 +269,6 @@ mod tests {
 				.and_then(Value::as_str)
 				.is_some(),
 			"PostView carries resolved Categories"
-		);
-		assert_eq!(
-			first.pointer("/like_count").and_then(Value::as_i64),
-			Some(0)
 		);
 		// No audit columns leak on the public surface (ADR-0021).
 		for audit in ["cid", "mid", "ctime", "mtime"] {
@@ -277,6 +290,7 @@ mod tests {
 			.pointer("/result/data/id")
 			.and_then(Value::as_i64)
 			.ok_or("featured_post: missing /result/data/id")?;
+		assert_eq!(featured_id, 1, "Post 1 is the top-ranked Post");
 
 		// -- Exec & Check: get_post fetches that same Post by id.
 		let body: Value = server
@@ -320,12 +334,8 @@ mod tests {
 			.and_then(Value::as_array)
 			.ok_or("list_captions_for_post: missing /result/data array")?;
 
-		// -- Check: every seeded count is 0, so the tie breaks by id ascending.
-		let ids: Vec<i64> = captions
-			.iter()
-			.filter_map(|c| c.pointer("/id").and_then(Value::as_i64))
-			.collect();
-		assert_eq!(ids, vec![1, 2]);
+		// -- Check: the seeded Likes rank the Captions as the fixture does (#177).
+		assert_eq!(ids_and_likes(captions), vec![(1, 8), (2, 5)]);
 		let first = &captions[0];
 		assert_eq!(
 			first.pointer("/text").and_then(Value::as_str),
@@ -334,10 +344,6 @@ mod tests {
 		assert_eq!(
 			first.pointer("/author/name").and_then(Value::as_str),
 			Some("Lisa")
-		);
-		assert_eq!(
-			first.pointer("/like_count").and_then(Value::as_i64),
-			Some(0)
 		);
 		assert_eq!(
 			first.pointer("/comment_count").and_then(Value::as_i64),
@@ -369,6 +375,28 @@ mod tests {
 			.filter_map(|c| c.pointer("/id").and_then(Value::as_i64))
 			.collect();
 		assert_eq!(page_ids, vec![2]);
+
+		// -- Exec & Check: Captions 3–8 each carry 2 Likes, so each Post's tie
+		//    breaks by id ascending.
+		for (post_id, expected_ids) in [(2, [3, 4]), (3, [6, 8]), (4, [5, 7])] {
+			let body: Value = server
+				.post("/api/rpc-public")
+				.json(&json!({
+					"jsonrpc": "2.0", "id": 1, "method": "list_captions_for_post",
+					"params": { "id": post_id }
+				}))
+				.await
+				.json();
+			let captions = body
+				.pointer("/result/data")
+				.and_then(Value::as_array)
+				.ok_or("list_captions_for_post: missing /result/data array")?;
+			assert_eq!(
+				ids_and_likes(captions),
+				vec![(expected_ids[0], 2), (expected_ids[1], 2)],
+				"Post {post_id} Captions"
+			);
+		}
 
 		Ok(())
 	}

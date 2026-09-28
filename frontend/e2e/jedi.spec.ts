@@ -76,6 +76,25 @@ test.describe("Jedi Page", () => {
     await expect(article.getByRole("button", { name: /Delete/i })).toBeVisible();
   });
 
+  // The seeded back-end Likes match the fixture likeCount (#177), so Top Photos
+  // ranks Posts [1, 3, 2, 4] and Post 1's Top Captions rank [1, 2].
+  test("should rank Top Photos and Top Captions by the seeded like counts", async ({ page }) => {
+    await page.goto("/");
+    const article = page.locator("article").first();
+    await expect(article.getByText("Likes: 5")).toBeVisible();
+
+    const photos = page.getByRole("listbox", { name: "Top Photos" }).getByRole("option");
+    await expect(photos).toHaveText([
+      /Lisa\s*\(5 Likes\)/,
+      /Lisa\s*\(5 Likes\)/,
+      /Homer\s*\(4 Likes\)/,
+      /Homer\s*\(3 Likes\)/,
+    ]);
+
+    const captions = page.getByRole("listbox", { name: "Top Captions" }).getByRole("option");
+    await expect(captions).toHaveText([/Lisa\s*\(8 Likes\)/, /Bart\s*\(5 Likes\)/]);
+  });
+
   test("should have responsive layout", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/");
