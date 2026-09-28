@@ -90,6 +90,11 @@ test.describe("Jedi Page", () => {
       /Homer\s*\(4 Likes\)/,
       /Homer\s*\(3 Likes\)/,
     ]);
+    // Posts 1 and 3 render the same text, so the photo alt pins the tie-break order.
+    const rankedAlts = ["Little Jedi cat", "Camouflaged cat", "Brilliant tree", "Serene Beach"];
+    for (const [i, alt] of rankedAlts.entries()) {
+      await expect(photos.nth(i).getByRole("img", { name: alt, exact: true })).toBeVisible();
+    }
 
     const captions = page.getByRole("listbox", { name: "Top Captions" }).getByRole("option");
     await expect(captions).toHaveText([/Lisa\s*\(8 Likes\)/, /Bart\s*\(5 Likes\)/]);
