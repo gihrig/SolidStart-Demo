@@ -1,4 +1,4 @@
-use super::{agent_rpc, category_rpc, conv_rpc, post_rpc};
+use super::{agent_rpc, caption_rpc, category_rpc, conv_rpc, post_rpc};
 use rpc_router::{Router, RouterBuilder};
 
 /// The authenticated RPC surface (`/api/rpc`, behind `mw_ctx_require`): every
@@ -19,4 +19,5 @@ pub fn public_rpc_router_builder() -> RouterBuilder {
 	Router::builder()
 		.extend(category_rpc::rpc_router_builder())
 		.extend(post_rpc::rpc_router_builder())
+		.extend(caption_rpc::rpc_router_builder())
 }

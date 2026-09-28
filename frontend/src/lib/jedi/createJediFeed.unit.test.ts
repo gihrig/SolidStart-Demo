@@ -2,27 +2,53 @@ import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { createRoot } from "solid-js";
 import { Channel } from "~/lib/channel";
 
-// `jediApi.categories.list` / `posts.*` call the real RPCs (ADR-0011, #117); the
-// back-end client is mocked so this seam test stays offline. Categories mirror the
-// seeded taxonomy; Posts are hoisted spies each test programs (default set below).
+// `jediApi.categories.list` / `posts.*` / `captions.listForPost` call the real
+// RPCs (ADR-0011, #117, #118); the back-end client is mocked so this seam test
+// stays offline. Categories mirror the seeded taxonomy; Captions come from the
+// fixture; Posts are hoisted spies each test programs (default set below).
 const { postListMock, postFeaturedMock } = vi.hoisted(() => ({
   postListMock: vi.fn(),
   postFeaturedMock: vi.fn(),
 }));
-vi.mock("~/lib/backend-rpc", () => ({
-  category: {
-    list: () =>
-      Promise.resolve([
-        { id: 1, name: "Landscape", icon: "landscape" },
-        { id: 2, name: "People", icon: "portrait" },
-        { id: 3, name: "Animals", icon: "dog" },
-        { id: 4, name: "Abstract", icon: "collage" },
-        { id: 5, name: "Black & White", icon: "180-degrees" },
-        { id: 6, name: "Cute", icon: "fire-heart" },
-      ]),
-  },
-  post: { list: postListMock, featured: postFeaturedMock },
-}));
+vi.mock("~/lib/backend-rpc", async () => {
+  const { default: data } = await import("./data.json");
+  // Captions arrive as the wire `CaptionView`, built from the fixture and
+  // pre-ranked as the back-end ranks them: like count desc, then id asc (#118).
+  const users = new Map(data.users.map((u) => [u.id, u]));
+  const captionsFor = (postId: number) =>
+    data.captions
+      .filter((c) => c.post_id === postId)
+      .sort((a, b) => b.likeCount - a.likeCount || a.id - b.id)
+      .map((c) => ({
+        id: c.id,
+        post_id: c.post_id,
+        author: {
+          id: c.owner_id,
+          name: users.get(c.owner_id)!.name,
+          avatar_url: users.get(c.owner_id)!.avatarUrl,
+        },
+        text: c.text,
+        like_count: c.likeCount,
+        comment_count: 0,
+      }));
+  return {
+    caption: {
+      listForPost: (postId: number) => Promise.resolve(captionsFor(postId)),
+    },
+    category: {
+      list: () =>
+        Promise.resolve([
+          { id: 1, name: "Landscape", icon: "landscape" },
+          { id: 2, name: "People", icon: "portrait" },
+          { id: 3, name: "Animals", icon: "dog" },
+          { id: 4, name: "Abstract", icon: "collage" },
+          { id: 5, name: "Black & White", icon: "180-degrees" },
+          { id: 6, name: "Cute", icon: "fire-heart" },
+        ]),
+    },
+    post: { list: postListMock, featured: postFeaturedMock },
+  };
+});
 
 import { createJediFeed, type JediFeed } from "./createJediFeed";
 

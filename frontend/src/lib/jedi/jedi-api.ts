@@ -1,15 +1,15 @@
 import data from "./data.json";
 import { sanitizeUrl, trustedUrl, type SafeUrl } from "~/lib/sanitizeUrl";
-import { category as categoryRpc, post as postRpc } from "~/lib/backend-rpc";
+import { caption as captionRpc, category as categoryRpc, post as postRpc } from "~/lib/backend-rpc";
 import { ICON_NAMES, type IconName } from "~/components/Icon";
 import type {
   CategoryPublic,
   PostView as PostViewWire,
+  CaptionView as CaptionViewWire,
   AuthorRef as AuthorRefWire,
 } from "~/types/backend";
 import type {
   JediData,
-  JediCaption,
   JediCategory,
   HeroView,
   AuthorRef,
@@ -39,17 +39,15 @@ const toJediCategory = (c: CategoryPublic): JediCategory => ({
   icon: toIconName(c.icon),
 });
 
-const byLikesDesc = <T extends { likeCount: number }>(a: T, b: T): number =>
-  b.likeCount - a.likeCount;
-
 function authorOf(ownerId: number): AuthorRef {
   const u = db.users.find((x) => x.id === ownerId);
   if (!u) throw new Error(`jedi-api: unknown user id ${ownerId}`);
   return { id: u.id, name: u.name, avatarUrl: safe(u.avatarUrl) };
 }
 
-// Real back-end call now (#117): Posts come from `list_posts` / `featured_post`
-// as the enriched `PostView` wire type. These seams re-shape one wire view into
+// Real back-end calls now (#117, #118): Posts come from `list_posts` /
+// `featured_post` as the enriched `PostView` wire type, and a Post's Captions from
+// `list_captions_for_post` as the enriched `CaptionView`. These seams re-shape one wire view into
 // the contract the components consume — URL fields routed through the single
 // sanitize boundary, opaque Category icons mapped to sprite names. The back-end
 // already ranks and derives the counts, so the front-end never re-ranks.
@@ -73,12 +71,14 @@ const toPostView = (p: PostViewWire): PostView => ({
   commentCount: p.comment_count,
 });
 
-const toCaptionView = (c: JediCaption): CaptionView => ({
+// The wire `comment_count` is dropped here: front-end Caption comment counts
+// land with Caption Comments (#127).
+const toCaptionView = (c: CaptionViewWire): CaptionView => ({
   id: c.id,
   postId: c.post_id,
-  author: authorOf(c.owner_id),
+  author: toAuthorRef(c.author),
   text: c.text,
-  likeCount: c.likeCount,
+  likeCount: c.like_count,
 });
 
 const heroContent = (): HeroView => ({
@@ -106,13 +106,10 @@ export const jediApi = {
     featured: async (): Promise<PostView> => toPostView(await postRpc.featured()),
   },
   captions: {
-    listForPost: (postId: number): Promise<CaptionView[]> =>
-      Promise.resolve(
-        db.captions
-          .filter((c) => c.post_id === postId)
-          .map(toCaptionView)
-          .sort(byLikesDesc),
-      ),
+    // Real back-end call now (#118): Top Captions come from
+    // `list_captions_for_post`, already ranked by the back-end.
+    listForPost: async (postId: number): Promise<CaptionView[]> =>
+      (await captionRpc.listForPost(postId)).map(toCaptionView),
   },
   hero: {
     get: (): Promise<HeroView> => Promise.resolve(heroContent()),

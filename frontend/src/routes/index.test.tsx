@@ -3,11 +3,12 @@ import { render, screen, within, waitFor, fireEvent } from "@solidjs/testing-lib
 import { MetaProvider } from "@solidjs/meta";
 import { Suspense } from "solid-js";
 
-// The sidebar Categories and the Post feed now load from the RPCs (ADR-0011,
-// #117); the back-end client is mocked so this route test stays offline. The rows
+// The sidebar Categories, the Post feed, and Top Captions now load from the RPCs
+// (ADR-0011, #117, #118); the back-end client is mocked so this route test stays offline. The rows
 // mirror the seeded fixture (frontend/src/lib/jedi/data.json ↔ 02-dev-seed.sql).
 // Posts arrive as the wire `PostView` (snake_case, already ranked [1, 3, 2, 4]).
-vi.mock("~/lib/backend-rpc", () => {
+vi.mock("~/lib/backend-rpc", async () => {
+  const { default: data } = await import("~/lib/jedi/data.json");
   const cat = (id: number, name: string, icon: string) => ({ id, name, icon });
   const author = (id: number, name: string) => ({
     id,
@@ -44,7 +45,29 @@ vi.mock("~/lib/backend-rpc", () => {
     post(2, "Brilliant tree", homer, [LANDSCAPE], 4),
     post(4, "Serene Beach", homer, [LANDSCAPE], 3),
   ];
+  // Captions arrive as the wire `CaptionView`, built from the fixture and
+  // pre-ranked as the back-end ranks them: like count desc, then id asc (#118).
+  const users = new Map(data.users.map((u) => [u.id, u]));
+  const captionsFor = (postId: number) =>
+    data.captions
+      .filter((c) => c.post_id === postId)
+      .sort((a, b) => b.likeCount - a.likeCount || a.id - b.id)
+      .map((c) => ({
+        id: c.id,
+        post_id: c.post_id,
+        author: {
+          id: c.owner_id,
+          name: users.get(c.owner_id)!.name,
+          avatar_url: users.get(c.owner_id)!.avatarUrl,
+        },
+        text: c.text,
+        like_count: c.likeCount,
+        comment_count: 0,
+      }));
   return {
+    caption: {
+      listForPost: (postId: number) => Promise.resolve(captionsFor(postId)),
+    },
     category: {
       list: () =>
         Promise.resolve([
@@ -267,7 +290,8 @@ describe("Home route (Jedi feed, data-driven from jedi-api)", () => {
     const captions = await screen.findByRole("listbox", { name: "Top Captions" });
     await screen.findByRole("heading", { name: /little jedi/i });
 
-    const rows = within(captions).getAllByRole("option");
+    // Captions load by their own RPC after the Post (#118): wait for the rows.
+    const rows = await within(captions).findAllByRole("option");
     rows[1].click(); // pick a non-default caption
 
     await waitFor(() => {
@@ -288,7 +312,8 @@ describe("Home route (Jedi feed, data-driven from jedi-api)", () => {
     await screen.findByRole("heading", { name: /little jedi/i }); // loaded
 
     within(categories).getAllByRole("option")[0].click(); // click a Category
-    within(captions).getAllByRole("option")[1].click(); // then a Caption
+    // Captions load by their own RPC after the Post (#118): wait for the rows.
+    (await within(captions).findAllByRole("option"))[1].click(); // then a Caption
 
     await waitFor(() => {
       const rings = screen.getAllByRole("option").filter(hasRing);

@@ -8,18 +8,22 @@ vi.mock("~/lib/sanitizeUrl", () => ({
   trustedUrl: (u: string) => u,
 }));
 
-// `categories.list` / `posts.*` now call the real RPCs (ADR-0011, #117), so the
-// back-end client is mocked here — the seam under test is the wire→contract
-// mapping (icon mapping, URL sanitize, author/category re-shape), not the network.
-// The hoisted fns let each test program its own rows.
-const { categoryListMock, postListMock, postFeaturedMock } = vi.hoisted(() => ({
-  categoryListMock: vi.fn(),
-  postListMock: vi.fn(),
-  postFeaturedMock: vi.fn(),
-}));
+// `categories.list` / `posts.*` / `captions.listForPost` now call the real RPCs
+// (ADR-0011, #117, #118), so the back-end client is mocked here — the seam under
+// test is the wire→contract mapping (icon mapping, URL sanitize, author/category
+// re-shape), not the network. The hoisted fns let each test program its own rows.
+const { categoryListMock, postListMock, postFeaturedMock, captionListForPostMock } = vi.hoisted(
+  () => ({
+    categoryListMock: vi.fn(),
+    postListMock: vi.fn(),
+    postFeaturedMock: vi.fn(),
+    captionListForPostMock: vi.fn(),
+  }),
+);
 vi.mock("~/lib/backend-rpc", () => ({
   category: { list: categoryListMock },
   post: { list: postListMock, featured: postFeaturedMock },
+  caption: { listForPost: captionListForPostMock },
 }));
 
 import { sanitizeUrl } from "~/lib/sanitizeUrl";
@@ -194,12 +198,69 @@ describe("jediApi.profile", () => {
   });
 });
 
+// The wire `CaptionView`s the back-end returns for seeded Post 1 (snake_case,
+// enriched: author + derived counts). `caption_like` is empty at seed, so every
+// like count is 0 and the back-end breaks the tie by id ascending (#118).
+const WIRE_CAPTIONS_POST_1 = [
+  {
+    id: 1,
+    post_id: 1,
+    author: {
+      id: 1,
+      name: "Lisa",
+      avatar_url: "https://img.icons8.com/doodle/96/null/lisa-simpson.png",
+    },
+    text: "Jedi Kitty protects the street",
+    like_count: 0,
+    comment_count: 0,
+  },
+  {
+    id: 2,
+    post_id: 1,
+    author: {
+      id: 3,
+      name: "Bart",
+      avatar_url: "https://img.icons8.com/doodle/96/null/bart-simpson.png",
+    },
+    text: "May the paws be with you",
+    like_count: 0,
+    comment_count: 0,
+  },
+];
+
 describe("jediApi.captions", () => {
-  it("ranks a post's captions by likeCount desc (Top Captions)", async () => {
+  beforeEach(() => {
+    captionListForPostMock.mockReset();
+    captionListForPostMock.mockImplementation((postId: number) =>
+      Promise.resolve(postId === 1 ? WIRE_CAPTIONS_POST_1 : []),
+    );
+  });
+
+  it("asks the back-end for the given post's captions", async () => {
+    await jediApi.captions.listForPost(1);
+    expect(captionListForPostMock).toHaveBeenCalledWith(1);
+  });
+
+  it("preserves the back-end ranking order (Top Captions, does not re-rank)", async () => {
     const caps = await jediApi.captions.listForPost(1);
-    expect(caps.map((c) => c.likeCount)).toEqual([8, 5]);
+    expect(caps.map((c) => c.id)).toEqual([1, 2]);
+    expect(caps.map((c) => c.likeCount)).toEqual([0, 0]);
     expect(caps[0].text).toBe("Jedi Kitty protects the street");
-    expect(caps[0].author.name).toBe("Lisa");
+    expect(caps[0].postId).toBe(1);
+  });
+
+  it("re-shapes the author snapshot from the wire view", async () => {
+    const [first] = await jediApi.captions.listForPost(1);
+    expect(first.author).toEqual({
+      id: 1,
+      name: "Lisa",
+      avatarUrl: "https://img.icons8.com/doodle/96/null/lisa-simpson.png",
+    });
+  });
+
+  it("routes the author avatar through the sanitizer (single boundary)", async () => {
+    const [first] = await jediApi.captions.listForPost(1);
+    expect(sanitizeSpy.mock.calls.flat()).toContain(first.author.avatarUrl);
   });
 
   it("returns [] for a post with no captions", async () => {

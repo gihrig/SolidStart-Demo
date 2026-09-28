@@ -26,6 +26,7 @@ mod model_manager;
 mod store;
 
 pub mod agent;
+pub mod caption;
 pub mod category;
 pub mod conv;
 pub mod conv_msg;

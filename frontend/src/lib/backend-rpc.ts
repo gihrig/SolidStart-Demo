@@ -2,6 +2,7 @@ import type {
   Agent,
   AgentForCreate,
   AgentForUpdate,
+  CaptionView,
   CategoryPublic,
   Conv,
   ConvForCreate,
@@ -175,6 +176,15 @@ export function createRpcClient() {
     get: (id: number) => rpcCall<PostView>("get_post", { id }, "/api/rpc-public"),
   };
 
+  // Caption RPC methods. Every Caption is public (#106), so the read posts to the
+  // public surface (#118). `list_captions_for_post` takes the Post id as `id` and
+  // returns that Post's enriched `CaptionView`s, ranked by like count by the
+  // back-end; the front-end never re-ranks. Caption mutations land later.
+  const caption = {
+    listForPost: (postId: number) =>
+      rpcCall<CaptionView[]>("list_captions_for_post", { id: postId }, "/api/rpc-public"),
+  };
+
   // Conversation Message RPC methods
   const convMsg = {
     add: (data: ConvMsgForCreate) => rpcCall<ConvMsg>("add_conv_msg", { data }),
@@ -184,12 +194,13 @@ export function createRpcClient() {
       }),
   };
 
-  return { agent, category, conv, convMsg, post };
+  return { agent, caption, category, conv, convMsg, post };
 }
 
 // Default singleton used across the app.
 const client = createRpcClient();
 export const agent = client.agent;
+export const caption = client.caption;
 export const category = client.category;
 export const conv = client.conv;
 export const convMsg = client.convMsg;

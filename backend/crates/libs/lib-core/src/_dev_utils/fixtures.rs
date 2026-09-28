@@ -1,5 +1,6 @@
 use crate::ctx::Ctx;
 use crate::model::agent::{AgentBmc, AgentFilter, AgentForCreate};
+use crate::model::caption::{CaptionBmc, CaptionForCreate};
 use crate::model::category::{CategoryBmc, CategoryFilter, CategoryForCreate};
 use crate::model::conv::{ConvBmc, ConvForCreate};
 use crate::model::post::{PostBmc, PostForCreate};
@@ -338,3 +339,26 @@ pub async fn clean_posts(
 }
 
 // endregion: --- Post seed/clean
+
+// region:    --- Caption seed
+
+/// Seed one Caption owned by `ctx` on the given Post. Cleanup rides the owner or
+/// Post delete, which cascades to the Caption.
+pub async fn seed_caption(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	post_id: i64,
+	text: &str,
+) -> model::Result<i64> {
+	CaptionBmc::create(
+		ctx,
+		mm,
+		CaptionForCreate {
+			post_id,
+			text: text.to_string(),
+		},
+	)
+	.await
+}
+
+// endregion: --- Caption seed

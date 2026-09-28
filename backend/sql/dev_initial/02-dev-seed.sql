@@ -55,3 +55,18 @@ INSERT INTO "post_category"
     (3, 6, 0, now(), 0, now()),
     (4, 1, 0, now(), 0, now());
 
+
+-- Captions (ids 1..8), seeded from the front-end mock fixture. Every Caption is
+-- public, and owner_id is its author. The fixture likeCount is NOT stored — the like
+-- count is derived from caption_like, which is empty at seed, so every Caption
+-- reads 0 and Top Captions ties break by id ascending (#118).
+INSERT INTO "caption"
+    (id, post_id, owner_id, text,                             cid, ctime, mid, mtime) VALUES
+    (1,  1,       1,        'Jedi Kitty protects the street', 0,   now(), 0,   now()),
+    (2,  1,       3,        'May the paws be with you',       0,   now(), 0,   now()),
+    (3,  2,       2,        'Nature''s cathedral',            0,   now(), 0,   now()),
+    (4,  2,       2,        'Fall Fire!',                     0,   now(), 0,   now()),
+    (5,  4,       3,        'Heaven on Earth!!',              0,   now(), 0,   now()),
+    (6,  3,       2,        'Peek-a-Boo!',                    0,   now(), 0,   now()),
+    (7,  4,       2,        'Undiscovered!',                  0,   now(), 0,   now()),
+    (8,  3,       1,        'Can''t See Me!',                 0,   now(), 0,   now());

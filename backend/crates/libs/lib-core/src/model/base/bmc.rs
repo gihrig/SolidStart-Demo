@@ -25,7 +25,8 @@ pub enum Access {
 ///
 /// This is the shared convention ADR-0021 records: each entity names exactly one
 /// such type, and one read serves it. `CategoryPublic` is the first (#116);
-/// `PostView` and `AuthorRef` are the second (#117). A projection may **enrich**
+/// `PostView` and `AuthorRef` are the second (#117); `CaptionView` is the third
+/// (#118). A projection may **enrich**
 /// (an author-and-counts `PostView`) or **narrow** (`CategoryPublic`); either way
 /// it is audit-free. `base::list_public` requires this bound, so the full
 /// audit-bearing entity row can never be served from a public read by mistake.
