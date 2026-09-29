@@ -8,8 +8,8 @@ const WS_URL = "ws://localhost:8080/ws";
 // `<Show when={isAuthenticated()}>` in `fullstack.tsx` and the Jedi route), so a
 // logged-out client never dials and logout tears the socket down; this back-off
 // governs the one remaining case — a mid-session token expiry, where the upgrade
-// 401s and a browser cannot read that status. Exponential from a 3s base, capped and
-// jittered, giving up after a bounded number of attempts (a new login remounts
+// 401s and a browser cannot read that status. Exponential from a 3s base, capped
+// and jittered, giving up after a bounded number of attempts (a new login remounts
 // this Feed with a fresh counter — the resume path). NOTE: cooperative client
 // robustness, not a security boundary — server-side connection rate-limiting is
 // tracked separately (#91 "Realtime hardening II").

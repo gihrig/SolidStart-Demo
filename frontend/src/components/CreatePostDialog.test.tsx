@@ -122,6 +122,23 @@ describe("<CreatePostDialog />", () => {
     expect((form.getByLabelText("Title") as HTMLInputElement).value).toBe("");
   });
 
+  it("cannot be dismissed while the Post is in flight", async () => {
+    let land!: (post: PostView) => void;
+    postCreateMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
+    const { user, dialog, form } = await openAndFill();
+    await user.click(await form.findByRole("checkbox", { name: "Animals" }));
+    await user.click(form.getByRole("button", { name: "Post" }));
+
+    // Cancel is disabled, and Esc (the dialog's `cancel` event) is refused.
+    expect(form.getByRole("button", { name: "Cancel" })).toHaveProperty("disabled", true);
+    const esc = new Event("cancel", { cancelable: true });
+    dialog.dispatchEvent(esc);
+    expect(esc.defaultPrevented).toBe(true);
+
+    land(CREATED);
+    await waitFor(() => expect((dialog as HTMLDialogElement).open).toBe(false));
+  });
+
   it("shows the back-end rejection and keeps the dialog open", async () => {
     postCreateMock.mockRejectedValue(new Error("RPC Error: unsafe URL"));
     const { user, dialog, form } = await openAndFill();

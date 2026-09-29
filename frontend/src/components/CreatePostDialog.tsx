@@ -44,7 +44,7 @@ export default function CreatePostDialog(props: CreatePostDialogProps) {
     fallbackError: "Could not create the Post",
   });
 
-  const open = () => {
+  const openDialog = () => {
     setCategoriesWanted(true);
     setCategoryError(null);
     dialogRef?.showModal();
@@ -84,12 +84,15 @@ export default function CreatePostDialog(props: CreatePostDialogProps) {
 
   return (
     <>
-      <button type="button" onClick={open} class="theme-button">
+      <button type="button" onClick={openDialog} class="theme-button">
         New Post
       </button>
 
       <dialog
         ref={(el) => (dialogRef = el)}
+        // Esc fires `cancel`: refuse it while the Post is in flight, so the result
+        // (the close, or the rejection) stays visible.
+        onCancel={(e) => create.pending() && e.preventDefault()}
         aria-labelledby="create-post-heading"
         class="m-auto w-full max-w-md rounded-2xl p-6 shadow-lg bg-(--theme-card-bg) text-(--theme-card-fg) backdrop:bg-black/50"
       >
@@ -137,7 +140,12 @@ export default function CreatePostDialog(props: CreatePostDialogProps) {
           </fieldset>
 
           <div class="flex justify-end gap-2">
-            <button type="button" onClick={() => dialogRef?.close()} class="theme-button">
+            <button
+              type="button"
+              disabled={create.pending()}
+              onClick={() => dialogRef?.close()}
+              class="theme-button disabled:opacity-50"
+            >
               Cancel
             </button>
             <button
