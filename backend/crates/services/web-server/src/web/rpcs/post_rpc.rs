@@ -1,15 +1,39 @@
-use lib_core::model::post::{PostBmc, PostFilter, PostView};
+use lib_core::model::post::{PostBmc, PostFilter, PostForCreate, PostView};
 use lib_rpc_core::prelude::*;
+use lib_web::ws::poke::{self, PokedRpcResult};
+use lib_web::ws::WsState;
 
+/// The authenticated Post RPCs: the mutations (`/api/rpc`, login required).
 pub fn rpc_router_builder() -> RouterBuilder {
+	router_builder!(create_post,)
+}
+
+/// The public Post RPCs: every Post is public (#106), so the reads run on
+/// `/api/rpc-public`.
+pub fn public_rpc_router_builder() -> RouterBuilder {
 	router_builder!(get_post, list_posts, featured_post,)
 }
 
-// Every Post is public (#106), so these are PUBLIC reads (`/api/rpc-public`):
-// each returns the `PostView` public projection — author, resolved Categories,
-// and derived counts, never the audit columns (ADR-0021). Post mutations (create
-// / like / comment) are owner-scoped and land in later tickets on the
-// authenticated surface.
+// The reads each return the `PostView` public projection — author, resolved
+// Categories, and derived counts, never the audit columns (ADR-0021). The like
+// and comment mutations land in later tickets on the authenticated surface.
+
+/// Create a Post owned by the caller, with at least one Category (#120), then
+/// poke the `posts` feed so every client refetches the list. The write path
+/// rejects an unsafe URL or an over-cap title (ADR-0019). The poke fires on
+/// write-commit, before the re-get (ADR-0016).
+pub async fn create_post(
+	ctx: Ctx,
+	mm: ModelManager,
+	ws_state: WsState,
+	params: ParamsForCreate<PostForCreate>,
+) -> Result<PokedRpcResult<PostView, poke::Posts>> {
+	let ParamsForCreate { data } = params;
+	let id = PostBmc::create(&ctx, &mm, data).await?;
+	let receipt = ws_state.broadcast_posts_update();
+	let view = PostBmc::get_post(&ctx, &mm, id).await?;
+	Ok(PokedRpcResult::new(view, receipt))
+}
 
 /// Fetch a single Post as its enriched `PostView`.
 pub async fn get_post(

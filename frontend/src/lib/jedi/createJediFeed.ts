@@ -1,4 +1,11 @@
-import { createResource, createSignal, type Accessor, type Setter } from "solid-js";
+import {
+  createEffect,
+  createResource,
+  createSignal,
+  on,
+  type Accessor,
+  type Setter,
+} from "solid-js";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { type MessageFeedFactory } from "~/lib/websocket";
 import { Channel } from "~/lib/channel";
@@ -48,6 +55,10 @@ export interface JediFeed {
   selectedCategory: Accessor<number>;
   setSelectedCategory: Setter<number>;
   hero: Accessor<HeroView | undefined>;
+  /** Wire a live Feed after creation (#120): the route builds this view-model
+   *  anonymously, then connects the socket's Feed once a User logs in. The
+   *  subscription is owned by the caller's reactive scope, so it ends with it. */
+  connectFeed: (feed: MessageFeedFactory) => void;
 }
 
 /** The synthetic "no filter" row. Id 0 is unused by the real categories. */
@@ -85,14 +96,27 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
 
   // Live propagation (#117): a `posts` poke means the Post list may have changed,
   // so refetch the list (the featured post re-derives from it). The feed is
-  // optional — the anonymous landing page has no socket — so this wiring only
-  // runs when injected.
-  if (deps.feed) {
-    const feed = deps.feed({
+  // optional — the anonymous landing page has no socket — so this wiring runs
+  // when injected, or later through `connectFeed` on login (#120).
+  const connectFeed = (factory: MessageFeedFactory): void => {
+    const feed = factory({
       onPostsUpdate: () => void refetchPosts(),
     });
     feed.subscribe(Channel.posts);
-  }
+    // A poke sent while the socket is down is lost, and a (re)connect only
+    // replays the subscription. So each time the socket comes up, refetch: a
+    // Post created meanwhile still appears (#120 review).
+    createEffect(
+      on(
+        feed.connected,
+        (connected) => {
+          if (connected) void refetchPosts();
+        },
+        { defer: true },
+      ),
+    );
+  };
+  if (deps.feed) connectFeed(deps.feed);
 
   const categories = (): JediCategory[] | undefined => {
     const list = realCategories();
@@ -172,5 +196,6 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     selectedCategory,
     setSelectedCategory,
     hero,
+    connectFeed,
   };
 }

@@ -120,6 +120,11 @@ public (#106). A Post carries many Categories, **minimum one**, via a
 Categories, and derived like / comment counts. URL fields are validated and
 **rejected** on write ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md)
 addendum, [ADR-0019](docs/adr/0019-layered-user-text-sanitization.md)).
+_Built_ (#120): the authenticated `create_post` takes a `PostForCreate` (with its
+`category_ids`), sets the caller as Owner, and returns the `PostView`. An empty or
+unknown `category_ids`, a title over 36 characters, or an unsafe URL is a
+`Validation` error. A create pokes `posts`; the Jedi route subscribes while a User
+is logged in, so every client refetches. The Nav's **New Post** dialog submits it.
 _Lineage_: evolved from the live `Conv`.
 
 **Caption**:
@@ -446,7 +451,8 @@ keeps `backgroundImage` as its one `SafeUrl` field; the CTA runs fixed front-end
 The back-end also **rejects** an unsafe URL on write: a `DbBmc::url_fields` column
 must be `http(s)://…`, a root-relative path, or a fragment, with no `' " ( ) \`
 (`check_safe_url`, the same rule as `sanitizeUrl`). `Hero.background_image` and
-`User.avatar_url` declare it (#119).
+`User.avatar_url` declare it (#119); so do the Post's `image_src`,
+`photographer_url`, and `source_url` (#120).
 
 **`useAuth` identity & mock→real swap**:
 The nav avatar's identity is served through the `useAuth` seam

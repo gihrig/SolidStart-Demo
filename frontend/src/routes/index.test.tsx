@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test"
 import { render, screen, within, waitFor, fireEvent } from "@solidjs/testing-library";
 import { MetaProvider } from "@solidjs/meta";
 import { Suspense } from "solid-js";
+import { AuthProvider } from "~/components/AuthContext";
 
 // The sidebar Categories, the Post feed, Top Captions, and the Hero now load from
 // the RPCs (ADR-0011, #117, #118, #119); the back-end client is mocked so this route test stays offline. The rows
@@ -107,7 +108,9 @@ function setupMatchMedia(mobile: boolean) {
 const renderHome = () =>
   render(() => (
     <MetaProvider>
-      <Home />
+      <AuthProvider>
+        <Home />
+      </AuthProvider>
     </MetaProvider>
   ));
 
@@ -219,9 +222,11 @@ describe("Home route (Jedi feed, data-driven from jedi-api)", () => {
   it("keeps keyboard focus on the listbox when a category re-keys the captions (#35)", async () => {
     render(() => (
       <MetaProvider>
-        <Suspense>
-          <Home />
-        </Suspense>
+        <AuthProvider>
+          <Suspense>
+            <Home />
+          </Suspense>
+        </AuthProvider>
       </MetaProvider>
     ));
 

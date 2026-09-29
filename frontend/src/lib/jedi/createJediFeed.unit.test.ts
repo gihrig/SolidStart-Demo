@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
-import { createRoot } from "solid-js";
+import { createRoot, createSignal } from "solid-js";
 import { Channel } from "~/lib/channel";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { JediApi } from "./jedi-api";
@@ -77,7 +77,11 @@ const postListMock = vi.fn<JediApi["posts"]["list"]>();
 const captionListForPostMock = vi.fn<JediApi["captions"]["listForPost"]>();
 const api: JediApi = {
   categories: { list: () => Promise.resolve(CATEGORIES) },
-  posts: { list: postListMock, featured: () => Promise.resolve(RANKED_POSTS[0]) },
+  posts: {
+    list: postListMock,
+    featured: () => Promise.resolve(RANKED_POSTS[0]),
+    create: () => Promise.reject(new Error("not used by the view-model")),
+  },
   captions: { listForPost: captionListForPostMock },
   hero: {
     get: () =>
@@ -347,6 +351,57 @@ describe("createJediFeed — the realtime posts poke (#117)", () => {
       await tick();
       await tick();
       expect(postListMock.mock.calls.length).toBeGreaterThan(listCallsBefore);
+
+      dispose();
+    });
+  });
+
+  it("connectFeed wires a feed after creation: a poke shows a new Post (#120)", async () => {
+    // The route builds the view-model anonymously, then connects the socket's
+    // Feed on login. A Post created elsewhere lands; its poke refetches the list.
+    const feed = fakeFeed();
+    const created = post(5, "New arrival", HOMER, [CAT[1]], 0);
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api });
+      await tick();
+      await tick();
+      expect(feed.subscribe).not.toHaveBeenCalled();
+
+      jedi.connectFeed(feed.factory);
+      expect(feed.subscribe).toHaveBeenCalledWith(Channel.posts);
+
+      postListMock.mockResolvedValue([...RANKED_POSTS, created]);
+      feed.poke();
+      await tick();
+      await tick();
+      expect(jedi.visiblePosts()?.map((p) => p.id)).toEqual([1, 3, 2, 4, 5]);
+
+      dispose();
+    });
+  });
+
+  it("refetches the Posts when the socket (re)connects, so a missed poke is recovered (#120 review)", async () => {
+    // A poke sent while the socket is down is lost. When the socket comes up, the
+    // view-model reconciles by refetching, so a Post created meanwhile appears.
+    const [connected, setConnected] = createSignal(false);
+    let options: { onPostsUpdate?: () => void } = {};
+    const factory = (opts: { onPostsUpdate?: () => void }) => {
+      options = opts;
+      return { connected, subscribe: vi.fn(), unsubscribe: vi.fn() };
+    };
+    const created = post(5, "New arrival", HOMER, [CAT[1]], 0);
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api, feed: factory });
+      await tick();
+      await tick();
+      expect(options.onPostsUpdate).toBeDefined();
+
+      // The Post lands while the socket is down: its poke never arrives.
+      postListMock.mockResolvedValue([...RANKED_POSTS, created]);
+      setConnected(true);
+      await tick();
+      await tick();
+      expect(jedi.visiblePosts()?.map((p) => p.id)).toEqual([1, 3, 2, 4, 5]);
 
       dispose();
     });

@@ -14,7 +14,14 @@ import type {
   AuthorRef as AuthorRefWire,
   HeroView as HeroViewWire,
 } from "~/types/backend";
-import type { JediCategory, HeroView, AuthorRef, PostView, CaptionView } from "~/types/jedi";
+import type {
+  JediCategory,
+  HeroView,
+  AuthorRef,
+  PostDraft,
+  PostView,
+  CaptionView,
+} from "~/types/jedi";
 
 /** The single sanitize boundary (ADR-0002): every URL field passes through here.
  *  A rejected URL collapses to the empty `SafeUrl`; consumers bind it raw. */
@@ -95,6 +102,21 @@ export const jediApi = {
     // come from the public RPCs, each wire `PostView` re-shaped for the components.
     list: async (): Promise<PostView[]> => (await postRpc.list()).map(toPostView),
     featured: async (): Promise<PostView> => toPostView(await postRpc.featured()),
+    // Real back-end call (#120): `create_post` needs a login. The draft is sent
+    // raw — the back-end is the authoritative URL boundary and rejects an
+    // unsafe URL; the returned view passes the sanitize boundary like any read.
+    create: async (draft: PostDraft): Promise<PostView> =>
+      toPostView(
+        await postRpc.create({
+          title: draft.title,
+          image_src: draft.imageSrc,
+          image_alt: draft.imageAlt,
+          photographer: draft.photographer,
+          photographer_url: draft.photographerUrl,
+          source_url: draft.sourceUrl,
+          category_ids: draft.categoryIds,
+        }),
+      ),
   },
   captions: {
     // Real back-end call now (#118): Top Captions come from

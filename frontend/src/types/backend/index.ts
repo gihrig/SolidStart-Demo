@@ -11,6 +11,7 @@ import type { CategoryPublic as CategoryPublicWire } from "~backend-bindings/Cat
 import type { Conv as ConvWire } from "~backend-bindings/Conv.d";
 import type { HeroView as HeroViewWire } from "~backend-bindings/HeroView.d";
 import type { PostView as PostViewWire } from "~backend-bindings/PostView.d";
+import type { PostForCreate as PostForCreateWire } from "~backend-bindings/PostForCreate.d";
 import type { ConvMsg as ConvMsgWire } from "~backend-bindings/ConvMsg.d";
 import type { ConvUser as ConvUserWire } from "~backend-bindings/ConvUser.d";
 import type { User as UserWire } from "~backend-bindings/User.d";
@@ -37,6 +38,13 @@ export type AuthorRef = NumericIds<AuthorRefWire>;
 export type PostView = Omit<NumericIds<PostViewWire>, "author" | "categories"> & {
   author: AuthorRef;
   categories: CategoryPublic[];
+};
+/**
+ * The `create_post` input (#120). `NumericIds` rewrites only bigint fields, so the
+ * `category_ids` bigint array is re-typed to the number array it is at runtime.
+ */
+export type PostForCreate = Omit<PostForCreateWire, "category_ids"> & {
+  category_ids: number[];
 };
 /**
  * The enriched public Caption projection (#118, ADR-0021). As with

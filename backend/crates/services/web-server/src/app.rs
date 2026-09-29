@@ -67,7 +67,7 @@ mod tests {
 	use super::app;
 	use axum_test::TestServer;
 	use lib_core::_dev_utils::{
-		self, clean_agents, clean_convs, clean_users, seed_admin_user,
+		self, clean_agents, clean_convs, clean_posts, clean_users, seed_admin_user,
 	};
 	use lib_core::ctx::Ctx;
 	use lib_core::model::user::{UserBmc, UserForCreate};
@@ -715,6 +715,101 @@ mod tests {
 			.await
 			.assert_status_ok();
 		clean_users(&root, &mm, fx_username).await?;
+
+		Ok(())
+	}
+
+	/// A logged-in User creates a Post (#120): `create_post` returns the
+	/// `PostView` with the caller as author and the named Categories, and pokes
+	/// the `posts` feed once. An unsafe URL is rejected (400) with no poke, and
+	/// an anonymous caller is rejected (401).
+	#[serial]
+	#[tokio::test]
+	async fn test_web_create_post_ok() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let fx_title = "test_web_create_post_ok";
+		let post_data = |image_src: &str| {
+			json!({
+				"title": fx_title,
+				"image_src": image_src,
+				"image_alt": "alt",
+				"photographer": "Photographer",
+				"photographer_url": "https://www.flickr.com/photos/p/",
+				"source_url": "https://www.flickr.com/photos/p/2/",
+				"category_ids": [6, 3]
+			})
+		};
+		let ws_state = Arc::new(WsState::new());
+		let mut rx = ws_state.tx.subscribe();
+		let anon = TestServer::new(app(mm.clone(), ws_state.clone()));
+		let mut server = TestServer::new(app(mm.clone(), ws_state.clone()));
+		server.save_cookies();
+		server
+			.post("/api/login")
+			.json(&json!({ "username": "demo1", "pwd": "welcome" }))
+			.await
+			.assert_status_ok();
+
+		// -- Exec & Check: an anonymous caller is rejected.
+		anon.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "create_post",
+				"params": { "data": post_data("https://example.com/a.jpg") }
+			}))
+			.await
+			.assert_status(axum::http::StatusCode::UNAUTHORIZED);
+
+		// -- Exec & Check: an unsafe URL is rejected, and nothing is poked.
+		server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "create_post",
+				"params": { "data": post_data("javascript:alert(1)") }
+			}))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		assert!(rx.try_recv().is_err(), "a rejected create must not poke");
+
+		// -- Exec: a valid create.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "create_post",
+				"params": { "data": post_data("https://example.com/a.jpg") }
+			}))
+			.await
+			.json();
+
+		// -- Check: the returned view carries the author and Categories.
+		assert_eq!(
+			body.pointer("/result/data/title").and_then(Value::as_str),
+			Some(fx_title),
+			"got {body}"
+		);
+		assert_eq!(
+			body.pointer("/result/data/author/name")
+				.and_then(Value::as_str),
+			Some("demo1")
+		);
+		let cat_ids: Vec<i64> = body
+			.pointer("/result/data/categories")
+			.and_then(Value::as_array)
+			.map(|cats| {
+				cats.iter()
+					.filter_map(|c| c.pointer("/id").and_then(Value::as_i64))
+					.collect()
+			})
+			.unwrap_or_default();
+		assert_eq!(cat_ids, vec![3, 6]);
+
+		// -- Check: the `posts` feed was poked once.
+		let event = rx.try_recv().expect("create_post pokes the posts feed");
+		assert_eq!(event.channel().key(), "posts");
+		assert!(rx.try_recv().is_err(), "exactly one poke");
+
+		// -- Clean
+		clean_posts(&mm, fx_title).await?;
 
 		Ok(())
 	}

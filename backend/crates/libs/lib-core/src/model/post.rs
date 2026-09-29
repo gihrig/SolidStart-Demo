@@ -72,7 +72,11 @@ pub struct PostView {
 
 impl PublicProjection for PostView {}
 
-#[derive(Fields, Deserialize, Default)]
+/// The `create_post` input (#120). `category_ids` is not a `post` column — the
+/// `#[field(skip)]` keeps it out of the insert — so `PostBmc::create` writes it as
+/// the `post_category` links. Exported so the front-end sends the one wire shape.
+#[derive(Fields, Deserialize, Default, TS)]
+#[ts(export, export_to = "PostForCreate.d.ts")]
 pub struct PostForCreate {
 	pub title: String,
 	pub image_src: String,
@@ -80,6 +84,10 @@ pub struct PostForCreate {
 	pub photographer: String,
 	pub photographer_url: String,
 	pub source_url: String,
+
+	// -- The Categories to link, at least one (#107)
+	#[field(skip)]
+	pub category_ids: Vec<i64>,
 }
 
 #[derive(Fields, Deserialize, Default)]
@@ -181,14 +189,14 @@ impl DbBmc for PostBmc {
 
 	/// The user-visible free-text fields submit to write-path hygiene (ADR-0019):
 	/// NFC-normalize, trim, and reject control / zero-width / bidirectional
-	/// characters, with a length cap on the display fields. The URL fields carry
-	/// no cap here (they are long by nature) but still reject the hidden-text
-	/// character classes; the front-end is the URL-scheme sanitize boundary on read.
+	/// characters, with a length cap on the display fields. The title cap is the
+	/// confirmed 36 (#113). Each URL field is capped at its `varchar(1024)` column
+	/// width, so an over-long URL is a `Validation` error, not a DB error.
 	fn hygiene_rules() -> &'static [FieldHygiene] {
 		const RULES: &[FieldHygiene] = &[
 			FieldHygiene {
 				field: "title",
-				max_len: Some(200),
+				max_len: Some(36),
 			},
 			FieldHygiene {
 				field: "image_alt",
@@ -200,18 +208,25 @@ impl DbBmc for PostBmc {
 			},
 			FieldHygiene {
 				field: "image_src",
-				max_len: None,
+				max_len: Some(1024),
 			},
 			FieldHygiene {
 				field: "photographer_url",
-				max_len: None,
+				max_len: Some(1024),
 			},
 			FieldHygiene {
 				field: "source_url",
-				max_len: None,
+				max_len: Some(1024),
 			},
 		];
 		RULES
+	}
+
+	/// An unsafe URL in any Post URL field is rejected on write (#120, ADR-0011):
+	/// the server is the authoritative URL boundary; the front-end `sanitizeUrl`
+	/// stays as the render-time defense in depth (ADR-0006).
+	fn url_fields() -> &'static [&'static str] {
+		&["image_src", "photographer_url", "source_url"]
 	}
 }
 
@@ -228,17 +243,37 @@ impl PostBmc {
 	/// Create a Post with at least one Category, atomically (#107). The Post row
 	/// and its `post_category` links commit together, so a Post never persists
 	/// without its mandatory Category. `owner_id` is `ctx.user_id()` (owner-only
-	/// write). An empty `category_ids` is rejected before any insert.
+	/// write). Repeated `category_ids` link once; an empty list or an unknown id
+	/// is a `Validation` error, rejected before any insert.
 	pub async fn create(
 		ctx: &Ctx,
 		mm: &ModelManager,
-		post_c: PostForCreate,
-		category_ids: &[i64],
+		mut post_c: PostForCreate,
 	) -> Result<i64> {
+		let category_ids =
+			base::dedup(std::mem::take(&mut post_c.category_ids).into_iter());
 		if category_ids.is_empty() {
 			return Err(Error::Validation {
 				field: "category_ids".to_string(),
 				reason: "a Post requires at least one Category".to_string(),
+			});
+		}
+
+		// -- An unknown Category id is a client error, not a foreign-key failure.
+		let known = CategoryBmc::list_public(
+			ctx,
+			mm,
+			Some(vec![CategoryFilter {
+				id: Some(OpValInt64::In(category_ids.clone()).into()),
+				..Default::default()
+			}]),
+			None,
+		)
+		.await?;
+		if known.len() != category_ids.len() {
+			return Err(Error::Validation {
+				field: "category_ids".to_string(),
+				reason: "unknown Category".to_string(),
 			});
 		}
 
@@ -709,6 +744,146 @@ mod tests {
 		Ok(())
 	}
 
+	/// A valid `PostForCreate` for the create tests: safe URLs, in-cap text.
+	fn fx_post_c(title: &str, category_ids: Vec<i64>) -> PostForCreate {
+		PostForCreate {
+			title: title.to_string(),
+			image_src: "https://live.staticflickr.com/1/2_b.jpg".to_string(),
+			image_alt: "alt".to_string(),
+			photographer: "Photographer".to_string(),
+			photographer_url: "https://www.flickr.com/photos/p/".to_string(),
+			source_url: "https://www.flickr.com/photos/p/2/".to_string(),
+			category_ids,
+		}
+	}
+
+	/// `create` persists the Post with the caller as its Owner (`owner_id`) and
+	/// links each named Category (#120).
+	#[serial]
+	#[tokio::test]
+	async fn test_create_sets_owner_and_categories() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_create_ok-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+
+		// -- Exec
+		let post_id =
+			PostBmc::create(&ctx, &mm, fx_post_c("test_create_ok", vec![6, 3]))
+				.await?;
+
+		// -- Check
+		let view = PostBmc::get_post(&ctx, &mm, post_id).await?;
+		assert_eq!(view.author.id, owner_id);
+		assert_eq!(view.title, "test_create_ok");
+		let cat_ids: Vec<i64> = view.categories.iter().map(|c| c.id).collect();
+		assert_eq!(cat_ids, vec![3, 6]);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_create_ok").await?;
+
+		Ok(())
+	}
+
+	/// The write path validates the Post text and URLs (#120, ADR-0019): a title
+	/// over 36 characters and an unsafe URL in any URL field are each rejected
+	/// with a `Validation` error that names the field. A 36-character title passes.
+	#[serial]
+	#[tokio::test]
+	async fn test_create_rejects_bad_title_and_urls() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_create_bad-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+
+		// -- Check: a 37-character title is over the cap; 36 is accepted.
+		let res =
+			PostBmc::create(&ctx, &mm, fx_post_c(&"t".repeat(37), vec![1])).await;
+		assert!(
+			matches!(&res, Err(model::Error::Validation { field, reason })
+				if field == "title" && reason.contains("max length 36")),
+			"got {res:?}"
+		);
+		PostBmc::create(&ctx, &mm, fx_post_c(&"t".repeat(36), vec![1])).await?;
+
+		// -- Check: each URL field rejects an unsafe URL.
+		for field in ["image_src", "photographer_url", "source_url"] {
+			let mut post_c = fx_post_c("test_create_bad url", vec![1]);
+			let bad = "javascript:alert(1)".to_string();
+			match field {
+				"image_src" => post_c.image_src = bad,
+				"photographer_url" => post_c.photographer_url = bad,
+				_ => post_c.source_url = bad,
+			}
+			let res = PostBmc::create(&ctx, &mm, post_c).await;
+			assert!(
+				matches!(&res, Err(model::Error::Validation { field: f, reason })
+					if f == field && reason.contains("unsafe URL")),
+				"{field}: got {res:?}"
+			);
+		}
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_create_bad").await?;
+
+		Ok(())
+	}
+
+	/// An unknown Category id is a client error: `create` rejects it as a
+	/// `Validation` on `category_ids` and inserts no Post. A repeated id links
+	/// the Category once (#120).
+	#[serial]
+	#[tokio::test]
+	async fn test_create_checks_category_ids() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_create_cats-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+
+		// -- Check: an unknown id is rejected; no Post persists.
+		let res = PostBmc::create(
+			&ctx,
+			&mm,
+			fx_post_c("test_create_cats unknown", vec![1, 999_999]),
+		)
+		.await;
+		assert!(
+			matches!(&res, Err(model::Error::Validation { field, reason })
+				if field == "category_ids" && reason.contains("unknown Category")),
+			"got {res:?}"
+		);
+		let owned = PostBmc::list_posts(
+			&ctx,
+			&mm,
+			Some(vec![PostFilter {
+				owner_id: Some(owner_id.into()),
+				..Default::default()
+			}]),
+			None,
+		)
+		.await?;
+		assert!(owned.is_empty(), "no Post persists on a rejected create");
+
+		// -- Check: a repeated id links once.
+		let post_id = PostBmc::create(
+			&ctx,
+			&mm,
+			fx_post_c("test_create_cats dup", vec![3, 3]),
+		)
+		.await?;
+		let view = PostBmc::get_post(&ctx, &mm, post_id).await?;
+		let cat_ids: Vec<i64> = view.categories.iter().map(|c| c.id).collect();
+		assert_eq!(cat_ids, vec![3]);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_create_cats").await?;
+
+		Ok(())
+	}
+
 	/// A Post requires at least one Category: an empty `category_ids` is rejected
 	/// before any row is inserted (#107).
 	#[serial]
@@ -721,16 +896,8 @@ mod tests {
 		let ctx = Ctx::new(owner_id)?;
 
 		// -- Exec
-		let res = PostBmc::create(
-			&ctx,
-			&mm,
-			PostForCreate {
-				title: "no categories".to_string(),
-				..Default::default()
-			},
-			&[],
-		)
-		.await;
+		let res =
+			PostBmc::create(&ctx, &mm, fx_post_c("no categories", Vec::new())).await;
 
 		// -- Check
 		assert!(
