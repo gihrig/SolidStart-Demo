@@ -77,7 +77,11 @@ const postListMock = vi.fn<JediApi["posts"]["list"]>();
 const captionListForPostMock = vi.fn<JediApi["captions"]["listForPost"]>();
 const api: JediApi = {
   categories: { list: () => Promise.resolve(CATEGORIES) },
-  posts: { list: postListMock, featured: () => Promise.resolve(RANKED_POSTS[0]) },
+  posts: {
+    list: postListMock,
+    featured: () => Promise.resolve(RANKED_POSTS[0]),
+    create: () => Promise.reject(new Error("not used by the view-model")),
+  },
   captions: { listForPost: captionListForPostMock },
   hero: {
     get: () =>
@@ -347,6 +351,30 @@ describe("createJediFeed — the realtime posts poke (#117)", () => {
       await tick();
       await tick();
       expect(postListMock.mock.calls.length).toBeGreaterThan(listCallsBefore);
+
+      dispose();
+    });
+  });
+
+  it("connectFeed wires a feed after creation: a poke shows a new Post (#120)", async () => {
+    // The route builds the view-model anonymously, then connects the socket's
+    // Feed on login. A Post created elsewhere lands; its poke refetches the list.
+    const feed = fakeFeed();
+    const created = post(5, "New arrival", HOMER, [CAT[1]], 0);
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api });
+      await tick();
+      await tick();
+      expect(feed.subscribe).not.toHaveBeenCalled();
+
+      jedi.connectFeed(feed.factory);
+      expect(feed.subscribe).toHaveBeenCalledWith(Channel.posts);
+
+      postListMock.mockResolvedValue([...RANKED_POSTS, created]);
+      feed.poke();
+      await tick();
+      await tick();
+      expect(jedi.visiblePosts()?.map((p) => p.id)).toEqual([1, 3, 2, 4, 5]);
 
       dispose();
     });

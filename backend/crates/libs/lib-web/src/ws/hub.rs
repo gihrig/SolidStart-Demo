@@ -1,4 +1,4 @@
-use super::poke::{Agents, Conv, Convs, PokeReceipt};
+use super::poke::{Agents, Conv, Convs, PokeReceipt, Posts};
 use lib_core::model::conv_msg::ConvMsg;
 use lib_core::realtime::{Channel, WsEvent};
 use tokio::sync::broadcast;
@@ -66,16 +66,18 @@ impl WsState {
 		PokeReceipt::new()
 	}
 
-	// The four Jedi poke helpers below have no caller yet: the mutation handlers
-	// call them in the follow-up contract step (#113). As lib-web public API they
-	// need no dead-code allowance; the tests construct them.
-
 	/// Poke the global Post-list channel: the Post list may have changed (#115).
 	/// Contentless — a subscriber refetches through the scoped `list_*` RPC, so no
-	/// Post row crosses the push path (#85).
-	pub fn broadcast_posts_update(&self) {
+	/// Post row crosses the push path (#85). Returns the [`PokeReceipt<Posts>`]
+	/// the Post mutations need to build their result (#120).
+	pub fn broadcast_posts_update(&self) -> PokeReceipt<Posts> {
 		self.broadcast(WsEvent::Poke(Channel::Posts));
+		PokeReceipt::new()
 	}
+
+	// The three Jedi poke helpers below have no caller yet: the like / caption
+	// mutation handlers call them in later tickets (#113). As lib-web public API
+	// they need no dead-code allowance; the tests construct them.
 
 	/// Poke one Post's like-count channel (`post_like:{post_id}`): the like count
 	/// changed (#115). Carries only the `post_id` for routing — the count is

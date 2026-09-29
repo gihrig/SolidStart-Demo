@@ -15,6 +15,7 @@ import type {
   JsonRpcResponse,
   LoginPayload,
   LogoffPayload,
+  PostForCreate,
   PostView,
 } from "~/types/backend";
 import { isRpcError } from "~/types/backend";
@@ -171,11 +172,13 @@ export function createRpcClient() {
   // public surface — the anonymous Jedi landing page reads them (#117). Each
   // returns the enriched `PostView` (author, resolved Categories, derived counts).
   // `list_posts` is ranked by like count by the back-end; the front-end never
-  // re-ranks. Post mutations are owner-scoped and land in later tickets.
+  // re-ranks. `create_post` is a mutation, so it posts to the authenticated
+  // surface; the back-end sets the caller as the Owner (#120).
   const post = {
     list: () => rpcCall<PostView[]>("list_posts", undefined, "/api/rpc-public"),
     featured: () => rpcCall<PostView>("featured_post", undefined, "/api/rpc-public"),
     get: (id: number) => rpcCall<PostView>("get_post", { id }, "/api/rpc-public"),
+    create: (data: PostForCreate) => rpcCall<PostView>("create_post", { data }),
   };
 
   // Caption RPC methods. Every Caption is public (#106), so the read posts to the

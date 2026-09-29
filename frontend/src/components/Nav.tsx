@@ -1,6 +1,7 @@
 import { For, Show } from "solid-js";
 import { useDisclosure } from "~/lib/useDisclosure";
 import { useAuth } from "~/components/AuthContext";
+import CreatePostDialog from "~/components/CreatePostDialog";
 import Icon from "~/components/Icon";
 import ThemeToggle from "~/components/ThemeToggle";
 
@@ -115,6 +116,11 @@ export default function Nav() {
               </ul>
             </div>
           </div>
+
+          {/* Create a Post (#120) — a logged-in User only */}
+          <Show when={isAuthenticated()}>
+            <CreatePostDialog />
+          </Show>
 
           <ThemeToggle />
 

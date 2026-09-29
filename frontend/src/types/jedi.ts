@@ -32,6 +32,18 @@ export interface PostView {
   commentCount: number;
 }
 
+/** A new Post as the create form submits it (#120): the seam maps it to the
+ *  wire `PostForCreate`. The back-end validates and rejects unsafe URLs. */
+export interface PostDraft {
+  title: string;
+  imageSrc: string;
+  imageAlt: string;
+  photographer: string;
+  photographerUrl: string;
+  sourceUrl: string;
+  categoryIds: number[];
+}
+
 /** Hero as returned by the seam: its URL field is sanitized. There is no CTA
  *  href: the CTA runs fixed front-end code (#119, ADR-0011 addendum). */
 export interface HeroView {

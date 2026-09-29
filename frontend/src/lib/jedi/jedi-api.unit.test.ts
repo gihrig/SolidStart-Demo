@@ -16,6 +16,7 @@ const {
   categoryListMock,
   postListMock,
   postFeaturedMock,
+  postCreateMock,
   captionListForPostMock,
   heroGetMock,
   profileGetMock,
@@ -23,13 +24,14 @@ const {
   categoryListMock: vi.fn(),
   postListMock: vi.fn(),
   postFeaturedMock: vi.fn(),
+  postCreateMock: vi.fn(),
   captionListForPostMock: vi.fn(),
   heroGetMock: vi.fn(),
   profileGetMock: vi.fn(),
 }));
 vi.mock("~/lib/backend-rpc", () => ({
   category: { list: categoryListMock },
-  post: { list: postListMock, featured: postFeaturedMock },
+  post: { list: postListMock, featured: postFeaturedMock, create: postCreateMock },
   caption: { listForPost: captionListForPostMock },
   hero: { get: heroGetMock },
   profile: { get: profileGetMock },
@@ -168,6 +170,31 @@ describe("jediApi.posts", () => {
     expect(args).toContain(post.photographerUrl);
     expect(args).toContain(post.sourceUrl);
     expect(args).toContain(post.author.avatarUrl);
+  });
+
+  it("create() sends the draft as the wire PostForCreate and re-shapes the result (#120)", async () => {
+    postCreateMock.mockResolvedValue(WIRE_POST_2);
+    const created = await jediApi.posts.create({
+      title: "Brilliant tree",
+      imageSrc: "https://live.staticflickr.com/2.jpg",
+      imageAlt: "Brilliant tree",
+      photographer: "Sunsword & Moonsabre",
+      photographerUrl: "https://www.flickr.com/photos/sunsward7/",
+      sourceUrl: "https://www.flickr.com/photos/sunsward7/2/",
+      categoryIds: [1],
+    });
+    expect(postCreateMock).toHaveBeenCalledWith({
+      title: "Brilliant tree",
+      image_src: "https://live.staticflickr.com/2.jpg",
+      image_alt: "Brilliant tree",
+      photographer: "Sunsword & Moonsabre",
+      photographer_url: "https://www.flickr.com/photos/sunsward7/",
+      source_url: "https://www.flickr.com/photos/sunsward7/2/",
+      category_ids: [1],
+    });
+    expect(created.id).toBe(2);
+    expect(created.author.name).toBe("Homer");
+    expect(created.categories.map((c) => c.name)).toEqual(["Landscape"]);
   });
 });
 

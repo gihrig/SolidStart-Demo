@@ -27,6 +27,9 @@ pub struct Agents;
 /// Channel marker: one Conversation's message channel (`conv:{id}`).
 pub struct Conv;
 
+/// Channel marker: the global Post-list feed (`posts`).
+pub struct Posts;
+
 // endregion: --- Channel markers
 
 // region:    --- Poke receipt
@@ -36,7 +39,7 @@ pub struct Conv;
 /// [`WsState`](super::WsState) mints one — a handler cannot fabricate a receipt.
 /// [`PokedRpcResult::new`] consumes it, so a mutation must poke its own feed to
 /// build its return value (ADR-0016). The marker `C` binds the receipt to one feed
-/// (`Convs` / `Agents` / `Conv`), so a wrong-feed poke is a type error.
+/// (`Convs` / `Agents` / `Conv` / `Posts`), so a wrong-feed poke is a type error.
 pub struct PokeReceipt<C> {
 	_channel: PhantomData<C>,
 }

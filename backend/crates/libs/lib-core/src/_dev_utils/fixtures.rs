@@ -334,8 +334,8 @@ pub async fn seed_post(
 			photographer: "Seed Photographer".to_string(),
 			photographer_url: "https://example.test/photographer".to_string(),
 			source_url: "https://example.test/source".to_string(),
+			category_ids: category_ids.to_vec(),
 		},
-		category_ids,
 	)
 	.await
 }
