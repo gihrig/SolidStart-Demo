@@ -38,7 +38,9 @@ export default function CreatePostDialog(props: CreatePostDialogProps) {
   // The taxonomy loads on the first open, not on mount: the Nav renders this on
   // every page, and most visits never open it.
   const [categoriesWanted, setCategoriesWanted] = createSignal(false);
-  const [categories] = createResource(categoriesWanted, () => api.categories.list());
+  const [categories, { refetch: refetchCategories }] = createResource(categoriesWanted, () =>
+    api.categories.list(),
+  );
   const [categoryError, setCategoryError] = createSignal<string | null>(null);
   const create = createRpcAction((draft: PostDraft) => api.posts.create(draft), {
     fallbackError: "Could not create the Post",
@@ -127,8 +129,21 @@ export default function CreatePostDialog(props: CreatePostDialogProps) {
 
           <fieldset>
             <legend class="text-sm font-medium">Categories</legend>
+            {/* A failed load must not be read: reading an errored resource throws,
+                and the Nav sits above every error boundary. Show it with a retry. */}
+            <Show when={categories.error}>
+              <div
+                role="alert"
+                class="mt-1 flex items-center gap-2 rounded bg-red-100 p-2 text-red-700"
+              >
+                Could not load the Categories.
+                <button type="button" onClick={() => void refetchCategories()} class="underline">
+                  Retry
+                </button>
+              </div>
+            </Show>
             <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1">
-              <For each={categories()}>
+              <For each={categories.error ? undefined : categories()}>
                 {(category) => (
                   <label class="flex items-center gap-1">
                     <input type="checkbox" name="categoryIds" value={category.id} />

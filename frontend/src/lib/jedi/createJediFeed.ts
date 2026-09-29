@@ -1,4 +1,11 @@
-import { createResource, createSignal, type Accessor, type Setter } from "solid-js";
+import {
+  createEffect,
+  createResource,
+  createSignal,
+  on,
+  type Accessor,
+  type Setter,
+} from "solid-js";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { type MessageFeedFactory } from "~/lib/websocket";
 import { Channel } from "~/lib/channel";
@@ -96,6 +103,18 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
       onPostsUpdate: () => void refetchPosts(),
     });
     feed.subscribe(Channel.posts);
+    // A poke sent while the socket is down is lost, and a (re)connect only
+    // replays the subscription. So each time the socket comes up, refetch: a
+    // Post created meanwhile still appears (#120 review).
+    createEffect(
+      on(
+        feed.connected,
+        (connected) => {
+          if (connected) void refetchPosts();
+        },
+        { defer: true },
+      ),
+    );
   };
   if (deps.feed) connectFeed(deps.feed);
 

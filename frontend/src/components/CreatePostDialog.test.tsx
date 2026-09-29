@@ -93,6 +93,22 @@ describe("<CreatePostDialog />", () => {
     expect(form.getByRole("checkbox", { name: "Animals" })).toBeTruthy();
   });
 
+  it("shows a failed Categories load and retries it (#120 review)", async () => {
+    categoryListMock.mockRejectedValueOnce(new Error("RPC Error: down"));
+    const user = userEvent.setup();
+    render(() => <CreatePostDialog api={api} />);
+    await user.click(screen.getByRole("button", { name: "New Post" }));
+    const form = within(screen.getByRole("dialog", { hidden: true }));
+
+    expect((await form.findByRole("alert")).textContent).toContain("Could not load the Categories");
+
+    await user.click(form.getByRole("button", { name: "Retry" }));
+
+    expect(await form.findByRole("checkbox", { name: "Landscape" })).toBeTruthy();
+    expect(categoryListMock).toHaveBeenCalledTimes(2);
+    expect(form.queryByRole("alert")).toBeNull();
+  });
+
   it("blocks a submit with no Category and does not call the RPC", async () => {
     const { user, form } = await openAndFill();
     await form.findByRole("checkbox", { name: "Animals" });
