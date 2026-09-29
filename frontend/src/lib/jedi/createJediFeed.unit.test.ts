@@ -82,7 +82,10 @@ const api: JediApi = {
     featured: () => Promise.resolve(RANKED_POSTS[0]),
     create: () => Promise.reject(new Error("not used by the view-model")),
   },
-  captions: { listForPost: captionListForPostMock },
+  captions: {
+    listForPost: captionListForPostMock,
+    add: () => Promise.reject(new Error("not used by the view-model")),
+  },
   hero: {
     get: () =>
       Promise.resolve({
@@ -414,6 +417,104 @@ describe("createJediFeed — the realtime posts poke (#117)", () => {
       await tick();
       await tick();
       expect(feed.visiblePosts()?.map((p) => p.id)).toEqual([1, 3, 2, 4]);
+      dispose();
+    });
+  });
+});
+
+describe("createJediFeed — the realtime post_caption poke (#121)", () => {
+  // A fake Feed factory: it captures the consumer's callbacks so the test can
+  // fire a `post_caption` poke, and records every (un)subscribe.
+  type Options = { onPostCaptionUpdate?: (postId: number) => void };
+  function fakeFeed(connected: () => boolean = () => true) {
+    let options: Options = {};
+    const subscribe = vi.fn();
+    const unsubscribe = vi.fn();
+    const factory = (opts: Options) => {
+      options = opts;
+      return { connected, subscribe, unsubscribe };
+    };
+    return {
+      factory,
+      subscribe,
+      unsubscribe,
+      poke: (postId: number) => options.onPostCaptionUpdate?.(postId),
+    };
+  }
+  const newCaption = (postId: number): CaptionView => ({
+    id: 99,
+    postId,
+    author: HOMER,
+    text: "A new contender",
+    likeCount: 0,
+  });
+
+  it("subscribes to the selected Post's Caption feed, and moves it with the selection", async () => {
+    const feed = fakeFeed();
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api, feed: feed.factory });
+      await tick();
+      await tick();
+      expect(feed.subscribe).toHaveBeenCalledWith(Channel.postCaption(1));
+
+      jedi.selectPost(2);
+      await tick();
+      expect(feed.unsubscribe).toHaveBeenCalledWith(Channel.postCaption(1));
+      expect(feed.subscribe).toHaveBeenCalledWith(Channel.postCaption(2));
+
+      dispose();
+    });
+  });
+
+  it("a poke for the selected Post refetches its Captions, so a new one appears", async () => {
+    const feed = fakeFeed();
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api, feed: feed.factory });
+      await tick();
+      await tick();
+
+      captionListForPostMock.mockResolvedValue([...captionsFor(1), newCaption(1)]);
+      feed.poke(1);
+      await tick();
+      await tick();
+      expect(jedi.visibleCaptions()?.map((c) => c.id)).toContain(99);
+
+      dispose();
+    });
+  });
+
+  it("ignores a poke for a Post that is not selected", async () => {
+    const feed = fakeFeed();
+    await createRoot(async (dispose) => {
+      createJediFeed({ api, feed: feed.factory });
+      await tick();
+      await tick();
+
+      const callsBefore = captionListForPostMock.mock.calls.length;
+      feed.poke(2);
+      await tick();
+      await tick();
+      expect(captionListForPostMock.mock.calls.length).toBe(callsBefore);
+
+      dispose();
+    });
+  });
+
+  it("refetches the Captions when the socket (re)connects, so a missed poke is recovered", async () => {
+    const [connected, setConnected] = createSignal(false);
+    const feed = fakeFeed(connected);
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api, feed: feed.factory });
+      await tick();
+      await tick();
+
+      // The Caption lands while the socket is down: its poke never arrives.
+      captionListForPostMock.mockResolvedValue([...captionsFor(1), newCaption(1)]);
+      setConnected(true);
+      await tick();
+      await tick();
+      expect(jedi.visibleCaptions()?.map((c) => c.id)).toContain(99);
+
       dispose();
     });
   });

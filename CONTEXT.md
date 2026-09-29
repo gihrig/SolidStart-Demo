@@ -136,6 +136,12 @@ _Avoid_: title; caption text (as a Post field).
 _BE_ (Planned): a first-class entity; ranked by its own `caption_like` rows; hosts
 its own `CaptionComment` thread (#106, #108). Read returns an enriched
 `CaptionView` (author, derived like / comment counts).
+_Built_ (#121): the authenticated `add_caption` takes a `CaptionForCreate`
+(`post_id`, `text`), sets the caller as Owner, and returns the `CaptionView`. Text
+over 36 characters or an unknown Post is a `Validation` error. An add pokes
+`post_caption:{post_id}`; the Jedi route holds the selected Post's channel while a
+User is logged in, so Top Captions refetches and re-ranks. A caption form under
+the Post submits it.
 
 **Category**:
 A back-end-owned classification a Post carries; a Post's on-card "tags" _are_ its

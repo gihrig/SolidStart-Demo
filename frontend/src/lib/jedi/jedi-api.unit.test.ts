@@ -18,6 +18,7 @@ const {
   postFeaturedMock,
   postCreateMock,
   captionListForPostMock,
+  captionAddMock,
   heroGetMock,
   profileGetMock,
 } = vi.hoisted(() => ({
@@ -26,13 +27,14 @@ const {
   postFeaturedMock: vi.fn(),
   postCreateMock: vi.fn(),
   captionListForPostMock: vi.fn(),
+  captionAddMock: vi.fn(),
   heroGetMock: vi.fn(),
   profileGetMock: vi.fn(),
 }));
 vi.mock("~/lib/backend-rpc", () => ({
   category: { list: categoryListMock },
   post: { list: postListMock, featured: postFeaturedMock, create: postCreateMock },
-  caption: { listForPost: captionListForPostMock },
+  caption: { listForPost: captionListForPostMock, add: captionAddMock },
   hero: { get: heroGetMock },
   profile: { get: profileGetMock },
 }));
@@ -317,5 +319,22 @@ describe("jediApi.captions", () => {
 
   it("returns [] for a post with no captions", async () => {
     expect(await jediApi.captions.listForPost(999)).toEqual([]);
+  });
+
+  it("add() sends the wire CaptionForCreate and re-shapes the result (#121)", async () => {
+    captionAddMock.mockResolvedValue(WIRE_CAPTIONS_POST_1[1]);
+    const added = await jediApi.captions.add(1, "May the paws be with you");
+    expect(captionAddMock).toHaveBeenCalledWith({ post_id: 1, text: "May the paws be with you" });
+    expect(added).toEqual({
+      id: 2,
+      postId: 1,
+      author: {
+        id: 3,
+        name: "Bart",
+        avatarUrl: "https://img.icons8.com/doodle/96/null/bart-simpson.png",
+      },
+      text: "May the paws be with you",
+      likeCount: 5,
+    });
   });
 });

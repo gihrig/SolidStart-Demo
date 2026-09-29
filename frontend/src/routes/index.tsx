@@ -10,6 +10,7 @@ import FeaturedPost from "~/components/FeaturedPost";
 import CategoriesCard from "~/components/CategoriesCard";
 import TopPhotosCard from "~/components/TopPhotosCard";
 import TopCaptionsCard from "~/components/TopCaptionsCard";
+import AddCaptionForm from "~/components/AddCaptionForm";
 import Icon from "~/components/Icon";
 
 interface LiveFeedProps {
@@ -84,6 +85,11 @@ export default function Home() {
               {(post) => <FeaturedPost post={post()} caption={selectedCaption()} />}
             </Match>
           </Switch>
+          {/* Keyed on the Post id, so a new selection starts a fresh draft; a poke
+              refetch keeps the id, so it never clears a draft mid-typing (#121). */}
+          <Show when={isAuthenticated() && selectedPost()?.id} keyed>
+            {(postId) => <AddCaptionForm postId={postId} />}
+          </Show>
         </main>
 
         {/* Sidebar — grid-rows collapse: aside is nested grid inside parent grid-cols-3 */}

@@ -144,6 +144,12 @@ describe("Home route (Jedi feed, data-driven from jedi-api)", () => {
     expect(await screen.findByText(/\(4 Likes\)/)).toBeInTheDocument();
   });
 
+  it("offers no caption form to an anonymous visitor (#121)", async () => {
+    renderHome();
+    await screen.findByRole("heading", { level: 2, name: "Little Jedi" });
+    expect(screen.queryByLabelText("Your caption")).toBeNull();
+  });
+
   it("renders the externalized hero content from the mock", async () => {
     renderHome();
     expect(

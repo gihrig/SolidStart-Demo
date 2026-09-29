@@ -74,9 +74,11 @@ export interface CreateJediFeedDeps {
   api?: JediApi;
   /**
    * The live **Feed** (`CONTEXT.md`). When present, a `posts` poke refetches the
-   * ranked Post list and the featured Post (#117) — the poke carries no row, so
-   * the refetch re-reads through the scoped public RPC. Absent on the anonymous
-   * landing page, whose WebSocket needs auth; the initial fetch still renders.
+   * ranked Post list and the featured Post (#117), and a `post_caption` poke for
+   * the selected Post refetches its Top Captions (#121) — a poke carries no row,
+   * so the refetch re-reads through the scoped public RPC. Absent on the
+   * anonymous landing page, whose WebSocket needs auth; the initial fetch still
+   * renders.
    */
   feed?: MessageFeedFactory;
 }
@@ -95,28 +97,46 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const featured = (): PostView | undefined => posts()?.[0];
 
   // Live propagation (#117): a `posts` poke means the Post list may have changed,
-  // so refetch the list (the featured post re-derives from it). The feed is
-  // optional — the anonymous landing page has no socket — so this wiring runs
-  // when injected, or later through `connectFeed` on login (#120).
+  // so refetch the list (the featured post re-derives from it). A `post_caption`
+  // poke means one Post's Captions changed (#121); only the selected Post's feed
+  // is held, and its poke refetches Top Captions. The feed is optional — the
+  // anonymous landing page has no socket — so this wiring runs when injected, or
+  // later through `connectFeed` on login (#120). It reads `selectedPost` and
+  // `topCaptions` below, so it is invoked only after they are defined.
   const connectFeed = (factory: MessageFeedFactory): void => {
     const feed = factory({
       onPostsUpdate: () => void refetchPosts(),
+      onPostCaptionUpdate: (postId) => {
+        if (postId === selectedPost()?.id) void refetchCaptions();
+      },
     });
     feed.subscribe(Channel.posts);
+    // Hold the selected Post's Caption feed; move it when the selection moves.
+    createEffect(
+      on(
+        () => selectedPost()?.id,
+        (postId, prevId) => {
+          if (postId === prevId) return;
+          if (prevId !== undefined) feed.unsubscribe(Channel.postCaption(prevId));
+          if (postId !== undefined) feed.subscribe(Channel.postCaption(postId));
+        },
+      ),
+    );
     // A poke sent while the socket is down is lost, and a (re)connect only
     // replays the subscription. So each time the socket comes up, refetch: a
-    // Post created meanwhile still appears (#120 review).
+    // Post or Caption created meanwhile still appears (#120 review).
     createEffect(
       on(
         feed.connected,
         (connected) => {
-          if (connected) void refetchPosts();
+          if (!connected) return;
+          void refetchPosts();
+          void refetchCaptions();
         },
         { defer: true },
       ),
     );
   };
-  if (deps.feed) connectFeed(deps.feed);
 
   const categories = (): JediCategory[] | undefined => {
     const list = realCategories();
@@ -153,7 +173,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     setSelectedPostId(id);
   };
 
-  const [topCaptions] = createResource(
+  const [topCaptions, { refetch: refetchCaptions }] = createResource(
     () => selectedPost()?.id,
     (postId) => api.captions.listForPost(postId),
   );
@@ -183,6 +203,8 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   };
 
   const [hero] = createResource(() => api.hero.get());
+
+  if (deps.feed) connectFeed(deps.feed);
 
   return {
     categories,

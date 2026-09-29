@@ -4,9 +4,10 @@ use crate::model::base::{
 	self, Access, CommonIden, DbBmc, FieldHygiene, PublicProjection,
 };
 use crate::model::modql_utils::time_to_sea_value;
+use crate::model::post::{PostBmc, PostFilter};
 use crate::model::user::{AuthorRef, UserBmc};
 use crate::model::ModelManager;
-use crate::model::Result;
+use crate::model::{Error, Result};
 use modql::field::Fields;
 use modql::filter::{
 	FilterNodes, ListOptions, OpValInt64, OpValsInt64, OpValsString, OpValsValue,
@@ -61,7 +62,10 @@ pub struct CaptionView {
 
 impl PublicProjection for CaptionView {}
 
-#[derive(Fields, Deserialize, Default)]
+/// The `add_caption` input (#121). The Owner is the caller (`ctx`), never the
+/// payload. Exported so the front-end sends the one wire shape.
+#[derive(Fields, Deserialize, Default, TS)]
+#[ts(export, export_to = "CaptionForCreate.d.ts")]
 pub struct CaptionForCreate {
 	pub post_id: i64,
 	pub text: String,
@@ -149,15 +153,60 @@ impl DbBmc for CaptionBmc {
 	}
 }
 
+// `create` is hand-written (below) so it can reject an unknown Post as a client
+// error; the macro therefore gets no `ForCreate`.
 generate_common_bmc_fns!(
 	Bmc: CaptionBmc,
 	Entity: Caption,
-	ForCreate: CaptionForCreate,
 	ForUpdate: CaptionForUpdate,
 	Filter: CaptionFilter,
 );
 
 impl CaptionBmc {
+	/// Add a Caption to a Post (#121). `owner_id` is `ctx.user_id()` (owner-only
+	/// write); any logged-in User may caption any Post (every Post is public). An
+	/// unknown `post_id` is a `Validation` error, rejected before the insert, not
+	/// a foreign-key failure.
+	pub async fn create(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		caption_c: CaptionForCreate,
+	) -> Result<i64> {
+		let post_id = caption_c.post_id;
+		let known = PostBmc::list(
+			ctx,
+			mm,
+			Some(vec![PostFilter {
+				id: Some(post_id.into()),
+				..Default::default()
+			}]),
+			None,
+		)
+		.await?;
+		if known.is_empty() {
+			return Err(Error::Validation {
+				field: "post_id".to_string(),
+				reason: "unknown Post".to_string(),
+			});
+		}
+
+		base::create::<Self, _>(ctx, mm, caption_c).await
+	}
+
+	/// Read a single Caption as its enriched `CaptionView` (public read, unscoped).
+	pub async fn get_caption(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		id: i64,
+	) -> Result<CaptionView> {
+		let caption = base::get::<Self, Caption>(ctx, mm, id).await?;
+		let mut views = Self::assemble_views(ctx, mm, vec![caption]).await?;
+		views.pop().ok_or(Error::EntityNotFound {
+			entity: Self::TABLE,
+			id,
+		})
+	}
+
 	/// List one Post's Captions as enriched `CaptionView`s, ranked by like count
 	/// descending — the Top Captions order (#118). Ties break by id ascending, so
 	/// the order is stable while every count is 0 (no likes yet). Read is
@@ -382,6 +431,64 @@ mod tests {
 
 		// -- Clean
 		_dev_utils::clean_users(&root, &mm, "test_cap_page-owner").await?;
+
+		Ok(())
+	}
+
+	/// Adding a Caption (#121): the caller is the Owner, so `get_caption` returns
+	/// the view with the caller as author, the text as written, and 0 counts.
+	#[serial]
+	#[tokio::test]
+	async fn test_create_caption_owner_is_author() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_cap_create-owner").await?;
+		let author_id = seed_user(&root, &mm, "test_cap_create-author").await?;
+		let post_id =
+			seed_post(&Ctx::new(owner_id)?, &mm, "test_cap_create post", &[1])
+				.await?;
+		let ctx = Ctx::new(author_id)?;
+
+		// -- Exec: a non-owner of the Post captions it.
+		let id = seed_caption(&ctx, &mm, post_id, "  my caption  ").await?;
+		let view = CaptionBmc::get_caption(&ctx, &mm, id).await?;
+
+		// -- Check: the caller is the author; hygiene trimmed the text.
+		assert_eq!(view.id, id);
+		assert_eq!(view.post_id, post_id);
+		assert_eq!(view.author.id, author_id);
+		assert_eq!(view.author.name, "test_cap_create-author");
+		assert_eq!(view.text, "my caption");
+		assert_eq!((view.like_count, view.comment_count), (0, 0));
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_cap_create").await?;
+
+		Ok(())
+	}
+
+	/// A Caption for an unknown Post is a client error (`Validation` on
+	/// `post_id`), not a foreign-key failure (#121).
+	#[serial]
+	#[tokio::test]
+	async fn test_create_caption_unknown_post_rejected() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_cap_no_post-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+
+		// -- Exec & Check
+		let res = seed_caption(&ctx, &mm, 999_999, "orphan").await;
+		assert!(
+			matches!(&res, Err(model::Error::Validation { field, .. })
+				if field == "post_id"),
+			"got {res:?}"
+		);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_cap_no_post-owner").await?;
 
 		Ok(())
 	}

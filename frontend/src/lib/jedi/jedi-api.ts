@@ -123,6 +123,10 @@ export const jediApi = {
     // `list_captions_for_post`, already ranked by the back-end.
     listForPost: async (postId: number): Promise<CaptionView[]> =>
       (await captionRpc.listForPost(postId)).map(toCaptionView),
+    // Real back-end call (#121): `add_caption` needs a login. The back-end
+    // validates the text (cap 36) and pokes the Post's `post_caption` feed.
+    add: async (postId: number, text: string): Promise<CaptionView> =>
+      toCaptionView(await captionRpc.add({ post_id: postId, text })),
   },
   hero: {
     // Real back-end call now (#119): the public `get_hero` singleton read.
