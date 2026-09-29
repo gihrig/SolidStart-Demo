@@ -66,7 +66,9 @@ mod tests {
 
 	use super::app;
 	use axum_test::TestServer;
-	use lib_core::_dev_utils::{self, clean_agents, clean_convs};
+	use lib_core::_dev_utils::{
+		self, clean_agents, clean_convs, clean_users, seed_admin_user,
+	};
 	use lib_core::ctx::Ctx;
 	use lib_core::model::user::{UserBmc, UserForCreate};
 	use lib_web::ws::WsState;
@@ -588,13 +590,15 @@ mod tests {
 		Ok(())
 	}
 
-	/// A logged-in User reads their own profile and edits the Hero (#119):
-	/// `get_profile` returns the login User as an `AuthorRef`, and `update_hero`
-	/// returns the updated `HeroView`. An unsafe `background_image` is rejected
-	/// on write, and the stored Hero is unchanged.
+	/// A logged-in standard User reads their own profile, but may not edit the
+	/// Hero (#119): `get_profile` returns the login User as an `AuthorRef`, and
+	/// `update_hero` rejects a caller who is not an Admin (`Sys`) User. The
+	/// rejection is `EntityNotFound` (HTTP 400), the #89 permission-miss idiom,
+	/// and the stored Hero is unchanged. The interim Admin gate stands until the
+	/// privilege system lands (#181).
 	#[serial]
 	#[tokio::test]
-	async fn test_web_profile_and_update_hero_ok() -> Result<()> {
+	async fn test_web_profile_ok_standard_user_cannot_update_hero() -> Result<()> {
 		// -- Setup & Fixtures
 		let mm = _dev_utils::init_test().await;
 		let mut server = TestServer::new(app(mm.clone(), Arc::new(WsState::new())));
@@ -620,6 +624,56 @@ mod tests {
 				.is_some_and(Value::is_null),
 			"demo1 has no avatar: got {body}"
 		);
+
+		// -- Exec & Check: a standard User may not edit the Hero.
+		let res = server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "update_hero",
+				"params": { "id": 1, "data": { "cta_text": "Hijacked" } }
+			}))
+			.await;
+		res.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		assert!(
+			res.text().contains("ENTITY_NOT_FOUND"),
+			"expected an ENTITY_NOT_FOUND error body, got: {}",
+			res.text()
+		);
+
+		// -- Check: the stored Hero is unchanged.
+		let body: Value = server
+			.post("/api/rpc-public")
+			.json(&json!({ "jsonrpc": "2.0", "id": 1, "method": "get_hero" }))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data/cta_text")
+				.and_then(Value::as_str),
+			Some("Get Started")
+		);
+
+		Ok(())
+	}
+
+	/// An Admin (`Sys`) User edits the Hero (#119): `update_hero` returns the
+	/// updated `HeroView`, and an unsafe `background_image` is still rejected
+	/// on write.
+	#[serial]
+	#[tokio::test]
+	async fn test_web_admin_update_hero_ok() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let fx_username = "test_web_admin_update_hero_ok-admin";
+		let fx_pwd = "welcome";
+		seed_admin_user(&root, &mm, fx_username, fx_pwd).await?;
+		let mut server = TestServer::new(app(mm.clone(), Arc::new(WsState::new())));
+		server.save_cookies();
+		server
+			.post("/api/login")
+			.json(&json!({ "username": fx_username, "pwd": fx_pwd }))
+			.await
+			.assert_status_ok();
 
 		// -- Exec & Check: an unsafe background_image is rejected.
 		server
@@ -651,7 +705,7 @@ mod tests {
 			Some("https://live.staticflickr.com/65535/49909538937_3255dcf9e7_b.jpg")
 		);
 
-		// -- Clean: restore the seeded CTA text for the other tests.
+		// -- Clean: restore the seeded CTA text, then drop the Admin User.
 		server
 			.post("/api/rpc")
 			.json(&json!({
@@ -660,6 +714,7 @@ mod tests {
 			}))
 			.await
 			.assert_status_ok();
+		clean_users(&root, &mm, fx_username).await?;
 
 		Ok(())
 	}

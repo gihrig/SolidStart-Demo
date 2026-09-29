@@ -196,8 +196,9 @@ front-end renders it as a sanitized `HeroView` (Front-end surface). Admin
 write-gating is deferred.
 _Built_ (#119): the `hero` table is a singleton (`CHECK (id = 1)`), seeded from the
 fixture. The public `get_hero` returns the `HeroView` public projection; the
-authenticated `update_hero` edits it (write unscoped, login required). No RPC
-creates or deletes it.
+authenticated `update_hero` edits it. An interim RPC-layer gate admits only an
+Admin user (`Sys`) until the privilege system lands (#181); the model write stays
+unscoped. No RPC creates or deletes it.
 
 ### Real-time feed
 
