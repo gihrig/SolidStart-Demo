@@ -186,7 +186,9 @@ describe("AuthContext", () => {
     });
 
     it("falls back to the login username with no avatar when the profile fails", async () => {
-      profileGetMock.mockRejectedValue(new Error("RPC Error: boom"));
+      const failure = new Error("RPC Error: boom");
+      profileGetMock.mockRejectedValue(failure);
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
       const user = userEvent.setup();
       renderWithAuth();
 
@@ -196,6 +198,11 @@ describe("AuthContext", () => {
       await waitFor(() => expect(profileGetMock).toHaveBeenCalled());
       expect(screen.getByTestId("display-name").textContent).toBe("demo1");
       expect(screen.getByTestId("avatar-url").textContent).toBe("");
+      // The failure is logged, not silent.
+      await waitFor(() =>
+        expect(warn).toHaveBeenCalledWith("[AuthContext] Profile load failed:", failure),
+      );
+      warn.mockRestore();
     });
   });
 });

@@ -14,6 +14,16 @@ vi.mock("~/lib/backend-rpc", () => ({
   },
 }));
 
+// A login loads the User's profile through the `jediApi` seam (#119); stub it so
+// the nav identity resolves offline.
+vi.mock("~/lib/jedi/jedi-api", () => ({
+  jediApi: {
+    profile: {
+      get: () => Promise.resolve({ id: 1000, name: "demo1", avatarUrl: "" }),
+    },
+  },
+}));
+
 const renderWithAuth = () => {
   return render(() => (
     <AuthProvider>
