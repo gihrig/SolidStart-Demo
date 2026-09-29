@@ -66,7 +66,9 @@ mod tests {
 
 	use super::app;
 	use axum_test::TestServer;
-	use lib_core::_dev_utils::{self, clean_agents, clean_convs};
+	use lib_core::_dev_utils::{
+		self, clean_agents, clean_convs, clean_users, seed_admin_user,
+	};
 	use lib_core::ctx::Ctx;
 	use lib_core::model::user::{UserBmc, UserForCreate};
 	use lib_web::ws::WsState;
@@ -527,6 +529,192 @@ mod tests {
 		clean_convs(&root, &mm, fx_prefix).await?;
 		clean_agents(&root, &mm, fx_prefix).await?;
 		UserBmc::delete(&root, &mm, demo2_id).await?;
+
+		Ok(())
+	}
+
+	/// The public RPC surface serves the Hero singleton to an anonymous visitor
+	/// (#119): `get_hero` on `/api/rpc-public` returns the seeded `HeroView` with
+	/// NO login. The view carries exactly its public fields: no `cta_href` and no
+	/// audit columns (ADR-0021). `update_hero` is a mutation, so it is not on the
+	/// public surface, and the authed surface rejects an anonymous call.
+	#[serial]
+	#[tokio::test]
+	async fn test_web_public_hero_anonymous_ok() -> Result<()> {
+		// -- Setup & Fixtures (no login — an anonymous client)
+		let mm = _dev_utils::init_test().await;
+		let server = TestServer::new(app(mm.clone(), Arc::new(WsState::new())));
+
+		// -- Exec & Check: the public endpoint returns the seeded Hero.
+		let body: Value = server
+			.post("/api/rpc-public")
+			.json(&json!({ "jsonrpc": "2.0", "id": 1, "method": "get_hero" }))
+			.await
+			.json();
+		let hero = body
+			.pointer("/result/data")
+			.and_then(Value::as_object)
+			.ok_or("get_hero: missing /result/data object")?;
+		assert_eq!(
+			hero.get("title").and_then(Value::as_str),
+			Some("Awesome Photos & Captions")
+		);
+		let mut keys: Vec<&str> = hero.keys().map(String::as_str).collect();
+		keys.sort_unstable();
+		assert_eq!(
+			keys,
+			["background_image", "cta_text", "id", "subtitle", "title"]
+		);
+
+		// -- Exec & Check: the mutation is not registered on the public surface.
+		let body: Value = server
+			.post("/api/rpc-public")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "update_hero",
+				"params": { "id": 1, "data": { "title": "anon" } }
+			}))
+			.await
+			.json();
+		assert!(body.pointer("/result").is_none(), "got {body}");
+
+		// -- Exec & Check: the authed surface rejects the anonymous call.
+		server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "update_hero",
+				"params": { "id": 1, "data": { "title": "anon" } }
+			}))
+			.await
+			.assert_status(axum::http::StatusCode::UNAUTHORIZED);
+
+		Ok(())
+	}
+
+	/// A logged-in standard User reads their own profile, but may not edit the
+	/// Hero (#119): `get_profile` returns the login User as an `AuthorRef`, and
+	/// `update_hero` rejects a caller who is not an Admin (`Sys`) User. The
+	/// rejection is `EntityNotFound` (HTTP 400), the #89 permission-miss idiom,
+	/// and the stored Hero is unchanged. The interim Admin gate stands until the
+	/// privilege system lands (#181).
+	#[serial]
+	#[tokio::test]
+	async fn test_web_profile_ok_standard_user_cannot_update_hero() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let mut server = TestServer::new(app(mm.clone(), Arc::new(WsState::new())));
+		server.save_cookies();
+		server
+			.post("/api/login")
+			.json(&json!({ "username": "demo1", "pwd": "welcome" }))
+			.await
+			.assert_status_ok();
+
+		// -- Exec & Check: get_profile is the login User's author snapshot.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&json!({ "jsonrpc": "2.0", "id": 1, "method": "get_profile" }))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data/name").and_then(Value::as_str),
+			Some("demo1")
+		);
+		assert!(
+			body.pointer("/result/data/avatar_url")
+				.is_some_and(Value::is_null),
+			"demo1 has no avatar: got {body}"
+		);
+
+		// -- Exec & Check: a standard User may not edit the Hero.
+		let res = server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "update_hero",
+				"params": { "id": 1, "data": { "cta_text": "Hijacked" } }
+			}))
+			.await;
+		res.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		assert!(
+			res.text().contains("ENTITY_NOT_FOUND"),
+			"expected an ENTITY_NOT_FOUND error body, got: {}",
+			res.text()
+		);
+
+		// -- Check: the stored Hero is unchanged.
+		let body: Value = server
+			.post("/api/rpc-public")
+			.json(&json!({ "jsonrpc": "2.0", "id": 1, "method": "get_hero" }))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data/cta_text")
+				.and_then(Value::as_str),
+			Some("Get Started")
+		);
+
+		Ok(())
+	}
+
+	/// An Admin (`Sys`) User edits the Hero (#119): `update_hero` returns the
+	/// updated `HeroView`, and an unsafe `background_image` is still rejected
+	/// on write.
+	#[serial]
+	#[tokio::test]
+	async fn test_web_admin_update_hero_ok() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let fx_username = "test_web_admin_update_hero_ok-admin";
+		let fx_pwd = "welcome";
+		seed_admin_user(&root, &mm, fx_username, fx_pwd).await?;
+		let mut server = TestServer::new(app(mm.clone(), Arc::new(WsState::new())));
+		server.save_cookies();
+		server
+			.post("/api/login")
+			.json(&json!({ "username": fx_username, "pwd": fx_pwd }))
+			.await
+			.assert_status_ok();
+
+		// -- Exec & Check: an unsafe background_image is rejected.
+		server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "update_hero",
+				"params": { "id": 1, "data": { "background_image": "javascript:alert(1)" } }
+			}))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+
+		// -- Exec & Check: a valid update returns the updated view.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "update_hero",
+				"params": { "id": 1, "data": { "cta_text": "Join now" } }
+			}))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data/cta_text")
+				.and_then(Value::as_str),
+			Some("Join now")
+		);
+		assert_eq!(
+			body.pointer("/result/data/background_image")
+				.and_then(Value::as_str),
+			Some("https://live.staticflickr.com/65535/49909538937_3255dcf9e7_b.jpg")
+		);
+
+		// -- Clean: restore the seeded CTA text, then drop the Admin User.
+		server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "update_hero",
+				"params": { "id": 1, "data": { "cta_text": "Get Started" } }
+			}))
+			.await
+			.assert_status_ok();
+		clean_users(&root, &mm, fx_username).await?;
 
 		Ok(())
 	}

@@ -12,13 +12,13 @@ describe("<Hero />", () => {
         title="Test Title"
         subtitle="Test Subtitle"
         ctaText="Click Me"
-        ctaHref={trustedUrl("/test")}
         backgroundImage={trustedUrl("/images/test.jpg")}
       />
     ));
     expect(screen.getByRole("heading")).toHaveTextContent("Test Title");
     expect(screen.getByText("Test Subtitle")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /click me/i })).toHaveAttribute("href", "/test");
+    // The CTA target is fixed front-end code, not Hero data (#119).
+    expect(screen.getByRole("link", { name: /click me/i })).toHaveAttribute("href", "#");
   });
 
   it("applies background image style", () => {
@@ -27,7 +27,6 @@ describe("<Hero />", () => {
         title="T"
         subtitle="T"
         ctaText="T"
-        ctaHref={trustedUrl("#")}
         backgroundImage={trustedUrl("/images/test-bg.jpg")}
       />
     ));
@@ -38,13 +37,7 @@ describe("<Hero />", () => {
 
   it("omits background image style when the URL is empty", () => {
     const { container } = render(() => (
-      <Hero
-        title="T"
-        subtitle="T"
-        ctaText="T"
-        ctaHref={trustedUrl("#")}
-        backgroundImage={trustedUrl("")}
-      />
+      <Hero title="T" subtitle="T" ctaText="T" backgroundImage={trustedUrl("")} />
     ));
     expect(container.querySelector("section")!.style.backgroundImage).toBe("");
   });

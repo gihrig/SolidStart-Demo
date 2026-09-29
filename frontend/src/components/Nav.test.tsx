@@ -15,6 +15,11 @@ vi.mock("~/lib/backend-rpc", () => ({
   },
 }));
 
+// The nav identity is the logged-in User's profile, read through the `jediApi`
+// seam (#119); each test programs the profile the seam returns.
+const { profileGetMock } = vi.hoisted(() => ({ profileGetMock: vi.fn() }));
+vi.mock("~/lib/jedi/jedi-api", () => ({ jediApi: { profile: { get: profileGetMock } } }));
+
 function setupMatchMedia(mobile: boolean) {
   const mql = { matches: mobile, addEventListener: vi.fn(), removeEventListener: vi.fn() };
   window.matchMedia = vi.fn().mockReturnValue(mql) as unknown as typeof window.matchMedia;
@@ -40,6 +45,7 @@ const renderNav = (withLogin = false) =>
 
 describe("<Nav />", () => {
   beforeEach(() => {
+    profileGetMock.mockReset();
     localStorage.removeItem("theme");
     document.documentElement.removeAttribute("data-theme");
     setupMatchMedia(false); // desktop
@@ -83,10 +89,43 @@ describe("<Nav />", () => {
   });
 
   describe("profile avatar", () => {
-    it("shows the mock profile name + avatar when logged out", async () => {
+    // The avatar slot: the profile image, else a teal circle with the first
+    // characters of the name (#119). Logged out, the circle is empty.
+    const avatarSlot = () =>
+      within(screen.getByRole("button", { name: /profile menu/i })).getByTestId("avatar");
+
+    it("shows an empty avatar circle and no name when logged out", async () => {
       renderNav();
-      expect(await screen.findByText("Bart")).toBeInTheDocument();
-      expect(await screen.findByAltText("Bart avatar")).toBeInTheDocument();
+      await Promise.resolve();
+      expect(screen.queryByRole("img")).not.toBeInTheDocument();
+      expect(avatarSlot()).toHaveTextContent(/^$/);
+      expect(profileGetMock).not.toHaveBeenCalled();
+    });
+
+    it("shows the profile's avatar image and name once logged in", async () => {
+      profileGetMock.mockResolvedValue({
+        id: 2,
+        name: "Homer",
+        avatarUrl: "https://example.test/homer.png",
+      });
+      const user = userEvent.setup();
+      renderNav(true);
+      await user.click(screen.getByRole("button", { name: /do-login/i }));
+
+      const img = await screen.findByAltText("Homer avatar");
+      expect(img).toHaveAttribute("src", "https://example.test/homer.png");
+      expect(screen.getByText("Homer")).toBeInTheDocument();
+    });
+
+    it("shows the name's first characters when the profile has no avatar", async () => {
+      profileGetMock.mockResolvedValue({ id: 1000, name: "demo1", avatarUrl: "" });
+      const user = userEvent.setup();
+      renderNav(true);
+      await user.click(screen.getByRole("button", { name: /do-login/i }));
+
+      expect(await screen.findByText("demo1")).toBeInTheDocument();
+      expect(avatarSlot()).toHaveTextContent(/^de$/);
+      expect(screen.queryByRole("img")).not.toBeInTheDocument();
     });
 
     it("offers My Profile + Log In → /fullstack when logged out", async () => {

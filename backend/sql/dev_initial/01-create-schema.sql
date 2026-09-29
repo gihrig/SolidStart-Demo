@@ -385,3 +385,25 @@ ALTER TABLE caption_comment ADD CONSTRAINT fk_caption_comment_owner
 -- The derived comment count groups by caption_id (#118 review). The caption_like
 -- key needs no index: its UNIQUE (caption_id, user_id) constraint leads with it.
 CREATE INDEX idx_caption_comment_caption_id ON caption_comment (caption_id);
+
+-- Hero
+--   The home page banner content (#119): a back-end-owned singleton an Admin
+--   user edits. No owner_id and no cta_href (the CTA runs fixed front-end code,
+--   ADR-0011 addendum). The CHECK keeps it a singleton: the one row is id 1.
+--   The varchar caps back up the write-path hygiene caps (ADR-0019).
+CREATE TABLE hero (
+  -- PK
+  id BIGINT PRIMARY KEY CHECK (id = 1),
+
+  -- Properties
+  title varchar(40) NOT NULL,
+  subtitle varchar(100) NOT NULL,
+  cta_text varchar(20) NOT NULL,
+  background_image varchar(1024) NOT NULL,
+
+  -- Timestamps
+  cid bigint NOT NULL,
+  ctime timestamp with time zone NOT NULL,
+  mid bigint NOT NULL,
+  mtime timestamp with time zone NOT NULL
+);

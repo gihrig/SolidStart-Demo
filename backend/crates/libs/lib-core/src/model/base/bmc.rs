@@ -110,4 +110,14 @@ pub trait DbBmc {
 	fn hygiene_rules() -> &'static [FieldHygiene] {
 		&[]
 	}
+
+	/// Optional URL columns for this entity (ADR-0011, ADR-0019).
+	///
+	/// The shared write path (`base::create`/`create_many`/`update`) rejects an
+	/// unsafe value in each named column (see `check_safe_url`). A URL column
+	/// may also declare a `hygiene_rules` entry; the URL check then runs on the
+	/// cleaned value. Returns `&[]` by default (no URL columns).
+	fn url_fields() -> &'static [&'static str] {
+		&[]
+	}
 }

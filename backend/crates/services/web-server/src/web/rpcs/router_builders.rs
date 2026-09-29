@@ -1,4 +1,6 @@
-use super::{agent_rpc, caption_rpc, category_rpc, conv_rpc, post_rpc};
+use super::{
+	agent_rpc, caption_rpc, category_rpc, conv_rpc, hero_rpc, post_rpc, profile_rpc,
+};
 use rpc_router::{Router, RouterBuilder};
 
 /// The authenticated RPC surface (`/api/rpc`, behind `mw_ctx_require`): every
@@ -7,6 +9,8 @@ pub fn all_rpc_router_builder() -> RouterBuilder {
 	Router::builder()
 		.extend(agent_rpc::rpc_router_builder())
 		.extend(conv_rpc::rpc_router_builder())
+		.extend(hero_rpc::rpc_router_builder())
+		.extend(profile_rpc::rpc_router_builder())
 }
 
 /// The public RPC surface (`/api/rpc-public`, no auth): a hand-picked set of
@@ -20,4 +24,5 @@ pub fn public_rpc_router_builder() -> RouterBuilder {
 		.extend(category_rpc::rpc_router_builder())
 		.extend(post_rpc::rpc_router_builder())
 		.extend(caption_rpc::rpc_router_builder())
+		.extend(hero_rpc::public_rpc_router_builder())
 }

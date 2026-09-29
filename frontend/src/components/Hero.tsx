@@ -4,9 +4,12 @@ export interface HeroProps {
   title: string;
   subtitle: string;
   ctaText: string;
-  ctaHref: SafeUrl;
   backgroundImage: SafeUrl;
 }
+
+// The CTA target is fixed front-end code, not Hero data (#119, ADR-0011
+// addendum). It is a placeholder until an account-creation flow exists.
+const CTA_HREF = "#";
 
 export default function Hero(props: HeroProps) {
   const bgImage = () => {
@@ -26,7 +29,7 @@ export default function Hero(props: HeroProps) {
         <p class="text-lg font-bold mb-5">{props.subtitle}</p>
         <a
           class="inline-flex flex-wrap shrink-0 items-center justify-center px-4 min-h-13 font-semibold rounded-lg text-white transition-transform active:scale-95 bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover) shadow-md"
-          href={props.ctaHref}
+          href={CTA_HREF}
         >
           {props.ctaText}
         </a>

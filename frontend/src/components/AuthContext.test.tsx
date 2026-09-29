@@ -13,6 +13,17 @@ vi.mock("~/lib/backend-rpc", () => ({
   },
 }));
 
+// The nav identity reads the logged-in User's profile through the `jediApi`
+// seam (#119); each test programs the profile the seam returns.
+const { profileGetMock } = vi.hoisted(() => ({ profileGetMock: vi.fn() }));
+vi.mock("~/lib/jedi/jedi-api", () => ({ jediApi: { profile: { get: profileGetMock } } }));
+
+const DEMO1_PROFILE = {
+  id: 1000,
+  name: "demo1",
+  avatarUrl: "https://example.test/demo1.png",
+};
+
 function AuthTestConsumer() {
   const auth = useAuth();
   // Records whether login() rejected — the re-throw removal must keep this "no".
@@ -52,6 +63,7 @@ const renderWithAuth = () =>
 describe("AuthContext", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    profileGetMock.mockResolvedValue(DEMO1_PROFILE);
   });
 
   it("isAuthenticated starts as false", () => {
@@ -132,29 +144,65 @@ describe("AuthContext", () => {
     expect(vi.mocked(backendRpc.auth.login)).toHaveBeenCalledWith("demo1", "welcome");
   });
 
-  // The interim nav identity (ADR-0007): the display name is the login username
-  // once authenticated, else the Jedi mock profile name; the avatar is always the
-  // mock until the back-end merge (#17). Lives here — not inline in <Nav /> — so
-  // the blend is exercisable at the useAuth seam without rendering the nav.
-  describe("nav identity (interim, until #17)", () => {
-    it("shows the mock profile name and avatar when logged out", async () => {
+  // The nav identity (ADR-0007, #119): the logged-in User's real profile, read
+  // through the `jediApi` seam. There is no identity until login. It lives here —
+  // not inline in <Nav /> — so it is exercisable at the useAuth seam without
+  // rendering the nav.
+  describe("nav identity (the real profile)", () => {
+    it("has no identity and fetches no profile when logged out", async () => {
       renderWithAuth();
 
-      await waitFor(() => expect(screen.getByTestId("display-name").textContent).toBe("Bart"));
-      expect(screen.getByTestId("avatar-url").textContent).not.toBe("");
+      await Promise.resolve();
+      expect(screen.getByTestId("display-name").textContent).toBe("none");
+      expect(screen.getByTestId("avatar-url").textContent).toBe("");
+      expect(profileGetMock).not.toHaveBeenCalled();
     });
 
-    it("uses the login username as display name but keeps the mock avatar", async () => {
+    it("reads the display name and avatar from the profile once logged in", async () => {
       const user = userEvent.setup();
       renderWithAuth();
 
-      await waitFor(() => expect(screen.getByTestId("display-name").textContent).toBe("Bart"));
-      const mockAvatar = screen.getByTestId("avatar-url").textContent;
+      await user.click(screen.getByRole("button", { name: /^login$/i }));
+
+      await waitFor(() =>
+        expect(screen.getByTestId("avatar-url").textContent).toBe(DEMO1_PROFILE.avatarUrl),
+      );
+      expect(screen.getByTestId("display-name").textContent).toBe("demo1");
+      expect(profileGetMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("clears the identity on logoff", async () => {
+      const user = userEvent.setup();
+      renderWithAuth();
+      await user.click(screen.getByRole("button", { name: /^login$/i }));
+      await waitFor(() =>
+        expect(screen.getByTestId("avatar-url").textContent).toBe(DEMO1_PROFILE.avatarUrl),
+      );
+
+      await user.click(screen.getByRole("button", { name: /logoff/i }));
+
+      await waitFor(() => expect(screen.getByTestId("display-name").textContent).toBe("none"));
+      expect(screen.getByTestId("avatar-url").textContent).toBe("");
+    });
+
+    it("falls back to the login username with no avatar when the profile fails", async () => {
+      const failure = new Error("RPC Error: boom");
+      profileGetMock.mockRejectedValue(failure);
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const user = userEvent.setup();
+      renderWithAuth();
 
       await user.click(screen.getByRole("button", { name: /^login$/i }));
 
-      await waitFor(() => expect(screen.getByTestId("display-name").textContent).toBe("demo1"));
-      expect(screen.getByTestId("avatar-url").textContent).toBe(mockAvatar);
+      await waitFor(() => expect(screen.getByTestId("status").textContent).toBe("logged-in"));
+      await waitFor(() => expect(profileGetMock).toHaveBeenCalled());
+      expect(screen.getByTestId("display-name").textContent).toBe("demo1");
+      expect(screen.getByTestId("avatar-url").textContent).toBe("");
+      // The failure is logged, not silent.
+      await waitFor(() =>
+        expect(warn).toHaveBeenCalledWith("[AuthContext] Profile load failed:", failure),
+      );
+      warn.mockRestore();
     });
   });
 });

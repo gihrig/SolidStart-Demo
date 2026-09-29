@@ -194,6 +194,11 @@ fixed front-end code (create a new account), so `cta_href` is **dropped**
 ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md) addendum, #110). The
 front-end renders it as a sanitized `HeroView` (Front-end surface). Admin
 write-gating is deferred.
+_Built_ (#119): the `hero` table is a singleton (`CHECK (id = 1)`), seeded from the
+fixture. The public `get_hero` returns the `HeroView` public projection; the
+authenticated `update_hero` edits it. An interim RPC-layer gate admits only an
+Admin user (`Sys`) until the privilege system lands (#181); the model write stays
+unscoped. No RPC creates or deletes it.
 
 ### Real-time feed
 
@@ -340,7 +345,8 @@ internal audit columns (`cid` / `ctime` / `mid` / `mtime`), so an anonymous
 `/api/rpc-public` response never leaks actor ids or timestamps. Each public read names
 one such type; **one read serves it** — `CategoryPublic` + `CategoryBmc::list_public`
 is the first (#116), `PostView` / `AuthorRef` (via `PostBmc`) the second (#117), and
-`CaptionView` (via `CaptionBmc`) the third (#118). The
+`CaptionView` (via `CaptionBmc`) the third (#118), and `HeroView` (via `HeroBmc`) the
+fourth (#119). The
 shared convention is the `PublicProjection` marker in the model `base`: `base::list_public`
 requires it, so the audit-bearing entity row can never be served from a public read.
 A projection may be **enriched** (an author-and-counts `PostView`)
@@ -433,9 +439,14 @@ The seam returns the `Hero` as a sanitized `HeroView` (`types/jedi.ts`) whose UR
 field is typed `SafeUrl` — a brand `string & { __brand: "SafeUrl" }` minted only by
 `sanitizeUrl` / `trustedUrl` (`lib/sanitizeUrl.ts`), so a raw string can't reach a
 URL sink unsanitized ([ADR-0006](docs/adr/0006-safeurl-brand-enforces-sanitize-boundary.md)).
-_Planned_: with `Hero.cta_href` dropped
-([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md) addendum), `HeroView`
-keeps `backgroundImage` as its one `SafeUrl` field; the CTA runs fixed front-end code.
+With `Hero.cta_href` dropped
+([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md) addendum, #119), `HeroView`
+keeps `backgroundImage` as its one `SafeUrl` field; the CTA runs fixed front-end code
+(a `#` placeholder until an account-creation flow exists).
+The back-end also **rejects** an unsafe URL on write: a `DbBmc::url_fields` column
+must be `http(s)://…`, a root-relative path, or a fragment, with no `' " ( ) \`
+(`check_safe_url`, the same rule as `sanitizeUrl`). `Hero.background_image` and
+`User.avatar_url` declare it (#119).
 
 **`useAuth` identity & mock→real swap**:
 The nav avatar's identity is served through the `useAuth` seam
@@ -444,6 +455,10 @@ lands, `avatar_url` becomes a back-end `User` column
 ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md) addendum); the front-end
 swaps mock→real **behind this seam, slice by slice**, and the `useAuth` interface is
 unchanged.
+_Built_ (#119): the identity is the logged-in User's **profile** — the authenticated
+`get_profile` RPC returns the ctx User as an `AuthorRef`. It loads only after login,
+so a logged-out nav shows no name and an empty avatar circle. A User with no
+`avatar_url` shows the first characters of the name in the circle.
 _Avoid_: rewiring components at cutover — the seam absorbs the swap.
 
 ### Sidebar selection & focus

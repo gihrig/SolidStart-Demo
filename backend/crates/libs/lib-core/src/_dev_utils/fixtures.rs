@@ -74,6 +74,34 @@ pub async fn seed_user(
 	Ok(id)
 }
 
+/// Create a login-capable Admin (`Sys`) User (#119). The model has no write
+/// path for `typ` until the privilege system lands (#181), so this dev-only
+/// fixture promotes the new User with one raw update.
+pub async fn seed_admin_user(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	username: &str,
+	pwd_clear: &str,
+) -> model::Result<i64> {
+	let id = model::user::UserBmc::create(
+		ctx,
+		mm,
+		model::user::UserForCreate {
+			username: username.to_string(),
+			pwd_clear: pwd_clear.to_string(),
+		},
+	)
+	.await?;
+
+	sqlx::query(r#"UPDATE "user" SET typ = 'Sys' WHERE id = $1"#)
+		.bind(id)
+		.execute(mm.dbx().db())
+		.await
+		.map_err(|ex| model::Error::Dbx(ex.into()))?;
+
+	Ok(id)
+}
+
 pub async fn clean_users(
 	ctx: &Ctx,
 	mm: &ModelManager,

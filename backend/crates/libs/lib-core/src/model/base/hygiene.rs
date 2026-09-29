@@ -79,8 +79,38 @@ pub fn hygiene_value(
 	Ok(cleaned)
 }
 
-/// Run each entity-declared free-text rule over `fields` inside the shared
-/// write path. A field with no rule passes through untouched.
+/// Reject `value` unless it is a safe URL: an `http://` / `https://` URL, a
+/// root-relative path (`/` then a word character, or `/` alone), or a fragment
+/// (`#…`), with none of the break characters `' " ( ) \`. This mirrors the
+/// front-end `sanitizeUrl` rule (ADR-0006), so a URL the server stores also
+/// passes the front-end check. The server rejects; it never rewrites (ADR-0011).
+pub fn check_safe_url(field: &str, value: &str) -> Result<()> {
+	let lower = value.to_ascii_lowercase();
+	let safe_start = lower.starts_with("http://")
+		|| lower.starts_with("https://")
+		|| value.starts_with('#')
+		|| match value.strip_prefix('/') {
+			Some(rest) => rest
+				.chars()
+				.next()
+				.is_none_or(|c| c.is_ascii_alphanumeric() || c == '_'),
+			None => false,
+		};
+	let has_break_char = value.contains(['\'', '"', '(', ')', '\\']);
+
+	if safe_start && !has_break_char {
+		Ok(())
+	} else {
+		Err(Error::Validation {
+			field: field.to_string(),
+			reason: "unsafe URL".to_string(),
+		})
+	}
+}
+
+/// Run each entity-declared free-text rule and URL rule over `fields` inside
+/// the shared write path. A field with no rule passes through untouched. A URL
+/// field is checked after its free-text rule, on the cleaned value.
 ///
 /// Only a plain string value (`Value::String`) is hygiened; free-text columns
 /// are declared as plain `String` fields, so this matches how a rule is used.
@@ -88,20 +118,29 @@ pub fn hygiene_value(
 /// column) is left unchanged — such columns are enum-typed, not free text.
 pub fn apply_hygiene<MC: DbBmc>(fields: SeaFields) -> Result<SeaFields> {
 	let rules = MC::hygiene_rules();
-	if rules.is_empty() {
+	let url_fields = MC::url_fields();
+	if rules.is_empty() && url_fields.is_empty() {
 		return Ok(fields);
 	}
 
 	let mut list = fields.into_vec();
 	for field in list.iter_mut() {
 		let name = field.iden.to_string();
-		let Some(rule) = rules.iter().find(|r| r.field == name) else {
-			continue;
-		};
 		let SimpleExpr::Value(Value::String(Some(s))) = &field.value else {
 			continue;
 		};
-		let cleaned = hygiene_value(&name, s, rule.max_len)?;
+		let rule = rules.iter().find(|r| r.field == name);
+		let is_url = url_fields.contains(&name.as_str());
+		if rule.is_none() && !is_url {
+			continue;
+		}
+		let cleaned = match rule {
+			Some(rule) => hygiene_value(&name, s, rule.max_len)?,
+			None => s.to_string(),
+		};
+		if is_url {
+			check_safe_url(&name, &cleaned)?;
+		}
 		field.value = SimpleExpr::Value(Value::String(Some(Box::new(cleaned))));
 	}
 
@@ -197,6 +236,44 @@ mod tests {
 		);
 		// The cap counts characters after trim, so trailing spaces do not count.
 		assert_eq!(hygiene_value("title", "abcde  ", Some(5))?, "abcde");
+		Ok(())
+	}
+
+	/// http(s) URLs, root-relative paths, and fragments are safe URLs.
+	#[test]
+	fn test_safe_url_accepted() -> Result<()> {
+		for url in [
+			"https://live.staticflickr.com/65535/49909538937_3255dcf9e7_b.jpg",
+			"http://example.com",
+			"HTTPS://EXAMPLE.COM/A.PNG",
+			"/img/hero.jpg",
+			"/",
+			"#",
+		] {
+			check_safe_url("background_image", url)?;
+		}
+		Ok(())
+	}
+
+	/// A script / data scheme, a protocol-relative URL, an empty value, and a
+	/// URL with a CSS/HTML break character are each rejected as unsafe.
+	#[test]
+	fn test_unsafe_url_rejected() -> Result<()> {
+		for url in [
+			"javascript:alert(1)",
+			"data:image/png;base64,AAAA",
+			"//evil.example.com/a.png",
+			"",
+			"https://example.com/a.png') no-repeat; x:url('",
+			"https://example.com/\"onerror",
+		] {
+			let err = check_safe_url("background_image", url).unwrap_err();
+			assert!(
+				matches!(&err, ModelError::Validation { field, reason }
+					if field == "background_image" && reason.contains("unsafe URL")),
+				"{url:?}: got {err:?}"
+			);
+		}
 		Ok(())
 	}
 }

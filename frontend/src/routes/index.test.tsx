@@ -3,8 +3,8 @@ import { render, screen, within, waitFor, fireEvent } from "@solidjs/testing-lib
 import { MetaProvider } from "@solidjs/meta";
 import { Suspense } from "solid-js";
 
-// The sidebar Categories, the Post feed, and Top Captions now load from the RPCs
-// (ADR-0011, #117, #118); the back-end client is mocked so this route test stays offline. The rows
+// The sidebar Categories, the Post feed, Top Captions, and the Hero now load from
+// the RPCs (ADR-0011, #117, #118, #119); the back-end client is mocked so this route test stays offline. The rows
 // mirror the seeded fixture (frontend/src/lib/jedi/data.json ↔ 02-dev-seed.sql).
 // Posts arrive as the wire `PostView` (snake_case, already ranked [1, 3, 2, 4]).
 vi.mock("~/lib/backend-rpc", async () => {
@@ -67,6 +67,17 @@ vi.mock("~/lib/backend-rpc", async () => {
   return {
     caption: {
       listForPost: (postId: number) => Promise.resolve(captionsFor(postId)),
+    },
+    // The Hero arrives as the wire `HeroView` (#119): the seeded singleton.
+    hero: {
+      get: () =>
+        Promise.resolve({
+          id: 1,
+          title: "Awesome Photos & Captions",
+          subtitle: "Share your favorite Photos from Flickr and add a great caption",
+          cta_text: "Get Started",
+          background_image: "https://example.test/hero.jpg",
+        }),
     },
     category: {
       list: () =>
