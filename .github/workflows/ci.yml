@@ -94,7 +94,7 @@ jobs:
         with:
           workspaces: backend
 
-      - uses: taiki-e/install-action@9114bf4d891761788c546334fd37538eae1bf8b3 # v2
+      - uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2
         with:
           tool: nextest
 
@@ -292,7 +292,7 @@ jobs:
         with:
           toolchain: stable
 
-      - uses: taiki-e/install-action@9114bf4d891761788c546334fd37538eae1bf8b3 # v2
+      - uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2
         with:
           tool: cargo-audit
 
@@ -327,7 +327,7 @@ jobs:
 
       # cargo-deny is PINNED: a new version can change lint output or defaults,
       # so the runner must match the version the policy was written against.
-      - uses: taiki-e/install-action@9114bf4d891761788c546334fd37538eae1bf8b3 # v2
+      - uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2
         with:
           tool: cargo-deny@0.20.2
 
@@ -374,7 +374,7 @@ jobs:
 
       # cargo-udeps is PINNED for reproducibility. Bump it if a newer nightly
       # stops it building — it links cargo's own internals.
-      - uses: taiki-e/install-action@9114bf4d891761788c546334fd37538eae1bf8b3 # v2
+      - uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2
         with:
           tool: cargo-udeps@0.1.61
 
@@ -424,7 +424,7 @@ jobs:
 
       # cargo-auditable writes the embedded section; cargo-audit reads it back.
       # cargo-auditable is PINNED for reproducibility.
-      - uses: taiki-e/install-action@9114bf4d891761788c546334fd37538eae1bf8b3 # v2
+      - uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2
         with:
           tool: cargo-auditable@0.7.6,cargo-audit
 
