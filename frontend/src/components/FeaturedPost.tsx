@@ -1,4 +1,4 @@
-import { For } from "solid-js";
+import { createEffect, createSignal, For, on, Show } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { PostView, CaptionView } from "~/types/jedi";
 import Image from "~/components/Image";
@@ -19,6 +19,22 @@ export interface FeaturedPostProps {
 
 export default function FeaturedPost(props: FeaturedPostProps) {
   const isLiked = () => false;
+  // Add Caption (#121): the button sits on the categories line, the form in the
+  // caption line. A new Post starts on its caption, not on a form left open.
+  const [addingCaption, setAddingCaption] = createSignal(false);
+  let addCaptionRef: HTMLButtonElement | undefined;
+  createEffect(
+    on(
+      () => props.post.id,
+      () => setAddingCaption(false),
+      { defer: true },
+    ),
+  );
+  // Return focus to the button the form was opened from.
+  const closeCaptionForm = () => {
+    setAddingCaption(false);
+    addCaptionRef?.focus();
+  };
   // Like/comment/edit/delete are placeholders until they land on the feed seam.
   const notImplemented = (e: MouseEvent) => {
     e.preventDefault();
@@ -62,6 +78,8 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           caption={props.caption}
           captionsLoaded={props.captionsLoaded ?? false}
           canAdd={props.canAddCaption ?? false}
+          adding={addingCaption()}
+          onClose={closeCaptionForm}
         />
         <div class="flex items-center gap-2 text-sm mb-5">
           <For each={props.post.categories}>
@@ -71,6 +89,17 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               </button>
             )}
           </For>
+          {/* Offered beside an existing caption; a Post with none shows the form. */}
+          <Show when={props.canAddCaption && props.caption && !addingCaption()}>
+            <button
+              ref={(el) => (addCaptionRef = el)}
+              type="button"
+              onClick={() => setAddingCaption(true)}
+              class="theme-button ml-auto"
+            >
+              Add Caption
+            </button>
+          </Show>
         </div>
         <div class="flex items-center justify-between text-sm px-2">
           <a
