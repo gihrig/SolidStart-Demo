@@ -52,10 +52,51 @@ describe("<AddCaptionForm />", () => {
     expect(input.value).toBe("rejected");
   });
 
-  it("caps the input at the back-end limit of 36 characters", () => {
-    const { input } = renderForm();
-    expect(input.maxLength).toBe(36);
+  it("shows a live count against the 36-character cap", async () => {
+    const { user, input } = renderForm();
+    expect(screen.getByText("0/36")).toBeInTheDocument();
+    expect(input).toHaveAttribute("aria-describedby", screen.getByText("0/36").id);
     expect(input.required).toBe(true);
+
+    await user.type(input, "hello");
+    expect(screen.getByText("5/36")).toBeInTheDocument();
+  });
+
+  it("counts as the back-end does: 36 emoji fit (#185 review)", async () => {
+    // `maxLength` counted UTF-16 units, so it stopped this caption at 18 emoji.
+    const caption = "😀".repeat(36);
+    captionAddMock.mockResolvedValue({ ...ADDED, text: caption });
+    const { user, input } = renderForm();
+    expect(input.maxLength).toBe(-1); // no UTF-16 cap on the input
+
+    await user.click(input);
+    await user.paste(caption);
+    expect(screen.getByText("36/36")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add Caption" }));
+
+    expect(captionAddMock).toHaveBeenCalledWith(1, caption);
+  });
+
+  it("over the cap: flags the count and the input, and blocks the submit", async () => {
+    const { user, input } = renderForm();
+
+    await user.click(input);
+    await user.paste("a".repeat(37));
+    expect(screen.getByText("37/36")).toBeInTheDocument();
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("button", { name: "Add Caption" })).toBeDisabled();
+
+    await user.keyboard("{Enter}");
+    expect(captionAddMock).not.toHaveBeenCalled();
+  });
+
+  it("resets the count after a committed submit", async () => {
+    captionAddMock.mockResolvedValue(ADDED);
+    const { user, input } = renderForm();
+
+    await user.type(input, ADDED.text);
+    await user.click(screen.getByRole("button", { name: "Add Caption" }));
+    await waitFor(() => expect(screen.getByText("0/36")).toBeInTheDocument());
   });
 
   it("calls onAdded with the new Caption once the back-end commits it", async () => {
