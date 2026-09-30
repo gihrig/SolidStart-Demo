@@ -1,4 +1,4 @@
-use super::poke::{Agents, Conv, Convs, PokeReceipt, Posts};
+use super::poke::{Agents, Conv, Convs, PokeReceipt, PostCaption, Posts};
 use lib_core::model::conv_msg::ConvMsg;
 use lib_core::realtime::{Channel, WsEvent};
 use tokio::sync::broadcast;
@@ -75,9 +75,9 @@ impl WsState {
 		PokeReceipt::new()
 	}
 
-	// The three Jedi poke helpers below have no caller yet: the like / caption
-	// mutation handlers call them in later tickets (#113). As lib-web public API
-	// they need no dead-code allowance; the tests construct them.
+	// The two like poke helpers below have no caller yet: the like mutation
+	// handlers call them in later tickets (#113). As lib-web public API they need
+	// no dead-code allowance; the tests construct them.
 
 	/// Poke one Post's like-count channel (`post_like:{post_id}`): the like count
 	/// changed (#115). Carries only the `post_id` for routing — the count is
@@ -94,9 +94,11 @@ impl WsState {
 
 	/// Poke one Post's Caption-list channel (`post_caption:{post_id}`): the
 	/// competing Captions changed or re-ranked (#115). Carries only the `post_id`;
-	/// the client refetches the Top Captions list.
-	pub fn broadcast_post_caption(&self, post_id: i64) {
+	/// the client refetches the Top Captions list. Returns the
+	/// [`PokeReceipt<PostCaption>`] `add_caption` needs to build its result (#121).
+	pub fn broadcast_post_caption(&self, post_id: i64) -> PokeReceipt<PostCaption> {
 		self.broadcast(WsEvent::Poke(Channel::PostCaption(post_id)));
+		PokeReceipt::new()
 	}
 }
 

@@ -81,7 +81,14 @@ export default function Home() {
               {(label) => <article class="card-style p-4">No Posts in {label()}</article>}
             </Match>
             <Match when={selectedPost()}>
-              {(post) => <FeaturedPost post={post()} caption={selectedCaption()} />}
+              {(post) => (
+                <FeaturedPost
+                  post={post()}
+                  caption={selectedCaption()}
+                  canAddCaption={isAuthenticated()}
+                  captionsLoaded={visibleCaptions() !== undefined}
+                />
+              )}
             </Match>
           </Switch>
         </main>

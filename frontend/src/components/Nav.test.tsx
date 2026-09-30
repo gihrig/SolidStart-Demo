@@ -117,14 +117,14 @@ describe("<Nav />", () => {
       expect(screen.getByText("Homer")).toBeInTheDocument();
     });
 
-    it("shows the name's first characters when the profile has no avatar", async () => {
+    it("shows the name's first two characters, capitalized, when the profile has no avatar", async () => {
       profileGetMock.mockResolvedValue({ id: 1000, name: "demo1", avatarUrl: "" });
       const user = userEvent.setup();
       renderNav(true);
       await user.click(screen.getByRole("button", { name: /do-login/i }));
 
       expect(await screen.findByText("demo1")).toBeInTheDocument();
-      expect(avatarSlot()).toHaveTextContent(/^de$/);
+      expect(avatarSlot()).toHaveTextContent(/^DE$/);
       expect(screen.queryByRole("img")).not.toBeInTheDocument();
     });
 

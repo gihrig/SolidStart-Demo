@@ -68,6 +68,7 @@ mod tests {
 	use axum_test::TestServer;
 	use lib_core::_dev_utils::{
 		self, clean_agents, clean_convs, clean_posts, clean_users, seed_admin_user,
+		seed_post,
 	};
 	use lib_core::ctx::Ctx;
 	use lib_core::model::user::{UserBmc, UserForCreate};
@@ -809,6 +810,88 @@ mod tests {
 		assert!(rx.try_recv().is_err(), "exactly one poke");
 
 		// -- Clean
+		clean_posts(&mm, fx_title).await?;
+
+		Ok(())
+	}
+
+	/// A logged-in User adds a Caption (#121): `add_caption` returns the
+	/// `CaptionView` with the caller as author, and pokes `post_caption:{post_id}`
+	/// once. An over-cap text or an unknown Post is rejected (400) with no poke,
+	/// and an anonymous caller is rejected (401).
+	#[serial]
+	#[tokio::test]
+	async fn test_web_add_caption_ok() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let fx_title = "test_web_add_caption_ok";
+		let post_id = seed_post(&Ctx::root_ctx(), &mm, fx_title, &[1]).await?;
+		let add = |post_id: i64, text: &str| {
+			json!({
+				"jsonrpc": "2.0", "id": 1, "method": "add_caption",
+				"params": { "data": { "post_id": post_id, "text": text } }
+			})
+		};
+		let ws_state = Arc::new(WsState::new());
+		let mut rx = ws_state.tx.subscribe();
+		let anon = TestServer::new(app(mm.clone(), ws_state.clone()));
+		let mut server = TestServer::new(app(mm.clone(), ws_state.clone()));
+		server.save_cookies();
+		server
+			.post("/api/login")
+			.json(&json!({ "username": "demo1", "pwd": "welcome" }))
+			.await
+			.assert_status_ok();
+
+		// -- Exec & Check: an anonymous caller is rejected.
+		anon.post("/api/rpc")
+			.json(&add(post_id, "anon caption"))
+			.await
+			.assert_status(axum::http::StatusCode::UNAUTHORIZED);
+
+		// -- Exec & Check: an over-cap text and an unknown Post are rejected, and
+		//    nothing is poked.
+		server
+			.post("/api/rpc")
+			.json(&add(post_id, &"a".repeat(37)))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		server
+			.post("/api/rpc")
+			.json(&add(999_999, "orphan"))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		assert!(rx.try_recv().is_err(), "a rejected add must not poke");
+
+		// -- Exec: a valid add.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&add(post_id, "Use the Force, Kitty"))
+			.await
+			.json();
+
+		// -- Check: the returned view carries the caller as author.
+		assert_eq!(
+			body.pointer("/result/data/text").and_then(Value::as_str),
+			Some("Use the Force, Kitty"),
+			"got {body}"
+		);
+		assert_eq!(
+			body.pointer("/result/data/post_id").and_then(Value::as_i64),
+			Some(post_id)
+		);
+		assert_eq!(
+			body.pointer("/result/data/author/name")
+				.and_then(Value::as_str),
+			Some("demo1")
+		);
+
+		// -- Check: the Post's Caption feed was poked once.
+		let event = rx.try_recv().expect("add_caption pokes post_caption");
+		assert_eq!(event.channel().key(), format!("post_caption:{post_id}"));
+		assert!(rx.try_recv().is_err(), "exactly one poke");
+
+		// -- Clean (the Post delete cascades its Captions)
 		clean_posts(&mm, fx_title).await?;
 
 		Ok(())

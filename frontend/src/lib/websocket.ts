@@ -28,6 +28,9 @@ export interface MessageFeedOptions {
   // A `posts` poke: the Jedi Post list may have changed (#117). Contentless — the
   // consumer refetches through the scoped public RPC.
   onPostsUpdate?: () => void;
+  // A `post_caption` poke: one Post's Caption list may have changed (#121). It
+  // carries only the Post id; the consumer refetches that Post's Top Captions.
+  onPostCaptionUpdate?: (postId: number) => void;
   onError?: (error: string) => void;
 }
 
@@ -169,6 +172,8 @@ export function createFeed(): MessageFeedFactory {
               for (const c of consumers) c.onConvUpdate?.();
             } else if (data.kind === "posts") {
               for (const c of consumers) c.onPostsUpdate?.();
+            } else if (data.kind === "post_caption") {
+              for (const c of consumers) c.onPostCaptionUpdate?.(data.id);
             }
           }
         } catch (e) {

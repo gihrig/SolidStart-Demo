@@ -3,6 +3,7 @@ import type {
   AgentForCreate,
   AgentForUpdate,
   AuthorRef,
+  CaptionForCreate,
   CaptionView,
   CategoryPublic,
   Conv,
@@ -184,10 +185,13 @@ export function createRpcClient() {
   // Caption RPC methods. Every Caption is public (#106), so the read posts to the
   // public surface (#118). `list_captions_for_post` takes the Post id as `id` and
   // returns that Post's enriched `CaptionView`s, ranked by like count by the
-  // back-end; the front-end never re-ranks. Caption mutations land later.
+  // back-end; the front-end never re-ranks. `add_caption` is a mutation, so it
+  // posts to the authenticated surface; the back-end sets the caller as the
+  // Owner (#121).
   const caption = {
     listForPost: (postId: number) =>
       rpcCall<CaptionView[]>("list_captions_for_post", { id: postId }, "/api/rpc-public"),
+    add: (data: CaptionForCreate) => rpcCall<CaptionView>("add_caption", { data }),
   };
 
   // Hero RPC methods. The Hero is the home page banner singleton (#119). The

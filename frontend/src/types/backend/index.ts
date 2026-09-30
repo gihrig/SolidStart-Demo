@@ -7,6 +7,7 @@
 import type { Agent as AgentWire } from "~backend-bindings/Agent.d";
 import type { AuthorRef as AuthorRefWire } from "~backend-bindings/AuthorRef.d";
 import type { CaptionView as CaptionViewWire } from "~backend-bindings/CaptionView.d";
+import type { CaptionForCreate as CaptionForCreateWire } from "~backend-bindings/CaptionForCreate.d";
 import type { CategoryPublic as CategoryPublicWire } from "~backend-bindings/CategoryPublic.d";
 import type { Conv as ConvWire } from "~backend-bindings/Conv.d";
 import type { HeroView as HeroViewWire } from "~backend-bindings/HeroView.d";
@@ -54,6 +55,8 @@ export type PostForCreate = Omit<PostForCreateWire, "category_ids"> & {
 export type CaptionView = Omit<NumericIds<CaptionViewWire>, "author"> & {
   author: AuthorRef;
 };
+/** The `add_caption` input (#121): the Post id and the Caption text. */
+export type CaptionForCreate = NumericIds<CaptionForCreateWire>;
 /** The Hero singleton's public projection (#119, ADR-0021): no audit columns, no CTA href. */
 export type HeroView = NumericIds<HeroViewWire>;
 export type Conv = NumericIds<ConvWire>;

@@ -11,6 +11,18 @@ describe("<Author />", () => {
     expect(screen.getByText("Test Author")).toBeInTheDocument();
   });
 
+  it("shows capitalized initials in a circle, and no image, when there is no avatar", () => {
+    render(() => <Author avatarSrc={trustedUrl("")} name="demo1" />);
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.getByTestId("author-initials")).toHaveTextContent(/^DE$/);
+    expect(screen.getByText("demo1")).toBeInTheDocument();
+  });
+
+  it("shows the initials inside the author link too", () => {
+    render(() => <Author avatarSrc={trustedUrl("")} name="demo1" href={trustedUrl("#")} />);
+    expect(screen.getByRole("link")).toContainElement(screen.getByTestId("author-initials"));
+  });
+
   it("uses custom href when provided", () => {
     render(() => (
       <Author

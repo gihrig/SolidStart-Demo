@@ -3,6 +3,7 @@ import { useDisclosure } from "~/lib/useDisclosure";
 import { useAuth } from "~/components/AuthContext";
 import CreatePostDialog from "~/components/CreatePostDialog";
 import Icon from "~/components/Icon";
+import InitialsAvatar from "~/components/InitialsAvatar";
 import ThemeToggle from "~/components/ThemeToggle";
 
 const NAV_LINKS = [
@@ -11,22 +12,12 @@ const NAV_LINKS = [
   { href: "/fullstack", label: "FullStack" },
 ] as const;
 
-// How many leading characters of the name fit in the avatar circle (#119).
-const AVATAR_INITIALS = 2;
-
 export default function Nav() {
   let dropdownRef: HTMLDivElement | undefined;
 
   // Identity (avatar + display name) comes from the useAuth seam: the logged-in
   // User's profile lives there, not here (see ADR-0007).
   const { isAuthenticated, logoff, displayName, avatarUrl } = useAuth();
-
-  // A User with no avatar gets the name's first characters in the circle;
-  // `Array.from` splits by code point, so an emoji is never cut in half.
-  const initials = () =>
-    Array.from(displayName() ?? "")
-      .slice(0, AVATAR_INITIALS)
-      .join("");
 
   // The profile dropdown is a popup — hidden (and inert) whenever closed, on
   // every viewport — dismissed by Escape or a click outside its wrapping <div>.
@@ -71,15 +62,7 @@ export default function Nav() {
             >
               <Show
                 when={avatarUrl()}
-                fallback={
-                  <span
-                    data-testid="avatar"
-                    aria-hidden="true"
-                    class="flex items-center justify-center h-8 w-8 rounded-full bg-teal-200 text-gray-900 text-sm font-bold overflow-hidden"
-                  >
-                    {initials()}
-                  </span>
-                }
+                fallback={<InitialsAvatar name={displayName() ?? ""} data-testid="avatar" />}
               >
                 {(url) => (
                   <img
