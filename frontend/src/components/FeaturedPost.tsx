@@ -65,8 +65,10 @@ export default function FeaturedPost(props: FeaturedPostProps) {
         href={props.post.sourceUrl}
         loading="lazy"
       />
-      {/* Body: author, caption, tags, actions */}
-      <div class="p-4 pb-2">
+      {/* Body: author, caption, tags, actions. The Comments line sits two line
+          heights (40px) below the categories and above the card's bottom edge:
+          pb-6 here plus the card's own pb-4. */}
+      <div class="p-4 pb-6">
         <Author
           avatarSrc={props.post.author.avatarUrl}
           name={props.post.author.name}
@@ -81,7 +83,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           adding={addingCaption()}
           onClose={closeCaptionForm}
         />
-        <div class="flex items-center gap-2 text-sm mb-5">
+        <div class="flex items-center gap-2 text-sm mb-10">
           <For each={props.post.categories}>
             {(c) => (
               <button type="button" onClick={() => {}} class="theme-button">
@@ -113,7 +115,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           </a>
           <div class="flex items-center gap-4">
             <div class="flex items-center gap-1">
-              <Icon name="fire-heart" class="w-5 -mt-1" />
+              <Icon name="fire-heart" class="w-5 h-5 -mt-1" />
               <span class="font-light text-(--theme-card-fg) ml-2">
                 <span class="sr-only">Likes: </span>
                 {props.post.likeCount}
