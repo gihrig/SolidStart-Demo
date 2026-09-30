@@ -43,6 +43,17 @@ describe("<FeaturedPost />", () => {
     expect(screen.queryByText(caption.text)).not.toBeInTheDocument();
   });
 
+  it("shows the Add Caption button beside the caption for a logged-in User (#121)", () => {
+    render(() => <FeaturedPost post={post} caption={caption} canAddCaption captionsLoaded />);
+    expect(screen.getByText(caption.text)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Caption" })).toBeInTheDocument();
+  });
+
+  it("shows no Add Caption button by default (anonymous)", () => {
+    render(() => <FeaturedPost post={post} caption={caption} />);
+    expect(screen.queryByRole("button", { name: "Add Caption" })).toBeNull();
+  });
+
   it("links to the photographer's flickr page", () => {
     render(() => <FeaturedPost post={post} caption={caption} />);
     const link = screen.getByRole("link", { name: /felicity berkleef/i });

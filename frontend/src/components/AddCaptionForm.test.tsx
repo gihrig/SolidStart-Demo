@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { CaptionView } from "~/types/jedi";
-import AddCaptionForm from "./AddCaptionForm";
+import AddCaptionForm, { type AddCaptionFormProps } from "./AddCaptionForm";
 
 const ADDED: CaptionView = {
   id: 99,
@@ -21,9 +21,9 @@ beforeEach(() => {
   captionAddMock.mockReset();
 });
 
-function renderForm() {
+function renderForm(props: Partial<AddCaptionFormProps> = {}) {
   const user = userEvent.setup();
-  render(() => <AddCaptionForm postId={1} api={api} />);
+  render(() => <AddCaptionForm postId={1} api={api} {...props} />);
   return { user, input: screen.getByLabelText("Your caption") as HTMLInputElement };
 }
 
@@ -57,15 +57,56 @@ describe("<AddCaptionForm />", () => {
     expect(input.required).toBe(true);
   });
 
-  it("disables the submit while the Caption is in flight", async () => {
+  it("calls onAdded with the new Caption once the back-end commits it", async () => {
+    captionAddMock.mockResolvedValue(ADDED);
+    const onAdded = vi.fn();
+    const { user, input } = renderForm({ onAdded });
+
+    await user.type(input, ADDED.text);
+    await user.click(screen.getByRole("button", { name: "Add Caption" }));
+
+    await waitFor(() => expect(onAdded).toHaveBeenCalledWith(ADDED));
+  });
+
+  it("does not call onAdded when the back-end rejects the Caption", async () => {
+    captionAddMock.mockRejectedValue(new Error("text: too long"));
+    const onAdded = vi.fn();
+    const { user, input } = renderForm({ onAdded });
+
+    await user.type(input, "rejected");
+    await user.click(screen.getByRole("button", { name: "Add Caption" }));
+
+    await screen.findByRole("alert");
+    expect(onAdded).not.toHaveBeenCalled();
+  });
+
+  it("offers Cancel only when onCancel is given", async () => {
+    const onCancel = vi.fn();
+    const { user } = renderForm({ onCancel });
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it("has no Cancel without onCancel", () => {
+    renderForm();
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+  });
+
+  it("focuses the input on mount only when autofocus is set", () => {
+    const { input } = renderForm({ autofocus: true });
+    expect(input).toHaveFocus();
+  });
+
+  it("disables the submit and Cancel while the Caption is in flight", async () => {
     let resolve!: (c: CaptionView) => void;
     captionAddMock.mockReturnValue(new Promise((r) => (resolve = r)));
-    const { user, input } = renderForm();
+    const { user, input } = renderForm({ onCancel: vi.fn() });
 
     await user.type(input, ADDED.text);
     await user.click(screen.getByRole("button", { name: "Add Caption" }));
 
     expect(screen.getByRole("button", { name: "Adding…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
     resolve(ADDED);
     await waitFor(() => expect(screen.getByRole("button", { name: "Add Caption" })).toBeEnabled());
   });

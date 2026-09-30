@@ -1,6 +1,7 @@
-import { Show } from "solid-js";
+import { onMount, Show } from "solid-js";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
+import type { CaptionView } from "~/types/jedi";
 
 // Mirrors the back-end cap (`CaptionBmc::hygiene_rules`); the back-end stays the
 // authoritative check.
@@ -9,6 +10,12 @@ const CAPTION_MAX_LENGTH = 36;
 export interface AddCaptionFormProps {
   /** The Post the Caption competes on. */
   postId: number;
+  /** Called with the new Caption once the back-end has committed it. */
+  onAdded?: (caption: CaptionView) => void;
+  /** When given, the form offers a Cancel button that calls it. */
+  onCancel?: () => void;
+  /** Focus the input on mount — set when a click opened the form. */
+  autofocus?: boolean;
   /** The Jedi seam slice the form uses. Defaults to the real `jediApi`; a test
    *  injects an in-memory stand-in (the inject-or-default idiom). */
   api?: { captions: Pick<JediApi["captions"], "add"> };
@@ -22,8 +29,13 @@ export interface AddCaptionFormProps {
  */
 export default function AddCaptionForm(props: AddCaptionFormProps) {
   const api = props.api ?? jediApi;
+  let inputRef: HTMLInputElement | undefined;
   const add = createRpcAction((text: string) => api.captions.add(props.postId, text), {
     fallbackError: "Could not add the Caption",
+  });
+
+  onMount(() => {
+    if (props.autofocus) inputRef?.focus();
   });
 
   const handleSubmit = async (e: SubmitEvent) => {
@@ -31,11 +43,14 @@ export default function AddCaptionForm(props: AddCaptionFormProps) {
     const form = e.currentTarget as HTMLFormElement;
     const text = new FormData(form).get("text");
     const added = await add.run(typeof text === "string" ? text : "");
-    if (added) form.reset();
+    if (added) {
+      form.reset();
+      props.onAdded?.(added);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} class="card-style mt-4 p-4 space-y-2">
+    <form onSubmit={handleSubmit} class="space-y-2">
       <Show when={add.error()}>
         <div role="alert" class="rounded bg-red-100 p-2 text-red-700">
           {add.error()}
@@ -46,6 +61,7 @@ export default function AddCaptionForm(props: AddCaptionFormProps) {
       </label>
       <div class="flex gap-2">
         <input
+          ref={(el) => (inputRef = el)}
           id="add-caption-text"
           name="text"
           type="text"
@@ -53,6 +69,16 @@ export default function AddCaptionForm(props: AddCaptionFormProps) {
           required
           class="block w-full rounded border border-(--theme-muted) bg-(--theme-background) px-3 py-2 text-(--theme-foreground)"
         />
+        <Show when={props.onCancel}>
+          <button
+            type="button"
+            disabled={add.pending()}
+            onClick={() => props.onCancel?.()}
+            class="theme-button shrink-0 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </Show>
         <button
           type="submit"
           disabled={add.pending()}

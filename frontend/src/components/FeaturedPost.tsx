@@ -4,12 +4,17 @@ import type { PostView, CaptionView } from "~/types/jedi";
 import Image from "~/components/Image";
 import Author from "~/components/Author";
 import Icon from "~/components/Icon";
+import PostCaption from "~/components/PostCaption";
 
 export interface FeaturedPostProps {
   post: PostView;
   /** The winning Caption shown on the post (a first-class entity, not bare
    *  text); undefined until the post's captions load or when it has none. */
   caption?: CaptionView;
+  /** Whether the viewer may add a Caption (a logged-in User, #121). */
+  canAddCaption?: boolean;
+  /** False while the post's captions load, so the caption form never flashes. */
+  captionsLoaded?: boolean;
 }
 
 export default function FeaturedPost(props: FeaturedPostProps) {
@@ -52,7 +57,12 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           href={trustedUrl("#")}
           onClick={notImplemented}
         />
-        <p class="text-5xl mb-10 px-4 font-hero">{props.caption?.text ?? ""}</p>
+        <PostCaption
+          postId={props.post.id}
+          caption={props.caption}
+          captionsLoaded={props.captionsLoaded ?? false}
+          canAdd={props.canAddCaption ?? false}
+        />
         <div class="flex items-center gap-2 text-sm mb-5">
           <For each={props.post.categories}>
             {(c) => (
