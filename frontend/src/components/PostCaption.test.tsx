@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
+import { createSignal } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { CaptionView } from "~/types/jedi";
@@ -72,6 +73,25 @@ describe("<PostCaption />", () => {
 
     expect(captionAddMock).toHaveBeenCalledWith(1, "A new contender");
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+  });
+
+  it("an earlier Post's submit does not close the form opened on the next Post (#185 review)", async () => {
+    let resolve!: (c: CaptionView) => void;
+    captionAddMock.mockReturnValue(new Promise((r) => (resolve = r)));
+    const [postId, setPostId] = createSignal(1);
+    const user = userEvent.setup();
+    render(() => <PostCaption {...defaults} adding postId={postId()} />);
+
+    // Submit on Post 1, then move to Post 2 while the add is in flight.
+    await user.type(input()!, "for post one");
+    await user.click(screen.getByRole("button", { name: "Add Caption" }));
+    setPostId(2);
+    resolve({ ...CAPTION, id: 99, text: "for post one" });
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Post 2's form stays open: the stale submit reports nothing.
+    expect(onClose).not.toHaveBeenCalled();
+    expect(input()).toBeInTheDocument();
   });
 
   it("shows the form, without Cancel or focus, when a logged-in User sees a Post with no caption", () => {

@@ -173,9 +173,11 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     setSelectedPostId(id);
   };
 
+  // Each result carries the Post id it was fetched for, so even an empty list
+  // belongs to one Post (#185 review).
   const [topCaptions, { refetch: refetchCaptions }] = createResource(
     () => selectedPost()?.id,
-    (postId) => api.captions.listForPost(postId),
+    async (postId) => ({ postId, captions: await api.captions.listForPost(postId) }),
   );
   // Read `.latest`, not `topCaptions()`: a suspending read here re-triggered
   // Suspense on every post re-key, reconciling the route subtree and blurring
@@ -183,10 +185,11 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // during a refetch it still holds the PREVIOUS post's captions — for the whole
   // network round trip (#118). So only captions of the selected post count; while
   // the new post's captions load, there are none (`undefined`), never stale ones.
+  // Match on the result's Post id, not on each caption's: `[].every(...)` is
+  // true, so the last post's empty list would pass as this post's "none".
   const selectedPostCaptions = (): CaptionView[] | undefined => {
-    const captions = topCaptions.latest;
-    const postId = selectedPost()?.id;
-    return captions?.every((c) => c.postId === postId) ? captions : undefined;
+    const result = topCaptions.latest;
+    return result?.postId === selectedPost()?.id ? result?.captions : undefined;
   };
   const winningCaption = () => selectedPostCaptions()?.[0];
 

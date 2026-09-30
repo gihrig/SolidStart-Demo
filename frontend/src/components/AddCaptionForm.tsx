@@ -1,4 +1,4 @@
-import { onMount, Show } from "solid-js";
+import { onCleanup, onMount, Show } from "solid-js";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import type { CaptionView } from "~/types/jedi";
@@ -37,13 +37,18 @@ export default function AddCaptionForm(props: AddCaptionFormProps) {
   onMount(() => {
     if (props.autofocus) inputRef?.focus();
   });
+  // A submit can outlive its form: the owner remounts the form for a new Post.
+  // A stale result must not report, or it would close the next Post's form and
+  // move focus (#185 review). The Caption itself is still saved.
+  let unmounted = false;
+  onCleanup(() => (unmounted = true));
 
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
     const form = e.currentTarget as HTMLFormElement;
     const text = new FormData(form).get("text");
     const added = await add.run(typeof text === "string" ? text : "");
-    if (added) {
+    if (added && !unmounted) {
       form.reset();
       props.onAdded?.(added);
     }

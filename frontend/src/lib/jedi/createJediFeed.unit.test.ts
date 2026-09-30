@@ -323,6 +323,38 @@ describe("createJediFeed — the captions of the selected post", () => {
       expect(feed.visibleCaptions()?.every((c) => c.postId === 2)).toBe(true);
       expect(feed.selectedCaption()?.postId).toBe(2);
     }));
+
+  it("an empty list from the previous post does not read as the new post's (#185 review)", async () => {
+    // Post 1 has no captions; post 2's load is held in flight. `[].every(...)` is
+    // true, so an ownerless empty list would pass as post 2's "none" and show the
+    // caption form before post 2's real captions arrive.
+    let release!: () => void;
+    captionListForPostMock.mockImplementation((postId: number) =>
+      postId === 1
+        ? Promise.resolve([])
+        : new Promise((resolve) => {
+            release = () => resolve(captionsFor(postId));
+          }),
+    );
+    await createRoot(async (dispose) => {
+      const feed = createJediFeed({ api });
+      await tick();
+      await tick();
+      expect(feed.visibleCaptions()).toEqual([]); // post 1: loaded, none
+
+      feed.selectPost(2);
+      await tick();
+      await tick();
+      expect(feed.visibleCaptions()).toBeUndefined(); // post 2: still loading
+
+      release();
+      await tick();
+      await tick();
+      expect(feed.visibleCaptions()).toEqual(captionsFor(2));
+
+      dispose();
+    });
+  });
 });
 
 describe("createJediFeed — the realtime posts poke (#117)", () => {

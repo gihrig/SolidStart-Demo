@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
+import { createSignal, Show } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { CaptionView } from "~/types/jedi";
@@ -77,6 +78,27 @@ describe("<AddCaptionForm />", () => {
     await user.click(screen.getByRole("button", { name: "Add Caption" }));
 
     await screen.findByRole("alert");
+    expect(onAdded).not.toHaveBeenCalled();
+  });
+
+  it("does not call onAdded when it resolves after the form unmounted (#185 review)", async () => {
+    let resolve!: (c: CaptionView) => void;
+    captionAddMock.mockReturnValue(new Promise((r) => (resolve = r)));
+    const onAdded = vi.fn();
+    const [shown, setShown] = createSignal(true);
+    const user = userEvent.setup();
+    render(() => (
+      <Show when={shown()}>
+        <AddCaptionForm postId={1} api={api} onAdded={onAdded} />
+      </Show>
+    ));
+
+    await user.type(screen.getByLabelText("Your caption"), ADDED.text);
+    await user.click(screen.getByRole("button", { name: "Add Caption" }));
+    setShown(false);
+    resolve(ADDED);
+    await new Promise((r) => setTimeout(r, 0));
+
     expect(onAdded).not.toHaveBeenCalled();
   });
 
