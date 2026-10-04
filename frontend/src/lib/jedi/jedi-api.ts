@@ -10,6 +10,7 @@ import { ICON_NAMES, type IconName } from "~/components/Icon";
 import type {
   CategoryPublic,
   PostView as PostViewWire,
+  PostLikeView as PostLikeViewWire,
   CaptionView as CaptionViewWire,
   AuthorRef as AuthorRefWire,
   HeroView as HeroViewWire,
@@ -19,6 +20,7 @@ import type {
   HeroView,
   AuthorRef,
   PostDraft,
+  PostLike,
   PostView,
   CaptionView,
 } from "~/types/jedi";
@@ -65,6 +67,12 @@ const toPostView = (p: PostViewWire): PostView => ({
   categories: p.categories.map(toJediCategory),
   likeCount: p.like_count,
   commentCount: p.comment_count,
+});
+
+const toPostLike = (l: PostLikeViewWire): PostLike => ({
+  postId: l.post_id,
+  likeCount: l.like_count,
+  liked: l.liked,
 });
 
 // The wire `comment_count` is dropped here: front-end Caption comment counts
@@ -117,6 +125,12 @@ export const jediApi = {
           category_ids: draft.categoryIds,
         }),
       ),
+    // Real back-end calls (#122): the viewer's like state needs a login. The
+    // toggle sends the wanted state, so a repeat is a no-op; the back-end pokes
+    // `post_like` and `posts`, so every client refetches the count and ranking.
+    getLike: async (postId: number): Promise<PostLike> => toPostLike(await postRpc.getLike(postId)),
+    toggleLike: async (postId: number, liked: boolean): Promise<PostLike> =>
+      toPostLike(await postRpc.toggleLike({ post_id: postId, liked })),
   },
   captions: {
     // Real back-end call now (#118): Top Captions come from

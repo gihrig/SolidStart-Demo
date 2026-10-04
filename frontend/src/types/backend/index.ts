@@ -13,6 +13,8 @@ import type { Conv as ConvWire } from "~backend-bindings/Conv.d";
 import type { HeroView as HeroViewWire } from "~backend-bindings/HeroView.d";
 import type { PostView as PostViewWire } from "~backend-bindings/PostView.d";
 import type { PostForCreate as PostForCreateWire } from "~backend-bindings/PostForCreate.d";
+import type { PostLikeView as PostLikeViewWire } from "~backend-bindings/PostLikeView.d";
+import type { PostLikeForToggle as PostLikeForToggleWire } from "~backend-bindings/PostLikeForToggle.d";
 import type { ConvMsg as ConvMsgWire } from "~backend-bindings/ConvMsg.d";
 import type { ConvUser as ConvUserWire } from "~backend-bindings/ConvUser.d";
 import type { User as UserWire } from "~backend-bindings/User.d";
@@ -47,6 +49,10 @@ export type PostView = Omit<NumericIds<PostViewWire>, "author" | "categories"> &
 export type PostForCreate = Omit<PostForCreateWire, "category_ids"> & {
   category_ids: number[];
 };
+/** The caller's like state of one Post (#122): the derived count + `liked`. */
+export type PostLikeView = NumericIds<PostLikeViewWire>;
+/** The `toggle_post_like` input (#122): the Post id and the wanted like state. */
+export type PostLikeForToggle = NumericIds<PostLikeForToggleWire>;
 /**
  * The enriched public Caption projection (#118, ADR-0021). As with
  * {@link PostView}, the nested `author` carries its own bigint id, so it is

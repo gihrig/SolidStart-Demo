@@ -32,6 +32,14 @@ export interface PostView {
   commentCount: number;
 }
 
+/** The viewer's like state of one Post (#122): the live count, and whether the
+ *  logged-in viewer likes it. The anonymous `PostView` cannot carry `liked`. */
+export interface PostLike {
+  postId: number;
+  likeCount: number;
+  liked: boolean;
+}
+
 /** A new Post as the create form submits it (#120): the seam maps it to the
  *  wire `PostForCreate`. The back-end validates and rejects unsafe URLs. */
 export interface PostDraft {

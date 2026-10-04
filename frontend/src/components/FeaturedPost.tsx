@@ -1,6 +1,7 @@
 import { createEffect, createSignal, For, on, Show } from "solid-js";
+import { createRpcAction } from "~/lib/createRpcAction";
 import { trustedUrl } from "~/lib/sanitizeUrl";
-import type { PostView, CaptionView } from "~/types/jedi";
+import type { PostView, CaptionView, PostLike } from "~/types/jedi";
 import Image from "~/components/Image";
 import Author from "~/components/Author";
 import Icon from "~/components/Icon";
@@ -15,10 +16,24 @@ export interface FeaturedPostProps {
   canAddCaption?: boolean;
   /** False while the post's captions load, so the caption form never flashes. */
   captionsLoaded?: boolean;
+  /** The viewer's like state of this Post (#122). Undefined for an anonymous
+   *  visitor or while it loads; the Like button is then disabled and the count
+   *  comes from the Post. */
+  like?: PostLike;
+  /** Like or unlike this Post; the opposite of `like.liked`. */
+  onToggleLike?: () => Promise<void>;
 }
 
 export default function FeaturedPost(props: FeaturedPostProps) {
-  const isLiked = () => false;
+  // The live count: the viewer's like state once it loads, else the Post's.
+  const likeCount = () => props.like?.likeCount ?? props.post.likeCount;
+  const toggleLike = createRpcAction(
+    async () => {
+      await props.onToggleLike?.();
+      return true;
+    },
+    { fallbackError: "Could not update the Like" },
+  );
   // Add Caption (#121): the button sits on the categories line, the form in the
   // caption line. A new Post starts on its caption, not on a form left open.
   const [addingCaption, setAddingCaption] = createSignal(false);
@@ -35,7 +50,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
     setAddingCaption(false);
     addCaptionRef?.focus();
   };
-  // Like/comment/edit/delete are placeholders until they land on the feed seam.
+  // Comment/edit/delete are placeholders until they land on the feed seam.
   const notImplemented = (e: MouseEvent) => {
     e.preventDefault();
     alert("Not implemented");
@@ -103,6 +118,11 @@ export default function FeaturedPost(props: FeaturedPostProps) {
             </button>
           </Show>
         </div>
+        <Show when={toggleLike.error()}>
+          <div role="alert" class="rounded bg-red-100 p-2 mb-2 text-red-700 text-sm">
+            {toggleLike.error()}
+          </div>
+        </Show>
         <div class="flex items-center justify-between text-sm px-2">
           <a
             class="font-bold hover:underline rounded"
@@ -118,14 +138,15 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               <Icon name="fire-heart" class="w-5 h-5 -mt-1" />
               <span class="font-light text-(--theme-card-fg) ml-2">
                 <span class="sr-only">Likes: </span>
-                {props.post.likeCount}
+                {likeCount()}
               </span>
             </div>
             <button
               type="button"
-              onClick={() => {}}
-              class="theme-button"
-              aria-pressed={isLiked()}
+              onClick={() => void toggleLike.run(undefined)}
+              disabled={!props.like || toggleLike.pending()}
+              class="theme-button disabled:opacity-50"
+              aria-pressed={props.like?.liked ?? false}
               aria-label={`Like post by ${props.post.author.name}`}
             >
               Like

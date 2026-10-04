@@ -1,4 +1,4 @@
-use super::poke::{Agents, Conv, Convs, PokeReceipt, PostCaption, Posts};
+use super::poke::{Agents, Conv, Convs, PokeReceipt, PostCaption, PostLike, Posts};
 use lib_core::model::conv_msg::ConvMsg;
 use lib_core::realtime::{Channel, WsEvent};
 use tokio::sync::broadcast;
@@ -75,16 +75,18 @@ impl WsState {
 		PokeReceipt::new()
 	}
 
-	// The two like poke helpers below have no caller yet: the like mutation
-	// handlers call them in later tickets (#113). As lib-web public API they need
-	// no dead-code allowance; the tests construct them.
-
 	/// Poke one Post's like-count channel (`post_like:{post_id}`): the like count
 	/// changed (#115). Carries only the `post_id` for routing — the count is
-	/// derived by refetch, never pushed.
-	pub fn broadcast_post_like(&self, post_id: i64) {
+	/// derived by refetch, never pushed. Returns the [`PokeReceipt<PostLike>`]
+	/// `toggle_post_like` needs to build its result (#122).
+	pub fn broadcast_post_like(&self, post_id: i64) -> PokeReceipt<PostLike> {
 		self.broadcast(WsEvent::Poke(Channel::PostLike(post_id)));
+		PokeReceipt::new()
 	}
+
+	// The Caption like poke helper below has no caller yet: the Caption like
+	// handler calls it in #123. As lib-web public API it needs no dead-code
+	// allowance; the tests construct it.
 
 	/// Poke one Caption's like-count channel (`caption_like:{caption_id}`): the
 	/// like count changed (#115). Carries only the `caption_id` for routing.
