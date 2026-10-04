@@ -3,8 +3,7 @@
   "@id": "https://github.com/gihrig/SolidStart-Demo/security/vex/openvex",
   "author": "SolidStart-Demo maintainers",
   "role": "Project maintainers",
-  "timestamp": "2026-09-19T00:00:00Z",
-  "version": 1,
+  "version": 3,
   "statements": [
     {
       "vulnerability": {
@@ -14,13 +13,45 @@
       "products": [
         {
           "@id": "pkg:npm/esbuild@0.18.7",
-          "identifiers": { "purl": "pkg:npm/esbuild@0.18.7" }
+          "identifiers": {
+            "purl": "pkg:npm/esbuild@0.18.7"
+          }
         }
       ],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "esbuild 0.18.7 is a build-time-only transitive dependency of @vinxi/plugin-mdx, used solely for MDX-to-JS transform during the build. The advisory affects esbuild's development server (`esbuild serve`), which this project never starts. The vulnerable code is therefore never in the execution path. There is no fix reachable by upgrade: @vinxi/plugin-mdx 3.7.2 (the latest release) pins esbuild to exactly 0.18.7, and a bun override would downgrade vite's own newer esbuild copies.",
       "timestamp": "2026-09-19T00:00:00Z"
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-vfj7-8cjw-p6xm"
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/braces@3.0.3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "braces 3.0.3 is a dev/build-time transitive of vinxi (via micromatch/fast-glob). It expands glob patterns from project config only, never untrusted input, and is absent from the .output production bundle.",
+      "timestamp": "2026-10-04T05:17:52.598886Z"
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-86w9-cpqp-85rv"
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/node-forge@1.4.0"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "node-forge 1.4.0 is a dev-server transitive of vinxi (via listhen/@vinxi/listhen). listhen uses it only to generate self-signed certificates and keys; it never verifies RSA signatures. Absent from the .output production bundle.",
+      "timestamp": "2026-10-04T05:17:52.629564Z"
     }
-  ]
+  ],
+  "timestamp": "2026-09-19T00:00:00Z",
+  "last_updated": "2026-10-04T05:17:52Z"
 }

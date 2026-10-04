@@ -10,8 +10,7 @@ VEX maintenance for /vex.openvex.json  (OpenVEX + grype; see ADR-0022)
 Tools: grype, jq, vexctl (brew install vexctl). vexctl is local-only, not in CI.
 
 1. Find the values for a statement (severity, purl, advisory id):
-     grype "sbom:sbom.cdx.json" -o json \
-       | jq -r '.matches[] | "\(.vulnerability.severity)\t\(.artifact.purl)\t\(.vulnerability.id)"'
+     cgs grype:show
    VEX_PRODUCT = the purl, VEX_VULN = the advisory id.
 
 2. Add a not_affected statement:

@@ -5,23 +5,23 @@ unsafe_code = "forbid"
 [workspace]
 resolver = "2"
 members = [
-    # -- Application Libraries
-    "crates/libs/lib-utils",      # e.g., base64, time.
-    "crates/libs/lib-rpc-core",   # e.g., core rpc utils (using rpc-router crate)
-    "crates/libs/lib-auth",       # e.g., for pwd, token.
-    "crates/libs/lib-core",       # e.g., model, ctx, config.
-    "crates/libs/lib-web",        # e.g., logging, common middleware etc
+  # -- Application Libraries
+  "crates/libs/lib-utils", # e.g., base64, time.
+  "crates/libs/lib-rpc-core", # e.g., core rpc utils (using rpc-router crate)
+  "crates/libs/lib-auth", # e.g., for pwd, token.
+  "crates/libs/lib-core", # e.g., model, ctx, config.
+  "crates/libs/lib-web", # e.g., logging, common middleware etc
 
-    # -- Application Services
-    "crates/services/web-server",
+  # -- Application Services
+  "crates/services/web-server",
 
-    # -- Tools
-    "crates/tools/gen-key",
+  # -- Tools
+  "crates/tools/gen-key",
 ]
 
 [workspace.lints.clippy]
 # priority = -1 # Lower priority allows overrides
-all = { level = "warn", priority = -1 }           # Enable `all` lint group at warning level
+all = { level = "warn", priority = -1 } # Enable `all` lint group at warning level
 # pedantic = { level = "warn", priority = -1 }    # Enable `pedantic` lint group at warning level
 # nursery = { level = "warn", priority = -1 }     # Enable `experimental` lint group at warning level
 # cargo = { level = "warn", priority = -1 }       # Enable `cargo` lint group at warning level
@@ -55,7 +55,11 @@ pastey = "0.2.3"
 rand = "0.10.3"
 rpc-router = "0.2.0"
 sea-query = "0.32.7"
-sea-query-binder = { version = "0.7.0", features = ["sqlx-postgres", "with-time", "with-uuid"] }
+sea-query-binder = { version = "0.7.0", features = [
+  "sqlx-postgres",
+  "with-time",
+  "with-uuid",
+] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 serde_with = { version = "3.23.0", features = ["time_0_3"] }
