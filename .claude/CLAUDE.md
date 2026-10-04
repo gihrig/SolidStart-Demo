@@ -15,6 +15,10 @@ subtree that owns them and load when Claude works there:
 ## Execution Notes (for Claude AI)
 
 Call previously existing code "existing", not "hand written".
+Use US English.
+
+- Use "traveling" _not_ "travelling".
+- Use "behavior" _not_ "behaviour".
 
 ### Workflow
 
