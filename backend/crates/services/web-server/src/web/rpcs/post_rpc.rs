@@ -40,10 +40,11 @@ pub async fn create_post(
 }
 
 /// Set the caller's Like on a Post to `data.liked` (#122). Idempotent: a second
-/// like or unlike is a no-op. Pokes `post_like:{post_id}`, so subscribers
-/// refetch the count, and `posts`, so the Top Photos ranking refetches. The
-/// pokes fire on write-commit, before the re-get (ADR-0016). An unknown Post is
-/// rejected (400). The `{ data }` params shape matches the other mutations.
+/// like or unlike is a no-op. A toggle that changed the Like pokes
+/// `post_like:{post_id}`, so subscribers refetch the count, and `posts`, so the
+/// Top Photos ranking refetches; a no-op pokes nothing. The pokes fire on
+/// write-commit, before the re-get (ADR-0016). An unknown Post is rejected
+/// (400). The `{ data }` params shape matches the other mutations.
 pub async fn toggle_post_like(
 	ctx: Ctx,
 	mm: ModelManager,
@@ -52,9 +53,11 @@ pub async fn toggle_post_like(
 ) -> Result<PokedRpcResult<PostLikeView, poke::PostLike>> {
 	let ParamsForCreate { data } = params;
 	let post_id = data.post_id;
-	PostLikeBmc::toggle(&ctx, &mm, data).await?;
-	let receipt = ws_state.broadcast_post_like(post_id);
-	ws_state.broadcast_posts_update();
+	let changed = PostLikeBmc::toggle(&ctx, &mm, data).await?;
+	let receipt = ws_state.broadcast_post_like(post_id, changed);
+	if changed {
+		ws_state.broadcast_posts_update();
+	}
 	let view = PostLikeBmc::get_post_like(&ctx, &mm, post_id).await?;
 	Ok(PokedRpcResult::new(view, receipt))
 }

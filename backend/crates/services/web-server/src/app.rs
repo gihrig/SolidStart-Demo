@@ -898,10 +898,11 @@ mod tests {
 	}
 
 	/// A logged-in User likes and unlikes a Post (#122): `toggle_post_like`
-	/// returns the caller's `PostLikeView`, a second like is a no-op, and each
-	/// toggle pokes `post_like:{post_id}` (the count) and `posts` (the ranking).
-	/// `get_post_like` reads the same view. An unknown Post is rejected (400)
-	/// with no poke, and an anonymous caller is rejected (401).
+	/// returns the caller's `PostLikeView`, and a toggle that changes the Like
+	/// pokes `post_like:{post_id}` (the count) and `posts` (the ranking). A
+	/// second like is a no-op that pokes nothing. `get_post_like` reads the same
+	/// view. An unknown Post is rejected (400) by both RPCs with no poke, and an
+	/// anonymous caller is rejected (401).
 	#[serial]
 	#[tokio::test]
 	async fn test_web_toggle_post_like_ok() -> Result<()> {
@@ -932,10 +933,19 @@ mod tests {
 			.await
 			.assert_status(axum::http::StatusCode::UNAUTHORIZED);
 
-		// -- Exec & Check: an unknown Post is rejected, and nothing is poked.
+		// -- Exec & Check: an unknown Post is rejected by both RPCs, and nothing
+		//    is poked.
 		server
 			.post("/api/rpc")
 			.json(&toggle(999_999, true))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "get_post_like",
+				"params": { "id": 999_999 }
+			}))
 			.await
 			.assert_status(axum::http::StatusCode::BAD_REQUEST);
 		assert!(rx.try_recv().is_err(), "a rejected toggle must not poke");
@@ -955,14 +965,13 @@ mod tests {
 			"got {body}"
 		);
 
-		// -- Check: each toggle poked the count, then the ranking.
-		for _ in 0..2 {
-			let like = rx.try_recv().expect("toggle pokes post_like");
-			assert_eq!(like.channel().key(), format!("post_like:{post_id}"));
-			let posts = rx.try_recv().expect("toggle pokes posts");
-			assert_eq!(posts.channel().key(), "posts");
-		}
-		assert!(rx.try_recv().is_err(), "two pokes per toggle");
+		// -- Check: the first like poked the count, then the ranking; the second
+		//    like changed nothing, so it poked nothing.
+		let like = rx.try_recv().expect("toggle pokes post_like");
+		assert_eq!(like.channel().key(), format!("post_like:{post_id}"));
+		let posts = rx.try_recv().expect("toggle pokes posts");
+		assert_eq!(posts.channel().key(), "posts");
+		assert!(rx.try_recv().is_err(), "a no-op toggle must not poke");
 
 		// -- Exec & Check: unlike; `get_post_like` reads the same view.
 		server.post("/api/rpc").json(&toggle(post_id, false)).await;

@@ -519,34 +519,21 @@ impl PostLikeBmc {
 	/// Set the caller's Like on a Post to `liked` (#122). Idempotent: a like
 	/// inserts with `ON CONFLICT DO NOTHING` on the `(post_id, user_id)` unique
 	/// key, so a second like is a no-op; an unlike deletes the caller's row, so a
-	/// second unlike is a no-op. The count is never stored — it is derived. An
-	/// unknown `post_id` is a `Validation` error, rejected before the write.
+	/// second unlike is a no-op. Returns whether a Like row changed, so the
+	/// caller pokes only on a real change. The count is never stored — it is
+	/// derived. An unknown `post_id` is a `Validation` error, rejected before the
+	/// write.
 	pub async fn toggle(
 		ctx: &Ctx,
 		mm: &ModelManager,
 		like_t: PostLikeForToggle,
-	) -> Result<()> {
+	) -> Result<bool> {
 		let PostLikeForToggle { post_id, liked } = like_t;
 		let user_id = ctx.user_id();
 
-		let known = PostBmc::list(
-			ctx,
-			mm,
-			Some(vec![PostFilter {
-				id: Some(post_id.into()),
-				..Default::default()
-			}]),
-			None,
-		)
-		.await?;
-		if known.is_empty() {
-			return Err(Error::Validation {
-				field: POST_ID.to_string(),
-				reason: "unknown Post".to_string(),
-			});
-		}
+		require_post(ctx, mm, post_id).await?;
 
-		if liked {
+		let (sql, values) = if liked {
 			let mut fields =
 				PostLikeForInsert { post_id, user_id }.not_none_sea_fields();
 			base::prep_fields_for_create::<Self>(&mut fields, user_id);
@@ -562,23 +549,24 @@ impl PostLikeBmc {
 						.do_nothing()
 						.to_owned(),
 				);
-			let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-			mm.dbx().execute(sqlx::query_with(&sql, values)).await?;
+			query.build_sqlx(PostgresQueryBuilder)
 		} else {
 			let mut query = Query::delete();
 			query
 				.from_table(Self::table_ref())
 				.and_where(Expr::col(Alias::new(POST_ID)).eq(post_id))
 				.and_where(Expr::col(Alias::new(USER_ID)).eq(user_id));
-			let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-			mm.dbx().execute(sqlx::query_with(&sql, values)).await?;
-		}
+			query.build_sqlx(PostgresQueryBuilder)
+		};
+		// One row at most: the `(post_id, user_id)` key is unique.
+		let changed = mm.dbx().execute(sqlx::query_with(&sql, values)).await?;
 
-		Ok(())
+		Ok(changed > 0)
 	}
 
 	/// Read the caller's `PostLikeView` of one Post: the derived like count and
-	/// whether the caller likes it.
+	/// whether the caller likes it. An unknown `post_id` is the same
+	/// `Validation` error as `toggle`, not a silent zero view.
 	pub async fn get_post_like(
 		ctx: &Ctx,
 		mm: &ModelManager,
@@ -594,7 +582,8 @@ impl PostLikeBmc {
 		let sqlx_query = sqlx::query_as_with::<_, (i64,), _>(&sql, values);
 
 		let post_ids = [post_id];
-		let (likes, own_like) = tokio::try_join!(
+		let ((), likes, own_like) = tokio::try_join!(
+			require_post(ctx, mm, post_id),
 			base::counts_by_parent::<Self>(mm, POST_ID, &post_ids),
 			async {
 				mm.dbx()
@@ -610,6 +599,28 @@ impl PostLikeBmc {
 			liked: own_like.is_some(),
 		})
 	}
+}
+
+/// Reject an unknown Post as a `Validation` error on `post_id` (400), the shape
+/// `CaptionBmc::create` uses, so a Like never reaches a foreign-key failure.
+async fn require_post(ctx: &Ctx, mm: &ModelManager, post_id: i64) -> Result<()> {
+	let known = PostBmc::list(
+		ctx,
+		mm,
+		Some(vec![PostFilter {
+			id: Some(post_id.into()),
+			..Default::default()
+		}]),
+		None,
+	)
+	.await?;
+	if known.is_empty() {
+		return Err(Error::Validation {
+			field: POST_ID.to_string(),
+			reason: "unknown Post".to_string(),
+		});
+	}
+	Ok(())
 }
 
 // endregion: --- PostLikeBmc
@@ -1107,7 +1118,8 @@ mod tests {
 	}
 
 	/// The like toggle is idempotent (#122): a second like is a no-op (one
-	/// Like), an unlike removes it, and a second unlike is a no-op. The count is
+	/// Like), an unlike removes it, and a second unlike is a no-op. `toggle`
+	/// reports whether a Like row changed, so a no-op pokes nothing. The count is
 	/// derived from the rows each time.
 	#[serial]
 	#[tokio::test]
@@ -1120,18 +1132,18 @@ mod tests {
 		let post_id = seed_post(&ctx, &mm, "test_toggle_like post", &[1]).await?;
 		let like = |liked| PostLikeForToggle { post_id, liked };
 
-		// -- Exec & Check: like twice -> one Like.
-		PostLikeBmc::toggle(&ctx, &mm, like(true)).await?;
-		PostLikeBmc::toggle(&ctx, &mm, like(true)).await?;
+		// -- Exec & Check: like twice -> one Like; only the first changed a row.
+		assert!(PostLikeBmc::toggle(&ctx, &mm, like(true)).await?, "like");
+		assert!(!PostLikeBmc::toggle(&ctx, &mm, like(true)).await?, "no-op");
 		let view = PostLikeBmc::get_post_like(&ctx, &mm, post_id).await?;
 		assert_eq!(
 			(view.post_id, view.like_count, view.liked),
 			(post_id, 1, true)
 		);
 
-		// -- Exec & Check: unlike twice -> no Like.
-		PostLikeBmc::toggle(&ctx, &mm, like(false)).await?;
-		PostLikeBmc::toggle(&ctx, &mm, like(false)).await?;
+		// -- Exec & Check: unlike twice -> no Like; only the first changed a row.
+		assert!(PostLikeBmc::toggle(&ctx, &mm, like(false)).await?, "unlike");
+		assert!(!PostLikeBmc::toggle(&ctx, &mm, like(false)).await?, "no-op");
 		let view = PostLikeBmc::get_post_like(&ctx, &mm, post_id).await?;
 		assert_eq!((view.like_count, view.liked), (0, false));
 
@@ -1176,8 +1188,9 @@ mod tests {
 		Ok(())
 	}
 
-	/// A like or unlike on an unknown Post is a `Validation` error (400), not a
-	/// foreign-key failure (#122), matching `CaptionBmc::create`.
+	/// A like, an unlike, or a like-state read on an unknown Post is the same
+	/// `Validation` error (400), not a foreign-key failure or a silent zero view
+	/// (#122), matching `CaptionBmc::create`.
 	#[serial]
 	#[tokio::test]
 	async fn test_toggle_post_like_unknown_post_is_validation() -> Result<()> {
@@ -1203,6 +1216,11 @@ mod tests {
 				"liked={liked}: expected Validation on post_id, got {res:?}"
 			);
 		}
+		let res = PostLikeBmc::get_post_like(&ctx, &mm, i64::MAX).await;
+		assert!(
+			matches!(&res, Err(model::Error::Validation { field, .. }) if field == "post_id"),
+			"get_post_like: expected Validation on post_id, got {res:?}"
+		);
 
 		// -- Clean
 		_dev_utils::clean_users(&root, &mm, "test_like_unknown-user").await?;

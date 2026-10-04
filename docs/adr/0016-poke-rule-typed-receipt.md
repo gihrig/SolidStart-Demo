@@ -93,3 +93,28 @@ enforcement; the ~260-line parser and its hand-maintained table go.
 
 Origin: arch-review `architecture-review-20260829-233237.html` Candidate 1, grilled
 2026-08-30. Related: #85, #95, #66.
+
+---
+
+## Addendum (2026-10-04) — a conditional poke for an idempotent toggle (#122)
+
+`toggle_post_like` is idempotent: a second like or a second unlike changes no
+row. A poke for that no-op would make every client refetch for nothing. But the
+handler must still build its `PokedRpcResult`, and only a `broadcast_*` can mint
+the receipt.
+
+**Decision.** A `broadcast_*` helper may take the write's outcome and poke only
+on a real change: `broadcast_post_like(post_id, changed)` broadcasts when
+`changed` is `true` and always returns the `PokeReceipt<PostLike>`. The model
+reports the outcome (`PostLikeBmc::toggle` returns whether a row changed). The
+condition lives inside `lib-web::ws`, not in the handler, so a handler cannot
+skip the poke for a real change.
+
+**What the receipt proves now.** For this helper, the receipt proves that the
+write's outcome went through the broadcast helper, not that a poke fired. A
+no-op mints a receipt with no broadcast. Every other helper is unchanged: it
+broadcasts every time.
+
+**Known limit.** The secondary `posts` poke (the Top Photos ranking) is not
+typed: the handler calls `broadcast_posts_update()` when `changed` is `true` and
+discards that receipt.
