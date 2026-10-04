@@ -27,6 +27,8 @@ export interface FeaturedPostProps {
 export default function FeaturedPost(props: FeaturedPostProps) {
   // The live count: the viewer's like state once it loads, else the Post's.
   const likeCount = () => props.like?.likeCount ?? props.post.likeCount;
+  // Only the error is used: the Like shows at once, so the button stays enabled
+  // while a toggle runs, and a fast click counts (#122).
   const toggleLike = createRpcAction(
     async () => {
       await props.onToggleLike?.();
@@ -144,7 +146,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
             <button
               type="button"
               onClick={() => void toggleLike.run(undefined)}
-              disabled={!props.like || toggleLike.pending()}
+              disabled={!props.like}
               class="theme-button disabled:opacity-50"
               aria-pressed={props.like?.liked ?? false}
               aria-label={`Like post by ${props.post.author.name}`}

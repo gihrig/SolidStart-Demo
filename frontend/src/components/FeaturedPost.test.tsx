@@ -154,6 +154,18 @@ describe("<FeaturedPost /> — Like (#122)", () => {
     expect(onToggleLike).toHaveBeenCalledOnce();
   });
 
+  it("keeps Like enabled while a toggle is in flight, so a fast click counts", async () => {
+    const user = userEvent.setup();
+    const onToggleLike = vi.fn(() => new Promise<void>(() => {}));
+    render(() => (
+      <FeaturedPost post={post} caption={caption} like={like} onToggleLike={onToggleLike} />
+    ));
+    await user.click(likeButton());
+    expect(likeButton()).toBeEnabled();
+    await user.click(likeButton());
+    expect(onToggleLike).toHaveBeenCalledTimes(2);
+  });
+
   it("shows an alert when the toggle fails", async () => {
     const user = userEvent.setup();
     const onToggleLike = () => Promise.reject(new Error("Network down"));
