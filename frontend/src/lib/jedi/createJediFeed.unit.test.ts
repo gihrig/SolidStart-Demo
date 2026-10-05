@@ -3,7 +3,7 @@ import { createRoot, createSignal } from "solid-js";
 import { Channel } from "~/lib/channel";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { JediApi } from "./jedi-api";
-import type { AuthorRef, CaptionView, JediCategory, PostView } from "~/types/jedi";
+import type { AuthorRef, CaptionView, JediCategory, PostLike, PostView } from "~/types/jedi";
 import data from "./data.json";
 import { createJediFeed, type JediFeed } from "./createJediFeed";
 
@@ -74,6 +74,8 @@ const captionsFor = (postId: number): CaptionView[] =>
     }));
 
 const postListMock = vi.fn<JediApi["posts"]["list"]>();
+const postGetLikeMock = vi.fn<JediApi["posts"]["getLike"]>();
+const postToggleLikeMock = vi.fn<JediApi["posts"]["toggleLike"]>();
 const captionListForPostMock = vi.fn<JediApi["captions"]["listForPost"]>();
 const api: JediApi = {
   categories: { list: () => Promise.resolve(CATEGORIES) },
@@ -81,6 +83,8 @@ const api: JediApi = {
     list: postListMock,
     featured: () => Promise.resolve(RANKED_POSTS[0]),
     create: () => Promise.reject(new Error("not used by the view-model")),
+    getLike: postGetLikeMock,
+    toggleLike: postToggleLikeMock,
   },
   captions: {
     listForPost: captionListForPostMock,
@@ -101,6 +105,22 @@ const api: JediApi = {
 beforeEach(() => {
   postListMock.mockReset();
   postListMock.mockResolvedValue(RANKED_POSTS);
+  // A stateful fake back-end for the viewer's Likes: Post N has N * 10 Likes
+  // from other Users, plus 1 while the viewer likes it. A toggle writes the
+  // wanted state, so a later read sees it (the view-model rereads after one).
+  const viewerLikes = new Set<number>();
+  const likeOf = (postId: number) => {
+    const liked = viewerLikes.has(postId);
+    return { postId, likeCount: postId * 10 + (liked ? 1 : 0), liked };
+  };
+  postGetLikeMock.mockReset();
+  postGetLikeMock.mockImplementation((postId: number) => Promise.resolve(likeOf(postId)));
+  postToggleLikeMock.mockReset();
+  postToggleLikeMock.mockImplementation((postId: number, liked: boolean) => {
+    if (liked) viewerLikes.add(postId);
+    else viewerLikes.delete(postId);
+    return Promise.resolve(likeOf(postId));
+  });
   captionListForPostMock.mockReset();
   captionListForPostMock.mockImplementation((postId: number) =>
     Promise.resolve(captionsFor(postId)),
@@ -550,4 +570,273 @@ describe("createJediFeed — the realtime post_caption poke (#121)", () => {
       dispose();
     });
   });
+});
+
+describe("createJediFeed — the selected Post's like state (#122)", () => {
+  // A fake Feed factory: it captures the consumer's callbacks so the test can
+  // fire a `post_like` poke, and records every (un)subscribe.
+  type Options = { onPostLikeUpdate?: (postId: number) => void };
+  function fakeFeed() {
+    let options: Options = {};
+    const subscribe = vi.fn();
+    const unsubscribe = vi.fn();
+    const factory = (opts: Options) => {
+      options = opts;
+      return { connected: () => true, subscribe, unsubscribe };
+    };
+    return {
+      factory,
+      subscribe,
+      unsubscribe,
+      poke: (postId: number) => options.onPostLikeUpdate?.(postId),
+    };
+  }
+  const like = (postId: number, likeCount: number, liked: boolean): PostLike => ({
+    postId,
+    likeCount,
+    liked,
+  });
+
+  it("has no like state on the anonymous landing (no feed connected)", () =>
+    withFeed((feed) => {
+      expect(feed.selectedPostLike()).toBeUndefined();
+      expect(postGetLikeMock).not.toHaveBeenCalled();
+    }));
+
+  it("loads the selected Post's like state once a feed connects, and re-keys with the selection", async () => {
+    const feed = fakeFeed();
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api });
+      await tick();
+      await tick();
+      jedi.connectFeed(feed.factory);
+      await tick();
+      await tick();
+      expect(jedi.selectedPostLike()).toEqual(like(1, 10, false));
+
+      jedi.selectPost(2);
+      await tick();
+      await tick();
+      expect(jedi.selectedPostLike()).toEqual(like(2, 20, false));
+
+      dispose();
+    });
+  });
+
+  it("subscribes to the selected Post's like feed, and moves it with the selection", async () => {
+    const feed = fakeFeed();
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api, feed: feed.factory });
+      await tick();
+      await tick();
+      expect(feed.subscribe).toHaveBeenCalledWith(Channel.postLike(1));
+
+      jedi.selectPost(2);
+      await tick();
+      expect(feed.unsubscribe).toHaveBeenCalledWith(Channel.postLike(1));
+      expect(feed.subscribe).toHaveBeenCalledWith(Channel.postLike(2));
+
+      dispose();
+    });
+  });
+
+  it("a poke for the selected Post refetches its like state, so another User's Like shows", async () => {
+    const feed = fakeFeed();
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api, feed: feed.factory });
+      await tick();
+      await tick();
+
+      postGetLikeMock.mockResolvedValue(like(1, 11, false));
+      feed.poke(1);
+      await tick();
+      await tick();
+      expect(jedi.selectedPostLike()).toEqual(like(1, 11, false));
+
+      // A poke for a Post that is not selected does not refetch.
+      const callsBefore = postGetLikeMock.mock.calls.length;
+      feed.poke(2);
+      await tick();
+      expect(postGetLikeMock.mock.calls.length).toBe(callsBefore);
+
+      dispose();
+    });
+  });
+
+  it("toggleLike sets the selected Post's like to the opposite state, then back", async () => {
+    const feed = fakeFeed();
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api, feed: feed.factory });
+      await tick();
+      await tick();
+
+      await jedi.toggleLike();
+      expect(postToggleLikeMock).toHaveBeenLastCalledWith(1, true);
+      expect(jedi.selectedPostLike()).toEqual(like(1, 11, true));
+
+      await jedi.toggleLike();
+      expect(postToggleLikeMock).toHaveBeenLastCalledWith(1, false);
+      expect(jedi.selectedPostLike()).toEqual(like(1, 10, false));
+
+      dispose();
+    });
+  });
+
+  it("toggleLike does nothing without a like state (anonymous landing)", () =>
+    withFeed(async (feed) => {
+      await feed.toggleLike();
+      expect(postToggleLikeMock).not.toHaveBeenCalled();
+    }));
+});
+
+describe("createJediFeed — the immediate local Like, synced from the server (#122)", () => {
+  const like = (postId: number, likeCount: number, liked: boolean): PostLike => ({
+    postId,
+    likeCount,
+    liked,
+  });
+  // A promise the test settles by hand, to hold a back-end call in flight.
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (reason: unknown) => void;
+    const promise = new Promise<T>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  }
+  // A live feed whose `post_like` poke the test fires by hand.
+  function liveFeed() {
+    let onPostLikeUpdate: ((postId: number) => void) | undefined;
+    const factory = (opts: { onPostLikeUpdate?: (postId: number) => void }) => {
+      onPostLikeUpdate = opts.onPostLikeUpdate;
+      return { connected: () => true, subscribe: vi.fn(), unsubscribe: vi.fn() };
+    };
+    return { factory, poke: (postId: number) => onPostLikeUpdate?.(postId) };
+  }
+  async function withLiveFeed(run: (jedi: JediFeed, poke: (id: number) => void) => Promise<void>) {
+    const feed = liveFeed();
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api, feed: feed.factory });
+      await tick();
+      await tick();
+      try {
+        await run(jedi, feed.poke);
+      } finally {
+        dispose();
+      }
+    });
+  }
+
+  it("shows the Like at once, before the back-end answers", () =>
+    withLiveFeed(async (jedi) => {
+      const answer = deferred<PostLike>();
+      postToggleLikeMock.mockReturnValueOnce(answer.promise);
+
+      const done = jedi.toggleLike();
+      expect(jedi.selectedPostLike()).toEqual(like(1, 11, true));
+
+      answer.resolve(like(1, 11, true));
+      await done;
+    }));
+
+  it("shows the back-end's view once it answers, with other Users' Likes", () =>
+    withLiveFeed(async (jedi) => {
+      // Another User liked the Post too, so the back-end's count is higher.
+      postToggleLikeMock.mockResolvedValueOnce(like(1, 12, true));
+      postGetLikeMock.mockResolvedValue(like(1, 12, true));
+
+      await jedi.toggleLike();
+      await tick();
+      expect(jedi.selectedPostLike()).toEqual(like(1, 12, true));
+    }));
+
+  it("rolls the Like back and rejects when the back-end fails", () =>
+    withLiveFeed(async (jedi) => {
+      postToggleLikeMock.mockRejectedValueOnce(new Error("Network down"));
+
+      await expect(jedi.toggleLike()).rejects.toThrow("Network down");
+      await tick();
+      expect(jedi.selectedPostLike()).toEqual(like(1, 10, false));
+    }));
+
+  it("ignores an older read that lands after the toggle (the race)", () =>
+    withLiveFeed(async (jedi, poke) => {
+      // Another User's poke starts a read that ends after our toggle.
+      const olderRead = deferred<PostLike>();
+      postGetLikeMock.mockReturnValueOnce(olderRead.promise);
+      poke(1);
+      await tick();
+
+      await jedi.toggleLike();
+      olderRead.resolve(like(1, 10, false)); // read before our Like committed
+      await tick();
+      await tick();
+      expect(jedi.selectedPostLike()).toEqual(like(1, 11, true));
+    }));
+
+  it("keeps fast clicks: the last wanted state wins, sent in order", () =>
+    withLiveFeed(async (jedi) => {
+      const first = deferred<PostLike>();
+      postToggleLikeMock.mockReturnValueOnce(first.promise);
+
+      const like1 = jedi.toggleLike(); // like
+      const unlike = jedi.toggleLike(); // unlike, while the like is in flight
+      expect(jedi.selectedPostLike()).toEqual(like(1, 10, false));
+
+      first.resolve(like(1, 11, true));
+      await Promise.all([like1, unlike]);
+      await tick();
+      expect(postToggleLikeMock.mock.calls).toEqual([
+        [1, true],
+        [1, false],
+      ]);
+      expect(jedi.selectedPostLike()).toEqual(like(1, 10, false));
+    }));
+
+  it("keeps each Post's last wanted state when the viewer moves to another Post mid-toggle", () =>
+    withLiveFeed(async (jedi) => {
+      const first = deferred<PostLike>();
+      postToggleLikeMock.mockReturnValueOnce(first.promise);
+
+      const p1Like = jedi.toggleLike(); // Post 1: like
+      const p1Unlike = jedi.toggleLike(); // Post 1: unlike, while the like is in flight
+      jedi.selectPost(2);
+      await tick();
+      await tick();
+      const p2Like = jedi.toggleLike(); // Post 2: like
+      expect(jedi.selectedPostLike()).toEqual(like(2, 21, true));
+
+      first.resolve(like(1, 11, true));
+      await Promise.all([p1Like, p1Unlike, p2Like]);
+      expect(postToggleLikeMock.mock.calls).toEqual([
+        [1, true],
+        [1, false],
+        [2, true],
+      ]);
+    }));
+
+  it("drops a queued Like at logout, so the next User's session never sends it", () =>
+    createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api });
+      // The live session lives in its own scope, like the route's LiveFeed;
+      // ending that scope is a logout.
+      const logout = createRoot((end) => {
+        jedi.connectFeed(liveFeed().factory);
+        return end;
+      });
+      await tick();
+      await tick();
+      const first = deferred<PostLike>();
+      postToggleLikeMock.mockReturnValueOnce(first.promise);
+
+      const done = jedi.toggleLike(); // like, in flight
+      void jedi.toggleLike(); // unlike, queued
+      logout();
+
+      first.resolve(like(1, 11, true));
+      await done;
+      expect(postToggleLikeMock.mock.calls).toEqual([[1, true]]);
+      dispose();
+    }));
 });

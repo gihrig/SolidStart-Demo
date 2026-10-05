@@ -897,6 +897,104 @@ mod tests {
 		Ok(())
 	}
 
+	/// A logged-in User likes and unlikes a Post (#122): `toggle_post_like`
+	/// returns the caller's `PostLikeView`, and a toggle that changes the Like
+	/// pokes `post_like:{post_id}` (the count) and `posts` (the ranking). A
+	/// second like is a no-op that pokes nothing. `get_post_like` reads the same
+	/// view. An unknown Post is rejected (400) by both RPCs with no poke, and an
+	/// anonymous caller is rejected (401).
+	#[serial]
+	#[tokio::test]
+	async fn test_web_toggle_post_like_ok() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let fx_title = "test_web_toggle_post_like_ok";
+		let post_id = seed_post(&Ctx::root_ctx(), &mm, fx_title, &[1]).await?;
+		let toggle = |post_id: i64, liked: bool| {
+			json!({
+				"jsonrpc": "2.0", "id": 1, "method": "toggle_post_like",
+				"params": { "data": { "post_id": post_id, "liked": liked } }
+			})
+		};
+		let ws_state = Arc::new(WsState::new());
+		let mut rx = ws_state.tx.subscribe();
+		let anon = TestServer::new(app(mm.clone(), ws_state.clone()));
+		let mut server = TestServer::new(app(mm.clone(), ws_state.clone()));
+		server.save_cookies();
+		server
+			.post("/api/login")
+			.json(&json!({ "username": "demo1", "pwd": "welcome" }))
+			.await
+			.assert_status_ok();
+
+		// -- Exec & Check: an anonymous caller is rejected.
+		anon.post("/api/rpc")
+			.json(&toggle(post_id, true))
+			.await
+			.assert_status(axum::http::StatusCode::UNAUTHORIZED);
+
+		// -- Exec & Check: an unknown Post is rejected by both RPCs, and nothing
+		//    is poked.
+		server
+			.post("/api/rpc")
+			.json(&toggle(999_999, true))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "get_post_like",
+				"params": { "id": 999_999 }
+			}))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		assert!(rx.try_recv().is_err(), "a rejected toggle must not poke");
+
+		// -- Exec: like twice.
+		server.post("/api/rpc").json(&toggle(post_id, true)).await;
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&toggle(post_id, true))
+			.await
+			.json();
+
+		// -- Check: one Like, liked by the caller.
+		assert_eq!(
+			body.pointer("/result/data"),
+			Some(&json!({ "post_id": post_id, "like_count": 1, "liked": true })),
+			"got {body}"
+		);
+
+		// -- Check: the first like poked the count, then the ranking; the second
+		//    like changed nothing, so it poked nothing.
+		let like = rx.try_recv().expect("toggle pokes post_like");
+		assert_eq!(like.channel().key(), format!("post_like:{post_id}"));
+		let posts = rx.try_recv().expect("toggle pokes posts");
+		assert_eq!(posts.channel().key(), "posts");
+		assert!(rx.try_recv().is_err(), "a no-op toggle must not poke");
+
+		// -- Exec & Check: unlike; `get_post_like` reads the same view.
+		server.post("/api/rpc").json(&toggle(post_id, false)).await;
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "get_post_like",
+				"params": { "id": post_id }
+			}))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data"),
+			Some(&json!({ "post_id": post_id, "like_count": 0, "liked": false })),
+			"got {body}"
+		);
+
+		// -- Clean (the Post delete cascades its Likes)
+		clean_posts(&mm, fx_title).await?;
+
+		Ok(())
+	}
+
 	/// An rpc call without the login cookie is rejected by `mw_ctx_require`.
 	#[serial]
 	#[tokio::test]

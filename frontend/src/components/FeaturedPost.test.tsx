@@ -1,10 +1,10 @@
-import { describe, it, expect } from "vite-plus/test";
+import { describe, it, expect, vi } from "vite-plus/test";
 import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import FeaturedPost from "./FeaturedPost";
-import type { PostView, CaptionView } from "~/types/jedi";
+import type { PostView, CaptionView, PostLike } from "~/types/jedi";
 
 const post: PostView = {
   id: 1,
@@ -123,5 +123,56 @@ describe("<FeaturedPost /> — Add Caption (#121)", () => {
     setCurrent({ ...post, id: 2 });
     await waitFor(() => expect(input()).toBeNull());
     expect(screen.getByText(caption.text)).toBeInTheDocument();
+  });
+});
+
+describe("<FeaturedPost /> — Like (#122)", () => {
+  const likeButton = () => screen.getByRole("button", { name: /like post by lisa/i });
+  const like: PostLike = { postId: 1, likeCount: 6, liked: true };
+
+  it("disables Like and shows the Post's count without a like state (anonymous)", () => {
+    render(() => <FeaturedPost post={post} caption={caption} />);
+    expect(likeButton()).toBeDisabled();
+    expect(likeButton()).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByText("Likes:").parentElement).toHaveTextContent("Likes: 5");
+  });
+
+  it("shows the viewer's live count and pressed state", () => {
+    render(() => <FeaturedPost post={post} caption={caption} like={like} onToggleLike={vi.fn()} />);
+    expect(likeButton()).toBeEnabled();
+    expect(likeButton()).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Likes:").parentElement).toHaveTextContent("Likes: 6");
+  });
+
+  it("calls onToggleLike on click", async () => {
+    const user = userEvent.setup();
+    const onToggleLike = vi.fn(() => Promise.resolve());
+    render(() => (
+      <FeaturedPost post={post} caption={caption} like={like} onToggleLike={onToggleLike} />
+    ));
+    await user.click(likeButton());
+    expect(onToggleLike).toHaveBeenCalledOnce();
+  });
+
+  it("keeps Like enabled while a toggle is in flight, so a fast click counts", async () => {
+    const user = userEvent.setup();
+    const onToggleLike = vi.fn(() => new Promise<void>(() => {}));
+    render(() => (
+      <FeaturedPost post={post} caption={caption} like={like} onToggleLike={onToggleLike} />
+    ));
+    await user.click(likeButton());
+    expect(likeButton()).toBeEnabled();
+    await user.click(likeButton());
+    expect(onToggleLike).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows an alert when the toggle fails", async () => {
+    const user = userEvent.setup();
+    const onToggleLike = () => Promise.reject(new Error("Network down"));
+    render(() => (
+      <FeaturedPost post={post} caption={caption} like={like} onToggleLike={onToggleLike} />
+    ));
+    await user.click(likeButton());
+    expect(await screen.findByRole("alert")).toHaveTextContent("Network down");
   });
 });

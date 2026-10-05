@@ -8,11 +8,14 @@ use crate::model::modql_utils::time_to_sea_value;
 use crate::model::user::{AuthorRef, UserBmc};
 use crate::model::ModelManager;
 use crate::model::{Error, Result};
-use modql::field::Fields;
+use modql::field::{Fields, HasSeaFields};
 use modql::filter::{
 	FilterNodes, ListOptions, OpValInt64, OpValsInt64, OpValsString, OpValsValue,
 };
-use sea_query::{Alias, Condition, Expr, Order, PostgresQueryBuilder, Query};
+use sea_query::{
+	Alias, Asterisk, Condition, Expr, Func, OnConflict, Order, PostgresQueryBuilder,
+	Query,
+};
 use sea_query_binder::SqlxBinder;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
@@ -117,6 +120,26 @@ pub struct PostFilter {
 	pub mtime: Option<OpValsValue>,
 }
 
+/// One User's view of one Post's Likes (#122): the derived like count and
+/// whether the caller likes the Post. Per-caller, so it is served only on the
+/// authenticated surface — the anonymous `PostView` cannot carry `liked`.
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "PostLikeView.d.ts")]
+pub struct PostLikeView {
+	pub post_id: i64,
+	pub like_count: i64,
+	pub liked: bool,
+}
+
+/// The `toggle_post_like` input (#122). `liked` is the wanted state, not a flip,
+/// so the toggle is idempotent: a second like and a second unlike are no-ops.
+#[derive(Deserialize, TS)]
+#[ts(export, export_to = "PostLikeForToggle.d.ts")]
+pub struct PostLikeForToggle {
+	pub post_id: i64,
+	pub liked: bool,
+}
+
 // endregion: --- Post Types
 
 // region:    --- child-table BMCs
@@ -137,12 +160,19 @@ impl DbBmc for PostCategoryBmc {
 
 // A marker BMC owns its child table's identity — the `TABLE` name — so every read
 // routes its `FROM` through `DbBmc::table_ref()`, keeping one table name in one
-// place. A marker is not a write path; the like / comment writes land in
-// #118 / #122.
-struct PostLikeBmc;
+// place. `PostLikeBmc` is also the Like write path (#122, see its impl below);
+// `PostCommentBmc` stays a marker until the comment writes land.
+pub struct PostLikeBmc;
 
 impl DbBmc for PostLikeBmc {
 	const TABLE: &'static str = "post_like";
+}
+
+/// The `post_like` insert row: the caller's Like on one Post.
+#[derive(Fields)]
+struct PostLikeForInsert {
+	post_id: i64,
+	user_id: i64,
 }
 
 struct PostCommentBmc;
@@ -481,6 +511,122 @@ impl PostBmc {
 
 // endregion: --- PostBmc
 
+// region:    --- PostLikeBmc
+
+/// The column that names the liking User in `post_like`.
+const USER_ID: &str = "user_id";
+
+impl PostLikeBmc {
+	/// Set the caller's Like on a Post to `liked` (#122). Idempotent: a like
+	/// inserts with `ON CONFLICT DO NOTHING` on the `(post_id, user_id)` unique
+	/// key, so a second like is a no-op; an unlike deletes the caller's row, so a
+	/// second unlike is a no-op. Returns whether a Like row changed, so the
+	/// caller pokes only on a real change. The count is never stored — it is
+	/// derived. An unknown `post_id` is a `Validation` error, rejected before the
+	/// write.
+	pub async fn toggle(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		like_t: PostLikeForToggle,
+	) -> Result<bool> {
+		let PostLikeForToggle { post_id, liked } = like_t;
+		let user_id = ctx.user_id();
+
+		require_post(ctx, mm, post_id).await?;
+
+		let (sql, values) = if liked {
+			let mut fields =
+				PostLikeForInsert { post_id, user_id }.not_none_sea_fields();
+			base::prep_fields_for_create::<Self>(&mut fields, user_id);
+			let (columns, sea_values) = fields.for_sea_insert();
+
+			let mut query = Query::insert();
+			query
+				.into_table(Self::table_ref())
+				.columns(columns)
+				.values(sea_values)?
+				.on_conflict(
+					OnConflict::columns([Alias::new(POST_ID), Alias::new(USER_ID)])
+						.do_nothing()
+						.to_owned(),
+				);
+			query.build_sqlx(PostgresQueryBuilder)
+		} else {
+			let mut query = Query::delete();
+			query
+				.from_table(Self::table_ref())
+				.and_where(Expr::col(Alias::new(POST_ID)).eq(post_id))
+				.and_where(Expr::col(Alias::new(USER_ID)).eq(user_id));
+			query.build_sqlx(PostgresQueryBuilder)
+		};
+		// One row at most: the `(post_id, user_id)` key is unique.
+		let changed = mm.dbx().execute(sqlx::query_with(&sql, values)).await?;
+
+		Ok(changed > 0)
+	}
+
+	/// Read the caller's `PostLikeView` of one Post: the derived like count and
+	/// whether the caller likes it. An unknown `post_id` is the same
+	/// `Validation` error as `toggle`, not a silent zero view.
+	pub async fn get_post_like(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		post_id: i64,
+	) -> Result<PostLikeView> {
+		// One statement reads the count and the caller's Like, so both come from
+		// one snapshot: a Like that changes mid-read cannot pair a count of 0
+		// with `liked: true` (#122 review).
+		let mut query = Query::select();
+		query
+			.from(Self::table_ref())
+			.expr(Expr::col(Asterisk).count())
+			.expr(Func::coalesce([
+				Func::cust(Alias::new("BOOL_OR"))
+					.arg(Expr::col(Alias::new(USER_ID)).eq(ctx.user_id()))
+					.into(),
+				Expr::val(false).into(),
+			]))
+			.and_where(Expr::col(Alias::new(POST_ID)).eq(post_id));
+		let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+		let sqlx_query = sqlx::query_as_with::<_, (i64, bool), _>(&sql, values);
+
+		let ((), (like_count, liked)) =
+			tokio::try_join!(require_post(ctx, mm, post_id), async {
+				mm.dbx().fetch_one(sqlx_query).await.map_err(Error::from)
+			},)?;
+
+		Ok(PostLikeView {
+			post_id,
+			like_count,
+			liked,
+		})
+	}
+}
+
+/// Reject an unknown Post as a `Validation` error on `post_id` (400), the shape
+/// `CaptionBmc::create` uses, so a Like never reaches a foreign-key failure.
+async fn require_post(ctx: &Ctx, mm: &ModelManager, post_id: i64) -> Result<()> {
+	let known = PostBmc::list(
+		ctx,
+		mm,
+		Some(vec![PostFilter {
+			id: Some(post_id.into()),
+			..Default::default()
+		}]),
+		None,
+	)
+	.await?;
+	if known.is_empty() {
+		return Err(Error::Validation {
+			field: POST_ID.to_string(),
+			reason: "unknown Post".to_string(),
+		});
+	}
+	Ok(())
+}
+
+// endregion: --- PostLikeBmc
+
 // region:    --- Batched read helpers
 
 /// Read every `post_category` link for a set of Post ids, ordered by
@@ -524,9 +670,9 @@ mod tests {
 	use crate::model;
 	use serial_test::serial;
 
-	/// Insert one `post_like` row directly (test-only). `PostLikeBmc` now owns the
-	/// table identity, but the like *write path* lands in #118, so the ranking test
-	/// still seeds likes at the SQL layer.
+	/// Insert one `post_like` row directly (test-only). The ranking tests seed
+	/// likes at the SQL layer, so they do not depend on the `PostLikeBmc::toggle`
+	/// write path (#122); the unique-constraint test needs a raw double insert.
 	async fn seed_post_like(
 		mm: &ModelManager,
 		post_id: i64,
@@ -945,8 +1091,8 @@ mod tests {
 
 	/// At most one Like per (Post, User): the DB unique constraint rejects a
 	/// second Like by the same User, so the one-endorsement invariant holds even
-	/// under a double insert (#106, #122). The like write path lands in #122; this
-	/// guards the schema the write path relies on.
+	/// under a double insert (#106, #122). This guards the schema that the
+	/// `PostLikeBmc::toggle` write path relies on.
 	#[serial]
 	#[tokio::test]
 	async fn test_post_like_unique_per_user() -> Result<()> {
@@ -969,6 +1115,117 @@ mod tests {
 
 		// -- Clean
 		_dev_utils::clean_users(&root, &mm, "test_like_unique-owner").await?;
+
+		Ok(())
+	}
+
+	/// The like toggle is idempotent (#122): a second like is a no-op (one
+	/// Like), an unlike removes it, and a second unlike is a no-op. `toggle`
+	/// reports whether a Like row changed, so a no-op pokes nothing. The count is
+	/// derived from the rows each time.
+	#[serial]
+	#[tokio::test]
+	async fn test_toggle_post_like_idempotent() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_toggle_like-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+		let post_id = seed_post(&ctx, &mm, "test_toggle_like post", &[1]).await?;
+		let like = |liked| PostLikeForToggle { post_id, liked };
+
+		// -- Exec & Check: like twice -> one Like; only the first changed a row.
+		assert!(PostLikeBmc::toggle(&ctx, &mm, like(true)).await?, "like");
+		assert!(!PostLikeBmc::toggle(&ctx, &mm, like(true)).await?, "no-op");
+		let view = PostLikeBmc::get_post_like(&ctx, &mm, post_id).await?;
+		assert_eq!(
+			(view.post_id, view.like_count, view.liked),
+			(post_id, 1, true)
+		);
+
+		// -- Exec & Check: unlike twice -> no Like; only the first changed a row.
+		assert!(PostLikeBmc::toggle(&ctx, &mm, like(false)).await?, "unlike");
+		assert!(!PostLikeBmc::toggle(&ctx, &mm, like(false)).await?, "no-op");
+		let view = PostLikeBmc::get_post_like(&ctx, &mm, post_id).await?;
+		assert_eq!((view.like_count, view.liked), (0, false));
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_toggle_like-owner").await?;
+
+		Ok(())
+	}
+
+	/// The like count counts every User's Like, while `liked` is the caller's own
+	/// (#122): an unlike removes only the caller's Like.
+	#[serial]
+	#[tokio::test]
+	async fn test_post_like_view_count_all_users_liked_per_caller() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let ctx_a = Ctx::new(seed_user(&root, &mm, "test_like_view-a").await?)?;
+		let ctx_b = Ctx::new(seed_user(&root, &mm, "test_like_view-b").await?)?;
+		let ctx_c = Ctx::new(seed_user(&root, &mm, "test_like_view-c").await?)?;
+		let post_id = seed_post(&ctx_a, &mm, "test_like_view post", &[1]).await?;
+		let like = |liked| PostLikeForToggle { post_id, liked };
+
+		// -- Exec: A and B like; then A unlikes.
+		PostLikeBmc::toggle(&ctx_a, &mm, like(true)).await?;
+		PostLikeBmc::toggle(&ctx_b, &mm, like(true)).await?;
+		let c_two = PostLikeBmc::get_post_like(&ctx_c, &mm, post_id).await?;
+		PostLikeBmc::toggle(&ctx_a, &mm, like(false)).await?;
+		let a_one = PostLikeBmc::get_post_like(&ctx_a, &mm, post_id).await?;
+		let b_one = PostLikeBmc::get_post_like(&ctx_b, &mm, post_id).await?;
+
+		// -- Check
+		assert_eq!((c_two.like_count, c_two.liked), (2, false), "C never liked");
+		assert_eq!((a_one.like_count, a_one.liked), (1, false), "A unliked");
+		assert_eq!((b_one.like_count, b_one.liked), (1, true), "B's Like stays");
+		let view = PostBmc::get_post(&ctx_c, &mm, post_id).await?;
+		assert_eq!(view.like_count, 1, "PostView derives the same count");
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_like_view").await?;
+
+		Ok(())
+	}
+
+	/// A like, an unlike, or a like-state read on an unknown Post is the same
+	/// `Validation` error (400), not a foreign-key failure or a silent zero view
+	/// (#122), matching `CaptionBmc::create`.
+	#[serial]
+	#[tokio::test]
+	async fn test_toggle_post_like_unknown_post_is_validation() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let user_id = seed_user(&root, &mm, "test_like_unknown-user").await?;
+		let ctx = Ctx::new(user_id)?;
+
+		// -- Exec & Check
+		for liked in [true, false] {
+			let res = PostLikeBmc::toggle(
+				&ctx,
+				&mm,
+				PostLikeForToggle {
+					post_id: i64::MAX,
+					liked,
+				},
+			)
+			.await;
+			assert!(
+				matches!(&res, Err(model::Error::Validation { field, .. }) if field == "post_id"),
+				"liked={liked}: expected Validation on post_id, got {res:?}"
+			);
+		}
+		let res = PostLikeBmc::get_post_like(&ctx, &mm, i64::MAX).await;
+		assert!(
+			matches!(&res, Err(model::Error::Validation { field, .. }) if field == "post_id"),
+			"get_post_like: expected Validation on post_id, got {res:?}"
+		);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_like_unknown-user").await?;
 
 		Ok(())
 	}

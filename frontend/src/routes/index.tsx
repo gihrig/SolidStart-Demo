@@ -38,6 +38,8 @@ export default function Home() {
     selectedCategory,
     setSelectedCategory,
     hero,
+    selectedPostLike,
+    toggleLike,
     connectFeed,
   } = createJediFeed();
 
@@ -87,6 +89,8 @@ export default function Home() {
                   caption={selectedCaption()}
                   canAddCaption={isAuthenticated()}
                   captionsLoaded={visibleCaptions() !== undefined}
+                  like={selectedPostLike()}
+                  onToggleLike={toggleLike}
                 />
               )}
             </Match>

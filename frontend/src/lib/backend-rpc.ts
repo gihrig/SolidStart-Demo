@@ -17,6 +17,8 @@ import type {
   LoginPayload,
   LogoffPayload,
   PostForCreate,
+  PostLikeForToggle,
+  PostLikeView,
   PostView,
 } from "~/types/backend";
 import { isRpcError } from "~/types/backend";
@@ -174,12 +176,16 @@ export function createRpcClient() {
   // returns the enriched `PostView` (author, resolved Categories, derived counts).
   // `list_posts` is ranked by like count by the back-end; the front-end never
   // re-ranks. `create_post` is a mutation, so it posts to the authenticated
-  // surface; the back-end sets the caller as the Owner (#120).
+  // surface; the back-end sets the caller as the Owner (#120). The caller's like
+  // state is per-User, so `get_post_like` and `toggle_post_like` post to the
+  // authenticated surface too (#122).
   const post = {
     list: () => rpcCall<PostView[]>("list_posts", undefined, "/api/rpc-public"),
     featured: () => rpcCall<PostView>("featured_post", undefined, "/api/rpc-public"),
     get: (id: number) => rpcCall<PostView>("get_post", { id }, "/api/rpc-public"),
     create: (data: PostForCreate) => rpcCall<PostView>("create_post", { data }),
+    getLike: (id: number) => rpcCall<PostLikeView>("get_post_like", { id }),
+    toggleLike: (data: PostLikeForToggle) => rpcCall<PostLikeView>("toggle_post_like", { data }),
   };
 
   // Caption RPC methods. Every Caption is public (#106), so the read posts to the

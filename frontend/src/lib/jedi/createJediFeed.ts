@@ -3,13 +3,14 @@ import {
   createResource,
   createSignal,
   on,
+  onCleanup,
   type Accessor,
   type Setter,
 } from "solid-js";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { type MessageFeedFactory } from "~/lib/websocket";
 import { Channel } from "~/lib/channel";
-import type { JediCategory, PostView, CaptionView, HeroView } from "~/types/jedi";
+import type { JediCategory, PostLike, PostView, CaptionView, HeroView } from "~/types/jedi";
 
 /**
  * The Jedi feed's view-model: it owns the route's four data resources and the
@@ -55,6 +56,15 @@ export interface JediFeed {
   selectedCategory: Accessor<number>;
   setSelectedCategory: Setter<number>;
   hero: Accessor<HeroView | undefined>;
+  /** The viewer's like state of the selected Post (#122): the live count and
+   *  whether the viewer likes it. Undefined while loading, and on the anonymous
+   *  landing, where no live session is connected (the read needs a login). */
+  selectedPostLike: Accessor<PostLike | undefined>;
+  /** Like or unlike the selected Post: the opposite of the like state shown
+   *  (#122). The change shows at once, then the back-end's answer replaces it;
+   *  a click while a toggle runs counts too. A no-op without a like state.
+   *  Rejects, and rolls the Like back, when the back-end fails. */
+  toggleLike: () => Promise<void>;
   /** Wire a live Feed after creation (#120): the route builds this view-model
    *  anonymously, then connects the socket's Feed once a User logs in. The
    *  subscription is owned by the caller's reactive scope, so it ends with it. */
@@ -75,7 +85,8 @@ export interface CreateJediFeedDeps {
   /**
    * The live **Feed** (`CONTEXT.md`). When present, a `posts` poke refetches the
    * ranked Post list and the featured Post (#117), and a `post_caption` poke for
-   * the selected Post refetches its Top Captions (#121) — a poke carries no row,
+   * the selected Post refetches its Top Captions (#121), and a `post_like` poke
+   * for the selected Post refetches its like state (#122) — a poke carries no row,
    * so the refetch re-reads through the scoped public RPC. Absent on the
    * anonymous landing page, whose WebSocket needs auth; the initial fetch still
    * renders.
@@ -99,32 +110,54 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // Live propagation (#117): a `posts` poke means the Post list may have changed,
   // so refetch the list (the featured post re-derives from it). A `post_caption`
   // poke means one Post's Captions changed (#121); only the selected Post's feed
-  // is held, and its poke refetches Top Captions. The feed is optional — the
+  // is held, and its poke refetches Top Captions. A `post_like` poke means one
+  // Post's like count changed (#122); the selected Post's like feed is held the
+  // same way, and its poke refetches the like state. The feed is optional — the
   // anonymous landing page has no socket — so this wiring runs when injected, or
   // later through `connectFeed` on login (#120). It reads `selectedPost` and
   // `topCaptions` below, so it is invoked only after they are defined.
   const connectFeed = (factory: MessageFeedFactory): void => {
+    // A connected Feed means a logged-in User, so the viewer's like state can
+    // load now; it ends with the caller's scope (logout), like the socket. A
+    // logout also drops the wanted Likes, so a queued send stops after the
+    // request in flight and never goes out with the next User's cookie (#122
+    // review).
+    setLive(true);
+    onCleanup(() => {
+      setLive(false);
+      setPendingLikes(new Map());
+    });
     const feed = factory({
       onPostsUpdate: () => void refetchPosts(),
       onPostCaptionUpdate: (postId) => {
         if (postId === selectedPost()?.id) void refetchCaptions();
       },
+      onPostLikeUpdate: (postId) => {
+        if (postId === selectedPost()?.id) void refetchLike();
+      },
     });
     feed.subscribe(Channel.posts);
-    // Hold the selected Post's Caption feed; move it when the selection moves.
+    // Hold the selected Post's Caption and like feeds; move them when the
+    // selection moves.
     createEffect(
       on(
         () => selectedPost()?.id,
         (postId, prevId) => {
           if (postId === prevId) return;
-          if (prevId !== undefined) feed.unsubscribe(Channel.postCaption(prevId));
-          if (postId !== undefined) feed.subscribe(Channel.postCaption(postId));
+          if (prevId !== undefined) {
+            feed.unsubscribe(Channel.postCaption(prevId));
+            feed.unsubscribe(Channel.postLike(prevId));
+          }
+          if (postId !== undefined) {
+            feed.subscribe(Channel.postCaption(postId));
+            feed.subscribe(Channel.postLike(postId));
+          }
         },
       ),
     );
     // A poke sent while the socket is down is lost, and a (re)connect only
     // replays the subscription. So each time the socket comes up, refetch: a
-    // Post or Caption created meanwhile still appears (#120 review).
+    // Post, Caption, or Like created meanwhile still appears (#120 review).
     createEffect(
       on(
         feed.connected,
@@ -132,6 +165,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
           if (!connected) return;
           void refetchPosts();
           void refetchCaptions();
+          void refetchLike();
         },
         { defer: true },
       ),
@@ -205,6 +239,76 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     setSelectedCaptionId(id);
   };
 
+  // The viewer's like state (#122). The read needs a login, so it loads only
+  // while a live session is connected, and re-keys with the selected Post.
+  const [live, setLive] = createSignal(false);
+  const [postLike, { refetch: refetchLike, mutate: setPostLike }] = createResource(
+    () => (live() ? selectedPost()?.id : undefined),
+    (postId) => api.posts.getLike(postId),
+  );
+  // Like `selectedPostCaptions`: `.latest` is non-suspending, so match on the
+  // result's Post id, and never show a previous Post's like state.
+  const serverLike = (): PostLike | undefined => {
+    const result = postLike.latest;
+    return live() && result?.postId === selectedPost()?.id ? result : undefined;
+  };
+
+  // The viewer's latest wanted like state of each Post that the back-end has
+  // not confirmed yet (Post id -> liked). A click sets it, so the Like shows at
+  // once. One entry per Post, so moving to another Post mid-toggle loses no click.
+  const [pendingLikes, setPendingLikes] = createSignal<ReadonlyMap<number, boolean>>(new Map());
+
+  // What the viewer sees: the server state with the wanted state laid over it.
+  // The count moves by one from the server count. A read that lands while a
+  // toggle runs updates only the server layer, so it cannot undo the click.
+  const selectedPostLike = (): PostLike | undefined => {
+    const server = serverLike();
+    const liked = server && pendingLikes().get(server.postId);
+    if (!server || liked === undefined || liked === server.liked) return server;
+    return {
+      postId: server.postId,
+      likeCount: server.likeCount + (liked ? 1 : -1),
+      liked,
+    };
+  };
+
+  // One send runs at a time. It sends each Post's wanted state until the
+  // back-end's answer matches the newest one, so fast clicks end in the last
+  // wanted state, sent in order. The toggle sends the wanted state, not a flip,
+  // so a repeat is a no-op on the back-end.
+  let sending: Promise<void> | undefined;
+  const sendPendingLikes = async (): Promise<void> => {
+    const confirmed = new Map<number, PostLike>();
+    const unconfirmed = () =>
+      [...pendingLikes()].find(([postId, liked]) => confirmed.get(postId)?.liked !== liked);
+    try {
+      for (let next = unconfirmed(); next; next = unconfirmed()) {
+        const [postId, liked] = next;
+        confirmed.set(postId, await api.posts.toggleLike(postId, liked));
+      }
+      // Show the selected Post's answer; another Post's answer must not replace
+      // the selected Post's like state.
+      const result = confirmed.get(selectedPost()?.id ?? Number.NaN);
+      if (result) setPostLike(result);
+    } finally {
+      // Confirmed or failed, drop the wanted states: a failure rolls back to the
+      // server state. Then reread. The reread is the latest fetch, so Solid
+      // ignores an older read still in flight, which would otherwise land last
+      // and show the state from before the click (#122 review).
+      setPendingLikes(new Map());
+      sending = undefined;
+      void refetchLike();
+    }
+  };
+  // Every caller awaits the running send, so each one sees its failure.
+  const toggleLike = (): Promise<void> => {
+    const current = selectedPostLike();
+    if (!current) return Promise.resolve();
+    setPendingLikes((wanted) => new Map(wanted).set(current.postId, !current.liked));
+    sending ??= sendPendingLikes();
+    return sending;
+  };
+
   const [hero] = createResource(() => api.hero.get());
 
   if (deps.feed) connectFeed(deps.feed);
@@ -221,6 +325,8 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     selectedCategory,
     setSelectedCategory,
     hero,
+    selectedPostLike,
+    toggleLike,
     connectFeed,
   };
 }

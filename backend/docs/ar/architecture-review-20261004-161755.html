@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — Jedi slice</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose", flowchart: { curve: "basis" } });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 6 5; }
+      .deep { background: linear-gradient(135deg, #1e1b4b, #0f172a); }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .card-shadow { box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 18px 44px -24px rgba(0,0,0,.8); }
+      .ev code { display: block; white-space: pre-wrap; word-break: break-word; }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-100 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+
+      <!-- ============ HEADER ============ -->
+      <header class="space-y-5">
+        <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <h1 class="font-serif text-4xl tracking-tight">Architecture review</h1>
+          <span class="mono text-lg text-slate-500">the Jedi slice · both tiers</span>
+        </div>
+        <p class="text-slate-400 max-w-3xl">
+          SolidStart Demo · after <span class="mono text-slate-300">#122</span> (Post Likes) · 2026-10-04.
+          Next tickets: <span class="mono text-slate-300">#123</span> Caption Likes,
+          <span class="mono text-slate-300">#124–#127</span> Comments. The lens is
+          <b class="text-slate-200">depth</b>, <b class="text-slate-200">seam</b> placement, and
+          <b class="text-slate-200">locality</b> — where will the next tickets copy instead of reuse?
+        </p>
+
+        <!-- legend -->
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs uppercase tracking-wider text-slate-500 border-t border-b border-slate-800 py-3">
+          <span class="flex items-center gap-2"><span class="inline-block w-4 h-4 border border-slate-500 bg-slate-800"></span> module</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-6 border-t-2 border-dashed border-slate-400"></span> seam</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-6 border-t-2 border-red-400"></span> leak / copy</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-4 h-4 deep ring-1 ring-indigo-500/40 rounded-sm"></span> deep module</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-4 h-4 border border-dashed border-red-500/60 bg-red-500/10 rounded-sm"></span> code a ticket would copy</span>
+        </div>
+
+        <!-- reading note -->
+        <p class="text-sm text-slate-500 max-w-3xl">
+          Hot spots since August (commits):
+          <span class="mono text-slate-400">types/backend/index.ts 16 · app.rs 16 · backend-rpc.ts 14 · websocket.ts 13 · routes_ws.rs 13 · createJediFeed.ts 10 (+12 test) · jedi-api.ts 9 (+9 test) · post.rs 9</span>.
+          One feature's first commit touched 19 files (<span class="mono text-slate-400">#121</span>) and 18 files
+          (<span class="mono text-slate-400">#122</span>). Each finding quotes the code that proves it.
+          Candidates continue the durable <span class="mono text-slate-400">C-##</span> sequence (last shipped: C-18, in
+          <a href="architecture-review-20260922-084743.html" class="mono text-indigo-300 underline decoration-indigo-500/50 underline-offset-2">architecture-review-20260922-084743.html</a>).
+        </p>
+      </header>
+
+      <section id="candidates" class="space-y-12">
+
+        <!-- ============ C-19 ============ -->
+        <article id="c19" class="bg-slate-900 rounded-2xl border border-slate-800 card-shadow p-7 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-serif text-2xl text-slate-100">C-19 · Deepen a <span class="italic text-indigo-300">Like</span> into one module per tier</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Strong</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">local-substitutable · in-process</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500">
+            lib-core/src/model/post.rs · model/caption.rs · model/base/derived_fns.rs · web-server/src/web/rpcs/post_rpc.rs ·
+            lib-web/src/ws/hub.rs · frontend/src/lib/jedi/createJediFeed.ts · jedi-api.ts · backend-rpc.ts · components/FeaturedPost.tsx
+          </p>
+
+          <!-- before / after: hand-built -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- before -->
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — one stack per target</p>
+              <div class="grid grid-cols-2 gap-3 text-[11px]">
+                <div class="flex flex-col gap-1">
+                  <p class="text-xs font-semibold text-slate-300 mb-1">Post Like · #122</p>
+                  <div class="border border-slate-600 rounded-md bg-slate-800/50 px-2 py-1 text-slate-200">FeaturedPost like control</div>
+                  <div class="border border-slate-600 rounded-md bg-slate-800/50 px-2 py-1 text-slate-200">createJediFeed · Like block</div>
+                  <div class="border border-slate-600 rounded-md bg-slate-800/50 px-2 py-1 text-slate-200 mono">jediApi.posts.toggleLike</div>
+                  <div class="border border-slate-600 rounded-md bg-slate-800/50 px-2 py-1 text-slate-200 mono">get_post_like</div>
+                  <div class="border border-slate-600 rounded-md bg-slate-800/50 px-2 py-1 text-slate-200 mono">toggle_post_like</div>
+                  <div class="border border-slate-600 rounded-md bg-slate-800/50 px-2 py-1 text-slate-200 mono">broadcast_post_like</div>
+                  <div class="border border-slate-600 rounded-md bg-slate-800/50 px-2 py-1 text-slate-200 mono">PostLikeBmc::toggle</div>
+                  <div class="border border-slate-600 rounded-md bg-slate-800/50 px-2 py-1 text-slate-200 mono">require_post</div>
+                </div>
+                <div class="flex flex-col gap-1">
+                  <p class="text-xs font-semibold text-red-300 mb-1">Caption Like · #123 — a copy</p>
+                  <div class="border border-dashed border-red-500/60 rounded-md bg-red-500/10 px-2 py-1 text-red-300">each Caption's like control</div>
+                  <div class="border border-dashed border-red-500/60 rounded-md bg-red-500/10 px-2 py-1 text-red-300">createJediFeed · 2nd Like block</div>
+                  <div class="border border-dashed border-red-500/60 rounded-md bg-red-500/10 px-2 py-1 text-red-300 mono">jediApi.captions.toggleLike</div>
+                  <div class="border border-dashed border-red-500/60 rounded-md bg-red-500/10 px-2 py-1 text-red-300 mono">get_caption_like</div>
+                  <div class="border border-dashed border-red-500/60 rounded-md bg-red-500/10 px-2 py-1 text-red-300 mono">toggle_caption_like</div>
+                  <div class="border border-dashed border-red-500/60 rounded-md bg-red-500/10 px-2 py-1 text-red-300">hub stub · no receipt</div>
+                  <div class="border border-dashed border-red-500/60 rounded-md bg-red-500/10 px-2 py-1 text-red-300">CaptionLikeBmc · marker only</div>
+                  <div class="border border-dashed border-red-500/60 rounded-md bg-red-500/10 px-2 py-1 text-red-300">2nd copy of the Post check</div>
+                </div>
+              </div>
+              <p class="text-xs text-slate-500 mt-3">Nothing is parameterized by the Like target.</p>
+            </div>
+            <!-- after -->
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — one Like module per tier</p>
+              <div class="flex flex-col gap-2">
+                <div class="flex gap-2 justify-center text-[11px]">
+                  <span class="border border-slate-600 rounded-md bg-slate-800/50 px-2 py-1 text-slate-300">Featured Post</span>
+                  <span class="border border-slate-600 rounded-md bg-slate-800/50 px-2 py-1 text-slate-300">Top Captions</span>
+                </div>
+                <div class="deep border border-indigo-500/40 ring-1 ring-indigo-500/20 rounded-md p-3">
+                  <p class="mono text-xs text-indigo-300/80">Like state · front-end</p>
+                  <div class="mt-2 flex flex-wrap gap-1 text-[10px] uppercase tracking-wider">
+                    <span class="rounded border border-indigo-400/20 bg-indigo-500/10 px-1.5 py-0.5 text-indigo-200/80">server read</span>
+                    <span class="rounded border border-indigo-400/20 bg-indigo-500/10 px-1.5 py-0.5 text-indigo-200/80">wanted-state overlay</span>
+                    <span class="rounded border border-indigo-400/20 bg-indigo-500/10 px-1.5 py-0.5 text-indigo-200/80">send loop</span>
+                    <span class="rounded border border-indigo-400/20 bg-indigo-500/10 px-1.5 py-0.5 text-indigo-200/80">race fix</span>
+                  </div>
+                </div>
+                <div class="relative my-2">
+                  <div class="border-t-2 border-dashed border-slate-500"></div>
+                  <span class="absolute -top-2 left-1/2 -translate-x-1/2 bg-slate-900 px-2 text-[10px] uppercase tracking-wider text-slate-400">seam · RPC + poke</span>
+                </div>
+                <div class="deep border border-indigo-500/40 ring-1 ring-indigo-500/20 rounded-md p-3">
+                  <p class="mono text-xs text-indigo-300/80">Like module · back-end</p>
+                  <div class="mt-2 flex flex-wrap gap-1 text-[10px] uppercase tracking-wider">
+                    <span class="rounded border border-indigo-400/20 bg-indigo-500/10 px-1.5 py-0.5 text-indigo-200/80">parent check</span>
+                    <span class="rounded border border-indigo-400/20 bg-indigo-500/10 px-1.5 py-0.5 text-indigo-200/80">insert / delete</span>
+                    <span class="rounded border border-indigo-400/20 bg-indigo-500/10 px-1.5 py-0.5 text-indigo-200/80">change flag</span>
+                    <span class="rounded border border-indigo-400/20 bg-indigo-500/10 px-1.5 py-0.5 text-indigo-200/80">derived count</span>
+                    <span class="rounded border border-indigo-400/20 bg-indigo-500/10 px-1.5 py-0.5 text-indigo-200/80">liked</span>
+                  </div>
+                </div>
+                <div class="flex gap-2 justify-center text-[11px]">
+                  <span class="border border-slate-600 rounded-md bg-slate-800/50 px-2 py-1 text-slate-300">adapter · Post target</span>
+                  <span class="border border-slate-600 rounded-md bg-slate-800/50 px-2 py-1 text-slate-300">adapter · Caption target</span>
+                </div>
+              </div>
+              <p class="text-xs text-slate-500 mt-3">Two targets make the seam real: Post and Caption.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</p>
+              <p class="text-slate-300">A <b class="text-slate-100">Like</b> has no module. #122 built it for Posts only, so #123 must copy it for Captions.</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</p>
+              <p class="text-slate-300">One Like module per tier, generic over the Like target. A target bundles its like table, parent column, and parent check. The front-end Like state serves a list of targets, not one Post.</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+              <li><b class="text-slate-100">leverage</b>: #123 adds a Caption target, not a copy</li>
+              <li><b class="text-slate-100">locality</b>: one race fix, one Post check</li>
+              <li>the like-table + parent-column clump becomes one type</li>
+              <li>the interface is the test surface: one suite, two targets</li>
+              <li>a batched liked-read fits Top Captions</li>
+            </ul>
+          </div>
+
+          <div class="ev">
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Evidence</p>
+            <ul class="space-y-2 text-xs">
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">base::counts_by_parent::&lt;PostLikeBmc&gt;(mm, POST_ID, &amp;post_ids),</code><span class="text-slate-500">post.rs:446</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">base::counts_by_parent::&lt;CaptionLikeBmc&gt;(mm, CAPTION_ID, &amp;caption_ids),</code><span class="text-slate-500">caption.rs:286 — the same pair again at post.rs:362, 587 and caption.rs:230</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">let known = PostBmc::list(</code><span class="text-slate-500">post.rs:607 (require_post) and caption.rs:176 (CaptionBmc::create) — one Post check, written twice</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">pub fn broadcast_caption_like(&amp;self, caption_id: i64) {</code><span class="text-slate-500">hub.rs:102 — no receipt, no change flag</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">(postId) =&gt; api.posts.getLike(postId),</code><span class="text-slate-500">createJediFeed.ts:241 — the Like block knows only Posts</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">getLike: (id: number) =&gt; rpcCall&lt;PostLikeView&gt;("get_post_like", { id }),</code><span class="text-slate-500">backend-rpc.ts:187 — one read per target; Top Captions would need one per Caption</span></li>
+              <li class="text-slate-400">#122's first commit: 18 files (12 production, 4 test, 2 generated). #123 would copy about 170 production and 210 test lines on the back-end, and about 70 lines on the front-end.</li>
+            </ul>
+          </div>
+
+          <div class="rounded-lg bg-slate-800/60 border border-slate-700 p-4 text-sm text-slate-400">
+            <b class="text-slate-300">Note:</b> builds on ADR-0024 (addendum: <span class="mono">PostLikeBmc</span> is the write path) and ADR-0016 (addendum: the conditional poke). No conflict.
+          </div>
+        </article>
+
+        <!-- ============ C-20 ============ -->
+        <article id="c20" class="bg-slate-900 rounded-2xl border border-slate-800 card-shadow p-7 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-serif text-2xl text-slate-100">C-20 · Hold <span class="italic text-indigo-300">Feed</span> Subscriptions by Channel; add an in-memory adapter</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Strong</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">ports &amp; adapters</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500">
+            frontend/src/lib/websocket.ts (+ test) · lib/jedi/createJediFeed.ts (+ test) · lib/channel.ts · lib-web/src/ws/socket.rs (the cap)
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before — one callback and one branch per kind</p>
+              <pre class="mermaid">
+flowchart LR
+  WS["socket onmessage"] --> K{"kind?"}
+  K -->|posts| A["onPostsUpdate"]
+  K -->|post_caption| B["onPostCaptionUpdate"]
+  K -->|post_like| C["onPostLikeUpdate"]
+  K -.->|"caption_like · comments"| N["new option + branch"]
+  A --> V["createJediFeed guards"]
+  B --> V
+  C --> V
+  V --> S["effect: subscribe · unsubscribe"]
+  V --> R["effect: refetch on reconnect"]
+  classDef leak stroke:#f87171,stroke-width:3px,color:#fca5a5,stroke-dasharray:4 4;
+  class N leak
+              </pre>
+              <p class="text-xs text-slate-500 mt-2">About seven hand edits per poked Channel, in two modules.</p>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">After — one Subscription per Channel, two adapters</p>
+              <pre class="mermaid">
+flowchart LR
+  P["Post list"] -->|"posts"| R1
+  T["Top Captions"] -->|"post_caption:id"| R1
+  L["Like state"] -->|"post_like:id"| R1
+  subgraph F["Feed · deep module"]
+    direction TB
+    R1["route by Channel key"]
+    R2["per-holder refcount"]
+    R3["replay · recover a missed poke"]
+  end
+  R3 -.->|seam| W[("WebSocket adapter")]
+  R3 -.->|seam| M[("in-memory adapter · tests")]
+  classDef fat fill:#4f46e5,color:#fff,stroke:#818cf8,stroke-width:1px;
+  class R1,R2,R3 fat
+              </pre>
+              <p class="text-xs text-slate-500 mt-2">A view-model names a Channel and a handler. The Feed does the rest.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</p>
+              <p class="text-slate-300">Each poked <b class="text-slate-100">Channel</b> costs about seven hand edits in two modules. No test reaches the Jedi dispatch branches.</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</p>
+              <p class="text-slate-300">A view-model gives the Feed a Channel and a handler as one Subscription, held for its reactive scope. The Feed routes by Channel key, replays on reconnect, and recovers a missed poke. Tests share one in-memory Feed adapter.</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+              <li><b class="text-slate-100">leverage</b>: a new Channel needs no Feed edit</li>
+              <li><b class="text-slate-100">locality</b>: reconnect recovery lives in one module</li>
+              <li>two adapters — WebSocket and in-memory — make the seam real</li>
+              <li>dispatch is tested once, at the Feed interface</li>
+              <li>five hand-made Feed fakes go</li>
+              <li>an over-cap subscribe surfaces in one place</li>
+            </ul>
+          </div>
+
+          <div class="ev">
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Evidence</p>
+            <ul class="space-y-2 text-xs">
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">} else if (data.kind === "post_like") {</code><span class="text-slate-500">websocket.ts:180 — one branch per kind, lines 172–181</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">onPostLikeUpdate: (postId) =&gt; {
+  if (postId === selectedPost()?.id) void refetchLike();</code><span class="text-slate-500">createJediFeed.ts:129–130 — one guard per kind</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">feed.unsubscribe(Channel.postLike(prevId));
+feed.subscribe(Channel.postLike(postId));</code><span class="text-slate-500">createJediFeed.ts:143, 147</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">void refetchLike();</code><span class="text-slate-500">createJediFeed.ts:162 — the reconnect refetch; <span class="mono">setConnected(true)</span> appears only at test lines 456 and 565 (posts, captions)</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">ws.simulateMessage({ event_type: "poke", kind: "agents" });</code><span class="text-slate-500">websocket.unit.test.ts:109 — the tests send only conv_msg, agents, convs</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">connected: () =&gt; true, subscribe, unsubscribe</code><span class="text-slate-500">createJediFeed.unit.test.ts:388, 445, 487, 585, 713 — five hand-made Feed fakes</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">const MAX_SUBSCRIPTIONS: usize = 16;</code><span class="text-slate-500">socket.rs:75 — “Over the cap is ignored” (:168–169); one Channel per visible Caption reaches it</span></li>
+            </ul>
+          </div>
+
+          <div class="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4 text-sm text-amber-200 space-y-1">
+            <p class="font-semibold text-amber-100">⚠ Touches ADR-0017 — worth reopening in part.</p>
+            <p>ADR-0017 registers callbacks per kind, on <span class="mono">MessageFeedOptions</span>. This card registers them per Channel.
+              It keeps ADR-0017's one Feed, its factory seam, and its per-holder refcount. The name is
+              “Subscription”, as <span class="mono">CONTEXT.md</span> asks: it avoids “listener, watch”.</p>
+          </div>
+        </article>
+
+        <!-- ============ C-21 ============ -->
+        <article id="c21" class="bg-slate-900 rounded-2xl border border-slate-800 card-shadow p-7 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-serif text-2xl text-slate-100">C-21 · Emit <span class="italic text-indigo-300">number</span> ids at the source; delete the id rewrite</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Strong</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500">
+            backend/.cargo/config.toml · frontend/src/types/backend/index.ts · types/backend/wsEvent.unit.test.ts · web-server/bindings/*.d.ts (regenerate)
+          </p>
+
+          <!-- before / after: cross-section -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — six bands between a binding and its caller</p>
+              <div class="flex flex-col gap-1.5 text-xs">
+                <div class="border-l-4 border-slate-600 bg-slate-800/50 px-3 py-2 text-slate-300">bindings · <span class="mono">bigint</span> in 20 of 30 files</div>
+                <div class="border-l-4 border-slate-600 bg-slate-800/50 px-3 py-2 text-slate-300 mono">NumericIds — top-level fields only</div>
+                <div class="border-l-4 border-slate-600 bg-slate-800/50 px-3 py-2 text-slate-300 mono">NumericIdsUnion — Channel</div>
+                <div class="border-l-4 border-slate-600 bg-slate-800/50 px-3 py-2 text-slate-300 mono">NumericIdsEvent — WsEvent</div>
+                <div class="border-l-4 border-red-500/70 bg-red-500/10 px-3 py-2 text-red-300">hand Omit + re-type · PostView · CaptionView · PostForCreate</div>
+                <div class="border-l-4 border-red-500/70 bg-red-500/10 px-3 py-2 text-red-300">wsEvent.unit.test.ts · 90 lines guard the rewrite</div>
+                <div class="border-l-4 border-slate-700 bg-slate-900 px-3 py-2 text-slate-500">callers</div>
+              </div>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — the generator says number</p>
+              <div class="flex flex-col gap-1.5 text-xs">
+                <div class="deep border border-indigo-500/40 ring-1 ring-indigo-500/20 rounded-md px-3 py-8">
+                  <p class="uppercase tracking-wider font-semibold text-slate-100">bindings · number</p>
+                  <p class="mono text-indigo-300/80 mt-1">TS_RS_LARGE_INT = "number"</p>
+                </div>
+                <div class="border-l-4 border-slate-600 bg-slate-800/50 px-3 py-2 text-slate-300">barrel · plain re-export</div>
+                <div class="border-l-4 border-slate-700 bg-slate-900 px-3 py-2 text-slate-500">callers</div>
+              </div>
+              <p class="text-xs text-slate-500 mt-3">The deletion test passes: the rewrite vanishes; it does not move.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</p>
+              <p class="text-slate-300">20 of 30 bindings declare <span class="mono text-slate-400">bigint</span>. The barrel corrects each one by hand, nested ids included.</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</p>
+              <p class="text-slate-300">Set <span class="mono text-slate-400">TS_RS_LARGE_INT = "number"</span> beside <span class="mono text-slate-400">TS_RS_EXPORT_DIR</span>. The bindings then say number, and the barrel only re-exports.</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+              <li>three id-rewrite types go</li>
+              <li>no hand <span class="mono text-slate-400">Omit</span> for nested ids</li>
+              <li><b class="text-slate-100">interface</b>: a new binding needs one re-export line</li>
+              <li>the 90-line guard test goes</li>
+            </ul>
+          </div>
+
+          <div class="ev">
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Evidence</p>
+            <ul class="space-y-2 text-xs">
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">type NumericIds&lt;T&gt; = { [K in keyof T]: T[K] extends bigint ? number : T[K] };</code><span class="text-slate-500">index.ts:25</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">export type PostView = Omit&lt;NumericIds&lt;PostViewWire&gt;, "author" | "categories"&gt; &amp; {</code><span class="text-slate-500">index.ts:41 — also CaptionView (:61) and PostForCreate (:49)</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">type NumericIdsEvent&lt;T&gt; = T extends { payload: infer P }</code><span class="text-slate-500">index.ts:94</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">| `TS_RS_LARGE_INT` | Binding used for large integer types (`i64`, `u64`, `i128`, `u128`) | `bigint` |</code><span class="text-slate-500">ts-rs-12.0.1/src/lib.rs:80 — read by <span class="mono">Config::from_env()</span> (:621), like <span class="mono">TS_RS_EXPORT_DIR</span></span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">TS_RS_EXPORT_DIR = { value = "crates/services/web-server/bindings", relative = true }</code><span class="text-slate-500">backend/.cargo/config.toml — the new setting goes beside it</span></li>
+            </ul>
+          </div>
+
+          <div class="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4 text-sm text-amber-200 space-y-1">
+            <p class="font-semibold text-amber-100">⚠ Contradicts ADR-0003 — worth reopening.</p>
+            <p>ADR-0003 rejected a ts-rs override because <i>“the Rust back-end is not in this repo”</i>.
+              ADR-0010 put the back-end here, so that reason no longer holds. The 2⁵³ precision limit that ADR-0003 accepts does not change.</p>
+          </div>
+        </article>
+
+        <!-- ============ C-22 ============ -->
+        <article id="c22" class="bg-slate-900 rounded-2xl border border-slate-800 card-shadow p-7 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-serif text-2xl text-slate-100">C-22 · Pin the <span class="italic text-indigo-300">RPC contract</span> at one seam</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Worth exploring</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">ports &amp; adapters</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500">
+            frontend/src/lib/backend-rpc.ts (+ test) · lib/jedi/jedi-api.ts (+ test) · web-server/src/web/rpcs/*.rs · web-server/src/app.rs ·
+            components/AddCaptionForm.tsx · CreatePostDialog.tsx (mirrored caps)
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before — two hand-typed copies, nothing joins them</p>
+              <pre class="mermaid">
+flowchart LR
+  subgraph FE["Front-end client"]
+    direction TB
+    S1["rpcCall toggle_post_like · data"]
+    S2["rpcCall list_posts · /api/rpc-public"]
+  end
+  subgraph BE["Back-end router"]
+    direction TB
+    R1["router_builder! create_post · toggle_post_like · get_post_like"]
+    R2["router_builder! get_post · list_posts · featured_post · public"]
+  end
+  S1 -.->|"hand-typed · no test"| R1
+  S2 -.->|"hand-typed"| R2
+  linkStyle 0 stroke:#f87171,stroke-width:2px
+  linkStyle 1 stroke:#f87171,stroke-width:2px
+              </pre>
+              <p class="text-xs text-slate-500 mt-2">A typo in a method name passes every unit test.</p>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">After — one exported contract, one routing test</p>
+              <pre class="mermaid">
+flowchart LR
+  C["RPC contract · ts-rs export<br/>method · surface · params · result"]
+  C --> R["router"]
+  C --> T["typed front-end client"]
+  X["back-end test<br/>each method routed on its surface"] --> R
+  classDef fat fill:#4f46e5,color:#fff,stroke:#818cf8,stroke-width:1px;
+  class C fat
+              </pre>
+              <p class="text-xs text-slate-500 mt-2">A typo becomes a compile error; routing is proved once.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</p>
+              <p class="text-slate-300">Each RPC's method name, params, and surface are typed by hand on both tiers. No test joins the two copies.</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</p>
+              <p class="text-slate-300">The back-end exports the RPC contract through ts-rs: method, surface, params, and result. One back-end test proves each method is routed on its surface. The front-end client takes its names and types from the export.</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+              <li>a method-name typo becomes a compile error</li>
+              <li>one routing test covers every method</li>
+              <li><b class="text-slate-100">interface</b>: the surface stops being per-call knowledge</li>
+              <li><b class="text-slate-100">leverage</b>: pass-through client members collapse</li>
+              <li>caps are exported once, not mirrored</li>
+            </ul>
+          </div>
+
+          <div class="ev">
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Evidence</p>
+            <ul class="space-y-2 text-xs">
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">params?: Record&lt;string, unknown&gt;,</code><span class="text-slate-500">backend-rpc.ts:95 — untyped params</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">vi.stubGlobal("fetch", fetchMock);</code><span class="text-slate-500">backend-rpc.unit.test.ts:133 — the only Jedi method name asserted is <span class="mono">expect(body.method).toBe("list_categories");</span> (:282)</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">vi.mock("~/lib/backend-rpc", () =&gt; ({</code><span class="text-slate-500">jedi-api.unit.test.ts:38 — the mapping tests mock past the wire</span></li>
+              <li class="text-slate-400">Only <span class="mono">e2e/fullstack.spec.ts</span> logs in. No front-end or e2e test sends <span class="mono">create_post</span>, <span class="mono">add_caption</span>, <span class="mono">get_post_like</span>, or <span class="mono">toggle_post_like</span>. The back-end HTTP tests (<span class="mono">app.rs</span>) call them by name, but no test joins the front-end's names to the router.</li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">router_builder!(get_post, list_posts, featured_post,)</code><span class="text-slate-500">post_rpc.rs:18 — mirrored by a <span class="mono">"/api/rpc-public"</span> argument on each call (backend-rpc.ts:183–185)</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">const CAPTION_MAX_LENGTH = 36;</code><span class="text-slate-500">AddCaptionForm.tsx:9 — mirrors <span class="mono">max_len: Some(36),</span> (caption.rs:150)</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">"message":"RPC_REQUEST_METHOD_UNKNOWN"</code><span class="text-slate-500">the router's reply to an unknown name (#122's red test run) — a test can prove routing by calling</span></li>
+            </ul>
+          </div>
+
+          <div class="rounded-lg bg-slate-800/60 border border-slate-700 p-4 text-sm text-slate-400">
+            <b class="text-slate-300">Note:</b> ADR-0016 says that “rpc-router 0.2.0 keeps its method map private”. So the proof must call each method; it cannot list them.
+          </div>
+        </article>
+
+        <!-- ============ C-23 ============ -->
+        <article id="c23" class="bg-slate-900 rounded-2xl border border-slate-800 card-shadow p-7 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-serif text-2xl text-slate-100">C-23 · Compose the Jedi <span class="italic text-indigo-300">view-model</span> from per-concern modules</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Worth exploring</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500">
+            frontend/src/lib/jedi/createJediFeed.ts (326 lines, 14 interface members) · createJediFeed.unit.test.ts (818 lines) ·
+            routes/index.tsx · components/FeaturedPost.tsx · lib/jedi/jedi-api.ts · lib/backend-rpc.ts
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- before -->
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — every ticket lands in one module</p>
+              <div class="flex gap-2">
+                <div class="flex-1 border border-slate-600 rounded-md bg-slate-800/50 p-3 flex flex-col gap-1 text-xs">
+                  <p class="mono text-xs text-slate-400 mb-1">createJediFeed · 14 members</p>
+                  <div class="border-l-4 border-slate-600 bg-slate-900/60 px-2 py-1.5 text-slate-300">#117 Post list + Category filter</div>
+                  <div class="border-l-4 border-slate-600 bg-slate-900/60 px-2 py-1.5 text-slate-300">#118 Top Captions + selection</div>
+                  <div class="border-l-4 border-slate-600 bg-slate-900/60 px-2 py-1.5 text-slate-300">#120 connectFeed · live session</div>
+                  <div class="border-l-4 border-slate-600 bg-slate-900/60 px-2 py-1.5 text-slate-300">#121 post_caption poke</div>
+                  <div class="border-l-4 border-slate-600 bg-slate-900/60 px-2 py-1.5 text-slate-300">#122 Like state + overlay</div>
+                  <div class="border-l-4 border-red-500/70 bg-red-500/10 px-2 py-1.5 text-red-300">#123–#127 next: Caption Likes, Comments</div>
+                  <p class="text-[11px] text-slate-500 mt-1">order rule: “invoked only after they are defined”</p>
+                </div>
+                <div class="w-32 flex flex-col gap-1 justify-center text-[11px]">
+                  <div class="border border-dashed border-red-500/60 rounded-md bg-red-500/10 px-2 py-1 text-red-300 mono">deps.feed · tests only</div>
+                  <div class="border border-dashed border-red-500/60 rounded-md bg-red-500/10 px-2 py-1 text-red-300 mono">posts.featured · no caller</div>
+                  <div class="border border-dashed border-red-500/60 rounded-md bg-red-500/10 px-2 py-1 text-red-300 mono">post.get · no caller</div>
+                </div>
+              </div>
+            </div>
+            <!-- after -->
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — one route interface over four modules</p>
+              <div class="flex flex-col gap-2">
+                <div class="border border-slate-600 rounded-md bg-slate-800/50 px-3 py-2 text-center">
+                  <p class="mono text-xs text-slate-300">createJediFeed · the route's interface</p>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="deep border border-indigo-500/40 ring-1 ring-indigo-500/20 rounded-md p-3">
+                    <p class="text-xs uppercase tracking-wider text-slate-100">Post list + filter</p>
+                    <p class="mono text-[10px] text-indigo-300/80 mt-2">own tests</p>
+                  </div>
+                  <div class="deep border border-indigo-500/40 ring-1 ring-indigo-500/20 rounded-md p-3">
+                    <p class="text-xs uppercase tracking-wider text-slate-100">Top Captions</p>
+                    <p class="mono text-[10px] text-indigo-300/80 mt-2">own tests</p>
+                  </div>
+                  <div class="deep border border-indigo-500/40 ring-1 ring-indigo-500/20 rounded-md p-3">
+                    <p class="text-xs uppercase tracking-wider text-slate-100">Likes · C-19</p>
+                    <p class="mono text-[10px] text-indigo-300/80 mt-2">own tests</p>
+                  </div>
+                  <div class="deep border border-indigo-500/40 ring-1 ring-indigo-500/20 rounded-md p-3">
+                    <p class="text-xs uppercase tracking-wider text-slate-100">Live session · C-20</p>
+                    <p class="mono text-[10px] text-indigo-300/80 mt-2">own tests</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</p>
+              <p class="text-slate-300">One module changes for every Jedi feature. It has also grown ways in that production never uses.</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</p>
+              <p class="text-slate-300">Keep <span class="mono text-slate-400">createJediFeed</span> as the route's one interface. Build it from per-concern modules: Post list and filter, Top Captions, Likes, and the live session. Delete the unused entry points.</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+              <li><b class="text-slate-100">locality</b>: each ticket edits one module</li>
+              <li>the interface is the test surface: tests shrink per concern</li>
+              <li>one source for “logged in”</li>
+              <li>three unused members go</li>
+              <li>no ordering invariant</li>
+            </ul>
+          </div>
+
+          <div class="ev">
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Evidence</p>
+            <ul class="space-y-2 text-xs">
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">// `topCaptions` below, so it is invoked only after they are defined.</code><span class="text-slate-500">createJediFeed.ts:118 — an ordering invariant</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">if (deps.feed) connectFeed(deps.feed);</code><span class="text-slate-500">createJediFeed.ts:308 — production calls <span class="mono">createJediFeed();</span> (index.tsx:44); only tests pass <span class="mono">feed:</span> (10 times)</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">featured: async (): Promise&lt;PostView&gt; =&gt; toPostView(await postRpc.featured()),</code><span class="text-slate-500">jedi-api.ts:112 — no production caller; the view-model derives the featured Post from the list</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">get: (id: number) =&gt; rpcCall&lt;PostView&gt;("get_post", { id }, "/api/rpc-public"),</code><span class="text-slate-500">backend-rpc.ts:185 — no production caller</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">&lt;Show when={isAuthenticated()}&gt;</code><span class="text-slate-500">index.tsx:56 — “logged in”, way 1 of 3</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">// A connected Feed means a logged-in User, so the viewer's like state can</code><span class="text-slate-500">createJediFeed.ts:120 — way 2</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">disabled={!props.like}</code><span class="text-slate-500">FeaturedPost.tsx:149 — way 3</span></li>
+            </ul>
+          </div>
+
+          <div class="rounded-lg bg-slate-800/60 border border-slate-700 p-4 text-sm text-slate-400">
+            <b class="text-slate-300">Note:</b> best after C-19 and C-20. They lift the Like block and the Feed plumbing out first.
+          </div>
+        </article>
+
+      </section>
+
+      <!-- ============ ALSO SEEN ============ -->
+      <section id="also-seen" class="rounded-2xl bg-slate-900 border border-slate-800 card-shadow p-7 space-y-3">
+        <p class="text-xs uppercase tracking-wider text-slate-500">Also seen — not candidates</p>
+        <p class="text-sm text-slate-300">
+          Back-end tests never open <span class="mono text-slate-400">/ws</span>; they read the hub:
+          <span class="mono text-slate-200">let mut rx = ws_state.tx.subscribe();</span> (app.rs:745).
+          <span class="mono text-slate-200">axum-test = "21.1.0"</span> has no <span class="mono text-slate-400">ws</span> feature.
+          Comment payloads (#124–#127) will use this untested send path.
+        </p>
+        <p class="text-sm text-slate-300">
+          Read assembly repeats per entity: the author placeholder
+          <span class="mono text-slate-200">name: String::new(), avatar_url: None,</span> (post.rs:491–492, caption.rs:306–307)
+          and the ranked reorder <span class="mono text-slate-200">.filter_map(|id| by_id.remove(&amp;id))</span> (post.rs:395, caption.rs:265).
+          Comments will add a third author snapshot.
+        </p>
+      </section>
+
+      <!-- ============ TOP RECOMMENDATION ============ -->
+      <section id="top-recommendation">
+        <div class="rounded-2xl deep text-white p-8 card-shadow border border-indigo-500/30 space-y-3">
+          <p class="text-xs uppercase tracking-widest text-indigo-300/80">Top recommendation</p>
+          <h2 class="font-serif text-3xl text-slate-50"><a href="#c19" class="underline decoration-emerald-400 underline-offset-4">C-19 · Deepen a Like into one module per tier</a></h2>
+          <p class="text-slate-300 max-w-3xl">
+            #123 is the next ticket. Without C-19, it copies about 450 lines of #122. With C-19, #123 adds one Caption target.
+            C-19 also settles #123's open question: how each Caption in Top Captions gets its liked state.
+          </p>
+          <p class="text-slate-300 max-w-3xl">
+            Then <a href="#c20" class="underline decoration-indigo-400 underline-offset-4">C-20</a>, before the Comments (#124–#127) add payload Channels.
+            <a href="#c21" class="underline decoration-indigo-400 underline-offset-4">C-21</a> fits any time: one setting, then deletions.
+          </p>
+        </div>
+      </section>
+
+      <footer class="text-xs text-slate-500 pt-4 border-t border-slate-800">
+        Vocabulary: module · interface · implementation · depth · seam · adapter · leverage · locality (/codebase-design).
+        Domain: Like · Post · Caption · Feed · Channel · Subscription · Event · Poke (CONTEXT.md). Candidates C-19 – C-23 continue the C-## sequence.
+      </footer>
+
+    </main>
+  </body>
+</html>

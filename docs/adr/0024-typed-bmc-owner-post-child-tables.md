@@ -88,3 +88,23 @@ to note that the write path — not the marker — is what #118 adds.
 - **`CONTEXT.md` is unchanged.** This is a code-structure change, not a domain
   change.
 - **The ADR index regenerates** via `cgs adr:index`.
+
+---
+
+## Addendum (2026-10-04) — `PostLikeBmc` is also the Like write path (#122)
+
+The Decisions above say "A marker BMC owns the table name only; it is not a
+write path." That described the state before #122. The Consequences already
+planned the change: "When #118 / #122 add the like / comment write path,
+`PostLikeBmc` / `PostCommentBmc` are the owners it builds on."
+
+**Decision.** #122 makes `PostLikeBmc` the owner of the Like write path. It
+keeps its `impl DbBmc` and `const TABLE`, becomes `pub`, and gains
+`toggle` (insert `ON CONFLICT DO NOTHING` / delete) and `get_post_like`. Each
+write routes its table through `Self::table_ref()`, so the table name still
+lives in one place. A child BMC therefore owns its table identity **and**, once
+its write lands, its write path. `PostCategoryBmc` and `PostCommentBmc` stay
+markers until their writes land.
+
+**Unchanged.** The column-qualification aliases and the test-only INSERT
+(`seed_post_like`) stay as the Decisions describe.

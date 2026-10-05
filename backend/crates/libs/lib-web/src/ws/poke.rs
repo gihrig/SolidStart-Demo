@@ -33,6 +33,9 @@ pub struct Posts;
 /// Channel marker: one Post's Caption-list feed (`post_caption:{post_id}`).
 pub struct PostCaption;
 
+/// Channel marker: one Post's like-count feed (`post_like:{post_id}`).
+pub struct PostLike;
+
 // endregion: --- Channel markers
 
 // region:    --- Poke receipt
@@ -42,7 +45,10 @@ pub struct PostCaption;
 /// [`WsState`](super::WsState) mints one — a handler cannot fabricate a receipt.
 /// [`PokedRpcResult::new`] consumes it, so a mutation must poke its own feed to
 /// build its return value (ADR-0016). The marker `C` binds the receipt to one feed
-/// (`Convs` / `Agents` / `Conv` / `Posts` / `PostCaption`), so a wrong-feed poke is a type error.
+/// (`Convs` / `Agents` / `Conv` / `Posts` / `PostCaption` / `PostLike`), so a
+/// wrong-feed poke is a type error. One exception: `broadcast_post_like` takes the
+/// write's outcome and mints its receipt without a poke when no row changed (an
+/// idempotent repeat, ADR-0016 addendum, #122).
 pub struct PokeReceipt<C> {
 	_channel: PhantomData<C>,
 }
