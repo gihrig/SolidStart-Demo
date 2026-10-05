@@ -133,6 +133,18 @@ describe("useWebSocket", () => {
     expect(onConvUpdate).toHaveBeenCalledTimes(1);
   });
 
+  it("calls onPostLikeUpdate with the Post id for a post_like poke (#122)", () => {
+    const onPostLikeUpdate = vi.fn();
+    renderHook(() => useWebSocket({ onPostLikeUpdate }));
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+
+    ws.simulateMessage({ event_type: "poke", kind: "post_like", id: 5 });
+
+    expect(onPostLikeUpdate).toHaveBeenCalledTimes(1);
+    expect(onPostLikeUpdate).toHaveBeenCalledWith(5);
+  });
+
   it("sends subscribe with channel and id when the socket is open", () => {
     const { result } = renderHook(() => useWebSocket());
     const ws = MockWebSocket.instances[0];

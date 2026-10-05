@@ -815,4 +815,28 @@ describe("createJediFeed — the immediate local Like, synced from the server (#
         [2, true],
       ]);
     }));
+
+  it("drops a queued Like at logout, so the next User's session never sends it", () =>
+    createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api });
+      // The live session lives in its own scope, like the route's LiveFeed;
+      // ending that scope is a logout.
+      const logout = createRoot((end) => {
+        jedi.connectFeed(liveFeed().factory);
+        return end;
+      });
+      await tick();
+      await tick();
+      const first = deferred<PostLike>();
+      postToggleLikeMock.mockReturnValueOnce(first.promise);
+
+      const done = jedi.toggleLike(); // like, in flight
+      void jedi.toggleLike(); // unlike, queued
+      logout();
+
+      first.resolve(like(1, 11, true));
+      await done;
+      expect(postToggleLikeMock.mock.calls).toEqual([[1, true]]);
+      dispose();
+    }));
 });

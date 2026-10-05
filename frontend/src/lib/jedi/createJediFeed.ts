@@ -118,9 +118,15 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // `topCaptions` below, so it is invoked only after they are defined.
   const connectFeed = (factory: MessageFeedFactory): void => {
     // A connected Feed means a logged-in User, so the viewer's like state can
-    // load now; it ends with the caller's scope (logout), like the socket.
+    // load now; it ends with the caller's scope (logout), like the socket. A
+    // logout also drops the wanted Likes, so a queued send stops after the
+    // request in flight and never goes out with the next User's cookie (#122
+    // review).
     setLive(true);
-    onCleanup(() => setLive(false));
+    onCleanup(() => {
+      setLive(false);
+      setPendingLikes(new Map());
+    });
     const feed = factory({
       onPostsUpdate: () => void refetchPosts(),
       onPostCaptionUpdate: (postId) => {

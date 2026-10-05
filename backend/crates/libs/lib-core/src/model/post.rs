@@ -13,7 +13,8 @@ use modql::filter::{
 	FilterNodes, ListOptions, OpValInt64, OpValsInt64, OpValsString, OpValsValue,
 };
 use sea_query::{
-	Alias, Condition, Expr, OnConflict, Order, PostgresQueryBuilder, Query,
+	Alias, Asterisk, Condition, Expr, Func, OnConflict, Order, PostgresQueryBuilder,
+	Query,
 };
 use sea_query_binder::SqlxBinder;
 use serde::{Deserialize, Serialize};
@@ -572,31 +573,32 @@ impl PostLikeBmc {
 		mm: &ModelManager,
 		post_id: i64,
 	) -> Result<PostLikeView> {
+		// One statement reads the count and the caller's Like, so both come from
+		// one snapshot: a Like that changes mid-read cannot pair a count of 0
+		// with `liked: true` (#122 review).
 		let mut query = Query::select();
 		query
 			.from(Self::table_ref())
-			.column(CommonIden::Id)
-			.and_where(Expr::col(Alias::new(POST_ID)).eq(post_id))
-			.and_where(Expr::col(Alias::new(USER_ID)).eq(ctx.user_id()));
+			.expr(Expr::col(Asterisk).count())
+			.expr(Func::coalesce([
+				Func::cust(Alias::new("BOOL_OR"))
+					.arg(Expr::col(Alias::new(USER_ID)).eq(ctx.user_id()))
+					.into(),
+				Expr::val(false).into(),
+			]))
+			.and_where(Expr::col(Alias::new(POST_ID)).eq(post_id));
 		let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-		let sqlx_query = sqlx::query_as_with::<_, (i64,), _>(&sql, values);
+		let sqlx_query = sqlx::query_as_with::<_, (i64, bool), _>(&sql, values);
 
-		let post_ids = [post_id];
-		let ((), likes, own_like) = tokio::try_join!(
-			require_post(ctx, mm, post_id),
-			base::counts_by_parent::<Self>(mm, POST_ID, &post_ids),
-			async {
-				mm.dbx()
-					.fetch_optional(sqlx_query)
-					.await
-					.map_err(Error::from)
-			},
-		)?;
+		let ((), (like_count, liked)) =
+			tokio::try_join!(require_post(ctx, mm, post_id), async {
+				mm.dbx().fetch_one(sqlx_query).await.map_err(Error::from)
+			},)?;
 
 		Ok(PostLikeView {
 			post_id,
-			like_count: *likes.get(&post_id).unwrap_or(&0),
-			liked: own_like.is_some(),
+			like_count,
+			liked,
 		})
 	}
 }
