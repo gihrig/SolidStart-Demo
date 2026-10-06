@@ -414,6 +414,12 @@ rule stands; the set it produces is now one entry.
 - **Tool pins bumped: syft `1.54.0`, grype `v0.120.0`.** Neither release lists a breaking
   change. syft 1.54.0 left the SBOM format unchanged: every component common to the old and
   new SBOM (1,210) is byte-identical; the diff is lockfile churn only.
+- **bun pin 1.3.11 → 1.4.2** (`packageManager`, `engines` `>=1.4.0`, every CI `setup-bun`).
+  bun 1.4 writes `bun.lock` as `"lockfileVersion": 2`, which bun 1.3.x cannot parse
+  (`UnknownLockfileVersion`), so a lockfile written by a local 1.4 bun broke every CI
+  `bun install --frozen-lockfile`. Pinning CI to the local version keeps them in step. bun 1.4's
+  `bun update` now also moves transitive packages, so the weekly `deps.yml` update may touch more
+  of the lockfile than before.
 - **Validation.** `cgs scan` clean (no findings), `cgs sbom:check` and `cgs vex:check` pass,
   `vp check` clean, `vp test` 446/446, `vpx tsc --noEmit` clean, `vinxi build` succeeds,
   `vpr test:e2e` 237/237.
