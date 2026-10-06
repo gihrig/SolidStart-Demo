@@ -401,8 +401,11 @@ rule stands; the set it produces is now one entry.
   Vite+ Vitest 5 migration guide. Runtime matchers were unaffected.
 - **CI pins Node.** The `vp` launcher runs on Node, including `prepare: vp config` during
   `bun install`, and vite-plus 1.0 requires `^22.18.0 || ^24.11.0 || >=26.0.0`. Each job that
-  runs `bun install` now uses a SHA-pinned `actions/setup-node` with `node-version: "24.21.0"`
-  instead of inheriting the runner image's Node.
+  runs `bun install` now uses a SHA-pinned `actions/setup-node` with
+  `node-version-file: frontend/.node-version` (`24.21.0`) instead of inheriting the runner
+  image's Node. `.node-version` is the single Node pin: the Vite+ `node` shim reads it locally
+  too. `engines.node` was not used — bun ignores `engines`, and Vite+ treats `engines.node` as a
+  consumer-facing range rather than the development pin (#194 review).
 - **seroval 1.5.6 recorded `not_affected` in VEX.** GHSA-p6vx-979v-rg4c (Critical) and
   GHSA-jp82-f5mq-hwhp (High) remain on the nested `solid-js/seroval@1.5.6`. `solid-js@1.9.15`
   (latest) pins `seroval: ~1.5.4`, and no 1.5.x release carries either fix. Both advisories
