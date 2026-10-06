@@ -25,7 +25,7 @@ vpx vinxi dev
 
 This project needs both Node.js and bun:
 
-- **Node.js** — the version in [`.node-version`](.node-version) (`24.21.0`). The `vp` CLI runs on Node, and so does `bun install` (its `prepare` script runs `vp config`). vite-plus 1.0 needs Node `^22.18.0 || ^24.11.0 || >=26.0.0`. The `vp staged` pre-commit hook needs `^22.22.1 || ^24.11.0 || >=26.0.0`. If you use the Vite+ Node manager, it reads `.node-version` and installs that version for you. Most other Node version managers read the file too. CI reads the same file.
+- **Node.js** — the version in [`.node-version`](.node-version) (`24.21.0`). The `vp` CLI runs on Node, and so does `bun install` (its `prepare` script runs `vp config`). vite-plus 1.0 needs Node `^22.18.0 || ^24.11.0 || >=26.0.0`. The `vp staged` pre-commit hook needs `^22.22.1 || ^24.11.0 || >=26.0.0`. If you use the Vite+ Node manager, it reads `.node-version` and installs that version for you. fnm also reads `.node-version`. nvm does not: it reads only `.nvmrc`, so run `nvm install 24.21.0 && nvm use 24.21.0` yourself. mise reads `.node-version` only after you run `mise settings add idiomatic_version_file_enable_tools node`. CI reads the same file.
 - **bun** — `1.4.2`, the version in `package.json` `packageManager`. bun 1.4 writes `bun.lock` in a format that bun 1.3 cannot read.
 
 # Claude Code Skills and Plugins
