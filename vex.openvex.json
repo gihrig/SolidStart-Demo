@@ -3,7 +3,7 @@
   "@id": "https://github.com/gihrig/SolidStart-Demo/security/vex/openvex",
   "author": "SolidStart-Demo maintainers",
   "role": "Project maintainers",
-  "version": 3,
+  "version": 5,
   "statements": [
     {
       "vulnerability": {
@@ -50,8 +50,36 @@
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "node-forge 1.4.0 is a dev-server transitive of vinxi (via listhen/@vinxi/listhen). listhen uses it only to generate self-signed certificates and keys; it never verifies RSA signatures. Absent from the .output production bundle.",
       "timestamp": "2026-10-04T05:17:52.629564Z"
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-p6vx-979v-rg4c"
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/seroval@1.5.6"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "seroval 1.5.6 is the nested copy that solid-js 1.9.15 pins (~1.5.4). The advisory affects deserialization (fromJSON / fromCrossJSON). solid-js only serializes with it during SSR (solid-js/web/dist/server.js imports Serializer, Feature, getCrossReferenceHeader); it never deserializes. SolidStart deserializes server-function payloads with the top-level seroval (1.6.8, patched). The vulnerable code is therefore never in the execution path. No fix is reachable by upgrade: solid-js 1.9.15 is the latest release and no 1.5.x seroval carries the fix; a bun override to 1.6.x would break the solid-js range and the seroval/seroval-plugins pairing.",
+      "timestamp": "2026-10-06T08:58:38.088001Z"
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-jp82-f5mq-hwhp"
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/seroval@1.5.6"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "seroval 1.5.6 is the nested copy that solid-js 1.9.15 pins (~1.5.4). The advisory affects deserialization (fromJSON / fromCrossJSON). solid-js only serializes with it during SSR (solid-js/web/dist/server.js imports Serializer, Feature, getCrossReferenceHeader); it never deserializes. SolidStart deserializes server-function payloads with the top-level seroval (1.6.8, patched). The vulnerable code is therefore never in the execution path. No fix is reachable by upgrade: solid-js 1.9.15 is the latest release and no 1.5.x seroval carries the fix; a bun override to 1.6.x would break the solid-js range and the seroval/seroval-plugins pairing.",
+      "timestamp": "2026-10-06T08:58:38.113153Z"
     }
   ],
   "timestamp": "2026-09-19T00:00:00Z",
-  "last_updated": "2026-10-04T05:17:52Z"
+  "last_updated": "2026-10-06T08:58:38Z"
 }

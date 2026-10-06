@@ -47,7 +47,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SBOM="$ROOT/sbom.cdx.json"
 
-SYFT_VERSION="1.52.0"
+SYFT_VERSION="1.54.0"
 
 # Printed on any syft install failure: how to move the pin to another release.
 syft_help() {
@@ -55,7 +55,7 @@ syft_help() {
 
 sbom.sh: could not install the pinned syft $SYFT_VERSION.
 To update the syft pin, edit scripts/sbom.sh:
-  1. Set SYFT_VERSION to the new release (e.g. 1.53.0, no leading "v").
+  1. Set SYFT_VERSION to the new release (e.g. 1.55.0, no leading "v").
   2. Replace the four sha256 values in syft_sha256() with the matching lines of
      https://github.com/anchore/syft/releases/download/v<version>/syft_<version>_checksums.txt
      (darwin_amd64, darwin_arm64, linux_amd64, linux_arm64 .tar.gz).
@@ -66,10 +66,10 @@ EOF
 # sha256 of syft_<SYFT_VERSION>_<platform>.tar.gz. Bump with SYFT_VERSION.
 syft_sha256() {
   case "$1" in
-    darwin_amd64) echo 56975f5d7ffa9846a1eaf64330647841b878097bc7e3730cb9325f93add96917 ;;
-    darwin_arm64) echo 014d561b6d13059124155f74a6c5a9a99501f5e209313638dd884f39eb418ee6 ;;
-    linux_amd64)  echo caeedb81fb0491615f1ebd1761e4145d41ee86dd2cc7bf80669f9f5ad9d6133d ;;
-    linux_arm64)  echo c46d5e4c28e12aa4c5becfaa343ef1c7f89045b6b895f2c21d471c62db09c706 ;;
+    darwin_amd64) echo 22b71725e388a4c0de385249c4bc1044f78a870f2894f34b43ba957e792145d7 ;;
+    darwin_arm64) echo 7e0bdad94c569fc6d5785c9a657bbae3d4c4e140ccb5eace3d0b5b6bc2b6dbcf ;;
+    linux_amd64)  echo 54a87372498168b2d033e876fd41fa4e8035b872699e525a57046e1f2f09c860 ;;
+    linux_arm64)  echo ee6d4566373a05b344bc6b5f1706f14419bf9338ba39ff686e247deefe9b8818 ;;
     *) echo "sbom.sh: no pinned syft checksum for platform '$1'." >&2; return 1 ;;
   esac
 }
