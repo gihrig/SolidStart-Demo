@@ -3,6 +3,7 @@ use crate::generate_common_bmc_fns;
 use crate::model::base::{
 	self, Access, CommonIden, DbBmc, FieldHygiene, PublicProjection,
 };
+use crate::model::like::LikeTarget;
 use crate::model::modql_utils::time_to_sea_value;
 use crate::model::post::PostBmc;
 use crate::model::user::{AuthorRef, UserBmc};
@@ -55,7 +56,7 @@ pub struct CaptionView {
 	// -- Properties
 	pub text: String,
 
-	// -- Derived counts (0 until likes / comments land, #123 / #127)
+	// -- Derived counts (comments land in #127)
 	pub like_count: i64,
 	pub comment_count: i64,
 }
@@ -98,12 +99,20 @@ pub struct CaptionFilter {
 
 // region:    --- child-table BMCs
 
-// Marker BMCs own their child table's identity (see `PostLikeBmc`). They are not
-// write paths: the Caption like / comment writes land in #123 / #127.
-struct CaptionLikeBmc;
+// Marker BMCs own their child table's identity (see `PostLikeBmc`).
+// `CaptionLikeBmc` is also a Like target (#123): the shared Like module
+// (`model::like`) is its write path and its read. `CaptionCommentBmc` stays a
+// marker until the comment writes land (#127).
+pub struct CaptionLikeBmc;
 
 impl DbBmc for CaptionLikeBmc {
 	const TABLE: &'static str = "caption_like";
+}
+
+impl LikeTarget for CaptionLikeBmc {
+	const PARENT_COL: &'static str = CAPTION_ID;
+	const UNKNOWN_PARENT: &'static str = "unknown Caption";
+	type Parent = CaptionBmc;
 }
 
 struct CaptionCommentBmc;
@@ -182,6 +191,26 @@ impl CaptionBmc {
 		.await?;
 
 		base::create::<Self, _>(ctx, mm, caption_c).await
+	}
+
+	/// The Post id of one Caption (#123): a Caption Like re-ranks that Post's Top
+	/// Captions, so the like handler pokes `post_caption:{post_id}`. An unknown
+	/// Caption is the same `Validation` error the Like module returns (400).
+	pub async fn post_id_of(ctx: &Ctx, mm: &ModelManager, id: i64) -> Result<i64> {
+		let caption = Self::first(
+			ctx,
+			mm,
+			Some(vec![CaptionFilter {
+				id: Some(id.into()),
+				..Default::default()
+			}]),
+			None,
+		)
+		.await?;
+		caption.map(|c| c.post_id).ok_or(Error::Validation {
+			field: CaptionLikeBmc::PARENT_COL.to_string(),
+			reason: CaptionLikeBmc::UNKNOWN_PARENT.to_string(),
+		})
 	}
 
 	/// Read a single Caption as its enriched `CaptionView` (public read, unscoped).
@@ -321,8 +350,9 @@ mod tests {
 	use crate::model;
 	use serial_test::serial;
 
-	/// Insert one `caption_like` row directly (test-only). The Caption like write
-	/// path lands in #123, so the ranking test seeds likes at the SQL layer.
+	/// Insert one `caption_like` row directly (test-only). The ranking tests seed
+	/// likes at the SQL layer, so they do not depend on the `LikeBmc::toggle`
+	/// write path (#123); the unique-constraint test needs a raw double insert.
 	async fn seed_caption_like(
 		mm: &ModelManager,
 		caption_id: i64,
@@ -578,8 +608,8 @@ mod tests {
 	}
 
 	/// At most one Like per (Caption, User): the DB unique constraint rejects a
-	/// second Like by the same User (#106). The like write path lands in #123;
-	/// this guards the schema it relies on.
+	/// second Like by the same User (#106). This guards the schema that the
+	/// `LikeBmc::toggle` write path relies on (#123).
 	#[serial]
 	#[tokio::test]
 	async fn test_caption_like_unique_per_user() -> Result<()> {

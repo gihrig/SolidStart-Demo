@@ -77,6 +77,8 @@ const postListMock = vi.fn<JediApi["posts"]["list"]>();
 const postGetLikeMock = vi.fn<JediApi["posts"]["getLike"]>();
 const postToggleLikeMock = vi.fn<JediApi["posts"]["toggleLike"]>();
 const captionListForPostMock = vi.fn<JediApi["captions"]["listForPost"]>();
+const captionGetLikeMock = vi.fn<JediApi["captions"]["getLike"]>();
+const captionToggleLikeMock = vi.fn<JediApi["captions"]["toggleLike"]>();
 const api: JediApi = {
   categories: { list: () => Promise.resolve(CATEGORIES) },
   posts: {
@@ -89,6 +91,8 @@ const api: JediApi = {
   captions: {
     listForPost: captionListForPostMock,
     add: () => Promise.reject(new Error("not used by the view-model")),
+    getLike: captionGetLikeMock,
+    toggleLike: captionToggleLikeMock,
   },
   hero: {
     get: () =>
@@ -120,6 +124,21 @@ beforeEach(() => {
     if (liked) viewerLikes.add(postId);
     else viewerLikes.delete(postId);
     return Promise.resolve(likeOf(postId));
+  });
+  // The same fake for the viewer's Caption Likes: Caption N has N * 100 Likes
+  // from other Users, plus 1 while the viewer likes it.
+  const viewerCaptionLikes = new Set<number>();
+  const captionLikeOf = (id: number) => {
+    const liked = viewerCaptionLikes.has(id);
+    return { id, likeCount: id * 100 + (liked ? 1 : 0), liked };
+  };
+  captionGetLikeMock.mockReset();
+  captionGetLikeMock.mockImplementation((id: number) => Promise.resolve(captionLikeOf(id)));
+  captionToggleLikeMock.mockReset();
+  captionToggleLikeMock.mockImplementation((id: number, liked: boolean) => {
+    if (liked) viewerCaptionLikes.add(id);
+    else viewerCaptionLikes.delete(id);
+    return Promise.resolve(captionLikeOf(id));
   });
   captionListForPostMock.mockReset();
   captionListForPostMock.mockImplementation((postId: number) =>
@@ -663,18 +682,18 @@ describe("createJediFeed — the selected Post's like state (#122)", () => {
     });
   });
 
-  it("toggleLike sets the selected Post's like to the opposite state, then back", async () => {
+  it("togglePostLike sets the selected Post's like to the opposite state, then back", async () => {
     const feed = fakeFeed();
     await createRoot(async (dispose) => {
       const jedi = createJediFeed({ api, feed: feed.factory });
       await tick();
       await tick();
 
-      await jedi.toggleLike();
+      await jedi.togglePostLike();
       expect(postToggleLikeMock).toHaveBeenLastCalledWith(1, true);
       expect(jedi.selectedPostLike()).toEqual(like(1, 11, true));
 
-      await jedi.toggleLike();
+      await jedi.togglePostLike();
       expect(postToggleLikeMock).toHaveBeenLastCalledWith(1, false);
       expect(jedi.selectedPostLike()).toEqual(like(1, 10, false));
 
@@ -682,9 +701,9 @@ describe("createJediFeed — the selected Post's like state (#122)", () => {
     });
   });
 
-  it("toggleLike does nothing without a like state (anonymous landing)", () =>
+  it("togglePostLike does nothing without a like state (anonymous landing)", () =>
     withFeed(async (feed) => {
-      await feed.toggleLike();
+      await feed.togglePostLike();
       expect(postToggleLikeMock).not.toHaveBeenCalled();
     }));
 });
@@ -733,7 +752,7 @@ describe("createJediFeed — the immediate local Like, synced from the server (#
       const answer = deferred<Like>();
       postToggleLikeMock.mockReturnValueOnce(answer.promise);
 
-      const done = jedi.toggleLike();
+      const done = jedi.togglePostLike();
       expect(jedi.selectedPostLike()).toEqual(like(1, 11, true));
 
       answer.resolve(like(1, 11, true));
@@ -746,7 +765,7 @@ describe("createJediFeed — the immediate local Like, synced from the server (#
       postToggleLikeMock.mockResolvedValueOnce(like(1, 12, true));
       postGetLikeMock.mockResolvedValue(like(1, 12, true));
 
-      await jedi.toggleLike();
+      await jedi.togglePostLike();
       await tick();
       expect(jedi.selectedPostLike()).toEqual(like(1, 12, true));
     }));
@@ -755,7 +774,7 @@ describe("createJediFeed — the immediate local Like, synced from the server (#
     withLiveFeed(async (jedi) => {
       postToggleLikeMock.mockRejectedValueOnce(new Error("Network down"));
 
-      await expect(jedi.toggleLike()).rejects.toThrow("Network down");
+      await expect(jedi.togglePostLike()).rejects.toThrow("Network down");
       await tick();
       expect(jedi.selectedPostLike()).toEqual(like(1, 10, false));
     }));
@@ -768,7 +787,7 @@ describe("createJediFeed — the immediate local Like, synced from the server (#
       poke(1);
       await tick();
 
-      await jedi.toggleLike();
+      await jedi.togglePostLike();
       olderRead.resolve(like(1, 10, false)); // read before our Like committed
       await tick();
       await tick();
@@ -780,8 +799,8 @@ describe("createJediFeed — the immediate local Like, synced from the server (#
       const first = deferred<Like>();
       postToggleLikeMock.mockReturnValueOnce(first.promise);
 
-      const like1 = jedi.toggleLike(); // like
-      const unlike = jedi.toggleLike(); // unlike, while the like is in flight
+      const like1 = jedi.togglePostLike(); // like
+      const unlike = jedi.togglePostLike(); // unlike, while the like is in flight
       expect(jedi.selectedPostLike()).toEqual(like(1, 10, false));
 
       first.resolve(like(1, 11, true));
@@ -799,12 +818,12 @@ describe("createJediFeed — the immediate local Like, synced from the server (#
       const first = deferred<Like>();
       postToggleLikeMock.mockReturnValueOnce(first.promise);
 
-      const p1Like = jedi.toggleLike(); // Post 1: like
-      const p1Unlike = jedi.toggleLike(); // Post 1: unlike, while the like is in flight
+      const p1Like = jedi.togglePostLike(); // Post 1: like
+      const p1Unlike = jedi.togglePostLike(); // Post 1: unlike, while the like is in flight
       jedi.selectPost(2);
       await tick();
       await tick();
-      const p2Like = jedi.toggleLike(); // Post 2: like
+      const p2Like = jedi.togglePostLike(); // Post 2: like
       expect(jedi.selectedPostLike()).toEqual(like(2, 21, true));
 
       first.resolve(like(1, 11, true));
@@ -830,13 +849,124 @@ describe("createJediFeed — the immediate local Like, synced from the server (#
       const first = deferred<Like>();
       postToggleLikeMock.mockReturnValueOnce(first.promise);
 
-      const done = jedi.toggleLike(); // like, in flight
-      void jedi.toggleLike(); // unlike, queued
+      const done = jedi.togglePostLike(); // like, in flight
+      void jedi.togglePostLike(); // unlike, queued
       logout();
 
       first.resolve(like(1, 11, true));
       await done;
       expect(postToggleLikeMock.mock.calls).toEqual([[1, true]]);
       dispose();
+    }));
+});
+
+describe("createJediFeed — the selected Caption's like state (#123)", () => {
+  // A fake Feed factory: it captures the consumer's callbacks so the test can
+  // fire a `caption_like` poke, and records every (un)subscribe.
+  type Options = { onCaptionLikeUpdate?: (captionId: number) => void };
+  function fakeFeed(connected: () => boolean = () => true) {
+    let options: Options = {};
+    const subscribe = vi.fn();
+    const unsubscribe = vi.fn();
+    const factory = (opts: Options) => {
+      options = opts;
+      return { connected, subscribe, unsubscribe };
+    };
+    return {
+      factory,
+      subscribe,
+      unsubscribe,
+      poke: (captionId: number) => options.onCaptionLikeUpdate?.(captionId),
+    };
+  }
+  const like = (id: number, likeCount: number, liked: boolean): Like => ({ id, likeCount, liked });
+  async function withLiveFeed(
+    run: (jedi: JediFeed, feed: ReturnType<typeof fakeFeed>) => Promise<void>,
+    feed = fakeFeed(),
+  ) {
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api, feed: feed.factory });
+      await tick();
+      await tick();
+      try {
+        await run(jedi, feed);
+      } finally {
+        dispose();
+      }
+    });
+  }
+
+  it("has no Caption like state on the anonymous landing (no feed connected)", () =>
+    withFeed((feed) => {
+      expect(feed.selectedCaptionLike()).toBeUndefined();
+      expect(captionGetLikeMock).not.toHaveBeenCalled();
+    }));
+
+  it("loads the selected Caption's like state, and re-keys with the Caption selection", () =>
+    withLiveFeed(async (jedi) => {
+      // Post 1's winning Caption is Caption 1.
+      expect(jedi.selectedCaptionLike()).toEqual(like(1, 100, false));
+
+      jedi.selectCaption(2);
+      await tick();
+      await tick();
+      expect(jedi.selectedCaptionLike()).toEqual(like(2, 200, false));
+    }));
+
+  it("re-keys with the Post selection: the new Post's winning Caption", () =>
+    withLiveFeed(async (jedi) => {
+      jedi.selectPost(3); // Post 3's Captions rank [6, 8]: a 2-2 tie by id.
+      await tick();
+      await tick();
+      await tick();
+      expect(jedi.selectedCaptionLike()).toEqual(like(6, 600, false));
+    }));
+
+  it("subscribes to the selected Caption's like feed, and moves it with the selection", () =>
+    withLiveFeed(async (jedi, feed) => {
+      expect(feed.subscribe).toHaveBeenCalledWith(Channel.captionLike(1));
+
+      jedi.selectCaption(2);
+      await tick();
+      expect(feed.unsubscribe).toHaveBeenCalledWith(Channel.captionLike(1));
+      expect(feed.subscribe).toHaveBeenCalledWith(Channel.captionLike(2));
+    }));
+
+  it("a poke for the selected Caption refetches its like state, so another User's Like shows", () =>
+    withLiveFeed(async (jedi, feed) => {
+      captionGetLikeMock.mockResolvedValue(like(1, 101, false));
+      feed.poke(1);
+      await tick();
+      await tick();
+      expect(jedi.selectedCaptionLike()).toEqual(like(1, 101, false));
+
+      // A poke for a Caption that is not selected does not refetch.
+      const callsBefore = captionGetLikeMock.mock.calls.length;
+      feed.poke(2);
+      await tick();
+      expect(captionGetLikeMock.mock.calls.length).toBe(callsBefore);
+    }));
+
+  it("refetches the Caption like state when the socket (re)connects", async () => {
+    const [connected, setConnected] = createSignal(false);
+    await withLiveFeed(async (jedi) => {
+      captionGetLikeMock.mockResolvedValue(like(1, 105, false));
+      setConnected(true);
+      await tick();
+      await tick();
+      expect(jedi.selectedCaptionLike()).toEqual(like(1, 105, false));
+    }, fakeFeed(connected));
+  });
+
+  it("toggleCaptionLike sets the selected Caption's like to the opposite state, then back", () =>
+    withLiveFeed(async (jedi) => {
+      await jedi.toggleCaptionLike();
+      expect(captionToggleLikeMock).toHaveBeenLastCalledWith(1, true);
+      expect(jedi.selectedCaptionLike()).toEqual(like(1, 101, true));
+
+      await jedi.toggleCaptionLike();
+      expect(captionToggleLikeMock).toHaveBeenLastCalledWith(1, false);
+      expect(jedi.selectedCaptionLike()).toEqual(like(1, 100, false));
+      expect(postToggleLikeMock).not.toHaveBeenCalled();
     }));
 });

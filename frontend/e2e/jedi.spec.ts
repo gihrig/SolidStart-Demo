@@ -71,9 +71,12 @@ test.describe("Jedi Page", () => {
     await expect(article.getByRole("button", { name: /animals/i })).toBeVisible();
     await expect(article.getByRole("button", { name: /cute/i })).toBeVisible();
     await expect(article.getByRole("link", { name: /Comments/i })).toBeVisible();
-    await expect(article.getByRole("button", { name: /Like/i })).toBeVisible();
-    await expect(article.getByRole("button", { name: /Edit/i })).toBeVisible();
-    await expect(article.getByRole("button", { name: /Delete/i })).toBeVisible();
+    await expect(article.getByRole("button", { name: /Like post by/i })).toBeVisible();
+    await expect(article.getByRole("button", { name: /Edit post by/i })).toBeVisible();
+    await expect(article.getByRole("button", { name: /Delete post by/i })).toBeVisible();
+    // The Caption actions (#123): the count and Like for the Caption shown.
+    await expect(article.getByText("Caption likes: 8")).toBeVisible();
+    await expect(article.getByRole("button", { name: /Like caption by Lisa/i })).toBeVisible();
   });
 
   // The seeded back-end Likes match the fixture likeCount (#177), so Top Photos

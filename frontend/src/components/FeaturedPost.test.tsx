@@ -176,3 +176,99 @@ describe("<FeaturedPost /> — Like (#122)", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Network down");
   });
 });
+
+describe("<FeaturedPost /> — Caption actions (#123)", () => {
+  const likeButton = () => screen.getByRole("button", { name: /like caption by lisa/i });
+  const captionCount = () => screen.getByText("Caption likes:").parentElement;
+  const captionLike: Like = { id: 1, likeCount: 9, liked: true };
+
+  it("puts the Caption actions on the categories line, right of the categories, in order", () => {
+    render(() => (
+      <FeaturedPost
+        post={post}
+        caption={caption}
+        canAddCaption
+        captionsLoaded
+        captionLike={captionLike}
+      />
+    ));
+    const categoriesLine = screen.getByRole("button", { name: /^Animals$/ }).parentElement!;
+    const names = [...categoriesLine.querySelectorAll("button")].map(
+      (b) => b.getAttribute("aria-label") ?? b.textContent,
+    );
+    expect(names).toEqual([
+      "Animals",
+      "Cute",
+      "Like caption by Lisa",
+      "Add Caption",
+      "Edit caption by Lisa",
+      "Delete caption by Lisa",
+    ]);
+    expect(categoriesLine).toContainElement(captionCount());
+  });
+
+  it("labels the Add button 'Add', with the accessible name 'Add Caption'", () => {
+    render(() => <FeaturedPost post={post} caption={caption} canAddCaption captionsLoaded />);
+    expect(screen.getByRole("button", { name: "Add Caption" })).toHaveTextContent(/^Add$/);
+  });
+
+  it("disables Like and shows the Caption's count without a like state (anonymous)", () => {
+    render(() => <FeaturedPost post={post} caption={caption} />);
+    expect(likeButton()).toBeDisabled();
+    expect(likeButton()).toHaveAttribute("aria-pressed", "false");
+    expect(captionCount()).toHaveTextContent("Caption likes: 8");
+  });
+
+  it("shows the viewer's live Caption count and pressed state", () => {
+    render(() => (
+      <FeaturedPost
+        post={post}
+        caption={caption}
+        captionLike={captionLike}
+        onToggleCaptionLike={vi.fn()}
+      />
+    ));
+    expect(likeButton()).toBeEnabled();
+    expect(likeButton()).toHaveAttribute("aria-pressed", "true");
+    expect(captionCount()).toHaveTextContent("Caption likes: 9");
+  });
+
+  it("calls onToggleCaptionLike on click, not the Post's toggle", async () => {
+    const user = userEvent.setup();
+    const onToggleCaptionLike = vi.fn(() => Promise.resolve());
+    const onToggleLike = vi.fn(() => Promise.resolve());
+    render(() => (
+      <FeaturedPost
+        post={post}
+        caption={caption}
+        captionLike={captionLike}
+        onToggleCaptionLike={onToggleCaptionLike}
+        onToggleLike={onToggleLike}
+      />
+    ));
+    await user.click(likeButton());
+    expect(onToggleCaptionLike).toHaveBeenCalledOnce();
+    expect(onToggleLike).not.toHaveBeenCalled();
+  });
+
+  it("shows an alert when the Caption toggle fails", async () => {
+    const user = userEvent.setup();
+    const onToggleCaptionLike = () => Promise.reject(new Error("Network down"));
+    render(() => (
+      <FeaturedPost
+        post={post}
+        caption={caption}
+        captionLike={captionLike}
+        onToggleCaptionLike={onToggleCaptionLike}
+      />
+    ));
+    await user.click(likeButton());
+    expect(await screen.findByRole("alert")).toHaveTextContent("Network down");
+  });
+
+  it("shows no Caption actions when the Post has no Caption", () => {
+    render(() => <FeaturedPost post={post} caption={undefined} />);
+    expect(screen.queryByRole("button", { name: /like caption/i })).toBeNull();
+    expect(screen.queryByText("Caption likes:")).toBeNull();
+  });
+});

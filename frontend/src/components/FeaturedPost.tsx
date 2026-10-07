@@ -22,6 +22,11 @@ export interface FeaturedPostProps {
   like?: Like;
   /** Like or unlike this Post; the opposite of `like.liked`. */
   onToggleLike?: () => Promise<void>;
+  /** The viewer's like state of the Caption shown (#123), as `like` is for the
+   *  Post. Undefined for an anonymous visitor or while it loads. */
+  captionLike?: Like;
+  /** Like or unlike the Caption shown; the opposite of `captionLike.liked`. */
+  onToggleCaptionLike?: () => Promise<void>;
 }
 
 export default function FeaturedPost(props: FeaturedPostProps) {
@@ -32,6 +37,16 @@ export default function FeaturedPost(props: FeaturedPostProps) {
   const toggleLike = createRpcAction(
     async () => {
       await props.onToggleLike?.();
+      return true;
+    },
+    { fallbackError: "Could not update the Like" },
+  );
+  // The Caption's live count and toggle (#123), as for the Post.
+  const captionLikeCount = (caption: CaptionView) =>
+    props.captionLike?.likeCount ?? caption.likeCount;
+  const toggleCaptionLike = createRpcAction(
+    async () => {
+      await props.onToggleCaptionLike?.();
       return true;
     },
     { fallbackError: "Could not update the Like" },
@@ -108,22 +123,65 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               </button>
             )}
           </For>
-          {/* Offered beside an existing caption; a Post with none shows the form. */}
-          <Show when={props.canAddCaption && props.caption && !addingCaption()}>
-            <button
-              ref={(el) => (addCaptionRef = el)}
-              type="button"
-              onClick={() => setAddingCaption(true)}
-              class="theme-button ml-auto"
-            >
-              Add Caption
-            </button>
+          {/* The Caption actions (#123), for the Caption shown: fire-heart, count,
+              Like, Add, Edit, Delete. A Post with no Caption shows the form. */}
+          <Show when={props.caption}>
+            {(c) => (
+              <div class="flex items-center gap-4 ml-auto">
+                <div class="flex items-center gap-1">
+                  <Icon name="fire-heart" class="w-5 h-5 -mt-1" />
+                  <span class="font-light text-(--theme-card-fg) ml-2">
+                    <span class="sr-only">Caption likes: </span>
+                    {captionLikeCount(c())}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void toggleCaptionLike.run(undefined)}
+                  disabled={!props.captionLike}
+                  class="theme-button disabled:opacity-50"
+                  aria-pressed={props.captionLike?.liked ?? false}
+                  aria-label={`Like caption by ${c().author.name}`}
+                >
+                  Like
+                </button>
+                <Show when={props.canAddCaption && !addingCaption()}>
+                  <button
+                    ref={(el) => (addCaptionRef = el)}
+                    type="button"
+                    onClick={() => setAddingCaption(true)}
+                    class="theme-button"
+                    aria-label="Add Caption"
+                  >
+                    Add
+                  </button>
+                </Show>
+                <button
+                  type="button"
+                  onClick={() => {}}
+                  class="theme-button"
+                  aria-label={`Edit caption by ${c().author.name}`}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {}}
+                  class="theme-button"
+                  aria-label={`Delete caption by ${c().author.name}`}
+                >
+                  Delete
+                </button>
+              </div>
+            )}
           </Show>
         </div>
-        <Show when={toggleLike.error()}>
-          <div role="alert" class="rounded bg-red-100 p-2 mb-2 text-red-700 text-sm">
-            {toggleLike.error()}
-          </div>
+        <Show when={toggleCaptionLike.error() ?? toggleLike.error()}>
+          {(error) => (
+            <div role="alert" class="rounded bg-red-100 p-2 mb-2 text-red-700 text-sm">
+              {error()}
+            </div>
+          )}
         </Show>
         <div class="flex items-center justify-between text-sm px-2">
           <a

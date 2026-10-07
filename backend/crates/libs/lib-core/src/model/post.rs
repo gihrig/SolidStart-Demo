@@ -530,7 +530,6 @@ mod tests {
 	use super::*;
 	use crate::_dev_utils::{self, seed_post, seed_user};
 	use crate::model;
-	use crate::model::like::{LikeBmc, LikeForToggle};
 	use serial_test::serial;
 
 	/// Insert one `post_like` row directly (test-only). The ranking tests seed
@@ -978,126 +977,6 @@ mod tests {
 
 		// -- Clean
 		_dev_utils::clean_users(&root, &mm, "test_like_unique-owner").await?;
-
-		Ok(())
-	}
-
-	/// The like toggle is idempotent (#122): a second like is a no-op (one
-	/// Like), an unlike removes it, and a second unlike is a no-op. `toggle`
-	/// reports whether a Like row changed, so a no-op pokes nothing. The count is
-	/// derived from the rows each time.
-	#[serial]
-	#[tokio::test]
-	async fn test_toggle_post_like_idempotent() -> Result<()> {
-		// -- Setup & Fixtures
-		let mm = _dev_utils::init_test().await;
-		let root = Ctx::root_ctx();
-		let owner_id = seed_user(&root, &mm, "test_toggle_like-owner").await?;
-		let ctx = Ctx::new(owner_id)?;
-		let post_id = seed_post(&ctx, &mm, "test_toggle_like post", &[1]).await?;
-		let like = |liked| LikeForToggle { id: post_id, liked };
-
-		// -- Exec & Check: like twice -> one Like; only the first changed a row.
-		assert!(
-			LikeBmc::toggle::<PostLikeBmc>(&ctx, &mm, like(true)).await?,
-			"like"
-		);
-		assert!(
-			!LikeBmc::toggle::<PostLikeBmc>(&ctx, &mm, like(true)).await?,
-			"no-op"
-		);
-		let view = LikeBmc::get::<PostLikeBmc>(&ctx, &mm, post_id).await?;
-		assert_eq!((view.id, view.like_count, view.liked), (post_id, 1, true));
-
-		// -- Exec & Check: unlike twice -> no Like; only the first changed a row.
-		assert!(
-			LikeBmc::toggle::<PostLikeBmc>(&ctx, &mm, like(false)).await?,
-			"unlike"
-		);
-		assert!(
-			!LikeBmc::toggle::<PostLikeBmc>(&ctx, &mm, like(false)).await?,
-			"no-op"
-		);
-		let view = LikeBmc::get::<PostLikeBmc>(&ctx, &mm, post_id).await?;
-		assert_eq!((view.like_count, view.liked), (0, false));
-
-		// -- Clean
-		_dev_utils::clean_users(&root, &mm, "test_toggle_like-owner").await?;
-
-		Ok(())
-	}
-
-	/// The like count counts every User's Like, while `liked` is the caller's own
-	/// (#122): an unlike removes only the caller's Like.
-	#[serial]
-	#[tokio::test]
-	async fn test_post_like_view_count_all_users_liked_per_caller() -> Result<()> {
-		// -- Setup & Fixtures
-		let mm = _dev_utils::init_test().await;
-		let root = Ctx::root_ctx();
-		let ctx_a = Ctx::new(seed_user(&root, &mm, "test_like_view-a").await?)?;
-		let ctx_b = Ctx::new(seed_user(&root, &mm, "test_like_view-b").await?)?;
-		let ctx_c = Ctx::new(seed_user(&root, &mm, "test_like_view-c").await?)?;
-		let post_id = seed_post(&ctx_a, &mm, "test_like_view post", &[1]).await?;
-		let like = |liked| LikeForToggle { id: post_id, liked };
-
-		// -- Exec: A and B like; then A unlikes.
-		LikeBmc::toggle::<PostLikeBmc>(&ctx_a, &mm, like(true)).await?;
-		LikeBmc::toggle::<PostLikeBmc>(&ctx_b, &mm, like(true)).await?;
-		let c_two = LikeBmc::get::<PostLikeBmc>(&ctx_c, &mm, post_id).await?;
-		LikeBmc::toggle::<PostLikeBmc>(&ctx_a, &mm, like(false)).await?;
-		let a_one = LikeBmc::get::<PostLikeBmc>(&ctx_a, &mm, post_id).await?;
-		let b_one = LikeBmc::get::<PostLikeBmc>(&ctx_b, &mm, post_id).await?;
-
-		// -- Check
-		assert_eq!((c_two.like_count, c_two.liked), (2, false), "C never liked");
-		assert_eq!((a_one.like_count, a_one.liked), (1, false), "A unliked");
-		assert_eq!((b_one.like_count, b_one.liked), (1, true), "B's Like stays");
-		let view = PostBmc::get_post(&ctx_c, &mm, post_id).await?;
-		assert_eq!(view.like_count, 1, "PostView derives the same count");
-
-		// -- Clean
-		_dev_utils::clean_users(&root, &mm, "test_like_view").await?;
-
-		Ok(())
-	}
-
-	/// A like, an unlike, or a like-state read on an unknown Post is the same
-	/// `Validation` error (400), not a foreign-key failure or a silent zero view
-	/// (#122), matching `CaptionBmc::create`.
-	#[serial]
-	#[tokio::test]
-	async fn test_toggle_post_like_unknown_post_is_validation() -> Result<()> {
-		// -- Setup & Fixtures
-		let mm = _dev_utils::init_test().await;
-		let root = Ctx::root_ctx();
-		let user_id = seed_user(&root, &mm, "test_like_unknown-user").await?;
-		let ctx = Ctx::new(user_id)?;
-
-		// -- Exec & Check
-		for liked in [true, false] {
-			let res = LikeBmc::toggle::<PostLikeBmc>(
-				&ctx,
-				&mm,
-				LikeForToggle {
-					id: i64::MAX,
-					liked,
-				},
-			)
-			.await;
-			assert!(
-				matches!(&res, Err(model::Error::Validation { field, .. }) if field == "post_id"),
-				"liked={liked}: expected Validation on post_id, got {res:?}"
-			);
-		}
-		let res = LikeBmc::get::<PostLikeBmc>(&ctx, &mm, i64::MAX).await;
-		assert!(
-			matches!(&res, Err(model::Error::Validation { field, .. }) if field == "post_id"),
-			"get_post_like: expected Validation on post_id, got {res:?}"
-		);
-
-		// -- Clean
-		_dev_utils::clean_users(&root, &mm, "test_like_unknown-user").await?;
 
 		Ok(())
 	}

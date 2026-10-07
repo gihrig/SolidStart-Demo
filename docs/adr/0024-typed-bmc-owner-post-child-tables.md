@@ -108,3 +108,30 @@ markers until their writes land.
 
 **Unchanged.** The column-qualification aliases and the test-only INSERT
 (`seed_post_like`) stay as the Decisions describe.
+
+## Addendum (2026-10-04) — one Like module for every Like target (#123, C-19)
+
+The first addendum makes `PostLikeBmc` the Like write path. #123 adds a second
+Like target, the Caption. A copy of the Post code would put the toggle, the read,
+and the parent check in two places.
+
+**Decision.** A shared Like module (`model/like.rs`) owns the Like write path and
+the Like read. A trait `LikeTarget: DbBmc` describes one target: its like table
+(`TABLE`), its parent column (`PARENT_COL`), and its parent BMC. `PostLikeBmc` and
+`CaptionLikeBmc` implement it. `LikeBmc::toggle::<T>` and `LikeBmc::get::<T>` serve
+every target. One generic `base::require_exists::<MC>` is the parent check;
+`CaptionBmc::create` uses it too.
+
+The wire types are shared: `LikeView { id, like_count, liked }` and
+`LikeForToggle { id, liked }`. The RPC names stay per target (`toggle_post_like`,
+`toggle_caption_like`, and the two `get_*_like`). The hub helpers and their typed
+receipts also stay per target (`PokeReceipt<PostLike>`, `PokeReceipt<CaptionLike>`).
+Each helper pokes only when a row changed.
+
+**Rejected.** A runtime target value or a `macro_rules!`: the compiler would not
+check each target. One `toggle_like { target, … }` RPC: one typed receipt cannot
+prove two channels. A generic hub helper: it needs a trait across `lib-core` and
+`lib-web`, which costs more than two short helpers.
+
+**Consequence.** A like BMC is now a `LikeTarget`, not a write path of its own. A
+new Like target adds one `impl LikeTarget`, two thin handlers, and one hub helper.

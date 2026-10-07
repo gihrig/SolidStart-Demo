@@ -35,6 +35,10 @@ import type { JediCategory, Like, PostView, CaptionView, HeroView } from "~/type
  * self-resets — the old caption's id is absent from the new post's captions, so
  * it falls back to that post's winner.
  *
+ * `selectedPostLike` / `selectedCaptionLike` are the viewer's like state of the
+ * selected Post and the selected Caption (#122, #123). Each comes from one
+ * `createLikeState`; this view-model keeps the Feed wiring around them.
+ *
  * `hero` (the header banner content) is the externalized header data (#32): the
  * route renders the Hero from `hero`, so it is not hard-coded in the markup. The
  * nav avatar's profile now lives in the global Nav, not here (see ADR-0007).
@@ -65,7 +69,14 @@ export interface JediFeed {
    *  (#122). The change shows at once, then the back-end's answer replaces it;
    *  a click while a toggle runs counts too. A no-op without a like state.
    *  Rejects, and rolls the Like back, when the back-end fails. */
-  toggleLike: () => Promise<void>;
+  togglePostLike: () => Promise<void>;
+  /** The viewer's like state of the selected Caption (#123), as
+   *  `selectedPostLike` is for the Post. */
+  selectedCaptionLike: Accessor<Like | undefined>;
+  /** Like or unlike the selected Caption (#123), as `togglePostLike`. The
+   *  Caption line shows the new count at once; Top Captions re-ranks after the
+   *  back-end's `post_caption` poke. */
+  toggleCaptionLike: () => Promise<void>;
   /** Wire a live Feed after creation (#120): the route builds this view-model
    *  anonymously, then connects the socket's Feed once a User logs in. The
    *  subscription is owned by the caller's reactive scope, so it ends with it. */
@@ -86,8 +97,9 @@ export interface CreateJediFeedDeps {
   /**
    * The live **Feed** (`CONTEXT.md`). When present, a `posts` poke refetches the
    * ranked Post list and the featured Post (#117), and a `post_caption` poke for
-   * the selected Post refetches its Top Captions (#121), and a `post_like` poke
-   * for the selected Post refetches its like state (#122) — a poke carries no row,
+   * the selected Post refetches its Top Captions (#121), a `post_like` poke for
+   * the selected Post refetches its like state (#122), and a `caption_like` poke
+   * for the selected Caption refetches its like state (#123) — a poke carries no row,
    * so the refetch re-reads through the scoped public RPC. Absent on the
    * anonymous landing page, whose WebSocket needs auth; the initial fetch still
    * renders.
@@ -113,7 +125,9 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // poke means one Post's Captions changed (#121); only the selected Post's feed
   // is held, and its poke refetches Top Captions. A `post_like` poke means one
   // Post's like count changed (#122); the selected Post's like feed is held the
-  // same way, and its poke refetches the like state. The feed is optional — the
+  // same way, and its poke refetches the like state. A `caption_like` poke means
+  // one Caption's like count changed (#123); the selected Caption's like feed is
+  // held, and moved, the same way. The feed is optional — the
   // anonymous landing page has no socket — so this wiring runs when injected, or
   // later through `connectFeed` on login (#120). It reads `selectedPost` and
   // `topCaptions` below, so it is invoked only after they are defined.
@@ -132,6 +146,9 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
       },
       onPostLikeUpdate: (postId) => {
         if (postId === selectedPost()?.id) postLike.refetch();
+      },
+      onCaptionLikeUpdate: (captionId) => {
+        if (captionId === selectedCaption()?.id) captionLike.refetch();
       },
     });
     feed.subscribe(Channel.posts);
@@ -153,6 +170,17 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
         },
       ),
     );
+    // Hold the selected Caption's like feed; move it when the selection moves.
+    createEffect(
+      on(
+        () => selectedCaption()?.id,
+        (captionId, prevId) => {
+          if (captionId === prevId) return;
+          if (prevId !== undefined) feed.unsubscribe(Channel.captionLike(prevId));
+          if (captionId !== undefined) feed.subscribe(Channel.captionLike(captionId));
+        },
+      ),
+    );
     // A poke sent while the socket is down is lost, and a (re)connect only
     // replays the subscription. So each time the socket comes up, refetch: a
     // Post, Caption, or Like created meanwhile still appears (#120 review).
@@ -164,6 +192,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
           void refetchPosts();
           void refetchCaptions();
           postLike.refetch();
+          captionLike.refetch();
         },
         { defer: true },
       ),
@@ -237,14 +266,21 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     setSelectedCaptionId(id);
   };
 
-  // The viewer's like state of the selected Post (#122). The read needs a
-  // login, so it loads only while a live session is connected.
+  // The viewer's like state of the selected Post (#122) and of the selected
+  // Caption (#123). The read needs a login, so each loads only while a live
+  // session is connected.
   const [live, setLive] = createSignal(false);
   const postLike = createLikeState({
     selectedId: () => selectedPost()?.id,
     live,
     getLike: (id) => api.posts.getLike(id),
     toggleLike: (id, liked) => api.posts.toggleLike(id, liked),
+  });
+  const captionLike = createLikeState({
+    selectedId: () => selectedCaption()?.id,
+    live,
+    getLike: (id) => api.captions.getLike(id),
+    toggleLike: (id, liked) => api.captions.toggleLike(id, liked),
   });
 
   const [hero] = createResource(() => api.hero.get());
@@ -264,7 +300,9 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     setSelectedCategory,
     hero,
     selectedPostLike: postLike.like,
-    toggleLike: postLike.toggle,
+    togglePostLike: postLike.toggle,
+    selectedCaptionLike: captionLike.like,
+    toggleCaptionLike: captionLike.toggle,
     connectFeed,
   };
 }

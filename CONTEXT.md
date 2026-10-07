@@ -141,9 +141,16 @@ _Built_ (#121): the authenticated `add_caption` takes a `CaptionForCreate`
 over 36 characters or an unknown Post is a `Validation` error. An add pokes
 `post_caption:{post_id}`; the Jedi route holds the selected Post's channel while a
 User is logged in, so Top Captions refetches and re-ranks. On the Post, the
-full-width caption line swaps to the caption form: a logged-in User clicks **Add
-Caption** on the categories line, or sees the form directly when the Post has no
+full-width caption line swaps to the caption form: a logged-in User clicks **Add**
+on the categories line, or sees the form directly when the Post has no
 caption.
+_Built_ (#123): a logged-in User likes the Caption shown on the Post, from the
+Caption actions on the categories line: fire-heart, count, **Like**, **Add**,
+**Edit**, **Delete**. To like another Caption, the User selects it in Top
+Captions first; Top Captions shows counts only. A toggle that changed a Like pokes
+`caption_like:{caption_id}` and `post_caption:{post_id}`. On the Post line and the
+Caption line, only a logged-in User sees **Like** and **Add**, and only the Owner
+sees **Edit** and **Delete**.
 
 **Category**:
 A back-end-owned classification a Post carries; a Post's on-card "tags" _are_ its
@@ -187,6 +194,8 @@ updated), but both tables carry the full audit columns (`cid` / `ctime` / `mid` 
 `mtime`) like every other table (#117, #118). Counts are **derived by counting
 rows**, never stored ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md)
 addendum).
+_Built_ (#122, #123): one Like module serves both targets, Post and Caption
+([ADR-0024](docs/adr/0024-typed-bmc-owner-post-child-tables.md) addendum).
 
 **Top Photos** / **Top Captions**:
 Ranked _views_, not stored lists. Top Photos = Posts ordered by like count (within

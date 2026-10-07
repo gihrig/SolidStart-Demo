@@ -1,4 +1,6 @@
-use super::poke::{Agents, Conv, Convs, PokeReceipt, PostCaption, PostLike, Posts};
+use super::poke::{
+	Agents, CaptionLike, Conv, Convs, PokeReceipt, PostCaption, PostLike, Posts,
+};
 use lib_core::model::conv_msg::ConvMsg;
 use lib_core::realtime::{Channel, WsEvent};
 use tokio::sync::broadcast;
@@ -93,14 +95,20 @@ impl WsState {
 		PokeReceipt::new()
 	}
 
-	// The Caption like poke helper below has no caller yet: the Caption like
-	// handler calls it in #123. As lib-web public API it needs no dead-code
-	// allowance; the tests construct it.
-
-	/// Poke one Caption's like-count channel (`caption_like:{caption_id}`): the
-	/// like count changed (#115). Carries only the `caption_id` for routing.
-	pub fn broadcast_caption_like(&self, caption_id: i64) {
-		self.broadcast(WsEvent::Poke(Channel::CaptionLike(caption_id)));
+	/// Poke one Caption's like-count channel (`caption_like:{caption_id}`) when
+	/// the like count changed (#115). Carries only the `caption_id` for routing.
+	/// The same change rule as `broadcast_post_like`: a toggle that changed no
+	/// row pokes nothing (#123). Returns the [`PokeReceipt<CaptionLike>`]
+	/// `toggle_caption_like` needs to build its result.
+	pub fn broadcast_caption_like(
+		&self,
+		caption_id: i64,
+		changed: bool,
+	) -> PokeReceipt<CaptionLike> {
+		if changed {
+			self.broadcast(WsEvent::Poke(Channel::CaptionLike(caption_id)));
+		}
+		PokeReceipt::new()
 	}
 
 	/// Poke one Post's Caption-list channel (`post_caption:{post_id}`): the
@@ -149,7 +157,7 @@ mod tests {
 
 		ws.broadcast_posts_update();
 		ws.broadcast_post_like(5, true);
-		ws.broadcast_caption_like(6);
+		ws.broadcast_caption_like(6, true);
 		ws.broadcast_post_caption(8);
 
 		assert_eq!(rx.try_recv().unwrap().channel().key(), "posts");
@@ -165,6 +173,16 @@ mod tests {
 		let ws = WsState::new();
 		let mut rx = ws.tx.subscribe();
 		let _receipt: PokeReceipt<PostLike> = ws.broadcast_post_like(5, false);
+		assert!(rx.try_recv().is_err(), "an unchanged Like must not poke");
+	}
+
+	/// The same rule for a Caption Like (#123): a toggle that changed no row
+	/// pokes nothing, but the handler still gets its receipt.
+	#[test]
+	fn broadcast_caption_like_unchanged_pokes_nothing() {
+		let ws = WsState::new();
+		let mut rx = ws.tx.subscribe();
+		let _receipt: PokeReceipt<CaptionLike> = ws.broadcast_caption_like(6, false);
 		assert!(rx.try_recv().is_err(), "an unchanged Like must not poke");
 	}
 }

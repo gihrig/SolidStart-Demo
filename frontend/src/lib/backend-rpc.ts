@@ -193,11 +193,14 @@ export function createRpcClient() {
   // returns that Post's enriched `CaptionView`s, ranked by like count by the
   // back-end; the front-end never re-ranks. `add_caption` is a mutation, so it
   // posts to the authenticated surface; the back-end sets the caller as the
-  // Owner (#121).
+  // Owner (#121). The caller's like state is per-User, so `get_caption_like` and
+  // `toggle_caption_like` post to the authenticated surface too (#123).
   const caption = {
     listForPost: (postId: number) =>
       rpcCall<CaptionView[]>("list_captions_for_post", { id: postId }, "/api/rpc-public"),
     add: (data: CaptionForCreate) => rpcCall<CaptionView>("add_caption", { data }),
+    getLike: (id: number) => rpcCall<LikeView>("get_caption_like", { id }),
+    toggleLike: (data: LikeForToggle) => rpcCall<LikeView>("toggle_caption_like", { data }),
   };
 
   // Hero RPC methods. The Hero is the home page banner singleton (#119). The

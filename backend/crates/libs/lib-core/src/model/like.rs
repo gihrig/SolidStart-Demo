@@ -168,3 +168,182 @@ async fn require_parent<T: LikeTarget>(
 }
 
 // endregion: --- LikeBmc
+
+// region:    --- Tests
+
+#[cfg(test)]
+mod tests {
+	type Result<T> = core::result::Result<T, Box<dyn std::error::Error>>; // For tests.
+
+	use super::*;
+	use crate::_dev_utils::{self, seed_caption, seed_post, seed_user};
+	use crate::model;
+	use crate::model::caption::{CaptionBmc, CaptionLikeBmc};
+	use crate::model::post::{PostBmc, PostLikeBmc};
+	use serial_test::serial;
+
+	/// One Post and one Caption on it, owned by `ctx`: the parents of the two
+	/// Like targets. Cleanup rides the owner delete, which cascades.
+	async fn fx_parents(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		title: &str,
+	) -> Result<(i64, i64)> {
+		let post_id = seed_post(ctx, mm, title, &[1]).await?;
+		let caption_id = seed_caption(ctx, mm, post_id, "liked caption").await?;
+		Ok((post_id, caption_id))
+	}
+
+	/// The toggle is idempotent: a second like is a no-op (one Like), an unlike
+	/// removes it, and a second unlike is a no-op. `toggle` reports whether a
+	/// Like row changed, so a no-op pokes nothing. The count is derived from the
+	/// rows each time.
+	async fn check_toggle_idempotent<T: LikeTarget>(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		id: i64,
+	) -> Result<()> {
+		let like = |liked| LikeForToggle { id, liked };
+
+		// -- Like twice -> one Like; only the first changed a row.
+		assert!(LikeBmc::toggle::<T>(ctx, mm, like(true)).await?, "like");
+		assert!(!LikeBmc::toggle::<T>(ctx, mm, like(true)).await?, "no-op");
+		let view = LikeBmc::get::<T>(ctx, mm, id).await?;
+		assert_eq!((view.id, view.like_count, view.liked), (id, 1, true));
+
+		// -- Unlike twice -> no Like; only the first changed a row.
+		assert!(LikeBmc::toggle::<T>(ctx, mm, like(false)).await?, "unlike");
+		assert!(!LikeBmc::toggle::<T>(ctx, mm, like(false)).await?, "no-op");
+		let view = LikeBmc::get::<T>(ctx, mm, id).await?;
+		assert_eq!((view.like_count, view.liked), (0, false));
+
+		Ok(())
+	}
+
+	/// The like count counts every User's Like, while `liked` is the caller's own:
+	/// an unlike removes only the caller's Like.
+	async fn check_count_all_users_liked_per_caller<T: LikeTarget>(
+		ctxs: [&Ctx; 3],
+		mm: &ModelManager,
+		id: i64,
+	) -> Result<()> {
+		let [ctx_a, ctx_b, ctx_c] = ctxs;
+		let like = |liked| LikeForToggle { id, liked };
+
+		// -- A and B like; then A unlikes.
+		LikeBmc::toggle::<T>(ctx_a, mm, like(true)).await?;
+		LikeBmc::toggle::<T>(ctx_b, mm, like(true)).await?;
+		let c_two = LikeBmc::get::<T>(ctx_c, mm, id).await?;
+		LikeBmc::toggle::<T>(ctx_a, mm, like(false)).await?;
+		let a_one = LikeBmc::get::<T>(ctx_a, mm, id).await?;
+		let b_one = LikeBmc::get::<T>(ctx_b, mm, id).await?;
+
+		assert_eq!((c_two.like_count, c_two.liked), (2, false), "C never liked");
+		assert_eq!((a_one.like_count, a_one.liked), (1, false), "A unliked");
+		assert_eq!((b_one.like_count, b_one.liked), (1, true), "B's Like stays");
+
+		Ok(())
+	}
+
+	/// A like, an unlike, or a like-state read on an unknown parent is the same
+	/// `Validation` error on the parent column (400), not a foreign-key failure or
+	/// a silent zero view.
+	async fn check_unknown_parent_is_validation<T: LikeTarget>(
+		ctx: &Ctx,
+		mm: &ModelManager,
+	) -> Result<()> {
+		let id = i64::MAX;
+		let is_parent_validation = |res: &model::Result<_>| {
+			matches!(res, Err(model::Error::Validation { field, reason })
+				if field == T::PARENT_COL && reason == T::UNKNOWN_PARENT)
+		};
+
+		for liked in [true, false] {
+			let res = LikeBmc::toggle::<T>(ctx, mm, LikeForToggle { id, liked })
+				.await
+				.map(|_| ());
+			assert!(
+				is_parent_validation(&res),
+				"{}: liked={liked}: got {res:?}",
+				T::TABLE
+			);
+		}
+		let res = LikeBmc::get::<T>(ctx, mm, id).await.map(|_| ());
+		assert!(is_parent_validation(&res), "{}: get: got {res:?}", T::TABLE);
+
+		Ok(())
+	}
+
+	#[serial]
+	#[tokio::test]
+	async fn test_like_toggle_idempotent() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let ctx = Ctx::new(seed_user(&root, &mm, "test_like_toggle-owner").await?)?;
+		let (post_id, caption_id) =
+			fx_parents(&ctx, &mm, "test_like_toggle post").await?;
+
+		// -- Exec & Check
+		check_toggle_idempotent::<PostLikeBmc>(&ctx, &mm, post_id).await?;
+		check_toggle_idempotent::<CaptionLikeBmc>(&ctx, &mm, caption_id).await?;
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_like_toggle-owner").await?;
+
+		Ok(())
+	}
+
+	#[serial]
+	#[tokio::test]
+	async fn test_like_count_all_users_liked_per_caller() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let ctx_a = Ctx::new(seed_user(&root, &mm, "test_like_count-a").await?)?;
+		let ctx_b = Ctx::new(seed_user(&root, &mm, "test_like_count-b").await?)?;
+		let ctx_c = Ctx::new(seed_user(&root, &mm, "test_like_count-c").await?)?;
+		let (post_id, caption_id) =
+			fx_parents(&ctx_a, &mm, "test_like_count post").await?;
+		let ctxs = [&ctx_a, &ctx_b, &ctx_c];
+
+		// -- Exec & Check
+		check_count_all_users_liked_per_caller::<PostLikeBmc>(ctxs, &mm, post_id)
+			.await?;
+		check_count_all_users_liked_per_caller::<CaptionLikeBmc>(
+			ctxs, &mm, caption_id,
+		)
+		.await?;
+
+		// -- Check: the public projections derive the same counts.
+		let post = PostBmc::get_post(&ctx_c, &mm, post_id).await?;
+		assert_eq!(post.like_count, 1, "PostView derives the same count");
+		let caption = CaptionBmc::get_caption(&ctx_c, &mm, caption_id).await?;
+		assert_eq!(caption.like_count, 1, "CaptionView derives the same count");
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_like_count").await?;
+
+		Ok(())
+	}
+
+	#[serial]
+	#[tokio::test]
+	async fn test_like_unknown_parent_is_validation() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let ctx = Ctx::new(seed_user(&root, &mm, "test_like_unknown-user").await?)?;
+
+		// -- Exec & Check
+		check_unknown_parent_is_validation::<PostLikeBmc>(&ctx, &mm).await?;
+		check_unknown_parent_is_validation::<CaptionLikeBmc>(&ctx, &mm).await?;
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_like_unknown-user").await?;
+
+		Ok(())
+	}
+}
+
+// endregion: --- Tests

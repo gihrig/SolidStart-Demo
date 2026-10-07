@@ -21,6 +21,8 @@ const {
   postToggleLikeMock,
   captionListForPostMock,
   captionAddMock,
+  captionGetLikeMock,
+  captionToggleLikeMock,
   heroGetMock,
   profileGetMock,
 } = vi.hoisted(() => ({
@@ -32,6 +34,8 @@ const {
   postToggleLikeMock: vi.fn(),
   captionListForPostMock: vi.fn(),
   captionAddMock: vi.fn(),
+  captionGetLikeMock: vi.fn(),
+  captionToggleLikeMock: vi.fn(),
   heroGetMock: vi.fn(),
   profileGetMock: vi.fn(),
 }));
@@ -44,7 +48,12 @@ vi.mock("~/lib/backend-rpc", () => ({
     getLike: postGetLikeMock,
     toggleLike: postToggleLikeMock,
   },
-  caption: { listForPost: captionListForPostMock, add: captionAddMock },
+  caption: {
+    listForPost: captionListForPostMock,
+    add: captionAddMock,
+    getLike: captionGetLikeMock,
+    toggleLike: captionToggleLikeMock,
+  },
   hero: { get: heroGetMock },
   profile: { get: profileGetMock },
 }));
@@ -362,5 +371,21 @@ describe("jediApi.captions", () => {
       text: "May the paws be with you",
       likeCount: 5,
     });
+  });
+
+  it("getLike() reads the caller's like state of a Caption (#123)", async () => {
+    captionGetLikeMock.mockResolvedValue({ id: 2, like_count: 5, liked: true });
+    expect(await jediApi.captions.getLike(2)).toEqual({ id: 2, likeCount: 5, liked: true });
+    expect(captionGetLikeMock).toHaveBeenCalledWith(2);
+  });
+
+  it("toggleLike() sends the wanted state as the wire LikeForToggle (#123)", async () => {
+    captionToggleLikeMock.mockResolvedValue({ id: 2, like_count: 4, liked: false });
+    expect(await jediApi.captions.toggleLike(2, false)).toEqual({
+      id: 2,
+      likeCount: 4,
+      liked: false,
+    });
+    expect(captionToggleLikeMock).toHaveBeenCalledWith({ id: 2, liked: false });
   });
 });

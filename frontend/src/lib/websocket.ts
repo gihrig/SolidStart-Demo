@@ -34,6 +34,9 @@ export interface MessageFeedOptions {
   // A `post_like` poke: one Post's like count changed (#122). It carries only the
   // Post id; the consumer refetches that Post's like state.
   onPostLikeUpdate?: (postId: number) => void;
+  // A `caption_like` poke: one Caption's like count changed (#123). It carries
+  // only the Caption id; the consumer refetches that Caption's like state.
+  onCaptionLikeUpdate?: (captionId: number) => void;
   onError?: (error: string) => void;
 }
 
@@ -179,6 +182,8 @@ export function createFeed(): MessageFeedFactory {
               for (const c of consumers) c.onPostCaptionUpdate?.(data.id);
             } else if (data.kind === "post_like") {
               for (const c of consumers) c.onPostLikeUpdate?.(data.id);
+            } else if (data.kind === "caption_like") {
+              for (const c of consumers) c.onCaptionLikeUpdate?.(data.id);
             }
           }
         } catch (e) {

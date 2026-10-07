@@ -141,6 +141,14 @@ export const jediApi = {
     // validates the text (cap 36) and pokes the Post's `post_caption` feed.
     add: async (postId: number, text: string): Promise<CaptionView> =>
       toCaptionView(await captionRpc.add({ post_id: postId, text })),
+    // Real back-end calls (#123): the viewer's like state needs a login. The
+    // toggle sends the wanted state, so a repeat is a no-op; the back-end pokes
+    // `caption_like` and `post_caption`, so every client refetches the count and
+    // the Top Captions ranking.
+    getLike: async (captionId: number): Promise<Like> =>
+      toLike(await captionRpc.getLike(captionId)),
+    toggleLike: async (captionId: number, liked: boolean): Promise<Like> =>
+      toLike(await captionRpc.toggleLike({ id: captionId, liked })),
   },
   hero: {
     // Real back-end call now (#119): the public `get_hero` singleton read.

@@ -68,7 +68,7 @@ mod tests {
 	use axum_test::TestServer;
 	use lib_core::_dev_utils::{
 		self, clean_agents, clean_convs, clean_posts, clean_users, seed_admin_user,
-		seed_post,
+		seed_caption, seed_post,
 	};
 	use lib_core::ctx::Ctx;
 	use lib_core::model::user::{UserBmc, UserForCreate};
@@ -990,6 +990,112 @@ mod tests {
 		);
 
 		// -- Clean (the Post delete cascades its Likes)
+		clean_posts(&mm, fx_title).await?;
+
+		Ok(())
+	}
+
+	/// A logged-in User likes and unlikes a Caption (#123): `toggle_caption_like`
+	/// returns the caller's `LikeView`, and a toggle that changes the Like pokes
+	/// `caption_like:{caption_id}` (the count) and `post_caption:{post_id}` (the
+	/// Top Captions ranking). A second like is a no-op that pokes nothing.
+	/// `get_caption_like` reads the same view. An unknown Caption is rejected
+	/// (400) by both RPCs with no poke, and an anonymous caller is rejected (401).
+	#[serial]
+	#[tokio::test]
+	async fn test_web_toggle_caption_like_ok() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let fx_title = "test_web_toggle_caption_like_ok";
+		let root = Ctx::root_ctx();
+		let post_id = seed_post(&root, &mm, fx_title, &[1]).await?;
+		let caption_id = seed_caption(&root, &mm, post_id, "liked caption").await?;
+		let toggle = |caption_id: i64, liked: bool| {
+			json!({
+				"jsonrpc": "2.0", "id": 1, "method": "toggle_caption_like",
+				"params": { "data": { "id": caption_id, "liked": liked } }
+			})
+		};
+		let get_like = |caption_id: i64| {
+			json!({
+				"jsonrpc": "2.0", "id": 1, "method": "get_caption_like",
+				"params": { "id": caption_id }
+			})
+		};
+		let ws_state = Arc::new(WsState::new());
+		let mut rx = ws_state.tx.subscribe();
+		let anon = TestServer::new(app(mm.clone(), ws_state.clone()));
+		let mut server = TestServer::new(app(mm.clone(), ws_state.clone()));
+		server.save_cookies();
+		server
+			.post("/api/login")
+			.json(&json!({ "username": "demo1", "pwd": "welcome" }))
+			.await
+			.assert_status_ok();
+
+		// -- Exec & Check: an anonymous caller is rejected.
+		anon.post("/api/rpc")
+			.json(&toggle(caption_id, true))
+			.await
+			.assert_status(axum::http::StatusCode::UNAUTHORIZED);
+
+		// -- Exec & Check: an unknown Caption is rejected by both RPCs, and
+		//    nothing is poked.
+		server
+			.post("/api/rpc")
+			.json(&toggle(999_999, true))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		server
+			.post("/api/rpc")
+			.json(&get_like(999_999))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		assert!(rx.try_recv().is_err(), "a rejected toggle must not poke");
+
+		// -- Exec: like twice.
+		server
+			.post("/api/rpc")
+			.json(&toggle(caption_id, true))
+			.await;
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&toggle(caption_id, true))
+			.await
+			.json();
+
+		// -- Check: one Like, liked by the caller.
+		assert_eq!(
+			body.pointer("/result/data"),
+			Some(&json!({ "id": caption_id, "like_count": 1, "liked": true })),
+			"got {body}"
+		);
+
+		// -- Check: the first like poked the count, then the ranking; the second
+		//    like changed nothing, so it poked nothing.
+		let like = rx.try_recv().expect("toggle pokes caption_like");
+		assert_eq!(like.channel().key(), format!("caption_like:{caption_id}"));
+		let ranking = rx.try_recv().expect("toggle pokes post_caption");
+		assert_eq!(ranking.channel().key(), format!("post_caption:{post_id}"));
+		assert!(rx.try_recv().is_err(), "a no-op toggle must not poke");
+
+		// -- Exec & Check: unlike; `get_caption_like` reads the same view.
+		server
+			.post("/api/rpc")
+			.json(&toggle(caption_id, false))
+			.await;
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&get_like(caption_id))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data"),
+			Some(&json!({ "id": caption_id, "like_count": 0, "liked": false })),
+			"got {body}"
+		);
+
+		// -- Clean (the Post delete cascades its Captions and their Likes)
 		clean_posts(&mm, fx_title).await?;
 
 		Ok(())
