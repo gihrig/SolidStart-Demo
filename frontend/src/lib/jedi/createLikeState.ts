@@ -40,10 +40,12 @@ export function createLikeState(deps: LikeStateDeps): LikeState {
     () => (live() ? selectedId() : undefined),
     (id) => getLike(id),
   );
-  // `.latest` is non-suspending, so match on the result's id, and never show a
-  // previous target's like state.
+  // `.latest` does not suspend once a load has finished, so match on the result's
+  // id, and never show a previous target's like state. Before the first load
+  // finishes ("pending"), `.latest` reads the resource itself and suspends: under
+  // the route's <Suspense> that swaps the page for the fallback at login (#123).
   const serverLike = (): Like | undefined => {
-    const result = serverRead.latest;
+    const result = serverRead.state === "pending" ? undefined : serverRead.latest;
     return live() && result?.id === selectedId() ? result : undefined;
   };
 

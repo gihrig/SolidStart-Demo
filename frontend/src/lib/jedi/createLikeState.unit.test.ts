@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
-import { createRoot, createSignal } from "solid-js";
+import { createComponent, createRoot, createSignal, Suspense, type JSX } from "solid-js";
+import { render, screen } from "@solidjs/testing-library";
 import type { Like } from "~/types/jedi";
 import { createLikeState, type LikeState } from "./createLikeState";
 
@@ -218,4 +219,37 @@ describe("createLikeState — toggle", () => {
       expect(toggleLikeMock.mock.calls).toEqual([[1, true]]);
       expect(state.like()).toBeUndefined();
     }));
+});
+
+describe("createLikeState — under the route's <Suspense>", () => {
+  it("does not suspend while the first like state loads after login", async () => {
+    // The Jedi route renders under the app's <Suspense>. A suspending read here
+    // would swap the whole route for the fallback at login, like a page reload.
+    const [live, setLive] = createSignal(false);
+    const answer = deferred<Like>();
+    getLikeMock.mockReturnValueOnce(answer.promise);
+    render(() =>
+      createComponent(Suspense, {
+        fallback: "Loading",
+        get children() {
+          const state = createLikeState({
+            selectedId: () => 1,
+            live,
+            getLike: getLikeMock,
+            toggleLike: toggleLikeMock,
+          });
+          // A function child renders as reactive text.
+          return (() => String(state.like()?.likeCount ?? "none")) as unknown as JSX.Element;
+        },
+      }),
+    );
+    expect(screen.getByText("none")).toBeInTheDocument();
+
+    setLive(true);
+    await tick();
+    expect(screen.queryByText("Loading")).toBeNull();
+
+    answer.resolve(like(1, 10, false));
+    expect(await screen.findByText("10")).toBeInTheDocument();
+  });
 });
