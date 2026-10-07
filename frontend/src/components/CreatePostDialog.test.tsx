@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vite-plus/test";
 import { render, screen, within, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
+import { Suspense } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { JediCategory, PostDraft, PostView } from "~/types/jedi";
@@ -102,6 +103,30 @@ describe("<CreatePostDialog />", () => {
     await user.click(trigger);
 
     const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
+    expect(dialog.open).toBe(true);
+  });
+
+  it("opens on the first click under a <Suspense>, while the Categories load (#123)", async () => {
+    // The Post line renders this dialog inside the route's <Suspense>. The first
+    // open loads the Categories; a suspending read would swap the route for the
+    // fallback, which jumps the page to the top and drops the open dialog.
+    let answer!: (categories: JediCategory[]) => void;
+    categoryListMock.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    const user = userEvent.setup();
+    render(() => (
+      <Suspense fallback="Loading">
+        <CreatePostDialog api={api} triggerLabel="Add" triggerAriaLabel="Add Post" />
+      </Suspense>
+    ));
+
+    await user.click(screen.getByRole("button", { name: "Add Post" }));
+
+    expect(screen.queryByText("Loading")).toBeNull();
+    const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
+    expect(dialog.open).toBe(true);
+
+    answer(CATEGORIES);
+    expect(await within(dialog).findByRole("checkbox", { name: "Animals" })).toBeTruthy();
     expect(dialog.open).toBe(true);
   });
 

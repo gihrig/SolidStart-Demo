@@ -154,8 +154,11 @@ export default function CreatePostDialog(props: CreatePostDialogProps) {
                 </button>
               </div>
             </Show>
+            {/* Read the list only once it is ready. A read while it loads suspends:
+                inside the route's <Suspense> (the Post line's Add, #123) that
+                swaps the route for the fallback and drops the open dialog. */}
             <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1">
-              <For each={categories.error ? undefined : categories()}>
+              <For each={categories.state === "ready" ? categories() : undefined}>
                 {(category) => (
                   <label class="flex items-center gap-1">
                     <input type="checkbox" name="categoryIds" value={category.id} />
