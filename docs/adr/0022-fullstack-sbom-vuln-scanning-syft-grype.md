@@ -133,7 +133,7 @@ drift guard. This refines the mechanism; the decisions above stand.
   guard.
 - **syft version is pinned.** The committed SBOM records the generating syft version in
   `metadata.tools`; a syft upgrade changes catalog output, so local and CI runs must use
-  the same version. `scripts/sbom.sh` is the single pin (`SYFT_VERSION`, now `1.52.0`,
+  the same version. `scripts/sbom.sh` is the single pin (`SYFT_VERSION`, now `1.54.0`,
   plus per-platform sha256 values): it downloads that release into `/.tools/`, verifies
   the checksum before running it, and ignores any `syft` on PATH. A Homebrew upgrade
   therefore cannot break the drift guard. The CI jobs install no syft of their own.
@@ -215,7 +215,7 @@ one scoping refinement.
   grype auto-updates its DB each run, so the scheduled run catches a new CVE in an
   unchanged dependency. It scans the COMMITTED SBOM; the `sbom-drift` job proves that SBOM
   matches the lockfiles, so a stale SBOM cannot hide a finding. grype is pinned
-  (`v0.119.0`) for reproducible behaviour; the DB it downloads is always current. The job
+  (`v0.120.0`) for reproducible behaviour; the DB it downloads is always current. The job
   installs grype from its pinned GitHub release and verifies the tarball's sha256 before
   running it, rather than piping the mutable `get.anchore.io` installer to `sh` — a
   compromised installer endpoint cannot then run arbitrary code in the runner.
@@ -370,3 +370,59 @@ choices #143 settled, and one caveat found in the repo.
   push. After `git config core.hooksPath frontend/.vite-hooks/_`, a real `git push` to a
   throwaway local remote runs the hook, reads the pushed ref from stdin, scans that ref's
   committed SBOM offline, and prints the gate result before the push proceeds.
+
+## Addendum — vite-plus 1.0 shrinks the override set; seroval VEX (2026-10-06)
+
+A grype DB refresh surfaced six new front-end advisories (seroval, tinypool, source-map-js,
+serialize-javascript), failing the gate. Moving the `vp` toolchain to vite-plus 1.0.0
+clears four of them and replaces most of the remediation recorded above. The minimal-override
+rule stands; the set it produces is now one entry.
+
+- **Overrides: fourteen → one.** vite-plus 1.0.0 pins the vitest family to `5.0.1` itself,
+  so the twelve `vitest` / `@vitest/*` overrides go (`@vitest/coverage-v8` and `@vitest/ui`
+  move to `5.0.1` as direct dev dependencies). `shell-quote` goes too: `concurrently@10.0.5`
+  now exact-pins the fixed `1.9.0` itself. `h3` → `1.15.11` stays: `vinxi@0.5.11` (latest)
+  still exact-pins `1.15.3`; it can go only with the SolidStart 2.0 migration, which drops
+  vinxi. This also lands the vitest 5 upgrade #170 deferred.
+- **tinypool, source-map-js, serialize-javascript fixed by upgrade.** vite-plus 1.0.0 pins
+  `oxfmt@0.70.0`, which depends on `tinypool@2.1.2` (fixes GHSA-5gmw-xhrv-c9v3 and
+  GHSA-85c8-ppgw-ccpr). The `rm bun.lock && bun install` re-resolve picks up
+  `source-map-js@1.2.2` and `serialize-javascript@7.1.2` through caret ranges.
+- **`vite` dev dependency is the Vite+ core alias, NOT a global override.** Under vite-plus
+  1.0, `vitest.config.ts` fails type-check (`TS2321: Excessive stack depth comparing types …
+  'ViteUserConfigExport'`) when `vite-plugin-solid`'s `Plugin` type comes from upstream
+  `vite@8.3.x`. Setting the dev dependency to `"vite": "npm:@voidzero-dev/vite-plus-core@1.0.0"`
+  resolves it. The Vite+ docs instead recommend an `overrides` alias; that is NOT used here,
+  because a bun override is global and would force vinxi's `vite@^6.4.1` (resolved
+  `vinxi/vite` → `6.4.3`) onto Vite 8. The direct-dependency alias leaves vinxi's copy alone.
+- **jest-dom matcher types load from `@testing-library/jest-dom/vitest`.** vite-plus 0.2.x
+  bundled jest-dom matcher augmentation; 1.0 does not. `tsconfig.json` `types` now lists
+  `@testing-library/jest-dom/vitest` (the root entry augments Jest, not Vitest), per the
+  Vite+ Vitest 5 migration guide. Runtime matchers were unaffected.
+- **CI pins Node.** The `vp` launcher runs on Node, including `prepare: vp config` during
+  `bun install`, and vite-plus 1.0 requires `^22.18.0 || ^24.11.0 || >=26.0.0`. Each job that
+  runs `bun install` now uses a SHA-pinned `actions/setup-node` with
+  `node-version-file: frontend/.node-version` (`24.21.0`) instead of inheriting the runner
+  image's Node. `.node-version` is the single Node pin: the Vite+ `node` shim reads it locally
+  too. `engines.node` was not used — bun ignores `engines`, and Vite+ treats `engines.node` as a
+  consumer-facing range rather than the development pin (#194 review).
+- **seroval 1.5.6 recorded `not_affected` in VEX.** GHSA-p6vx-979v-rg4c (Critical) and
+  GHSA-jp82-f5mq-hwhp (High) remain on the nested `solid-js/seroval@1.5.6`. `solid-js@1.9.15`
+  (latest) pins `seroval: ~1.5.4`, and no 1.5.x release carries either fix. Both advisories
+  are in deserialization (`fromJSON` / `fromCrossJSON`); `solid-js` only serializes with that
+  copy (`solid-js/web/dist/server.js` imports `Serializer, Feature, getCrossReferenceHeader`).
+  SolidStart's deserializer uses the top-level `seroval@1.6.8`, which carries both fixes. An
+  override to 1.6.x would break the `solid-js` range and the seroval / seroval-plugins
+  pairing, so the finding is accepted with justification `vulnerable_code_not_in_execute_path`.
+- **Tool pins bumped: syft `1.54.0`, grype `v0.120.0`.** Neither release lists a breaking
+  change. syft 1.54.0 left the SBOM format unchanged: every component common to the old and
+  new SBOM (1,210) is byte-identical; the diff is lockfile churn only.
+- **bun pin 1.3.11 → 1.4.2** (`packageManager`, `engines` `>=1.4.0`, every CI `setup-bun`).
+  bun 1.4 writes `bun.lock` as `"lockfileVersion": 2`, which bun 1.3.x cannot parse
+  (`UnknownLockfileVersion`), so a lockfile written by a local 1.4 bun broke every CI
+  `bun install --frozen-lockfile`. Pinning CI to the local version keeps them in step. bun 1.4's
+  `bun update` now also moves transitive packages, so the weekly `deps.yml` update may touch more
+  of the lockfile than before.
+- **Validation.** `cgs scan` clean (no findings), `cgs sbom:check` and `cgs vex:check` pass,
+  `vp check` clean, `vp test` 446/446, `vpx tsc --noEmit` clean, `vinxi build` succeeds,
+  `vpr test:e2e` 237/237.
