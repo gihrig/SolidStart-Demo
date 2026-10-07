@@ -326,15 +326,18 @@ convergence set out in
 The back-end's `#[derive(TS)]` types export to
 `backend/crates/services/web-server/bindings/`; the front-end consumes them, so a
 back-end type change _is_ a front-end contract change (CI guards the two in step —
-ADR-0010).
+ADR-0010). Every back-end integer, an id or a count, is a `number` in the bindings,
+as on the JSON wire. A value above 2⁵³−1 loses precision
+([ADR-0027](docs/adr/0027-backend-integers-cross-seam-as-number.md)).
 _Avoid_: DTO, hand-kept schema — there is one generated source of truth.
 
-**`~/types/backend` barrel + `NumericIds`**:
+**`~/types/backend` barrel**:
 The front-end imports bindings **only** through the `~/types/backend` barrel, which
-re-applies `NumericIds` (a binding's `id: bigint` → `number`) and layers its
-locally-defined types. Consumers never import raw `bindings/` files directly. See
-[ADR-0003](docs/adr/0003-entity-identity-number-at-barrel.md),
+re-exports each binding unchanged and layers its locally-defined types. Consumers
+never import raw `bindings/` files directly. See
 [ADR-0010](docs/adr/0010-monorepo-structure.md).
+_Avoid_: re-typing a binding at the barrel — fix the type at its Rust source
+([ADR-0027](docs/adr/0027-backend-integers-cross-seam-as-number.md)).
 
 **`ParamsIded` / `ParamsForUpdate<D>`** (shared RPC param shapes):
 `ParamsIded = { id }` carries an id-only call (fetch/delete by id);

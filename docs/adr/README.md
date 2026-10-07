@@ -12,7 +12,7 @@ flat "what has been decided" view.
 | --- | -------- | ------ |
 | [0001](0001-frontend-modular-monolith.md) | Front-end is a modular monolith; package split deferred to the back-end merge | Accepted |
 | [0002](0002-jedi-mock-data-contract.md) | Jedi content is served by a back-end-faithful mock that doubles as the data contract | Accepted |
-| [0003](0003-entity-identity-number-at-barrel.md) | Entity identity is `number`, made honest at the type barrel | Accepted |
+| [0003](0003-entity-identity-number-at-barrel.md) | Entity identity is `number`, made honest at the type barrel | Superseded by [0027](0027-backend-integers-cross-seam-as-number.md) |
 | [0004](0004-conversation-navigator-disclosure-listbox.md) | Conversation navigator is a single-open accordion of disclosure + listbox, not a `role=tree` | Accepted |
 | [0005](0005-rpc-mutations-via-rpcaction.md) | RPC mutations own their pending + error via `createRpcAction` | Accepted |
 | [0006](0006-safeurl-brand-enforces-sanitize-boundary.md) | A `SafeUrl` branded type enforces the single sanitize boundary | Accepted |
@@ -36,3 +36,4 @@ flat "what has been decided" view.
 | [0024](0024-typed-bmc-owner-post-child-tables.md) | The Post child tables own their table identity through typed marker BMCs, routed via `table_ref()` | Accepted |
 | [0025](0025-login-handler-keeps-blueprint-inline-orchestration.md) | The login handler keeps the rust10x blueprint's inline orchestration | Accepted |
 | [0026](0026-realtime-feed-in-lib-web-contract-in-lib-core.md) | The realtime Feed lives in `lib-web::ws`, its exported contract in `lib-core::realtime` | Accepted |
+| [0027](0027-backend-integers-cross-seam-as-number.md) | Back-end integers cross the contract seam as `number`, emitted by ts-rs | Accepted |
