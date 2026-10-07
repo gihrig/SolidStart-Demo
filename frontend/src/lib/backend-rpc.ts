@@ -14,11 +14,11 @@ import type {
   HeroView,
   JsonRpcRequest,
   JsonRpcResponse,
+  LikeForToggle,
+  LikeView,
   LoginPayload,
   LogoffPayload,
   PostForCreate,
-  PostLikeForToggle,
-  PostLikeView,
   PostView,
 } from "~/types/backend";
 import { isRpcError } from "~/types/backend";
@@ -184,8 +184,8 @@ export function createRpcClient() {
     featured: () => rpcCall<PostView>("featured_post", undefined, "/api/rpc-public"),
     get: (id: number) => rpcCall<PostView>("get_post", { id }, "/api/rpc-public"),
     create: (data: PostForCreate) => rpcCall<PostView>("create_post", { data }),
-    getLike: (id: number) => rpcCall<PostLikeView>("get_post_like", { id }),
-    toggleLike: (data: PostLikeForToggle) => rpcCall<PostLikeView>("toggle_post_like", { data }),
+    getLike: (id: number) => rpcCall<LikeView>("get_post_like", { id }),
+    toggleLike: (data: LikeForToggle) => rpcCall<LikeView>("toggle_post_like", { data }),
   };
 
   // Caption RPC methods. Every Caption is public (#106), so the read posts to the

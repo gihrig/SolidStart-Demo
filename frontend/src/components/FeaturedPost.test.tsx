@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import FeaturedPost from "./FeaturedPost";
-import type { PostView, CaptionView, PostLike } from "~/types/jedi";
+import type { PostView, CaptionView, Like } from "~/types/jedi";
 
 const post: PostView = {
   id: 1,
@@ -128,7 +128,7 @@ describe("<FeaturedPost /> — Add Caption (#121)", () => {
 
 describe("<FeaturedPost /> — Like (#122)", () => {
   const likeButton = () => screen.getByRole("button", { name: /like post by lisa/i });
-  const like: PostLike = { postId: 1, likeCount: 6, liked: true };
+  const like: Like = { id: 1, likeCount: 6, liked: true };
 
   it("disables Like and shows the Post's count without a like state (anonymous)", () => {
     render(() => <FeaturedPost post={post} caption={caption} />);

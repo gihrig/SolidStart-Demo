@@ -210,19 +210,19 @@ describe("jediApi.posts", () => {
   });
 
   it("getLike() reads the caller's like state of a Post (#122)", async () => {
-    postGetLikeMock.mockResolvedValue({ post_id: 2, like_count: 4, liked: true });
-    expect(await jediApi.posts.getLike(2)).toEqual({ postId: 2, likeCount: 4, liked: true });
+    postGetLikeMock.mockResolvedValue({ id: 2, like_count: 4, liked: true });
+    expect(await jediApi.posts.getLike(2)).toEqual({ id: 2, likeCount: 4, liked: true });
     expect(postGetLikeMock).toHaveBeenCalledWith(2);
   });
 
-  it("toggleLike() sends the wanted state as the wire PostLikeForToggle (#122)", async () => {
-    postToggleLikeMock.mockResolvedValue({ post_id: 2, like_count: 3, liked: false });
+  it("toggleLike() sends the wanted state as the wire LikeForToggle (#122)", async () => {
+    postToggleLikeMock.mockResolvedValue({ id: 2, like_count: 3, liked: false });
     expect(await jediApi.posts.toggleLike(2, false)).toEqual({
-      postId: 2,
+      id: 2,
       likeCount: 3,
       liked: false,
     });
-    expect(postToggleLikeMock).toHaveBeenCalledWith({ post_id: 2, liked: false });
+    expect(postToggleLikeMock).toHaveBeenCalledWith({ id: 2, liked: false });
   });
 });
 

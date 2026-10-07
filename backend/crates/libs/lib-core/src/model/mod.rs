@@ -32,6 +32,7 @@ pub mod conv;
 pub mod conv_msg;
 pub mod conv_user;
 pub mod hero;
+pub mod like;
 pub(in crate::model) mod modql_utils;
 pub mod post;
 pub mod user;

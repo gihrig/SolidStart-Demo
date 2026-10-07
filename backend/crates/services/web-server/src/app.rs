@@ -898,7 +898,7 @@ mod tests {
 	}
 
 	/// A logged-in User likes and unlikes a Post (#122): `toggle_post_like`
-	/// returns the caller's `PostLikeView`, and a toggle that changes the Like
+	/// returns the caller's `LikeView`, and a toggle that changes the Like
 	/// pokes `post_like:{post_id}` (the count) and `posts` (the ranking). A
 	/// second like is a no-op that pokes nothing. `get_post_like` reads the same
 	/// view. An unknown Post is rejected (400) by both RPCs with no poke, and an
@@ -913,7 +913,7 @@ mod tests {
 		let toggle = |post_id: i64, liked: bool| {
 			json!({
 				"jsonrpc": "2.0", "id": 1, "method": "toggle_post_like",
-				"params": { "data": { "post_id": post_id, "liked": liked } }
+				"params": { "data": { "id": post_id, "liked": liked } }
 			})
 		};
 		let ws_state = Arc::new(WsState::new());
@@ -961,7 +961,7 @@ mod tests {
 		// -- Check: one Like, liked by the caller.
 		assert_eq!(
 			body.pointer("/result/data"),
-			Some(&json!({ "post_id": post_id, "like_count": 1, "liked": true })),
+			Some(&json!({ "id": post_id, "like_count": 1, "liked": true })),
 			"got {body}"
 		);
 
@@ -985,7 +985,7 @@ mod tests {
 			.json();
 		assert_eq!(
 			body.pointer("/result/data"),
-			Some(&json!({ "post_id": post_id, "like_count": 0, "liked": false })),
+			Some(&json!({ "id": post_id, "like_count": 0, "liked": false })),
 			"got {body}"
 		);
 

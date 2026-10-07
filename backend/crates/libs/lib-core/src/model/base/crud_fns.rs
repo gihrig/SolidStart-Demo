@@ -232,6 +232,41 @@ where
 	list::<MC, P, F>(ctx, mm, filter, list_options).await
 }
 
+/// Reject an unknown parent row as a client error before a child write or read
+/// (#123): when no `MC` row with this `id` is readable by `ctx`, return a
+/// `Validation` error on `field` with `reason` (400), never a foreign-key failure
+/// or a silent empty result. The read scope applies, as in [`get`].
+pub async fn require_exists<MC>(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	id: i64,
+	field: &str,
+	reason: &str,
+) -> Result<()>
+where
+	MC: DbBmc,
+{
+	let mut query = Query::select();
+	query
+		.from(MC::table_ref())
+		.column(CommonIden::Id)
+		.cond_where(Expr::col(CommonIden::Id).eq(id));
+	if let Some(scope) = scope_cond::<MC>(ctx, Access::Read) {
+		query.cond_where(scope);
+	}
+
+	let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+	let sqlx_query = sqlx::query_as_with::<_, (i64,), _>(&sql, values);
+	if mm.dbx().fetch_optional(sqlx_query).await?.is_none() {
+		return Err(Error::Validation {
+			field: field.to_string(),
+			reason: reason.to_string(),
+		});
+	}
+
+	Ok(())
+}
+
 pub async fn count<MC, F>(
 	ctx: &Ctx,
 	mm: &ModelManager,

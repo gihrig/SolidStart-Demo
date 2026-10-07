@@ -1,7 +1,7 @@
 import { createEffect, createSignal, For, on, Show } from "solid-js";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { trustedUrl } from "~/lib/sanitizeUrl";
-import type { PostView, CaptionView, PostLike } from "~/types/jedi";
+import type { PostView, CaptionView, Like } from "~/types/jedi";
 import Image from "~/components/Image";
 import Author from "~/components/Author";
 import Icon from "~/components/Icon";
@@ -19,7 +19,7 @@ export interface FeaturedPostProps {
   /** The viewer's like state of this Post (#122). Undefined for an anonymous
    *  visitor or while it loads; the Like button is then disabled and the count
    *  comes from the Post. */
-  like?: PostLike;
+  like?: Like;
   /** Like or unlike this Post; the opposite of `like.liked`. */
   onToggleLike?: () => Promise<void>;
 }

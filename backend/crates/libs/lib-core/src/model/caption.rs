@@ -4,7 +4,7 @@ use crate::model::base::{
 	self, Access, CommonIden, DbBmc, FieldHygiene, PublicProjection,
 };
 use crate::model::modql_utils::time_to_sea_value;
-use crate::model::post::{PostBmc, PostFilter};
+use crate::model::post::PostBmc;
 use crate::model::user::{AuthorRef, UserBmc};
 use crate::model::ModelManager;
 use crate::model::{Error, Result};
@@ -172,23 +172,14 @@ impl CaptionBmc {
 		mm: &ModelManager,
 		caption_c: CaptionForCreate,
 	) -> Result<i64> {
-		let post_id = caption_c.post_id;
-		let known = PostBmc::list(
+		base::require_exists::<PostBmc>(
 			ctx,
 			mm,
-			Some(vec![PostFilter {
-				id: Some(post_id.into()),
-				..Default::default()
-			}]),
-			None,
+			caption_c.post_id,
+			"post_id",
+			"unknown Post",
 		)
 		.await?;
-		if known.is_empty() {
-			return Err(Error::Validation {
-				field: "post_id".to_string(),
-				reason: "unknown Post".to_string(),
-			});
-		}
 
 		base::create::<Self, _>(ctx, mm, caption_c).await
 	}

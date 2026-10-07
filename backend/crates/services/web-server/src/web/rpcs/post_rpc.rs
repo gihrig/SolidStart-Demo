@@ -1,6 +1,6 @@
+use lib_core::model::like::{LikeBmc, LikeForToggle, LikeView};
 use lib_core::model::post::{
-	PostBmc, PostFilter, PostForCreate, PostLikeBmc, PostLikeForToggle,
-	PostLikeView, PostView,
+	PostBmc, PostFilter, PostForCreate, PostLikeBmc, PostView,
 };
 use lib_rpc_core::prelude::*;
 use lib_web::ws::poke::{self, PokedRpcResult};
@@ -44,32 +44,33 @@ pub async fn create_post(
 /// `post_like:{post_id}`, so subscribers refetch the count, and `posts`, so the
 /// Top Photos ranking refetches; a no-op pokes nothing. The pokes fire on
 /// write-commit, before the re-get (ADR-0016). An unknown Post is rejected
-/// (400). The `{ data }` params shape matches the other mutations.
+/// (400). The `{ data }` params shape matches the other mutations; `data.id` is
+/// the Post id.
 pub async fn toggle_post_like(
 	ctx: Ctx,
 	mm: ModelManager,
 	ws_state: WsState,
-	params: ParamsForCreate<PostLikeForToggle>,
-) -> Result<PokedRpcResult<PostLikeView, poke::PostLike>> {
+	params: ParamsForCreate<LikeForToggle>,
+) -> Result<PokedRpcResult<LikeView, poke::PostLike>> {
 	let ParamsForCreate { data } = params;
-	let post_id = data.post_id;
-	let changed = PostLikeBmc::toggle(&ctx, &mm, data).await?;
+	let post_id = data.id;
+	let changed = LikeBmc::toggle::<PostLikeBmc>(&ctx, &mm, data).await?;
 	let receipt = ws_state.broadcast_post_like(post_id, changed);
 	if changed {
 		ws_state.broadcast_posts_update();
 	}
-	let view = PostLikeBmc::get_post_like(&ctx, &mm, post_id).await?;
+	let view = LikeBmc::get::<PostLikeBmc>(&ctx, &mm, post_id).await?;
 	Ok(PokedRpcResult::new(view, receipt))
 }
 
-/// Read the caller's `PostLikeView` of one Post: the like count and whether the
+/// Read the caller's `LikeView` of one Post: the like count and whether the
 /// caller likes it (#122). `params.id` is the Post id.
 pub async fn get_post_like(
 	ctx: Ctx,
 	mm: ModelManager,
 	params: ParamsIded,
-) -> Result<DataRpcResult<PostLikeView>> {
-	let view = PostLikeBmc::get_post_like(&ctx, &mm, params.id).await?;
+) -> Result<DataRpcResult<LikeView>> {
+	let view = LikeBmc::get::<PostLikeBmc>(&ctx, &mm, params.id).await?;
 	Ok(view.into())
 }
 

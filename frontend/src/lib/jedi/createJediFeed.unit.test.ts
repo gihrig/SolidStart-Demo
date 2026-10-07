@@ -3,7 +3,7 @@ import { createRoot, createSignal } from "solid-js";
 import { Channel } from "~/lib/channel";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { JediApi } from "./jedi-api";
-import type { AuthorRef, CaptionView, JediCategory, PostLike, PostView } from "~/types/jedi";
+import type { AuthorRef, CaptionView, JediCategory, Like, PostView } from "~/types/jedi";
 import data from "./data.json";
 import { createJediFeed, type JediFeed } from "./createJediFeed";
 
@@ -111,7 +111,7 @@ beforeEach(() => {
   const viewerLikes = new Set<number>();
   const likeOf = (postId: number) => {
     const liked = viewerLikes.has(postId);
-    return { postId, likeCount: postId * 10 + (liked ? 1 : 0), liked };
+    return { id: postId, likeCount: postId * 10 + (liked ? 1 : 0), liked };
   };
   postGetLikeMock.mockReset();
   postGetLikeMock.mockImplementation((postId: number) => Promise.resolve(likeOf(postId)));
@@ -591,8 +591,8 @@ describe("createJediFeed — the selected Post's like state (#122)", () => {
       poke: (postId: number) => options.onPostLikeUpdate?.(postId),
     };
   }
-  const like = (postId: number, likeCount: number, liked: boolean): PostLike => ({
-    postId,
+  const like = (postId: number, likeCount: number, liked: boolean): Like => ({
+    id: postId,
     likeCount,
     liked,
   });
@@ -690,8 +690,8 @@ describe("createJediFeed — the selected Post's like state (#122)", () => {
 });
 
 describe("createJediFeed — the immediate local Like, synced from the server (#122)", () => {
-  const like = (postId: number, likeCount: number, liked: boolean): PostLike => ({
-    postId,
+  const like = (postId: number, likeCount: number, liked: boolean): Like => ({
+    id: postId,
     likeCount,
     liked,
   });
@@ -730,7 +730,7 @@ describe("createJediFeed — the immediate local Like, synced from the server (#
 
   it("shows the Like at once, before the back-end answers", () =>
     withLiveFeed(async (jedi) => {
-      const answer = deferred<PostLike>();
+      const answer = deferred<Like>();
       postToggleLikeMock.mockReturnValueOnce(answer.promise);
 
       const done = jedi.toggleLike();
@@ -763,7 +763,7 @@ describe("createJediFeed — the immediate local Like, synced from the server (#
   it("ignores an older read that lands after the toggle (the race)", () =>
     withLiveFeed(async (jedi, poke) => {
       // Another User's poke starts a read that ends after our toggle.
-      const olderRead = deferred<PostLike>();
+      const olderRead = deferred<Like>();
       postGetLikeMock.mockReturnValueOnce(olderRead.promise);
       poke(1);
       await tick();
@@ -777,7 +777,7 @@ describe("createJediFeed — the immediate local Like, synced from the server (#
 
   it("keeps fast clicks: the last wanted state wins, sent in order", () =>
     withLiveFeed(async (jedi) => {
-      const first = deferred<PostLike>();
+      const first = deferred<Like>();
       postToggleLikeMock.mockReturnValueOnce(first.promise);
 
       const like1 = jedi.toggleLike(); // like
@@ -796,7 +796,7 @@ describe("createJediFeed — the immediate local Like, synced from the server (#
 
   it("keeps each Post's last wanted state when the viewer moves to another Post mid-toggle", () =>
     withLiveFeed(async (jedi) => {
-      const first = deferred<PostLike>();
+      const first = deferred<Like>();
       postToggleLikeMock.mockReturnValueOnce(first.promise);
 
       const p1Like = jedi.toggleLike(); // Post 1: like
@@ -827,7 +827,7 @@ describe("createJediFeed — the immediate local Like, synced from the server (#
       });
       await tick();
       await tick();
-      const first = deferred<PostLike>();
+      const first = deferred<Like>();
       postToggleLikeMock.mockReturnValueOnce(first.promise);
 
       const done = jedi.toggleLike(); // like, in flight
