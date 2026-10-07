@@ -12,8 +12,13 @@ export interface FeaturedPostProps {
   /** The winning Caption shown on the post (a first-class entity, not bare
    *  text); undefined until the post's captions load or when it has none. */
   caption?: CaptionView;
-  /** Whether the viewer may add a Caption (a logged-in User, #121). */
-  canAddCaption?: boolean;
+  /** Whether the viewer is a logged-in User (#121, #123). Only a logged-in User
+   *  sees Like and Add; a visitor sees only the fire-heart and the count. */
+  loggedIn?: boolean;
+  /** The logged-in User's id (#123). Edit / Delete show only to the Owner, and
+   *  stay hidden until the id loads. This only hides buttons; the back-end owns
+   *  enforcement. */
+  userId?: number;
   /** False while the post's captions load, so the caption form never flashes. */
   captionsLoaded?: boolean;
   /** The viewer's like state of this Post (#122). Undefined for an anonymous
@@ -30,6 +35,8 @@ export interface FeaturedPostProps {
 }
 
 export default function FeaturedPost(props: FeaturedPostProps) {
+  // The Owner rule (#123): Edit / Delete show only when the viewer wrote it.
+  const isOwner = (authorId: number) => props.userId !== undefined && props.userId === authorId;
   // The live count: the viewer's like state once it loads, else the Post's.
   const likeCount = () => props.like?.likeCount ?? props.post.likeCount;
   // Only the error is used: the Like shows at once, so the button stays enabled
@@ -111,7 +118,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           postId={props.post.id}
           caption={props.caption}
           captionsLoaded={props.captionsLoaded ?? false}
-          canAdd={props.canAddCaption ?? false}
+          canAdd={props.loggedIn ?? false}
           adding={addingCaption()}
           onClose={closeCaptionForm}
         />
@@ -135,17 +142,19 @@ export default function FeaturedPost(props: FeaturedPostProps) {
                     {captionLikeCount(c())}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => void toggleCaptionLike.run(undefined)}
-                  disabled={!props.captionLike}
-                  class="theme-button disabled:opacity-50"
-                  aria-pressed={props.captionLike?.liked ?? false}
-                  aria-label={`Like caption by ${c().author.name}`}
-                >
-                  Like
-                </button>
-                <Show when={props.canAddCaption && !addingCaption()}>
+                <Show when={props.loggedIn}>
+                  <button
+                    type="button"
+                    onClick={() => void toggleCaptionLike.run(undefined)}
+                    disabled={!props.captionLike}
+                    class="theme-button disabled:opacity-50"
+                    aria-pressed={props.captionLike?.liked ?? false}
+                    aria-label={`Like caption by ${c().author.name}`}
+                  >
+                    Like
+                  </button>
+                </Show>
+                <Show when={props.loggedIn && !addingCaption()}>
                   <button
                     ref={(el) => (addCaptionRef = el)}
                     type="button"
@@ -156,22 +165,24 @@ export default function FeaturedPost(props: FeaturedPostProps) {
                     Add
                   </button>
                 </Show>
-                <button
-                  type="button"
-                  onClick={() => {}}
-                  class="theme-button"
-                  aria-label={`Edit caption by ${c().author.name}`}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {}}
-                  class="theme-button"
-                  aria-label={`Delete caption by ${c().author.name}`}
-                >
-                  Delete
-                </button>
+                <Show when={isOwner(c().author.id)}>
+                  <button
+                    type="button"
+                    onClick={() => {}}
+                    class="theme-button"
+                    aria-label={`Edit caption by ${c().author.name}`}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {}}
+                    class="theme-button"
+                    aria-label={`Delete caption by ${c().author.name}`}
+                  >
+                    Delete
+                  </button>
+                </Show>
               </div>
             )}
           </Show>
@@ -201,32 +212,38 @@ export default function FeaturedPost(props: FeaturedPostProps) {
                 {likeCount()}
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => void toggleLike.run(undefined)}
-              disabled={!props.like}
-              class="theme-button disabled:opacity-50"
-              aria-pressed={props.like?.liked ?? false}
-              aria-label={`Like post by ${props.post.author.name}`}
-            >
-              Like
-            </button>
-            <button
-              type="button"
-              onClick={() => {}}
-              class="theme-button"
-              aria-label={`Edit Post by ${props.post.author.name}`}
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              onClick={() => {}}
-              class="theme-button"
-              aria-label={`Delete Post by ${props.post.author.name}`}
-            >
-              Delete
-            </button>
+            {/* The visibility rule (#123): Like for a logged-in User, Edit /
+                Delete for the Owner. */}
+            <Show when={props.loggedIn}>
+              <button
+                type="button"
+                onClick={() => void toggleLike.run(undefined)}
+                disabled={!props.like}
+                class="theme-button disabled:opacity-50"
+                aria-pressed={props.like?.liked ?? false}
+                aria-label={`Like post by ${props.post.author.name}`}
+              >
+                Like
+              </button>
+            </Show>
+            <Show when={isOwner(props.post.author.id)}>
+              <button
+                type="button"
+                onClick={() => {}}
+                class="theme-button"
+                aria-label={`Edit Post by ${props.post.author.name}`}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => {}}
+                class="theme-button"
+                aria-label={`Delete Post by ${props.post.author.name}`}
+              >
+                Delete
+              </button>
+            </Show>
           </div>
         </div>
       </div>

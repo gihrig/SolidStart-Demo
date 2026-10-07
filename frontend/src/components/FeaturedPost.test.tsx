@@ -51,7 +51,7 @@ describe("<FeaturedPost />", () => {
   });
 
   it("shows no Add Caption button while the captions load or when there are none", () => {
-    render(() => <FeaturedPost post={post} caption={undefined} canAddCaption />);
+    render(() => <FeaturedPost post={post} caption={undefined} loggedIn />);
     expect(screen.queryByRole("button", { name: "Add Caption" })).toBeNull();
   });
   it("links to the photographer's flickr page", () => {
@@ -74,7 +74,7 @@ describe("<FeaturedPost />", () => {
   });
 
   it("exposes accessible Like / Edit / Delete actions labelled by author", () => {
-    render(() => <FeaturedPost post={post} caption={caption} />);
+    render(() => <FeaturedPost post={post} caption={caption} loggedIn userId={1} />);
     expect(screen.getByRole("button", { name: /like post by lisa/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /edit post by lisa/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /delete post by lisa/i })).toBeInTheDocument();
@@ -86,9 +86,7 @@ describe("<FeaturedPost /> — Add Caption (#121)", () => {
   const input = () => screen.queryByLabelText("Your caption");
   const renderLoggedIn = (postSignal = createSignal(post)[0]) => {
     const user = userEvent.setup();
-    render(() => (
-      <FeaturedPost post={postSignal()} caption={caption} canAddCaption captionsLoaded />
-    ));
+    render(() => <FeaturedPost post={postSignal()} caption={caption} loggedIn captionsLoaded />);
     return { user };
   };
 
@@ -130,15 +128,17 @@ describe("<FeaturedPost /> — Like (#122)", () => {
   const likeButton = () => screen.getByRole("button", { name: /like post by lisa/i });
   const like: Like = { id: 1, likeCount: 6, liked: true };
 
-  it("disables Like and shows the Post's count without a like state (anonymous)", () => {
-    render(() => <FeaturedPost post={post} caption={caption} />);
+  it("disables Like and shows the Post's count while the like state loads", () => {
+    render(() => <FeaturedPost loggedIn post={post} caption={caption} />);
     expect(likeButton()).toBeDisabled();
     expect(likeButton()).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText("Likes:").parentElement).toHaveTextContent("Likes: 5");
   });
 
   it("shows the viewer's live count and pressed state", () => {
-    render(() => <FeaturedPost post={post} caption={caption} like={like} onToggleLike={vi.fn()} />);
+    render(() => (
+      <FeaturedPost loggedIn post={post} caption={caption} like={like} onToggleLike={vi.fn()} />
+    ));
     expect(likeButton()).toBeEnabled();
     expect(likeButton()).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("Likes:").parentElement).toHaveTextContent("Likes: 6");
@@ -148,7 +148,13 @@ describe("<FeaturedPost /> — Like (#122)", () => {
     const user = userEvent.setup();
     const onToggleLike = vi.fn(() => Promise.resolve());
     render(() => (
-      <FeaturedPost post={post} caption={caption} like={like} onToggleLike={onToggleLike} />
+      <FeaturedPost
+        loggedIn
+        post={post}
+        caption={caption}
+        like={like}
+        onToggleLike={onToggleLike}
+      />
     ));
     await user.click(likeButton());
     expect(onToggleLike).toHaveBeenCalledOnce();
@@ -158,7 +164,13 @@ describe("<FeaturedPost /> — Like (#122)", () => {
     const user = userEvent.setup();
     const onToggleLike = vi.fn(() => new Promise<void>(() => {}));
     render(() => (
-      <FeaturedPost post={post} caption={caption} like={like} onToggleLike={onToggleLike} />
+      <FeaturedPost
+        loggedIn
+        post={post}
+        caption={caption}
+        like={like}
+        onToggleLike={onToggleLike}
+      />
     ));
     await user.click(likeButton());
     expect(likeButton()).toBeEnabled();
@@ -170,7 +182,13 @@ describe("<FeaturedPost /> — Like (#122)", () => {
     const user = userEvent.setup();
     const onToggleLike = () => Promise.reject(new Error("Network down"));
     render(() => (
-      <FeaturedPost post={post} caption={caption} like={like} onToggleLike={onToggleLike} />
+      <FeaturedPost
+        loggedIn
+        post={post}
+        caption={caption}
+        like={like}
+        onToggleLike={onToggleLike}
+      />
     ));
     await user.click(likeButton());
     expect(await screen.findByRole("alert")).toHaveTextContent("Network down");
@@ -185,9 +203,10 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
   it("puts the Caption actions on the categories line, right of the categories, in order", () => {
     render(() => (
       <FeaturedPost
+        loggedIn
+        userId={1}
         post={post}
         caption={caption}
-        canAddCaption
         captionsLoaded
         captionLike={captionLike}
       />
@@ -208,12 +227,12 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
   });
 
   it("labels the Add button 'Add', with the accessible name 'Add Caption'", () => {
-    render(() => <FeaturedPost post={post} caption={caption} canAddCaption captionsLoaded />);
+    render(() => <FeaturedPost loggedIn post={post} caption={caption} captionsLoaded />);
     expect(screen.getByRole("button", { name: "Add Caption" })).toHaveTextContent(/^Add$/);
   });
 
-  it("disables Like and shows the Caption's count without a like state (anonymous)", () => {
-    render(() => <FeaturedPost post={post} caption={caption} />);
+  it("disables Like and shows the Caption's count while the like state loads", () => {
+    render(() => <FeaturedPost loggedIn post={post} caption={caption} />);
     expect(likeButton()).toBeDisabled();
     expect(likeButton()).toHaveAttribute("aria-pressed", "false");
     expect(captionCount()).toHaveTextContent("Caption likes: 8");
@@ -222,6 +241,7 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
   it("shows the viewer's live Caption count and pressed state", () => {
     render(() => (
       <FeaturedPost
+        loggedIn
         post={post}
         caption={caption}
         captionLike={captionLike}
@@ -239,6 +259,7 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
     const onToggleLike = vi.fn(() => Promise.resolve());
     render(() => (
       <FeaturedPost
+        loggedIn
         post={post}
         caption={caption}
         captionLike={captionLike}
@@ -256,6 +277,7 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
     const onToggleCaptionLike = () => Promise.reject(new Error("Network down"));
     render(() => (
       <FeaturedPost
+        loggedIn
         post={post}
         caption={caption}
         captionLike={captionLike}
@@ -270,5 +292,61 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
     render(() => <FeaturedPost post={post} caption={undefined} />);
     expect(screen.queryByRole("button", { name: /like caption/i })).toBeNull();
     expect(screen.queryByText("Caption likes:")).toBeNull();
+  });
+});
+
+describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123)", () => {
+  // Caption 2 is by Bart (id 3), so Lisa (id 1) owns the Post but not the Caption.
+  const bartsCaption: CaptionView = {
+    ...caption,
+    id: 2,
+    author: { id: 3, name: "Bart", avatarUrl: trustedUrl("https://example.com/bart.png") },
+  };
+  const button = (name: RegExp | string) => screen.queryByRole("button", { name });
+
+  it("shows a visitor who is not logged in only the fire-heart and the count", () => {
+    render(() => <FeaturedPost post={post} caption={bartsCaption} captionsLoaded />);
+    expect(screen.getByText("Likes:").parentElement).toHaveTextContent("Likes: 5");
+    expect(screen.getByText("Caption likes:").parentElement).toHaveTextContent("Caption likes: 8");
+    for (const name of [
+      /like post/i,
+      /edit post/i,
+      /delete post/i,
+      /like caption/i,
+      "Add Caption",
+      /edit caption/i,
+      /delete caption/i,
+    ]) {
+      expect(button(name), String(name)).toBeNull();
+    }
+  });
+
+  it("shows a logged-in User Like and Add, but not another User's Edit / Delete", () => {
+    render(() => (
+      <FeaturedPost post={post} caption={bartsCaption} captionsLoaded loggedIn userId={2} />
+    ));
+    expect(button(/like post by lisa/i)).toBeInTheDocument();
+    expect(button(/like caption by bart/i)).toBeInTheDocument();
+    expect(button("Add Caption")).toBeInTheDocument();
+    for (const name of [/edit post/i, /delete post/i, /edit caption/i, /delete caption/i]) {
+      expect(button(name), String(name)).toBeNull();
+    }
+  });
+
+  it("shows Edit / Delete to the Owner only, on each line", () => {
+    render(() => (
+      <FeaturedPost post={post} caption={bartsCaption} captionsLoaded loggedIn userId={1} />
+    ));
+    expect(button(/edit post by lisa/i)).toBeInTheDocument();
+    expect(button(/delete post by lisa/i)).toBeInTheDocument();
+    expect(button(/edit caption/i)).toBeNull();
+    expect(button(/delete caption/i)).toBeNull();
+  });
+
+  it("hides Edit / Delete until the User's id loads", () => {
+    render(() => <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn />);
+    for (const name of [/edit post/i, /delete post/i, /edit caption/i, /delete caption/i]) {
+      expect(button(name), String(name)).toBeNull();
+    }
   });
 });

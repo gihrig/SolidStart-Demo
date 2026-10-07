@@ -34,6 +34,7 @@ function AuthTestConsumer() {
       <span data-testid="username">{auth.username() ?? "none"}</span>
       <span data-testid="display-name">{auth.displayName?.() ?? "none"}</span>
       <span data-testid="avatar-url">{auth.avatarUrl?.() ?? ""}</span>
+      <span data-testid="user-id">{auth.userId?.() ?? "none"}</span>
       <span data-testid="error">{auth.error() ?? "none"}</span>
       <span data-testid="pending">{auth.pending() ? "yes" : "no"}</span>
       <span data-testid="threw">{threw()}</span>
@@ -155,6 +156,7 @@ describe("AuthContext", () => {
       await Promise.resolve();
       expect(screen.getByTestId("display-name").textContent).toBe("none");
       expect(screen.getByTestId("avatar-url").textContent).toBe("");
+      expect(screen.getByTestId("user-id").textContent).toBe("none");
       expect(profileGetMock).not.toHaveBeenCalled();
     });
 
@@ -171,6 +173,18 @@ describe("AuthContext", () => {
       expect(profileGetMock).toHaveBeenCalledTimes(1);
     });
 
+    it("exposes the logged-in User's id from the profile, for the Owner check (#123)", async () => {
+      const user = userEvent.setup();
+      renderWithAuth();
+      expect(screen.getByTestId("user-id").textContent).toBe("none");
+
+      await user.click(screen.getByRole("button", { name: /^login$/i }));
+
+      await waitFor(() =>
+        expect(screen.getByTestId("user-id").textContent).toBe(String(DEMO1_PROFILE.id)),
+      );
+    });
+
     it("clears the identity on logoff", async () => {
       const user = userEvent.setup();
       renderWithAuth();
@@ -183,6 +197,7 @@ describe("AuthContext", () => {
 
       await waitFor(() => expect(screen.getByTestId("display-name").textContent).toBe("none"));
       expect(screen.getByTestId("avatar-url").textContent).toBe("");
+      expect(screen.getByTestId("user-id").textContent).toBe("none");
     });
 
     it("falls back to the login username with no avatar when the profile fails", async () => {
@@ -198,6 +213,7 @@ describe("AuthContext", () => {
       await waitFor(() => expect(profileGetMock).toHaveBeenCalled());
       expect(screen.getByTestId("display-name").textContent).toBe("demo1");
       expect(screen.getByTestId("avatar-url").textContent).toBe("");
+      expect(screen.getByTestId("user-id").textContent).toBe("none");
       // The failure is logged, not silent.
       await waitFor(() =>
         expect(warn).toHaveBeenCalledWith("[AuthContext] Profile load failed:", failure),

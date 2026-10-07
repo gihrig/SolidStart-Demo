@@ -25,7 +25,7 @@ function LiveFeed(props: LiveFeedProps) {
 }
 
 export default function Home() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, userId } = useAuth();
   const {
     categories,
     visiblePosts,
@@ -89,7 +89,8 @@ export default function Home() {
                 <FeaturedPost
                   post={post()}
                   caption={selectedCaption()}
-                  canAddCaption={isAuthenticated()}
+                  loggedIn={isAuthenticated()}
+                  userId={userId()}
                   captionsLoaded={visibleCaptions() !== undefined}
                   like={selectedPostLike()}
                   onToggleLike={togglePostLike}

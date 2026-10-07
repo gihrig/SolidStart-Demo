@@ -64,19 +64,22 @@ test.describe("Jedi Page", () => {
     await expect(page.getByRole("link", { name: /awesome/i })).toHaveAttribute("href", "/");
   });
 
-  test("should display author, tags, and post actions", async ({ page }) => {
+  // A visitor who is not logged in sees only the fire-heart and the count on the
+  // Post line and the Caption line: no Like, Add, Edit, or Delete (#123).
+  test("should display author, tags, and like counts, with no actions for a visitor", async ({
+    page,
+  }) => {
     await page.goto("/");
     const article = page.locator("article").first();
     await expect(article.getByRole("link").filter({ hasText: "Lisa" })).toBeVisible();
     await expect(article.getByRole("button", { name: /animals/i })).toBeVisible();
     await expect(article.getByRole("button", { name: /cute/i })).toBeVisible();
     await expect(article.getByRole("link", { name: /Comments/i })).toBeVisible();
-    await expect(article.getByRole("button", { name: /Like post by/i })).toBeVisible();
-    await expect(article.getByRole("button", { name: /Edit post by/i })).toBeVisible();
-    await expect(article.getByRole("button", { name: /Delete post by/i })).toBeVisible();
-    // The Caption actions (#123): the count and Like for the Caption shown.
+    await expect(article.getByText("Likes: 5")).toBeVisible();
     await expect(article.getByText("Caption likes: 8")).toBeVisible();
-    await expect(article.getByRole("button", { name: /Like caption by Lisa/i })).toBeVisible();
+    for (const name of [/^Like /i, /^Edit /i, /^Delete /i, /^Add Caption$/i]) {
+      await expect(article.getByRole("button", { name })).toHaveCount(0);
+    }
   });
 
   // The seeded back-end Likes match the fixture likeCount (#177), so Top Photos
