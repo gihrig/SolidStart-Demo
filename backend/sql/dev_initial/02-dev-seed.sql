@@ -27,6 +27,8 @@ INSERT INTO "category"
 -- Author Users (ids 1..3), seeded from the front-end mock fixture
 -- (frontend/src/lib/jedi/data.json). Each carries a persisted avatar_url (#117);
 -- they own the seeded Posts and Captions. username is the fixture display name.
+-- dev_db.rs sets a dev-only pwd for each (Lisa / lisa_01, Homer / homer_01,
+-- Bart / bart_01), so a developer can log in as an Owner.
 INSERT INTO "user"
     (id, username, avatar_url,                                                 cid, ctime, mid, mtime) VALUES
     (1,  'Lisa',   'https://img.icons8.com/doodle/96/null/lisa-simpson.png',   0,   now(), 0,   now()),
