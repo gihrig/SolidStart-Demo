@@ -187,13 +187,14 @@ export default function FeaturedPost(props: FeaturedPostProps) {
             )}
           </Show>
         </div>
-        <Show when={toggleCaptionLike.error() ?? toggleLike.error()}>
+        {/* One alert per toggle, so a Caption error never hides a Post error. */}
+        <For each={[toggleCaptionLike.error(), toggleLike.error()].filter((e) => e !== null)}>
           {(error) => (
             <div role="alert" class="rounded bg-red-100 p-2 mb-2 text-red-700 text-sm">
-              {error()}
+              {error}
             </div>
           )}
-        </Show>
+        </For>
         <div class="flex items-center justify-between text-sm px-2">
           <a
             class="font-bold hover:underline rounded"

@@ -117,8 +117,9 @@ and the parent check in two places.
 
 **Decision.** A shared Like module (`model/like.rs`) owns the Like write path and
 the Like read. A trait `LikeTarget: DbBmc` describes one target: its like table
-(`TABLE`), its parent column (`PARENT_COL`), and its parent BMC. `PostLikeBmc` and
-`CaptionLikeBmc` implement it. `LikeBmc::toggle::<T>` and `LikeBmc::get::<T>` serve
+(`TABLE`), its parent column (`PARENT_COL`), and its parent BMC. A fourth item,
+`UNKNOWN_PARENT`, holds the `Validation` reason for an unknown parent ("unknown
+Post", "unknown Caption"). `PostLikeBmc` and `CaptionLikeBmc` implement it. `LikeBmc::toggle::<T>` and `LikeBmc::get::<T>` serve
 every target. One generic `base::require_exists::<MC>` is the parent check;
 `CaptionBmc::create` uses it too.
 

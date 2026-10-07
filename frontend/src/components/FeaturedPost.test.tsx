@@ -288,6 +288,26 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Network down");
   });
 
+  it("shows both errors when the Caption toggle and the Post toggle fail", async () => {
+    const user = userEvent.setup();
+    render(() => (
+      <FeaturedPost
+        loggedIn
+        post={post}
+        caption={caption}
+        like={{ id: 1, likeCount: 6, liked: true }}
+        onToggleLike={() => Promise.reject(new Error("Post Like failed"))}
+        captionLike={captionLike}
+        onToggleCaptionLike={() => Promise.reject(new Error("Caption Like failed"))}
+      />
+    ));
+    await user.click(likeButton());
+    await user.click(screen.getByRole("button", { name: /like post by lisa/i }));
+    await waitFor(() => expect(screen.getAllByRole("alert")).toHaveLength(2));
+    const alerts = screen.getAllByRole("alert").map((a) => a.textContent);
+    expect(alerts).toEqual(["Caption Like failed", "Post Like failed"]);
+  });
+
   it("shows no Caption actions when the Post has no Caption", () => {
     render(() => <FeaturedPost post={post} caption={undefined} />);
     expect(screen.queryByRole("button", { name: /like caption/i })).toBeNull();
