@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
-import { createRoot, createSignal } from "solid-js";
+import { createComponent, createRoot, createSignal, Suspense, type JSX } from "solid-js";
+import { render, screen } from "@solidjs/testing-library";
 import { Channel } from "~/lib/channel";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { JediApi } from "./jedi-api";
@@ -408,6 +409,35 @@ describe("createJediFeed — the realtime posts poke (#117)", () => {
     };
     return { factory, subscribe, poke: () => options.onPostsUpdate?.() };
   }
+
+  it("keeps the page on screen while a poke refetches the Posts (no Suspense fallback)", async () => {
+    // A Post Like pokes `posts` (#122). The route renders under the app's
+    // <Suspense>, so a suspending read during the refetch would swap the whole
+    // route for the fallback, which looks like a page reload.
+    const feed = fakeFeed();
+    render(() =>
+      createComponent(Suspense, {
+        fallback: "Loading",
+        get children() {
+          const jedi = createJediFeed({ api, feed: feed.factory });
+          // A function child renders as reactive text.
+          return (() => jedi.selectedPost()?.title ?? "none") as unknown as JSX.Element;
+        },
+      }),
+    );
+    expect(await screen.findByText("Little Jedi")).toBeInTheDocument();
+
+    let answer!: (posts: PostView[]) => void;
+    postListMock.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    feed.poke();
+    await tick();
+    expect(screen.queryByText("Loading")).toBeNull();
+    expect(screen.getByText("Little Jedi")).toBeInTheDocument();
+
+    answer(RANKED_POSTS);
+    await tick();
+    expect(screen.getByText("Little Jedi")).toBeInTheDocument();
+  });
 
   it("subscribes to the posts channel and refetches on a poke", async () => {
     const feed = fakeFeed();

@@ -114,7 +114,12 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const [selectedCaptionId, setSelectedCaptionId] = createSignal<number | undefined>();
 
   const [realCategories] = createResource(() => api.categories.list());
-  const [posts, { refetch: refetchPosts }] = createResource(() => api.posts.list());
+  const [postsResource, { refetch: refetchPosts }] = createResource(() => api.posts.list());
+  // The first load reads `postsResource()`, so the route's <Suspense> (and SSR)
+  // waits for the Posts. After that, read `.latest`: a refetch (a `posts` poke,
+  // e.g. a Post Like) must not suspend again, or the app's <Suspense> swaps the
+  // whole route for its fallback, which looks like a page reload (#123).
+  const posts = (): PostView[] | undefined => postsResource.latest ?? postsResource();
   // The featured post IS the ranked list's first element, so it is derived, not a
   // second fetch (`list_posts` is already ranked by the back-end). It is the
   // loading fallback for `selectedPost` below.
