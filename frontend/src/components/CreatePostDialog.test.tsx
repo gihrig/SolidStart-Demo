@@ -93,6 +93,32 @@ describe("<CreatePostDialog />", () => {
     expect(form.getByRole("checkbox", { name: "Animals" })).toBeTruthy();
   });
 
+  it("opens from a custom trigger: 'Add', named 'Add Post' (the Post line, #123)", async () => {
+    const user = userEvent.setup();
+    render(() => <CreatePostDialog api={api} triggerLabel="Add" triggerAriaLabel="Add Post" />);
+    const trigger = screen.getByRole("button", { name: "Add Post" });
+    expect(trigger).toHaveTextContent(/^Add$/);
+
+    await user.click(trigger);
+
+    const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
+    expect(dialog.open).toBe(true);
+  });
+
+  it("gives each dialog its own heading id, so two on one page keep their names", () => {
+    render(() => (
+      <>
+        <CreatePostDialog api={api} />
+        <CreatePostDialog api={api} triggerLabel="Add" triggerAriaLabel="Add Post" />
+      </>
+    ));
+    const ids = screen
+      .getAllByRole("dialog", { hidden: true })
+      .map((d) => d.getAttribute("aria-labelledby"));
+    expect(new Set(ids).size).toBe(2);
+    for (const id of ids) expect(document.getElementById(id!)).toHaveTextContent("New Post");
+  });
+
   it("shows a failed Categories load and retries it (#120 review)", async () => {
     categoryListMock.mockRejectedValueOnce(new Error("RPC Error: down"));
     const user = userEvent.setup();

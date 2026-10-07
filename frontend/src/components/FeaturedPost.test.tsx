@@ -31,6 +31,13 @@ const caption: CaptionView = {
   likeCount: 8,
 };
 
+// The categories line's Add button. The caption form's submit has the same name,
+// "Add Caption", so pick the one that is not a submit.
+const addCaptionTrigger = () =>
+  screen
+    .getAllByRole("button", { name: "Add Caption" })
+    .find((b) => b.getAttribute("type") === "button");
+
 describe("<FeaturedPost />", () => {
   it("renders the post title and winning caption", () => {
     render(() => <FeaturedPost post={post} caption={caption} />);
@@ -50,9 +57,9 @@ describe("<FeaturedPost />", () => {
     expect(screen.queryByRole("button", { name: "Add Caption" })).toBeNull();
   });
 
-  it("shows no Add Caption button while the captions load or when there are none", () => {
+  it("disables Add Caption while the captions load or when there are none (#123)", () => {
     render(() => <FeaturedPost post={post} caption={undefined} loggedIn />);
-    expect(screen.queryByRole("button", { name: "Add Caption" })).toBeNull();
+    expect(addCaptionTrigger()).toBeDisabled();
   });
   it("links to the photographer's flickr page", () => {
     render(() => <FeaturedPost post={post} caption={caption} />);
@@ -97,13 +104,14 @@ describe("<FeaturedPost /> — Add Caption (#121)", () => {
     expect(screen.getByText(caption.text)).not.toContainElement(addButton());
   });
 
-  it("swaps the caption for the focused form, hiding the button, and back on Cancel", async () => {
+  it("swaps the caption for the focused form, disabling the button, and back on Cancel", async () => {
     const { user } = renderLoggedIn();
 
     await user.click(addButton()!);
     expect(screen.queryByText(caption.text)).toBeNull();
     expect(input()).toHaveFocus();
-    expect(screen.getAllByRole("button", { name: "Add Caption" })).toHaveLength(1); // the submit
+    // The Add button stays, disabled (#123); the form's submit is the other one.
+    expect(addCaptionTrigger()).toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.getByText(caption.text)).toBeInTheDocument();
@@ -341,32 +349,92 @@ describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123
     }
   });
 
-  it("shows a logged-in User Like and Add, but not another User's Edit / Delete", () => {
+  const enabled = (name: RegExp | string) => !button(name)!.hasAttribute("disabled");
+
+  it("shows a logged-in User every button on both lines, in order", () => {
     render(() => (
       <FeaturedPost post={post} caption={bartsCaption} captionsLoaded loggedIn userId={2} />
     ));
-    expect(button(/like post by lisa/i)).toBeInTheDocument();
-    expect(button(/like caption by bart/i)).toBeInTheDocument();
-    expect(button("Add Caption")).toBeInTheDocument();
+    const categoriesLine = screen.getByRole("button", { name: /^Animals$/ }).parentElement!;
+    const postLine = screen.getByText("Likes:").closest("div.justify-between")!;
+    // The buttons on the line itself, not the ones inside the closed New Post dialog.
+    const names = (el: Element) =>
+      [...el.querySelectorAll("button")]
+        .filter((b) => !b.closest("dialog"))
+        .map((b) => b.getAttribute("aria-label") ?? b.textContent);
+    expect(names(categoriesLine)).toEqual([
+      "Animals",
+      "Cute",
+      "Like caption by Bart",
+      "Add Caption",
+      "Edit caption by Bart",
+      "Delete caption by Bart",
+    ]);
+    expect(names(postLine)).toEqual([
+      "Like post by Lisa",
+      "Add Post",
+      "Edit Post by Lisa",
+      "Delete Post by Lisa",
+    ]);
+  });
+
+  it("disables another User's Edit / Delete, and enables Add", () => {
+    render(() => (
+      <FeaturedPost post={post} caption={bartsCaption} captionsLoaded loggedIn userId={2} />
+    ));
+    expect(addCaptionTrigger()).toBeEnabled();
+    expect(enabled("Add Post")).toBe(true);
     for (const name of [/edit post/i, /delete post/i, /edit caption/i, /delete caption/i]) {
-      expect(button(name), String(name)).toBeNull();
+      expect(enabled(name), String(name)).toBe(false);
     }
   });
 
-  it("shows Edit / Delete to the Owner only, on each line", () => {
+  it("enables Edit / Delete for the Owner only, on each line", () => {
     render(() => (
       <FeaturedPost post={post} caption={bartsCaption} captionsLoaded loggedIn userId={1} />
     ));
-    expect(button(/edit post by lisa/i)).toBeInTheDocument();
-    expect(button(/delete post by lisa/i)).toBeInTheDocument();
-    expect(button(/edit caption/i)).toBeNull();
-    expect(button(/delete caption/i)).toBeNull();
+    expect(enabled(/edit post by lisa/i)).toBe(true);
+    expect(enabled(/delete post by lisa/i)).toBe(true);
+    expect(enabled(/edit caption/i)).toBe(false);
+    expect(enabled(/delete caption/i)).toBe(false);
   });
 
-  it("hides Edit / Delete until the User's id loads", () => {
+  it("keeps Edit / Delete disabled until the User's id loads", () => {
     render(() => <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn />);
     for (const name of [/edit post/i, /delete post/i, /edit caption/i, /delete caption/i]) {
-      expect(button(name), String(name)).toBeNull();
+      expect(enabled(name), String(name)).toBe(false);
     }
+  });
+
+  it("shows a logged-in User the Caption buttons, disabled, on a Post with no Caption", () => {
+    render(() => <FeaturedPost post={post} captionsLoaded loggedIn userId={1} />);
+    expect(screen.getByText("Caption likes:").parentElement).toHaveTextContent("Caption likes: 0");
+    expect(addCaptionTrigger()).toBeDisabled();
+    for (const name of [/like caption/i, /edit caption/i, /delete caption/i]) {
+      expect(enabled(name), String(name)).toBe(false);
+    }
+  });
+
+  it("puts the Caption buttons at the same right margin as the Post buttons", () => {
+    render(() => <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn />);
+    const captionGroup = button(/like caption/i)!.parentElement!;
+    const postLine = screen.getByText("Likes:").closest("div.justify-between")!;
+    expect(captionGroup).toHaveClass("pr-2");
+    expect(postLine).toHaveClass("px-2");
+  });
+
+  it("opens the New Post dialog from the Post line's Add button", async () => {
+    HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+      this.open = true;
+    };
+    const user = userEvent.setup();
+    render(() => <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn />);
+    expect(button("Add Post")).toHaveTextContent(/^Add$/);
+
+    await user.click(button("Add Post")!);
+
+    const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
+    expect(dialog.open).toBe(true);
+    expect(dialog).toHaveAccessibleName("New Post");
   });
 });

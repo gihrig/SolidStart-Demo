@@ -1,4 +1,4 @@
-import { createResource, createSignal, For, Show } from "solid-js";
+import { createResource, createSignal, createUniqueId, For, Show } from "solid-js";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import type { PostDraft } from "~/types/jedi";
@@ -23,6 +23,11 @@ export interface CreatePostDialogProps {
     categories: Pick<JediApi["categories"], "list">;
     posts: Pick<JediApi["posts"], "create">;
   };
+  /** The trigger button's text. Default "New Post" (the Nav); the Post line on
+   *  the Jedi page uses "Add" (#123). */
+  triggerLabel?: string;
+  /** The trigger's accessible name, when it differs from its text ("Add Post"). */
+  triggerAriaLabel?: string;
 }
 
 /**
@@ -33,6 +38,8 @@ export interface CreatePostDialogProps {
  */
 export default function CreatePostDialog(props: CreatePostDialogProps) {
   const api = props.api ?? jediApi;
+  // One id per instance: the Nav and the Post line can both render this dialog.
+  const headingId = createUniqueId();
   let dialogRef: HTMLDialogElement | undefined;
 
   // The taxonomy loads on the first open, not on mount: the Nav renders this on
@@ -86,8 +93,13 @@ export default function CreatePostDialog(props: CreatePostDialogProps) {
 
   return (
     <>
-      <button type="button" onClick={openDialog} class="theme-button">
-        New Post
+      <button
+        type="button"
+        onClick={openDialog}
+        class="theme-button"
+        aria-label={props.triggerAriaLabel}
+      >
+        {props.triggerLabel ?? "New Post"}
       </button>
 
       <dialog
@@ -95,11 +107,11 @@ export default function CreatePostDialog(props: CreatePostDialogProps) {
         // Esc fires `cancel`: refuse it while the Post is in flight, so the result
         // (the close, or the rejection) stays visible.
         onCancel={(e) => create.pending() && e.preventDefault()}
-        aria-labelledby="create-post-heading"
+        aria-labelledby={headingId}
         class="m-auto w-full max-w-md rounded-2xl p-6 shadow-lg bg-(--theme-card-bg) text-(--theme-card-fg) backdrop:bg-black/50"
       >
         <form onSubmit={handleSubmit} class="space-y-4">
-          <h2 id="create-post-heading" class="text-xl font-bold">
+          <h2 id={headingId} class="text-xl font-bold">
             New Post
           </h2>
 

@@ -149,8 +149,10 @@ Caption actions on the categories line: fire-heart, count, **Like**, **Add**,
 **Edit**, **Delete**. To like another Caption, the User selects it in Top
 Captions first; Top Captions shows counts only. A toggle that changed a Like pokes
 `caption_like:{caption_id}` and `post_caption:{post_id}`. On the Post line and the
-Caption line, only a logged-in User sees **Like** and **Add**, and only the Owner
-sees **Edit** and **Delete**.
+Caption line, a visitor who is not logged in sees only the fire-heart and the
+count. A logged-in User sees every button, and a button that cannot act now is
+disabled: only the Owner can use **Edit** and **Delete**. The Post line's **Add**
+opens the same New Post dialog as the Nav.
 
 **Category**:
 A back-end-owned classification a Post carries; a Post's on-card "tags" _are_ its

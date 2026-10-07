@@ -4,6 +4,7 @@ import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { PostView, CaptionView, Like } from "~/types/jedi";
 import Image from "~/components/Image";
 import Author from "~/components/Author";
+import CreatePostDialog from "~/components/CreatePostDialog";
 import LikeControl from "~/components/LikeControl";
 import OwnerActions from "~/components/OwnerActions";
 import PostCaption from "~/components/PostCaption";
@@ -13,12 +14,12 @@ export interface FeaturedPostProps {
   /** The winning Caption shown on the post (a first-class entity, not bare
    *  text); undefined until the post's captions load or when it has none. */
   caption?: CaptionView;
-  /** Whether the viewer is a logged-in User (#121, #123). Only a logged-in User
-   *  sees Like and Add; a visitor sees only the fire-heart and the count. */
+  /** Whether the viewer is a logged-in User (#121, #123). A logged-in User sees
+   *  every button on both lines; a visitor sees only the fire-heart and the count. */
   loggedIn?: boolean;
-  /** The logged-in User's id (#123). Edit / Delete show only to the Owner, and
-   *  stay hidden until the id loads. This only hides buttons; the back-end owns
-   *  enforcement. */
+  /** The logged-in User's id (#123). Edit / Delete are enabled only for the
+   *  Owner, and stay disabled until the id loads. This only gates buttons; the
+   *  back-end owns enforcement. */
   userId?: number;
   /** False while the post's captions load, so the caption form never flashes. */
   captionsLoaded?: boolean;
@@ -124,32 +125,42 @@ export default function FeaturedPost(props: FeaturedPostProps) {
             )}
           </For>
           {/* The Caption actions (#123), for the Caption shown: fire-heart, count,
-              Like, Add, Edit, Delete. A Post with no Caption shows the form. */}
-          <Show when={props.caption}>
-            {(c) => (
-              <div class="flex items-center gap-4 ml-auto">
-                <LikeControl
-                  like={props.captionLike}
-                  fallbackCount={c().likeCount}
-                  countLabel="Caption likes"
-                  label={`Like caption by ${c().author.name}`}
-                  loggedIn={props.loggedIn}
-                  onToggle={() => void toggleCaptionLike.run(undefined)}
-                />
-                <Show when={props.loggedIn && !addingCaption()}>
-                  <button
-                    ref={(el) => (addCaptionRef = el)}
-                    type="button"
-                    onClick={() => setAddingCaption(true)}
-                    class="theme-button"
-                    aria-label="Add Caption"
-                  >
-                    Add
-                  </button>
-                </Show>
-                <OwnerActions noun="caption" author={c().author} userId={props.userId} />
-              </div>
-            )}
+              Like, Add, Edit, Delete. A visitor sees the fire-heart and the count
+              of a Caption that exists. A logged-in User sees every button; one
+              that cannot act now is disabled. pr-2 matches the Post line's px-2. */}
+          <Show when={props.loggedIn || props.caption}>
+            <div class="flex items-center gap-4 ml-auto pr-2">
+              <LikeControl
+                like={props.caption ? props.captionLike : undefined}
+                fallbackCount={props.caption?.likeCount ?? 0}
+                countLabel="Caption likes"
+                label={
+                  props.caption ? `Like caption by ${props.caption.author.name}` : "Like caption"
+                }
+                loggedIn={props.loggedIn}
+                onToggle={() => void toggleCaptionLike.run(undefined)}
+              />
+              <Show when={props.loggedIn}>
+                {/* Disabled while the form is open: on Add, or on a Post with no
+                    Caption, which shows the form directly. */}
+                <button
+                  ref={(el) => (addCaptionRef = el)}
+                  type="button"
+                  onClick={() => setAddingCaption(true)}
+                  disabled={!props.caption || addingCaption()}
+                  class="theme-button disabled:opacity-50"
+                  aria-label="Add Caption"
+                >
+                  Add
+                </button>
+              </Show>
+              <OwnerActions
+                noun="caption"
+                author={props.caption?.author}
+                loggedIn={props.loggedIn}
+                userId={props.userId}
+              />
+            </div>
           </Show>
         </div>
         {/* One alert per toggle, so a Caption error never hides a Post error. */}
@@ -171,8 +182,9 @@ export default function FeaturedPost(props: FeaturedPostProps) {
             <span class="font-light text-(--theme-card-fg) ml-2">{props.post.commentCount}</span>
           </a>
           <div class="flex items-center gap-4">
-            {/* The visibility rule (#123): Like for a logged-in User, Edit /
-                Delete for the Owner. */}
+            {/* The visibility rule (#123): a visitor sees the fire-heart and the
+                count. A logged-in User sees every button; Edit / Delete act for
+                the Owner only. Add opens the Nav's New Post dialog. */}
             <LikeControl
               like={props.like}
               fallbackCount={props.post.likeCount}
@@ -181,7 +193,15 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               loggedIn={props.loggedIn}
               onToggle={() => void toggleLike.run(undefined)}
             />
-            <OwnerActions noun="Post" author={props.post.author} userId={props.userId} />
+            <Show when={props.loggedIn}>
+              <CreatePostDialog triggerLabel="Add" triggerAriaLabel="Add Post" />
+            </Show>
+            <OwnerActions
+              noun="Post"
+              author={props.post.author}
+              loggedIn={props.loggedIn}
+              userId={props.userId}
+            />
           </div>
         </div>
       </div>
