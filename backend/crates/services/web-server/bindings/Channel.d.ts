@@ -15,4 +15,4 @@
  * `post_comment:{id}`, `caption_comment:{id}`, `post_like:{id}`,
  * `caption_like:{id}`, `post_caption:{id}`.
  */
-export type Channel = { "kind": "conv", "id": bigint } | { "kind": "agents" } | { "kind": "convs" } | { "kind": "posts" } | { "kind": "post_comment", "id": bigint } | { "kind": "caption_comment", "id": bigint } | { "kind": "post_like", "id": bigint } | { "kind": "caption_like", "id": bigint } | { "kind": "post_caption", "id": bigint };
+export type Channel = { "kind": "conv", "id": number } | { "kind": "agents" } | { "kind": "convs" } | { "kind": "posts" } | { "kind": "post_comment", "id": number } | { "kind": "caption_comment", "id": number } | { "kind": "post_like", "id": number } | { "kind": "caption_like", "id": number } | { "kind": "post_caption", "id": number };

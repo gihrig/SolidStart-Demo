@@ -4,4 +4,4 @@
  * The `toggle_post_like` input (#122). `liked` is the wanted state, not a flip,
  * so the toggle is idempotent: a second like and a second unlike are no-ops.
  */
-export type PostLikeForToggle = { post_id: bigint, liked: boolean, };
+export type PostLikeForToggle = { post_id: number, liked: boolean, };

@@ -134,7 +134,8 @@ jobs:
           workspaces: backend
 
       # Equivalent to `cgs bindings` (backend/Scripts.toml: cargo test
-      # export_bindings); TS_RS_EXPORT_DIR is set in backend/.cargo/config.toml.
+      # export_bindings); TS_RS_EXPORT_DIR and TS_RS_LARGE_INT are set in
+      # backend/.cargo/config.toml.
       - name: Regenerate bindings
         working-directory: backend
         run: cargo test export_bindings

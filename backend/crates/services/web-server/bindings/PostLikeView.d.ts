@@ -5,4 +5,4 @@
  * whether the caller likes the Post. Per-caller, so it is served only on the
  * authenticated surface — the anonymous `PostView` cannot carry `liked`.
  */
-export type PostLikeView = { post_id: bigint, like_count: bigint, liked: boolean, };
+export type PostLikeView = { post_id: number, like_count: number, liked: boolean, };

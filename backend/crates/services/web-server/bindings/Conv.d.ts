@@ -2,4 +2,4 @@
 import type { ConvKind } from "./ConvKind.d";
 import type { ConvState } from "./ConvState.d";
 
-export type Conv = { id: bigint, agent_id: bigint, owner_id: bigint, title: string | null, kind: ConvKind, state: ConvState, cid: bigint, ctime: string, mid: bigint, mtime: string, };
+export type Conv = { id: number, agent_id: number, owner_id: number, title: string | null, kind: ConvKind, state: ConvState, cid: number, ctime: string, mid: number, mtime: string, };

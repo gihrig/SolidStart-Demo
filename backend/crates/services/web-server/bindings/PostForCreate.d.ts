@@ -5,4 +5,4 @@
  * `#[field(skip)]` keeps it out of the insert — so `PostBmc::create` writes it as
  * the `post_category` links. Exported so the front-end sends the one wire shape.
  */
-export type PostForCreate = { title: string, image_src: string, image_alt: string, photographer: string, photographer_url: string, source_url: string, category_ids: Array<bigint>, };
+export type PostForCreate = { title: string, image_src: string, image_alt: string, photographer: string, photographer_url: string, source_url: string, category_ids: Array<number>, };

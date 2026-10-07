@@ -4,4 +4,4 @@
  * The `add_caption` input (#121). The Owner is the caller (`ctx`), never the
  * payload. Exported so the front-end sends the one wire shape.
  */
-export type CaptionForCreate = { post_id: bigint, text: string, };
+export type CaptionForCreate = { post_id: number, text: string, };

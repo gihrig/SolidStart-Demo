@@ -7,4 +7,4 @@
  * internal storage detail (#116 review). `base::list` selects exactly these
  * columns for this type, so the audit columns are never even queried.
  */
-export type CategoryPublic = { id: bigint, name: string, icon: string, };
+export type CategoryPublic = { id: number, name: string, icon: string, };
