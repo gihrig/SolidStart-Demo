@@ -4,7 +4,8 @@ import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { PostView, CaptionView, Like } from "~/types/jedi";
 import Image from "~/components/Image";
 import Author from "~/components/Author";
-import Icon from "~/components/Icon";
+import LikeControl from "~/components/LikeControl";
+import OwnerActions from "~/components/OwnerActions";
 import PostCaption from "~/components/PostCaption";
 
 export interface FeaturedPostProps {
@@ -34,30 +35,22 @@ export interface FeaturedPostProps {
   onToggleCaptionLike?: () => Promise<void>;
 }
 
+/** A Like toggle as an RPC action. Only the error is used: the Like shows at
+ *  once, so the button stays enabled while a toggle runs, and a fast click
+ *  counts (#122). */
+const createLikeAction = (toggle: () => Promise<void> | undefined) =>
+  createRpcAction(
+    async () => {
+      await toggle();
+      return true;
+    },
+    { fallbackError: "Could not update the Like" },
+  );
+
 export default function FeaturedPost(props: FeaturedPostProps) {
-  // The Owner rule (#123): Edit / Delete show only when the viewer wrote it.
-  const isOwner = (authorId: number) => props.userId !== undefined && props.userId === authorId;
-  // The live count: the viewer's like state once it loads, else the Post's.
-  const likeCount = () => props.like?.likeCount ?? props.post.likeCount;
-  // Only the error is used: the Like shows at once, so the button stays enabled
-  // while a toggle runs, and a fast click counts (#122).
-  const toggleLike = createRpcAction(
-    async () => {
-      await props.onToggleLike?.();
-      return true;
-    },
-    { fallbackError: "Could not update the Like" },
-  );
-  // The Caption's live count and toggle (#123), as for the Post.
-  const captionLikeCount = (caption: CaptionView) =>
-    props.captionLike?.likeCount ?? caption.likeCount;
-  const toggleCaptionLike = createRpcAction(
-    async () => {
-      await props.onToggleCaptionLike?.();
-      return true;
-    },
-    { fallbackError: "Could not update the Like" },
-  );
+  // One action per Like target (#123), so each toggle reports its own error.
+  const toggleLike = createLikeAction(() => props.onToggleLike?.());
+  const toggleCaptionLike = createLikeAction(() => props.onToggleCaptionLike?.());
   // Add Caption (#121): the button sits on the categories line, the form in the
   // caption line. A new Post starts on its caption, not on a form left open.
   const [addingCaption, setAddingCaption] = createSignal(false);
@@ -135,25 +128,14 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           <Show when={props.caption}>
             {(c) => (
               <div class="flex items-center gap-4 ml-auto">
-                <div class="flex items-center gap-1">
-                  <Icon name="fire-heart" class="w-5 h-5 -mt-1" />
-                  <span class="font-light text-(--theme-card-fg) ml-2">
-                    <span class="sr-only">Caption likes: </span>
-                    {captionLikeCount(c())}
-                  </span>
-                </div>
-                <Show when={props.loggedIn}>
-                  <button
-                    type="button"
-                    onClick={() => void toggleCaptionLike.run(undefined)}
-                    disabled={!props.captionLike}
-                    class="theme-button disabled:opacity-50"
-                    aria-pressed={props.captionLike?.liked ?? false}
-                    aria-label={`Like caption by ${c().author.name}`}
-                  >
-                    Like
-                  </button>
-                </Show>
+                <LikeControl
+                  like={props.captionLike}
+                  fallbackCount={c().likeCount}
+                  countLabel="Caption likes"
+                  label={`Like caption by ${c().author.name}`}
+                  loggedIn={props.loggedIn}
+                  onToggle={() => void toggleCaptionLike.run(undefined)}
+                />
                 <Show when={props.loggedIn && !addingCaption()}>
                   <button
                     ref={(el) => (addCaptionRef = el)}
@@ -165,24 +147,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
                     Add
                   </button>
                 </Show>
-                <Show when={isOwner(c().author.id)}>
-                  <button
-                    type="button"
-                    onClick={() => {}}
-                    class="theme-button"
-                    aria-label={`Edit caption by ${c().author.name}`}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {}}
-                    class="theme-button"
-                    aria-label={`Delete caption by ${c().author.name}`}
-                  >
-                    Delete
-                  </button>
-                </Show>
+                <OwnerActions noun="caption" author={c().author} userId={props.userId} />
               </div>
             )}
           </Show>
@@ -206,45 +171,17 @@ export default function FeaturedPost(props: FeaturedPostProps) {
             <span class="font-light text-(--theme-card-fg) ml-2">{props.post.commentCount}</span>
           </a>
           <div class="flex items-center gap-4">
-            <div class="flex items-center gap-1">
-              <Icon name="fire-heart" class="w-5 h-5 -mt-1" />
-              <span class="font-light text-(--theme-card-fg) ml-2">
-                <span class="sr-only">Likes: </span>
-                {likeCount()}
-              </span>
-            </div>
             {/* The visibility rule (#123): Like for a logged-in User, Edit /
                 Delete for the Owner. */}
-            <Show when={props.loggedIn}>
-              <button
-                type="button"
-                onClick={() => void toggleLike.run(undefined)}
-                disabled={!props.like}
-                class="theme-button disabled:opacity-50"
-                aria-pressed={props.like?.liked ?? false}
-                aria-label={`Like post by ${props.post.author.name}`}
-              >
-                Like
-              </button>
-            </Show>
-            <Show when={isOwner(props.post.author.id)}>
-              <button
-                type="button"
-                onClick={() => {}}
-                class="theme-button"
-                aria-label={`Edit Post by ${props.post.author.name}`}
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={() => {}}
-                class="theme-button"
-                aria-label={`Delete Post by ${props.post.author.name}`}
-              >
-                Delete
-              </button>
-            </Show>
+            <LikeControl
+              like={props.like}
+              fallbackCount={props.post.likeCount}
+              countLabel="Likes"
+              label={`Like post by ${props.post.author.name}`}
+              loggedIn={props.loggedIn}
+              onToggle={() => void toggleLike.run(undefined)}
+            />
+            <OwnerActions noun="Post" author={props.post.author} userId={props.userId} />
           </div>
         </div>
       </div>
