@@ -213,11 +213,17 @@ describe("<MessagePanel />", () => {
     const mem = memoryFeed(true);
     render(() => <MessagePanel conv={mockConv} feed={mem.feed} />);
 
-    // The Feed logs each error at the boundary; keep the output quiet.
-    vi.spyOn(console, "error").mockImplementation(() => {});
-    mem.fail("socket exploded");
+    // The Feed logs each error at the boundary; keep the output quiet, and
+    // restore it so later tests in this file still show their errors.
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      mem.fail("socket exploded");
 
-    await waitFor(() => expect(screen.getByText("socket exploded")).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText("socket exploded")).toBeInTheDocument());
+      expect(errorSpy).toHaveBeenCalledWith("socket exploded");
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 
   it("does not let a stale list response overwrite a just-sent message", async () => {
