@@ -1,7 +1,8 @@
 import { createSignal, createEffect } from "solid-js";
 import { backendRpc, type ConvMsgClient } from "~/lib/backend-rpc";
 import { createRpcAction } from "~/lib/createRpcAction";
-import { useWebSocket, type MessageFeedFactory } from "~/lib/websocket";
+import type { Feed } from "~/lib/feed";
+import { createWebSocketFeed } from "~/lib/feed.websocket";
 import { Channel } from "~/lib/channel";
 import type { Conv, ConvMsg } from "~/types/backend";
 
@@ -23,7 +24,7 @@ export interface ConvMessages {
  * seam as the socket half instead of reaching for the `backendRpc` singleton.
  */
 export interface ConvMessagesDeps {
-  feed?: MessageFeedFactory;
+  feed?: Feed;
   convMsg?: ConvMsgClient;
 }
 
@@ -33,8 +34,8 @@ function appendMsg(prev: ConvMsg[], msg: ConvMsg): ConvMsg[] {
 }
 
 /**
- * Owns the subscribe/unsubscribe lifecycle, history load, live merge, dedupe,
- * and the stale-history-after-send guard for the given conversation.
+ * Owns the conversation's Subscription, history load, live merge, dedupe, and
+ * the stale-history-after-send guard for the given conversation.
  */
 export function createConvMessages(
   conv: () => Conv | null,
@@ -50,20 +51,27 @@ export function createConvMessages(
 
   // Both data sources are injectable seams; default to the real socket/singleton.
   const convMsgApi = deps.convMsg ?? backendRpc.convMsg;
-  const { connected, subscribe, unsubscribe } = (deps.feed ?? useWebSocket)({
-    onConvMsg: (convId, msg) => {
+  const feed = deps.feed ?? createWebSocketFeed();
+  // Hold the selected conversation's Channel; the Feed moves the hold when the
+  // conversation changes and routes only its Events here. The resync call
+  // (`undefined`) is ignored: the history load below covers a new conversation,
+  // and #128 retires `conv`.
+  feed.subscribe(
+    () => {
       const c = conv();
-      if (c && c.id === convId) setMessages((prev) => appendMsg(prev, msg));
+      return c ? Channel.conv(c.id) : undefined;
     },
-    onError: (err) => setFeedError(err),
-  });
+    (event) => {
+      if (event?.event_type === "conv_msg") setMessages((prev) => appendMsg(prev, event.payload));
+    },
+  );
+  feed.onError((err) => setFeedError(err));
 
-  // Subscribe + load history when the conversation changes.
+  // Load history when the conversation changes.
   createEffect(() => {
     const c = conv();
     if (!c) return;
     listStale = false;
-    subscribe(Channel.conv(c.id));
     setMessages([]);
     convMsgApi
       .list(c.id)
@@ -74,13 +82,6 @@ export function createConvMessages(
         if (!listStale) setFeedError(e instanceof Error ? e.message : "Failed to load messages");
       });
   });
-
-  // Unsubscribe from the previous conversation on change / cleanup.
-  createEffect((prevConvId: number | null) => {
-    const currentConvId = conv()?.id ?? null;
-    if (prevConvId && prevConvId !== currentConvId) unsubscribe(Channel.conv(prevConvId));
-    return currentConvId;
-  }, null);
 
   // The send choreography (reset error → pending → try/catch/finally) is owned by
   // createRpcAction; the success step runs inside so its rejection lands in error.
@@ -105,5 +106,5 @@ export function createConvMessages(
   // One displayed error: a send failure wins over a standing feed/history error.
   const error = () => sendAction.error() ?? feedError();
 
-  return { messages, send, pending: sendAction.pending, connected, error };
+  return { messages, send, pending: sendAction.pending, connected: feed.connected, error };
 }

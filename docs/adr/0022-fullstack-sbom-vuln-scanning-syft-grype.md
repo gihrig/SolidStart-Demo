@@ -133,7 +133,7 @@ drift guard. This refines the mechanism; the decisions above stand.
   guard.
 - **syft version is pinned.** The committed SBOM records the generating syft version in
   `metadata.tools`; a syft upgrade changes catalog output, so local and CI runs must use
-  the same version. `scripts/sbom.sh` is the single pin (`SYFT_VERSION`, now `1.54.0`,
+  the same version. `scripts/sbom.sh` is the single pin (`SYFT_VERSION`, now `1.54.1`,
   plus per-platform sha256 values): it downloads that release into `/.tools/`, verifies
   the checksum before running it, and ignores any `syft` on PATH. A Homebrew upgrade
   therefore cannot break the drift guard. The CI jobs install no syft of their own.
@@ -215,7 +215,7 @@ one scoping refinement.
   grype auto-updates its DB each run, so the scheduled run catches a new CVE in an
   unchanged dependency. It scans the COMMITTED SBOM; the `sbom-drift` job proves that SBOM
   matches the lockfiles, so a stale SBOM cannot hide a finding. grype is pinned
-  (`v0.120.0`) for reproducible behaviour; the DB it downloads is always current. The job
+  (`v0.120.1`) for reproducible behaviour; the DB it downloads is always current. The job
   installs grype from its pinned GitHub release and verifies the tarball's sha256 before
   running it, rather than piping the mutable `get.anchore.io` installer to `sh` — a
   compromised installer endpoint cannot then run arbitrary code in the runner.
@@ -426,3 +426,17 @@ rule stands; the set it produces is now one entry.
 - **Validation.** `cgs scan` clean (no findings), `cgs sbom:check` and `cgs vex:check` pass,
   `vp check` clean, `vp test` 446/446, `vpx tsc --noEmit` clean, `vinxi build` succeeds,
   `vpr test:e2e` 237/237.
+
+## Addendum — shell-quote override; tool pins bumped (2026-10-08)
+
+- **`shell-quote` overridden to `1.11.0`.** grype failed the gate on GHSA-pqg4-j6r4-53mv
+  (Critical, `>= 1.8.4, < 1.11.0`): `quote()` command injection through a line terminator in
+  a token after a `{ comment }` token. `concurrently@10.0.5` (latest) declares the exact
+  dependency `"shell-quote": "1.9.0"`, so no update moves it. A bun override is the only fix.
+  `1.11.0` is the first patched release; `1.12.0` adds only new `parse` features.
+  `concurrently` runs only in the `lighthouse` script. Remove the override when a
+  `concurrently` release depends on a patched `shell-quote`.
+- **Tool pins bumped: syft `1.54.1`, grype `v0.120.1`.** Both are patch releases. syft
+  1.54.1 left the SBOM format unchanged: the SBOM diff is the syft version and the
+  `shell-quote` component only.
+- **Validation.** `cgs scan` clean (no findings), `cgs sbom:check` and `cgs vex:check` pass.

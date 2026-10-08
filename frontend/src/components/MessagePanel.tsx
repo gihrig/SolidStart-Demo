@@ -1,12 +1,12 @@
 import { createEffect, Show, For } from "solid-js";
 import { createConvMessages } from "~/lib/createConvMessages";
-import type { MessageFeedFactory } from "~/lib/websocket";
+import type { Feed } from "~/lib/feed";
 import type { Conv } from "~/types/backend";
 
 interface MessagePanelProps {
   conv: Conv | null;
-  /** Message feed port; defaults to the live WebSocket. Tests inject an in-memory adapter. */
-  feed?: MessageFeedFactory;
+  /** The Feed; defaults to the live WebSocket. Tests inject the in-memory transport. */
+  feed?: Feed;
 }
 
 export default function MessagePanel(props: MessagePanelProps) {

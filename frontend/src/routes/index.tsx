@@ -3,7 +3,8 @@ import { Title, Meta } from "@solidjs/meta";
 import { Show, Switch, Match } from "solid-js";
 import { useDisclosure } from "~/lib/useDisclosure";
 import { createJediFeed } from "~/lib/jedi/createJediFeed";
-import { createFeed, type MessageFeedFactory } from "~/lib/websocket";
+import type { Feed } from "~/lib/feed";
+import { createWebSocketFeed } from "~/lib/feed.websocket";
 import { useAuth } from "~/components/AuthContext";
 import Hero from "~/components/Hero";
 import FeaturedPost from "~/components/FeaturedPost";
@@ -13,14 +14,14 @@ import TopCaptionsCard from "~/components/TopCaptionsCard";
 import Icon from "~/components/Icon";
 
 interface LiveFeedProps {
-  connect: (feed: MessageFeedFactory) => void;
+  connect: (feed: Feed) => void;
 }
 
 // The live Feed exists only while a User is logged in: the WebSocket needs
 // auth, so this renders under the `isAuthenticated` boundary. Its socket and
 // `posts` subscription belong to this scope, so logout tears both down (#120).
 function LiveFeed(props: LiveFeedProps) {
-  props.connect(createFeed());
+  props.connect(createWebSocketFeed());
   return null;
 }
 

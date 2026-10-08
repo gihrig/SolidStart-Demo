@@ -26,7 +26,7 @@ flat "what has been decided" view.
 | [0014](0014-backend-row-scoped-authorization-seam.md) | Row-scoped authorization lives in a per-Bmc `access_scope` hook | Accepted |
 | [0015](0015-realtime-push-authorization-at-subscribe-time.md) | Realtime push authorization lives at subscribe-time, reusing the read scope | Accepted |
 | [0016](0016-poke-rule-typed-receipt.md) | The Poke rule is enforced by a typed poke receipt, not a source-scan guard | Accepted |
-| [0017](0017-shared-client-feed-multiplexed.md) | One client Feed, shared across view-models | Accepted |
+| [0017](0017-shared-client-feed-multiplexed.md) | One client Feed, shared across view-models | Accepted (amended) |
 | [0018](0018-channel-strings-track-domain-names.md) | Channel strings track domain names, mirrored front-end from a generated `ChannelKind` | Accepted (amended) |
 | [0019](0019-layered-user-text-sanitization.md) | Layered user-text sanitization: hygiene on write, server markdown→sanitized-HTML on read, escape at every sink | Accepted |
 | [0020](0020-collapse-channel-vocabulary.md) | Collapse the realtime Channel vocabulary into one exported type | Accepted |
@@ -37,3 +37,4 @@ flat "what has been decided" view.
 | [0025](0025-login-handler-keeps-blueprint-inline-orchestration.md) | The login handler keeps the rust10x blueprint's inline orchestration | Accepted |
 | [0026](0026-realtime-feed-in-lib-web-contract-in-lib-core.md) | The realtime Feed lives in `lib-web::ws`, its exported contract in `lib-core::realtime` | Accepted |
 | [0027](0027-backend-integers-cross-seam-as-number.md) | Back-end integers cross the contract seam as `number`, emitted by ts-rs | Accepted |
+| [0028](0028-feed-subscriptions-by-channel.md) | Feed Subscriptions are held by Channel, over a swappable transport | Accepted |

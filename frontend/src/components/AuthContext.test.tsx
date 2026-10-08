@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { createSignal } from "solid-js";
 import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
+import { silenceWarn } from "~/lib/test-utils";
 import { AuthProvider, useAuth } from "./AuthContext";
 
 vi.mock("~/lib/backend-rpc", () => ({
@@ -203,7 +204,7 @@ describe("AuthContext", () => {
     it("falls back to the login username with no avatar when the profile fails", async () => {
       const failure = new Error("RPC Error: boom");
       profileGetMock.mockRejectedValue(failure);
-      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const warn = silenceWarn("[AuthContext]");
       const user = userEvent.setup();
       renderWithAuth();
 

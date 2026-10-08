@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from "vite-plus/test";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { createRoot, createSignal } from "solid-js";
 import { createConvMessages } from "./createConvMessages";
 import type { ConvMsgClient } from "./backend-rpc";
-import type { MessageFeedFactory, MessageFeedOptions } from "~/lib/websocket";
+import { createMemoryFeed } from "~/lib/feed.memory";
 import { Channel } from "~/lib/channel";
 import type { Conv, ConvMsg } from "~/types/backend";
 
@@ -38,23 +38,16 @@ const msg = (id: number, content: string): ConvMsg => ({
   mtime: "2024-01-01T00:00:00Z",
 });
 
-// In-memory feed adapter: lets a test emit conv_msg / error events through the port.
-function createFakeFeed(connected = false) {
-  const subscribe = vi.fn();
-  const unsubscribe = vi.fn();
-  let opts: MessageFeedOptions = {};
-  const factory: MessageFeedFactory = (options) => {
-    opts = options;
-    return { connected: () => connected, subscribe, unsubscribe };
-  };
-  return {
-    factory,
-    subscribe,
-    unsubscribe,
-    emitConvMsg: (convId: number, m: ConvMsg) => opts.onConvMsg?.(convId, m),
-    emitError: (e: string) => opts.onError?.(e),
-  };
+// The real Feed core over the in-memory wire, connected first when asked.
+function memoryFeed(connected = false) {
+  const mem = createMemoryFeed();
+  mem.setConnected(connected);
+  return mem;
 }
+
+// A conv_msg Event as the server pushes it, addressed to `convId`.
+const convMsgEvent = (convId: number, m: ConvMsg) =>
+  ({ event_type: "conv_msg", payload: { ...m, conv_id: convId } }) as const;
 
 // In-memory adapter for the convMsg RPC slice: a test sets history / add results
 // and asserts calls, standing at the ConvMsgClient interface instead of mocking
@@ -67,15 +60,22 @@ function createFakeConvMsg() {
 }
 
 describe("createConvMessages", () => {
+  // The Feed logs each error at the boundary; keep the output quiet.
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => errorSpy.mockRestore());
+
   it("loads history and subscribes on the current conversation", async () => {
-    const feed = createFakeFeed(true);
+    const mem = memoryFeed(true);
     const convMsg = createFakeConvMsg();
     convMsg.list.mockResolvedValue([msg(1, "old")]);
 
     await createRoot(async (dispose) => {
-      const cm = createConvMessages(() => mockConv, { feed: feed.factory, convMsg: convMsg.api });
+      const cm = createConvMessages(() => mockConv, { feed: mem.feed, convMsg: convMsg.api });
       await flush();
-      expect(feed.subscribe).toHaveBeenCalledWith(Channel.conv(mockConv.id));
+      expect(mem.held()).toEqual([Channel.conv(mockConv.id)]);
       expect(cm.messages().map((m) => m.content)).toEqual(["old"]);
       expect(cm.connected()).toBe(true);
       dispose();
@@ -83,48 +83,48 @@ describe("createConvMessages", () => {
   });
 
   it("appends a live feed message for the current conversation", async () => {
-    const feed = createFakeFeed(true);
+    const mem = memoryFeed(true);
     const convMsg = createFakeConvMsg();
     await createRoot(async (dispose) => {
-      const cm = createConvMessages(() => mockConv, { feed: feed.factory, convMsg: convMsg.api });
+      const cm = createConvMessages(() => mockConv, { feed: mem.feed, convMsg: convMsg.api });
       await flush();
-      feed.emitConvMsg(10, msg(200, "live"));
+      mem.emit(convMsgEvent(10, msg(200, "live")));
       expect(cm.messages().map((m) => m.content)).toEqual(["live"]);
       dispose();
     });
   });
 
   it("ignores feed messages for other conversations", async () => {
-    const feed = createFakeFeed(true);
+    const mem = memoryFeed(true);
     const convMsg = createFakeConvMsg();
     await createRoot(async (dispose) => {
-      const cm = createConvMessages(() => mockConv, { feed: feed.factory, convMsg: convMsg.api });
+      const cm = createConvMessages(() => mockConv, { feed: mem.feed, convMsg: convMsg.api });
       await flush();
-      feed.emitConvMsg(99, msg(201, "other"));
+      mem.emit(convMsgEvent(99, msg(201, "other")));
       expect(cm.messages()).toEqual([]);
       dispose();
     });
   });
 
   it("dedupes a feed message that duplicates an id already shown", async () => {
-    const feed = createFakeFeed(true);
+    const mem = memoryFeed(true);
     const convMsg = createFakeConvMsg();
     await createRoot(async (dispose) => {
-      const cm = createConvMessages(() => mockConv, { feed: feed.factory, convMsg: convMsg.api });
+      const cm = createConvMessages(() => mockConv, { feed: mem.feed, convMsg: convMsg.api });
       await flush();
-      feed.emitConvMsg(10, msg(300, "once"));
-      feed.emitConvMsg(10, msg(300, "once"));
+      mem.emit(convMsgEvent(10, msg(300, "once")));
+      mem.emit(convMsgEvent(10, msg(300, "once")));
       expect(cm.messages()).toHaveLength(1);
       dispose();
     });
   });
 
   it("send() adds the message and calls convMsg.add with the conv id", async () => {
-    const feed = createFakeFeed();
+    const mem = memoryFeed();
     const convMsg = createFakeConvMsg();
     convMsg.add.mockResolvedValue(msg(400, "hi"));
     await createRoot(async (dispose) => {
-      const cm = createConvMessages(() => mockConv, { feed: feed.factory, convMsg: convMsg.api });
+      const cm = createConvMessages(() => mockConv, { feed: mem.feed, convMsg: convMsg.api });
       await flush();
       expect(await cm.send("hi")).toBe(true);
       expect(convMsg.add).toHaveBeenCalledWith({ conv_id: mockConv.id, content: "hi" });
@@ -134,13 +134,13 @@ describe("createConvMessages", () => {
   });
 
   it("dedupes when send() echoes a message the feed already delivered", async () => {
-    const feed = createFakeFeed(true);
+    const mem = memoryFeed(true);
     const convMsg = createFakeConvMsg();
     convMsg.add.mockResolvedValue(msg(500, "echo"));
     await createRoot(async (dispose) => {
-      const cm = createConvMessages(() => mockConv, { feed: feed.factory, convMsg: convMsg.api });
+      const cm = createConvMessages(() => mockConv, { feed: mem.feed, convMsg: convMsg.api });
       await flush();
-      feed.emitConvMsg(10, msg(500, "echo")); // feed first
+      mem.emit(convMsgEvent(10, msg(500, "echo"))); // feed first
       await cm.send("echo"); // send returns same id
       expect(cm.messages()).toHaveLength(1);
       dispose();
@@ -149,13 +149,13 @@ describe("createConvMessages", () => {
 
   it("does not let a stale list response overwrite a just-sent message", async () => {
     let resolveList!: (msgs: ConvMsg[]) => void;
-    const feed = createFakeFeed();
+    const mem = memoryFeed();
     const convMsg = createFakeConvMsg();
     convMsg.list.mockReturnValue(new Promise<ConvMsg[]>((r) => (resolveList = r)));
     convMsg.add.mockResolvedValue(msg(400, "fresh"));
 
     await createRoot(async (dispose) => {
-      const cm = createConvMessages(() => mockConv, { feed: feed.factory, convMsg: convMsg.api });
+      const cm = createConvMessages(() => mockConv, { feed: mem.feed, convMsg: convMsg.api });
       await cm.send("fresh");
       resolveList([msg(1, "stale history")]); // late history must be dropped
       await flush();
@@ -165,22 +165,22 @@ describe("createConvMessages", () => {
   });
 
   it("surfaces feed errors", async () => {
-    const feed = createFakeFeed(true);
+    const mem = memoryFeed(true);
     const convMsg = createFakeConvMsg();
     await createRoot(async (dispose) => {
-      const cm = createConvMessages(() => mockConv, { feed: feed.factory, convMsg: convMsg.api });
-      feed.emitError("socket exploded");
+      const cm = createConvMessages(() => mockConv, { feed: mem.feed, convMsg: convMsg.api });
+      mem.fail("socket exploded");
       expect(cm.error()).toBe("socket exploded");
       dispose();
     });
   });
 
   it("surfaces a send failure as an error", async () => {
-    const feed = createFakeFeed();
+    const mem = memoryFeed();
     const convMsg = createFakeConvMsg();
     convMsg.add.mockRejectedValue(new Error("nope"));
     await createRoot(async (dispose) => {
-      const cm = createConvMessages(() => mockConv, { feed: feed.factory, convMsg: convMsg.api });
+      const cm = createConvMessages(() => mockConv, { feed: mem.feed, convMsg: convMsg.api });
       await flush();
       expect(await cm.send("boom")).toBe(false);
       expect(cm.error()).toBe("nope");
@@ -190,11 +190,11 @@ describe("createConvMessages", () => {
 
   it("pending is false, true while a send is in flight, then false again", async () => {
     let resolveAdd!: (m: ConvMsg) => void;
-    const feed = createFakeFeed();
+    const mem = memoryFeed();
     const convMsg = createFakeConvMsg();
     convMsg.add.mockReturnValue(new Promise<ConvMsg>((r) => (resolveAdd = r)));
     await createRoot(async (dispose) => {
-      const cm = createConvMessages(() => mockConv, { feed: feed.factory, convMsg: convMsg.api });
+      const cm = createConvMessages(() => mockConv, { feed: mem.feed, convMsg: convMsg.api });
       await flush();
       expect(cm.pending()).toBe(false);
       const sent = cm.send("hi");
@@ -207,10 +207,10 @@ describe("createConvMessages", () => {
   });
 
   it("does not flip pending when there is no conversation selected", async () => {
-    const feed = createFakeFeed();
+    const mem = memoryFeed();
     const convMsg = createFakeConvMsg();
     await createRoot(async (dispose) => {
-      const cm = createConvMessages(() => null, { feed: feed.factory, convMsg: convMsg.api });
+      const cm = createConvMessages(() => null, { feed: mem.feed, convMsg: convMsg.api });
       await flush();
       expect(await cm.send("hi")).toBe(false);
       expect(cm.pending()).toBe(false);
@@ -219,13 +219,13 @@ describe("createConvMessages", () => {
   });
 
   it("a send failure takes precedence over a prior feed error", async () => {
-    const feed = createFakeFeed(true);
+    const mem = memoryFeed(true);
     const convMsg = createFakeConvMsg();
     convMsg.add.mockRejectedValue(new Error("send failed"));
     await createRoot(async (dispose) => {
-      const cm = createConvMessages(() => mockConv, { feed: feed.factory, convMsg: convMsg.api });
+      const cm = createConvMessages(() => mockConv, { feed: mem.feed, convMsg: convMsg.api });
       await flush();
-      feed.emitError("feed down");
+      mem.fail("feed down");
       expect(cm.error()).toBe("feed down");
       await cm.send("boom");
       expect(cm.error()).toBe("send failed");
@@ -234,13 +234,13 @@ describe("createConvMessages", () => {
   });
 
   it("a prior feed error resurfaces once a send succeeds and clears its own error", async () => {
-    const feed = createFakeFeed(true);
+    const mem = memoryFeed(true);
     const convMsg = createFakeConvMsg();
     convMsg.add.mockResolvedValue(msg(600, "ok"));
     await createRoot(async (dispose) => {
-      const cm = createConvMessages(() => mockConv, { feed: feed.factory, convMsg: convMsg.api });
+      const cm = createConvMessages(() => mockConv, { feed: mem.feed, convMsg: convMsg.api });
       await flush();
-      feed.emitError("feed down");
+      mem.fail("feed down");
       expect(await cm.send("ok")).toBe(true);
       // send's own error cleared; the standing connection error shows through again.
       expect(cm.error()).toBe("feed down");
@@ -249,7 +249,7 @@ describe("createConvMessages", () => {
   });
 
   it("unsubscribes the old conversation and loads history for the new one on switch", async () => {
-    const feed = createFakeFeed(true);
+    const mem = memoryFeed(true);
     const convMsg = createFakeConvMsg();
     convMsg.list
       .mockResolvedValueOnce([msg(1, "conv10")])
@@ -258,15 +258,48 @@ describe("createConvMessages", () => {
 
     await createRoot(async (dispose) => {
       const [conv, setConv] = createSignal<Conv | null>(mockConv);
-      const cm = createConvMessages(conv, { feed: feed.factory, convMsg: convMsg.api });
+      const cm = createConvMessages(conv, { feed: mem.feed, convMsg: convMsg.api });
       await flush();
       expect(cm.messages().map((m) => m.content)).toEqual(["conv10"]);
 
       setConv(otherConv);
       await flush();
-      expect(feed.unsubscribe).toHaveBeenCalledWith(Channel.conv(mockConv.id));
-      expect(feed.subscribe).toHaveBeenCalledWith(Channel.conv(otherConv.id));
+      expect(mem.held()).toEqual([Channel.conv(otherConv.id)]);
       expect(cm.messages().map((m) => m.content)).toEqual(["conv20"]);
+      dispose();
+    });
+  });
+
+  it("ignores the resync call after a reconnect: no reload, the messages stay", async () => {
+    const mem = memoryFeed(true);
+    const convMsg = createFakeConvMsg();
+    convMsg.list.mockResolvedValue([msg(1, "old")]);
+    await createRoot(async (dispose) => {
+      const cm = createConvMessages(() => mockConv, { feed: mem.feed, convMsg: convMsg.api });
+      await flush();
+      mem.emit(convMsgEvent(10, msg(2, "live")));
+
+      mem.setConnected(false);
+      mem.setConnected(true);
+      await flush();
+
+      expect(mem.held()).toEqual([Channel.conv(mockConv.id)]);
+      expect(convMsg.list).toHaveBeenCalledTimes(1);
+      expect(cm.messages().map((m) => m.content)).toEqual(["old", "live"]);
+      dispose();
+    });
+  });
+
+  it("holds no Channel while no conversation is selected", async () => {
+    const mem = memoryFeed(true);
+    const convMsg = createFakeConvMsg();
+    await createRoot(async (dispose) => {
+      const [conv, setConv] = createSignal<Conv | null>(mockConv);
+      createConvMessages(conv, { feed: mem.feed, convMsg: convMsg.api });
+      await flush();
+      setConv(null);
+      await flush();
+      expect(mem.held()).toEqual([]);
       dispose();
     });
   });

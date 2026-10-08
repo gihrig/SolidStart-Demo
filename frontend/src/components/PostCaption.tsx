@@ -28,6 +28,10 @@ export interface PostCaptionProps {
  */
 export default function PostCaption(props: PostCaptionProps) {
   const showForm = () => props.canAdd && (props.adding || (props.captionsLoaded && !props.caption));
+  // A function, not a ternary in the JSX prop: the compiler wraps a ternary
+  // prop's condition in a memo on each read, and the form reads `onCancel` in
+  // its click handler, which has no owner, so each Cancel leaked one memo.
+  const onCancel = () => (props.caption ? props.onClose : undefined);
 
   return (
     <div class="mb-10 px-4">
@@ -44,7 +48,7 @@ export default function PostCaption(props: PostCaptionProps) {
               api={props.api}
               autofocus={props.adding}
               onAdded={props.onClose}
-              onCancel={props.caption ? props.onClose : undefined}
+              onCancel={onCancel()}
             />
           )}
         </Show>

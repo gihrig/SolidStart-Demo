@@ -3,7 +3,7 @@ import { createSignal } from "solid-js";
 import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import MessagePanel from "./MessagePanel";
-import type { MessageFeedFactory, MessageFeedOptions } from "~/lib/websocket";
+import { createMemoryFeed } from "~/lib/feed.memory";
 import { Channel } from "~/lib/channel";
 import type { Conv, ConvMsg } from "~/types/backend";
 
@@ -31,23 +31,16 @@ const msg = (id: number, content: string): ConvMsg => ({
   mtime: "2024-01-01T00:00:00Z",
 });
 
-// In-memory feed adapter: lets a test emit conv_msg events through the port.
-function createFakeFeed(connected = false) {
-  const subscribe = vi.fn();
-  const unsubscribe = vi.fn();
-  let opts: MessageFeedOptions = {};
-  const factory: MessageFeedFactory = (options) => {
-    opts = options;
-    return { connected: () => connected, subscribe, unsubscribe };
-  };
-  return {
-    factory,
-    subscribe,
-    unsubscribe,
-    emitConvMsg: (convId: number, m: ConvMsg) => opts.onConvMsg?.(convId, m),
-    emitError: (e: string) => opts.onError?.(e),
-  };
+// The real Feed core over the in-memory wire, connected first when asked.
+function memoryFeed(connected = false) {
+  const mem = createMemoryFeed();
+  mem.setConnected(connected);
+  return mem;
 }
+
+// A conv_msg Event as the server pushes it, addressed to `convId`.
+const convMsgEvent = (convId: number, m: ConvMsg) =>
+  ({ event_type: "conv_msg", payload: { ...m, conv_id: convId } }) as const;
 
 vi.mock("~/lib/backend-rpc", () => ({
   backendRpc: {
@@ -64,35 +57,35 @@ describe("<MessagePanel />", () => {
   });
 
   it('shows "Select a conversation" when conv is null', () => {
-    render(() => <MessagePanel conv={null} feed={createFakeFeed().factory} />);
+    render(() => <MessagePanel conv={null} feed={memoryFeed().feed} />);
     expect(screen.getByText(/select a conversation/i)).toBeInTheDocument();
   });
 
   it("shows Live indicator when the feed is connected", () => {
-    render(() => <MessagePanel conv={mockConv} feed={createFakeFeed(true).factory} />);
+    render(() => <MessagePanel conv={mockConv} feed={memoryFeed(true).feed} />);
     expect(screen.getByText("Live")).toBeInTheDocument();
   });
 
   it("shows Offline indicator when the feed is disconnected", () => {
-    render(() => <MessagePanel conv={mockConv} feed={createFakeFeed(false).factory} />);
+    render(() => <MessagePanel conv={mockConv} feed={memoryFeed(false).feed} />);
     expect(screen.getByText("Offline")).toBeInTheDocument();
   });
 
   it("subscribes to the conversation channel on mount", async () => {
-    const feed = createFakeFeed();
-    render(() => <MessagePanel conv={mockConv} feed={feed.factory} />);
-    await waitFor(() => expect(feed.subscribe).toHaveBeenCalledWith(Channel.conv(mockConv.id)));
+    const mem = memoryFeed(true);
+    render(() => <MessagePanel conv={mockConv} feed={mem.feed} />);
+    await waitFor(() => expect(mem.held()).toEqual([Channel.conv(mockConv.id)]));
   });
 
   it("unsubscribes from the previous conversation when conv changes", async () => {
-    const feed = createFakeFeed();
+    const mem = memoryFeed(true);
     const otherConv: Conv = { ...mockConv, id: 20 };
     const [conv, setConv] = createSignal<Conv | null>(mockConv);
-    render(() => <MessagePanel conv={conv()} feed={feed.factory} />);
+    render(() => <MessagePanel conv={conv()} feed={mem.feed} />);
 
     setConv(otherConv);
 
-    await waitFor(() => expect(feed.unsubscribe).toHaveBeenCalledWith(Channel.conv(mockConv.id)));
+    await waitFor(() => expect(mem.held()).toEqual([Channel.conv(otherConv.id)]));
   });
 
   it("calls convMsg.add with correct params on send", async () => {
@@ -100,7 +93,7 @@ describe("<MessagePanel />", () => {
     (backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(msg(102, "Hello test"));
     const user = userEvent.setup();
 
-    render(() => <MessagePanel conv={mockConv} feed={createFakeFeed().factory} />);
+    render(() => <MessagePanel conv={mockConv} feed={memoryFeed().feed} />);
 
     await user.type(screen.getByPlaceholderText(/type a message/i), "Hello test");
     await user.click(screen.getByRole("button", { name: /send/i }));
@@ -115,7 +108,7 @@ describe("<MessagePanel />", () => {
     (backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(msg(102, "Hello test"));
     const user = userEvent.setup();
 
-    render(() => <MessagePanel conv={mockConv} feed={createFakeFeed().factory} />);
+    render(() => <MessagePanel conv={mockConv} feed={memoryFeed().feed} />);
 
     await user.type(screen.getByPlaceholderText(/type a message/i), "Hello test");
     await user.click(screen.getByRole("button", { name: /send/i }));
@@ -128,9 +121,7 @@ describe("<MessagePanel />", () => {
     (backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(msg(207, "hello there"));
     const user = userEvent.setup();
 
-    const { container } = render(() => (
-      <MessagePanel conv={mockConv} feed={createFakeFeed().factory} />
-    ));
+    const { container } = render(() => <MessagePanel conv={mockConv} feed={memoryFeed().feed} />);
 
     await user.type(screen.getByPlaceholderText(/type a message/i), "hello there");
     await user.click(screen.getByRole("button", { name: /send/i }));
@@ -149,7 +140,7 @@ describe("<MessagePanel />", () => {
     );
     const user = userEvent.setup();
 
-    render(() => <MessagePanel conv={mockConv} feed={createFakeFeed().factory} />);
+    render(() => <MessagePanel conv={mockConv} feed={memoryFeed().feed} />);
 
     await user.type(screen.getByPlaceholderText(/type a message/i), "hi");
     await user.click(screen.getByRole("button", { name: /^send$/i }));
@@ -165,7 +156,7 @@ describe("<MessagePanel />", () => {
     (backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(msg(701, "cleared"));
     const user = userEvent.setup();
 
-    render(() => <MessagePanel conv={mockConv} feed={createFakeFeed().factory} />);
+    render(() => <MessagePanel conv={mockConv} feed={memoryFeed().feed} />);
 
     const input = screen.getByPlaceholderText(/type a message/i) as HTMLInputElement;
     await user.type(input, "cleared");
@@ -179,7 +170,7 @@ describe("<MessagePanel />", () => {
     (backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("nope"));
     const user = userEvent.setup();
 
-    render(() => <MessagePanel conv={mockConv} feed={createFakeFeed().factory} />);
+    render(() => <MessagePanel conv={mockConv} feed={memoryFeed().feed} />);
 
     const input = screen.getByPlaceholderText(/type a message/i) as HTMLInputElement;
     await user.type(input, "kept");
@@ -190,41 +181,49 @@ describe("<MessagePanel />", () => {
   });
 
   it("renders a message pushed through the feed for the current conversation", async () => {
-    const feed = createFakeFeed(true);
-    render(() => <MessagePanel conv={mockConv} feed={feed.factory} />);
+    const mem = memoryFeed(true);
+    render(() => <MessagePanel conv={mockConv} feed={mem.feed} />);
 
-    feed.emitConvMsg(10, msg(200, "live message"));
+    mem.emit(convMsgEvent(10, msg(200, "live message")));
 
     await waitFor(() => expect(screen.getByText("live message")).toBeInTheDocument());
   });
 
   it("ignores feed messages for other conversations", async () => {
-    const feed = createFakeFeed(true);
-    render(() => <MessagePanel conv={mockConv} feed={feed.factory} />);
+    const mem = memoryFeed(true);
+    render(() => <MessagePanel conv={mockConv} feed={mem.feed} />);
 
-    feed.emitConvMsg(99, msg(201, "other conv"));
+    mem.emit(convMsgEvent(99, msg(201, "other conv")));
 
     await waitFor(() => expect(screen.getByText("No messages yet")).toBeInTheDocument());
     expect(screen.queryByText("other conv")).not.toBeInTheDocument();
   });
 
   it("dedupes a feed message that duplicates an id already shown", async () => {
-    const feed = createFakeFeed(true);
-    render(() => <MessagePanel conv={mockConv} feed={feed.factory} />);
+    const mem = memoryFeed(true);
+    render(() => <MessagePanel conv={mockConv} feed={mem.feed} />);
 
-    feed.emitConvMsg(10, msg(300, "once"));
-    feed.emitConvMsg(10, msg(300, "once")); // same id → dedup guard
+    mem.emit(convMsgEvent(10, msg(300, "once")));
+    mem.emit(convMsgEvent(10, msg(300, "once"))); // same id → dedup guard
 
     await waitFor(() => expect(screen.getAllByText("once")).toHaveLength(1));
   });
 
   it("surfaces feed errors", async () => {
-    const feed = createFakeFeed(true);
-    render(() => <MessagePanel conv={mockConv} feed={feed.factory} />);
+    const mem = memoryFeed(true);
+    render(() => <MessagePanel conv={mockConv} feed={mem.feed} />);
 
-    feed.emitError("socket exploded");
+    // The Feed logs each error at the boundary; keep the output quiet, and
+    // restore it so later tests in this file still show their errors.
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      mem.fail("socket exploded");
 
-    await waitFor(() => expect(screen.getByText("socket exploded")).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText("socket exploded")).toBeInTheDocument());
+      expect(errorSpy).toHaveBeenCalledWith("socket exploded");
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 
   it("does not let a stale list response overwrite a just-sent message", async () => {
@@ -237,7 +236,7 @@ describe("<MessagePanel />", () => {
     (backendRpc.convMsg.add as ReturnType<typeof vi.fn>).mockResolvedValue(msg(400, "fresh"));
     const user = userEvent.setup();
 
-    render(() => <MessagePanel conv={mockConv} feed={createFakeFeed().factory} />);
+    render(() => <MessagePanel conv={mockConv} feed={memoryFeed().feed} />);
 
     await user.type(screen.getByPlaceholderText(/type a message/i), "fresh");
     await user.click(screen.getByRole("button", { name: /send/i }));
