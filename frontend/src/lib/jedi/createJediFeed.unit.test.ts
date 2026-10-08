@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
-import { createComponent, createRoot, Suspense, type JSX } from "solid-js";
+import { createComponent, createRoot, getOwner, runWithOwner, Suspense, type JSX } from "solid-js";
 import { render, screen } from "@solidjs/testing-library";
 import { Channel } from "~/lib/channel";
 import { createMemoryFeed } from "~/lib/feed.memory";
@@ -468,11 +468,14 @@ describe("createJediFeed — the realtime posts poke (#117)", () => {
     const created = post(5, "New arrival", HOMER, [CAT[1]], 0);
     await createRoot(async (dispose) => {
       const jedi = createJediFeed({ api });
+      // After an `await` there is no owner. Re-enter the root's owner, so its
+      // dispose also ends the Feed wiring.
+      const owner = getOwner();
       await tick();
       await tick();
       expect(mem.held()).toEqual([]);
 
-      jedi.connectFeed(mem.feed);
+      runWithOwner(owner, () => jedi.connectFeed(mem.feed));
       expect(mem.held()).toContainEqual(Channel.posts);
 
       postListMock.mockResolvedValue([...RANKED_POSTS, created]);
@@ -614,9 +617,11 @@ describe("createJediFeed — the selected Post's like state (#122)", () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
       const jedi = createJediFeed({ api });
+      // After an `await` there is no owner; re-enter the root's (as above).
+      const owner = getOwner();
       await tick();
       await tick();
-      jedi.connectFeed(mem.feed);
+      runWithOwner(owner, () => jedi.connectFeed(mem.feed));
       await tick();
       await tick();
       expect(jedi.selectedPostLike()).toEqual(like(1, 10, false));
