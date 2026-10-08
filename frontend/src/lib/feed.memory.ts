@@ -3,7 +3,9 @@ import { channelKey, createFeed, type Feed, type FeedSink } from "~/lib/feed";
 import type { Channel } from "~/lib/channel";
 import type { WsEvent } from "~/types/backend";
 
-/** A real Feed core over an in-memory wire, and the controls a test drives. */
+/** A real Feed core over an in-memory wire, and the controls a test drives.
+ * Only imported by test files.
+ */
 export interface MemoryFeed {
   feed: Feed;
   /** Deliver an Event as if the server pushed it. */

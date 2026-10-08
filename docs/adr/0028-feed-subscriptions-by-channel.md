@@ -39,8 +39,8 @@ gets one `subscribe` at the first Subscription on a Channel, and one `unsubscrib
 at the last. Two `subscribe` calls on one Channel are two holders with two handlers.
 ADR-0017's rejection of a call-count refcount still holds.
 
-**The Feed recovers a missed Event.** On each change to connected, the first connect
-included, the Feed replays the held Channels. Then it calls each handler one time
+**The Feed recovers a missed Event.** On each connect, the first connect included,
+the Feed replays the held Channels. Then it calls each handler one time
 with no Event: `handler(undefined)`. A poke handler refetches. A payload handler can
 reload, or it can ignore the call. A new or moved Subscription gets no such call,
 because the view-model's own fetch covers it.
@@ -48,8 +48,8 @@ because the view-model's own fetch covers it.
 **One core, two transports.** `lib/feed.ts` holds the routing, the refcount, the
 replay and the recovery, over a transport port. `lib/feed.websocket.ts` is the
 WebSocket transport, with the reconnect and the back-off. `lib/feed.memory.ts` is
-the in-memory transport for tests. It can emit an Event, set the connection state,
-and list the held Channels. Tests run the real core.
+the in-memory transport for tests. It can emit an Event, raise a Feed error, set the
+connection state, and list the held Channels. Tests run the real core.
 
 **Feed errors go to a scope-held handler.** `feed.onError(handler)` replaces
 `MessageFeedOptions.onError`. Its scope releases it. Each error still reaches every

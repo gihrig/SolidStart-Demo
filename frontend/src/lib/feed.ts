@@ -32,11 +32,14 @@ export interface FeedSink {
   error: (message: string) => void;
 }
 
+/** A subscription request's action on the wire. */
+export type WireAction = "subscribe" | "unsubscribe";
+
 /** What a transport gives the core: its connection state and a wire send. */
 export interface FeedWire {
   connected: Accessor<boolean>;
   /** Send a subscription request. The core calls it only while connected. */
-  send: (action: "subscribe" | "unsubscribe", channel: Channel) => void;
+  send: (action: WireAction, channel: Channel) => void;
 }
 
 /**
@@ -69,12 +72,12 @@ export function createFeed(transport: FeedTransport): Feed {
   // Held Channels by key, each with its holders. The server hears one
   // `subscribe` at the first holder and one `unsubscribe` at the last, so one
   // view-model never cuts a Channel another still holds (ADR-0017).
-  const holders = new Map<string, { channel: Channel; subs: Set<Subscription> }>();
+  const heldChannels = new Map<string, { channel: Channel; subs: Set<Subscription> }>();
   const errorHandlers = new Set<(error: string) => void>();
 
   const wire = transport({
     event: (event) => {
-      const entry = holders.get(channelKey(channelOf(event)));
+      const entry = heldChannels.get(channelKey(channelOf(event)));
       if (!entry) return;
       for (const sub of entry.subs) sub.handler(event);
     },
@@ -88,26 +91,26 @@ export function createFeed(transport: FeedTransport): Feed {
   // while live; before that, the replay sends it. So a Subscription made in the
   // same update as the connect reaches the wire once, not twice.
   let live = false;
-  const send = (action: "subscribe" | "unsubscribe", channel: Channel) => {
+  const send = (action: WireAction, channel: Channel) => {
     if (live) wire.send(action, channel);
   };
 
   const hold = (channel: Channel, sub: Subscription) => {
     const key = channelKey(channel);
-    const entry = holders.get(key);
+    const entry = heldChannels.get(key);
     if (entry) {
       entry.subs.add(sub);
       return;
     }
-    holders.set(key, { channel, subs: new Set([sub]) });
+    heldChannels.set(key, { channel, subs: new Set([sub]) });
     send("subscribe", channel);
   };
 
   const release = (channel: Channel, sub: Subscription) => {
     const key = channelKey(channel);
-    const entry = holders.get(key);
+    const entry = heldChannels.get(key);
     if (!entry?.subs.delete(sub) || entry.subs.size > 0) return;
-    holders.delete(key);
+    heldChannels.delete(key);
     send("unsubscribe", channel);
   };
 
@@ -118,8 +121,8 @@ export function createFeed(transport: FeedTransport): Feed {
     on(wire.connected, (connected) => {
       live = connected;
       if (!connected) return;
-      for (const { channel } of holders.values()) wire.send("subscribe", channel);
-      for (const { subs } of holders.values()) {
+      for (const { channel } of heldChannels.values()) wire.send("subscribe", channel);
+      for (const { subs } of heldChannels.values()) {
         for (const sub of subs) sub.handler(undefined);
       }
     }),
