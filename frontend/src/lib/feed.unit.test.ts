@@ -190,6 +190,18 @@ describe("Feed — replay and resync on each connect", () => {
     expect(handler).toHaveBeenCalledWith(undefined);
   });
 
+  it("sends a Subscription made in the same update as the connect once", () => {
+    const mem = createMemoryFeed();
+    // The Subscription's effect and the connect both settle in this root's
+    // update. The strict wire throws on a second subscribe.
+    createRoot(() => {
+      mem.feed.subscribe(() => Channel.posts, vi.fn());
+      mem.setConnected(true);
+    });
+
+    expect(mem.held()).toEqual([Channel.posts]);
+  });
+
   it("gives a new or moved Subscription no resync call", () => {
     const mem = createMemoryFeed();
     mem.setConnected(true);

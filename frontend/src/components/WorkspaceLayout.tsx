@@ -1,6 +1,6 @@
 import { useDisclosure } from "~/lib/useDisclosure";
 import type { ConversationWorkspace } from "~/lib/conversationWorkspace";
-import type { MessageFeedFactory } from "~/lib/websocket";
+import type { Feed } from "~/lib/feed";
 import ConversationTree from "~/components/ConversationTree";
 import MessagePanel from "~/components/MessagePanel";
 
@@ -8,7 +8,7 @@ export interface WorkspaceLayoutProps {
   ws: ConversationWorkspace;
   /** The one shared Feed for this client (ADR-0017), threaded to MessagePanel.
    *  Defaults to the live socket when absent (a view-model used standalone). */
-  feed?: MessageFeedFactory;
+  feed?: Feed;
 }
 
 /**

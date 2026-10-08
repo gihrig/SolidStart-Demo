@@ -1,7 +1,7 @@
 import { Title } from "@solidjs/meta";
 import { Show, type Accessor } from "solid-js";
 import { createConversationWorkspace } from "~/lib/conversationWorkspace";
-import { createFeed } from "~/lib/websocket";
+import { createWebSocketFeed } from "~/lib/feed.websocket";
 import { useAuth } from "~/components/AuthContext";
 import LoginForm from "~/components/LoginForm";
 import WorkspaceLayout from "~/components/WorkspaceLayout";
@@ -20,7 +20,7 @@ function AuthenticatedWorkspace(props: AuthenticatedWorkspaceProps) {
   // authenticated boundary, and inject it into both view-models — the workspace
   // and (threaded through WorkspaceLayout) the message panel. So the client holds
   // one socket, not one per view-model.
-  const feed = createFeed();
+  const feed = createWebSocketFeed();
   const ws = createConversationWorkspace({ feed });
 
   return (

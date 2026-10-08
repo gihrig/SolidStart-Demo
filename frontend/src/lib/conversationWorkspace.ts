@@ -2,7 +2,8 @@ import { createSignal, createResource, createEffect, type Accessor } from "solid
 import { createStore, reconcile } from "solid-js/store";
 import { backendRpc, type WorkspaceRpcClient } from "~/lib/backend-rpc";
 import { createRpcAction } from "~/lib/createRpcAction";
-import { useWebSocket, type MessageFeedFactory } from "~/lib/websocket";
+import type { Feed } from "~/lib/feed";
+import { createWebSocketFeed } from "~/lib/feed.websocket";
 import { Channel } from "~/lib/channel";
 import type { Agent, Conv, ConvState } from "~/types/backend";
 
@@ -56,7 +57,7 @@ export interface ConversationWorkspace {
  * half drops the need for `vi.mock("~/lib/backend-rpc")`.
  */
 export interface ConversationWorkspaceDeps {
-  feed?: MessageFeedFactory;
+  feed?: Feed;
   rpc?: WorkspaceRpcClient;
 }
 
@@ -158,14 +159,18 @@ export function createConversationWorkspace(
   // Live propagation (#85): a poke on either global list feed refetches the
   // matching list, so a change made in one client (or tab) reaches the others.
   // The feed carries no rows; the refetch re-applies the back-end read scope.
-  const feed = (deps.feed ?? useWebSocket)({
-    // After the refetch settles, drop the selection if the selected Agent is the
-    // one deleted elsewhere — its row is now gone from `agentList`. Same collapse
-    // `selectAgent` makes on re-select; clearing it re-keys the conv resource to
-    // [], so the deleted Agent's cascaded conversations leave the screen and
-    // `createConv` can't fire against a dead Agent id. This lives in the `then`,
-    // not the resource fetcher, because the fetcher would track the signal read.
-    onAgentUpdate: () =>
+  // A resync call (`undefined`, after each connect) refetches the same way, so
+  // a poke missed while the socket was down is recovered (ADR-0028).
+  const feed = deps.feed ?? createWebSocketFeed();
+  // After the refetch settles, drop the selection if the selected Agent is the
+  // one deleted elsewhere — its row is now gone from `agentList`. Same collapse
+  // `selectAgent` makes on re-select; clearing it re-keys the conv resource to
+  // [], so the deleted Agent's cascaded conversations leave the screen and
+  // `createConv` can't fire against a dead Agent id. This lives in the `then`,
+  // not the resource fetcher, because the fetcher would track the signal read.
+  feed.subscribe(
+    () => Channel.agents,
+    () =>
       void Promise.resolve(refetchAgents()).then(() => {
         const sel = selectedAgent();
         if (sel && !agentList.some((a) => a.id === sel.id)) {
@@ -173,10 +178,11 @@ export function createConversationWorkspace(
           setSelectedConv(null);
         }
       }),
-    onConvUpdate: () => void refetchConvs(),
-  });
-  feed.subscribe(Channel.agents);
-  feed.subscribe(Channel.convs);
+  );
+  feed.subscribe(
+    () => Channel.convs,
+    () => void refetchConvs(),
+  );
 
   const selectAgent = (agent: Agent) => {
     // Accordion toggle: re-selecting the open agent collapses it back to none;

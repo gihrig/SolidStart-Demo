@@ -1,4 +1,4 @@
-import { createEffect, on, onCleanup, untrack, type Accessor } from "solid-js";
+import { createEffect, on, onCleanup, type Accessor } from "solid-js";
 import { Channel } from "~/lib/channel";
 import type { WsEvent } from "~/types/backend";
 
@@ -84,10 +84,12 @@ export function createFeed(transport: FeedTransport): Feed {
     },
   });
 
-  // Untracked: a hold moves inside a Subscription's effect, which must not
-  // re-run when the connection changes.
+  // True from the replay of a connect until the next drop. A hold sends only
+  // while live; before that, the replay sends it. So a Subscription made in the
+  // same update as the connect reaches the wire once, not twice.
+  let live = false;
   const send = (action: "subscribe" | "unsubscribe", channel: Channel) => {
-    if (untrack(wire.connected)) wire.send(action, channel);
+    if (live) wire.send(action, channel);
   };
 
   const hold = (channel: Channel, sub: Subscription) => {
@@ -114,6 +116,7 @@ export function createFeed(transport: FeedTransport): Feed {
   // while the wire was down is lost, so then ask each holder to resync.
   createEffect(
     on(wire.connected, (connected) => {
+      live = connected;
       if (!connected) return;
       for (const { channel } of holders.values()) wire.send("subscribe", channel);
       for (const { subs } of holders.values()) {
