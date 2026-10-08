@@ -1,15 +1,7 @@
-import {
-  createEffect,
-  createResource,
-  createSignal,
-  on,
-  onCleanup,
-  type Accessor,
-  type Setter,
-} from "solid-js";
+import { createResource, createSignal, onCleanup, type Accessor, type Setter } from "solid-js";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { createLikeState } from "~/lib/jedi/createLikeState";
-import { type MessageFeedFactory } from "~/lib/websocket";
+import type { Feed } from "~/lib/feed";
 import { Channel } from "~/lib/channel";
 import type { JediCategory, Like, PostView, CaptionView, HeroView } from "~/types/jedi";
 
@@ -80,7 +72,7 @@ export interface JediFeed {
   /** Wire a live Feed after creation (#120): the route builds this view-model
    *  anonymously, then connects the socket's Feed once a User logs in. The
    *  subscription is owned by the caller's reactive scope, so it ends with it. */
-  connectFeed: (feed: MessageFeedFactory) => void;
+  connectFeed: (feed: Feed) => void;
 }
 
 /** The synthetic "no filter" row. Id 0 is unused by the real categories. */
@@ -104,7 +96,7 @@ export interface CreateJediFeedDeps {
    * anonymous landing page, whose WebSocket needs auth; the initial fetch still
    * renders.
    */
-  feed?: MessageFeedFactory;
+  feed?: Feed;
 }
 
 export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
@@ -127,16 +119,18 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
 
   // Live propagation (#117): a `posts` poke means the Post list may have changed,
   // so refetch the list (the featured post re-derives from it). A `post_caption`
-  // poke means one Post's Captions changed (#121); only the selected Post's feed
-  // is held, and its poke refetches Top Captions. A `post_like` poke means one
-  // Post's like count changed (#122); the selected Post's like feed is held the
-  // same way, and its poke refetches the like state. A `caption_like` poke means
-  // one Caption's like count changed (#123); the selected Caption's like feed is
-  // held, and moved, the same way. The feed is optional — the
-  // anonymous landing page has no socket — so this wiring runs when injected, or
-  // later through `connectFeed` on login (#120). It reads `selectedPost` and
-  // `topCaptions` below, so it is invoked only after they are defined.
-  const connectFeed = (factory: MessageFeedFactory): void => {
+  // poke means one Post's Captions changed (#121), and a `post_like` poke means
+  // one Post's like count changed (#122): each is held for the selected Post
+  // only. A `caption_like` poke means one Caption's like count changed (#123),
+  // held for the selected Caption. Each Subscription names its Channel through
+  // an accessor, so the Feed moves the hold with the selection and routes only
+  // the held Channel here (ADR-0028). Each handler refetches on a poke and on
+  // the resync call after a (re)connect, so a poke lost while the socket was
+  // down is recovered (#120 review). The feed is optional — the anonymous
+  // landing page has no socket — so this wiring runs when injected, or later
+  // through `connectFeed` on login (#120). It reads `selectedPost` and
+  // `selectedCaption` below, so it is invoked only after they are defined.
+  const connectFeed = (feed: Feed): void => {
     // A connected Feed means a logged-in User, so the viewer's like state can
     // load now; it ends with the caller's scope (logout), like the socket. A
     // logout also drops the wanted Likes (`createLikeState`), so a queued send
@@ -144,64 +138,22 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     // cookie (#122 review).
     setLive(true);
     onCleanup(() => setLive(false));
-    const feed = factory({
-      onPostsUpdate: () => void refetchPosts(),
-      onPostCaptionUpdate: (postId) => {
-        if (postId === selectedPost()?.id) void refetchCaptions();
-      },
-      onPostLikeUpdate: (postId) => {
-        if (postId === selectedPost()?.id) postLike.refetch();
-      },
-      onCaptionLikeUpdate: (captionId) => {
-        if (captionId === selectedCaption()?.id) captionLike.refetch();
-      },
-    });
-    feed.subscribe(Channel.posts);
-    // Hold the selected Post's Caption and like feeds; move them when the
-    // selection moves.
-    createEffect(
-      on(
-        () => selectedPost()?.id,
-        (postId, prevId) => {
-          if (postId === prevId) return;
-          if (prevId !== undefined) {
-            feed.unsubscribe(Channel.postCaption(prevId));
-            feed.unsubscribe(Channel.postLike(prevId));
-          }
-          if (postId !== undefined) {
-            feed.subscribe(Channel.postCaption(postId));
-            feed.subscribe(Channel.postLike(postId));
-          }
-        },
-      ),
+    // The Channel for the selected entity's id, or none while nothing is selected.
+    const selectedChannel =
+      (id: () => number | undefined, channel: (id: number) => Channel) =>
+      (): Channel | undefined => {
+        const value = id();
+        return value === undefined ? undefined : channel(value);
+      };
+    const postId = () => selectedPost()?.id;
+    const captionId = () => selectedCaption()?.id;
+    feed.subscribe(
+      () => Channel.posts,
+      () => void refetchPosts(),
     );
-    // Hold the selected Caption's like feed; move it when the selection moves.
-    createEffect(
-      on(
-        () => selectedCaption()?.id,
-        (captionId, prevId) => {
-          if (captionId === prevId) return;
-          if (prevId !== undefined) feed.unsubscribe(Channel.captionLike(prevId));
-          if (captionId !== undefined) feed.subscribe(Channel.captionLike(captionId));
-        },
-      ),
-    );
-    // A poke sent while the socket is down is lost, and a (re)connect only
-    // replays the subscription. So each time the socket comes up, refetch: a
-    // Post, Caption, or Like created meanwhile still appears (#120 review).
-    createEffect(
-      on(
-        feed.connected,
-        (connected) => {
-          if (!connected) return;
-          void refetchPosts();
-          void refetchCaptions();
-          postLike.refetch();
-          captionLike.refetch();
-        },
-        { defer: true },
-      ),
-    );
+    feed.subscribe(selectedChannel(postId, Channel.postCaption), () => void refetchCaptions());
+    feed.subscribe(selectedChannel(postId, Channel.postLike), () => postLike.refetch());
+    feed.subscribe(selectedChannel(captionId, Channel.captionLike), () => captionLike.refetch());
   };
 
   const categories = (): JediCategory[] | undefined => {
