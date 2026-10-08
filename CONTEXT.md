@@ -243,8 +243,10 @@ _BE_: a WebSocket at `GET /ws` (auth-required); one broadcast fans Events to all
 connections, each filtered to its Subscriptions. The transport is `lib-web::ws`
 (hub, socket driver, authorization fan-out); the exported contract lives in
 `lib-core::realtime`.
-_FE_: the shared client Feed (`lib/websocket.ts`); one per client, consumed by each
-view ([ADR-0017](docs/adr/0017-shared-client-feed-multiplexed.md)).
+_FE_: the shared client Feed (`lib/feed.ts`); one per client, injected into each
+view-model ([ADR-0017](docs/adr/0017-shared-client-feed-multiplexed.md),
+[ADR-0028](docs/adr/0028-feed-subscriptions-by-channel.md)). A WebSocket transport
+carries it; an in-memory transport serves tests.
 
 **Channel**:
 The routing key an Event is addressed to and a Subscription names. After the merge
@@ -283,7 +285,10 @@ the id rides inside the variant, so `conv` without an id fails to deserialize; h
 per-connection and authorized per variant (`Conv` keeps the read scope until #128, the
 rest authenticated-read) ([ADR-0018](docs/adr/0018-channel-strings-track-domain-names.md) addendum,
 [ADR-0020](docs/adr/0020-collapse-channel-vocabulary.md)).
-_FE_: `subscribe` / `unsubscribe` on the Feed, replayed on (re)connect.
+_FE_: `feed.subscribe(channel, handler)` — a view-model names a Channel and a
+handler, and its reactive scope releases the Subscription. Each view-model holds its
+own; the Feed sends one per Channel to the server, replays them on (re)connect, then
+asks each handler to resync ([ADR-0028](docs/adr/0028-feed-subscriptions-by-channel.md)).
 
 **Event**:
 One notification carried on the Feed. A **payload** Event carries its item — a
