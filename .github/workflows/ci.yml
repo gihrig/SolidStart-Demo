@@ -237,10 +237,10 @@ jobs:
     if: github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     env:
-      GRYPE_VERSION: v0.120.0
+      GRYPE_VERSION: v0.120.1
       # sha256 of grype_<version>_linux_amd64.tar.gz from the release's
       # grype_<version>_checksums.txt. Bump both together on a version change.
-      GRYPE_SHA256: a5a1218dce63acdac152a6b3b5bb366e7267e36f4069848cf455543b3fa5700e
+      GRYPE_SHA256: 0a9ee97ef5ae2ee953b0a80098105052e846cdbe319a57d808b519c33cd1343d
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
