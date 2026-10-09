@@ -1,17 +1,50 @@
 import { createResource, createSignal, createUniqueId, For, Show } from "solid-js";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
+import type { HygieneCaps } from "~/types/backend";
 import type { PostDraft } from "~/types/jedi";
 
 // The draft's text fields, in form order. Each `maxLength` mirrors the back-end
-// cap (`PostBmc::hygiene_rules`); the back-end stays the authoritative check.
+// cap (`PostBmc::hygiene_rules`) and pins to it with `satisfies`, so a changed
+// cap fails `tsc` (ADR-0029); the back-end stays the authoritative check.
+type PostCaps = HygieneCaps["post"];
 const TEXT_FIELDS = [
-  { name: "title", label: "Title", type: "text", maxLength: 36 },
-  { name: "imageSrc", label: "Image URL", type: "url", maxLength: 1024 },
-  { name: "imageAlt", label: "Image description", type: "text", maxLength: 200 },
-  { name: "photographer", label: "Photographer", type: "text", maxLength: 120 },
-  { name: "photographerUrl", label: "Photographer URL", type: "url", maxLength: 1024 },
-  { name: "sourceUrl", label: "Photo page URL", type: "url", maxLength: 1024 },
+  {
+    name: "title",
+    label: "Title",
+    type: "text",
+    maxLength: 36 satisfies PostCaps["title"],
+  },
+  {
+    name: "imageSrc",
+    label: "Image URL",
+    type: "url",
+    maxLength: 1024 satisfies PostCaps["image_src"],
+  },
+  {
+    name: "imageAlt",
+    label: "Image description",
+    type: "text",
+    maxLength: 200 satisfies PostCaps["image_alt"],
+  },
+  {
+    name: "photographer",
+    label: "Photographer",
+    type: "text",
+    maxLength: 120 satisfies PostCaps["photographer"],
+  },
+  {
+    name: "photographerUrl",
+    label: "Photographer URL",
+    type: "url",
+    maxLength: 1024 satisfies PostCaps["photographer_url"],
+  },
+  {
+    name: "sourceUrl",
+    label: "Photo page URL",
+    type: "url",
+    maxLength: 1024 satisfies PostCaps["source_url"],
+  },
 ] as const;
 
 type TextFieldName = (typeof TEXT_FIELDS)[number]["name"];

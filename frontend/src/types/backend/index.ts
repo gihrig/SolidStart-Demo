@@ -13,6 +13,7 @@ export type { ConvMsg } from "~backend-bindings/ConvMsg.d";
 export type { ConvState } from "~backend-bindings/ConvState.d";
 export type { ConvUser } from "~backend-bindings/ConvUser.d";
 export type { HeroView } from "~backend-bindings/HeroView.d";
+export type { HygieneCaps } from "~backend-bindings/HygieneCaps";
 export type { LikeForToggle } from "~backend-bindings/LikeForToggle.d";
 export type { LikeView } from "~backend-bindings/LikeView.d";
 export type { ParamsForUpdate } from "~backend-bindings/ParamsForUpdate.d";

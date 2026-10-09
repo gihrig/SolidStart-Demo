@@ -2,11 +2,13 @@ import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { hygieneLength } from "~/lib/hygieneLength";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
+import type { HygieneCaps } from "~/types/backend";
 import type { CaptionView } from "~/types/jedi";
 
 // Mirrors the back-end cap (`CaptionBmc::hygiene_rules`), counted the back-end's
-// way (`hygieneLength`); the back-end stays the authoritative check.
-const CAPTION_MAX_LENGTH = 36;
+// way (`hygieneLength`). `satisfies` pins it to the cap, so a changed cap fails
+// `tsc` (ADR-0029); the back-end stays the authoritative check.
+const CAPTION_MAX_LENGTH = 36 satisfies HygieneCaps["caption"]["text"];
 
 export interface AddCaptionFormProps {
   /** The Post the Caption competes on. */
