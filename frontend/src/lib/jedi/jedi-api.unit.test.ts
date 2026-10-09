@@ -8,62 +8,40 @@ vi.mock("~/lib/sanitizeUrl", () => ({
   trustedUrl: (u: string) => u,
 }));
 
-// `categories.list` / `posts.*` / `captions.listForPost` now call the real RPCs
-// (ADR-0011, #117, #118), so the back-end client is mocked here — the seam under
+// `categories.list` / `posts.*` / `captions.*` / `hero` / `profile` call the
+// typed RPCs (ADR-0029), so the back-end client is mocked here. The seam under
 // test is the wire→contract mapping (icon mapping, URL sanitize, author/category
-// re-shape), not the network. The hoisted fns let each test program its own rows.
-const {
-  categoryListMock,
-  postListMock,
-  postFeaturedMock,
-  postCreateMock,
-  postGetLikeMock,
-  postToggleLikeMock,
-  captionListForPostMock,
-  captionAddMock,
-  captionGetLikeMock,
-  captionToggleLikeMock,
-  heroGetMock,
-  profileGetMock,
-} = vi.hoisted(() => ({
-  categoryListMock: vi.fn(),
-  postListMock: vi.fn(),
-  postFeaturedMock: vi.fn(),
-  postCreateMock: vi.fn(),
-  postGetLikeMock: vi.fn(),
-  postToggleLikeMock: vi.fn(),
-  captionListForPostMock: vi.fn(),
-  captionAddMock: vi.fn(),
-  captionGetLikeMock: vi.fn(),
-  captionToggleLikeMock: vi.fn(),
-  heroGetMock: vi.fn(),
-  profileGetMock: vi.fn(),
+// re-shape) and the method and params of each call, not the network. Each test
+// programs the rows per method with `onPublic` / `onAuthenticated`.
+const { authenticatedRpcMock, publicRpcMock } = vi.hoisted(() => ({
+  authenticatedRpcMock: vi.fn(),
+  publicRpcMock: vi.fn(),
 }));
 vi.mock("~/lib/backend-rpc", () => ({
-  category: { list: categoryListMock },
-  post: {
-    list: postListMock,
-    featured: postFeaturedMock,
-    create: postCreateMock,
-    getLike: postGetLikeMock,
-    toggleLike: postToggleLikeMock,
-  },
-  caption: {
-    listForPost: captionListForPostMock,
-    add: captionAddMock,
-    getLike: captionGetLikeMock,
-    toggleLike: captionToggleLikeMock,
-  },
-  hero: { get: heroGetMock },
-  profile: { get: profileGetMock },
+  authenticatedRpc: authenticatedRpcMock,
+  publicRpc: publicRpcMock,
 }));
+
+// Resolve each call by its method name.
+const byMethod = (rows: Record<string, unknown>) => (method: string) =>
+  Promise.resolve(rows[method]);
+const onPublic = (rows: Record<string, unknown>): void => {
+  publicRpcMock.mockImplementation(byMethod(rows));
+};
+const onAuthenticated = (rows: Record<string, unknown>): void => {
+  authenticatedRpcMock.mockImplementation(byMethod(rows));
+};
 
 import { sanitizeUrl } from "~/lib/sanitizeUrl";
 import { ICON_NAMES } from "~/components/Icon";
 import { jediApi } from "./jedi-api";
 
 const sanitizeSpy = sanitizeUrl as unknown as ReturnType<typeof vi.fn>;
-beforeEach(() => sanitizeSpy.mockClear());
+beforeEach(() => {
+  sanitizeSpy.mockClear();
+  authenticatedRpcMock.mockReset();
+  publicRpcMock.mockReset();
+});
 
 // The seeded taxonomy (frontend/src/lib/jedi/data.json ↔ 02-dev-seed.sql).
 const SEEDED_CATEGORIES = [
@@ -76,10 +54,11 @@ const SEEDED_CATEGORIES = [
 ];
 
 describe("jediApi.categories", () => {
-  beforeEach(() => categoryListMock.mockResolvedValue(SEEDED_CATEGORIES));
+  beforeEach(() => onPublic({ list_categories: SEEDED_CATEGORIES }));
 
   it("lists all categories including the added 'Cute'", async () => {
     const cats = await jediApi.categories.list();
+    expect(publicRpcMock).toHaveBeenCalledWith("list_categories");
     expect(cats.map((c) => c.name)).toEqual([
       "Landscape",
       "People",
@@ -94,10 +73,12 @@ describe("jediApi.categories", () => {
   // an opaque key, so the seam maps a known key to itself and any unknown key to
   // the fallback. Either way the result is always a valid IconName.
   it("maps each opaque icon key to a known IconName or the fallback", async () => {
-    categoryListMock.mockResolvedValueOnce([
-      { id: 1, name: "Known", icon: "dog" },
-      { id: 2, name: "Unknown", icon: "no-such-icon" },
-    ]);
+    onPublic({
+      list_categories: [
+        { id: 1, name: "Known", icon: "dog" },
+        { id: 2, name: "Unknown", icon: "no-such-icon" },
+      ],
+    });
     const cats = await jediApi.categories.list();
     expect(cats.map((c) => c.icon)).toEqual(["dog", "menu"]);
     for (const c of cats) expect(ICON_NAMES).toContain(c.icon);
@@ -146,13 +127,13 @@ const WIRE_POST_2 = {
 };
 
 describe("jediApi.posts", () => {
-  beforeEach(() => {
-    postListMock.mockResolvedValue([WIRE_POST_1, WIRE_POST_2]);
-    postFeaturedMock.mockResolvedValue(WIRE_POST_1);
-  });
+  beforeEach(() =>
+    onPublic({ list_posts: [WIRE_POST_1, WIRE_POST_2], featured_post: WIRE_POST_1 }),
+  );
 
   it("preserves the back-end ranking order (does not re-rank)", async () => {
     const posts = await jediApi.posts.list();
+    expect(publicRpcMock).toHaveBeenCalledWith("list_posts");
     expect(posts.map((p) => p.id)).toEqual([1, 2]);
     expect(posts[0].title).toBe("Little Jedi");
     expect(posts.map((p) => p.likeCount)).toEqual([5, 4]);
@@ -180,6 +161,7 @@ describe("jediApi.posts", () => {
 
   it("featured() re-shapes the top-ranked wire post", async () => {
     const featured = await jediApi.posts.featured();
+    expect(publicRpcMock).toHaveBeenCalledWith("featured_post");
     expect(featured.id).toBe(1);
     expect(featured.title).toBe("Little Jedi");
   });
@@ -194,7 +176,7 @@ describe("jediApi.posts", () => {
   });
 
   it("create() sends the draft as the wire PostForCreate and re-shapes the result (#120)", async () => {
-    postCreateMock.mockResolvedValue(WIRE_POST_2);
+    onAuthenticated({ create_post: WIRE_POST_2 });
     const created = await jediApi.posts.create({
       title: "Brilliant tree",
       imageSrc: "https://live.staticflickr.com/2.jpg",
@@ -204,14 +186,16 @@ describe("jediApi.posts", () => {
       sourceUrl: "https://www.flickr.com/photos/sunsward7/2/",
       categoryIds: [1],
     });
-    expect(postCreateMock).toHaveBeenCalledWith({
-      title: "Brilliant tree",
-      image_src: "https://live.staticflickr.com/2.jpg",
-      image_alt: "Brilliant tree",
-      photographer: "Sunsword & Moonsabre",
-      photographer_url: "https://www.flickr.com/photos/sunsward7/",
-      source_url: "https://www.flickr.com/photos/sunsward7/2/",
-      category_ids: [1],
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("create_post", {
+      data: {
+        title: "Brilliant tree",
+        image_src: "https://live.staticflickr.com/2.jpg",
+        image_alt: "Brilliant tree",
+        photographer: "Sunsword & Moonsabre",
+        photographer_url: "https://www.flickr.com/photos/sunsward7/",
+        source_url: "https://www.flickr.com/photos/sunsward7/2/",
+        category_ids: [1],
+      },
     });
     expect(created.id).toBe(2);
     expect(created.author.name).toBe("Homer");
@@ -219,19 +203,21 @@ describe("jediApi.posts", () => {
   });
 
   it("getLike() reads the caller's like state of a Post (#122)", async () => {
-    postGetLikeMock.mockResolvedValue({ id: 2, like_count: 4, liked: true });
+    onAuthenticated({ get_post_like: { id: 2, like_count: 4, liked: true } });
     expect(await jediApi.posts.getLike(2)).toEqual({ id: 2, likeCount: 4, liked: true });
-    expect(postGetLikeMock).toHaveBeenCalledWith(2);
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("get_post_like", { id: 2 });
   });
 
   it("toggleLike() sends the wanted state as the wire LikeForToggle (#122)", async () => {
-    postToggleLikeMock.mockResolvedValue({ id: 2, like_count: 3, liked: false });
+    onAuthenticated({ toggle_post_like: { id: 2, like_count: 3, liked: false } });
     expect(await jediApi.posts.toggleLike(2, false)).toEqual({
       id: 2,
       likeCount: 3,
       liked: false,
     });
-    expect(postToggleLikeMock).toHaveBeenCalledWith({ id: 2, liked: false });
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("toggle_post_like", {
+      data: { id: 2, liked: false },
+    });
   });
 });
 
@@ -246,10 +232,11 @@ const WIRE_HERO = {
 };
 
 describe("jediApi.hero", () => {
-  beforeEach(() => heroGetMock.mockResolvedValue(WIRE_HERO));
+  beforeEach(() => onPublic({ get_hero: WIRE_HERO }));
 
   it("returns the back-end Hero, re-shaped with no CTA href", async () => {
     const hero = await jediApi.hero.get();
+    expect(publicRpcMock).toHaveBeenCalledWith("get_hero");
     expect(hero).toEqual({
       title: "Awesome Photos & Captions",
       subtitle: "Share your favorite Photos from Flickr and add a great caption",
@@ -266,12 +253,15 @@ describe("jediApi.hero", () => {
 
 describe("jediApi.profile", () => {
   it("returns the current User from get_profile for the nav avatar", async () => {
-    profileGetMock.mockResolvedValue({
-      id: 1,
-      name: "Lisa",
-      avatar_url: "https://img.icons8.com/doodle/96/null/lisa-simpson.png",
+    onAuthenticated({
+      get_profile: {
+        id: 1,
+        name: "Lisa",
+        avatar_url: "https://img.icons8.com/doodle/96/null/lisa-simpson.png",
+      },
     });
     const profile = await jediApi.profile.get();
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("get_profile");
     expect(profile).toEqual({
       id: 1,
       name: "Lisa",
@@ -281,7 +271,7 @@ describe("jediApi.profile", () => {
   });
 
   it("maps a User with no avatar to the empty URL", async () => {
-    profileGetMock.mockResolvedValue({ id: 1000, name: "demo1", avatar_url: null });
+    onAuthenticated({ get_profile: { id: 1000, name: "demo1", avatar_url: null } });
     const profile = await jediApi.profile.get();
     expect(profile).toEqual({ id: 1000, name: "demo1", avatarUrl: "" });
   });
@@ -319,15 +309,14 @@ const WIRE_CAPTIONS_POST_1 = [
 
 describe("jediApi.captions", () => {
   beforeEach(() => {
-    captionListForPostMock.mockReset();
-    captionListForPostMock.mockImplementation((postId: number) =>
-      Promise.resolve(postId === 1 ? WIRE_CAPTIONS_POST_1 : []),
+    publicRpcMock.mockImplementation((_method: string, params: { id: number }) =>
+      Promise.resolve(params.id === 1 ? WIRE_CAPTIONS_POST_1 : []),
     );
   });
 
   it("asks the back-end for the given post's captions", async () => {
     await jediApi.captions.listForPost(1);
-    expect(captionListForPostMock).toHaveBeenCalledWith(1);
+    expect(publicRpcMock).toHaveBeenCalledWith("list_captions_for_post", { id: 1 });
   });
 
   it("preserves the back-end ranking order (Top Captions, does not re-rank)", async () => {
@@ -357,9 +346,11 @@ describe("jediApi.captions", () => {
   });
 
   it("add() sends the wire CaptionForCreate and re-shapes the result (#121)", async () => {
-    captionAddMock.mockResolvedValue(WIRE_CAPTIONS_POST_1[1]);
+    onAuthenticated({ add_caption: WIRE_CAPTIONS_POST_1[1] });
     const added = await jediApi.captions.add(1, "May the paws be with you");
-    expect(captionAddMock).toHaveBeenCalledWith({ post_id: 1, text: "May the paws be with you" });
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("add_caption", {
+      data: { post_id: 1, text: "May the paws be with you" },
+    });
     expect(added).toEqual({
       id: 2,
       postId: 1,
@@ -374,18 +365,20 @@ describe("jediApi.captions", () => {
   });
 
   it("getLike() reads the caller's like state of a Caption (#123)", async () => {
-    captionGetLikeMock.mockResolvedValue({ id: 2, like_count: 5, liked: true });
+    onAuthenticated({ get_caption_like: { id: 2, like_count: 5, liked: true } });
     expect(await jediApi.captions.getLike(2)).toEqual({ id: 2, likeCount: 5, liked: true });
-    expect(captionGetLikeMock).toHaveBeenCalledWith(2);
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("get_caption_like", { id: 2 });
   });
 
   it("toggleLike() sends the wanted state as the wire LikeForToggle (#123)", async () => {
-    captionToggleLikeMock.mockResolvedValue({ id: 2, like_count: 4, liked: false });
+    onAuthenticated({ toggle_caption_like: { id: 2, like_count: 4, liked: false } });
     expect(await jediApi.captions.toggleLike(2, false)).toEqual({
       id: 2,
       likeCount: 4,
       liked: false,
     });
-    expect(captionToggleLikeMock).toHaveBeenCalledWith({ id: 2, liked: false });
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("toggle_caption_like", {
+      data: { id: 2, liked: false },
+    });
   });
 });

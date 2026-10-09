@@ -19,6 +19,7 @@ export type { ParamsForUpdate } from "~backend-bindings/ParamsForUpdate.d";
 export type { ParamsIded } from "~backend-bindings/ParamsIded.d";
 export type { PostForCreate } from "~backend-bindings/PostForCreate.d";
 export type { PostView } from "~backend-bindings/PostView.d";
+export type { AuthenticatedRpc, PublicRpc } from "~backend-bindings/RpcContract";
 export type { User } from "~backend-bindings/User.d";
 export type { UserTyp } from "~backend-bindings/UserTyp.d";
 export type { WsEvent } from "~backend-bindings/WsEvent.d";
