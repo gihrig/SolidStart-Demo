@@ -355,10 +355,14 @@ never import raw `bindings/` files directly. See
 _Avoid_: re-typing a binding at the barrel — fix the type at its Rust source
 ([ADR-0027](docs/adr/0027-backend-integers-cross-seam-as-number.md)).
 
-**`ParamsIded` / `ParamsForUpdate<D>`** (shared RPC param shapes):
+**`ParamsIded` / `ParamsIdedList` / `ParamsForCreate<D>` / `ParamsForUpdate<D>`** (shared RPC param shapes):
 `ParamsIded = { id }` carries an id-only call (fetch/delete by id);
-`ParamsForUpdate<D> = { id, data }` carries an update. Both are exported through the
-same ts-rs seam as the entities.
+`ParamsIdedList = { id }` carries a child list by its parent id
+(`list_captions_for_post`, the Comment lists); `ParamsForCreate<D> = { data }`
+carries a create; `ParamsForUpdate<D> = { id, data }` carries an update. All four
+are exported through the same ts-rs seam as the entities. `ParamsList<F>` exports
+no field: its `filters` and `list_options` stay on the back-end until a front-end
+caller needs them (#176).
 
 **RPC surfaces** (authenticated vs public):
 The back-end exposes two JSON-RPC endpoints. `/api/rpc` is **authenticated** (behind
@@ -368,8 +372,22 @@ hand-picked set of anonymous reads, dispatching under `root_ctx`. The Jedi feed'
 static, back-end-owned content is public — the front-end reads it without a login —
 so `list_categories` lives on the public surface (#116), and the other `data.json`
 reads (Posts, Captions, Hero) join it as they land. Register ONLY safe public reads
-there — never a mutation or a row-scoped read.
+there — never a mutation or a row-scoped read. The
+**RPC contract** test enforces the list: the public surface must carry exactly the
+contract's public entries.
 _Avoid_: putting an anonymous read behind auth (it breaks the public landing page).
+
+**RPC contract** (each Jedi method's surface, params and result):
+The part of the contract seam that covers the Jedi RPC methods. Each entry names a
+method, its RPC surface, its params type and its result type, all read from the
+handler. A wrong method name, params shape or result type fails the front-end type
+check; a back-end test proves that each method is routed on its own surface
+([ADR-0029](docs/adr/0029-rpc-contract-from-handler-signatures.md)).
+_BE_: `web/rpcs/rpc_contract.rs`, exported as `bindings/RpcContract.ts`.
+_FE_: `authenticatedRpc(method, params)` and `publicRpc(method, params)` in
+`lib/backend-rpc.ts`. The FullStack methods stay outside the contract until #128
+removes them.
+_Avoid_: API schema, method registry; an RPC member per method.
 
 **Public projection** (an entity's audit-stripped public shape):
 A **public projection** is an entity's public-facing shape — its fields **minus** the
@@ -410,6 +428,9 @@ markdown or text; on read the `markdown` crate renders markdown → HTML and
 addendum) and carry the front-end `SafeUrl` brand at the sink
 ([ADR-0006](docs/adr/0006-safeurl-brand-enforces-sanitize-boundary.md)). Text is
 never HTML-escaped on write — that would double-escape.
+Each front-end copy of a length cap pins to the generated `HygieneCaps` literal
+type, so a back-end cap change fails the front-end type check
+([ADR-0029](docs/adr/0029-rpc-contract-from-handler-signatures.md)).
 _Avoid_: store-escaped text; client-only sanitization as the sole line of defense.
 
 **Merge lineage & pending renames**:
