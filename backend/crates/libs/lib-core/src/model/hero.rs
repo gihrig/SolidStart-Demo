@@ -32,7 +32,10 @@ pub struct HeroView {
 
 impl PublicProjection for HeroView {}
 
-#[derive(Fields, Deserialize, Default)]
+/// The `update_hero` input. Each field is optional: a missing or `null` field
+/// is left unchanged.
+#[derive(Fields, Deserialize, Default, TS)]
+#[ts(export, export_to = "HeroForUpdate.d.ts", optional_fields = nullable)]
 pub struct HeroForUpdate {
 	pub title: Option<String>,
 	pub subtitle: Option<String>,
