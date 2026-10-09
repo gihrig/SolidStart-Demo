@@ -171,10 +171,10 @@ fn export_bindings_rpc_contract() -> Result<()> {
 	Ok(())
 }
 
-/// Each contract entry is routed on its own surface (A), and only there (B);
-/// the public router lists exactly the public entries (C). Each call carries no
-/// params and the routers carry no resources, so no handler body runs: the
-/// test needs no database and no login.
+/// Each contract entry is routed on its own surface, and only there; the public
+/// router lists exactly the public entries. Each call carries no params and the
+/// routers carry no resources, so no handler body runs: the test needs no
+/// database and no login.
 #[tokio::test]
 async fn rpc_contract_routes_each_method_on_its_surface() -> Result<()> {
 	let authenticated = all_rpc_router_builder().build();
@@ -185,14 +185,14 @@ async fn rpc_contract_routes_each_method_on_its_surface() -> Result<()> {
 			Surface::Authenticated => (&authenticated, &public),
 			Surface::Public => (&public, &authenticated),
 		};
-		// (A)
+		// Routed on its own surface.
 		assert!(
 			!is_method_unknown(own.call_route(None, e.method, None).await),
 			"`{}` is not routed on its {:?} surface",
 			e.method,
 			e.surface
 		);
-		// (B)
+		// Not routed on the other surface.
 		assert!(
 			is_method_unknown(other.call_route(None, e.method, None).await),
 			"`{}` is also routed on the surface other than {:?}",
@@ -201,15 +201,17 @@ async fn rpc_contract_routes_each_method_on_its_surface() -> Result<()> {
 		);
 	}
 
-	// (C) The public surface runs under `root_ctx`, so it must carry no method
-	// that the contract does not list as public.
-	let mut expected: Vec<String> = contract()
+	// The public router lists exactly the public entries. The public surface
+	// runs under `root_ctx`, so it must carry no method that the contract does
+	// not list as public.
+	let mut public_entries: Vec<String> = contract()
 		.into_iter()
 		.filter(|e| e.surface == Surface::Public)
 		.map(|e| e.method.to_string())
 		.collect();
-	expected.sort();
-	assert_eq!(route_names(&public)?, expected);
+	public_entries.sort();
+	let public_routes = route_names(&public)?;
+	assert_eq!(public_routes, public_entries);
 
 	Ok(())
 }

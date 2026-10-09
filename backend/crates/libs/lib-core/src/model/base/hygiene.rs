@@ -155,6 +155,10 @@ mod tests {
 	type Result<T> = core::result::Result<T, Error>; // For tests.
 
 	use super::*;
+	use crate::model::caption::CaptionBmc;
+	use crate::model::category::CategoryBmc;
+	use crate::model::hero::HeroBmc;
+	use crate::model::post::PostBmc;
 	use crate::model::Error as ModelError;
 
 	/// A control character in the middle of the text is rejected.
@@ -283,11 +287,6 @@ mod tests {
 	/// bindings` runs it, and the CI bindings-drift guard checks the file.
 	#[test]
 	fn export_bindings_hygiene_caps() -> Result<()> {
-		use crate::model::caption::CaptionBmc;
-		use crate::model::category::CategoryBmc;
-		use crate::model::hero::HeroBmc;
-		use crate::model::post::PostBmc;
-
 		let tables = [
 			(PostBmc::TABLE, PostBmc::hygiene_rules()),
 			(CaptionBmc::TABLE, CaptionBmc::hygiene_rules()),

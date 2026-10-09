@@ -93,41 +93,31 @@ pub fn ts_dependencies<T: TS + 'static>(cfg: &Config) -> Vec<Dependency> {
 		.collect()
 }
 
-impl<D: TS + 'static> RpcParamsTs for ParamsForCreate<D> {
-	fn ts_name(cfg: &Config) -> String {
-		Self::name(cfg)
-	}
-	fn ts_dependencies(cfg: &Config) -> Vec<Dependency> {
-		ts_dependencies::<Self>(cfg)
-	}
+/// Implement `RpcParamsTs` for a params type that derives `TS`: the TS type is
+/// its ts-rs name, and it imports its own binding and its generic arguments.
+/// A generic type names its type parameter after `where`, e.g.
+/// `ParamsForCreate<D> where D`.
+macro_rules! impl_rpc_params_ts_via_ts {
+	($($ty:ty $(where $gen:ident)?),+ $(,)?) => {
+		$(
+			impl$(<$gen: TS + 'static>)? RpcParamsTs for $ty {
+				fn ts_name(cfg: &Config) -> String {
+					<Self as TS>::name(cfg)
+				}
+				fn ts_dependencies(cfg: &Config) -> Vec<Dependency> {
+					ts_dependencies::<Self>(cfg)
+				}
+			}
+		)+
+	};
 }
 
-impl<D: TS + 'static> RpcParamsTs for ParamsForUpdate<D> {
-	fn ts_name(cfg: &Config) -> String {
-		Self::name(cfg)
-	}
-	fn ts_dependencies(cfg: &Config) -> Vec<Dependency> {
-		ts_dependencies::<Self>(cfg)
-	}
-}
-
-impl RpcParamsTs for ParamsIded {
-	fn ts_name(cfg: &Config) -> String {
-		Self::name(cfg)
-	}
-	fn ts_dependencies(cfg: &Config) -> Vec<Dependency> {
-		ts_dependencies::<Self>(cfg)
-	}
-}
-
-impl RpcParamsTs for ParamsIdedList {
-	fn ts_name(cfg: &Config) -> String {
-		Self::name(cfg)
-	}
-	fn ts_dependencies(cfg: &Config) -> Vec<Dependency> {
-		ts_dependencies::<Self>(cfg)
-	}
-}
+impl_rpc_params_ts_via_ts!(
+	ParamsForCreate<D> where D,
+	ParamsForUpdate<D> where D,
+	ParamsIded,
+	ParamsIdedList,
+);
 
 /// `filters` and `list_options` stay on the back-end until a front-end caller
 /// needs them (#176), so a list takes no params argument.
