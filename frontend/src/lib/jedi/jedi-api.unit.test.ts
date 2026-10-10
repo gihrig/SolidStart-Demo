@@ -127,9 +127,7 @@ const WIRE_POST_2 = {
 };
 
 describe("jediApi.posts", () => {
-  beforeEach(() =>
-    onPublic({ list_posts: [WIRE_POST_1, WIRE_POST_2], featured_post: WIRE_POST_1 }),
-  );
+  beforeEach(() => onPublic({ list_posts: [WIRE_POST_1, WIRE_POST_2] }));
 
   it("preserves the back-end ranking order (does not re-rank)", async () => {
     const posts = await jediApi.posts.list();
@@ -157,13 +155,6 @@ describe("jediApi.posts", () => {
   it("carries the back-end-derived commentCount", async () => {
     const [first] = await jediApi.posts.list();
     expect(first.commentCount).toBe(3);
-  });
-
-  it("featured() re-shapes the top-ranked wire post", async () => {
-    const featured = await jediApi.posts.featured();
-    expect(publicRpcMock).toHaveBeenCalledWith("featured_post");
-    expect(featured.id).toBe(1);
-    expect(featured.title).toBe("Little Jedi");
   });
 
   it("routes every URL field through the sanitizer (single boundary)", async () => {

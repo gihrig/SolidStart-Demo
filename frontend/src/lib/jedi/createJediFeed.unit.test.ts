@@ -86,7 +86,6 @@ const api: JediApi = {
   categories: { list: () => Promise.resolve(CATEGORIES) },
   posts: {
     list: postListMock,
-    featured: () => Promise.resolve(RANKED_POSTS[0]),
     create: () => Promise.reject(new Error("not used by the view-model")),
     getLike: postGetLikeMock,
     toggleLike: postToggleLikeMock,
