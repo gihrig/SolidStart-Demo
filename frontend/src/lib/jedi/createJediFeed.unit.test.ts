@@ -5,7 +5,14 @@ import { Channel } from "~/lib/channel";
 import { createMemoryFeed } from "~/lib/feed.memory";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { JediApi } from "./jedi-api";
-import type { AuthorRef, CaptionView, JediCategory, Like, PostView } from "~/types/jedi";
+import type {
+  AuthorRef,
+  CaptionView,
+  JediCategory,
+  Like,
+  PostComment,
+  PostView,
+} from "~/types/jedi";
 import type { WsEvent } from "~/types/backend";
 import data from "./data.json";
 import { createJediFeed, type JediFeed } from "./createJediFeed";
@@ -82,6 +89,7 @@ const postToggleLikeMock = vi.fn<JediApi["posts"]["toggleLike"]>();
 const captionListForPostMock = vi.fn<JediApi["captions"]["listForPost"]>();
 const captionGetLikeMock = vi.fn<JediApi["captions"]["getLike"]>();
 const captionToggleLikeMock = vi.fn<JediApi["captions"]["toggleLike"]>();
+const commentListForPostMock = vi.fn<JediApi["comments"]["listForPost"]>();
 const api: JediApi = {
   categories: { list: () => Promise.resolve(CATEGORIES) },
   posts: {
@@ -95,6 +103,12 @@ const api: JediApi = {
     add: () => Promise.reject(new Error("not used by the view-model")),
     getLike: captionGetLikeMock,
     toggleLike: captionToggleLikeMock,
+  },
+  comments: {
+    listForPost: commentListForPostMock,
+    add: () => Promise.reject(new Error("not used here")),
+    update: () => Promise.reject(new Error("not used here")),
+    remove: () => Promise.reject(new Error("not used here")),
   },
   hero: {
     get: () =>
@@ -146,6 +160,18 @@ beforeEach(() => {
   captionListForPostMock.mockImplementation((postId: number) =>
     Promise.resolve(captionsFor(postId)),
   );
+  // Post N's thread holds one Comment, id N * 1000.
+  commentListForPostMock.mockReset();
+  commentListForPostMock.mockImplementation((postId: number) =>
+    Promise.resolve([commentOn(postId, postId * 1000)]),
+  );
+});
+
+const commentOn = (postId: number, id: number): PostComment => ({
+  id,
+  postId,
+  ownerId: 1,
+  content: `comment ${id}`,
 });
 
 // The resources back onto pre-resolved promises; two macrotask ticks drain the
@@ -600,6 +626,86 @@ describe("createJediFeed — the realtime post_caption poke (#121)", () => {
       await tick();
       await tick();
       expect(jedi.visibleCaptions()?.map((c) => c.id)).toContain(99);
+
+      dispose();
+    });
+  });
+});
+
+describe("createJediFeed — the selected Post's Comment thread (#124)", () => {
+  const ids = (jedi: JediFeed) => jedi.postComments.comments()?.map((c) => c.id);
+
+  it("loads the selected Post's thread, also on the anonymous landing", () =>
+    withAnonymousJedi(async (jedi) => {
+      expect(ids(jedi)).toEqual([1000]);
+      jedi.selectPost(2);
+      await tick();
+      expect(ids(jedi)).toEqual([2000]);
+    }));
+
+  it("subscribes to the selected Post's thread, and moves it with the selection", async () => {
+    const mem = memoryFeed();
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
+      await tick();
+      await tick();
+      expect(mem.held()).toContainEqual(Channel.postComment(1));
+
+      jedi.selectPost(2);
+      await tick();
+      expect(mem.held()).not.toContainEqual(Channel.postComment(1));
+      expect(mem.held()).toContainEqual(Channel.postComment(2));
+
+      dispose();
+    });
+  });
+
+  it("a pushed Comment for the selected Post shows in its thread", async () => {
+    const mem = memoryFeed();
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
+      await tick();
+      await tick();
+
+      mem.emit({
+        event_type: "post_comment",
+        payload: {
+          id: 1001,
+          post_id: 1,
+          owner_id: 2,
+          content: "live",
+          cid: 2,
+          ctime: "2026-10-10T12:00:00Z",
+          mid: 2,
+          mtime: "2026-10-10T12:00:00Z",
+        },
+      });
+      expect(ids(jedi)).toEqual([1000, 1001]);
+
+      dispose();
+    });
+  });
+
+  it("a posts poke neither reloads the thread nor recreates its rows", async () => {
+    const mem = memoryFeed();
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
+      await tick();
+      await tick();
+      const row = jedi.postComments.comments()![0];
+      const loads = commentListForPostMock.mock.calls.length;
+
+      // A Comment add pokes `posts`: the refetched list holds new Post objects.
+      postListMock.mockResolvedValue(RANKED_POSTS.map((p) => ({ ...p })));
+      mem.emit(pokeOn(Channel.posts));
+      await tick();
+      await tick();
+
+      expect(commentListForPostMock.mock.calls.length).toBe(loads);
+      expect(jedi.postComments.comments()![0]).toBe(row);
 
       dispose();
     });

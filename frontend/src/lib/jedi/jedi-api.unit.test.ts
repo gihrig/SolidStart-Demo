@@ -373,3 +373,55 @@ describe("jediApi.captions", () => {
     });
   });
 });
+
+// A Post Comment row as `list_post_comments` returns it (#124): the plain row,
+// audit columns included.
+const wireComment = (id: number, ownerId: number, content: string) => ({
+  id,
+  post_id: 1,
+  owner_id: ownerId,
+  content,
+  cid: ownerId,
+  ctime: "2026-10-10T12:00:00Z",
+  mid: ownerId,
+  mtime: "2026-10-10T12:00:00Z",
+});
+
+describe("jediApi.comments (#124)", () => {
+  it("listForPost() reads one Post's thread from the public surface, in order", async () => {
+    onPublic({ list_post_comments: [wireComment(5, 2, "first"), wireComment(6, 3, "second")] });
+    expect(await jediApi.comments.listForPost(1)).toEqual([
+      { id: 5, postId: 1, ownerId: 2, content: "first" },
+      { id: 6, postId: 1, ownerId: 3, content: "second" },
+    ]);
+    expect(publicRpcMock).toHaveBeenCalledWith("list_post_comments", { id: 1 });
+  });
+
+  it("add() sends the wire PostCommentForCreate and re-shapes the result", async () => {
+    onAuthenticated({ add_post_comment: wireComment(7, 2, "hello") });
+    expect(await jediApi.comments.add(1, "hello")).toEqual({
+      id: 7,
+      postId: 1,
+      ownerId: 2,
+      content: "hello",
+    });
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("add_post_comment", {
+      data: { post_id: 1, content: "hello" },
+    });
+  });
+
+  it("update() sends the Comment id and the new content", async () => {
+    onAuthenticated({ update_post_comment: wireComment(7, 2, "edited") });
+    expect((await jediApi.comments.update(7, "edited")).content).toBe("edited");
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("update_post_comment", {
+      id: 7,
+      data: { content: "edited" },
+    });
+  });
+
+  it("remove() deletes by Comment id", async () => {
+    onAuthenticated({ delete_post_comment: { id: 7, post_id: 1 } });
+    await jediApi.comments.remove(7);
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("delete_post_comment", { id: 7 });
+  });
+});

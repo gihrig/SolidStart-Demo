@@ -69,3 +69,12 @@ export interface CaptionView {
   text: string;
   likeCount: number;
 }
+
+/** One Comment in a Post's thread (#124). The body is plain text for now;
+ *  `ownerId` gates the Edit / Delete buttons. #125 adds the author display. */
+export interface PostComment {
+  id: number;
+  postId: number;
+  ownerId: number;
+  content: string;
+}

@@ -1,6 +1,7 @@
 import { createResource, createSignal, onCleanup, type Accessor, type Setter } from "solid-js";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { createLikeState } from "~/lib/jedi/createLikeState";
+import { createPostComments, type PostComments } from "~/lib/jedi/createPostComments";
 import type { Feed } from "~/lib/feed";
 import { Channel } from "~/lib/channel";
 import type { JediCategory, Like, PostView, CaptionView, HeroView } from "~/types/jedi";
@@ -30,6 +31,10 @@ import type { JediCategory, Like, PostView, CaptionView, HeroView } from "~/type
  * `selectedPostLike` / `selectedCaptionLike` are the viewer's like state of the
  * selected Post and the selected Caption (#122, #123). Each comes from one
  * `createLikeState`; this view-model keeps the Feed wiring around them.
+ *
+ * `postComments` is the selected Post's Comment thread (#124). It is its own
+ * module (`createPostComments`), exposed as one nested member; this view-model
+ * keeps the Feed wiring around it.
  *
  * `hero` (the header banner content) is the externalized header data (#32): the
  * route renders the Hero from `hero`, so it is not hard-coded in the markup. The
@@ -69,6 +74,10 @@ export interface JediFeed {
    *  Caption line shows the new count at once; Top Captions re-ranks after the
    *  back-end's `post_caption` poke. */
   toggleCaptionLike: () => Promise<void>;
+  /** The selected Post's Comment thread (#124): its rows and its writes. The
+   *  read is public, so it loads on the anonymous landing too; the writes need
+   *  a login. */
+  postComments: PostComments;
   /** Wire a live Feed after creation (#120): the route builds this view-model
    *  anonymously, then connects the socket's Feed once a User logs in. The
    *  subscription is owned by the caller's reactive scope, so it ends with it. */
@@ -190,17 +199,26 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     toggleLike: (id, liked) => api.captions.toggleLike(id, liked),
   });
 
+  // The selected Post's Comment thread (#124). The read is public, so it does
+  // not wait for a live session.
+  const postComments = createPostComments({
+    postId: () => selectedPost()?.id,
+    api: api.comments,
+  });
+
   // Live propagation (#117): a `posts` poke means the Post list may have changed,
   // so refetch the list (the featured post re-derives from it). A `post_caption`
   // poke means one Post's Captions changed (#121), and a `post_like` poke means
   // one Post's like count changed (#122): each is held for the selected Post
   // only. A `caption_like` poke means one Caption's like count changed (#123),
-  // held for the selected Caption. Each Subscription names its Channel through
-  // an accessor, so the Feed moves the hold with the selection and routes only
-  // the held Channel here (ADR-0028). Each handler refetches on a poke and on
-  // the resync call after a (re)connect, so a poke lost while the socket was
-  // down is recovered (#120 review). The anonymous landing page has no socket,
-  // so the route calls this on login (#120).
+  // held for the selected Caption. A `post_comment` Event carries a Comment
+  // upsert or removal for one Post's thread (#124), held for the selected Post.
+  // Each Subscription names its Channel through an accessor, so the Feed moves
+  // the hold with the selection and routes only the held Channel here
+  // (ADR-0028). Each handler refetches on a poke and on the resync call after a
+  // (re)connect, so a poke lost while the socket was down is recovered (#120
+  // review). The anonymous landing page has no socket, so the route calls this
+  // on login (#120).
   const connectFeed = (feed: Feed): void => {
     // A connected Feed means a logged-in User, so the viewer's like state can
     // load now; it ends with the caller's scope (logout), like the socket. A
@@ -225,6 +243,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     feed.subscribe(selectedChannel(postId, Channel.postCaption), () => void refetchCaptions());
     feed.subscribe(selectedChannel(postId, Channel.postLike), () => postLike.refetch());
     feed.subscribe(selectedChannel(captionId, Channel.captionLike), () => captionLike.refetch());
+    feed.subscribe(selectedChannel(postId, Channel.postComment), postComments.onEvent);
   };
 
   const [hero] = createResource(() => api.hero.get());
@@ -245,6 +264,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     togglePostLike: postLike.toggle,
     selectedCaptionLike: captionLike.like,
     toggleCaptionLike: captionLike.toggle,
+    postComments,
     connectFeed,
   };
 }
