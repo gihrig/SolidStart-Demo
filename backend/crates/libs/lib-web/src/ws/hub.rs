@@ -1,7 +1,9 @@
 use super::poke::{
-	Agents, CaptionLike, Conv, Convs, PokeReceipt, PostCaption, PostLike, Posts,
+	Agents, CaptionLike, Conv, Convs, PokeReceipt, PostCaption, PostComment,
+	PostLike, Posts,
 };
 use lib_core::model::conv_msg::ConvMsg;
+use lib_core::model::post_comment::{self, PostCommentRemoval};
 use lib_core::realtime::{Channel, WsEvent};
 use tokio::sync::broadcast;
 
@@ -119,6 +121,32 @@ impl WsState {
 		self.broadcast(WsEvent::Poke(Channel::PostCaption(post_id)));
 		PokeReceipt::new()
 	}
+
+	/// Push a Post Comment add or edit on its Post's thread
+	/// (`post_comment:{post_id}`): an upsert carrying the row (#124). The
+	/// envelope derives its Channel from the payload. Returns the
+	/// [`PokeReceipt<PostComment>`] `add_post_comment` / `update_post_comment`
+	/// need to build their result.
+	pub fn broadcast_post_comment(
+		&self,
+		comment: &post_comment::PostComment,
+	) -> PokeReceipt<PostComment> {
+		self.broadcast(WsEvent::PostComment {
+			payload: comment.clone(),
+		});
+		PokeReceipt::new()
+	}
+
+	/// Push a Post Comment delete on its Post's thread: a removal carrying the
+	/// Comment id and its `post_id` (#124). Returns the
+	/// [`PokeReceipt<PostComment>`] `delete_post_comment` needs.
+	pub fn broadcast_post_comment_removal(
+		&self,
+		removal: PostCommentRemoval,
+	) -> PokeReceipt<PostComment> {
+		self.broadcast(WsEvent::PostCommentRemoval { payload: removal });
+		PokeReceipt::new()
+	}
 }
 
 // endregion: --- Helper Functions for Broadcasting
@@ -164,6 +192,45 @@ mod tests {
 		assert_eq!(rx.try_recv().unwrap().channel().key(), "post_like:5");
 		assert_eq!(rx.try_recv().unwrap().channel().key(), "caption_like:6");
 		assert_eq!(rx.try_recv().unwrap().channel().key(), "post_caption:8");
+	}
+
+	/// A Post Comment add / edit pushes the row, and a delete pushes the
+	/// removal, each on the Post's thread Channel (#124).
+	#[test]
+	fn post_comment_helpers_push_on_the_post_thread() {
+		use time::OffsetDateTime;
+
+		let ws = WsState::new();
+		let mut rx = ws.tx.subscribe();
+		let comment = post_comment::PostComment {
+			id: 3,
+			post_id: 7,
+			owner_id: 2,
+			content: "hi".to_string(),
+			cid: 2,
+			ctime: OffsetDateTime::UNIX_EPOCH,
+			mid: 2,
+			mtime: OffsetDateTime::UNIX_EPOCH,
+		};
+
+		let _receipt: PokeReceipt<PostComment> = ws.broadcast_post_comment(&comment);
+		let _receipt: PokeReceipt<PostComment> =
+			ws.broadcast_post_comment_removal(PostCommentRemoval {
+				id: 3,
+				post_id: 7,
+			});
+
+		let upsert = rx.try_recv().unwrap();
+		assert!(
+			matches!(&upsert, WsEvent::PostComment { payload } if payload.id == 3)
+		);
+		assert_eq!(upsert.channel().key(), "post_comment:7");
+		let removal = rx.try_recv().unwrap();
+		assert!(matches!(
+			&removal,
+			WsEvent::PostCommentRemoval { payload } if payload.id == 3
+		));
+		assert_eq!(removal.channel().key(), "post_comment:7");
 	}
 
 	/// A like toggle that changed no row pokes nothing (#122): no client needs to

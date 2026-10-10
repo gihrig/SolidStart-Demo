@@ -6,6 +6,7 @@ use crate::model::base::{
 use crate::model::category::{CategoryBmc, CategoryFilter, CategoryPublic};
 use crate::model::like::LikeTarget;
 use crate::model::modql_utils::time_to_sea_value;
+use crate::model::post_comment::PostCommentBmc;
 use crate::model::user::{AuthorRef, UserBmc};
 use crate::model::ModelManager;
 use crate::model::{Error, Result};
@@ -139,8 +140,8 @@ impl DbBmc for PostCategoryBmc {
 // A marker BMC owns its child table's identity — the `TABLE` name — so every read
 // routes its `FROM` through `DbBmc::table_ref()`, keeping one table name in one
 // place. `PostLikeBmc` is also a Like target (#123): the shared Like module
-// (`model::like`) is its write path and its read. `PostCommentBmc` stays a marker
-// until the comment writes land.
+// (`model::like`) is its write path and its read. `post_comment` has its own
+// module (`model::post_comment`, #124); its `PostCommentBmc` feeds the count.
 pub struct PostLikeBmc;
 
 impl DbBmc for PostLikeBmc {
@@ -151,12 +152,6 @@ impl LikeTarget for PostLikeBmc {
 	const PARENT_COL: &'static str = POST_ID;
 	const UNKNOWN_PARENT: &'static str = "unknown Post";
 	type Parent = PostBmc;
-}
-
-struct PostCommentBmc;
-
-impl DbBmc for PostCommentBmc {
-	const TABLE: &'static str = "post_comment";
 }
 
 /// The parent key column of `post_like` / `post_comment`.
