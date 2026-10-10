@@ -67455,12 +67455,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/shell-quote@1.9.0?package-id=3a42e170e7a69354",
+      "bom-ref": "pkg:npm/shell-quote@1.11.0?package-id=8301bbc8b1a74e9b",
       "type": "library",
       "name": "shell-quote",
-      "version": "1.9.0",
-      "cpe": "cpe:2.3:a:shell-quote_project:shell-quote:1.9.0:*:*:*:*:node.js:*:*",
-      "purl": "pkg:npm/shell-quote@1.9.0",
+      "version": "1.11.0",
+      "cpe": "cpe:2.3:a:shell-quote_project:shell-quote:1.11.0:*:*:*:*:node.js:*:*",
+      "purl": "pkg:npm/shell-quote@1.11.0",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -77978,7 +77978,7 @@
       "dependsOn": [
         "pkg:npm/chalk@5.6.2?package-id=40f790865a68c605",
         "pkg:npm/rxjs@7.8.2?package-id=daacb31f62328dcd",
-        "pkg:npm/shell-quote@1.9.0?package-id=3a42e170e7a69354",
+        "pkg:npm/shell-quote@1.11.0?package-id=8301bbc8b1a74e9b",
         "pkg:npm/supports-color@10.2.2?package-id=8fd997d7f92b9ef1",
         "pkg:npm/tree-kill@1.2.2?package-id=31d2765c0c24f631",
         "pkg:npm/yargs@18.0.0?package-id=df5e60a6cc7d4dcd",
