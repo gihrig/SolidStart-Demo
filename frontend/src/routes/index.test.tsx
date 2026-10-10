@@ -85,7 +85,6 @@ vi.mock("~/lib/backend-rpc", async () => {
       cat(6, "Cute", "fire-heart"),
     ],
     list_posts: () => posts,
-    featured_post: () => posts[0],
   };
   return {
     publicRpc: (method: string, params?: { id: number }) => Promise.resolve(reads[method](params)),

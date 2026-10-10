@@ -37,8 +37,8 @@ const toJediCategory = (c: CategoryPublic): JediCategory => ({
   icon: toIconName(c.icon),
 });
 
-// Real back-end calls now (#117, #118): Posts come from `list_posts` /
-// `featured_post` as the enriched `PostView` wire type, and a Post's Captions from
+// Real back-end calls now (#117, #118): Posts come from `list_posts` as the
+// enriched `PostView` wire type, and a Post's Captions from
 // `list_captions_for_post` as the enriched `CaptionView`. These seams re-shape one wire view into
 // the contract the components consume — URL fields routed through the single
 // sanitize boundary, opaque Category icons mapped to sprite names. The back-end
@@ -101,10 +101,10 @@ export const jediApi = {
       (await publicRpc("list_categories")).map(toJediCategory),
   },
   posts: {
-    // Real back-end calls now (#117): the ranked Post list and the featured Post
-    // come from the public RPCs, each wire `PostView` re-shaped for the components.
+    // Real back-end call now (#117): the ranked Post list comes from the public
+    // RPC, each wire `PostView` re-shaped for the components. The view-model
+    // derives the featured Post from it, so the featured-Post RPC has no wrapper (#191).
     list: async (): Promise<PostView[]> => (await publicRpc("list_posts")).map(toPostView),
-    featured: async (): Promise<PostView> => toPostView(await publicRpc("featured_post")),
     // Real back-end call (#120): `create_post` needs a login. The draft is sent
     // raw — the back-end is the authoritative URL boundary and rejects an
     // unsafe URL; the returned view passes the sanitize boundary like any read.
