@@ -15,7 +15,8 @@ use serde_with::{serde_as, OneOrMany};
 use ts_rs::TS;
 
 /// Params structure for any RPC Create call.
-#[derive(Deserialize)]
+#[derive(Deserialize, TS)]
+#[ts(export, export_to = "ParamsForCreate.d.ts")]
 pub struct ParamsForCreate<D> {
 	pub data: D,
 }
@@ -42,10 +43,13 @@ impl IntoParams for ParamsIded {}
 
 /// Params structure for an RPC List call scoped to one parent entity (e.g. a
 /// Post's Captions): `id` names the parent, and the optional `list_options`
-/// pages the result.
-#[derive(Deserialize)]
+/// pages the result. The export holds only `id`: `list_options` stays on the
+/// back-end until a front-end caller needs it (#176).
+#[derive(Deserialize, TS)]
+#[ts(export, export_to = "ParamsIdedList.d.ts")]
 pub struct ParamsIdedList {
 	pub id: i64,
+	#[ts(skip)]
 	pub list_options: Option<ListOptions>,
 }
 impl IntoParams for ParamsIdedList {}

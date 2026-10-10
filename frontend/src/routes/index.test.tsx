@@ -65,36 +65,30 @@ vi.mock("~/lib/backend-rpc", async () => {
         like_count: c.likeCount,
         comment_count: 0,
       }));
-  return {
-    caption: {
-      listForPost: (postId: number) => Promise.resolve(captionsFor(postId)),
-    },
+  // Each public read, keyed by its RPC method (ADR-0029).
+  const reads: Record<string, (params?: { id: number }) => unknown> = {
+    list_captions_for_post: (params) => captionsFor(params!.id),
     // The Hero arrives as the wire `HeroView` (#119): the seeded singleton.
-    hero: {
-      get: () =>
-        Promise.resolve({
-          id: 1,
-          title: "Awesome Photos & Captions",
-          subtitle: "Share your favorite Photos from Flickr and add a great caption",
-          cta_text: "Get Started",
-          background_image: "https://example.test/hero.jpg",
-        }),
-    },
-    category: {
-      list: () =>
-        Promise.resolve([
-          cat(1, "Landscape", "landscape"),
-          cat(2, "People", "portrait"),
-          cat(3, "Animals", "dog"),
-          cat(4, "Abstract", "collage"),
-          cat(5, "Black & White", "180-degrees"),
-          cat(6, "Cute", "fire-heart"),
-        ]),
-    },
-    post: {
-      list: () => Promise.resolve(posts),
-      featured: () => Promise.resolve(posts[0]),
-    },
+    get_hero: () => ({
+      id: 1,
+      title: "Awesome Photos & Captions",
+      subtitle: "Share your favorite Photos from Flickr and add a great caption",
+      cta_text: "Get Started",
+      background_image: "https://example.test/hero.jpg",
+    }),
+    list_categories: () => [
+      cat(1, "Landscape", "landscape"),
+      cat(2, "People", "portrait"),
+      cat(3, "Animals", "dog"),
+      cat(4, "Abstract", "collage"),
+      cat(5, "Black & White", "180-degrees"),
+      cat(6, "Cute", "fire-heart"),
+    ],
+    list_posts: () => posts,
+    featured_post: () => posts[0],
+  };
+  return {
+    publicRpc: (method: string, params?: { id: number }) => Promise.resolve(reads[method](params)),
   };
 });
 

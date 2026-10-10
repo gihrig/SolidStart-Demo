@@ -2,28 +2,25 @@ import type {
   Agent,
   AgentForCreate,
   AgentForUpdate,
-  AuthorRef,
-  CaptionForCreate,
-  CaptionView,
-  CategoryPublic,
+  AuthenticatedRpc,
   Conv,
   ConvForCreate,
   ConvForUpdate,
   ConvMsg,
   ConvMsgForCreate,
-  HeroView,
   JsonRpcRequest,
   JsonRpcResponse,
-  LikeForToggle,
-  LikeView,
   LoginPayload,
   LogoffPayload,
-  PostForCreate,
-  PostView,
+  PublicRpc,
 } from "~/types/backend";
 import { isRpcError } from "~/types/backend";
 
 const BACKEND_URL = "http://localhost:8080";
+
+// The params argument of a typed call: none when the method's params export no
+// field (`undefined` in the RPC contract), so a list takes no argument.
+type ParamsArg<P> = [P] extends [undefined] ? [] : [params: P];
 
 // Auth functions (not RPC, direct REST)
 export const auth = {
@@ -163,58 +160,26 @@ export function createRpcClient() {
     },
   };
 
-  // Category RPC methods. Categories are a static, back-end-owned taxonomy
-  // (ADR-0011): read-only, no create/update/delete and no realtime feed. The
-  // list is public — the anonymous Jedi landing page reads it — so it posts to
-  // the public surface (#116).
-  const category = {
-    list: () => rpcCall<CategoryPublic[]>("list_categories", undefined, "/api/rpc-public"),
-  };
+  // The typed calls (ADR-0029). Each surface's methods, params and results come
+  // from the back-end RPC contract (`RpcContract.ts`), so `tsc` rejects a wrong
+  // method name, params shape or result use, and a method on the wrong surface.
+  // `authenticatedRpc` posts to the authenticated surface: the mutations, and
+  // the reads that need a login (e.g. the caller's like state, the profile).
+  // `publicRpc` posts to the public surface: the reads an anonymous visitor
+  // may run (the Jedi feed, its taxonomy, the Hero).
+  function authenticatedRpc<M extends keyof AuthenticatedRpc>(
+    method: M,
+    ...params: ParamsArg<AuthenticatedRpc[M]["params"]>
+  ): Promise<AuthenticatedRpc[M]["result"]> {
+    return rpcCall(method, params[0], "/api/rpc");
+  }
 
-  // Post RPC methods. Every Post is public (#106), so the reads post to the
-  // public surface — the anonymous Jedi landing page reads them (#117). Each
-  // returns the enriched `PostView` (author, resolved Categories, derived counts).
-  // `list_posts` is ranked by like count by the back-end; the front-end never
-  // re-ranks. `create_post` is a mutation, so it posts to the authenticated
-  // surface; the back-end sets the caller as the Owner (#120). The caller's like
-  // state is per-User, so `get_post_like` and `toggle_post_like` post to the
-  // authenticated surface too (#122).
-  const post = {
-    list: () => rpcCall<PostView[]>("list_posts", undefined, "/api/rpc-public"),
-    featured: () => rpcCall<PostView>("featured_post", undefined, "/api/rpc-public"),
-    get: (id: number) => rpcCall<PostView>("get_post", { id }, "/api/rpc-public"),
-    create: (data: PostForCreate) => rpcCall<PostView>("create_post", { data }),
-    getLike: (id: number) => rpcCall<LikeView>("get_post_like", { id }),
-    toggleLike: (data: LikeForToggle) => rpcCall<LikeView>("toggle_post_like", { data }),
-  };
-
-  // Caption RPC methods. Every Caption is public (#106), so the read posts to the
-  // public surface (#118). `list_captions_for_post` takes the Post id as `id` and
-  // returns that Post's enriched `CaptionView`s, ranked by like count by the
-  // back-end; the front-end never re-ranks. `add_caption` is a mutation, so it
-  // posts to the authenticated surface; the back-end sets the caller as the
-  // Owner (#121). The caller's like state is per-User, so `get_caption_like` and
-  // `toggle_caption_like` post to the authenticated surface too (#123).
-  const caption = {
-    listForPost: (postId: number) =>
-      rpcCall<CaptionView[]>("list_captions_for_post", { id: postId }, "/api/rpc-public"),
-    add: (data: CaptionForCreate) => rpcCall<CaptionView>("add_caption", { data }),
-    getLike: (id: number) => rpcCall<LikeView>("get_caption_like", { id }),
-    toggleLike: (data: LikeForToggle) => rpcCall<LikeView>("toggle_caption_like", { data }),
-  };
-
-  // Hero RPC methods. The Hero is the home page banner singleton (#119). The
-  // anonymous landing page reads it, so `get_hero` posts to the public surface.
-  // `update_hero` is an Admin edit that no front-end surface offers yet.
-  const hero = {
-    get: () => rpcCall<HeroView>("get_hero", undefined, "/api/rpc-public"),
-  };
-
-  // Profile RPC methods. `get_profile` returns the logged-in User as an
-  // `AuthorRef` (#119), so it posts to the authenticated surface.
-  const profile = {
-    get: () => rpcCall<AuthorRef>("get_profile"),
-  };
+  function publicRpc<M extends keyof PublicRpc>(
+    method: M,
+    ...params: ParamsArg<PublicRpc[M]["params"]>
+  ): Promise<PublicRpc[M]["result"]> {
+    return rpcCall(method, params[0], "/api/rpc-public");
+  }
 
   // Conversation Message RPC methods
   const convMsg = {
@@ -225,19 +190,16 @@ export function createRpcClient() {
       }),
   };
 
-  return { agent, caption, category, conv, convMsg, hero, post, profile };
+  return { agent, authenticatedRpc, conv, convMsg, publicRpc };
 }
 
 // Default singleton used across the app.
 const client = createRpcClient();
 export const agent = client.agent;
-export const caption = client.caption;
-export const category = client.category;
+export const authenticatedRpc = client.authenticatedRpc;
 export const conv = client.conv;
 export const convMsg = client.convMsg;
-export const hero = client.hero;
-export const post = client.post;
-export const profile = client.profile;
+export const publicRpc = client.publicRpc;
 
 // Unified export
 export const backendRpc = { auth, ...client };

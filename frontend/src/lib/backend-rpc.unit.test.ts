@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
-import { auth, agent, category, conv, convMsg, backendRpc, createRpcClient } from "./backend-rpc";
+import {
+  auth,
+  agent,
+  authenticatedRpc,
+  conv,
+  convMsg,
+  backendRpc,
+  createRpcClient,
+  publicRpc,
+} from "./backend-rpc";
 
 // Test credentials sourced from .env.test (VITE_-prefixed vars reach import.meta.env).
 const TEST_USERNAME = import.meta.env.VITE_TEST_USERNAME;
@@ -267,19 +276,55 @@ describe("agent", () => {
   });
 });
 
-// -- category methods --
+// -- typed RPC calls (the RPC contract, ADR-0029) --
 
-describe("category", () => {
-  it("category.list sends list_categories to the public RPC surface", async () => {
+describe("authenticatedRpc / publicRpc", () => {
+  it("authenticatedRpc posts the method and params to /api/rpc", async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(mockResponse(rpcSuccess({ id: 2, like_count: 4, liked: true }))),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const like = await authenticatedRpc("get_post_like", { id: 2 });
+
+    expect((fetchMock.mock.calls[0] as any[])[0]).toBe("http://localhost:8080/api/rpc");
+    const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
+    expect(body.method).toBe("get_post_like");
+    expect(body.params).toEqual({ id: 2 });
+    expect(like).toEqual({ id: 2, like_count: 4, liked: true });
+  });
+
+  it("publicRpc posts the method to /api/rpc-public, with no params for a list", async () => {
     const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
     vi.stubGlobal("fetch", fetchMock);
 
-    await category.list();
+    await publicRpc("list_categories");
 
     // The taxonomy is public, so it posts to /api/rpc-public (no auth), not /api/rpc.
     expect((fetchMock.mock.calls[0] as any[])[0]).toBe("http://localhost:8080/api/rpc-public");
     const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
     expect(body.method).toBe("list_categories");
+    expect(body).not.toHaveProperty("params");
+  });
+
+  // Each `@ts-expect-error` pins one `tsc` failure: if the call ever compiles,
+  // the unused directive fails `tsc`. The function only type-checks; no test
+  // calls it, so it sends no request.
+  it("rejects a wrong call at compile time", () => {
+    const typeChecks = async () => {
+      // @ts-expect-error a wrong method name
+      await publicRpc("get_posts", { id: 1 });
+      // @ts-expect-error a wrong params shape
+      await authenticatedRpc("get_post_like", { post_id: 2 });
+      const posts = await publicRpc("list_posts");
+      // @ts-expect-error a wrong result use: `list_posts` returns a list
+      expect(posts.title).toBeUndefined();
+      // @ts-expect-error a method on the wrong surface
+      await publicRpc("get_post_like", { id: 2 });
+      // @ts-expect-error a list's `filters` stay on the back-end (#176)
+      await publicRpc("list_posts", { filters: [] });
+    };
+    expect(typeChecks).toBeTypeOf("function");
   });
 });
 

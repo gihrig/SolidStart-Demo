@@ -1,11 +1,5 @@
 import { sanitizeUrl, trustedUrl, type SafeUrl } from "~/lib/sanitizeUrl";
-import {
-  caption as captionRpc,
-  category as categoryRpc,
-  hero as heroRpc,
-  post as postRpc,
-  profile as profileRpc,
-} from "~/lib/backend-rpc";
+import { authenticatedRpc, publicRpc } from "~/lib/backend-rpc";
 import { ICON_NAMES, type IconName } from "~/components/Icon";
 import type {
   CategoryPublic,
@@ -95,69 +89,73 @@ const toHeroView = (h: HeroViewWire): HeroView => ({
 });
 
 /**
- * The Jedi data seam. Each body calls a real back-end RPC (see
- * src/lib/backend-rpc.ts); the signatures stayed identical through the swap
- * from the former `data.json` mock.
+ * The Jedi data seam. Each body calls a real back-end RPC through the typed
+ * `authenticatedRpc` / `publicRpc` (see src/lib/backend-rpc.ts, ADR-0029); the
+ * signatures stayed identical through the swap from the former `data.json` mock.
  */
 export const jediApi = {
   categories: {
     // Real back-end call now (ADR-0011): the static taxonomy comes from
     // `list_categories`, each row's opaque `icon` mapped to an `IconName`.
-    list: async (): Promise<JediCategory[]> => (await categoryRpc.list()).map(toJediCategory),
+    list: async (): Promise<JediCategory[]> =>
+      (await publicRpc("list_categories")).map(toJediCategory),
   },
   posts: {
     // Real back-end calls now (#117): the ranked Post list and the featured Post
     // come from the public RPCs, each wire `PostView` re-shaped for the components.
-    list: async (): Promise<PostView[]> => (await postRpc.list()).map(toPostView),
-    featured: async (): Promise<PostView> => toPostView(await postRpc.featured()),
+    list: async (): Promise<PostView[]> => (await publicRpc("list_posts")).map(toPostView),
+    featured: async (): Promise<PostView> => toPostView(await publicRpc("featured_post")),
     // Real back-end call (#120): `create_post` needs a login. The draft is sent
     // raw — the back-end is the authoritative URL boundary and rejects an
     // unsafe URL; the returned view passes the sanitize boundary like any read.
     create: async (draft: PostDraft): Promise<PostView> =>
       toPostView(
-        await postRpc.create({
-          title: draft.title,
-          image_src: draft.imageSrc,
-          image_alt: draft.imageAlt,
-          photographer: draft.photographer,
-          photographer_url: draft.photographerUrl,
-          source_url: draft.sourceUrl,
-          category_ids: draft.categoryIds,
+        await authenticatedRpc("create_post", {
+          data: {
+            title: draft.title,
+            image_src: draft.imageSrc,
+            image_alt: draft.imageAlt,
+            photographer: draft.photographer,
+            photographer_url: draft.photographerUrl,
+            source_url: draft.sourceUrl,
+            category_ids: draft.categoryIds,
+          },
         }),
       ),
     // Real back-end calls (#122): the viewer's like state needs a login. The
     // toggle sends the wanted state, so a repeat is a no-op; the back-end pokes
     // `post_like` and `posts`, so every client refetches the count and ranking.
-    getLike: async (postId: number): Promise<Like> => toLike(await postRpc.getLike(postId)),
+    getLike: async (postId: number): Promise<Like> =>
+      toLike(await authenticatedRpc("get_post_like", { id: postId })),
     toggleLike: async (postId: number, liked: boolean): Promise<Like> =>
-      toLike(await postRpc.toggleLike({ id: postId, liked })),
+      toLike(await authenticatedRpc("toggle_post_like", { data: { id: postId, liked } })),
   },
   captions: {
     // Real back-end call now (#118): Top Captions come from
     // `list_captions_for_post`, already ranked by the back-end.
     listForPost: async (postId: number): Promise<CaptionView[]> =>
-      (await captionRpc.listForPost(postId)).map(toCaptionView),
+      (await publicRpc("list_captions_for_post", { id: postId })).map(toCaptionView),
     // Real back-end call (#121): `add_caption` needs a login. The back-end
     // validates the text (cap 36) and pokes the Post's `post_caption` feed.
     add: async (postId: number, text: string): Promise<CaptionView> =>
-      toCaptionView(await captionRpc.add({ post_id: postId, text })),
+      toCaptionView(await authenticatedRpc("add_caption", { data: { post_id: postId, text } })),
     // Real back-end calls (#123): the viewer's like state needs a login. The
     // toggle sends the wanted state, so a repeat is a no-op; the back-end pokes
     // `caption_like` and `post_caption`, so every client refetches the count and
     // the Top Captions ranking.
     getLike: async (captionId: number): Promise<Like> =>
-      toLike(await captionRpc.getLike(captionId)),
+      toLike(await authenticatedRpc("get_caption_like", { id: captionId })),
     toggleLike: async (captionId: number, liked: boolean): Promise<Like> =>
-      toLike(await captionRpc.toggleLike({ id: captionId, liked })),
+      toLike(await authenticatedRpc("toggle_caption_like", { data: { id: captionId, liked } })),
   },
   hero: {
     // Real back-end call now (#119): the public `get_hero` singleton read.
-    get: async (): Promise<HeroView> => toHeroView(await heroRpc.get()),
+    get: async (): Promise<HeroView> => toHeroView(await publicRpc("get_hero")),
   },
   profile: {
     // Real back-end call now (#119): `get_profile` returns the logged-in User,
     // so it needs a login (the authenticated RPC surface).
-    get: async (): Promise<AuthorRef> => toAuthorRef(await profileRpc.get()),
+    get: async (): Promise<AuthorRef> => toAuthorRef(await authenticatedRpc("get_profile")),
   },
 };
 

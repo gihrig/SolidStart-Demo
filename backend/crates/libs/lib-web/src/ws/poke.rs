@@ -13,8 +13,10 @@
 //! `broadcast_*` helpers — can mint one; an external handler cannot fabricate a
 //! receipt.
 
+use lib_rpc_core::RpcData;
 use serde::Serialize;
 use std::marker::PhantomData;
+use ts_rs::TS;
 
 // region:    --- Channel markers
 
@@ -100,6 +102,15 @@ where
 			_channel: PhantomData,
 		}
 	}
+}
+
+/// The RPC contract reads a mutation's `data` type through this, as it does a
+/// read's `DataRpcResult` (ADR-0029). The channel marker stays off the wire.
+impl<T, C> RpcData for PokedRpcResult<T, C>
+where
+	T: Serialize + TS + 'static,
+{
+	type Data = T;
 }
 
 // endregion: --- Poked RPC result
