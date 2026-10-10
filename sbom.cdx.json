@@ -136,6 +136,63 @@
       ]
     },
     {
+      "bom-ref": "6a638235627dc702",
+      "type": "library",
+      "name": "web-server",
+      "version": "0.1.0",
+      "cpe": "cpe:2.3:a:web-server_project:web-server:0.1.0:*:*:*:*:rust:*:*",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web-server_project:web_server:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web-server:web-server:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web-server:web_server:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web_server:web-server:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web_server:web_server:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web:web-server:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web:web_server:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
       "bom-ref": "744e3f51603b9c32",
       "type": "library",
       "name": "lib-auth",
@@ -185,63 +242,6 @@
         {
           "name": "syft:cpe23",
           "value": "cpe:2.3:a:lib:lib_auth:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:location:0:path",
-          "value": "/backend/Cargo.lock"
-        }
-      ]
-    },
-    {
-      "bom-ref": "78416e78a13711f9",
-      "type": "library",
-      "name": "web-server",
-      "version": "0.1.0",
-      "cpe": "cpe:2.3:a:web-server_project:web-server:0.1.0:*:*:*:*:rust:*:*",
-      "properties": [
-        {
-          "name": "syft:package:foundBy",
-          "value": "rust-cargo-lock-cataloger"
-        },
-        {
-          "name": "syft:package:language",
-          "value": "rust"
-        },
-        {
-          "name": "syft:package:type",
-          "value": "rust-crate"
-        },
-        {
-          "name": "syft:package:metadataType",
-          "value": "rust-cargo-lock-entry"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web-server_project:web_server:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web-server:web-server:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web-server:web_server:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web_server:web-server:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web_server:web_server:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web:web-server:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web:web_server:0.1.0:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -74112,24 +74112,7 @@
       ]
     },
     {
-      "ref": "744e3f51603b9c32",
-      "dependsOn": [
-        "8ab007ff31f3bb1c",
-        "pkg:cargo/argon2@0.6.0?package-id=a751dfa2c7ba1738",
-        "pkg:cargo/blake3@1.8.7?package-id=c586156c83d3a71b",
-        "pkg:cargo/derive_more@2.1.1?package-id=ef571d363c5852ab",
-        "pkg:cargo/enum_dispatch@0.3.13?package-id=bcbdd5a7ca3aa901",
-        "pkg:cargo/hmac@0.13.0?package-id=012d82fdaea58652",
-        "pkg:cargo/lazy-regex@3.6.2?package-id=dfea2107ed5ae7cd",
-        "pkg:cargo/serde@1.0.229?package-id=5aca60f1fff7abda",
-        "pkg:cargo/sha2@0.11.0?package-id=ac1fd413f4d757ab",
-        "pkg:cargo/tokio@1.53.2?package-id=2bcb0f7b6bb85b8e",
-        "pkg:cargo/ts-rs@12.0.1?package-id=95a1516912b50c0a",
-        "pkg:cargo/uuid@1.27.0?package-id=4460c2beec81faf0"
-      ]
-    },
-    {
-      "ref": "78416e78a13711f9",
+      "ref": "6a638235627dc702",
       "dependsOn": [
         "54085103c90bedd2",
         "5ade56a75949e6dd",
@@ -74151,6 +74134,24 @@
         "pkg:cargo/tower-http@0.7.1?package-id=aa85d63da1b319af",
         "pkg:cargo/tracing-subscriber@0.3.23?package-id=dba5ac01188a7d4a",
         "pkg:cargo/tracing@0.1.44?package-id=786dd48d017b508c",
+        "pkg:cargo/ts-rs@12.0.1?package-id=95a1516912b50c0a",
+        "pkg:cargo/uuid@1.27.0?package-id=4460c2beec81faf0"
+      ]
+    },
+    {
+      "ref": "744e3f51603b9c32",
+      "dependsOn": [
+        "8ab007ff31f3bb1c",
+        "pkg:cargo/argon2@0.6.0?package-id=a751dfa2c7ba1738",
+        "pkg:cargo/blake3@1.8.7?package-id=c586156c83d3a71b",
+        "pkg:cargo/derive_more@2.1.1?package-id=ef571d363c5852ab",
+        "pkg:cargo/enum_dispatch@0.3.13?package-id=bcbdd5a7ca3aa901",
+        "pkg:cargo/hmac@0.13.0?package-id=012d82fdaea58652",
+        "pkg:cargo/lazy-regex@3.6.2?package-id=dfea2107ed5ae7cd",
+        "pkg:cargo/serde@1.0.229?package-id=5aca60f1fff7abda",
+        "pkg:cargo/sha2@0.11.0?package-id=ac1fd413f4d757ab",
+        "pkg:cargo/tokio@1.53.2?package-id=2bcb0f7b6bb85b8e",
+        "pkg:cargo/ts-rs@12.0.1?package-id=95a1516912b50c0a",
         "pkg:cargo/uuid@1.27.0?package-id=4460c2beec81faf0"
       ]
     },
