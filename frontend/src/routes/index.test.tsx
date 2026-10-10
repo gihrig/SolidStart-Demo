@@ -85,6 +85,8 @@ vi.mock("~/lib/backend-rpc", async () => {
       cat(6, "Cute", "fire-heart"),
     ],
     list_posts: () => posts,
+    // Every Post's Comment thread starts empty (#124).
+    list_post_comments: () => [],
   };
   return {
     publicRpc: (method: string, params?: { id: number }) => Promise.resolve(reads[method](params)),

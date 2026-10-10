@@ -74,7 +74,7 @@ test.describe("Jedi Page", () => {
     await expect(article.getByRole("link").filter({ hasText: "Lisa" })).toBeVisible();
     await expect(article.getByRole("button", { name: /animals/i })).toBeVisible();
     await expect(article.getByRole("button", { name: /cute/i })).toBeVisible();
-    await expect(article.getByRole("link", { name: /Comments/i })).toBeVisible();
+    await expect(article.getByRole("button", { name: /Comments/i })).toBeVisible();
     await expect(article.getByText("Likes: 5")).toBeVisible();
     await expect(article.getByText("Caption likes: 8")).toBeVisible();
     for (const name of [/^Like /i, /^Edit /i, /^Delete /i, /^Add Caption$/i]) {

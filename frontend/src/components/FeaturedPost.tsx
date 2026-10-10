@@ -1,9 +1,11 @@
-import { createEffect, createSignal, For, on, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
 import { createRpcAction } from "~/lib/createRpcAction";
+import type { PostComments } from "~/lib/jedi/createPostComments";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { PostView, CaptionView, Like } from "~/types/jedi";
 import Image from "~/components/Image";
 import Author from "~/components/Author";
+import CommentThread from "~/components/CommentThread";
 import CreatePostDialog from "~/components/CreatePostDialog";
 import LikeControl from "~/components/LikeControl";
 import OwnerActions from "~/components/OwnerActions";
@@ -34,6 +36,9 @@ export interface FeaturedPostProps {
   captionLike?: Like;
   /** Like or unlike the Caption shown; the opposite of `captionLike.liked`. */
   onToggleCaptionLike?: () => Promise<void>;
+  /** This Post's Comment thread (#124). The Comments toggle opens it as an
+   *  inline panel; without it, the toggle opens nothing. */
+  comments?: Omit<PostComments, "onEvent">;
 }
 
 /** A Like toggle as an RPC action. Only the error is used: the Like shows at
@@ -68,7 +73,14 @@ export default function FeaturedPost(props: FeaturedPostProps) {
     setAddingCaption(false);
     addCaptionRef?.focus();
   };
-  // Comment/edit/delete are placeholders until they land on the feed seam.
+  // The Comments panel (#124). A `posts` poke refetches the Post as a new object
+  // with the same id; the memo keeps that from closing the panel or dropping its
+  // draft. Another Post closes it.
+  const [commentsOpen, setCommentsOpen] = createSignal(false);
+  const postId = createMemo(() => props.post.id);
+  createEffect(on(postId, () => setCommentsOpen(false), { defer: true }));
+  const commentsPanelId = () => `post-${postId()}-comments`;
+  // The author link is a placeholder until it lands on the feed seam.
   const notImplemented = (e: MouseEvent) => {
     e.preventDefault();
     alert("Not implemented");
@@ -163,6 +175,18 @@ export default function FeaturedPost(props: FeaturedPostProps) {
             </div>
           </Show>
         </div>
+        {/* The Comments panel (#124): below the categories line, above the
+            Comments line, which stays at the bottom of the card. */}
+        <Show when={commentsOpen() && props.comments}>
+          {(thread) => (
+            <CommentThread
+              id={commentsPanelId()}
+              thread={thread()}
+              loggedIn={props.loggedIn}
+              userId={props.userId}
+            />
+          )}
+        </Show>
         {/* One alert per toggle, so a Caption error never hides a Post error. */}
         <For each={[toggleCaptionLike.error(), toggleLike.error()].filter((e) => e !== null)}>
           {(error) => (
@@ -172,15 +196,17 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           )}
         </For>
         <div class="flex items-center justify-between text-sm px-2">
-          <a
+          <button
+            type="button"
             class="font-bold hover:underline rounded"
-            href="#"
-            aria-label={`Open Comments page, ${props.post.commentCount} comments`}
-            onClick={notImplemented}
+            aria-label={`Comments, ${props.post.commentCount} comments`}
+            aria-expanded={commentsOpen()}
+            aria-controls={commentsPanelId()}
+            onClick={() => setCommentsOpen((open) => !open)}
           >
             Comments
             <span class="font-light text-(--theme-card-fg) ml-2">{props.post.commentCount}</span>
-          </a>
+          </button>
           <div class="flex items-center gap-4">
             {/* The visibility rule (#123): a visitor sees the fire-heart and the
                 count. A logged-in User sees every button; Edit / Delete act for

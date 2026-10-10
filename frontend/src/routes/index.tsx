@@ -43,6 +43,7 @@ export default function Home() {
     togglePostLike,
     selectedCaptionLike,
     toggleCaptionLike,
+    postComments,
     connectFeed,
   } = createJediFeed();
 
@@ -97,6 +98,7 @@ export default function Home() {
                   onToggleLike={togglePostLike}
                   captionLike={selectedCaptionLike()}
                   onToggleCaptionLike={toggleCaptionLike}
+                  comments={postComments}
                 />
               )}
             </Match>

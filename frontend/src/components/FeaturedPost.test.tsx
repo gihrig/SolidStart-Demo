@@ -4,7 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import FeaturedPost from "./FeaturedPost";
-import type { PostView, CaptionView, Like } from "~/types/jedi";
+import type { PostComments } from "~/lib/jedi/createPostComments";
+import type { PostView, CaptionView, Like, PostComment } from "~/types/jedi";
 
 const post: PostView = {
   id: 1,
@@ -76,7 +77,7 @@ describe("<FeaturedPost />", () => {
   it("shows the author and the comment / like counts", () => {
     render(() => <FeaturedPost post={post} caption={caption} />);
     expect(screen.getByText("Lisa")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /3 comments/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /3 comments/i })).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
   });
 
@@ -371,6 +372,7 @@ describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123
       "Delete caption by Bart",
     ]);
     expect(names(postLine)).toEqual([
+      "Comments, 3 comments",
       "Like post by Lisa",
       "Add Post",
       "Edit Post by Lisa",
@@ -436,5 +438,66 @@ describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123
     const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
     expect(dialog.open).toBe(true);
     expect(dialog).toHaveAccessibleName("New Post");
+  });
+});
+
+describe("<FeaturedPost /> — the Comments panel (#124)", () => {
+  // A thread with one Comment by User 2; the writes are not used here.
+  const [threadRows] = createSignal<PostComment[] | undefined>([
+    { id: 9, postId: 1, ownerId: 2, content: "Nice cat" },
+  ]);
+  const thread: PostComments = {
+    comments: threadRows,
+    error: () => undefined,
+    add: () => Promise.resolve(),
+    update: () => Promise.resolve(),
+    remove: () => Promise.resolve(),
+    onEvent: () => {},
+  };
+  const toggle = () => screen.getByRole("button", { name: /3 comments/i });
+
+  it("the Comments toggle opens and closes the thread panel", async () => {
+    const user = userEvent.setup();
+    render(() => <FeaturedPost post={post} caption={caption} comments={thread} />);
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("region", { name: "Comments" })).toBeNull();
+
+    await user.click(toggle());
+    expect(toggle()).toHaveAttribute("aria-expanded", "true");
+    const panel = screen.getByRole("region", { name: "Comments" });
+    expect(toggle()).toHaveAttribute("aria-controls", panel.id);
+    expect(panel).toHaveTextContent("Nice cat");
+
+    await user.click(toggle());
+    expect(screen.queryByRole("region", { name: "Comments" })).toBeNull();
+  });
+
+  it("sits between the categories line and the Comments line", async () => {
+    const user = userEvent.setup();
+    render(() => <FeaturedPost post={post} caption={caption} comments={thread} />);
+    await user.click(toggle());
+    const panel = screen.getByRole("region", { name: "Comments" });
+    const category = screen.getByRole("button", { name: /^Cute$/ });
+    const follows = (a: Node, b: Node) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(category, panel)).toBe(true);
+    expect(follows(panel, toggle())).toBe(true);
+  });
+
+  it("a refetched Post keeps the panel open and the draft; another Post closes it", async () => {
+    const user = userEvent.setup();
+    const [shown, setShown] = createSignal(post);
+    render(() => (
+      <FeaturedPost post={shown()} caption={caption} comments={thread} loggedIn userId={2} />
+    ));
+    await user.click(toggle());
+    await user.type(screen.getByRole("textbox", { name: "Your comment" }), "draft");
+
+    // A `posts` poke refetches the list: a new object for the same Post.
+    setShown({ ...post, commentCount: 3 });
+    expect(screen.getByRole("textbox", { name: "Your comment" })).toHaveValue("draft");
+
+    setShown({ ...post, id: 2 });
+    expect(screen.queryByRole("region", { name: "Comments" })).toBeNull();
   });
 });
