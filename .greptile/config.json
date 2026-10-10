@@ -1,3 +1,10 @@
 {
-  "includeBranches": ["main"]
+  "includeBranches": ["main", "staging"],
+  "rules": [
+    {
+      "id": "deferred-admin-gap-181",
+      "rule": "Known deferred gap, tracked in issue #181 (ADR-0011 addendum). Admin privilege gating is interim: `update_hero` admits only a `Sys` User, and the seed has no login-capable `Sys` User, so no one can edit the Hero through the RPC until #181 adds a privilege system and an Admin login. This is intentional. Do not flag the missing Admin user, the unusable `update_hero`, or the unscoped model-layer Hero and Category writes. Do flag any change that lets a non-`Sys` User write the Hero or a Category.",
+      "scope": ["backend/**"]
+    }
+  ]
 }
