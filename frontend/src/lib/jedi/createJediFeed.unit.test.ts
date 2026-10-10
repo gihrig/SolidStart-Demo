@@ -420,7 +420,8 @@ describe("createJediFeed — the realtime posts poke (#117)", () => {
       createComponent(Suspense, {
         fallback: "Loading",
         get children() {
-          const jedi = createJediFeed({ api, feed: mem.feed });
+          const jedi = createJediFeed({ api });
+          jedi.connectFeed(mem.feed);
           // A function child renders as reactive text.
           return (() => jedi.selectedPost()?.title ?? "none") as unknown as JSX.Element;
         },
@@ -443,7 +444,8 @@ describe("createJediFeed — the realtime posts poke (#117)", () => {
   it("subscribes to the posts channel and refetches on a poke", async () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
-      createJediFeed({ api, feed: mem.feed });
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
       await tick();
       await tick();
 
@@ -494,7 +496,8 @@ describe("createJediFeed — the realtime posts poke (#117)", () => {
     const mem = memoryFeed(false);
     const created = post(5, "New arrival", HOMER, [CAT[1]], 0);
     await createRoot(async (dispose) => {
-      const jedi = createJediFeed({ api, feed: mem.feed });
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
       await tick();
       await tick();
 
@@ -509,7 +512,7 @@ describe("createJediFeed — the realtime posts poke (#117)", () => {
     });
   });
 
-  it("does not subscribe when no feed is injected (anonymous landing)", async () => {
+  it("does not subscribe when no feed is connected (anonymous landing)", async () => {
     // No feed: the view-model still loads Posts, but wires no subscription.
     await createRoot(async (dispose) => {
       const feed = createJediFeed({ api });
@@ -533,7 +536,8 @@ describe("createJediFeed — the realtime post_caption poke (#121)", () => {
   it("subscribes to the selected Post's Caption feed, and moves it with the selection", async () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
-      const jedi = createJediFeed({ api, feed: mem.feed });
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
       await tick();
       await tick();
       expect(mem.held()).toContainEqual(Channel.postCaption(1));
@@ -550,7 +554,8 @@ describe("createJediFeed — the realtime post_caption poke (#121)", () => {
   it("a poke for the selected Post refetches its Captions, so a new one appears", async () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
-      const jedi = createJediFeed({ api, feed: mem.feed });
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
       await tick();
       await tick();
 
@@ -567,7 +572,8 @@ describe("createJediFeed — the realtime post_caption poke (#121)", () => {
   it("ignores a poke for a Post that is not selected", async () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
-      createJediFeed({ api, feed: mem.feed });
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
       await tick();
       await tick();
 
@@ -584,7 +590,8 @@ describe("createJediFeed — the realtime post_caption poke (#121)", () => {
   it("refetches the Captions when the socket (re)connects, so a missed poke is recovered", async () => {
     const mem = memoryFeed(false);
     await createRoot(async (dispose) => {
-      const jedi = createJediFeed({ api, feed: mem.feed });
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
       await tick();
       await tick();
 
@@ -638,7 +645,8 @@ describe("createJediFeed — the selected Post's like state (#122)", () => {
   it("subscribes to the selected Post's like feed, and moves it with the selection", async () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
-      const jedi = createJediFeed({ api, feed: mem.feed });
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
       await tick();
       await tick();
       expect(mem.held()).toContainEqual(Channel.postLike(1));
@@ -655,7 +663,8 @@ describe("createJediFeed — the selected Post's like state (#122)", () => {
   it("a poke for the selected Post refetches its like state, so another User's Like shows", async () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
-      const jedi = createJediFeed({ api, feed: mem.feed });
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
       await tick();
       await tick();
 
@@ -678,7 +687,8 @@ describe("createJediFeed — the selected Post's like state (#122)", () => {
   it("togglePostLike sets the selected Post's like to the opposite state, then back", async () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
-      const jedi = createJediFeed({ api, feed: mem.feed });
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
       await tick();
       await tick();
 
@@ -721,7 +731,8 @@ describe("createJediFeed — the immediate local Like, synced from the server (#
   async function withLiveFeed(run: (jedi: JediFeed, poke: (id: number) => void) => Promise<void>) {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
-      const jedi = createJediFeed({ api, feed: mem.feed });
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
       await tick();
       await tick();
       try {
@@ -852,7 +863,8 @@ describe("createJediFeed — the selected Caption's like state (#123)", () => {
     mem = memoryFeed(),
   ) {
     await createRoot(async (dispose) => {
-      const jedi = createJediFeed({ api, feed: mem.feed });
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
       await tick();
       await tick();
       try {
