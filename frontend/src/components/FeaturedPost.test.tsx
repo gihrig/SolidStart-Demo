@@ -3,7 +3,9 @@ import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
+import { createDraftGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import FeaturedPost from "./FeaturedPost";
+import { DraftGuardContext } from "./DraftGuardContext";
 import type { PostComments } from "~/lib/jedi/createPostComments";
 import type { PostView, CaptionView, Like, PostComment } from "~/types/jedi";
 
@@ -130,6 +132,28 @@ describe("<FeaturedPost /> — Add Caption (#121)", () => {
     setCurrent({ ...post, id: 2 });
     await waitFor(() => expect(input()).toBeNull());
     expect(screen.getByText(caption.text)).toBeInTheDocument();
+  });
+
+  it("reports a Draft while the caption is not blank, and none after Cancel", async () => {
+    const user = userEvent.setup();
+    let guard!: DraftGuard;
+    render(() => {
+      guard = createDraftGuard();
+      return (
+        <DraftGuardContext.Provider value={guard}>
+          <FeaturedPost post={post} caption={caption} loggedIn captionsLoaded />
+        </DraftGuardContext.Provider>
+      );
+    });
+    await user.click(addButton()!);
+    await user.type(input()!, "  ");
+    expect(guard.hasDraft(), "blank after a trim").toBe(false);
+    await user.type(input()!, "draft");
+    expect(guard.hasDraft()).toBe(true);
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(guard.hasDraft()).toBe(false);
+    expect(guard.notice()).toBeUndefined();
   });
 
   it("keeps the form open and its text when the same Post is refetched", async () => {

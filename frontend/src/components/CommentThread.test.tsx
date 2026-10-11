@@ -2,9 +2,11 @@ import { describe, it, expect, vi } from "vite-plus/test";
 import { render, screen, waitFor, within } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
+import { createDraftGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import type { PostComments } from "~/lib/jedi/createPostComments";
 import type { PostComment } from "~/types/jedi";
 import CommentThread from "./CommentThread";
+import { DraftGuardContext } from "./DraftGuardContext";
 
 const comment = (id: number, ownerId: number, content: string): PostComment => ({
   id,
@@ -184,5 +186,80 @@ describe("<CommentThread />", () => {
 
     const item = screen.getByRole("listitem");
     expect(await within(item).findByRole("alert")).toHaveTextContent("Network down");
+  });
+});
+
+describe("<CommentThread /> — Drafts (ADR-0030)", () => {
+  // The thread inside its own guard, so a test can read what each form reports.
+  function renderGuarded(postComments: PostComments) {
+    let guard!: DraftGuard;
+    const result = render(() => {
+      guard = createDraftGuard();
+      return (
+        <DraftGuardContext.Provider value={guard}>
+          <CommentThread id="t" postComments={postComments} loggedIn userId={2} />
+        </DraftGuardContext.Provider>
+      );
+    });
+    return { guard, ...result };
+  }
+
+  it("the compose box reports a Draft while its text is not blank", async () => {
+    const user = userEvent.setup();
+    const { postComments } = fakePostComments([]);
+    const { guard } = renderGuarded(postComments);
+
+    await user.type(composeBox(), "   ");
+    expect(guard.hasDraft(), "blank after a trim").toBe(false);
+    await user.type(composeBox(), "hello");
+    expect(guard.hasDraft()).toBe(true);
+
+    await user.click(screen.getByRole("button", { name: "Post Comment" }));
+    await waitFor(() => expect(composeBox()).toHaveValue(""));
+    expect(guard.hasDraft(), "a saved Comment is no Draft").toBe(false);
+  });
+
+  it("an edit reports a Draft while its text differs from the saved Comment", async () => {
+    const user = userEvent.setup();
+    const { postComments } = fakePostComments([comment(1, 2, "mine")]);
+    const { guard } = renderGuarded(postComments);
+
+    await user.click(screen.getByRole("button", { name: "Edit comment" }));
+    expect(guard.hasDraft()).toBe(false);
+    const editBox = screen.getByRole("textbox", { name: "Edit your comment" });
+    await user.type(editBox, "!");
+    expect(guard.hasDraft()).toBe(true);
+    await user.type(editBox, "{Backspace}");
+    expect(guard.hasDraft(), "back to the saved text").toBe(false);
+
+    await user.type(editBox, "!");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(guard.hasDraft(), "Cancel discards it").toBe(false);
+    expect(guard.notice()).toBeUndefined();
+  });
+
+  it("a Comment deleted under an edit with a Draft shows the forced-discard notice", async () => {
+    const user = userEvent.setup();
+    const { postComments, setComments } = fakePostComments([comment(1, 2, "mine")]);
+    const { guard } = renderGuarded(postComments);
+    await user.click(screen.getByRole("button", { name: "Edit comment" }));
+    await user.type(screen.getByRole("textbox", { name: "Edit your comment" }), "!");
+
+    // The Owner deletes it in another tab: the removal Event drops the row.
+    setComments([]);
+
+    expect(guard.hasDraft()).toBe(false);
+    expect(guard.notice()).toBe("This Comment was deleted. Your unsaved changes were discarded.");
+  });
+
+  it("a form that unmounts with no Draft shows no notice", async () => {
+    const user = userEvent.setup();
+    const { postComments, setComments } = fakePostComments([comment(1, 2, "mine")]);
+    const { guard, unmount } = renderGuarded(postComments);
+    await user.click(screen.getByRole("button", { name: "Edit comment" }));
+
+    setComments([]);
+    unmount();
+    expect(guard.notice()).toBeUndefined();
   });
 });

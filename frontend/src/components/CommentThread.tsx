@@ -1,9 +1,11 @@
-import { createSignal, For, Show } from "solid-js";
+import { createSignal, For, onCleanup, Show } from "solid-js";
+import { DRAFT_DISCARDED_NOTICE } from "~/lib/createDraftGuard";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { hygieneLength } from "~/lib/hygieneLength";
 import type { PostComments } from "~/lib/jedi/createPostComments";
 import type { HygieneCaps } from "~/types/backend";
 import type { PostComment } from "~/types/jedi";
+import { useDraftGuard } from "~/components/DraftGuardContext";
 
 // Mirrors the back-end cap (`PostCommentBmc::hygiene_rules`), counted the
 // back-end's way (`hygieneLength`). `satisfies` pins it to the cap, so a changed
@@ -71,6 +73,9 @@ const FORM_TEXT = {
   },
 } as const;
 
+// The forced-discard notice of an edit whose Comment was deleted (ADR-0030).
+const COMMENT_DELETED_NOTICE = "This Comment was deleted. Your unsaved changes were discarded.";
+
 interface CommentFormProps {
   /** The textarea's element id; the count's id derives from it. */
   id: string;
@@ -85,11 +90,30 @@ interface CommentFormProps {
  * The one Comment form: the compose box, and the edit of one Comment. It holds
  * the write as an RPC action, so each form shows its own error. A saved write
  * clears the compose box; an edit closes.
+ *
+ * It reports its Draft to the app's guard (ADR-0030), under its element id: a
+ * compose box holds one while its text is not blank, and an edit while its
+ * text differs from the saved Comment. An unmount that the user did not
+ * confirm, with a Draft, is a forced discard, and the guard shows the notice.
  */
 function CommentForm(props: CommentFormProps) {
+  const guard = useDraftGuard();
   const text = () => FORM_TEXT[props.comment ? "edit" : "compose"];
   const saved = () => props.comment?.content ?? "";
   const [length, setLength] = createSignal(hygieneLength(saved()));
+  const setValue = (value: string) => {
+    setLength(hygieneLength(value));
+    guard.report(props.id, props.comment ? value !== saved() : value.trim() !== "");
+  };
+  // The thread still lists other rows, but not this one: its Comment was
+  // deleted. No thread at all: the panel went away with its Post.
+  const deleted = () =>
+    props.comment !== undefined &&
+    props.postComments.comments()?.every((c) => c.id !== props.comment?.id) === true;
+  onCleanup(() => {
+    if (guard.holds(props.id))
+      guard.discard(props.id, deleted() ? COMMENT_DELETED_NOTICE : DRAFT_DISCARDED_NOTICE);
+  });
   const write = createRpcAction(
     async (content: string) => {
       if (props.comment) await props.postComments.update(props.comment.id, content);
@@ -107,9 +131,13 @@ function CommentForm(props: CommentFormProps) {
     const content = new FormData(form).get("content");
     if (await write.run(typeof content === "string" ? content : "")) {
       form.reset();
-      setLength(hygieneLength(saved()));
+      setValue(saved());
       props.onClose?.();
     }
+  };
+  const handleCancel = () => {
+    guard.report(props.id, false);
+    props.onClose?.();
   };
 
   return (
@@ -125,7 +153,7 @@ function CommentForm(props: CommentFormProps) {
         required
         aria-describedby={countId()}
         aria-invalid={length() > COMMENT_MAX_LENGTH}
-        onInput={(e) => setLength(hygieneLength(e.currentTarget.value))}
+        onInput={(e) => setValue(e.currentTarget.value)}
         class="theme-input"
       >
         {saved()}
@@ -136,7 +164,7 @@ function CommentForm(props: CommentFormProps) {
           <button
             type="button"
             disabled={write.pending()}
-            onClick={() => props.onClose?.()}
+            onClick={handleCancel}
             class="theme-button disabled:opacity-50"
           >
             Cancel
@@ -173,8 +201,9 @@ function CommentItem(props: CommentItemProps) {
 
   return (
     <li class="space-y-1 border-b border-(--theme-muted) py-2 last:border-b-0">
+      {/* Only the Owner edits: a logoff closes an open edit. */}
       <Show
-        when={editing()}
+        when={editing() && props.isOwner}
         fallback={
           <div class="flex items-start gap-2">
             <p class="grow whitespace-pre-wrap break-words">{props.comment.content}</p>

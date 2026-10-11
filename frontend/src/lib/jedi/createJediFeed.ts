@@ -1,4 +1,5 @@
-import { createResource, createSignal, onCleanup, type Accessor, type Setter } from "solid-js";
+import { createResource, createSignal, onCleanup, type Accessor } from "solid-js";
+import { passThroughGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { createLikeState } from "~/lib/jedi/createLikeState";
 import { createPostComments, type PostComments } from "~/lib/jedi/createPostComments";
@@ -36,6 +37,10 @@ import type { JediCategory, Like, PostView, CaptionView, HeroView } from "~/type
  * module (`createPostComments`), exposed as one nested member; this view-model
  * keeps the Feed wiring around it.
  *
+ * Each user-started move that changes the selected Post, and a close of the
+ * Comments panel, goes through the app's Draft guard (ADR-0030): with a Draft,
+ * it waits for the confirm dialog.
+ *
  * `hero` (the header banner content) is the externalized header data (#32): the
  * route renders the Hero from `hero`, so it is not hard-coded in the markup. The
  * nav avatar's profile now lives in the global Nav, not here (see ADR-0007).
@@ -49,6 +54,8 @@ export interface JediFeed {
    *  can show a "No Posts in …" panel; undefined when posts exist or are loading. */
   emptyCategoryLabel: Accessor<string | undefined>;
   selectedPost: Accessor<PostView | undefined>;
+  /** Select a Post (a Top Photo click). A change of the selected Post goes
+   *  through the Draft guard. */
   selectPost: (id: number) => void;
   /** What Top Captions renders: the selected post's captions, or empty when no
    *  post is selected (an empty category), so the card clears with `<main>`. */
@@ -56,7 +63,9 @@ export interface JediFeed {
   selectedCaption: Accessor<CaptionView | undefined>;
   selectCaption: (id: number) => void;
   selectedCategory: Accessor<number>;
-  setSelectedCategory: Setter<number>;
+  /** Select a category by index. A change that changes the selected Post goes
+   *  through the Draft guard; one that keeps it does not. */
+  setSelectedCategory: (index: number) => void;
   hero: Accessor<HeroView | undefined>;
   /** The viewer's like state of the selected Post (#122): the live count and
    *  whether the viewer likes it. Undefined while loading, and on the anonymous
@@ -76,7 +85,8 @@ export interface JediFeed {
   toggleCaptionLike: () => Promise<void>;
   /** The selected Post's Comment thread (#124): the panel's open state, its
    *  rows and its writes. It loads only while the panel is open. The read is
-   *  public, so it loads on the anonymous landing too; the writes need a login. */
+   *  public, so it loads on the anonymous landing too; the writes need a login.
+   *  A close goes through the Draft guard. */
   postComments: PostComments;
   /** Wire a live Feed after creation (#120): the route builds this view-model
    *  anonymously, then connects the socket's Feed once a User logs in. The
@@ -95,11 +105,15 @@ export interface CreateJediFeedDeps {
    * is not a dep: the route connects it through `connectFeed` on login (#120).
    */
   api?: JediApi;
+  /** The app's Draft guard (`useDraftGuard()`, ADR-0030). Defaults to the
+   *  pass-through guard, which runs each move at once. */
+  guard?: DraftGuard;
 }
 
 export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const api = deps.api ?? jediApi;
-  const [selectedCategory, setSelectedCategory] = createSignal(0);
+  const guard = deps.guard ?? passThroughGuard;
+  const [selectedCategory, setSelectedCategoryIndex] = createSignal(0);
   const [selectedPostId, setSelectedPostId] = createSignal<number | undefined>();
   const [selectedCaptionId, setSelectedCaptionId] = createSignal<number | undefined>();
 
@@ -121,23 +135,33 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   };
 
   // Filtering happens here so the Top Photos card stays presentational. Ranking
-  // is inherited from `posts` — filter preserves order.
-  const visiblePosts = (): PostView[] | undefined => {
+  // is inherited from `posts` — filter preserves order. It takes the category
+  // index, so a category change can check the Post it would select.
+  const visiblePostsIn = (categoryIndex: number): PostView[] | undefined => {
     const all = posts();
-    const category = categories()?.[selectedCategory()];
+    const category = categories()?.[categoryIndex];
     if (!all || !category || category.id === ALL_CATEGORIES.id) return all;
     return all.filter((p) => p.categories.some((c) => c.id === category.id));
   };
+  const visiblePosts = () => visiblePostsIn(selectedCategory());
 
   // The clicked post, but only while the filter still lists it; otherwise the
   // top-ranked visible post. `visible === undefined` is the loading state (fall
   // back to `featured`); an empty array is a real category with no posts, which
   // stays undefined so `<main>` can show the empty panel instead of a stale post.
-  const selectedPost = (): PostView | undefined => {
-    const visible = visiblePosts();
+  const selectedPostIn = (categoryIndex: number): PostView | undefined => {
+    const visible = visiblePostsIn(categoryIndex);
     if (visible === undefined) return featured();
     const id = selectedPostId();
     return visible.find((p) => p.id === id) ?? visible[0];
+  };
+  const selectedPost = () => selectedPostIn(selectedCategory());
+
+  // A move that keeps the selected Post unmounts no form, so it is no guarded
+  // move.
+  const guardPostChange = (nextPostId: number | undefined, move: () => void): void => {
+    if (nextPostId === selectedPost()?.id) move();
+    else guard.attempt(move);
   };
 
   // Truthy only when a real (non-"All") category filters every post away.
@@ -147,7 +171,10 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     return category && category.id !== ALL_CATEGORIES.id ? category.name : undefined;
   };
   const selectPost = (id: number): void => {
-    setSelectedPostId(id);
+    guardPostChange(id, () => setSelectedPostId(id));
+  };
+  const setSelectedCategory = (index: number): void => {
+    guardPostChange(selectedPostIn(index)?.id, () => setSelectedCategoryIndex(index));
   };
 
   // Each result carries the Post id it was fetched for, so even an empty list
@@ -201,10 +228,15 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
 
   // The selected Post's Comment thread (#124). It loads while its panel is
   // open; the read is public, so it does not wait for a live session.
-  const { postComments, onEvent: onPostCommentEvent } = createPostComments({
+  const { postComments: thread, onEvent: onPostCommentEvent } = createPostComments({
     postId: () => selectedPost()?.id,
     api: api.comments,
   });
+  // A close unmounts the panel's forms, so it goes through the guard.
+  const postComments: PostComments = {
+    ...thread,
+    setOpen: (open) => (open ? thread.setOpen(true) : guard.attempt(() => thread.setOpen(false))),
+  };
 
   // Live propagation (#117): a `posts` poke means the Post list may have changed,
   // so refetch the list (the featured post re-derives from it). A `post_caption`

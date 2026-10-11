@@ -3,6 +3,7 @@ import { createComponent, createRoot, getOwner, runWithOwner, Suspense, type JSX
 import { render, screen } from "@solidjs/testing-library";
 import { Channel } from "~/lib/channel";
 import { createMemoryFeed } from "~/lib/feed.memory";
+import { createDraftGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { JediApi } from "./jedi-api";
 import type {
@@ -729,6 +730,66 @@ describe("createJediFeed — the selected Post's Comment thread (#124)", () => {
       dispose();
     });
   });
+});
+
+describe("createJediFeed — the Draft guard (ADR-0030)", () => {
+  // The view-model inside a guard that holds a Draft, as a form would report.
+  async function withDraft(run: (jedi: JediFeed, guard: DraftGuard) => void | Promise<void>) {
+    let dispose!: () => void;
+    const { jedi, guard } = createRoot((d) => {
+      dispose = d;
+      const guard = createDraftGuard();
+      return { jedi: createJediFeed({ api, guard }), guard };
+    });
+    try {
+      await tick();
+      await tick();
+      guard.report("compose", true);
+      await run(jedi, guard);
+    } finally {
+      dispose();
+    }
+  }
+
+  it("a Top Photo click waits for the confirm, then moves", () =>
+    withDraft((jedi, guard) => {
+      jedi.selectPost(2);
+      expect(jedi.selectedPost()?.id).toBe(1);
+      expect(guard.pending()).toBe(true);
+
+      guard.confirmMove();
+      expect(jedi.selectedPost()?.id).toBe(2);
+    }));
+
+  it("a click on the Post already shown is no move", () =>
+    withDraft((jedi, guard) => {
+      jedi.selectPost(1);
+      expect(guard.pending()).toBe(false);
+    }));
+
+  it("guards a category change only when it changes the selected Post", () =>
+    withDraft((jedi, guard) => {
+      jedi.setSelectedCategory(3); // Animals still lists post 1
+      expect(guard.pending()).toBe(false);
+      expect(jedi.selectedCategory()).toBe(3);
+
+      jedi.setSelectedCategory(1); // Landscape moves the article to post 2
+      expect(guard.pending()).toBe(true);
+      expect(jedi.selectedCategory()).toBe(3);
+      guard.cancelMove();
+      expect(jedi.selectedPost()?.id).toBe(1);
+    }));
+
+  it("guards closing the Comments panel, not opening it", () =>
+    withDraft((jedi, guard) => {
+      jedi.postComments.setOpen(true);
+      expect(jedi.postComments.open()).toBe(true);
+
+      jedi.postComments.setOpen(false);
+      expect(jedi.postComments.open()).toBe(true);
+      guard.confirmMove();
+      expect(jedi.postComments.open()).toBe(false);
+    }));
 });
 
 describe("createJediFeed — the selected Post's like state (#122)", () => {

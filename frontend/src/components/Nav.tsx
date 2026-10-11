@@ -1,6 +1,7 @@
 import { For, Show } from "solid-js";
 import { useDisclosure } from "~/lib/useDisclosure";
 import { useAuth } from "~/components/AuthContext";
+import { useDraftGuard } from "~/components/DraftGuardContext";
 import CreatePostDialog from "~/components/CreatePostDialog";
 import Icon from "~/components/Icon";
 import InitialsAvatar from "~/components/InitialsAvatar";
@@ -18,6 +19,8 @@ export default function Nav() {
   // Identity (avatar + display name) comes from the useAuth seam: the logged-in
   // User's profile lives there, not here (see ADR-0007).
   const { isAuthenticated, logoff, displayName, avatarUrl } = useAuth();
+  // A logoff unmounts every form, so it goes through the Draft guard (ADR-0030).
+  const guard = useDraftGuard();
 
   // The profile dropdown is a popup — hidden (and inert) whenever closed, on
   // every viewport — dismissed by Escape or a click outside its wrapping <div>.
@@ -91,7 +94,7 @@ export default function Nav() {
                 </li>
                 <li>
                   <Show when={isAuthenticated()} fallback={<a href="/fullstack">Log In</a>}>
-                    <button type="button" onClick={() => void logoff()}>
+                    <button type="button" onClick={() => guard.attempt(() => void logoff())}>
                       Log Out
                     </button>
                   </Show>
