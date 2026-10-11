@@ -1,6 +1,6 @@
 import { Show } from "solid-js";
 import type { SafeUrl } from "~/lib/sanitizeUrl";
-import InitialsAvatar from "~/components/InitialsAvatar";
+import Avatar from "~/components/Avatar";
 
 export interface AuthorProps {
   avatarSrc: SafeUrl;
@@ -10,15 +10,13 @@ export interface AuthorProps {
 }
 
 export default function Author(props: AuthorProps) {
-  // An author with no avatar gets the name's initials in a turquoise circle, the
-  // same stand-in as the Nav avatar.
   const avatar = () => (
-    <Show
-      when={props.avatarSrc}
-      fallback={<InitialsAvatar name={props.name} data-testid="author-initials" />}
-    >
-      {(src) => <img class="w-8 h-8 rounded-full" src={src()} alt={props.name} loading="lazy" />}
-    </Show>
+    <Avatar
+      src={props.avatarSrc}
+      name={props.name}
+      alt={props.name}
+      data-testid="author-initials"
+    />
   );
 
   return (
