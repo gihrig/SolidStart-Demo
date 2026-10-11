@@ -12,7 +12,8 @@
       "Bash(vpr *)",
       "Bash(vp test *)",
       "Bash(vp check *)",
-      "Bash(vp lint *)"
+      "Bash(vp lint *)",
+      "Bash(gh issue comment *)"
     ],
     "deny": ["Read(**/.env*)", "Read(**/.ssh/**)", "Bash(sudo *)"]
   }
