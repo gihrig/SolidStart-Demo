@@ -39,3 +39,4 @@ flat "what has been decided" view.
 | [0027](0027-backend-integers-cross-seam-as-number.md) | Back-end integers cross the contract seam as `number`, emitted by ts-rs | Accepted |
 | [0028](0028-feed-subscriptions-by-channel.md) | Feed Subscriptions are held by Channel, over a swappable transport | Accepted |
 | [0029](0029-rpc-contract-from-handler-signatures.md) | The RPC contract is read from the handler signatures and pinned by one test | Accepted |
+| [0030](0030-unsaved-draft-guard.md) | Unsaved Drafts are guarded by one app-level guard | Accepted |
