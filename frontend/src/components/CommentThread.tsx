@@ -55,6 +55,105 @@ function LengthCount(props: LengthCountProps) {
 /** Whether a length can be sent: not empty after trim, and within the cap. */
 const sendable = (length: number) => length > 0 && length <= COMMENT_MAX_LENGTH;
 
+/** The text of each `CommentForm` mode. */
+const FORM_TEXT = {
+  compose: {
+    label: "Your comment",
+    submit: "Post Comment",
+    pending: "Posting…",
+    error: "Could not post the Comment",
+  },
+  edit: {
+    label: "Edit your comment",
+    submit: "Save",
+    pending: "Saving…",
+    error: "Could not edit the Comment",
+  },
+} as const;
+
+interface CommentFormProps {
+  /** The textarea's element id; the count's id derives from it. */
+  id: string;
+  postComments: PostComments;
+  /** The Comment to edit. Without it, the form composes a new Comment. */
+  comment?: PostComment;
+  /** Called on Cancel, and after a saved write. An edit closes on it. */
+  onClose?: () => void;
+}
+
+/**
+ * The one Comment form: the compose box, and the edit of one Comment. It holds
+ * the write as an RPC action, so each form shows its own error. A saved write
+ * clears the compose box; an edit closes.
+ */
+function CommentForm(props: CommentFormProps) {
+  const text = () => FORM_TEXT[props.comment ? "edit" : "compose"];
+  const saved = () => props.comment?.content ?? "";
+  const [length, setLength] = createSignal(hygieneLength(saved()));
+  const write = createRpcAction(
+    async (content: string) => {
+      if (props.comment) await props.postComments.update(props.comment.id, content);
+      else await props.postComments.add(content);
+      return true;
+    },
+    { fallbackError: text().error },
+  );
+  const countId = () => `${props.id}-count`;
+
+  const handleSubmit = async (e: SubmitEvent) => {
+    e.preventDefault();
+    if (!sendable(length())) return;
+    const form = e.currentTarget as HTMLFormElement;
+    const content = new FormData(form).get("content");
+    if (await write.run(typeof content === "string" ? content : "")) {
+      form.reset();
+      setLength(hygieneLength(saved()));
+      props.onClose?.();
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} class="space-y-2">
+      <ErrorAlert error={write.error()} />
+      <label for={props.id} class={props.comment ? "sr-only" : "block font-medium"}>
+        {text().label}
+      </label>
+      <textarea
+        id={props.id}
+        name="content"
+        rows={3}
+        required
+        aria-describedby={countId()}
+        aria-invalid={length() > COMMENT_MAX_LENGTH}
+        onInput={(e) => setLength(hygieneLength(e.currentTarget.value))}
+        class="theme-input"
+      >
+        {saved()}
+      </textarea>
+      <div class="flex items-center justify-end gap-2">
+        <LengthCount id={countId()} length={length()} />
+        <Show when={props.comment}>
+          <button
+            type="button"
+            disabled={write.pending()}
+            onClick={() => props.onClose?.()}
+            class="theme-button disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </Show>
+        <button
+          type="submit"
+          disabled={write.pending() || !sendable(length())}
+          class="theme-button-primary shrink-0 disabled:opacity-50"
+        >
+          {write.pending() ? text().pending : text().submit}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 interface CommentItemProps {
   comment: PostComment;
   postComments: PostComments;
@@ -64,14 +163,6 @@ interface CommentItemProps {
 /** One Comment: its plain-text body, and, for the Owner, Edit and Delete. */
 function CommentItem(props: CommentItemProps) {
   const [editing, setEditing] = createSignal(false);
-  const [length, setLength] = createSignal(0);
-  const update = createRpcAction(
-    async (content: string) => {
-      await props.postComments.update(props.comment.id, content);
-      return true;
-    },
-    { fallbackError: "Could not edit the Comment" },
-  );
   const remove = createRpcAction(
     async () => {
       await props.postComments.remove(props.comment.id);
@@ -79,18 +170,6 @@ function CommentItem(props: CommentItemProps) {
     },
     { fallbackError: "Could not delete the Comment" },
   );
-  const countId = () => `comment-${props.comment.id}-count`;
-
-  const startEdit = () => {
-    setLength(hygieneLength(props.comment.content));
-    setEditing(true);
-  };
-  const handleSave = async (e: SubmitEvent) => {
-    e.preventDefault();
-    if (!sendable(length())) return;
-    const content = new FormData(e.currentTarget as HTMLFormElement).get("content");
-    if (await update.run(typeof content === "string" ? content : "")) setEditing(false);
-  };
 
   return (
     <li class="space-y-1 border-b border-(--theme-muted) py-2 last:border-b-0">
@@ -102,7 +181,7 @@ function CommentItem(props: CommentItemProps) {
             <Show when={props.isOwner}>
               <button
                 type="button"
-                onClick={startEdit}
+                onClick={() => setEditing(true)}
                 class="theme-button shrink-0"
                 aria-label="Edit comment"
               >
@@ -121,40 +200,14 @@ function CommentItem(props: CommentItemProps) {
           </div>
         }
       >
-        <form onSubmit={handleSave} class="space-y-2">
-          <textarea
-            name="content"
-            rows={3}
-            required
-            aria-label="Edit your comment"
-            aria-describedby={countId()}
-            aria-invalid={length() > COMMENT_MAX_LENGTH}
-            onInput={(e) => setLength(hygieneLength(e.currentTarget.value))}
-            class="theme-input"
-          >
-            {props.comment.content}
-          </textarea>
-          <div class="flex items-center justify-end gap-2">
-            <LengthCount id={countId()} length={length()} />
-            <button
-              type="button"
-              disabled={update.pending()}
-              onClick={() => setEditing(false)}
-              class="theme-button disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={update.pending() || !sendable(length())}
-              class="theme-button-primary shrink-0 disabled:opacity-50"
-            >
-              {update.pending() ? "Saving…" : "Save"}
-            </button>
-          </div>
-        </form>
+        <CommentForm
+          id={`comment-${props.comment.id}-edit`}
+          postComments={props.postComments}
+          comment={props.comment}
+          onClose={() => setEditing(false)}
+        />
       </Show>
-      <ErrorAlert error={update.error() ?? remove.error()} />
+      <ErrorAlert error={remove.error()} />
     </li>
   );
 }
@@ -167,28 +220,6 @@ function CommentItem(props: CommentItemProps) {
  * by id, so a live Event or a reload never wipes a draft.
  */
 export default function CommentThread(props: CommentThreadProps) {
-  const [length, setLength] = createSignal(0);
-  const add = createRpcAction(
-    async (content: string) => {
-      await props.postComments.add(content);
-      return true;
-    },
-    { fallbackError: "Could not post the Comment" },
-  );
-  const countId = () => `${props.id}-count`;
-  const composeId = () => `${props.id}-compose`;
-
-  const handleSubmit = async (e: SubmitEvent) => {
-    e.preventDefault();
-    if (!sendable(length())) return;
-    const form = e.currentTarget as HTMLFormElement;
-    const content = new FormData(form).get("content");
-    if (await add.run(typeof content === "string" ? content : "")) {
-      form.reset();
-      setLength(0);
-    }
-  };
-
   return (
     <section id={props.id} aria-label="Comments" class="mb-4 space-y-2 px-2 text-sm">
       <ErrorAlert error={props.postComments.error()} />
@@ -220,32 +251,7 @@ export default function CommentThread(props: CommentThreadProps) {
         )}
       </Show>
       <Show when={props.loggedIn}>
-        <form onSubmit={handleSubmit} class="space-y-2">
-          <ErrorAlert error={add.error()} />
-          <label for={composeId()} class="block font-medium">
-            Your comment
-          </label>
-          <textarea
-            id={composeId()}
-            name="content"
-            rows={3}
-            required
-            aria-describedby={countId()}
-            aria-invalid={length() > COMMENT_MAX_LENGTH}
-            onInput={(e) => setLength(hygieneLength(e.currentTarget.value))}
-            class="theme-input"
-          />
-          <div class="flex items-center justify-end gap-2">
-            <LengthCount id={countId()} length={length()} />
-            <button
-              type="submit"
-              disabled={add.pending() || !sendable(length())}
-              class="theme-button-primary shrink-0 disabled:opacity-50"
-            >
-              {add.pending() ? "Posting…" : "Post Comment"}
-            </button>
-          </div>
-        </form>
+        <CommentForm id={`${props.id}-compose`} postComments={props.postComments} />
       </Show>
     </section>
   );
