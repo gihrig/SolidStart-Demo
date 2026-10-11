@@ -10,14 +10,21 @@ import type { CommentView } from "~/types/jedi";
 import CommentThread from "./CommentThread";
 import { DraftGuardContext } from "./DraftGuardContext";
 
-// A Comment by User `authorId`: its author is its Owner.
-const comment = (id: number, authorId: number, content: string): CommentView => ({
+// A Comment by User `authorId`: its author is its Owner. It has no avatar
+// image and no edit, unless `extra` says so.
+const comment = (
+  id: number,
+  authorId: number,
+  content: string,
+  extra: Partial<CommentView> = {},
+): CommentView => ({
   id,
   parentId: 1,
   author: { id: authorId, name: `user${authorId}`, avatarUrl: trustedUrl("") },
   content,
   ctime: "2026-10-10T12:00:00Z",
   mtime: "2026-10-10T12:00:00Z",
+  ...extra,
 });
 
 // An in-memory thread: the writes change the rows, as `createPostComments`
@@ -196,6 +203,89 @@ describe("<CommentThread />", () => {
 
     const item = screen.getByRole("listitem");
     expect(await within(item).findByRole("alert")).toHaveTextContent("Network down");
+  });
+});
+
+describe("<CommentThread /> — the Comment row (#125)", () => {
+  it("shows the author's initials, the name and the time", () => {
+    const { postComments } = fakePostComments([
+      comment(1, 2, "hi", {
+        ctime: "2026-10-11T09:14:05.123456Z",
+        mtime: "2026-10-11T09:14:05.123456Z",
+      }),
+    ]);
+    render(() => <CommentThread id="t" postComments={postComments} />);
+    const item = screen.getByRole("listitem");
+
+    expect(within(item).getByTestId("comment-initials")).toHaveTextContent(/^US$/);
+    expect(within(item).getByText("user2")).toBeInTheDocument();
+    // HTML allows at most 3 decimal places; the wire can carry 6.
+    expect(item.querySelector("time")).toHaveAttribute("datetime", "2026-10-11T09:14:05.123Z");
+  });
+
+  it("shows the avatar image, with an empty alt text: the name is next to it", () => {
+    const avatar = { id: 2, name: "Lisa", avatarUrl: trustedUrl("https://example.com/lisa.png") };
+    const { postComments } = fakePostComments([comment(1, 2, "hi", { author: avatar })]);
+    render(() => <CommentThread id="t" postComments={postComments} />);
+    const item = screen.getByRole("listitem");
+
+    const img = item.querySelector("img");
+    expect(img).toHaveAttribute("src", "https://example.com/lisa.png");
+    expect(img).toHaveAttribute("alt", "");
+    expect(within(item).queryByTestId("comment-initials")).toBeNull();
+  });
+
+  it('shows "(edited)" only when mtime differs from ctime, with the edit time as its tooltip', () => {
+    const { postComments } = fakePostComments([
+      comment(2, 2, "edited", { mtime: "2026-10-10T12:05:00Z" }),
+      comment(1, 2, "unedited"),
+    ]);
+    render(() => <CommentThread id="t" postComments={postComments} />);
+    const [edited, unedited] = screen.getAllByRole("listitem");
+
+    expect(within(edited).getByText("(edited)")).toHaveAttribute(
+      "title",
+      expect.stringMatching(/^Edited /),
+    );
+    expect(within(unedited).queryByText("(edited)")).toBeNull();
+  });
+
+  it("an open edit keeps the name line and replaces only the body; the buttons hide", async () => {
+    const user = userEvent.setup();
+    const { postComments } = fakePostComments([comment(1, 2, "mine")]);
+    render(() => <CommentThread id="t" postComments={postComments} loggedIn userId={2} />);
+    const item = screen.getByRole("listitem");
+
+    await user.click(within(item).getByRole("button", { name: "Edit comment" }));
+
+    expect(within(item).getByText("user2")).toBeInTheDocument();
+    expect(item.querySelector("time")).not.toBeNull();
+    expect(within(item).getByRole("textbox", { name: "Edit your comment" })).toHaveValue("mine");
+    expect(within(item).queryByText("mine")).toBeNull();
+    expect(within(item).queryByRole("button", { name: /comment$/ })).toBeNull();
+  });
+
+  it("disables Save while an edit holds no Draft", async () => {
+    const user = userEvent.setup();
+    const { postComments } = fakePostComments([comment(1, 2, "mine")]);
+    render(() => <CommentThread id="t" postComments={postComments} loggedIn userId={2} />);
+    await user.click(screen.getByRole("button", { name: "Edit comment" }));
+    const save = screen.getByRole("button", { name: "Save" });
+    const editBox = screen.getByRole("textbox", { name: "Edit your comment" });
+
+    expect(save, "no change yet").toBeDisabled();
+    await user.type(editBox, "!");
+    expect(save).toBeEnabled();
+    await user.type(editBox, "{Backspace}");
+    expect(save, "back to the saved text").toBeDisabled();
+  });
+
+  it("puts the compose box above the list", () => {
+    const { postComments } = fakePostComments([comment(1, 3, "first")]);
+    render(() => <CommentThread id="t" postComments={postComments} loggedIn userId={2} />);
+
+    const position = composeBox().compareDocumentPosition(screen.getByRole("list"));
+    expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
 

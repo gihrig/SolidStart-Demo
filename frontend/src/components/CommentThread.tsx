@@ -5,6 +5,7 @@ import { hygieneLength } from "~/lib/hygieneLength";
 import type { PostComments } from "~/lib/jedi/createPostComments";
 import type { HygieneCaps } from "~/types/backend";
 import type { CommentView } from "~/types/jedi";
+import Avatar from "~/components/Avatar";
 import { useDraft } from "~/components/DraftGuardContext";
 
 // Mirrors the back-end cap (`PostCommentBmc::hygiene_rules`), counted the
@@ -56,6 +57,15 @@ function LengthCount(props: LengthCountProps) {
 
 /** Whether a length can be sent: not empty after trim, and within the cap. */
 const sendable = (length: number) => length > 0 && length <= COMMENT_MAX_LENGTH;
+
+// A Comment's time, as absolute local time: "Oct 11, 2026, 9:14 AM" in US
+// English (#125). The thread renders in the browser only, so the viewer's
+// locale applies.
+const TIME_FORMAT = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+const formatTime = (time: string) => TIME_FORMAT.format(new Date(time));
+// The `<time datetime>` value. HTML allows at most 3 decimal places of a
+// second, and the wire can carry 6.
+const isoTime = (time: string) => new Date(time).toISOString();
 
 /** The text of each `CommentForm` mode. */
 const FORM_TEXT = {
@@ -110,8 +120,11 @@ function CommentForm(props: CommentFormProps) {
       if (value() === previous) setValue(next);
     }),
   );
+  // An edit holds a Draft while its text differs from the saved Comment; the
+  // compose box while its text is not blank.
+  const dirty = () => (props.comment ? value() !== saved() : value().trim() !== "");
   const draft = useDraft({
-    dirty: () => (props.comment ? value() !== saved() : value().trim() !== ""),
+    dirty,
     scope: props.postComments.draftScope,
     notice: () =>
       props.comment && props.postComments.deleted(props.comment.id)
@@ -172,7 +185,7 @@ function CommentForm(props: CommentFormProps) {
         </Show>
         <button
           type="submit"
-          disabled={write.pending() || !sendable(length())}
+          disabled={write.pending() || !dirty() || !sendable(length())}
           class="theme-button-primary shrink-0 disabled:opacity-50"
         >
           {write.pending() ? text().pending : text().submit}
@@ -188,9 +201,19 @@ interface CommentItemProps {
   isOwner: boolean;
 }
 
-/** One Comment: its plain-text body, and, for the Owner, Edit and Delete. */
+/**
+ * One Comment, in the chat layout (#125): the avatar in a left column; at its
+ * right, the name line and then the body. The name line holds the name, the
+ * time, the "(edited)" mark and, for the Owner, Edit and Delete. An open edit
+ * replaces only the body, and the buttons hide. The body is a text node, never
+ * HTML: `content` is the raw text.
+ */
 function CommentItem(props: CommentItemProps) {
   const [editing, setEditing] = createSignal(false);
+  // Only the Owner edits: a logoff closes an open edit.
+  const editOpen = () => editing() && props.isOwner;
+  // A create writes one time to both; an edit moves `mtime`.
+  const edited = () => Date.parse(props.comment.mtime) !== Date.parse(props.comment.ctime);
   const remove = createRpcAction(
     async () => {
       await props.postComments.remove(props.comment.id);
@@ -200,18 +223,35 @@ function CommentItem(props: CommentItemProps) {
   );
 
   return (
-    <li class="space-y-1 border-b border-(--theme-muted) py-2 last:border-b-0">
-      {/* Only the Owner edits: a logoff closes an open edit. */}
-      <Show
-        when={editing() && props.isOwner}
-        fallback={
-          <div class="flex items-start gap-2">
-            <p class="grow whitespace-pre-wrap break-words">{props.comment.content}</p>
-            <Show when={props.isOwner}>
+    <li class="flex gap-2 border-b border-(--theme-muted) py-2 last:border-b-0">
+      <div class="shrink-0">
+        <Avatar
+          src={props.comment.author.avatarUrl}
+          name={props.comment.author.name}
+          alt=""
+          data-testid="comment-initials"
+        />
+      </div>
+      <div class="min-w-0 grow space-y-1">
+        <div class="flex flex-wrap items-baseline gap-x-2">
+          <span class="font-bold">{props.comment.author.name}</span>
+          <time datetime={isoTime(props.comment.ctime)} class="text-sm text-(--theme-muted)">
+            {formatTime(props.comment.ctime)}
+          </time>
+          <Show when={edited()}>
+            <span
+              title={`Edited ${formatTime(props.comment.mtime)}`}
+              class="text-sm text-(--theme-muted)"
+            >
+              (edited)
+            </span>
+          </Show>
+          <Show when={props.isOwner && !editOpen()}>
+            <div class="ml-auto flex gap-2">
               <button
                 type="button"
                 onClick={() => setEditing(true)}
-                class="theme-button shrink-0"
+                class="theme-button"
                 aria-label="Edit comment"
               >
                 Edit
@@ -220,23 +260,27 @@ function CommentItem(props: CommentItemProps) {
                 type="button"
                 onClick={() => void remove.run(undefined)}
                 disabled={remove.pending()}
-                class="theme-button shrink-0 disabled:opacity-50"
+                class="theme-button disabled:opacity-50"
                 aria-label="Delete comment"
               >
                 Delete
               </button>
-            </Show>
-          </div>
-        }
-      >
-        <CommentForm
-          id={`comment-${props.comment.id}-edit`}
-          postComments={props.postComments}
-          comment={props.comment}
-          onClose={() => setEditing(false)}
-        />
-      </Show>
-      <ErrorAlert error={remove.error()} />
+            </div>
+          </Show>
+        </div>
+        <Show
+          when={editOpen()}
+          fallback={<p class="whitespace-pre-wrap break-words">{props.comment.content}</p>}
+        >
+          <CommentForm
+            id={`comment-${props.comment.id}-edit`}
+            postComments={props.postComments}
+            comment={props.comment}
+            onClose={() => setEditing(false)}
+          />
+        </Show>
+        <ErrorAlert error={remove.error()} />
+      </div>
     </li>
   );
 }
@@ -244,14 +288,18 @@ function CommentItem(props: CommentItemProps) {
 /**
  * A Post's Comment thread (#124), the content of the inline panel in
  * `FeaturedPost`, which owns the panel element. Everyone reads it; a logged-in
- * User posts, and edits or deletes their own Comments. The body is plain text
- * (author display and markdown land in #125 / #126). The compose box sits
- * outside the list, and the rows come from a store keyed by id, so a live Event
- * or a reload never wipes a draft.
+ * User posts, and edits or deletes their own Comments. The thread lists the
+ * newest Comment first, so the compose box sits above the list (#125). The
+ * body is plain text (markdown lands in #126). The compose box sits outside
+ * the list, and the rows come from a store keyed by id, so a live Event or a
+ * reload never wipes a draft.
  */
 export default function CommentThread(props: CommentThreadProps) {
   return (
     <>
+      <Show when={props.loggedIn}>
+        <CommentForm id={`${props.id}-compose`} postComments={props.postComments} />
+      </Show>
       <ErrorAlert error={props.postComments.error()} />
       <Show
         when={props.postComments.comments()}
@@ -279,9 +327,6 @@ export default function CommentThread(props: CommentThreadProps) {
             </ul>
           </Show>
         )}
-      </Show>
-      <Show when={props.loggedIn}>
-        <CommentForm id={`${props.id}-compose`} postComments={props.postComments} />
       </Show>
     </>
   );
