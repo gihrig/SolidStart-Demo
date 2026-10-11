@@ -542,3 +542,13 @@ clicks. The app's global rule styles focus via `:focus-visible` (keyboard-only, 
 rule. A focus ring appearing on mouse click is a defect, not desired behavior; the
 `<main>` action buttons showing no ring on click are correct.
 _Avoid_: always-on focus outlines; showing the ring on pointer interaction.
+
+### Unsaved Drafts
+
+**Draft** (unsaved form text):
+Text a User typed in a form and has not saved: a non-blank Comment compose box or Add
+Caption form, or an open Comment edit that differs from the saved Comment. A
+user-started move that would unmount the form asks first. An Event that removes the
+form's subject discards the Draft, and a notice says so
+([ADR-0030](docs/adr/0030-unsaved-draft-guard.md)).
+_Avoid_: unsaved comment, pending edit; "lost" or "rejected" for a forced discard.

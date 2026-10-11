@@ -54,9 +54,18 @@ export const channelKey = (channel: Channel): string =>
 
 // The Channel an Event is addressed to, as the back-end `event.channel()`
 // derives it: a poke carries its Channel; a payload Event reads it from its
-// payload. A new payload variant adds one line here.
-const channelOf = (event: WsEvent): Channel =>
-  event.event_type === "conv_msg" ? Channel.conv(event.payload.conv_id) : event;
+// payload. A new payload variant adds one case here.
+const channelOf = (event: WsEvent): Channel => {
+  switch (event.event_type) {
+    case "conv_msg":
+      return Channel.conv(event.payload.conv_id);
+    case "post_comment":
+    case "post_comment_removal":
+      return Channel.postComment(event.payload.post_id);
+    case "poke":
+      return event;
+  }
+};
 
 /** One holder: the identity the refcount counts. */
 interface Subscription {

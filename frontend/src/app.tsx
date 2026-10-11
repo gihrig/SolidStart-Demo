@@ -3,6 +3,7 @@ import { Router } from "@solidjs/router";
 import { FileRoutes } from "@solidjs/start/router";
 import { Suspense } from "solid-js";
 import { AuthProvider } from "~/components/AuthContext";
+import { DraftGuardProvider } from "~/components/DraftGuardContext";
 import Nav from "~/components/Nav";
 import Footer from "~/components/Footer";
 import "./app.css";
@@ -13,9 +14,11 @@ export default function App() {
       root={(props) => (
         <MetaProvider>
           <AuthProvider>
-            <Nav />
-            <Suspense>{props.children}</Suspense>
-            <Footer />
+            <DraftGuardProvider>
+              <Nav />
+              <Suspense>{props.children}</Suspense>
+              <Footer />
+            </DraftGuardProvider>
           </AuthProvider>
         </MetaProvider>
       )}

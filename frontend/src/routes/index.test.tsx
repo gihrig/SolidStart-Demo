@@ -1,8 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vite-plus/test";
 import { render, screen, within, waitFor, fireEvent } from "@solidjs/testing-library";
 import { MetaProvider } from "@solidjs/meta";
 import { Suspense } from "solid-js";
-import { AuthProvider } from "~/components/AuthContext";
+import { MemoryRouter, Route } from "@solidjs/router";
+import userEvent from "@testing-library/user-event";
+import { stubDialogModal } from "~/lib/test-utils";
+import { AuthProvider, useAuth } from "~/components/AuthContext";
+import { DraftGuardProvider } from "~/components/DraftGuardContext";
+import Nav from "~/components/Nav";
 
 // The sidebar Categories, the Post feed, Top Captions, and the Hero now load from
 // the RPCs (ADR-0011, #117, #118, #119); the back-end client is mocked so this route test stays offline. The rows
@@ -85,10 +90,24 @@ vi.mock("~/lib/backend-rpc", async () => {
       cat(6, "Cute", "fire-heart"),
     ],
     list_posts: () => posts,
+    // Every Post's Comment thread starts empty (#124).
+    list_post_comments: () => [],
   };
   return {
     publicRpc: (method: string, params?: { id: number }) => Promise.resolve(reads[method](params)),
+    // A login works; the authenticated reads (the profile, the Likes) stay
+    // in flight, which this test does not need.
+    backendRpc: {
+      auth: { login: () => Promise.resolve(), logoff: () => Promise.resolve() },
+    },
+    authenticatedRpc: () => new Promise(() => {}),
   };
+});
+
+// A login connects the live Feed: an in-memory one, so this test stays offline.
+vi.mock("~/lib/feed.websocket", async () => {
+  const { createMemoryFeed } = await import("~/lib/feed.memory");
+  return { createWebSocketFeed: () => createMemoryFeed().feed };
 });
 
 import Home from "./index";
@@ -359,5 +378,87 @@ describe("Home route (Jedi feed, data-driven from jedi-api)", () => {
     // Top Captions clears — no caption rows for a category with no photo.
     const captionsCard = screen.getByRole("heading", { name: "Top Captions" }).closest("section")!;
     expect(within(captionsCard).queryAllByRole("option")).toHaveLength(0);
+  });
+});
+
+describe("Home route — the Draft guard (ADR-0030)", () => {
+  beforeAll(stubDialogModal);
+  beforeEach(() => setupMatchMedia(false)); // desktop
+  afterEach(() => vi.restoreAllMocks());
+
+  function LoginTrigger() {
+    const { login } = useAuth();
+    return (
+      <button type="button" onClick={() => void login("Homer", "pw")}>
+        do-login
+      </button>
+    );
+  }
+
+  // The app shell, as in app.tsx: the guard sits inside the Router, around the
+  // Nav and the routes.
+  const renderApp = () =>
+    render(() => (
+      <MemoryRouter
+        root={(props) => (
+          <MetaProvider>
+            <AuthProvider>
+              <DraftGuardProvider>
+                <Nav />
+                <LoginTrigger />
+                {props.children}
+              </DraftGuardProvider>
+            </AuthProvider>
+          </MetaProvider>
+        )}
+      >
+        <Route path="/" component={Home} />
+        <Route path="/about" component={() => <h1>About page</h1>} />
+      </MemoryRouter>
+    ));
+
+  const confirmDialog = () =>
+    screen.queryByRole("dialog", { name: "You have unsaved changes. Discard them?" });
+  const composeBox = () => screen.getByRole("textbox", { name: "Your comment" });
+
+  // Log in, open the featured Post's Comments, and type a Draft.
+  async function startDraft() {
+    const user = userEvent.setup();
+    renderApp();
+    await user.click(screen.getByRole("button", { name: /do-login/i }));
+    await screen.findByRole("heading", { name: /little jedi/i });
+    await user.click(screen.getByRole("button", { name: /comments, 0 comments/i }));
+    await user.type(await screen.findByRole("textbox", { name: "Your comment" }), "draft");
+    return user;
+  }
+
+  it("a Top Photo click with a Draft shows the dialog; Keep editing keeps it, Discard moves", async () => {
+    const user = await startDraft();
+    const photos = screen.getByRole("listbox", { name: "Top Photos" });
+    const brilliantTree = within(photos).getByRole("option", { name: /brilliant tree/i });
+
+    await user.click(brilliantTree);
+    expect(confirmDialog()).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(confirmDialog()).toBeNull();
+    expect(screen.getByRole("heading", { name: /little jedi/i })).toBeInTheDocument();
+    expect(composeBox()).toHaveValue("draft");
+
+    await user.click(brilliantTree);
+    await user.click(screen.getByRole("button", { name: "Discard" }));
+    expect(await screen.findByRole("heading", { name: /brilliant tree/i })).toBeInTheDocument();
+    expect(confirmDialog()).toBeNull();
+  });
+
+  it("a Nav link with a Draft shows the dialog, and Discard moves to the page", async () => {
+    const user = await startDraft();
+    const mainNav = screen.getByRole("navigation", { name: "Main" });
+
+    await user.click(within(mainNav).getByRole("link", { name: "About" }));
+    expect(confirmDialog()).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "About page" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Discard" }));
+    expect(await screen.findByRole("heading", { name: "About page" })).toBeInTheDocument();
   });
 });

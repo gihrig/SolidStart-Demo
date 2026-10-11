@@ -159,6 +159,7 @@ mod tests {
 	use crate::model::category::CategoryBmc;
 	use crate::model::hero::HeroBmc;
 	use crate::model::post::PostBmc;
+	use crate::model::post_comment::PostCommentBmc;
 	use crate::model::Error as ModelError;
 
 	/// A control character in the middle of the text is rejected.
@@ -290,6 +291,7 @@ mod tests {
 		let tables = [
 			(PostBmc::TABLE, PostBmc::hygiene_rules()),
 			(CaptionBmc::TABLE, CaptionBmc::hygiene_rules()),
+			(PostCommentBmc::TABLE, PostCommentBmc::hygiene_rules()),
 			(HeroBmc::TABLE, HeroBmc::hygiene_rules()),
 			(CategoryBmc::TABLE, CategoryBmc::hygiene_rules()),
 		];

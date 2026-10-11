@@ -11,6 +11,10 @@ import type { ParamsForCreate } from "./ParamsForCreate.d";
 import type { ParamsForUpdate } from "./ParamsForUpdate.d";
 import type { ParamsIded } from "./ParamsIded.d";
 import type { ParamsIdedList } from "./ParamsIdedList.d";
+import type { PostComment } from "./PostComment.d";
+import type { PostCommentForCreate } from "./PostCommentForCreate.d";
+import type { PostCommentForUpdate } from "./PostCommentForUpdate.d";
+import type { PostCommentRemoval } from "./PostCommentRemoval.d";
 import type { PostForCreate } from "./PostForCreate.d";
 import type { PostView } from "./PostView.d";
 
@@ -20,6 +24,9 @@ export type AuthenticatedRpc = {
   get_caption_like: { params: ParamsIded; result: LikeView };
   toggle_caption_like: { params: ParamsForCreate<LikeForToggle>; result: LikeView };
   update_hero: { params: ParamsForUpdate<HeroForUpdate>; result: HeroView };
+  add_post_comment: { params: ParamsForCreate<PostCommentForCreate>; result: PostComment };
+  delete_post_comment: { params: ParamsIded; result: PostCommentRemoval };
+  update_post_comment: { params: ParamsForUpdate<PostCommentForUpdate>; result: PostComment };
   create_post: { params: ParamsForCreate<PostForCreate>; result: PostView };
   get_post_like: { params: ParamsIded; result: LikeView };
   toggle_post_like: { params: ParamsForCreate<LikeForToggle>; result: LikeView };
@@ -31,6 +38,7 @@ export type PublicRpc = {
   list_captions_for_post: { params: ParamsIdedList; result: Array<CaptionView> };
   list_categories: { params: undefined; result: Array<CategoryPublic> };
   get_hero: { params: undefined; result: HeroView };
+  list_post_comments: { params: ParamsIdedList; result: Array<PostComment> };
   featured_post: { params: undefined; result: PostView };
   get_post: { params: ParamsIded; result: PostView };
   list_posts: { params: undefined; result: Array<PostView> };

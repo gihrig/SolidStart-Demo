@@ -6,6 +6,7 @@ import { createJediFeed } from "~/lib/jedi/createJediFeed";
 import type { Feed } from "~/lib/feed";
 import { createWebSocketFeed } from "~/lib/feed.websocket";
 import { useAuth } from "~/components/AuthContext";
+import { useDraftGuard } from "~/components/DraftGuardContext";
 import Hero from "~/components/Hero";
 import FeaturedPost from "~/components/FeaturedPost";
 import CategoriesCard from "~/components/CategoriesCard";
@@ -43,8 +44,9 @@ export default function Home() {
     togglePostLike,
     selectedCaptionLike,
     toggleCaptionLike,
+    postComments,
     connectFeed,
-  } = createJediFeed();
+  } = createJediFeed({ guard: useDraftGuard() });
 
   const sidebar = useDisclosure({ id: "jedi-sidebar" });
 
@@ -97,6 +99,7 @@ export default function Home() {
                   onToggleLike={togglePostLike}
                   captionLike={selectedCaptionLike()}
                   onToggleCaptionLike={toggleCaptionLike}
+                  postComments={postComments}
                 />
               )}
             </Match>

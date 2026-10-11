@@ -8,6 +8,7 @@ import type {
   CaptionView as CaptionViewWire,
   AuthorRef as AuthorRefWire,
   HeroView as HeroViewWire,
+  PostComment as PostCommentWire,
 } from "~/types/backend";
 import type {
   JediCategory,
@@ -16,6 +17,7 @@ import type {
   Like,
   PostDraft,
   PostView,
+  PostComment,
   CaptionView,
 } from "~/types/jedi";
 
@@ -77,6 +79,16 @@ const toCaptionView = (c: CaptionViewWire): CaptionView => ({
   author: toAuthorRef(c.author),
   text: c.text,
   likeCount: c.like_count,
+});
+
+// A Post Comment (#124), from a read or a Feed Event (`createPostComments`).
+// The wire audit columns are dropped: the back-end orders the thread, and no
+// component shows a time yet.
+export const toPostComment = (c: PostCommentWire): PostComment => ({
+  id: c.id,
+  postId: c.post_id,
+  ownerId: c.owner_id,
+  content: c.content,
 });
 
 // The Hero singleton (#119). The wire view has no `cta_href`: the CTA runs fixed
@@ -147,6 +159,23 @@ export const jediApi = {
       toLike(await authenticatedRpc("get_caption_like", { id: captionId })),
     toggleLike: async (captionId: number, liked: boolean): Promise<Like> =>
       toLike(await authenticatedRpc("toggle_caption_like", { data: { id: captionId, liked } })),
+  },
+  comments: {
+    // A Post's thread (#124): every Post is public, so the read needs no login;
+    // the back-end returns it oldest first. The writes need a login. Each write
+    // pushes on the Post's `post_comment` Channel; an add or delete also pokes
+    // `posts`, for the comment count.
+    listForPost: async (postId: number): Promise<PostComment[]> =>
+      (await publicRpc("list_post_comments", { id: postId })).map(toPostComment),
+    add: async (postId: number, content: string): Promise<PostComment> =>
+      toPostComment(
+        await authenticatedRpc("add_post_comment", { data: { post_id: postId, content } }),
+      ),
+    update: async (id: number, content: string): Promise<PostComment> =>
+      toPostComment(await authenticatedRpc("update_post_comment", { id, data: { content } })),
+    remove: async (id: number): Promise<void> => {
+      await authenticatedRpc("delete_post_comment", { id });
+    },
   },
   hero: {
     // Real back-end call now (#119): the public `get_hero` singleton read.

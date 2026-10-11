@@ -141,7 +141,7 @@ export default function CreatePostDialog(props: CreatePostDialogProps) {
         // (the close, or the rejection) stays visible.
         onCancel={(e) => create.pending() && e.preventDefault()}
         aria-labelledby={headingId}
-        class="m-auto w-full max-w-md rounded-2xl p-6 shadow-lg bg-(--theme-card-bg) text-(--theme-card-fg) backdrop:bg-black/50"
+        class="theme-dialog max-w-md"
       >
         <form onSubmit={handleSubmit} class="space-y-4">
           <h2 id={headingId} class="text-xl font-bold">
@@ -166,7 +166,7 @@ export default function CreatePostDialog(props: CreatePostDialogProps) {
                   type={field.type}
                   maxLength={field.maxLength}
                   required
-                  class="mt-1 block w-full rounded border border-(--theme-muted) bg-(--theme-background) px-3 py-2 text-(--theme-foreground)"
+                  class="theme-input mt-1"
                 />
               </div>
             )}
@@ -214,7 +214,7 @@ export default function CreatePostDialog(props: CreatePostDialogProps) {
             <button
               type="submit"
               disabled={create.pending()}
-              class="rounded-full px-3 py-1 text-white bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover) disabled:opacity-50"
+              class="theme-button-primary disabled:opacity-50"
             >
               {create.pending() ? "Posting…" : "Post"}
             </button>

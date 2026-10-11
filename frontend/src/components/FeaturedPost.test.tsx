@@ -3,8 +3,12 @@ import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
+import { createDraftGuard, type DraftGuard } from "~/lib/createDraftGuard";
+import { stubDialogModal } from "~/lib/test-utils";
 import FeaturedPost from "./FeaturedPost";
-import type { PostView, CaptionView, Like } from "~/types/jedi";
+import { DraftGuardContext } from "./DraftGuardContext";
+import type { PostComments } from "~/lib/jedi/createPostComments";
+import type { PostView, CaptionView, Like, PostComment } from "~/types/jedi";
 
 const post: PostView = {
   id: 1,
@@ -76,7 +80,7 @@ describe("<FeaturedPost />", () => {
   it("shows the author and the comment / like counts", () => {
     render(() => <FeaturedPost post={post} caption={caption} />);
     expect(screen.getByText("Lisa")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /3 comments/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /3 comments/i })).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
   });
 
@@ -129,6 +133,39 @@ describe("<FeaturedPost /> — Add Caption (#121)", () => {
     setCurrent({ ...post, id: 2 });
     await waitFor(() => expect(input()).toBeNull());
     expect(screen.getByText(caption.text)).toBeInTheDocument();
+  });
+
+  it("reports a Draft while the caption is not blank, and none after Cancel", async () => {
+    const user = userEvent.setup();
+    let guard!: DraftGuard;
+    render(() => {
+      guard = createDraftGuard();
+      return (
+        <DraftGuardContext.Provider value={guard}>
+          <FeaturedPost post={post} caption={caption} loggedIn captionsLoaded />
+        </DraftGuardContext.Provider>
+      );
+    });
+    await user.click(addButton()!);
+    await user.type(input()!, "  ");
+    expect(guard.hasDraft(), "blank after a trim").toBe(false);
+    await user.type(input()!, "draft");
+    expect(guard.hasDraft()).toBe(true);
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(guard.hasDraft()).toBe(false);
+    expect(guard.notice()).toBeUndefined();
+  });
+
+  it("keeps the form open and its text when the same Post is refetched", async () => {
+    const [current, setCurrent] = createSignal(post);
+    const { user } = renderLoggedIn(current);
+    await user.click(addButton()!);
+    await user.type(input()!, "draft");
+
+    // A `posts` poke refetches the list: a new object for the same Post.
+    setCurrent({ ...post });
+    expect(input()).toHaveValue("draft");
   });
 });
 
@@ -371,6 +408,7 @@ describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123
       "Delete caption by Bart",
     ]);
     expect(names(postLine)).toEqual([
+      "Comments, 3 comments",
       "Like post by Lisa",
       "Add Post",
       "Edit Post by Lisa",
@@ -424,9 +462,7 @@ describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123
   });
 
   it("opens the New Post dialog from the Post line's Add button", async () => {
-    HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
-      this.open = true;
-    };
+    stubDialogModal();
     const user = userEvent.setup();
     render(() => <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn />);
     expect(button("Add Post")).toHaveTextContent(/^Add$/);
@@ -436,5 +472,86 @@ describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123
     const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
     expect(dialog.open).toBe(true);
     expect(dialog).toHaveAccessibleName("New Post");
+  });
+});
+
+describe("<FeaturedPost /> — the Comments panel (#124)", () => {
+  // A thread with one Comment by User 2, and its open state; the writes are
+  // not used here. The view-model owns the open state, so a fresh one per test.
+  const fakePostComments = (): PostComments => {
+    const [open, setOpen] = createSignal(false);
+    const [comments] = createSignal<PostComment[] | undefined>([
+      { id: 9, postId: 1, ownerId: 2, content: "Nice cat" },
+    ]);
+    return {
+      open,
+      setOpen,
+      draftScope: Symbol("post-comments"),
+      comments,
+      deleted: () => false,
+      error: () => undefined,
+      add: () => Promise.resolve(),
+      update: () => Promise.resolve(),
+      remove: () => Promise.resolve(),
+    };
+  };
+  const toggle = () => screen.getByRole("button", { name: /3 comments/i });
+  const panel = () => document.getElementById(toggle().getAttribute("aria-controls")!);
+
+  it("keeps the panel element while closed, hidden and empty, so aria-controls resolves", () => {
+    const postComments = fakePostComments();
+    render(() => <FeaturedPost post={post} caption={caption} postComments={postComments} />);
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
+    expect(panel()).toBeInTheDocument();
+    expect(panel()).not.toBeVisible();
+    expect(panel()).toBeEmptyDOMElement();
+  });
+
+  it("the Comments toggle opens and closes the thread panel", async () => {
+    const user = userEvent.setup();
+    const postComments = fakePostComments();
+    render(() => <FeaturedPost post={post} caption={caption} postComments={postComments} />);
+
+    await user.click(toggle());
+    expect(postComments.open()).toBe(true);
+    expect(toggle()).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("region", { name: "Comments" })).toBe(panel());
+    expect(panel()).toHaveTextContent("Nice cat");
+
+    await user.click(toggle());
+    expect(postComments.open()).toBe(false);
+    expect(screen.queryByRole("region", { name: "Comments" })).toBeNull();
+    expect(panel()).toBeEmptyDOMElement();
+  });
+
+  it("sits between the categories line and the Comments line", () => {
+    const postComments = fakePostComments();
+    render(() => <FeaturedPost post={post} caption={caption} postComments={postComments} />);
+    const category = screen.getByRole("button", { name: /^Cute$/ });
+    const follows = (a: Node, b: Node) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(category, panel()!)).toBe(true);
+    expect(follows(panel()!, toggle())).toBe(true);
+  });
+
+  it("a refetched Post keeps the panel open and the draft", async () => {
+    const user = userEvent.setup();
+    const [shown, setShown] = createSignal(post);
+    const postComments = fakePostComments();
+    render(() => (
+      <FeaturedPost
+        post={shown()}
+        caption={caption}
+        postComments={postComments}
+        loggedIn
+        userId={2}
+      />
+    ));
+    await user.click(toggle());
+    await user.type(screen.getByRole("textbox", { name: "Your comment" }), "draft");
+
+    // A `posts` poke refetches the list: a new object for the same Post.
+    setShown({ ...post, commentCount: 3 });
+    expect(screen.getByRole("textbox", { name: "Your comment" })).toHaveValue("draft");
   });
 });

@@ -35,6 +35,7 @@ pub mod hero;
 pub mod like;
 pub(in crate::model) mod modql_utils;
 pub mod post;
+pub mod post_comment;
 pub mod user;
 
 pub use self::error::{Error, Result};

@@ -1,7 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vite-plus/test";
 import { render, screen, within } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Route } from "@solidjs/router";
+import { stubDialogModal } from "~/lib/test-utils";
 import { AuthProvider, useAuth } from "./AuthContext";
+import { DraftGuardProvider, useDraftGuard } from "./DraftGuardContext";
 import Nav from "./Nav";
 
 // The nav reads useAuth(); AuthProvider's login/logoff hit backend-rpc, mocked
@@ -241,5 +244,51 @@ describe("<Nav />", () => {
       expect(panel.inert).toBe(true);
       expect(panel).toHaveClass("pointer-events-none");
     });
+  });
+});
+
+describe("<Nav /> — the Draft guard (ADR-0030)", () => {
+  beforeAll(stubDialogModal);
+  beforeEach(() => {
+    profileGetMock.mockReset();
+    setupMatchMedia(false); // desktop
+  });
+
+  // A form that holds a Draft, as a Comment compose box with text would.
+  function DraftHolder() {
+    useDraftGuard().report(Symbol("test-draft"), true);
+    return null;
+  }
+
+  // The app shell: the guard sits inside the Router, as in app.tsx.
+  const renderShell = () =>
+    render(() => (
+      <MemoryRouter
+        root={(props) => (
+          <AuthProvider>
+            <DraftGuardProvider>
+              <Nav />
+              <LoginTrigger />
+              {props.children}
+            </DraftGuardProvider>
+          </AuthProvider>
+        )}
+      >
+        <Route path="/" component={DraftHolder} />
+      </MemoryRouter>
+    ));
+
+  it("a logoff click with a Draft shows the dialog, and Discard logs off", async () => {
+    const user = userEvent.setup();
+    renderShell();
+    await user.click(screen.getByRole("button", { name: /do-login/i }));
+    await user.click(screen.getByRole("button", { name: /profile menu/i }));
+
+    await user.click(await screen.findByRole("button", { name: /log out/i }));
+    const dialog = screen.getByRole("dialog", { name: "You have unsaved changes. Discard them?" });
+    expect(screen.getByRole("button", { name: /log out/i }), "still logged in").toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("button", { name: "Discard" }));
+    expect(await screen.findByRole("link", { name: /log in/i })).toBeInTheDocument();
   });
 });

@@ -1,6 +1,15 @@
-import { createResource, createSignal, onCleanup, type Accessor, type Setter } from "solid-js";
+import {
+  createMemo,
+  createResource,
+  createSignal,
+  onCleanup,
+  untrack,
+  type Accessor,
+} from "solid-js";
+import { passThroughGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { createLikeState } from "~/lib/jedi/createLikeState";
+import { createPostComments, type PostComments } from "~/lib/jedi/createPostComments";
 import type { Feed } from "~/lib/feed";
 import { Channel } from "~/lib/channel";
 import type { JediCategory, Like, PostView, CaptionView, HeroView } from "~/types/jedi";
@@ -19,7 +28,8 @@ import type { JediCategory, Like, PostView, CaptionView, HeroView } from "~/type
  * `selectedPost` is the post shown in the main article (#29): it defaults to the
  * top-ranked *visible* post and follows `selectPost(id)` when a Top Photo is
  * clicked, so a category filter that hides the selection moves the article to a
- * post the sidebar actually lists. `topCaptions` re-keys off it, so the
+ * post the sidebar actually lists. While a Draft exists, a re-rank does not
+ * move it (ADR-0030). `topCaptions` re-keys off it, so the
  * captions and the rest of the article's metadata track the selection.
  *
  * `selectedCaption` is the caption shown under the post (#33): it defaults to
@@ -30,6 +40,14 @@ import type { JediCategory, Like, PostView, CaptionView, HeroView } from "~/type
  * `selectedPostLike` / `selectedCaptionLike` are the viewer's like state of the
  * selected Post and the selected Caption (#122, #123). Each comes from one
  * `createLikeState`; this view-model keeps the Feed wiring around them.
+ *
+ * `postComments` is the selected Post's Comment thread (#124). It is its own
+ * module (`createPostComments`), exposed as one nested member; this view-model
+ * keeps the Feed wiring around it.
+ *
+ * Each user-started move that changes the selected Post, and a close of the
+ * Comments panel, goes through the app's Draft guard (ADR-0030): with a Draft,
+ * it waits for the confirm dialog.
  *
  * `hero` (the header banner content) is the externalized header data (#32): the
  * route renders the Hero from `hero`, so it is not hard-coded in the markup. The
@@ -44,6 +62,8 @@ export interface JediFeed {
    *  can show a "No Posts in …" panel; undefined when posts exist or are loading. */
   emptyCategoryLabel: Accessor<string | undefined>;
   selectedPost: Accessor<PostView | undefined>;
+  /** Select a Post (a Top Photo click). A change of the selected Post goes
+   *  through the Draft guard. */
   selectPost: (id: number) => void;
   /** What Top Captions renders: the selected post's captions, or empty when no
    *  post is selected (an empty category), so the card clears with `<main>`. */
@@ -51,7 +71,9 @@ export interface JediFeed {
   selectedCaption: Accessor<CaptionView | undefined>;
   selectCaption: (id: number) => void;
   selectedCategory: Accessor<number>;
-  setSelectedCategory: Setter<number>;
+  /** Select a category by index. A change that changes the selected Post goes
+   *  through the Draft guard; one that keeps it does not. */
+  setSelectedCategory: (index: number) => void;
   hero: Accessor<HeroView | undefined>;
   /** The viewer's like state of the selected Post (#122): the live count and
    *  whether the viewer likes it. Undefined while loading, and on the anonymous
@@ -69,6 +91,11 @@ export interface JediFeed {
    *  Caption line shows the new count at once; Top Captions re-ranks after the
    *  back-end's `post_caption` poke. */
   toggleCaptionLike: () => Promise<void>;
+  /** The selected Post's Comment thread (#124): the panel's open state, its
+   *  rows and its writes. It loads only while the panel is open. The read is
+   *  public, so it loads on the anonymous landing too; the writes need a login.
+   *  A close goes through the Draft guard. */
+  postComments: PostComments;
   /** Wire a live Feed after creation (#120): the route builds this view-model
    *  anonymously, then connects the socket's Feed once a User logs in. The
    *  subscription is owned by the caller's reactive scope, so it ends with it. */
@@ -86,11 +113,15 @@ export interface CreateJediFeedDeps {
    * is not a dep: the route connects it through `connectFeed` on login (#120).
    */
   api?: JediApi;
+  /** The app's Draft guard (`useDraftGuard()`, ADR-0030). Defaults to the
+   *  pass-through guard, which runs each move at once. */
+  guard?: DraftGuard;
 }
 
 export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const api = deps.api ?? jediApi;
-  const [selectedCategory, setSelectedCategory] = createSignal(0);
+  const guard = deps.guard ?? passThroughGuard;
+  const [selectedCategory, setSelectedCategoryIndex] = createSignal(0);
   const [selectedPostId, setSelectedPostId] = createSignal<number | undefined>();
   const [selectedCaptionId, setSelectedCaptionId] = createSignal<number | undefined>();
 
@@ -112,23 +143,46 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   };
 
   // Filtering happens here so the Top Photos card stays presentational. Ranking
-  // is inherited from `posts` — filter preserves order.
-  const visiblePosts = (): PostView[] | undefined => {
+  // is inherited from `posts` — filter preserves order. It takes the category
+  // index, so a category change can check the Post it would select.
+  const visiblePostsIn = (categoryIndex: number): PostView[] | undefined => {
     const all = posts();
-    const category = categories()?.[selectedCategory()];
+    const category = categories()?.[categoryIndex];
     if (!all || !category || category.id === ALL_CATEGORIES.id) return all;
     return all.filter((p) => p.categories.some((c) => c.id === category.id));
   };
+  const visiblePosts = () => visiblePostsIn(selectedCategory());
 
-  // The clicked post, but only while the filter still lists it; otherwise the
-  // top-ranked visible post. `visible === undefined` is the loading state (fall
-  // back to `featured`); an empty array is a real category with no posts, which
-  // stays undefined so `<main>` can show the empty panel instead of a stale post.
-  const selectedPost = (): PostView | undefined => {
-    const visible = visiblePosts();
+  // The clicked post, but only while the filter still lists it; then the held
+  // post; otherwise the top-ranked visible post. `visible === undefined` is the
+  // loading state (fall back to `featured`); an empty array is a real category
+  // with no posts, which stays undefined so `<main>` can show the empty panel
+  // instead of a stale post.
+  const selectedPostIn = (
+    categoryIndex: number,
+    heldId: number | undefined,
+  ): PostView | undefined => {
+    const visible = visiblePostsIn(categoryIndex);
     if (visible === undefined) return featured();
     const id = selectedPostId();
-    return visible.find((p) => p.id === id) ?? visible[0];
+    return visible.find((p) => p.id === id) ?? visible.find((p) => p.id === heldId) ?? visible[0];
+  };
+  // The Post shown when the first Draft started, held while a Draft exists: a
+  // re-rank (a Like) must not move the article and discard the Draft. With no
+  // Draft, the article follows the ranking again. A held Post that leaves the
+  // list is no longer shown, which is a forced discard.
+  const heldPostId = createMemo<number | undefined>((held) =>
+    guard.hasDraft()
+      ? (held ?? untrack(() => selectedPostIn(selectedCategory(), undefined))?.id)
+      : undefined,
+  );
+  const selectedPost = () => selectedPostIn(selectedCategory(), heldPostId());
+
+  // A move that keeps the selected Post unmounts no form, so it is no guarded
+  // move.
+  const guardPostChange = (nextPostId: number | undefined, move: () => void): void => {
+    if (nextPostId === selectedPost()?.id) move();
+    else guard.attempt(move);
   };
 
   // Truthy only when a real (non-"All") category filters every post away.
@@ -138,7 +192,10 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     return category && category.id !== ALL_CATEGORIES.id ? category.name : undefined;
   };
   const selectPost = (id: number): void => {
-    setSelectedPostId(id);
+    guardPostChange(id, () => setSelectedPostId(id));
+  };
+  const setSelectedCategory = (index: number): void => {
+    guardPostChange(selectedPostIn(index, heldPostId())?.id, () => setSelectedCategoryIndex(index));
   };
 
   // Each result carries the Post id it was fetched for, so even an empty list
@@ -190,17 +247,28 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     toggleLike: (id, liked) => api.captions.toggleLike(id, liked),
   });
 
+  // The selected Post's Comment thread (#124). It loads while its panel is
+  // open; the read is public, so it does not wait for a live session. Its
+  // close goes through the guard.
+  const { postComments, onEvent: onPostCommentEvent } = createPostComments({
+    postId: () => selectedPost()?.id,
+    api: api.comments,
+    guard,
+  });
+
   // Live propagation (#117): a `posts` poke means the Post list may have changed,
   // so refetch the list (the featured post re-derives from it). A `post_caption`
   // poke means one Post's Captions changed (#121), and a `post_like` poke means
   // one Post's like count changed (#122): each is held for the selected Post
   // only. A `caption_like` poke means one Caption's like count changed (#123),
-  // held for the selected Caption. Each Subscription names its Channel through
-  // an accessor, so the Feed moves the hold with the selection and routes only
-  // the held Channel here (ADR-0028). Each handler refetches on a poke and on
-  // the resync call after a (re)connect, so a poke lost while the socket was
-  // down is recovered (#120 review). The anonymous landing page has no socket,
-  // so the route calls this on login (#120).
+  // held for the selected Caption. A `post_comment` Event carries a Comment
+  // upsert or removal for one Post's thread (#124), held for the selected Post
+  // while its Comments panel is open. Each Subscription names its Channel
+  // through an accessor, so the Feed moves the hold with the selection and
+  // routes only the held Channel here (ADR-0028). Each handler refetches on a
+  // poke and on the resync call after a (re)connect, so a poke lost while the
+  // socket was down is recovered (#120 review). The anonymous landing page has
+  // no socket, so the route calls this on login (#120).
   const connectFeed = (feed: Feed): void => {
     // A connected Feed means a logged-in User, so the viewer's like state can
     // load now; it ends with the caller's scope (logout), like the socket. A
@@ -225,6 +293,9 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     feed.subscribe(selectedChannel(postId, Channel.postCaption), () => void refetchCaptions());
     feed.subscribe(selectedChannel(postId, Channel.postLike), () => postLike.refetch());
     feed.subscribe(selectedChannel(captionId, Channel.captionLike), () => captionLike.refetch());
+    // The thread's Subscription is held only while the Comments panel is open.
+    const shownThreadId = () => (postComments.open() ? postId() : undefined);
+    feed.subscribe(selectedChannel(shownThreadId, Channel.postComment), onPostCommentEvent);
   };
 
   const [hero] = createResource(() => api.hero.get());
@@ -245,6 +316,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     togglePostLike: postLike.toggle,
     selectedCaptionLike: captionLike.like,
     toggleCaptionLike: captionLike.toggle,
+    postComments,
     connectFeed,
   };
 }

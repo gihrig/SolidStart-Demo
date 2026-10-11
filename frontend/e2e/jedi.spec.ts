@@ -74,7 +74,7 @@ test.describe("Jedi Page", () => {
     await expect(article.getByRole("link").filter({ hasText: "Lisa" })).toBeVisible();
     await expect(article.getByRole("button", { name: /animals/i })).toBeVisible();
     await expect(article.getByRole("button", { name: /cute/i })).toBeVisible();
-    await expect(article.getByRole("link", { name: /Comments/i })).toBeVisible();
+    await expect(article.getByRole("button", { name: /Comments/i })).toBeVisible();
     await expect(article.getByText("Likes: 5")).toBeVisible();
     await expect(article.getByText("Caption likes: 8")).toBeVisible();
     for (const name of [/^Like /i, /^Edit /i, /^Delete /i, /^Add Caption$/i]) {
@@ -289,5 +289,36 @@ test.describe("Home Page - Theme Toggle", () => {
     const htmlLight = page.locator("html");
     expect(await htmlLight.evaluate((el) => el.style.colorScheme)).toBe("light");
     expect(await htmlLight.getAttribute("data-theme")).toBeNull();
+  });
+});
+
+// An unsaved Comment is guarded (ADR-0030): a move that would drop it asks first.
+test.describe("Jedi Page - Draft guard (#124)", () => {
+  test("a Top Photo click with a Comment Draft shows the dialog; Keep editing keeps it", async ({
+    page,
+  }) => {
+    // Log in on /fullstack, then go home in-app: the login state lives in the page.
+    await page.goto("/fullstack");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /login/i }).click();
+    await expect(page.getByText(/logged in as: demo1/i)).toBeVisible({ timeout: 10000 });
+    await page.getByRole("link", { name: /awesome/i }).click();
+
+    const article = page.locator("article").first();
+    await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
+    await article.getByRole("button", { name: /^Comments, /i }).click();
+    const compose = article.getByRole("textbox", { name: "Your comment" });
+    await compose.fill("A draft I have not posted");
+
+    const photos = page.getByRole("listbox", { name: "Top Photos" });
+    await photos.getByRole("option").filter({ hasText: "Homer" }).first().click();
+    const dialog = page.getByRole("dialog", { name: "You have unsaved changes. Discard them?" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Keep editing" })).toBeFocused();
+
+    await dialog.getByRole("button", { name: "Keep editing" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
+    await expect(compose).toHaveValue("A draft I have not posted");
   });
 });

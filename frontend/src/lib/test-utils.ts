@@ -1,6 +1,22 @@
 import { vi } from "vite-plus/test";
 
 /**
+ * jsdom has `HTMLDialogElement` but not its modal methods. This minimal stand-in
+ * toggles the `open` attribute, the state a browser's `showModal` / `close` set,
+ * and `close` fires the `close` event, as a browser does. Only imported by test
+ * files.
+ */
+export function stubDialogModal() {
+  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
+    this.open = false;
+    this.dispatchEvent(new Event("close"));
+  };
+}
+
+/**
  * Silence only the warnings that start with `prefix`, and return the spy so a
  * test can assert on them. Every other warning still reaches `console.warn`, so
  * the owner guard in `vitest-setup.ts` still sees Solid's warnings. A blanket

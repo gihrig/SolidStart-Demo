@@ -4,6 +4,7 @@ use crate::model::caption::{CaptionBmc, CaptionForCreate};
 use crate::model::category::{CategoryBmc, CategoryFilter, CategoryForCreate};
 use crate::model::conv::{ConvBmc, ConvForCreate};
 use crate::model::post::{PostBmc, PostForCreate};
+use crate::model::post_comment::{PostCommentBmc, PostCommentForCreate};
 use crate::model::{self, ModelManager};
 use modql::filter::OpValString;
 use tokio::sync::OnceCell;
@@ -390,3 +391,26 @@ pub async fn seed_caption(
 }
 
 // endregion: --- Caption seed
+
+// region:    --- PostComment seed
+
+/// Seed one Comment owned by `ctx` on the given Post. Cleanup rides the owner or
+/// Post delete, which cascades to the Comment.
+pub async fn seed_post_comment(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	post_id: i64,
+	content: &str,
+) -> model::Result<i64> {
+	PostCommentBmc::create(
+		ctx,
+		mm,
+		PostCommentForCreate {
+			post_id,
+			content: content.to_string(),
+		},
+	)
+	.await
+}
+
+// endregion: --- PostComment seed

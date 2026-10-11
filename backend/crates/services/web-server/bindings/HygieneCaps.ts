@@ -13,6 +13,9 @@ export type HygieneCaps = {
   caption: {
     text: 36;
   };
+  post_comment: {
+    content: 2000;
+  };
   hero: {
     title: 40;
     subtitle: 100;

@@ -1,9 +1,10 @@
-import { createSignal, onCleanup, onMount, Show } from "solid-js";
+import { createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { hygieneLength } from "~/lib/hygieneLength";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import type { HygieneCaps } from "~/types/backend";
 import type { CaptionView } from "~/types/jedi";
+import { useDraft } from "~/components/DraftGuardContext";
 
 // Mirrors the back-end cap (`CaptionBmc::hygiene_rules`), counted the back-end's
 // way (`hygieneLength`). `satisfies` pins it to the cap, so a changed cap fails
@@ -28,15 +29,18 @@ export interface AddCaptionFormProps {
  * The caption-submit form on a Post (#121), for a logged-in User. The submit
  * never reloads the page; the input clears once the back-end has committed the
  * Caption. The new Caption reaches Top Captions through the `post_caption` poke
- * the back-end fires on commit, not through this form.
+ * the back-end fires on commit, not through this form. It reports a Draft to
+ * the app's guard while its text is not blank (ADR-0030).
  */
 export default function AddCaptionForm(props: AddCaptionFormProps) {
   const api = props.api ?? jediApi;
   let inputRef: HTMLInputElement | undefined;
+  const [value, setValue] = createSignal("");
   // The live count. Not the input's `maxLength`, which counts UTF-16 units and
   // so cut an emoji caption short of the back-end's cap (#185 review).
-  const [length, setLength] = createSignal(0);
+  const length = createMemo(() => hygieneLength(value()));
   const overLimit = () => length() > CAPTION_MAX_LENGTH;
+  const draft = useDraft({ dirty: () => value().trim() !== "" });
   const add = createRpcAction((text: string) => api.captions.add(props.postId, text), {
     fallbackError: "Could not add the Caption",
   });
@@ -53,12 +57,9 @@ export default function AddCaptionForm(props: AddCaptionFormProps) {
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
     if (overLimit()) return;
-    const form = e.currentTarget as HTMLFormElement;
-    const text = new FormData(form).get("text");
-    const added = await add.run(typeof text === "string" ? text : "");
+    const added = await add.run(value());
     if (added && !unmounted) {
-      form.reset();
-      setLength(0);
+      setValue("");
       props.onAdded?.(added);
     }
   };
@@ -82,14 +83,18 @@ export default function AddCaptionForm(props: AddCaptionFormProps) {
           required
           aria-describedby="add-caption-count"
           aria-invalid={overLimit()}
-          onInput={(e) => setLength(hygieneLength(e.currentTarget.value))}
-          class="block w-full rounded border border-(--theme-muted) bg-(--theme-background) px-3 py-2 text-(--theme-foreground)"
+          value={value()}
+          onInput={(e) => setValue(e.currentTarget.value)}
+          class="theme-input"
         />
         <Show when={props.onCancel}>
           <button
             type="button"
             disabled={add.pending()}
-            onClick={() => props.onCancel?.()}
+            onClick={() => {
+              draft.clear();
+              props.onCancel?.();
+            }}
             class="theme-button shrink-0 disabled:opacity-50"
           >
             Cancel
@@ -98,7 +103,7 @@ export default function AddCaptionForm(props: AddCaptionFormProps) {
         <button
           type="submit"
           disabled={add.pending() || overLimit()}
-          class="shrink-0 rounded-full px-3 py-1 text-white bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover) disabled:opacity-50"
+          class="theme-button-primary shrink-0 disabled:opacity-50"
         >
           {add.pending() ? "Adding…" : "Add Caption"}
         </button>

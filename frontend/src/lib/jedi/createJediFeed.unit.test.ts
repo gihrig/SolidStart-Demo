@@ -3,9 +3,17 @@ import { createComponent, createRoot, getOwner, runWithOwner, Suspense, type JSX
 import { render, screen } from "@solidjs/testing-library";
 import { Channel } from "~/lib/channel";
 import { createMemoryFeed } from "~/lib/feed.memory";
+import { createDraftGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { JediApi } from "./jedi-api";
-import type { AuthorRef, CaptionView, JediCategory, Like, PostView } from "~/types/jedi";
+import type {
+  AuthorRef,
+  CaptionView,
+  JediCategory,
+  Like,
+  PostComment,
+  PostView,
+} from "~/types/jedi";
 import type { WsEvent } from "~/types/backend";
 import data from "./data.json";
 import { createJediFeed, type JediFeed } from "./createJediFeed";
@@ -82,6 +90,7 @@ const postToggleLikeMock = vi.fn<JediApi["posts"]["toggleLike"]>();
 const captionListForPostMock = vi.fn<JediApi["captions"]["listForPost"]>();
 const captionGetLikeMock = vi.fn<JediApi["captions"]["getLike"]>();
 const captionToggleLikeMock = vi.fn<JediApi["captions"]["toggleLike"]>();
+const commentListForPostMock = vi.fn<JediApi["comments"]["listForPost"]>();
 const api: JediApi = {
   categories: { list: () => Promise.resolve(CATEGORIES) },
   posts: {
@@ -95,6 +104,12 @@ const api: JediApi = {
     add: () => Promise.reject(new Error("not used by the view-model")),
     getLike: captionGetLikeMock,
     toggleLike: captionToggleLikeMock,
+  },
+  comments: {
+    listForPost: commentListForPostMock,
+    add: () => Promise.reject(new Error("not used here")),
+    update: () => Promise.reject(new Error("not used here")),
+    remove: () => Promise.reject(new Error("not used here")),
   },
   hero: {
     get: () =>
@@ -146,6 +161,18 @@ beforeEach(() => {
   captionListForPostMock.mockImplementation((postId: number) =>
     Promise.resolve(captionsFor(postId)),
   );
+  // Post N's thread holds one Comment, id N * 1000.
+  commentListForPostMock.mockReset();
+  commentListForPostMock.mockImplementation((postId: number) =>
+    Promise.resolve([commentOn(postId, postId * 1000)]),
+  );
+});
+
+const commentOn = (postId: number, id: number): PostComment => ({
+  id,
+  postId,
+  ownerId: 1,
+  content: `comment ${id}`,
 });
 
 // The resources back onto pre-resolved promises; two macrotask ticks drain the
@@ -600,6 +627,210 @@ describe("createJediFeed — the realtime post_caption poke (#121)", () => {
       await tick();
       await tick();
       expect(jedi.visibleCaptions()?.map((c) => c.id)).toContain(99);
+
+      dispose();
+    });
+  });
+});
+
+describe("createJediFeed — the selected Post's Comment thread (#124)", () => {
+  const ids = (jedi: JediFeed) => jedi.postComments.comments()?.map((c) => c.id);
+
+  it("loads the selected Post's thread only while the panel is open, also on the anonymous landing", () =>
+    withAnonymousJedi(async (jedi) => {
+      expect(jedi.postComments.open()).toBe(false);
+      expect(commentListForPostMock).not.toHaveBeenCalled();
+
+      jedi.postComments.setOpen(true);
+      await tick();
+      expect(ids(jedi)).toEqual([1000]);
+
+      // Another Post closes the panel; opening it there loads that thread.
+      jedi.selectPost(2);
+      expect(jedi.postComments.open()).toBe(false);
+      jedi.postComments.setOpen(true);
+      await tick();
+      expect(ids(jedi)).toEqual([2000]);
+    }));
+
+  it("holds the thread's Subscription only while the panel is open", async () => {
+    const mem = memoryFeed();
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
+      await tick();
+      await tick();
+      const commentChannels = () => mem.held().filter((c) => c.kind === "post_comment");
+      expect(commentChannels()).toEqual([]);
+
+      jedi.postComments.setOpen(true);
+      await tick();
+      expect(mem.held()).toContainEqual(Channel.postComment(1));
+
+      // Another Post closes the panel, so its Subscription ends too.
+      jedi.selectPost(2);
+      await tick();
+      expect(commentChannels()).toEqual([]);
+
+      dispose();
+    });
+  });
+
+  it("a pushed Comment for the selected Post shows in its thread", async () => {
+    const mem = memoryFeed();
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
+      await tick();
+      await tick();
+      jedi.postComments.setOpen(true);
+      await tick();
+
+      mem.emit({
+        event_type: "post_comment",
+        payload: {
+          id: 1001,
+          post_id: 1,
+          owner_id: 2,
+          content: "live",
+          cid: 2,
+          ctime: "2026-10-10T12:00:00Z",
+          mid: 2,
+          mtime: "2026-10-10T12:00:00Z",
+        },
+      });
+      expect(ids(jedi)).toEqual([1000, 1001]);
+
+      dispose();
+    });
+  });
+
+  it("a posts poke neither reloads the thread nor recreates its rows", async () => {
+    const mem = memoryFeed();
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
+      await tick();
+      await tick();
+      jedi.postComments.setOpen(true);
+      await tick();
+      const row = jedi.postComments.comments()![0];
+      const loads = commentListForPostMock.mock.calls.length;
+
+      // A Comment add pokes `posts`: the refetched list holds new Post objects.
+      postListMock.mockResolvedValue(RANKED_POSTS.map((p) => ({ ...p })));
+      mem.emit(pokeOn(Channel.posts));
+      await tick();
+      await tick();
+
+      expect(commentListForPostMock.mock.calls.length).toBe(loads);
+      expect(jedi.postComments.comments()![0]).toBe(row);
+      expect(jedi.postComments.open(), "the panel stays open").toBe(true);
+
+      dispose();
+    });
+  });
+});
+
+describe("createJediFeed — the Draft guard (ADR-0030)", () => {
+  // The view-model inside a guard that holds a Draft, as a form would report.
+  async function withDraft(run: (jedi: JediFeed, guard: DraftGuard) => void | Promise<void>) {
+    let dispose!: () => void;
+    const { jedi, guard } = createRoot((d) => {
+      dispose = d;
+      const guard = createDraftGuard();
+      return { jedi: createJediFeed({ api, guard }), guard };
+    });
+    try {
+      await tick();
+      await tick();
+      guard.report(Symbol("compose"), true);
+      await run(jedi, guard);
+    } finally {
+      dispose();
+    }
+  }
+
+  it("a Top Photo click waits for the confirm, then moves", () =>
+    withDraft((jedi, guard) => {
+      jedi.selectPost(2);
+      expect(jedi.selectedPost()?.id).toBe(1);
+      expect(guard.pending()).toBe(true);
+
+      guard.confirmMove();
+      expect(jedi.selectedPost()?.id).toBe(2);
+    }));
+
+  it("a click on the Post already shown is no move", () =>
+    withDraft((jedi, guard) => {
+      jedi.selectPost(1);
+      expect(guard.pending()).toBe(false);
+    }));
+
+  it("guards a category change only when it changes the selected Post", () =>
+    withDraft((jedi, guard) => {
+      jedi.setSelectedCategory(3); // Animals still lists post 1
+      expect(guard.pending()).toBe(false);
+      expect(jedi.selectedCategory()).toBe(3);
+
+      jedi.setSelectedCategory(1); // Landscape moves the article to post 2
+      expect(guard.pending()).toBe(true);
+      expect(jedi.selectedCategory()).toBe(3);
+      guard.cancelMove();
+      expect(jedi.selectedPost()?.id).toBe(1);
+    }));
+
+  it("guards closing the Comments panel, not opening it", () =>
+    withDraft((jedi, guard) => {
+      jedi.postComments.setOpen(true);
+      expect(jedi.postComments.open()).toBe(true);
+      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
+
+      jedi.postComments.setOpen(false);
+      expect(jedi.postComments.open()).toBe(true);
+      guard.confirmMove();
+      expect(jedi.postComments.open()).toBe(false);
+    }));
+
+  it("a panel close asks only about the panel's Drafts", () =>
+    withDraft((jedi, guard) => {
+      // `withDraft`'s Draft sits outside the panel, as an Add Caption Draft does.
+      jedi.postComments.setOpen(true);
+      jedi.postComments.setOpen(false);
+      expect(guard.pending()).toBe(false);
+      expect(jedi.postComments.open()).toBe(false);
+
+      jedi.postComments.setOpen(true);
+      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
+      jedi.postComments.setOpen(false);
+      guard.confirmMove();
+      expect(jedi.postComments.open()).toBe(false);
+      expect(guard.hasDraft(), "Discard keeps the Draft outside the panel").toBe(true);
+    }));
+
+  it("keeps the shown Post while a Draft exists: a re-rank does not move the article", async () => {
+    const mem = memoryFeed();
+    await createRoot(async (dispose) => {
+      const guard = createDraftGuard();
+      const jedi = createJediFeed({ api, guard });
+      jedi.connectFeed(mem.feed);
+      await tick();
+      await tick();
+      expect(jedi.selectedPost()?.id).toBe(1);
+      const draft = Symbol("compose");
+      guard.report(draft, true);
+
+      // A Like re-ranks the Posts: post 3 is now first.
+      const [first, second, ...rest] = RANKED_POSTS;
+      postListMock.mockResolvedValue([second, first, ...rest]);
+      mem.emit(pokeOn(Channel.posts));
+      await tick();
+      await tick();
+      expect(jedi.visiblePosts()![0].id).toBe(3);
+      expect(jedi.selectedPost()?.id, "the article stays").toBe(1);
+
+      guard.report(draft, false);
+      expect(jedi.selectedPost()?.id, "it follows the ranking again").toBe(3);
 
       dispose();
     });

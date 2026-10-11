@@ -68,7 +68,7 @@ mod tests {
 	use axum_test::TestServer;
 	use lib_core::_dev_utils::{
 		self, clean_agents, clean_convs, clean_posts, clean_users, seed_admin_user,
-		seed_caption, seed_post,
+		seed_caption, seed_post, seed_post_comment, seed_user,
 	};
 	use lib_core::ctx::Ctx;
 	use lib_core::model::user::{UserBmc, UserForCreate};
@@ -991,6 +991,155 @@ mod tests {
 
 		// -- Clean (the Post delete cascades its Likes)
 		clean_posts(&mm, fx_title).await?;
+
+		Ok(())
+	}
+
+	/// A Post's Comment thread over HTTP (#124). An anonymous visitor reads the
+	/// thread on `/api/rpc-public` but cannot write (401). A logged-in User adds,
+	/// edits and deletes their own Comment: an add or edit pushes the row on
+	/// `post_comment:{post_id}`, and a delete pushes the removal (id and
+	/// `post_id`). An add or delete then pokes `posts` (the count); an edit does
+	/// not. A non-owner edit or delete is rejected (400) with no push.
+	#[serial]
+	#[tokio::test]
+	async fn test_web_post_comment_thread_ok() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let fx_title = "test_web_post_comment_thread_ok";
+		let post_id = seed_post(&root, &mm, fx_title, &[1]).await?;
+		let other_id = seed_user(&root, &mm, "test_web_pc_thread-other").await?;
+		let other_comment =
+			seed_post_comment(&Ctx::new(other_id)?, &mm, post_id, "other's").await?;
+		let rpc = |method: &str, params: Value| json!({ "jsonrpc": "2.0", "id": 1, "method": method, "params": params });
+		let ws_state = Arc::new(WsState::new());
+		let mut rx = ws_state.tx.subscribe();
+		let anon = TestServer::new(app(mm.clone(), ws_state.clone()));
+		let mut server = TestServer::new(app(mm.clone(), ws_state.clone()));
+		server.save_cookies();
+		server
+			.post("/api/login")
+			.json(&json!({ "username": "demo1", "pwd": "welcome" }))
+			.await
+			.assert_status_ok();
+		let add = rpc(
+			"add_post_comment",
+			json!({ "data": { "post_id": post_id, "content": "  hello  " } }),
+		);
+
+		// -- Exec & Check: an anonymous caller cannot add.
+		anon.post("/api/rpc")
+			.json(&add)
+			.await
+			.assert_status(axum::http::StatusCode::UNAUTHORIZED);
+
+		// -- Exec & Check: add. The row comes back after hygiene, and it is
+		//    pushed on the thread, then `posts` is poked.
+		let body: Value = server.post("/api/rpc").json(&add).await.json();
+		let id = body
+			.pointer("/result/data/id")
+			.and_then(Value::as_i64)
+			.ok_or(format!("add_post_comment: missing id in {body}"))?;
+		assert_eq!(
+			body.pointer("/result/data/content").and_then(Value::as_str),
+			Some("hello")
+		);
+		let event = rx.try_recv().expect("add pushes the row");
+		assert_eq!(event.channel().key(), format!("post_comment:{post_id}"));
+		let event = serde_json::to_value(event)?;
+		assert_eq!(event["event_type"], "post_comment");
+		assert_eq!(event["payload"]["id"].as_i64(), Some(id));
+		let posts = rx.try_recv().expect("add pokes posts");
+		assert_eq!(posts.channel().key(), "posts");
+
+		// -- Exec & Check: edit pushes the new row, and does not poke `posts`.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&rpc(
+				"update_post_comment",
+				json!({ "id": id, "data": { "content": "edited" } }),
+			))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data/content").and_then(Value::as_str),
+			Some("edited"),
+			"got {body}"
+		);
+		let event = serde_json::to_value(rx.try_recv().expect("edit pushes"))?;
+		assert_eq!(event["event_type"], "post_comment");
+		assert_eq!(event["payload"]["content"], "edited");
+		assert!(rx.try_recv().is_err(), "an edit must not poke posts");
+
+		// -- Exec & Check: a non-owner edit or delete is rejected, with no push.
+		server
+			.post("/api/rpc")
+			.json(&rpc(
+				"update_post_comment",
+				json!({ "id": other_comment, "data": { "content": "hijack" } }),
+			))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		server
+			.post("/api/rpc")
+			.json(&rpc("delete_post_comment", json!({ "id": other_comment })))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		assert!(rx.try_recv().is_err(), "a rejected write must not push");
+
+		// -- Exec & Check: the public thread lists both, oldest first.
+		let list = rpc("list_post_comments", json!({ "id": post_id }));
+		let body: Value = anon.post("/api/rpc-public").json(&list).await.json();
+		let ids: Vec<i64> = body
+			.pointer("/result/data")
+			.and_then(Value::as_array)
+			.ok_or(format!("list_post_comments: missing data in {body}"))?
+			.iter()
+			.filter_map(|c| c.pointer("/id").and_then(Value::as_i64))
+			.collect();
+		assert_eq!(ids, vec![other_comment, id]);
+
+		// -- Exec & Check: delete returns and pushes the removal, then pokes
+		//    `posts`.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&rpc("delete_post_comment", json!({ "id": id })))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data"),
+			Some(&json!({ "id": id, "post_id": post_id })),
+			"got {body}"
+		);
+		let event = rx.try_recv().expect("delete pushes the removal");
+		assert_eq!(event.channel().key(), format!("post_comment:{post_id}"));
+		assert_eq!(
+			serde_json::to_value(event)?,
+			json!({
+				"event_type": "post_comment_removal",
+				"payload": { "id": id, "post_id": post_id },
+			})
+		);
+		let posts = rx.try_recv().expect("delete pokes posts");
+		assert_eq!(posts.channel().key(), "posts");
+
+		// -- Check: the thread now holds only the other User's Comment.
+		let body: Value = anon.post("/api/rpc-public").json(&list).await.json();
+		assert_eq!(
+			body.pointer("/result/data/0/id").and_then(Value::as_i64),
+			Some(other_comment)
+		);
+		assert_eq!(
+			body.pointer("/result/data")
+				.and_then(Value::as_array)
+				.map(Vec::len),
+			Some(1)
+		);
+
+		// -- Clean (the Post delete cascades its Comments)
+		clean_posts(&mm, fx_title).await?;
+		clean_users(&root, &mm, "test_web_pc_thread").await?;
 
 		Ok(())
 	}
