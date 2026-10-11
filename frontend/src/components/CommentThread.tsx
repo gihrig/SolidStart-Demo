@@ -14,7 +14,7 @@ export interface CommentThreadProps {
   /** The panel's element id, for the toggle's `aria-controls`. */
   id: string;
   /** The selected Post's thread (`createJediFeed().postComments`). */
-  thread: Omit<PostComments, "onEvent">;
+  postComments: PostComments;
   /** Only a logged-in User sees the compose box and the Edit / Delete buttons. */
   loggedIn?: boolean;
   /** The logged-in User's id: Edit / Delete show on the User's own Comments
@@ -57,7 +57,7 @@ const sendable = (length: number) => length > 0 && length <= COMMENT_MAX_LENGTH;
 
 interface CommentItemProps {
   comment: PostComment;
-  thread: CommentThreadProps["thread"];
+  postComments: PostComments;
   isOwner: boolean;
 }
 
@@ -67,14 +67,14 @@ function CommentItem(props: CommentItemProps) {
   const [length, setLength] = createSignal(0);
   const update = createRpcAction(
     async (content: string) => {
-      await props.thread.update(props.comment.id, content);
+      await props.postComments.update(props.comment.id, content);
       return true;
     },
     { fallbackError: "Could not edit the Comment" },
   );
   const remove = createRpcAction(
     async () => {
-      await props.thread.remove(props.comment.id);
+      await props.postComments.remove(props.comment.id);
       return true;
     },
     { fallbackError: "Could not delete the Comment" },
@@ -170,7 +170,7 @@ export default function CommentThread(props: CommentThreadProps) {
   const [length, setLength] = createSignal(0);
   const add = createRpcAction(
     async (content: string) => {
-      await props.thread.add(content);
+      await props.postComments.add(content);
       return true;
     },
     { fallbackError: "Could not post the Comment" },
@@ -191,9 +191,9 @@ export default function CommentThread(props: CommentThreadProps) {
 
   return (
     <section id={props.id} aria-label="Comments" class="mb-4 space-y-2 px-2 text-sm">
-      <ErrorAlert error={props.thread.error()} />
+      <ErrorAlert error={props.postComments.error()} />
       <Show
-        when={props.thread.comments()}
+        when={props.postComments.comments()}
         fallback={<p class="text-(--theme-muted)">Loading Comments…</p>}
       >
         {(comments) => (
@@ -206,7 +206,7 @@ export default function CommentThread(props: CommentThreadProps) {
                 {(comment) => (
                   <CommentItem
                     comment={comment}
-                    thread={props.thread}
+                    postComments={props.postComments}
                     isOwner={
                       props.loggedIn === true &&
                       props.userId !== undefined &&

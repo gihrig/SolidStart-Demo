@@ -457,19 +457,18 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
   const [threadRows] = createSignal<PostComment[] | undefined>([
     { id: 9, postId: 1, ownerId: 2, content: "Nice cat" },
   ]);
-  const thread: PostComments = {
+  const postComments: PostComments = {
     comments: threadRows,
     error: () => undefined,
     add: () => Promise.resolve(),
     update: () => Promise.resolve(),
     remove: () => Promise.resolve(),
-    onEvent: () => {},
   };
   const toggle = () => screen.getByRole("button", { name: /3 comments/i });
 
   it("the Comments toggle opens and closes the thread panel", async () => {
     const user = userEvent.setup();
-    render(() => <FeaturedPost post={post} caption={caption} comments={thread} />);
+    render(() => <FeaturedPost post={post} caption={caption} postComments={postComments} />);
     expect(toggle()).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByRole("region", { name: "Comments" })).toBeNull();
 
@@ -485,7 +484,7 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
 
   it("sits between the categories line and the Comments line", async () => {
     const user = userEvent.setup();
-    render(() => <FeaturedPost post={post} caption={caption} comments={thread} />);
+    render(() => <FeaturedPost post={post} caption={caption} postComments={postComments} />);
     await user.click(toggle());
     const panel = screen.getByRole("region", { name: "Comments" });
     const category = screen.getByRole("button", { name: /^Cute$/ });
@@ -499,7 +498,13 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
     const user = userEvent.setup();
     const [shown, setShown] = createSignal(post);
     render(() => (
-      <FeaturedPost post={shown()} caption={caption} comments={thread} loggedIn userId={2} />
+      <FeaturedPost
+        post={shown()}
+        caption={caption}
+        postComments={postComments}
+        loggedIn
+        userId={2}
+      />
     ));
     await user.click(toggle());
     await user.type(screen.getByRole("textbox", { name: "Your comment" }), "draft");

@@ -38,7 +38,7 @@ export interface FeaturedPostProps {
   onToggleCaptionLike?: () => Promise<void>;
   /** This Post's Comment thread (#124). The Comments toggle opens it as an
    *  inline panel; without it, the toggle opens nothing. */
-  comments?: Omit<PostComments, "onEvent">;
+  postComments?: PostComments;
 }
 
 /** A Like toggle as an RPC action. Only the error is used: the Like shows at
@@ -171,11 +171,11 @@ export default function FeaturedPost(props: FeaturedPostProps) {
         </div>
         {/* The Comments panel (#124): below the categories line, above the
             Comments line, which stays at the bottom of the card. */}
-        <Show when={commentsOpen() && props.comments}>
-          {(thread) => (
+        <Show when={commentsOpen() && props.postComments}>
+          {(postComments) => (
             <CommentThread
               id={commentsPanelId()}
-              thread={thread()}
+              postComments={postComments()}
               loggedIn={props.loggedIn}
               userId={props.userId}
             />

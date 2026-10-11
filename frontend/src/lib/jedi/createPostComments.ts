@@ -27,20 +27,23 @@ export interface PostComments {
   update: (id: number, content: string) => Promise<void>;
   /** Delete the viewer's own Comment. The thread drops it at once. */
   remove: (id: number) => Promise<void>;
-  /** The Feed handler for the selected Post's `post_comment` Channel:
-   *  `createJediFeed` holds the Subscription. An upsert adds or edits a row, a
-   *  removal drops one, and the resync call reloads the thread. */
-  onEvent: FeedHandler;
 }
 
 /**
  * The Comment thread of the selected Post (#124): the thread load, the live
  * merge of pushed Events and of the viewer's own writes, and the race guard.
  * The rows live in a store and reconcile by id, so a reload does not recreate
- * them: a row's DOM, and any input in it, survives (`reconcile`). The Feed
- * wiring stays in `createJediFeed`.
+ * them: a row's DOM, and any input in it, survives (`reconcile`).
+ *
+ * It returns the public thread, `postComments`, and its Feed handler,
+ * `onEvent`. Only `createJediFeed` holds `onEvent`, for the Subscription on the
+ * selected Post's `post_comment` Channel. An upsert adds or edits a row, a
+ * removal drops one, and the resync call reloads the thread.
  */
-export function createPostComments(deps: PostCommentsDeps): PostComments {
+export function createPostComments(deps: PostCommentsDeps): {
+  postComments: PostComments;
+  onEvent: FeedHandler;
+} {
   // A memo, so a refetched Post with the same id (a `posts` poke) does not
   // reload the thread.
   const postId = createMemo(deps.postId);
@@ -91,14 +94,14 @@ export function createPostComments(deps: PostCommentsDeps): PostComments {
   // The one merge point for pushed Events and the viewer's own writes: a row
   // id already shown is edited in place, so a push of the viewer's own write
   // never adds it twice.
-  const upsert = (comment: PostComment): void => {
+  const upsertRow = (comment: PostComment): void => {
     changes++;
     if (comment.postId !== thread.postId) return;
     const index = thread.rows.findIndex((c) => c.id === comment.id);
     if (index === -1) setThread("rows", thread.rows.length, comment);
     else setThread("rows", index, reconcile(comment));
   };
-  const drop = (id: number): void => {
+  const removeRow = (id: number): void => {
     changes++;
     setThread("rows", (rows) => rows.filter((c) => c.id !== id));
   };
@@ -108,24 +111,24 @@ export function createPostComments(deps: PostCommentsDeps): PostComments {
       const id = postId();
       if (id !== undefined) load(id);
     } else if (event.event_type === "post_comment") {
-      upsert(toPostComment(event.payload));
+      upsertRow(toPostComment(event.payload));
     } else if (event.event_type === "post_comment_removal") {
-      drop(event.payload.id);
+      removeRow(event.payload.id);
     }
   };
 
   const add = async (content: string): Promise<void> => {
     const id = postId();
     if (id === undefined) return;
-    upsert(await api.add(id, content));
+    upsertRow(await api.add(id, content));
   };
   const update = async (id: number, content: string): Promise<void> => {
-    upsert(await api.update(id, content));
+    upsertRow(await api.update(id, content));
   };
   const remove = async (id: number): Promise<void> => {
     await api.remove(id);
-    drop(id);
+    removeRow(id);
   };
 
-  return { comments, error, add, update, remove, onEvent };
+  return { postComments: { comments, error, add, update, remove }, onEvent };
 }

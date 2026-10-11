@@ -201,7 +201,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
 
   // The selected Post's Comment thread (#124). The read is public, so it does
   // not wait for a live session.
-  const postComments = createPostComments({
+  const { postComments, onEvent: onPostCommentEvent } = createPostComments({
     postId: () => selectedPost()?.id,
     api: api.comments,
   });
@@ -243,7 +243,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     feed.subscribe(selectedChannel(postId, Channel.postCaption), () => void refetchCaptions());
     feed.subscribe(selectedChannel(postId, Channel.postLike), () => postLike.refetch());
     feed.subscribe(selectedChannel(captionId, Channel.captionLike), () => captionLike.refetch());
-    feed.subscribe(selectedChannel(postId, Channel.postComment), postComments.onEvent);
+    feed.subscribe(selectedChannel(postId, Channel.postComment), onPostCommentEvent);
   };
 
   const [hero] = createResource(() => api.hero.get());

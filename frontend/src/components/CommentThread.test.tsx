@@ -15,11 +15,11 @@ const comment = (id: number, ownerId: number, content: string): PostComment => (
 
 // An in-memory thread: the writes change the rows, as `createPostComments`
 // does once the back-end commits. Each write is a spy a test can fail.
-function fakeThread(initial: PostComment[] | undefined) {
+function fakePostComments(initial: PostComment[] | undefined) {
   const [comments, setComments] = createSignal(initial);
   const [error, setError] = createSignal<string>();
   let nextId = 100;
-  const thread: PostComments = {
+  const postComments: PostComments = {
     comments,
     error,
     add: vi.fn(async (content: string) => {
@@ -31,62 +31,64 @@ function fakeThread(initial: PostComment[] | undefined) {
     remove: vi.fn(async (id: number) => {
       setComments((rows) => rows?.filter((c) => c.id !== id));
     }),
-    onEvent: () => {},
   };
-  return { thread, setComments, setError };
+  return { postComments, setComments, setError };
 }
 
 const composeBox = () => screen.getByRole("textbox", { name: "Your comment" });
 
 describe("<CommentThread />", () => {
   it("lists the Comments, oldest first, as plain text", () => {
-    const { thread } = fakeThread([comment(1, 1, "first"), comment(2, 3, "<b>second</b>")]);
-    render(() => <CommentThread id="t" thread={thread} />);
+    const { postComments } = fakePostComments([
+      comment(1, 1, "first"),
+      comment(2, 3, "<b>second</b>"),
+    ]);
+    render(() => <CommentThread id="t" postComments={postComments} />);
     const items = screen.getAllByRole("listitem").map((li) => li.textContent);
     expect(items[0]).toContain("first");
     expect(items[1]).toContain("<b>second</b>");
   });
 
   it("says when the thread loads, and when it is empty", () => {
-    const { thread, setComments } = fakeThread(undefined);
-    render(() => <CommentThread id="t" thread={thread} />);
+    const { postComments, setComments } = fakePostComments(undefined);
+    render(() => <CommentThread id="t" postComments={postComments} />);
     expect(screen.getByText("Loading Comments…")).toBeInTheDocument();
     setComments([]);
     expect(screen.getByText("No Comments yet")).toBeInTheDocument();
   });
 
   it("shows a thread load error as an alert", () => {
-    const { thread, setError } = fakeThread([]);
-    render(() => <CommentThread id="t" thread={thread} />);
+    const { postComments, setError } = fakePostComments([]);
+    render(() => <CommentThread id="t" postComments={postComments} />);
     setError("Could not load the Comments");
     expect(screen.getByRole("alert")).toHaveTextContent("Could not load the Comments");
   });
 
   it("offers no compose box and no Edit / Delete to a visitor", () => {
-    const { thread } = fakeThread([comment(1, 2, "mine")]);
-    render(() => <CommentThread id="t" thread={thread} />);
+    const { postComments } = fakePostComments([comment(1, 2, "mine")]);
+    render(() => <CommentThread id="t" postComments={postComments} />);
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(screen.queryByRole("button", { name: /edit|delete/i })).toBeNull();
   });
 
   it("posts a Comment, then clears the compose box", async () => {
     const user = userEvent.setup();
-    const { thread } = fakeThread([]);
-    render(() => <CommentThread id="t" thread={thread} loggedIn userId={2} />);
+    const { postComments } = fakePostComments([]);
+    render(() => <CommentThread id="t" postComments={postComments} loggedIn userId={2} />);
 
     await user.type(composeBox(), "hello");
     await user.click(screen.getByRole("button", { name: "Post Comment" }));
 
-    expect(thread.add).toHaveBeenCalledWith("hello");
+    expect(postComments.add).toHaveBeenCalledWith("hello");
     expect(await screen.findByText("hello")).toBeInTheDocument();
     expect(composeBox()).toHaveValue("");
   });
 
   it("keeps the compose box text when the post fails, and shows the error", async () => {
     const user = userEvent.setup();
-    const { thread } = fakeThread([]);
-    vi.mocked(thread.add).mockRejectedValueOnce(new Error("Network down"));
-    render(() => <CommentThread id="t" thread={thread} loggedIn userId={2} />);
+    const { postComments } = fakePostComments([]);
+    vi.mocked(postComments.add).mockRejectedValueOnce(new Error("Network down"));
+    render(() => <CommentThread id="t" postComments={postComments} loggedIn userId={2} />);
 
     await user.type(composeBox(), "hello");
     await user.click(screen.getByRole("button", { name: "Post Comment" }));
@@ -97,8 +99,8 @@ describe("<CommentThread />", () => {
 
   it("keeps the compose box text when the thread changes (a live Event or a reload)", async () => {
     const user = userEvent.setup();
-    const { thread, setComments } = fakeThread([comment(1, 3, "first")]);
-    render(() => <CommentThread id="t" thread={thread} loggedIn userId={2} />);
+    const { postComments, setComments } = fakePostComments([comment(1, 3, "first")]);
+    render(() => <CommentThread id="t" postComments={postComments} loggedIn userId={2} />);
 
     await user.type(composeBox(), "draft");
     setComments([comment(1, 3, "first"), comment(2, 3, "pushed")]);
@@ -108,8 +110,8 @@ describe("<CommentThread />", () => {
 
   it("counts toward the 2000 cap, and blocks an empty or over-cap post", async () => {
     const user = userEvent.setup();
-    const { thread } = fakeThread([]);
-    render(() => <CommentThread id="t" thread={thread} loggedIn userId={2} />);
+    const { postComments } = fakePostComments([]);
+    render(() => <CommentThread id="t" postComments={postComments} loggedIn userId={2} />);
     const post = screen.getByRole("button", { name: "Post Comment" });
 
     expect(screen.getByText("0/2000")).toBeInTheDocument();
@@ -122,8 +124,8 @@ describe("<CommentThread />", () => {
   });
 
   it("offers Edit / Delete only on the viewer's own Comments", () => {
-    const { thread } = fakeThread([comment(1, 2, "mine"), comment(2, 3, "theirs")]);
-    render(() => <CommentThread id="t" thread={thread} loggedIn userId={2} />);
+    const { postComments } = fakePostComments([comment(1, 2, "mine"), comment(2, 3, "theirs")]);
+    render(() => <CommentThread id="t" postComments={postComments} loggedIn userId={2} />);
     const [mine, theirs] = screen.getAllByRole("listitem");
     expect(within(mine).getByRole("button", { name: "Edit comment" })).toBeInTheDocument();
     expect(within(mine).getByRole("button", { name: "Delete comment" })).toBeInTheDocument();
@@ -132,8 +134,8 @@ describe("<CommentThread />", () => {
 
   it("edits the viewer's own Comment in place", async () => {
     const user = userEvent.setup();
-    const { thread } = fakeThread([comment(1, 2, "mine")]);
-    render(() => <CommentThread id="t" thread={thread} loggedIn userId={2} />);
+    const { postComments } = fakePostComments([comment(1, 2, "mine")]);
+    render(() => <CommentThread id="t" postComments={postComments} loggedIn userId={2} />);
 
     await user.click(screen.getByRole("button", { name: "Edit comment" }));
     const editBox = screen.getByRole("textbox", { name: "Edit your comment" });
@@ -142,39 +144,39 @@ describe("<CommentThread />", () => {
     await user.type(editBox, "mine, edited");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(thread.update).toHaveBeenCalledWith(1, "mine, edited");
+    expect(postComments.update).toHaveBeenCalledWith(1, "mine, edited");
     expect(await screen.findByText("mine, edited")).toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: "Edit your comment" })).toBeNull();
   });
 
   it("cancels an edit without saving", async () => {
     const user = userEvent.setup();
-    const { thread } = fakeThread([comment(1, 2, "mine")]);
-    render(() => <CommentThread id="t" thread={thread} loggedIn userId={2} />);
+    const { postComments } = fakePostComments([comment(1, 2, "mine")]);
+    render(() => <CommentThread id="t" postComments={postComments} loggedIn userId={2} />);
 
     await user.click(screen.getByRole("button", { name: "Edit comment" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
-    expect(thread.update).not.toHaveBeenCalled();
+    expect(postComments.update).not.toHaveBeenCalled();
     expect(screen.getByText("mine")).toBeInTheDocument();
   });
 
   it("deletes the viewer's own Comment", async () => {
     const user = userEvent.setup();
-    const { thread } = fakeThread([comment(1, 2, "mine")]);
-    render(() => <CommentThread id="t" thread={thread} loggedIn userId={2} />);
+    const { postComments } = fakePostComments([comment(1, 2, "mine")]);
+    render(() => <CommentThread id="t" postComments={postComments} loggedIn userId={2} />);
 
     await user.click(screen.getByRole("button", { name: "Delete comment" }));
 
-    expect(thread.remove).toHaveBeenCalledWith(1);
+    expect(postComments.remove).toHaveBeenCalledWith(1);
     await waitFor(() => expect(screen.queryByText("mine")).toBeNull());
   });
 
   it("shows a failed delete as an alert on that Comment", async () => {
     const user = userEvent.setup();
-    const { thread } = fakeThread([comment(1, 2, "mine")]);
-    vi.mocked(thread.remove).mockRejectedValueOnce(new Error("Network down"));
-    render(() => <CommentThread id="t" thread={thread} loggedIn userId={2} />);
+    const { postComments } = fakePostComments([comment(1, 2, "mine")]);
+    vi.mocked(postComments.remove).mockRejectedValueOnce(new Error("Network down"));
+    render(() => <CommentThread id="t" postComments={postComments} loggedIn userId={2} />);
 
     await user.click(screen.getByRole("button", { name: "Delete comment" }));
 

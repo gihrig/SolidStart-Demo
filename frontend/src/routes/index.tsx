@@ -98,7 +98,7 @@ export default function Home() {
                   onToggleLike={togglePostLike}
                   captionLike={selectedCaptionLike()}
                   onToggleCaptionLike={toggleCaptionLike}
-                  comments={postComments}
+                  postComments={postComments}
                 />
               )}
             </Match>
