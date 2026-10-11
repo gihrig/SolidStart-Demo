@@ -1,5 +1,6 @@
 import { batch, createEffect, createMemo, createSignal, on, type Accessor } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
+import { passThroughGuard, type DraftGuard, type DraftScope } from "~/lib/createDraftGuard";
 import { jediApi, toPostComment, type JediApi } from "~/lib/jedi/jedi-api";
 import type { FeedHandler } from "~/lib/feed";
 import type { PostComment } from "~/types/jedi";
@@ -11,6 +12,9 @@ export interface PostCommentsDeps {
   /** The Comment calls. Defaults to the real `jediApi.comments`; a test
    *  injects an in-memory stand-in (the inject-or-default idiom). */
   api?: JediApi["comments"];
+  /** The app's Draft guard (ADR-0030). Defaults to the pass-through guard,
+   *  which runs each move at once. */
+  guard?: DraftGuard;
 }
 
 /** The selected Post's Comment thread (#124), and its actions. */
@@ -19,8 +23,12 @@ export interface PostComments {
    *  open: a closed panel makes no read and merges no Event. A change of the
    *  selected Post closes it. */
   open: Accessor<boolean>;
-  /** Open or close the Comments panel on the selected Post. */
+  /** Open or close the Comments panel on the selected Post. A close unmounts
+   *  the panel's forms, so it goes through the Draft guard, in `draftScope`. */
   setOpen: (open: boolean) => void;
+  /** The scope of the panel's forms (ADR-0030): a close asks only about their
+   *  Drafts. */
+  draftScope: DraftScope;
   /** The selected Post's Comments, oldest first. Undefined while they load,
    *  while the panel is closed, and while no Post is selected. Each row keeps
    *  its identity across a reload. */
@@ -58,12 +66,15 @@ export function createPostComments(deps: PostCommentsDeps): {
   // reload the thread.
   const postId = createMemo(deps.postId);
   const api = deps.api ?? jediApi.comments;
+  const guard = deps.guard ?? passThroughGuard;
+  const draftScope: DraftScope = Symbol("post-comments");
   // The Post the panel was opened on. A change of the selected Post closes the
   // panel at once, and the effect clears it, so a return does not reopen it.
   const [openOn, setOpenOn] = createSignal<number>();
   const open = (): boolean => openOn() !== undefined && openOn() === postId();
   const setOpen = (value: boolean): void => {
-    setOpenOn(value ? postId() : undefined);
+    if (value) setOpenOn(postId());
+    else guard.attempt(() => setOpenOn(undefined), draftScope);
   };
   createEffect(on(postId, () => setOpenOn(undefined), { defer: true }));
   // The Post whose thread is shown: the selected Post while the panel is open.
@@ -156,7 +167,7 @@ export function createPostComments(deps: PostCommentsDeps): {
   };
 
   return {
-    postComments: { open, setOpen, comments, deleted, error, add, update, remove },
+    postComments: { open, setOpen, draftScope, comments, deleted, error, add, update, remove },
     onEvent,
   };
 }

@@ -486,6 +486,7 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
     return {
       open,
       setOpen,
+      draftScope: Symbol("post-comments"),
       comments,
       deleted: () => false,
       error: () => undefined,

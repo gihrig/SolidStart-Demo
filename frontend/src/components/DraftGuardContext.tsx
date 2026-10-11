@@ -12,6 +12,7 @@ import {
   DRAFT_DISCARDED_NOTICE,
   passThroughGuard,
   type DraftGuard,
+  type DraftScope,
 } from "~/lib/createDraftGuard";
 import ConfirmDialog from "~/components/ConfirmDialog";
 
@@ -65,6 +66,8 @@ export interface DraftOptions {
    *  of a signal it reads reports again: an input, and a change of the saved
    *  text. */
   dirty: Accessor<boolean>;
+  /** The form's scope, when a move can unmount its group of forms alone. */
+  scope?: DraftScope;
   /** The notice of a forced discard, read when the form unmounts. Defaults to
    *  `DRAFT_DISCARDED_NOTICE`. */
   notice?: () => string;
@@ -85,7 +88,7 @@ export interface Draft {
 export function useDraft(options: DraftOptions): Draft {
   const guard = useDraftGuard();
   const key = Symbol("draft");
-  createEffect(() => guard.report(key, options.dirty()));
+  createEffect(() => guard.report(key, options.dirty(), options.scope));
   onCleanup(() => {
     if (guard.holds(key)) guard.discard(key, options.notice?.() ?? DRAFT_DISCARDED_NOTICE);
   });

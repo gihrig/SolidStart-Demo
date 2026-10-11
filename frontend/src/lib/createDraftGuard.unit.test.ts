@@ -8,6 +8,9 @@ import { createDraftGuard, type DraftGuard } from "./createDraftGuard";
 // Two forms' keys, as `useDraft` makes them.
 const compose = Symbol("compose");
 const edit1 = Symbol("edit-1");
+const caption = Symbol("caption");
+// The scope of one panel's forms.
+const panel = Symbol("panel");
 
 function withGuard(run: (guard: DraftGuard) => void) {
   createRoot((dispose) => {
@@ -125,4 +128,33 @@ describe("createDraftGuard — beforeunload", () => {
     });
     expect(unload().defaultPrevented).toBe(false);
   });
+});
+
+describe("createDraftGuard — scopes", () => {
+  it("a scoped move asks only about the Drafts in its scope", () =>
+    withGuard((guard) => {
+      const move = vi.fn();
+      guard.report(caption, true);
+      guard.attempt(move, panel);
+      expect(move, "a Draft outside the scope").toHaveBeenCalledOnce();
+
+      guard.report(compose, true, panel);
+      guard.attempt(move, panel);
+      expect(guard.pending()).toBe(true);
+      guard.confirmMove();
+      expect(move).toHaveBeenCalledTimes(2);
+      expect(guard.holds(compose), "Discard drops the scope's Drafts").toBe(false);
+      expect(guard.holds(caption), "and keeps the others").toBe(true);
+    }));
+
+  it("a move without a scope asks about every Draft, and Discard drops them all", () =>
+    withGuard((guard) => {
+      const move = vi.fn();
+      guard.report(compose, true, panel);
+      guard.attempt(move);
+      expect(guard.pending()).toBe(true);
+      guard.confirmMove();
+      expect(move).toHaveBeenCalledOnce();
+      expect(guard.hasDraft()).toBe(false);
+    }));
 });

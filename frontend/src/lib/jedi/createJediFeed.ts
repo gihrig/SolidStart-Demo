@@ -1,4 +1,11 @@
-import { createResource, createSignal, onCleanup, type Accessor } from "solid-js";
+import {
+  createMemo,
+  createResource,
+  createSignal,
+  onCleanup,
+  untrack,
+  type Accessor,
+} from "solid-js";
 import { passThroughGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { createLikeState } from "~/lib/jedi/createLikeState";
@@ -21,7 +28,8 @@ import type { JediCategory, Like, PostView, CaptionView, HeroView } from "~/type
  * `selectedPost` is the post shown in the main article (#29): it defaults to the
  * top-ranked *visible* post and follows `selectPost(id)` when a Top Photo is
  * clicked, so a category filter that hides the selection moves the article to a
- * post the sidebar actually lists. `topCaptions` re-keys off it, so the
+ * post the sidebar actually lists. While a Draft exists, a re-rank does not
+ * move it (ADR-0030). `topCaptions` re-keys off it, so the
  * captions and the rest of the article's metadata track the selection.
  *
  * `selectedCaption` is the caption shown under the post (#33): it defaults to
@@ -145,17 +153,30 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   };
   const visiblePosts = () => visiblePostsIn(selectedCategory());
 
-  // The clicked post, but only while the filter still lists it; otherwise the
-  // top-ranked visible post. `visible === undefined` is the loading state (fall
-  // back to `featured`); an empty array is a real category with no posts, which
-  // stays undefined so `<main>` can show the empty panel instead of a stale post.
-  const selectedPostIn = (categoryIndex: number): PostView | undefined => {
+  // The clicked post, but only while the filter still lists it; then the held
+  // post; otherwise the top-ranked visible post. `visible === undefined` is the
+  // loading state (fall back to `featured`); an empty array is a real category
+  // with no posts, which stays undefined so `<main>` can show the empty panel
+  // instead of a stale post.
+  const selectedPostIn = (
+    categoryIndex: number,
+    heldId: number | undefined,
+  ): PostView | undefined => {
     const visible = visiblePostsIn(categoryIndex);
     if (visible === undefined) return featured();
     const id = selectedPostId();
-    return visible.find((p) => p.id === id) ?? visible[0];
+    return visible.find((p) => p.id === id) ?? visible.find((p) => p.id === heldId) ?? visible[0];
   };
-  const selectedPost = () => selectedPostIn(selectedCategory());
+  // The Post shown when the first Draft started, held while a Draft exists: a
+  // re-rank (a Like) must not move the article and discard the Draft. With no
+  // Draft, the article follows the ranking again. A held Post that leaves the
+  // list is no longer shown, which is a forced discard.
+  const heldPostId = createMemo<number | undefined>((held) =>
+    guard.hasDraft()
+      ? (held ?? untrack(() => selectedPostIn(selectedCategory(), undefined))?.id)
+      : undefined,
+  );
+  const selectedPost = () => selectedPostIn(selectedCategory(), heldPostId());
 
   // A move that keeps the selected Post unmounts no form, so it is no guarded
   // move.
@@ -174,7 +195,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     guardPostChange(id, () => setSelectedPostId(id));
   };
   const setSelectedCategory = (index: number): void => {
-    guardPostChange(selectedPostIn(index)?.id, () => setSelectedCategoryIndex(index));
+    guardPostChange(selectedPostIn(index, heldPostId())?.id, () => setSelectedCategoryIndex(index));
   };
 
   // Each result carries the Post id it was fetched for, so even an empty list
@@ -227,16 +248,13 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   });
 
   // The selected Post's Comment thread (#124). It loads while its panel is
-  // open; the read is public, so it does not wait for a live session.
-  const { postComments: thread, onEvent: onPostCommentEvent } = createPostComments({
+  // open; the read is public, so it does not wait for a live session. Its
+  // close goes through the guard.
+  const { postComments, onEvent: onPostCommentEvent } = createPostComments({
     postId: () => selectedPost()?.id,
     api: api.comments,
+    guard,
   });
-  // A close unmounts the panel's forms, so it goes through the guard.
-  const postComments: PostComments = {
-    ...thread,
-    setOpen: (open) => (open ? thread.setOpen(true) : guard.attempt(() => thread.setOpen(false))),
-  };
 
   // Live propagation (#117): a `posts` poke means the Post list may have changed,
   // so refetch the list (the featured post re-derives from it). A `post_caption`

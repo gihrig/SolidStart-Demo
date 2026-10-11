@@ -784,12 +784,57 @@ describe("createJediFeed — the Draft guard (ADR-0030)", () => {
     withDraft((jedi, guard) => {
       jedi.postComments.setOpen(true);
       expect(jedi.postComments.open()).toBe(true);
+      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
 
       jedi.postComments.setOpen(false);
       expect(jedi.postComments.open()).toBe(true);
       guard.confirmMove();
       expect(jedi.postComments.open()).toBe(false);
     }));
+
+  it("a panel close asks only about the panel's Drafts", () =>
+    withDraft((jedi, guard) => {
+      // `withDraft`'s Draft sits outside the panel, as an Add Caption Draft does.
+      jedi.postComments.setOpen(true);
+      jedi.postComments.setOpen(false);
+      expect(guard.pending()).toBe(false);
+      expect(jedi.postComments.open()).toBe(false);
+
+      jedi.postComments.setOpen(true);
+      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
+      jedi.postComments.setOpen(false);
+      guard.confirmMove();
+      expect(jedi.postComments.open()).toBe(false);
+      expect(guard.hasDraft(), "Discard keeps the Draft outside the panel").toBe(true);
+    }));
+
+  it("keeps the shown Post while a Draft exists: a re-rank does not move the article", async () => {
+    const mem = memoryFeed();
+    await createRoot(async (dispose) => {
+      const guard = createDraftGuard();
+      const jedi = createJediFeed({ api, guard });
+      jedi.connectFeed(mem.feed);
+      await tick();
+      await tick();
+      expect(jedi.selectedPost()?.id).toBe(1);
+      const draft = Symbol("compose");
+      guard.report(draft, true);
+
+      // A Like re-ranks the Posts: post 3 is now first.
+      const [first, second, ...rest] = RANKED_POSTS;
+      postListMock.mockResolvedValue([second, first, ...rest]);
+      mem.emit(pokeOn(Channel.posts));
+      await tick();
+      await tick();
+      expect(jedi.visiblePosts()![0].id).toBe(3);
+      expect(jedi.selectedPost()?.id, "the article stays").toBe(1);
+
+      guard.report(draft, false);
+      expect(jedi.selectedPost()?.id, "it follows the ranking again").toBe(3);
+
+      dispose();
+    });
+  });
 });
 
 describe("createJediFeed — the selected Post's like state (#122)", () => {

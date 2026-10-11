@@ -112,6 +112,7 @@ function CommentForm(props: CommentFormProps) {
   );
   const draft = useDraft({
     dirty: () => (props.comment ? value() !== saved() : value().trim() !== ""),
+    scope: props.postComments.draftScope,
     notice: () =>
       props.comment && props.postComments.deleted(props.comment.id)
         ? COMMENT_DELETED_NOTICE

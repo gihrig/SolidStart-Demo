@@ -28,6 +28,7 @@ function fakePostComments(initial: PostComment[] | undefined) {
   const postComments: PostComments = {
     open: () => true,
     setOpen: () => {},
+    draftScope: Symbol("post-comments"),
     comments: () => state.rows,
     deleted: (id) => state.rows !== undefined && state.rows.every((c) => c.id !== id),
     error,
@@ -218,6 +219,9 @@ describe("<CommentThread /> — Drafts (ADR-0030)", () => {
     expect(guard.hasDraft(), "blank after a trim").toBe(false);
     await user.type(composeBox(), "hello");
     expect(guard.hasDraft()).toBe(true);
+    guard.attempt(() => {}, postComments.draftScope);
+    expect(guard.pending(), "the Draft is in the panel's scope").toBe(true);
+    guard.cancelMove();
 
     await user.click(screen.getByRole("button", { name: "Post Comment" }));
     await waitFor(() => expect(composeBox()).toHaveValue(""));

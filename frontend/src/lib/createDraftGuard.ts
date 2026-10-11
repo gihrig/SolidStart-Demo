@@ -1,5 +1,9 @@
-import { createSignal, getOwner, onCleanup, type Accessor } from "solid-js";
+import { batch, createSignal, getOwner, onCleanup, type Accessor } from "solid-js";
 import { isServer } from "solid-js/web";
+
+/** A group of forms that one move unmounts, such as the forms in one panel.
+ *  A move with a scope asks only about the Drafts in it. */
+export type DraftScope = symbol;
 
 /** The app-level guard for unsaved form text (ADR-0030). */
 export interface DraftGuard {
@@ -10,14 +14,18 @@ export interface DraftGuard {
   holds: (key: symbol) => boolean;
   /** A form reports whether it holds a Draft, under its own key. It reports
    *  `false` when it saves, when it cancels, and when it unmounts. A form
-   *  reports through `useDraft`, which makes the key. */
-  report: (key: symbol, dirty: boolean) => void;
+   *  reports through `useDraft`, which makes the key. A form in a `scope`
+   *  reports it too. */
+  report: (key: symbol, dirty: boolean, scope?: DraftScope) => void;
   /** Run a user-started move. With no Draft, it runs at once. With a Draft, it
-   *  waits for the confirm dialog: `confirmMove` or `cancelMove`. */
-  attempt: (move: () => void) => void;
+   *  waits for the confirm dialog: `confirmMove` or `cancelMove`. A move with a
+   *  `scope` unmounts only that scope's forms, so it asks only about their
+   *  Drafts. */
+  attempt: (move: () => void, scope?: DraftScope) => void;
   /** Whether a move waits for the confirm dialog. */
   pending: Accessor<boolean>;
-  /** "Discard": drop every Draft, then run the waiting move. */
+  /** "Discard": drop the Drafts the waiting move unmounts (every Draft, or
+   *  its scope's), then run it. */
   confirmMove: () => void;
   /** "Keep editing": drop the waiting move. The Drafts stay. */
   cancelMove: () => void;
@@ -57,11 +65,12 @@ const blockUnload = (e: BeforeUnloadEvent) => e.preventDefault();
  * Draft exists, and the browser then shows its own text.
  */
 export function createDraftGuard(): DraftGuard {
-  const drafts = new Set<symbol>();
+  // Each form's key with a Draft, and the form's scope.
+  const drafts = new Map<symbol, DraftScope | undefined>();
   const [hasDraft, setHasDraft] = createSignal(false);
   // The move sits in an object: a bare function given to a setter runs as an
   // updater.
-  const [pendingMove, setPendingMove] = createSignal<{ run: () => void }>();
+  const [pendingMove, setPendingMove] = createSignal<{ run: () => void; scope?: DraftScope }>();
   const [notice, setNotice] = createSignal<string>();
 
   let listening = false;
@@ -80,24 +89,32 @@ export function createDraftGuard(): DraftGuard {
     });
   }
 
-  const report = (key: symbol, dirty: boolean): void => {
-    if (dirty) drafts.add(key);
+  const report = (key: symbol, dirty: boolean, scope?: DraftScope): void => {
+    if (dirty) drafts.set(key, scope);
     else drafts.delete(key);
     sync();
   };
 
-  const attempt = (move: () => void): void => {
-    if (drafts.size === 0) move();
-    else setPendingMove({ run: move });
+  // The keys of the Drafts a move with `scope` unmounts.
+  const draftsIn = (scope: DraftScope | undefined): symbol[] =>
+    [...drafts].filter(([, s]) => scope === undefined || s === scope).map(([key]) => key);
+
+  const attempt = (move: () => void, scope?: DraftScope): void => {
+    if (draftsIn(scope).length === 0) move();
+    else setPendingMove({ run: move, scope });
   };
 
+  // One batch: the view never sees the state between the drop and the move,
+  // such as the selected Post that a Draft no longer holds.
   const confirmMove = (): void => {
     const move = pendingMove();
     if (!move) return;
-    setPendingMove(undefined);
-    drafts.clear();
-    sync();
-    move.run();
+    batch(() => {
+      setPendingMove(undefined);
+      for (const key of draftsIn(move.scope)) drafts.delete(key);
+      sync();
+      move.run();
+    });
   };
 
   const discard = (key: symbol, message: string): void => {
