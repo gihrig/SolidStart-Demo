@@ -14,6 +14,9 @@ subtree that owns them and load when Claude works there:
 
 ## Execution Notes (for Claude AI)
 
+This 'demo' project sets a pattern for future production quality projects.
+Robustness and correctness are primary concerns.
+
 Call previously existing code "existing", not "hand written".
 Use US English.
 
