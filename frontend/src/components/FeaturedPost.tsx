@@ -57,27 +57,21 @@ export default function FeaturedPost(props: FeaturedPostProps) {
   // One action per Like target (#123), so each toggle reports its own error.
   const toggleLike = createLikeAction(() => props.onToggleLike?.());
   const toggleCaptionLike = createLikeAction(() => props.onToggleCaptionLike?.());
+  // A `posts` poke refetches the Post as a new object with the same id. The memo
+  // keeps that from closing the Caption form or the Comments panel.
+  const postId = createMemo(() => props.post.id);
   // Add Caption (#121): the button sits on the categories line, the form in the
   // caption line. A new Post starts on its caption, not on a form left open.
   const [addingCaption, setAddingCaption] = createSignal(false);
   let addCaptionRef: HTMLButtonElement | undefined;
-  createEffect(
-    on(
-      () => props.post.id,
-      () => setAddingCaption(false),
-      { defer: true },
-    ),
-  );
+  createEffect(on(postId, () => setAddingCaption(false), { defer: true }));
   // Return focus to the button the form was opened from.
   const closeCaptionForm = () => {
     setAddingCaption(false);
     addCaptionRef?.focus();
   };
-  // The Comments panel (#124). A `posts` poke refetches the Post as a new object
-  // with the same id; the memo keeps that from closing the panel or dropping its
-  // draft. Another Post closes it.
+  // The Comments panel (#124). Another Post closes it.
   const [commentsOpen, setCommentsOpen] = createSignal(false);
-  const postId = createMemo(() => props.post.id);
   createEffect(on(postId, () => setCommentsOpen(false), { defer: true }));
   const commentsPanelId = () => `post-${postId()}-comments`;
   // The author link is a placeholder until it lands on the feed seam.

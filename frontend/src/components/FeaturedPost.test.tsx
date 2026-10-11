@@ -131,6 +131,17 @@ describe("<FeaturedPost /> — Add Caption (#121)", () => {
     await waitFor(() => expect(input()).toBeNull());
     expect(screen.getByText(caption.text)).toBeInTheDocument();
   });
+
+  it("keeps the form open and its text when the same Post is refetched", async () => {
+    const [current, setCurrent] = createSignal(post);
+    const { user } = renderLoggedIn(current);
+    await user.click(addButton()!);
+    await user.type(input()!, "draft");
+
+    // A `posts` poke refetches the list: a new object for the same Post.
+    setCurrent({ ...post });
+    expect(input()).toHaveValue("draft");
+  });
 });
 
 describe("<FeaturedPost /> — Like (#122)", () => {
