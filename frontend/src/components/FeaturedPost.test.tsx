@@ -453,50 +453,66 @@ describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123
 });
 
 describe("<FeaturedPost /> — the Comments panel (#124)", () => {
-  // A thread with one Comment by User 2; the writes are not used here.
-  const [threadRows] = createSignal<PostComment[] | undefined>([
-    { id: 9, postId: 1, ownerId: 2, content: "Nice cat" },
-  ]);
-  const postComments: PostComments = {
-    comments: threadRows,
-    error: () => undefined,
-    add: () => Promise.resolve(),
-    update: () => Promise.resolve(),
-    remove: () => Promise.resolve(),
+  // A thread with one Comment by User 2, and its open state; the writes are
+  // not used here. The view-model owns the open state, so a fresh one per test.
+  const fakePostComments = (): PostComments => {
+    const [open, setOpen] = createSignal(false);
+    const [comments] = createSignal<PostComment[] | undefined>([
+      { id: 9, postId: 1, ownerId: 2, content: "Nice cat" },
+    ]);
+    return {
+      open,
+      setOpen,
+      comments,
+      error: () => undefined,
+      add: () => Promise.resolve(),
+      update: () => Promise.resolve(),
+      remove: () => Promise.resolve(),
+    };
   };
   const toggle = () => screen.getByRole("button", { name: /3 comments/i });
+  const panel = () => document.getElementById(toggle().getAttribute("aria-controls")!);
+
+  it("keeps the panel element while closed, hidden and empty, so aria-controls resolves", () => {
+    const postComments = fakePostComments();
+    render(() => <FeaturedPost post={post} caption={caption} postComments={postComments} />);
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
+    expect(panel()).toBeInTheDocument();
+    expect(panel()).not.toBeVisible();
+    expect(panel()).toBeEmptyDOMElement();
+  });
 
   it("the Comments toggle opens and closes the thread panel", async () => {
     const user = userEvent.setup();
+    const postComments = fakePostComments();
     render(() => <FeaturedPost post={post} caption={caption} postComments={postComments} />);
-    expect(toggle()).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByRole("region", { name: "Comments" })).toBeNull();
 
     await user.click(toggle());
+    expect(postComments.open()).toBe(true);
     expect(toggle()).toHaveAttribute("aria-expanded", "true");
-    const panel = screen.getByRole("region", { name: "Comments" });
-    expect(toggle()).toHaveAttribute("aria-controls", panel.id);
-    expect(panel).toHaveTextContent("Nice cat");
+    expect(screen.getByRole("region", { name: "Comments" })).toBe(panel());
+    expect(panel()).toHaveTextContent("Nice cat");
 
     await user.click(toggle());
+    expect(postComments.open()).toBe(false);
     expect(screen.queryByRole("region", { name: "Comments" })).toBeNull();
+    expect(panel()).toBeEmptyDOMElement();
   });
 
-  it("sits between the categories line and the Comments line", async () => {
-    const user = userEvent.setup();
+  it("sits between the categories line and the Comments line", () => {
+    const postComments = fakePostComments();
     render(() => <FeaturedPost post={post} caption={caption} postComments={postComments} />);
-    await user.click(toggle());
-    const panel = screen.getByRole("region", { name: "Comments" });
     const category = screen.getByRole("button", { name: /^Cute$/ });
     const follows = (a: Node, b: Node) =>
       Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(follows(category, panel)).toBe(true);
-    expect(follows(panel, toggle())).toBe(true);
+    expect(follows(category, panel()!)).toBe(true);
+    expect(follows(panel()!, toggle())).toBe(true);
   });
 
-  it("a refetched Post keeps the panel open and the draft; another Post closes it", async () => {
+  it("a refetched Post keeps the panel open and the draft", async () => {
     const user = userEvent.setup();
     const [shown, setShown] = createSignal(post);
+    const postComments = fakePostComments();
     render(() => (
       <FeaturedPost
         post={shown()}
@@ -512,8 +528,5 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
     // A `posts` poke refetches the list: a new object for the same Post.
     setShown({ ...post, commentCount: 3 });
     expect(screen.getByRole("textbox", { name: "Your comment" })).toHaveValue("draft");
-
-    setShown({ ...post, id: 2 });
-    expect(screen.queryByRole("region", { name: "Comments" })).toBeNull();
   });
 });

@@ -74,9 +74,9 @@ export interface JediFeed {
    *  Caption line shows the new count at once; Top Captions re-ranks after the
    *  back-end's `post_caption` poke. */
   toggleCaptionLike: () => Promise<void>;
-  /** The selected Post's Comment thread (#124): its rows and its writes. The
-   *  read is public, so it loads on the anonymous landing too; the writes need
-   *  a login. */
+  /** The selected Post's Comment thread (#124): the panel's open state, its
+   *  rows and its writes. It loads only while the panel is open. The read is
+   *  public, so it loads on the anonymous landing too; the writes need a login. */
   postComments: PostComments;
   /** Wire a live Feed after creation (#120): the route builds this view-model
    *  anonymously, then connects the socket's Feed once a User logs in. The
@@ -199,8 +199,8 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     toggleLike: (id, liked) => api.captions.toggleLike(id, liked),
   });
 
-  // The selected Post's Comment thread (#124). The read is public, so it does
-  // not wait for a live session.
+  // The selected Post's Comment thread (#124). It loads while its panel is
+  // open; the read is public, so it does not wait for a live session.
   const { postComments, onEvent: onPostCommentEvent } = createPostComments({
     postId: () => selectedPost()?.id,
     api: api.comments,
@@ -212,13 +212,13 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // one Post's like count changed (#122): each is held for the selected Post
   // only. A `caption_like` poke means one Caption's like count changed (#123),
   // held for the selected Caption. A `post_comment` Event carries a Comment
-  // upsert or removal for one Post's thread (#124), held for the selected Post.
-  // Each Subscription names its Channel through an accessor, so the Feed moves
-  // the hold with the selection and routes only the held Channel here
-  // (ADR-0028). Each handler refetches on a poke and on the resync call after a
-  // (re)connect, so a poke lost while the socket was down is recovered (#120
-  // review). The anonymous landing page has no socket, so the route calls this
-  // on login (#120).
+  // upsert or removal for one Post's thread (#124), held for the selected Post
+  // while its Comments panel is open. Each Subscription names its Channel
+  // through an accessor, so the Feed moves the hold with the selection and
+  // routes only the held Channel here (ADR-0028). Each handler refetches on a
+  // poke and on the resync call after a (re)connect, so a poke lost while the
+  // socket was down is recovered (#120 review). The anonymous landing page has
+  // no socket, so the route calls this on login (#120).
   const connectFeed = (feed: Feed): void => {
     // A connected Feed means a logged-in User, so the viewer's like state can
     // load now; it ends with the caller's scope (logout), like the socket. A
@@ -243,7 +243,9 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     feed.subscribe(selectedChannel(postId, Channel.postCaption), () => void refetchCaptions());
     feed.subscribe(selectedChannel(postId, Channel.postLike), () => postLike.refetch());
     feed.subscribe(selectedChannel(captionId, Channel.captionLike), () => captionLike.refetch());
-    feed.subscribe(selectedChannel(postId, Channel.postComment), onPostCommentEvent);
+    // The thread's Subscription is held only while the Comments panel is open.
+    const shownThreadId = () => (postComments.open() ? postId() : undefined);
+    feed.subscribe(selectedChannel(shownThreadId, Channel.postComment), onPostCommentEvent);
   };
 
   const [hero] = createResource(() => api.hero.get());

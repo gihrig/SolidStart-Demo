@@ -36,8 +36,9 @@ export interface FeaturedPostProps {
   captionLike?: Like;
   /** Like or unlike the Caption shown; the opposite of `captionLike.liked`. */
   onToggleCaptionLike?: () => Promise<void>;
-  /** This Post's Comment thread (#124). The Comments toggle opens it as an
-   *  inline panel; without it, the toggle opens nothing. */
+  /** This Post's Comment thread (#124), with the panel's open state. The
+   *  Comments toggle opens it as an inline panel; without it, the toggle opens
+   *  nothing. */
   postComments?: PostComments;
 }
 
@@ -58,7 +59,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
   const toggleLike = createLikeAction(() => props.onToggleLike?.());
   const toggleCaptionLike = createLikeAction(() => props.onToggleCaptionLike?.());
   // A `posts` poke refetches the Post as a new object with the same id. The memo
-  // keeps that from closing the Caption form or the Comments panel.
+  // keeps that from closing the Caption form.
   const postId = createMemo(() => props.post.id);
   // Add Caption (#121): the button sits on the categories line, the form in the
   // caption line. A new Post starts on its caption, not on a form left open.
@@ -70,9 +71,9 @@ export default function FeaturedPost(props: FeaturedPostProps) {
     setAddingCaption(false);
     addCaptionRef?.focus();
   };
-  // The Comments panel (#124). Another Post closes it.
-  const [commentsOpen, setCommentsOpen] = createSignal(false);
-  createEffect(on(postId, () => setCommentsOpen(false), { defer: true }));
+  // The Comments panel (#124). Its open state lives in the view-model, which
+  // closes it when the selected Post changes.
+  const commentsOpen = () => props.postComments?.open() ?? false;
   const commentsPanelId = () => `post-${postId()}-comments`;
   // The author link is a placeholder until it lands on the feed seam.
   const notImplemented = (e: MouseEvent) => {
@@ -170,17 +171,26 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           </Show>
         </div>
         {/* The Comments panel (#124): below the categories line, above the
-            Comments line, which stays at the bottom of the card. */}
-        <Show when={commentsOpen() && props.postComments}>
-          {(postComments) => (
-            <CommentThread
-              id={commentsPanelId()}
-              postComments={postComments()}
-              loggedIn={props.loggedIn}
-              userId={props.userId}
-            />
-          )}
-        </Show>
+            Comments line, which stays at the bottom of the card. The element is
+            always here, so the toggle's aria-controls resolves; the thread
+            mounts only while open. */}
+        <section
+          id={commentsPanelId()}
+          aria-label="Comments"
+          hidden={!commentsOpen()}
+          class="mb-4 space-y-2 px-2 text-sm"
+        >
+          <Show when={commentsOpen() && props.postComments}>
+            {(postComments) => (
+              <CommentThread
+                id={commentsPanelId()}
+                postComments={postComments()}
+                loggedIn={props.loggedIn}
+                userId={props.userId}
+              />
+            )}
+          </Show>
+        </section>
         {/* One alert per toggle, so a Caption error never hides a Post error. */}
         <For each={[toggleCaptionLike.error(), toggleLike.error()].filter((e) => e !== null)}>
           {(error) => (
@@ -196,7 +206,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
             aria-label={`Comments, ${props.post.commentCount} comments`}
             aria-expanded={commentsOpen()}
             aria-controls={commentsPanelId()}
-            onClick={() => setCommentsOpen((open) => !open)}
+            onClick={() => props.postComments?.setOpen(!commentsOpen())}
           >
             Comments
             <span class="font-light text-(--theme-card-fg) ml-2">{props.post.commentCount}</span>

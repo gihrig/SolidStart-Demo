@@ -11,7 +11,7 @@ import type { PostComment } from "~/types/jedi";
 const COMMENT_MAX_LENGTH = 2000 satisfies HygieneCaps["post_comment"]["content"];
 
 export interface CommentThreadProps {
-  /** The panel's element id, for the toggle's `aria-controls`. */
+  /** The panel's element id; the ids inside the thread derive from it. */
   id: string;
   /** The selected Post's thread (`createJediFeed().postComments`). */
   postComments: PostComments;
@@ -213,7 +213,8 @@ function CommentItem(props: CommentItemProps) {
 }
 
 /**
- * A Post's Comment thread (#124), the inline panel in `FeaturedPost`. Everyone
+ * A Post's Comment thread (#124), the content of the inline panel in
+ * `FeaturedPost`, which owns the panel element. Everyone
  * reads it; a logged-in User posts, and edits or deletes their own Comments.
  * The body is plain text (author display and markdown land in #125 / #126).
  * The compose box sits outside the list, and the rows come from a store keyed
@@ -221,7 +222,7 @@ function CommentItem(props: CommentItemProps) {
  */
 export default function CommentThread(props: CommentThreadProps) {
   return (
-    <section id={props.id} aria-label="Comments" class="mb-4 space-y-2 px-2 text-sm">
+    <>
       <ErrorAlert error={props.postComments.error()} />
       <Show
         when={props.postComments.comments()}
@@ -253,6 +254,6 @@ export default function CommentThread(props: CommentThreadProps) {
       <Show when={props.loggedIn}>
         <CommentForm id={`${props.id}-compose`} postComments={props.postComments} />
       </Show>
-    </section>
+    </>
   );
 }

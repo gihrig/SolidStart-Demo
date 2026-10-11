@@ -635,27 +635,41 @@ describe("createJediFeed — the realtime post_caption poke (#121)", () => {
 describe("createJediFeed — the selected Post's Comment thread (#124)", () => {
   const ids = (jedi: JediFeed) => jedi.postComments.comments()?.map((c) => c.id);
 
-  it("loads the selected Post's thread, also on the anonymous landing", () =>
+  it("loads the selected Post's thread only while the panel is open, also on the anonymous landing", () =>
     withAnonymousJedi(async (jedi) => {
+      expect(jedi.postComments.open()).toBe(false);
+      expect(commentListForPostMock).not.toHaveBeenCalled();
+
+      jedi.postComments.setOpen(true);
+      await tick();
       expect(ids(jedi)).toEqual([1000]);
+
+      // Another Post closes the panel; opening it there loads that thread.
       jedi.selectPost(2);
+      expect(jedi.postComments.open()).toBe(false);
+      jedi.postComments.setOpen(true);
       await tick();
       expect(ids(jedi)).toEqual([2000]);
     }));
 
-  it("subscribes to the selected Post's thread, and moves it with the selection", async () => {
+  it("holds the thread's Subscription only while the panel is open", async () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
       const jedi = createJediFeed({ api });
       jedi.connectFeed(mem.feed);
       await tick();
       await tick();
+      const commentChannels = () => mem.held().filter((c) => c.kind === "post_comment");
+      expect(commentChannels()).toEqual([]);
+
+      jedi.postComments.setOpen(true);
+      await tick();
       expect(mem.held()).toContainEqual(Channel.postComment(1));
 
+      // Another Post closes the panel, so its Subscription ends too.
       jedi.selectPost(2);
       await tick();
-      expect(mem.held()).not.toContainEqual(Channel.postComment(1));
-      expect(mem.held()).toContainEqual(Channel.postComment(2));
+      expect(commentChannels()).toEqual([]);
 
       dispose();
     });
@@ -667,6 +681,8 @@ describe("createJediFeed — the selected Post's Comment thread (#124)", () => {
       const jedi = createJediFeed({ api });
       jedi.connectFeed(mem.feed);
       await tick();
+      await tick();
+      jedi.postComments.setOpen(true);
       await tick();
 
       mem.emit({
@@ -695,6 +711,8 @@ describe("createJediFeed — the selected Post's Comment thread (#124)", () => {
       jedi.connectFeed(mem.feed);
       await tick();
       await tick();
+      jedi.postComments.setOpen(true);
+      await tick();
       const row = jedi.postComments.comments()![0];
       const loads = commentListForPostMock.mock.calls.length;
 
@@ -706,6 +724,7 @@ describe("createJediFeed — the selected Post's Comment thread (#124)", () => {
 
       expect(commentListForPostMock.mock.calls.length).toBe(loads);
       expect(jedi.postComments.comments()![0]).toBe(row);
+      expect(jedi.postComments.open(), "the panel stays open").toBe(true);
 
       dispose();
     });

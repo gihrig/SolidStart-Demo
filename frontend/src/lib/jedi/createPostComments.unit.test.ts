@@ -98,10 +98,12 @@ interface Harness {
   select: (id: number | undefined) => void;
 }
 
-async function withThread(run: (h: Harness) => Promise<void>) {
+// The panel starts open, unless a test asks for it closed.
+async function withThread(run: (h: Harness) => Promise<void>, { open = true } = {}) {
   await createRoot(async (dispose) => {
     const [postId, select] = createSignal<number | undefined>(1);
     const { postComments, onEvent } = createPostComments({ postId, api });
+    postComments.setOpen(open);
     try {
       await run({ postComments, onEvent, select });
     } finally {
@@ -112,6 +114,53 @@ async function withThread(run: (h: Harness) => Promise<void>) {
 
 const contents = (postComments: PostComments) => postComments.comments()?.map((c) => c.content);
 
+describe("createPostComments — the open state (lazy thread)", () => {
+  it("makes no read and merges no Event while the panel is closed", () =>
+    withThread(
+      async ({ postComments, onEvent }) => {
+        await tick();
+        expect(postComments.open()).toBe(false);
+        expect(listForPostMock).not.toHaveBeenCalled();
+
+        onEvent({ event_type: "post_comment", payload: wire(comment(12, 1, "third")) });
+        onEvent(undefined); // the resync call after a (re)connect
+        await tick();
+        expect(listForPostMock).not.toHaveBeenCalled();
+        expect(postComments.comments()).toBeUndefined();
+      },
+      { open: false },
+    ));
+
+  it("loads on open, and drops the rows on close", () =>
+    withThread(
+      async ({ postComments }) => {
+        postComments.setOpen(true);
+        await tick();
+        expect(contents(postComments)).toEqual(["first", "second"]);
+
+        postComments.setOpen(false);
+        expect(postComments.comments()).toBeUndefined();
+        postComments.setOpen(true);
+        expect(postComments.comments(), "no stale rows while it reloads").toBeUndefined();
+        await tick();
+        expect(listForPostMock).toHaveBeenCalledTimes(2);
+        expect(contents(postComments)).toEqual(["first", "second"]);
+      },
+      { open: false },
+    ));
+
+  it("closes when the selected Post changes, and stays closed on a return", () =>
+    withThread(async ({ postComments, select }) => {
+      await tick();
+      select(2);
+      expect(postComments.open()).toBe(false);
+      select(1);
+      await tick();
+      expect(postComments.open()).toBe(false);
+      expect(listForPostMock).toHaveBeenCalledTimes(1);
+    }));
+});
+
 describe("createPostComments — the thread read", () => {
   it("loads the selected Post's thread, and re-keys with the selection", () =>
     withThread(async ({ postComments, select }) => {
@@ -120,6 +169,7 @@ describe("createPostComments — the thread read", () => {
       expect(contents(postComments)).toEqual(["first", "second"]);
 
       select(2);
+      postComments.setOpen(true);
       expect(postComments.comments(), "no previous Post's thread while loading").toBeUndefined();
       await tick();
       expect(contents(postComments)).toEqual(["other post"]);

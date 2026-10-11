@@ -15,8 +15,15 @@ export interface PostCommentsDeps {
 
 /** The selected Post's Comment thread (#124), and its actions. */
 export interface PostComments {
-  /** The selected Post's Comments, oldest first. Undefined while they load, and
-   *  while no Post is selected. Each row keeps its identity across a reload. */
+  /** Whether the Comments panel is open. The thread loads only while it is
+   *  open: a closed panel makes no read and merges no Event. A change of the
+   *  selected Post closes it. */
+  open: Accessor<boolean>;
+  /** Open or close the Comments panel on the selected Post. */
+  setOpen: (open: boolean) => void;
+  /** The selected Post's Comments, oldest first. Undefined while they load,
+   *  while the panel is closed, and while no Post is selected. Each row keeps
+   *  its identity across a reload. */
   comments: Accessor<PostComment[] | undefined>;
   /** A thread load failure, else undefined. */
   error: Accessor<string | undefined>;
@@ -48,6 +55,16 @@ export function createPostComments(deps: PostCommentsDeps): {
   // reload the thread.
   const postId = createMemo(deps.postId);
   const api = deps.api ?? jediApi.comments;
+  // The Post the panel was opened on. A change of the selected Post closes the
+  // panel at once, and the effect clears it, so a return does not reopen it.
+  const [openOn, setOpenOn] = createSignal<number>();
+  const open = (): boolean => openOn() !== undefined && openOn() === postId();
+  const setOpen = (value: boolean): void => {
+    setOpenOn(value ? postId() : undefined);
+  };
+  createEffect(on(postId, () => setOpenOn(undefined), { defer: true }));
+  // The Post whose thread is shown: the selected Post while the panel is open.
+  const shownPostId = createMemo(() => (open() ? postId() : undefined));
   // `postId` names the Post the rows belong to, so a reload for another Post
   // never shows the previous Post's rows.
   const [thread, setThread] = createStore<{ postId?: number; rows: PostComment[] }>({
@@ -78,16 +95,19 @@ export function createPostComments(deps: PostCommentsDeps): {
       },
     );
   };
-  // An effect, so the thread loads in the browser only, after hydration.
+  // An effect, so the thread loads in the browser only, after hydration. A
+  // close drops the load in flight and the rows, so a reopen shows no stale
+  // rows, and an Event that comes while closed has no thread to merge into.
   createEffect(
-    on(postId, (id) => {
-      if (id === undefined) loads++;
-      else load(id);
+    on(shownPostId, (id) => {
+      if (id !== undefined) return load(id);
+      loads++;
+      setThread({ postId: undefined, rows: [] });
     }),
   );
 
   const comments = (): PostComment[] | undefined => {
-    const id = postId();
+    const id = shownPostId();
     return id !== undefined && thread.postId === id ? thread.rows : undefined;
   };
 
@@ -108,7 +128,7 @@ export function createPostComments(deps: PostCommentsDeps): {
 
   const onEvent: FeedHandler = (event) => {
     if (event === undefined) {
-      const id = postId();
+      const id = shownPostId();
       if (id !== undefined) load(id);
     } else if (event.event_type === "post_comment") {
       upsertRow(toPostComment(event.payload));
@@ -130,5 +150,5 @@ export function createPostComments(deps: PostCommentsDeps): {
     removeRow(id);
   };
 
-  return { postComments: { comments, error, add, update, remove }, onEvent };
+  return { postComments: { open, setOpen, comments, error, add, update, remove }, onEvent };
 }

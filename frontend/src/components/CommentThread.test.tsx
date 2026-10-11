@@ -20,6 +20,8 @@ function fakePostComments(initial: PostComment[] | undefined) {
   const [error, setError] = createSignal<string>();
   let nextId = 100;
   const postComments: PostComments = {
+    open: () => true,
+    setOpen: () => {},
     comments,
     error,
     add: vi.fn(async (content: string) => {
