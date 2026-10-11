@@ -1,19 +1,20 @@
 use crate::ctx::Ctx;
 use crate::generate_common_bmc_fns;
 use crate::model::base::{self, Access, CommonIden, DbBmc, FieldHygiene};
+use crate::model::comment::CommentView;
 use crate::model::modql_utils::time_to_sea_value;
 use crate::model::post::PostBmc;
+use crate::model::user::{AuthorRef, UserBmc};
 use crate::model::ModelManager;
-use crate::model::Result;
-use lib_utils::time::Rfc3339;
+use crate::model::{Error, Result};
 use modql::field::Fields;
 use modql::filter::{
 	FilterNodes, ListOptions, OpValsInt64, OpValsString, OpValsValue,
 };
 use sea_query::{Condition, Expr};
-use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
+use serde::Deserialize;
 use sqlx::FromRow;
+use std::collections::HashMap;
 use time::OffsetDateTime;
 use ts_rs::TS;
 
@@ -21,11 +22,10 @@ use ts_rs::TS;
 
 /// The `post_comment` row (#124): one User's remark in a Post's thread. Every
 /// Comment is public — read is unscoped, write is owner-only (the same access
-/// shape as `Post`). It is the thread read's row and the upsert payload on
-/// `post_comment:{post_id}`. #125 replaces both with a `CommentView`.
-#[serde_as]
-#[derive(Debug, Clone, Fields, FromRow, Serialize, TS)]
-#[ts(export, export_to = "PostComment.d.ts")]
+/// shape as `Post`). No wire carries this row: the thread read, the write
+/// results and the upsert Event carry its `CommentView` (#125). So it derives
+/// no `Serialize` and no `TS`.
+#[derive(Debug, Clone, Fields, FromRow)]
 pub struct PostComment {
 	pub id: i64,
 
@@ -39,13 +39,9 @@ pub struct PostComment {
 	// -- Timestamps
 	// creator user_id and time
 	pub cid: i64,
-	#[serde_as(as = "Rfc3339")]
-	#[ts(type = "string")]
 	pub ctime: OffsetDateTime,
 	// last modifier user_id and time
 	pub mid: i64,
-	#[serde_as(as = "Rfc3339")]
-	#[ts(type = "string")]
 	pub mtime: OffsetDateTime,
 }
 
@@ -66,16 +62,6 @@ pub struct PostCommentForUpdate {
 	//       owner-only Write scope keys on `owner_id`, and a Comment belongs to
 	//       one Post for life.
 	pub content: String,
-}
-
-/// A removed Comment (#124): the `delete_post_comment` result and the removal
-/// payload on `post_comment:{post_id}`. It carries the `post_id` because the
-/// event derives its Channel from the payload (ADR-0020).
-#[derive(Debug, Clone, Copy, Serialize, TS)]
-#[ts(export, export_to = "PostCommentRemoval.d.ts")]
-pub struct PostCommentRemoval {
-	pub id: i64,
-	pub post_id: i64,
 }
 
 #[derive(FilterNodes, Deserialize, Default, Debug)]
@@ -163,22 +149,38 @@ impl PostCommentBmc {
 		base::create::<Self, _>(ctx, mm, comment_c).await
 	}
 
-	/// List one Post's Comments, oldest first (#124). Ties break by id
-	/// ascending. The caller's `order_bys` is ignored: a thread reads in time
-	/// order. `limit` / `offset` page it under the shared list-limit contract
-	/// (no limit -> 1000). Read is unscoped: every Comment is public. A Post
-	/// with no Comments (or no such Post) yields an empty list.
+	/// Read one Comment as its `CommentView` (public read, unscoped): the
+	/// `add_post_comment` and `update_post_comment` result and push (#125).
+	pub async fn get_comment(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		id: i64,
+	) -> Result<CommentView> {
+		let comment = Self::get(ctx, mm, id).await?;
+		let mut views = Self::assemble_views(ctx, mm, vec![comment]).await?;
+		views.pop().ok_or(Error::EntityNotFound {
+			entity: Self::TABLE,
+			id,
+		})
+	}
+
+	/// List one Post's Comments as `CommentView`s, newest first (#125). Ties
+	/// break by id descending. The caller's `order_bys` is ignored: a thread
+	/// reads in time order, so a `limit` keeps the newest Comments. `limit` /
+	/// `offset` page it under the shared list-limit contract (no limit ->
+	/// 1000). Read is unscoped: every Comment is public. A Post with no
+	/// Comments (or no such Post) yields an empty list.
 	pub async fn list_for_post(
 		ctx: &Ctx,
 		mm: &ModelManager,
 		post_id: i64,
 		list_options: Option<ListOptions>,
-	) -> Result<Vec<PostComment>> {
+	) -> Result<Vec<CommentView>> {
 		let list_options = ListOptions {
-			order_bys: Some(vec!["ctime", "id"].into()),
+			order_bys: Some(vec!["!ctime", "!id"].into()),
 			..list_options.unwrap_or_default()
 		};
-		Self::list(
+		let comments = Self::list(
 			ctx,
 			mm,
 			Some(vec![PostCommentFilter {
@@ -187,7 +189,50 @@ impl PostCommentBmc {
 			}]),
 			Some(list_options),
 		)
-		.await
+		.await?;
+		Self::assemble_views(ctx, mm, comments).await
+	}
+
+	/// Assemble `CommentView`s from `PostComment` rows with one author batch —
+	/// never one read per Comment (the N+1 trap). The order of the rows is kept.
+	/// A missing author falls back to the bare `owner_id` with an empty name,
+	/// as `CaptionBmc::assemble_views` does.
+	async fn assemble_views(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		comments: Vec<PostComment>,
+	) -> Result<Vec<CommentView>> {
+		if comments.is_empty() {
+			return Ok(Vec::new());
+		}
+
+		let owner_ids = base::dedup(comments.iter().map(|c| c.owner_id));
+		let author_by_id: HashMap<i64, AuthorRef> =
+			UserBmc::author_refs_by_ids(ctx, mm, &owner_ids)
+				.await?
+				.into_iter()
+				.map(|a| (a.id, a))
+				.collect();
+
+		let views = comments
+			.into_iter()
+			.map(|c| CommentView {
+				id: c.id,
+				parent_id: c.post_id,
+				author: author_by_id.get(&c.owner_id).cloned().unwrap_or(
+					AuthorRef {
+						id: c.owner_id,
+						name: String::new(),
+						avatar_url: None,
+					},
+				),
+				content: c.content,
+				ctime: c.ctime,
+				mtime: c.mtime,
+			})
+			.collect();
+
+		Ok(views)
 	}
 }
 
@@ -204,9 +249,10 @@ mod tests {
 	use crate::model;
 	use serial_test::serial;
 
-	/// Adding a Comment (#124): the caller is the Owner, the content is stored
-	/// after hygiene, and the thread lists only that Post's Comments, oldest
-	/// first.
+	/// Adding a Comment (#124): the caller is the Owner, and the content is
+	/// stored after hygiene. The thread lists only that Post's Comments as
+	/// `CommentView`s, newest first (#125). Each view carries its author
+	/// snapshot, and a new Comment has `ctime` equal to `mtime`.
 	#[serial]
 	#[tokio::test]
 	async fn test_post_comment_create_and_list_for_post() -> Result<()> {
@@ -221,22 +267,86 @@ mod tests {
 			seed_post(&Ctx::new(poster_id)?, &mm, "test_pc_list other", &[1])
 				.await?;
 		let ctx = Ctx::new(author_id)?;
+		let lisa = Ctx::new(1)?; // the seeded author User with an avatar
 
-		// -- Exec: a non-owner of the Post comments on it, twice.
+		// -- Exec: two non-owners of the Post comment on it.
 		let first = seed_post_comment(&ctx, &mm, post_id, "  first  ").await?;
-		let second = seed_post_comment(&ctx, &mm, post_id, "second").await?;
+		let second = seed_post_comment(&lisa, &mm, post_id, "second").await?;
 		seed_post_comment(&ctx, &mm, other_post, "elsewhere").await?;
 		let thread = PostCommentBmc::list_for_post(&ctx, &mm, post_id, None).await?;
 
-		// -- Check: oldest first; the other Post's Comment is excluded.
+		// -- Check: newest first; the other Post's Comment is excluded.
 		let ids: Vec<i64> = thread.iter().map(|c| c.id).collect();
-		assert_eq!(ids, vec![first, second]);
-		assert_eq!(thread[0].post_id, post_id);
-		assert_eq!(thread[0].owner_id, author_id);
-		assert_eq!(thread[0].content, "first", "hygiene trims the content");
+		assert_eq!(ids, vec![second, first]);
+		let (lisas, mine) = (&thread[0], &thread[1]);
+		assert_eq!(mine.parent_id, post_id);
+		assert_eq!(mine.author.id, author_id);
+		assert_eq!(mine.author.name, "test_pc_list-author");
+		assert_eq!(mine.author.avatar_url, None);
+		assert_eq!(mine.content, "first", "hygiene trims the content");
+		assert_eq!(mine.ctime, mine.mtime, "a create writes one time to both");
+		assert_eq!(lisas.author.name, "Lisa");
+		assert_eq!(
+			lisas.author.avatar_url.as_deref(),
+			Some("https://img.icons8.com/doodle/96/null/lisa-simpson.png")
+		);
+
+		// -- Check: a `limit` keeps the newest Comment.
+		let newest = PostCommentBmc::list_for_post(
+			&ctx,
+			&mm,
+			post_id,
+			Some(ListOptions {
+				limit: Some(1),
+				..Default::default()
+			}),
+		)
+		.await?;
+		assert_eq!(
+			newest.iter().map(|c| c.id).collect::<Vec<_>>(),
+			vec![second]
+		);
 
 		// -- Clean (user delete cascades Posts and Comments)
 		_dev_utils::clean_users(&root, &mm, "test_pc_list").await?;
+
+		Ok(())
+	}
+
+	/// An edit moves `mtime` past `ctime`, which the "(edited)" mark reads
+	/// (#125). `get_comment` returns the edited view.
+	#[serial]
+	#[tokio::test]
+	async fn test_post_comment_edit_sets_mtime() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_pc_mtime-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+		let post_id = seed_post(&ctx, &mm, "test_pc_mtime post", &[1]).await?;
+		let id = seed_post_comment(&ctx, &mm, post_id, "before").await?;
+		let created = PostCommentBmc::get_comment(&ctx, &mm, id).await?;
+
+		// -- Exec
+		PostCommentBmc::update(
+			&ctx,
+			&mm,
+			id,
+			PostCommentForUpdate {
+				content: "after".to_string(),
+			},
+		)
+		.await?;
+		let edited = PostCommentBmc::get_comment(&ctx, &mm, id).await?;
+
+		// -- Check
+		assert_eq!(created.ctime, created.mtime);
+		assert_eq!(edited.content, "after");
+		assert_eq!(edited.ctime, created.ctime, "an edit keeps ctime");
+		assert!(edited.mtime > edited.ctime, "an edit moves mtime");
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_pc_mtime-owner").await?;
 
 		Ok(())
 	}
@@ -362,16 +472,6 @@ mod tests {
 		_dev_utils::clean_users(&root, &mm, "test_pc_len-owner").await?;
 
 		Ok(())
-	}
-
-	/// Wire-lock for the removal payload (#124): the Comment id and its
-	/// `post_id`, nothing else.
-	#[test]
-	fn test_post_comment_removal_wire_shape() {
-		assert_eq!(
-			serde_json::to_value(PostCommentRemoval { id: 3, post_id: 7 }).unwrap(),
-			serde_json::json!({ "id": 3, "post_id": 7 })
-		);
 	}
 }
 

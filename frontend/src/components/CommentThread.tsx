@@ -4,7 +4,7 @@ import { createRpcAction } from "~/lib/createRpcAction";
 import { hygieneLength } from "~/lib/hygieneLength";
 import type { PostComments } from "~/lib/jedi/createPostComments";
 import type { HygieneCaps } from "~/types/backend";
-import type { PostComment } from "~/types/jedi";
+import type { CommentView } from "~/types/jedi";
 import { useDraft } from "~/components/DraftGuardContext";
 
 // Mirrors the back-end cap (`PostCommentBmc::hygiene_rules`), counted the
@@ -81,7 +81,7 @@ interface CommentFormProps {
   id: string;
   postComments: PostComments;
   /** The Comment to edit. Without it, the form composes a new Comment. */
-  comment?: PostComment;
+  comment?: CommentView;
   /** Called on Cancel, and after a saved write. An edit closes on it. */
   onClose?: () => void;
 }
@@ -183,7 +183,7 @@ function CommentForm(props: CommentFormProps) {
 }
 
 interface CommentItemProps {
-  comment: PostComment;
+  comment: CommentView;
   postComments: PostComments;
   isOwner: boolean;
 }
@@ -271,7 +271,7 @@ export default function CommentThread(props: CommentThreadProps) {
                     isOwner={
                       props.loggedIn === true &&
                       props.userId !== undefined &&
-                      props.userId === comment.ownerId
+                      props.userId === comment.author.id
                     }
                   />
                 )}

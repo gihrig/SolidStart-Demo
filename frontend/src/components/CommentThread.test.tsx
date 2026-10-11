@@ -5,23 +5,27 @@ import { createSignal } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import { createDraftGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import type { PostComments } from "~/lib/jedi/createPostComments";
-import type { PostComment } from "~/types/jedi";
+import { trustedUrl } from "~/lib/sanitizeUrl";
+import type { CommentView } from "~/types/jedi";
 import CommentThread from "./CommentThread";
 import { DraftGuardContext } from "./DraftGuardContext";
 
-const comment = (id: number, ownerId: number, content: string): PostComment => ({
+// A Comment by User `authorId`: its author is its Owner.
+const comment = (id: number, authorId: number, content: string): CommentView => ({
   id,
-  postId: 1,
-  ownerId,
+  parentId: 1,
+  author: { id: authorId, name: `user${authorId}`, avatarUrl: trustedUrl("") },
   content,
+  ctime: "2026-10-10T12:00:00Z",
+  mtime: "2026-10-10T12:00:00Z",
 });
 
 // An in-memory thread: the writes change the rows, as `createPostComments`
 // does once the back-end commits. Each write is a spy a test can fail. The rows
 // reconcile by id, as the real thread's do, so a changed row keeps its DOM.
-function fakePostComments(initial: PostComment[] | undefined) {
-  const [state, setState] = createStore<{ rows?: PostComment[] }>({ rows: initial });
-  const setComments = (rows: PostComment[] | undefined) =>
+function fakePostComments(initial: CommentView[] | undefined) {
+  const [state, setState] = createStore<{ rows?: CommentView[] }>({ rows: initial });
+  const setComments = (rows: CommentView[] | undefined) =>
     setState("rows", rows && state.rows ? reconcile(rows, { key: "id" }) : rows);
   const [error, setError] = createSignal<string>();
   let nextId = 100;
@@ -33,7 +37,7 @@ function fakePostComments(initial: PostComment[] | undefined) {
     deleted: (id) => state.rows !== undefined && state.rows.every((c) => c.id !== id),
     error,
     add: vi.fn(async (content: string) => {
-      setComments([...(state.rows ?? []), comment(nextId++, 2, content)]);
+      setComments([comment(nextId++, 2, content), ...(state.rows ?? [])]);
     }),
     update: vi.fn(async (id: number, content: string) => {
       setComments(state.rows?.map((c) => (c.id === id ? { ...c, content } : c)));
@@ -48,15 +52,15 @@ function fakePostComments(initial: PostComment[] | undefined) {
 const composeBox = () => screen.getByRole("textbox", { name: "Your comment" });
 
 describe("<CommentThread />", () => {
-  it("lists the Comments, oldest first, as plain text", () => {
+  it("lists the Comments in the thread's order, as plain text", () => {
     const { postComments } = fakePostComments([
-      comment(1, 1, "first"),
       comment(2, 3, "<b>second</b>"),
+      comment(1, 1, "first"),
     ]);
     render(() => <CommentThread id="t" postComments={postComments} />);
     const items = screen.getAllByRole("listitem").map((li) => li.textContent);
-    expect(items[0]).toContain("first");
-    expect(items[1]).toContain("<b>second</b>");
+    expect(items[0]).toContain("<b>second</b>");
+    expect(items[1]).toContain("first");
   });
 
   it("says when the thread loads, and when it is empty", () => {

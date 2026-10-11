@@ -1,6 +1,6 @@
+use lib_core::model::comment::{CommentRemoval, CommentView};
 use lib_core::model::post_comment::{
-	PostComment, PostCommentBmc, PostCommentForCreate, PostCommentForUpdate,
-	PostCommentRemoval,
+	PostCommentBmc, PostCommentForCreate, PostCommentForUpdate,
 };
 use lib_rpc_core::prelude::*;
 use lib_web::ws::poke::{self, PokedRpcResult};
@@ -18,74 +18,73 @@ pub fn public_rpc_router_builder() -> RouterBuilder {
 	router_builder!(list_post_comments,)
 }
 
-// The thread carries the plain `PostComment` row for now; #125 changes the read
-// and the upsert payload to a `CommentView` (author display).
-
-/// Add a Comment owned by the caller to a Post (#124). It pushes the new row on
-/// `post_comment:{post_id}`, then pokes `posts`, so every client refetches the
-/// Post views and their comment counts. The write path rejects an over-cap
-/// content or an unknown Post (400).
+/// Add a Comment owned by the caller to a Post (#124). It returns the new
+/// Comment's `CommentView` and pushes the same view on
+/// `post_comment:{parent_id}` (#125). It then pokes `posts`, so every client
+/// refetches the Post views and their comment counts. The write path rejects an
+/// over-cap content or an unknown Post (400).
 pub async fn add_post_comment(
 	ctx: Ctx,
 	mm: ModelManager,
 	ws_state: WsState,
 	params: ParamsForCreate<PostCommentForCreate>,
-) -> Result<PokedRpcResult<PostComment, poke::PostComment>> {
+) -> Result<PokedRpcResult<CommentView, poke::PostComment>> {
 	let ParamsForCreate { data } = params;
 	let id = PostCommentBmc::create(&ctx, &mm, data).await?;
-	let comment = PostCommentBmc::get(&ctx, &mm, id).await?;
+	let comment = PostCommentBmc::get_comment(&ctx, &mm, id).await?;
 	let receipt = ws_state.broadcast_post_comment(&comment);
 	ws_state.broadcast_posts_update();
 	Ok(PokedRpcResult::new(comment, receipt))
 }
 
-/// Edit the caller's own Comment (#124), and push the edited row on
-/// `post_comment:{post_id}`. An edit does not change the comment count, so it
-/// does not poke `posts`. A non-owner edit is `EntityNotFound` (400), with no
-/// push.
+/// Edit the caller's own Comment (#124). It returns the edited `CommentView`
+/// and pushes the same view on `post_comment:{parent_id}` (#125). An edit does
+/// not change the comment count, so it does not poke `posts`. A non-owner edit
+/// is `EntityNotFound` (400), with no push.
 pub async fn update_post_comment(
 	ctx: Ctx,
 	mm: ModelManager,
 	ws_state: WsState,
 	params: ParamsForUpdate<PostCommentForUpdate>,
-) -> Result<PokedRpcResult<PostComment, poke::PostComment>> {
+) -> Result<PokedRpcResult<CommentView, poke::PostComment>> {
 	let ParamsForUpdate { id, data } = params;
 	PostCommentBmc::update(&ctx, &mm, id, data).await?;
-	let comment = PostCommentBmc::get(&ctx, &mm, id).await?;
+	let comment = PostCommentBmc::get_comment(&ctx, &mm, id).await?;
 	let receipt = ws_state.broadcast_post_comment(&comment);
 	Ok(PokedRpcResult::new(comment, receipt))
 }
 
-/// Delete the caller's own Comment (#124). It pushes the removal (the id and
-/// its `post_id`) on `post_comment:{post_id}`, then pokes `posts` for the
-/// count. The handler reads the Comment first, for its `post_id`: the read is
-/// public, the delete is owner-only. A non-owner delete is `EntityNotFound`
-/// (400), with no push. `params.id` is the Comment id.
+/// Delete the caller's own Comment (#124). It returns and pushes a
+/// `CommentRemoval` (the id and its `parent_id`, #125) on
+/// `post_comment:{parent_id}`, then pokes `posts` for the count. The handler
+/// reads the Comment first, for its `post_id`: the read is public, the delete
+/// is owner-only. A non-owner delete is `EntityNotFound` (400), with no push.
+/// `params.id` is the Comment id.
 pub async fn delete_post_comment(
 	ctx: Ctx,
 	mm: ModelManager,
 	ws_state: WsState,
 	params: ParamsIded,
-) -> Result<PokedRpcResult<PostCommentRemoval, poke::PostComment>> {
+) -> Result<PokedRpcResult<CommentRemoval, poke::PostComment>> {
 	let comment = PostCommentBmc::get(&ctx, &mm, params.id).await?;
 	PostCommentBmc::delete(&ctx, &mm, comment.id).await?;
-	let removal = PostCommentRemoval {
+	let removal = CommentRemoval {
 		id: comment.id,
-		post_id: comment.post_id,
+		parent_id: comment.post_id,
 	};
 	let receipt = ws_state.broadcast_post_comment_removal(removal);
 	ws_state.broadcast_posts_update();
 	Ok(PokedRpcResult::new(removal, receipt))
 }
 
-/// List one Post's Comments, oldest first (#124). `params.id` is the **Post**
-/// id; the optional `params.list_options` pages the thread (`limit` /
-/// `offset`).
+/// List one Post's Comments as `CommentView`s, newest first (#124, #125).
+/// `params.id` is the **Post** id; the optional `params.list_options` pages the
+/// thread (`limit` / `offset`).
 pub async fn list_post_comments(
 	ctx: Ctx,
 	mm: ModelManager,
 	params: ParamsIdedList,
-) -> Result<DataRpcResult<Vec<PostComment>>> {
+) -> Result<DataRpcResult<Vec<CommentView>>> {
 	let comments =
 		PostCommentBmc::list_for_post(&ctx, &mm, params.id, params.list_options)
 			.await?;

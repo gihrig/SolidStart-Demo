@@ -374,36 +374,61 @@ describe("jediApi.captions", () => {
   });
 });
 
-// A Post Comment row as `list_post_comments` returns it (#124): the plain row,
-// audit columns included.
-const wireComment = (id: number, ownerId: number, content: string) => ({
+// A Comment as `list_post_comments` and the writes return it (#125): the
+// wire `CommentView`, with its author snapshot and its times.
+const wireComment = (id: number, authorId: number, content: string, avatarUrl: string | null) => ({
   id,
-  post_id: 1,
-  owner_id: ownerId,
+  parent_id: 1,
+  author: { id: authorId, name: `user${authorId}`, avatar_url: avatarUrl },
   content,
-  cid: ownerId,
   ctime: "2026-10-10T12:00:00Z",
-  mid: ownerId,
-  mtime: "2026-10-10T12:00:00Z",
+  mtime: "2026-10-10T12:05:00.123456Z",
 });
 
-describe("jediApi.comments (#124)", () => {
+describe("jediApi.comments (#124, #125)", () => {
   it("listForPost() reads one Post's thread from the public surface, in order", async () => {
-    onPublic({ list_post_comments: [wireComment(5, 2, "first"), wireComment(6, 3, "second")] });
+    onPublic({
+      list_post_comments: [
+        wireComment(6, 3, "second", "https://example.com/a.png"),
+        wireComment(5, 2, "first", null),
+      ],
+    });
     expect(await jediApi.comments.listForPost(1)).toEqual([
-      { id: 5, postId: 1, ownerId: 2, content: "first" },
-      { id: 6, postId: 1, ownerId: 3, content: "second" },
+      {
+        id: 6,
+        parentId: 1,
+        author: { id: 3, name: "user3", avatarUrl: "https://example.com/a.png" },
+        content: "second",
+        ctime: "2026-10-10T12:00:00Z",
+        mtime: "2026-10-10T12:05:00.123456Z",
+      },
+      {
+        id: 5,
+        parentId: 1,
+        author: { id: 2, name: "user2", avatarUrl: "" },
+        content: "first",
+        ctime: "2026-10-10T12:00:00Z",
+        mtime: "2026-10-10T12:05:00.123456Z",
+      },
     ]);
     expect(publicRpcMock).toHaveBeenCalledWith("list_post_comments", { id: 1 });
   });
 
+  it("maps the author's avatar URL through the sanitize boundary", async () => {
+    onPublic({ list_post_comments: [wireComment(5, 2, "hi", "https://example.com/b.png")] });
+    const [view] = await jediApi.comments.listForPost(1);
+    expect(sanitizeSpy.mock.calls.flat()).toContain(view.author.avatarUrl);
+  });
+
   it("add() sends the wire PostCommentForCreate and re-shapes the result", async () => {
-    onAuthenticated({ add_post_comment: wireComment(7, 2, "hello") });
+    onAuthenticated({ add_post_comment: wireComment(7, 2, "hello", null) });
     expect(await jediApi.comments.add(1, "hello")).toEqual({
       id: 7,
-      postId: 1,
-      ownerId: 2,
+      parentId: 1,
+      author: { id: 2, name: "user2", avatarUrl: "" },
       content: "hello",
+      ctime: "2026-10-10T12:00:00Z",
+      mtime: "2026-10-10T12:05:00.123456Z",
     });
     expect(authenticatedRpcMock).toHaveBeenCalledWith("add_post_comment", {
       data: { post_id: 1, content: "hello" },
@@ -411,7 +436,7 @@ describe("jediApi.comments (#124)", () => {
   });
 
   it("update() sends the Comment id and the new content", async () => {
-    onAuthenticated({ update_post_comment: wireComment(7, 2, "edited") });
+    onAuthenticated({ update_post_comment: wireComment(7, 2, "edited", null) });
     expect((await jediApi.comments.update(7, "edited")).content).toBe("edited");
     expect(authenticatedRpcMock).toHaveBeenCalledWith("update_post_comment", {
       id: 7,
@@ -420,7 +445,7 @@ describe("jediApi.comments (#124)", () => {
   });
 
   it("remove() deletes by Comment id", async () => {
-    onAuthenticated({ delete_post_comment: { id: 7, post_id: 1 } });
+    onAuthenticated({ delete_post_comment: { id: 7, parent_id: 1 } });
     await jediApi.comments.remove(7);
     expect(authenticatedRpcMock).toHaveBeenCalledWith("delete_post_comment", { id: 7 });
   });

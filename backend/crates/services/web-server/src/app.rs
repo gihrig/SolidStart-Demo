@@ -997,10 +997,12 @@ mod tests {
 
 	/// A Post's Comment thread over HTTP (#124). An anonymous visitor reads the
 	/// thread on `/api/rpc-public` but cannot write (401). A logged-in User adds,
-	/// edits and deletes their own Comment: an add or edit pushes the row on
-	/// `post_comment:{post_id}`, and a delete pushes the removal (id and
-	/// `post_id`). An add or delete then pokes `posts` (the count); an edit does
-	/// not. A non-owner edit or delete is rejected (400) with no push.
+	/// edits and deletes their own Comment: an add or edit returns the
+	/// `CommentView` and pushes the same view on `post_comment:{post_id}`, and a
+	/// delete returns and pushes the removal (`id`, `parent_id`) (#125). An add
+	/// or delete then pokes `posts` (the count); an edit does not. A non-owner
+	/// edit or delete is rejected (400) with no push. The public read lists
+	/// `CommentView`s newest first, with no actor ids.
 	#[serial]
 	#[tokio::test]
 	async fn test_web_post_comment_thread_ok() -> Result<()> {
@@ -1034,8 +1036,9 @@ mod tests {
 			.await
 			.assert_status(axum::http::StatusCode::UNAUTHORIZED);
 
-		// -- Exec & Check: add. The row comes back after hygiene, and it is
-		//    pushed on the thread, then `posts` is poked.
+		// -- Exec & Check: add. The view comes back after hygiene, with demo1 as
+		//    its author, and the same view is pushed on the thread. Then `posts`
+		//    is poked.
 		let body: Value = server.post("/api/rpc").json(&add).await.json();
 		let id = body
 			.pointer("/result/data/id")
@@ -1045,11 +1048,25 @@ mod tests {
 			body.pointer("/result/data/content").and_then(Value::as_str),
 			Some("hello")
 		);
-		let event = rx.try_recv().expect("add pushes the row");
+		assert_eq!(
+			body.pointer("/result/data/author/name")
+				.and_then(Value::as_str),
+			Some("demo1")
+		);
+		assert_eq!(
+			body.pointer("/result/data/parent_id")
+				.and_then(Value::as_i64),
+			Some(post_id)
+		);
+		let event = rx.try_recv().expect("add pushes the view");
 		assert_eq!(event.channel().key(), format!("post_comment:{post_id}"));
 		let event = serde_json::to_value(event)?;
 		assert_eq!(event["event_type"], "post_comment");
-		assert_eq!(event["payload"]["id"].as_i64(), Some(id));
+		assert_eq!(
+			Some(&event["payload"]),
+			body.pointer("/result/data"),
+			"the add result equals the pushed payload"
+		);
 		let posts = rx.try_recv().expect("add pokes posts");
 		assert_eq!(posts.channel().key(), "posts");
 
@@ -1069,7 +1086,11 @@ mod tests {
 		);
 		let event = serde_json::to_value(rx.try_recv().expect("edit pushes"))?;
 		assert_eq!(event["event_type"], "post_comment");
-		assert_eq!(event["payload"]["content"], "edited");
+		assert_eq!(
+			Some(&event["payload"]),
+			body.pointer("/result/data"),
+			"the edit result equals the pushed payload"
+		);
 		assert!(rx.try_recv().is_err(), "an edit must not poke posts");
 
 		// -- Exec & Check: a non-owner edit or delete is rejected, with no push.
@@ -1088,17 +1109,32 @@ mod tests {
 			.assert_status(axum::http::StatusCode::BAD_REQUEST);
 		assert!(rx.try_recv().is_err(), "a rejected write must not push");
 
-		// -- Exec & Check: the public thread lists both, oldest first.
+		// -- Exec & Check: the public thread lists both, newest first. Each row
+		//    has exactly the `CommentView` keys: no `cid`, `mid` or `owner_id`.
 		let list = rpc("list_post_comments", json!({ "id": post_id }));
 		let body: Value = anon.post("/api/rpc-public").json(&list).await.json();
-		let ids: Vec<i64> = body
+		let rows = body
 			.pointer("/result/data")
 			.and_then(Value::as_array)
-			.ok_or(format!("list_post_comments: missing data in {body}"))?
+			.ok_or(format!("list_post_comments: missing data in {body}"))?;
+		let ids: Vec<i64> = rows
 			.iter()
 			.filter_map(|c| c.pointer("/id").and_then(Value::as_i64))
 			.collect();
-		assert_eq!(ids, vec![other_comment, id]);
+		assert_eq!(ids, vec![id, other_comment]);
+		for row in rows {
+			let mut keys: Vec<&str> = row
+				.as_object()
+				.ok_or(format!("list_post_comments: row is not an object: {row}"))?
+				.keys()
+				.map(String::as_str)
+				.collect();
+			keys.sort_unstable();
+			assert_eq!(
+				keys,
+				vec!["author", "content", "ctime", "id", "mtime", "parent_id"]
+			);
+		}
 
 		// -- Exec & Check: delete returns and pushes the removal, then pokes
 		//    `posts`.
@@ -1109,7 +1145,7 @@ mod tests {
 			.json();
 		assert_eq!(
 			body.pointer("/result/data"),
-			Some(&json!({ "id": id, "post_id": post_id })),
+			Some(&json!({ "id": id, "parent_id": post_id })),
 			"got {body}"
 		);
 		let event = rx.try_recv().expect("delete pushes the removal");
@@ -1118,7 +1154,7 @@ mod tests {
 			serde_json::to_value(event)?,
 			json!({
 				"event_type": "post_comment_removal",
-				"payload": { "id": id, "post_id": post_id },
+				"payload": { "id": id, "parent_id": post_id },
 			})
 		);
 		let posts = rx.try_recv().expect("delete pokes posts");

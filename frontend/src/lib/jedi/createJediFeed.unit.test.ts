@@ -10,8 +10,8 @@ import type {
   AuthorRef,
   CaptionView,
   JediCategory,
+  CommentView,
   Like,
-  PostComment,
   PostView,
 } from "~/types/jedi";
 import type { WsEvent } from "~/types/backend";
@@ -168,11 +168,13 @@ beforeEach(() => {
   );
 });
 
-const commentOn = (postId: number, id: number): PostComment => ({
+const commentOn = (postId: number, id: number): CommentView => ({
   id,
-  postId,
-  ownerId: 1,
+  parentId: postId,
+  author: author(1, "Lisa"),
   content: `comment ${id}`,
+  ctime: "2026-10-10T12:00:00Z",
+  mtime: "2026-10-10T12:00:00Z",
 });
 
 // The resources back onto pre-resolved promises; two macrotask ticks drain the
@@ -690,16 +692,14 @@ describe("createJediFeed — the selected Post's Comment thread (#124)", () => {
         event_type: "post_comment",
         payload: {
           id: 1001,
-          post_id: 1,
-          owner_id: 2,
+          parent_id: 1,
+          author: { id: 2, name: "Homer", avatar_url: null },
           content: "live",
-          cid: 2,
-          ctime: "2026-10-10T12:00:00Z",
-          mid: 2,
-          mtime: "2026-10-10T12:00:00Z",
+          ctime: "2026-10-10T12:01:00Z",
+          mtime: "2026-10-10T12:01:00Z",
         },
       });
-      expect(ids(jedi)).toEqual([1000, 1001]);
+      expect(ids(jedi), "the newer Comment goes on top").toEqual([1001, 1000]);
 
       dispose();
     });

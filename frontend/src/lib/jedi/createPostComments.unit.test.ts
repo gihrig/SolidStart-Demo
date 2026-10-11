@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { createRoot, createSignal } from "solid-js";
 import type { FeedHandler } from "~/lib/feed";
 import type { JediApi } from "~/lib/jedi/jedi-api";
-import type { PostComment as PostCommentWire } from "~/types/backend";
-import type { PostComment } from "~/types/jedi";
+import { trustedUrl } from "~/lib/sanitizeUrl";
+import type { CommentView as CommentViewWire } from "~/types/backend";
+import type { CommentView } from "~/types/jedi";
 import { createPostComments, type PostComments } from "./createPostComments";
 
 // The Comment thread of the selected Post (#124). This seam test drives the
@@ -11,23 +12,28 @@ import { createPostComments, type PostComments } from "./createPostComments";
 // Feed Events through `onEvent`; `createJediFeed.unit.test.ts` covers the Feed
 // wiring around it.
 
-const comment = (id: number, postId: number, content: string, ownerId = 2): PostComment => ({
+// A time `seconds` after a fixed moment, as the wire writes it: trailing zeros
+// trimmed. A Comment is made `id` seconds in, so a higher id is newer.
+const at = (seconds: number) =>
+  new Date(Date.UTC(2026, 9, 10, 12, 0, seconds)).toISOString().replace(".000Z", "Z");
+
+const comment = (id: number, parentId: number, content: string, authorId = 2): CommentView => ({
   id,
-  postId,
-  ownerId,
+  parentId,
+  author: { id: authorId, name: `user${authorId}`, avatarUrl: trustedUrl("") },
   content,
+  ctime: at(id),
+  mtime: at(id),
 });
 
-// The wire row a Feed Event carries.
-const wire = (c: PostComment): PostCommentWire => ({
+// The wire view a Feed Event carries.
+const wire = (c: CommentView): CommentViewWire => ({
   id: c.id,
-  post_id: c.postId,
-  owner_id: c.ownerId,
+  parent_id: c.parentId,
+  author: { id: c.author.id, name: c.author.name, avatar_url: null },
   content: c.content,
-  cid: c.ownerId,
-  ctime: "2026-10-10T12:00:00Z",
-  mid: c.ownerId,
-  mtime: "2026-10-10T12:00:00Z",
+  ctime: c.ctime,
+  mtime: c.mtime,
 });
 
 // A promise the test settles by hand, to hold a back-end call in flight.
@@ -43,9 +49,9 @@ function deferred<T>() {
 
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
 
-// A stateful fake back-end: the threads by Post id. Each write changes the
-// thread, so a later read sees it.
-let threads: Map<number, PostComment[]>;
+// A stateful fake back-end: the threads by Post id, newest first. Each write
+// changes the thread, so a later read sees it.
+let threads: Map<number, CommentView[]>;
 let nextId: number;
 const listForPostMock = vi.fn<JediApi["comments"]["listForPost"]>();
 const addMock = vi.fn<JediApi["comments"]["add"]>();
@@ -59,7 +65,7 @@ const api: JediApi["comments"] = {
 };
 beforeEach(() => {
   threads = new Map([
-    [1, [comment(10, 1, "first"), comment(11, 1, "second")]],
+    [1, [comment(11, 1, "second"), comment(10, 1, "first")]],
     [2, [comment(20, 2, "other post")]],
   ]);
   nextId = 100;
@@ -71,7 +77,7 @@ beforeEach(() => {
   addMock.mockReset();
   addMock.mockImplementation((postId, content) => {
     const added = comment(nextId++, postId, content);
-    threads.set(postId, [...(threads.get(postId) ?? []), added]);
+    threads.set(postId, [added, ...(threads.get(postId) ?? [])]);
     return Promise.resolve({ ...added });
   });
   updateMock.mockReset();
@@ -136,7 +142,7 @@ describe("createPostComments — the open state (lazy thread)", () => {
       async ({ postComments }) => {
         postComments.setOpen(true);
         await tick();
-        expect(contents(postComments)).toEqual(["first", "second"]);
+        expect(contents(postComments)).toEqual(["second", "first"]);
 
         postComments.setOpen(false);
         expect(postComments.comments()).toBeUndefined();
@@ -144,7 +150,7 @@ describe("createPostComments — the open state (lazy thread)", () => {
         expect(postComments.comments(), "no stale rows while it reloads").toBeUndefined();
         await tick();
         expect(listForPostMock).toHaveBeenCalledTimes(2);
-        expect(contents(postComments)).toEqual(["first", "second"]);
+        expect(contents(postComments)).toEqual(["second", "first"]);
       },
       { open: false },
     ));
@@ -166,7 +172,7 @@ describe("createPostComments — the thread read", () => {
     withThread(async ({ postComments, select }) => {
       expect(postComments.comments()).toBeUndefined();
       await tick();
-      expect(contents(postComments)).toEqual(["first", "second"]);
+      expect(contents(postComments)).toEqual(["second", "first"]);
 
       select(2);
       postComments.setOpen(true);
@@ -185,15 +191,15 @@ describe("createPostComments — the thread read", () => {
   it("keeps each row on a reload: rows reconcile by id, never recreate", () =>
     withThread(async ({ postComments, onEvent }) => {
       await tick();
-      const [first, second] = postComments.comments()!;
+      const [second, first] = postComments.comments()!;
 
-      threads.get(1)![1].content = "second, edited elsewhere";
+      threads.get(1)![0].content = "second, edited elsewhere";
       onEvent(undefined); // the resync call after a (re)connect
       await tick();
 
       expect(listForPostMock).toHaveBeenCalledTimes(2);
-      expect(postComments.comments()![0]).toBe(first);
-      expect(postComments.comments()![1]).toBe(second);
+      expect(postComments.comments()![0]).toBe(second);
+      expect(postComments.comments()![1]).toBe(first);
       expect(second.content).toBe("second, edited elsewhere");
     }));
 
@@ -208,10 +214,10 @@ describe("createPostComments — the thread read", () => {
 });
 
 describe("createPostComments — the live Events", () => {
-  it("an upsert of a new Comment appends it; an upsert of a known one edits it in place", () =>
+  it("an upsert of a new Comment puts it on top; an upsert of a known one edits it in place", () =>
     withThread(async ({ postComments, onEvent }) => {
       await tick();
-      const first = postComments.comments()![0];
+      const first = postComments.comments()![1];
 
       onEvent({ event_type: "post_comment", payload: wire(comment(12, 1, "third")) });
       onEvent({
@@ -219,14 +225,43 @@ describe("createPostComments — the live Events", () => {
         payload: wire(comment(10, 1, "first, edited")),
       });
 
-      expect(contents(postComments)).toEqual(["first, edited", "second", "third"]);
-      expect(postComments.comments()![0]).toBe(first);
+      expect(contents(postComments)).toEqual(["third", "second", "first, edited"]);
+      expect(postComments.comments()![2]).toBe(first);
+    }));
+
+  it("a late push of an older Comment goes below a newer one", () =>
+    withThread(async ({ postComments, onEvent }) => {
+      await tick();
+      const between = { ...comment(12, 1, "between"), ctime: "2026-10-10T12:00:10.5Z" };
+      onEvent({ event_type: "post_comment", payload: wire(comment(5, 1, "oldest")) });
+      onEvent({ event_type: "post_comment", payload: wire(between) });
+
+      expect(contents(postComments)).toEqual(["second", "between", "first", "oldest"]);
+    }));
+
+  it("places by time, not by string order: the wire trims trailing zeros", () =>
+    withThread(async ({ postComments, onEvent }) => {
+      await tick();
+      // "…:11.1Z" sorts before "…:11Z" as a string, but it is the later time.
+      const later = { ...comment(12, 1, "a tenth later"), ctime: "2026-10-10T12:00:11.1Z" };
+      onEvent({ event_type: "post_comment", payload: wire(later) });
+
+      expect(contents(postComments)).toEqual(["a tenth later", "second", "first"]);
+    }));
+
+  it("breaks a time tie by id: the higher id goes first", () =>
+    withThread(async ({ postComments, onEvent }) => {
+      await tick();
+      const tie = { ...comment(12, 1, "same time as second"), ctime: at(11) };
+      onEvent({ event_type: "post_comment", payload: wire(tie) });
+
+      expect(contents(postComments)).toEqual(["same time as second", "second", "first"]);
     }));
 
   it("a removal drops the Comment by id", () =>
     withThread(async ({ postComments, onEvent }) => {
       await tick();
-      onEvent({ event_type: "post_comment_removal", payload: { id: 10, post_id: 1 } });
+      onEvent({ event_type: "post_comment_removal", payload: { id: 10, parent_id: 1 } });
       expect(contents(postComments)).toEqual(["second"]);
     }));
 
@@ -236,7 +271,7 @@ describe("createPostComments — the live Events", () => {
       await tick();
       expect(postComments.deleted(10)).toBe(false);
 
-      onEvent({ event_type: "post_comment_removal", payload: { id: 10, post_id: 1 } });
+      onEvent({ event_type: "post_comment_removal", payload: { id: 10, parent_id: 1 } });
       expect(postComments.deleted(10)).toBe(true);
 
       postComments.setOpen(false);
@@ -247,21 +282,21 @@ describe("createPostComments — the live Events", () => {
     withThread(async ({ postComments, onEvent }) => {
       await tick();
       onEvent({ event_type: "post_comment", payload: wire(comment(30, 2, "elsewhere")) });
-      expect(contents(postComments)).toEqual(["first", "second"]);
+      expect(contents(postComments)).toEqual(["second", "first"]);
     }));
 
   it("a list that was read before a change landed is not applied: the thread reloads", () =>
     withThread(async ({ postComments, onEvent }) => {
       await tick();
-      const stale = deferred<PostComment[]>();
+      const stale = deferred<CommentView[]>();
       listForPostMock.mockReturnValueOnce(stale.promise);
       onEvent(undefined); // a reload starts...
       onEvent({ event_type: "post_comment", payload: wire(comment(12, 1, "third")) });
-      threads.get(1)!.push(comment(12, 1, "third"));
-      stale.resolve([comment(10, 1, "first"), comment(11, 1, "second")]); // ...read before it
+      threads.get(1)!.unshift(comment(12, 1, "third"));
+      stale.resolve([comment(11, 1, "second"), comment(10, 1, "first")]); // ...read before it
       await tick();
 
-      expect(contents(postComments)).toEqual(["first", "second", "third"]);
+      expect(contents(postComments)).toEqual(["third", "second", "first"]);
     }));
 });
 
@@ -271,11 +306,11 @@ describe("createPostComments — the writes", () => {
       await tick();
       await postComments.add("hello");
       expect(addMock).toHaveBeenCalledWith(1, "hello");
-      expect(contents(postComments)).toEqual(["first", "second", "hello"]);
+      expect(contents(postComments)).toEqual(["hello", "second", "first"]);
 
       // The back-end's push of the same Comment does not add it twice.
       onEvent({ event_type: "post_comment", payload: wire(comment(100, 1, "hello")) });
-      expect(contents(postComments)).toEqual(["first", "second", "hello"]);
+      expect(contents(postComments)).toEqual(["hello", "second", "first"]);
     }));
 
   it("update() shows the edited content at once", () =>
@@ -283,7 +318,7 @@ describe("createPostComments — the writes", () => {
       await tick();
       await postComments.update(11, "second, edited");
       expect(updateMock).toHaveBeenCalledWith(11, "second, edited");
-      expect(contents(postComments)).toEqual(["first", "second, edited"]);
+      expect(contents(postComments)).toEqual(["second, edited", "first"]);
     }));
 
   it("remove() drops the Comment at once", () =>
@@ -299,6 +334,6 @@ describe("createPostComments — the writes", () => {
       await tick();
       addMock.mockRejectedValueOnce(new Error("Network down"));
       await expect(postComments.add("hello")).rejects.toThrow("Network down");
-      expect(contents(postComments)).toEqual(["first", "second"]);
+      expect(contents(postComments)).toEqual(["second", "first"]);
     }));
 });

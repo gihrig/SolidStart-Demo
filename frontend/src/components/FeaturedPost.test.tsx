@@ -8,7 +8,7 @@ import { stubDialogModal } from "~/lib/test-utils";
 import FeaturedPost from "./FeaturedPost";
 import { DraftGuardContext } from "./DraftGuardContext";
 import type { PostComments } from "~/lib/jedi/createPostComments";
-import type { PostView, CaptionView, Like, PostComment } from "~/types/jedi";
+import type { PostView, CaptionView, Like, CommentView } from "~/types/jedi";
 
 const post: PostView = {
   id: 1,
@@ -480,8 +480,15 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
   // not used here. The view-model owns the open state, so a fresh one per test.
   const fakePostComments = (): PostComments => {
     const [open, setOpen] = createSignal(false);
-    const [comments] = createSignal<PostComment[] | undefined>([
-      { id: 9, postId: 1, ownerId: 2, content: "Nice cat" },
+    const [comments] = createSignal<CommentView[] | undefined>([
+      {
+        id: 9,
+        parentId: 1,
+        author: { id: 2, name: "Homer", avatarUrl: trustedUrl("") },
+        content: "Nice cat",
+        ctime: "2026-10-10T12:00:00Z",
+        mtime: "2026-10-10T12:00:00Z",
+      },
     ]);
     return {
       open,

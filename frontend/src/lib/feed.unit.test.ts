@@ -2,12 +2,12 @@ import { describe, it, expect, vi } from "vite-plus/test";
 import { createRoot, createSignal } from "solid-js";
 import { createMemoryFeed } from "./feed.memory";
 import { Channel } from "./channel";
-import type { ConvMsg, PostComment } from "~/types/backend";
+import type { CommentView, ConvMsg } from "~/types/backend";
 
 const convMsg = (id: number, convId: number) =>
   ({ id, conv_id: convId, content: `m${id}` }) as unknown as ConvMsg;
 const postComment = (id: number, postId: number) =>
-  ({ id, post_id: postId, content: `c${id}` }) as unknown as PostComment;
+  ({ id, parent_id: postId, content: `c${id}` }) as unknown as CommentView;
 
 describe("Feed — routing by Channel key", () => {
   it("delivers a poke only to the Subscription held on its Channel", () => {
@@ -44,7 +44,7 @@ describe("Feed — routing a payload Event", () => {
     expect(onConv8).not.toHaveBeenCalled();
   });
 
-  it("routes a Post Comment upsert and removal to post_comment:{post_id} (#124)", () => {
+  it("routes a Post Comment upsert and removal to post_comment:{parent_id} (#124, #125)", () => {
     const mem = createMemoryFeed();
     const onPost7 = vi.fn();
     const onPost8 = vi.fn();
@@ -56,7 +56,7 @@ describe("Feed — routing a payload Event", () => {
     const upsert = { event_type: "post_comment", payload: postComment(1, 7) } as const;
     const removal = {
       event_type: "post_comment_removal",
-      payload: { id: 1, post_id: 7 },
+      payload: { id: 1, parent_id: 7 },
     } as const;
     mem.emit(upsert);
     mem.emit(removal);

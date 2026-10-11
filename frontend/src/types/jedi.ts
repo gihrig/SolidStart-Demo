@@ -70,11 +70,16 @@ export interface CaptionView {
   likeCount: number;
 }
 
-/** One Comment in a Post's thread (#124). The body is plain text for now;
- *  `ownerId` gates the Edit / Delete buttons. #125 adds the author display. */
-export interface PostComment {
+/** One Comment in a thread (#124, #125). `parentId` is the id of the Post that
+ *  holds the thread. `author.id` gates the Edit / Delete buttons: a content
+ *  entity's author is its Owner. `content` is the raw text, so a consumer shows
+ *  it as text, never as HTML. `ctime` and `mtime` are the wire RFC 3339 times;
+ *  `mtime` differs from `ctime` after an edit. */
+export interface CommentView {
   id: number;
-  postId: number;
-  ownerId: number;
+  parentId: number;
+  author: AuthorRef;
   content: string;
+  ctime: string;
+  mtime: string;
 }

@@ -1,9 +1,9 @@
 import { batch, createEffect, createMemo, createSignal, on, type Accessor } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import { passThroughGuard, type DraftGuard, type DraftScope } from "~/lib/createDraftGuard";
-import { jediApi, toPostComment, type JediApi } from "~/lib/jedi/jedi-api";
+import { jediApi, toCommentView, type JediApi } from "~/lib/jedi/jedi-api";
 import type { FeedHandler } from "~/lib/feed";
-import type { PostComment } from "~/types/jedi";
+import type { CommentView } from "~/types/jedi";
 
 /** The inputs of one Comment thread: the Post shown, and its back-end calls. */
 export interface PostCommentsDeps {
@@ -29,10 +29,10 @@ export interface PostComments {
   /** The scope of the panel's forms (ADR-0030): a close asks only about their
    *  Drafts. */
   draftScope: DraftScope;
-  /** The selected Post's Comments, oldest first. Undefined while they load,
+  /** The selected Post's Comments, newest first. Undefined while they load,
    *  while the panel is closed, and while no Post is selected. Each row keeps
    *  its identity across a reload. */
-  comments: Accessor<PostComment[] | undefined>;
+  comments: Accessor<CommentView[] | undefined>;
   /** Whether the shown thread dropped the Comment: the thread is loaded and
    *  does not list it. False while no thread shows. */
   deleted: (id: number) => boolean;
@@ -46,6 +46,12 @@ export interface PostComments {
   /** Delete the viewer's own Comment. The thread drops it at once. */
   remove: (id: number) => Promise<void>;
 }
+
+// Newest first, as the back-end orders a thread (#125): `ctime` descending,
+// then `id` descending. It compares `Date.parse`, as the wire trims trailing
+// zeros, so string order is not time order.
+const newestFirst = (a: CommentView, b: CommentView): number =>
+  Date.parse(b.ctime) - Date.parse(a.ctime) || b.id - a.id;
 
 /**
  * The Comment thread of the selected Post (#124): the thread load, the live
@@ -81,7 +87,7 @@ export function createPostComments(deps: PostCommentsDeps): {
   const shownPostId = createMemo(() => (open() ? postId() : undefined));
   // `postId` names the Post the rows belong to, so a reload for another Post
   // never shows the previous Post's rows.
-  const [thread, setThread] = createStore<{ postId?: number; rows: PostComment[] }>({
+  const [thread, setThread] = createStore<{ postId?: number; rows: CommentView[] }>({
     rows: [],
   });
   const [error, setError] = createSignal<string>();
@@ -120,7 +126,7 @@ export function createPostComments(deps: PostCommentsDeps): {
     }),
   );
 
-  const comments = (): PostComment[] | undefined => {
+  const comments = (): CommentView[] | undefined => {
     const id = shownPostId();
     return id !== undefined && thread.postId === id ? thread.rows : undefined;
   };
@@ -129,13 +135,16 @@ export function createPostComments(deps: PostCommentsDeps): {
 
   // The one merge point for pushed Events and the viewer's own writes: a row
   // id already shown is edited in place, so a push of the viewer's own write
-  // never adds it twice.
-  const upsertRow = (comment: PostComment): void => {
+  // never adds it twice. A new row goes to its place in the newest-first
+  // order, so a late push of an older Comment goes below a newer one.
+  const upsertRow = (comment: CommentView): void => {
     changes++;
-    if (comment.postId !== thread.postId) return;
+    if (comment.parentId !== thread.postId) return;
     const index = thread.rows.findIndex((c) => c.id === comment.id);
-    if (index === -1) setThread("rows", thread.rows.length, comment);
-    else setThread("rows", index, reconcile(comment));
+    if (index !== -1) return setThread("rows", index, reconcile(comment));
+    const found = thread.rows.findIndex((c) => newestFirst(comment, c) < 0);
+    const at = found === -1 ? thread.rows.length : found;
+    setThread("rows", (rows) => [...rows.slice(0, at), comment, ...rows.slice(at)]);
   };
   const removeRow = (id: number): void => {
     changes++;
@@ -147,7 +156,7 @@ export function createPostComments(deps: PostCommentsDeps): {
       const id = shownPostId();
       if (id !== undefined) load(id);
     } else if (event.event_type === "post_comment") {
-      upsertRow(toPostComment(event.payload));
+      upsertRow(toCommentView(event.payload));
     } else if (event.event_type === "post_comment_removal") {
       removeRow(event.payload.id);
     }
