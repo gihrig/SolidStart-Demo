@@ -83,7 +83,7 @@ export default function AddCaptionForm(props: AddCaptionFormProps) {
           aria-describedby="add-caption-count"
           aria-invalid={overLimit()}
           onInput={(e) => setLength(hygieneLength(e.currentTarget.value))}
-          class="block w-full rounded border border-(--theme-muted) bg-(--theme-background) px-3 py-2 text-(--theme-foreground)"
+          class="theme-input"
         />
         <Show when={props.onCancel}>
           <button
@@ -98,7 +98,7 @@ export default function AddCaptionForm(props: AddCaptionFormProps) {
         <button
           type="submit"
           disabled={add.pending() || overLimit()}
-          class="shrink-0 rounded-full px-3 py-1 text-white bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover) disabled:opacity-50"
+          class="theme-button-primary shrink-0 disabled:opacity-50"
         >
           {add.pending() ? "Adding…" : "Add Caption"}
         </button>

@@ -10,11 +10,6 @@ import type { PostComment } from "~/types/jedi";
 // cap fails `tsc` (ADR-0029); the back-end stays the authoritative check.
 const COMMENT_MAX_LENGTH = 2000 satisfies HygieneCaps["post_comment"]["content"];
 
-const TEXTAREA_CLASS =
-  "block w-full rounded border border-(--theme-muted) bg-(--theme-background) px-3 py-2 text-(--theme-foreground)";
-const PRIMARY_BUTTON_CLASS =
-  "shrink-0 rounded-full px-3 py-1 text-white bg-(--theme-btn-primary) hover:bg-(--theme-btn-primary-hover) disabled:opacity-50";
-
 export interface CommentThreadProps {
   /** The panel's element id, for the toggle's `aria-controls`. */
   id: string;
@@ -135,7 +130,7 @@ function CommentItem(props: CommentItemProps) {
             aria-describedby={countId()}
             aria-invalid={length() > COMMENT_MAX_LENGTH}
             onInput={(e) => setLength(hygieneLength(e.currentTarget.value))}
-            class={TEXTAREA_CLASS}
+            class="theme-input"
           >
             {props.comment.content}
           </textarea>
@@ -152,7 +147,7 @@ function CommentItem(props: CommentItemProps) {
             <button
               type="submit"
               disabled={update.pending() || !sendable(length())}
-              class={PRIMARY_BUTTON_CLASS}
+              class="theme-button-primary shrink-0 disabled:opacity-50"
             >
               {update.pending() ? "Saving…" : "Save"}
             </button>
@@ -238,14 +233,14 @@ export default function CommentThread(props: CommentThreadProps) {
             aria-describedby={countId()}
             aria-invalid={length() > COMMENT_MAX_LENGTH}
             onInput={(e) => setLength(hygieneLength(e.currentTarget.value))}
-            class={TEXTAREA_CLASS}
+            class="theme-input"
           />
           <div class="flex items-center justify-end gap-2">
             <LengthCount id={countId()} length={length()} />
             <button
               type="submit"
               disabled={add.pending() || !sendable(length())}
-              class={PRIMARY_BUTTON_CLASS}
+              class="theme-button-primary shrink-0 disabled:opacity-50"
             >
               {add.pending() ? "Posting…" : "Post Comment"}
             </button>
