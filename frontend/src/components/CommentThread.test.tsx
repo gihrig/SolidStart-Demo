@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vite-plus/test";
 import { render, screen, waitFor, within } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
+import { createStore, reconcile } from "solid-js/store";
 import { createDraftGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import type { PostComments } from "~/lib/jedi/createPostComments";
 import type { PostComment } from "~/types/jedi";
@@ -16,24 +17,28 @@ const comment = (id: number, ownerId: number, content: string): PostComment => (
 });
 
 // An in-memory thread: the writes change the rows, as `createPostComments`
-// does once the back-end commits. Each write is a spy a test can fail.
+// does once the back-end commits. Each write is a spy a test can fail. The rows
+// reconcile by id, as the real thread's do, so a changed row keeps its DOM.
 function fakePostComments(initial: PostComment[] | undefined) {
-  const [comments, setComments] = createSignal(initial);
+  const [state, setState] = createStore<{ rows?: PostComment[] }>({ rows: initial });
+  const setComments = (rows: PostComment[] | undefined) =>
+    setState("rows", rows && state.rows ? reconcile(rows, { key: "id" }) : rows);
   const [error, setError] = createSignal<string>();
   let nextId = 100;
   const postComments: PostComments = {
     open: () => true,
     setOpen: () => {},
-    comments,
+    comments: () => state.rows,
+    deleted: (id) => state.rows !== undefined && state.rows.every((c) => c.id !== id),
     error,
     add: vi.fn(async (content: string) => {
-      setComments((rows) => [...(rows ?? []), comment(nextId++, 2, content)]);
+      setComments([...(state.rows ?? []), comment(nextId++, 2, content)]);
     }),
     update: vi.fn(async (id: number, content: string) => {
-      setComments((rows) => rows?.map((c) => (c.id === id ? { ...c, content } : c)));
+      setComments(state.rows?.map((c) => (c.id === id ? { ...c, content } : c)));
     }),
     remove: vi.fn(async (id: number) => {
-      setComments((rows) => rows?.filter((c) => c.id !== id));
+      setComments(state.rows?.filter((c) => c.id !== id));
     }),
   };
   return { postComments, setComments, setError };
@@ -236,6 +241,39 @@ describe("<CommentThread /> — Drafts (ADR-0030)", () => {
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(guard.hasDraft(), "Cancel discards it").toBe(false);
     expect(guard.notice()).toBeUndefined();
+  });
+
+  it("a remote edit of the saved Comment updates the edit's Draft", async () => {
+    const user = userEvent.setup();
+    const { postComments, setComments } = fakePostComments([comment(1, 2, "mine")]);
+    const { guard } = renderGuarded(postComments);
+    await user.click(screen.getByRole("button", { name: "Edit comment" }));
+    const editBox = screen.getByRole("textbox", { name: "Edit your comment" });
+    await user.type(editBox, "!");
+    expect(guard.hasDraft()).toBe(true);
+
+    // The Owner saves other text in another tab.
+    setComments([comment(1, 2, "theirs")]);
+    expect(editBox, "a changed edit keeps the user's text").toHaveValue("mine!");
+    expect(guard.hasDraft()).toBe(true);
+
+    // The Owner saves the same text in another tab.
+    setComments([comment(1, 2, "mine!")]);
+    expect(guard.hasDraft(), "the text now equals the saved Comment").toBe(false);
+  });
+
+  it("an unchanged edit shows a remote edit's text, and holds no Draft", async () => {
+    const user = userEvent.setup();
+    const { postComments, setComments } = fakePostComments([comment(1, 2, "mine")]);
+    const { guard } = renderGuarded(postComments);
+    await user.click(screen.getByRole("button", { name: "Edit comment" }));
+
+    setComments([comment(1, 2, "edited elsewhere")]);
+
+    expect(screen.getByRole("textbox", { name: "Edit your comment" })).toHaveValue(
+      "edited elsewhere",
+    );
+    expect(guard.hasDraft()).toBe(false);
   });
 
   it("a Comment deleted under an edit with a Draft shows the forced-discard notice", async () => {

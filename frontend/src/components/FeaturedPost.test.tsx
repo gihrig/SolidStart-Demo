@@ -487,6 +487,7 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
       open,
       setOpen,
       comments,
+      deleted: () => false,
       error: () => undefined,
       add: () => Promise.resolve(),
       update: () => Promise.resolve(),

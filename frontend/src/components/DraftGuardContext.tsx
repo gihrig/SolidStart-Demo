@@ -1,6 +1,18 @@
-import { createContext, useContext, type ParentComponent } from "solid-js";
+import {
+  createContext,
+  createEffect,
+  onCleanup,
+  useContext,
+  type Accessor,
+  type ParentComponent,
+} from "solid-js";
 import { useBeforeLeave } from "@solidjs/router";
-import { createDraftGuard, passThroughGuard, type DraftGuard } from "~/lib/createDraftGuard";
+import {
+  createDraftGuard,
+  DRAFT_DISCARDED_NOTICE,
+  passThroughGuard,
+  type DraftGuard,
+} from "~/lib/createDraftGuard";
 import ConfirmDialog from "~/components/ConfirmDialog";
 
 /** The app's one Draft guard. Without a provider, the pass-through guard: a
@@ -46,4 +58,36 @@ export const DraftGuardProvider: ParentComponent = (props) => {
 
 export function useDraftGuard(): DraftGuard {
   return useContext(DraftGuardContext);
+}
+
+export interface DraftOptions {
+  /** Whether the form holds a Draft now. An effect reads it, so each change
+   *  of a signal it reads reports again: an input, and a change of the saved
+   *  text. */
+  dirty: Accessor<boolean>;
+  /** The notice of a forced discard, read when the form unmounts. Defaults to
+   *  `DRAFT_DISCARDED_NOTICE`. */
+  notice?: () => string;
+}
+
+export interface Draft {
+  /** The user drops the Draft (a Cancel). The form's unmount then shows no
+   *  notice. */
+  clear: () => void;
+}
+
+/**
+ * One form's Draft in the app's guard (ADR-0030). It owns the form's key, so
+ * two forms never share one. It reports `dirty()` as it changes. An unmount
+ * with a Draft that the user did not discard is a forced discard: the guard
+ * shows the notice.
+ */
+export function useDraft(options: DraftOptions): Draft {
+  const guard = useDraftGuard();
+  const key = Symbol("draft");
+  createEffect(() => guard.report(key, options.dirty()));
+  onCleanup(() => {
+    if (guard.holds(key)) guard.discard(key, options.notice?.() ?? DRAFT_DISCARDED_NOTICE);
+  });
+  return { clear: () => guard.report(key, false) };
 }

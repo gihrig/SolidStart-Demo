@@ -744,7 +744,7 @@ describe("createJediFeed — the Draft guard (ADR-0030)", () => {
     try {
       await tick();
       await tick();
-      guard.report("compose", true);
+      guard.report(Symbol("compose"), true);
       await run(jedi, guard);
     } finally {
       dispose();

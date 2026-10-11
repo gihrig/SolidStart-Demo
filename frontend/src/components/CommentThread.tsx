@@ -1,11 +1,11 @@
-import { createSignal, For, onCleanup, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
 import { DRAFT_DISCARDED_NOTICE } from "~/lib/createDraftGuard";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { hygieneLength } from "~/lib/hygieneLength";
 import type { PostComments } from "~/lib/jedi/createPostComments";
 import type { HygieneCaps } from "~/types/backend";
 import type { PostComment } from "~/types/jedi";
-import { useDraftGuard } from "~/components/DraftGuardContext";
+import { useDraft } from "~/components/DraftGuardContext";
 
 // Mirrors the back-end cap (`PostCommentBmc::hygiene_rules`), counted the
 // back-end's way (`hygieneLength`). `satisfies` pins it to the cap, so a changed
@@ -91,28 +91,31 @@ interface CommentFormProps {
  * the write as an RPC action, so each form shows its own error. A saved write
  * clears the compose box; an edit closes.
  *
- * It reports its Draft to the app's guard (ADR-0030), under its element id: a
- * compose box holds one while its text is not blank, and an edit while its
- * text differs from the saved Comment. An unmount that the user did not
- * confirm, with a Draft, is a forced discard, and the guard shows the notice.
+ * It reports its Draft to the app's guard (ADR-0030): a compose box holds one
+ * while its text is not blank, and an edit while its text differs from the
+ * saved Comment. A remote edit of a Comment the user has not changed shows the
+ * new text in the edit.
  */
 function CommentForm(props: CommentFormProps) {
-  const guard = useDraftGuard();
   const text = () => FORM_TEXT[props.comment ? "edit" : "compose"];
   const saved = () => props.comment?.content ?? "";
-  const [length, setLength] = createSignal(hygieneLength(saved()));
-  const setValue = (value: string) => {
-    setLength(hygieneLength(value));
-    guard.report(props.id, props.comment ? value !== saved() : value.trim() !== "");
-  };
-  // The thread still lists other rows, but not this one: its Comment was
-  // deleted. No thread at all: the panel went away with its Post.
-  const deleted = () =>
-    props.comment !== undefined &&
-    props.postComments.comments()?.every((c) => c.id !== props.comment?.id) === true;
-  onCleanup(() => {
-    if (guard.holds(props.id))
-      guard.discard(props.id, deleted() ? COMMENT_DELETED_NOTICE : DRAFT_DISCARDED_NOTICE);
+  const [value, setValue] = createSignal(saved());
+  const length = createMemo(() => hygieneLength(value()));
+  // An effect, as the edit follows an outside change: an unchanged edit takes
+  // the new saved text, and a changed one keeps the user's text. The first run
+  // has no previous text, so it changes nothing. Not `defer`: a deferred `on`
+  // does not record the first input as the previous one.
+  createEffect(
+    on(saved, (next, previous) => {
+      if (value() === previous) setValue(next);
+    }),
+  );
+  const draft = useDraft({
+    dirty: () => (props.comment ? value() !== saved() : value().trim() !== ""),
+    notice: () =>
+      props.comment && props.postComments.deleted(props.comment.id)
+        ? COMMENT_DELETED_NOTICE
+        : DRAFT_DISCARDED_NOTICE,
   });
   const write = createRpcAction(
     async (content: string) => {
@@ -127,16 +130,13 @@ function CommentForm(props: CommentFormProps) {
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
     if (!sendable(length())) return;
-    const form = e.currentTarget as HTMLFormElement;
-    const content = new FormData(form).get("content");
-    if (await write.run(typeof content === "string" ? content : "")) {
-      form.reset();
+    if (await write.run(value())) {
       setValue(saved());
       props.onClose?.();
     }
   };
   const handleCancel = () => {
-    guard.report(props.id, false);
+    draft.clear();
     props.onClose?.();
   };
 
@@ -153,11 +153,10 @@ function CommentForm(props: CommentFormProps) {
         required
         aria-describedby={countId()}
         aria-invalid={length() > COMMENT_MAX_LENGTH}
+        value={value()}
         onInput={(e) => setValue(e.currentTarget.value)}
         class="theme-input"
-      >
-        {saved()}
-      </textarea>
+      />
       <div class="flex items-center justify-end gap-2">
         <LengthCount id={countId()} length={length()} />
         <Show when={props.comment}>

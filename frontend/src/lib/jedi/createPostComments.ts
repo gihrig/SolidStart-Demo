@@ -25,6 +25,9 @@ export interface PostComments {
    *  while the panel is closed, and while no Post is selected. Each row keeps
    *  its identity across a reload. */
   comments: Accessor<PostComment[] | undefined>;
+  /** Whether the shown thread dropped the Comment: the thread is loaded and
+   *  does not list it. False while no thread shows. */
+  deleted: (id: number) => boolean;
   /** A thread load failure, else undefined. */
   error: Accessor<string | undefined>;
   /** Add a Comment to the selected Post. Resolves once the back-end has
@@ -111,6 +114,8 @@ export function createPostComments(deps: PostCommentsDeps): {
     return id !== undefined && thread.postId === id ? thread.rows : undefined;
   };
 
+  const deleted = (id: number): boolean => comments()?.every((c) => c.id !== id) === true;
+
   // The one merge point for pushed Events and the viewer's own writes: a row
   // id already shown is edited in place, so a push of the viewer's own write
   // never adds it twice.
@@ -150,5 +155,8 @@ export function createPostComments(deps: PostCommentsDeps): {
     removeRow(id);
   };
 
-  return { postComments: { open, setOpen, comments, error, add, update, remove }, onEvent };
+  return {
+    postComments: { open, setOpen, comments, deleted, error, add, update, remove },
+    onEvent,
+  };
 }

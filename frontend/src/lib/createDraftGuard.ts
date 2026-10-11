@@ -7,10 +7,11 @@ export interface DraftGuard {
   hasDraft: Accessor<boolean>;
   /** Whether the form under `key` holds a Draft. A form reads it when it
    *  unmounts: a Draft still held then was not discarded by the user. */
-  holds: (key: string) => boolean;
+  holds: (key: symbol) => boolean;
   /** A form reports whether it holds a Draft, under its own key. It reports
-   *  `false` when it saves, when it cancels, and when it unmounts. */
-  report: (key: string, dirty: boolean) => void;
+   *  `false` when it saves, when it cancels, and when it unmounts. A form
+   *  reports through `useDraft`, which makes the key. */
+  report: (key: symbol, dirty: boolean) => void;
   /** Run a user-started move. With no Draft, it runs at once. With a Draft, it
    *  waits for the confirm dialog: `confirmMove` or `cancelMove`. */
   attempt: (move: () => void) => void;
@@ -24,7 +25,7 @@ export interface DraftGuard {
   notice: Accessor<string | undefined>;
   /** A forced discard: an Event removed the subject of the Draft under `key`.
    *  It drops that Draft, cancels a waiting move, and shows `message`. */
-  discard: (key: string, message: string) => void;
+  discard: (key: symbol, message: string) => void;
   /** Close the notice ("OK"). */
   dismissNotice: () => void;
 }
@@ -56,7 +57,7 @@ const blockUnload = (e: BeforeUnloadEvent) => e.preventDefault();
  * Draft exists, and the browser then shows its own text.
  */
 export function createDraftGuard(): DraftGuard {
-  const drafts = new Set<string>();
+  const drafts = new Set<symbol>();
   const [hasDraft, setHasDraft] = createSignal(false);
   // The move sits in an object: a bare function given to a setter runs as an
   // updater.
@@ -79,7 +80,7 @@ export function createDraftGuard(): DraftGuard {
     });
   }
 
-  const report = (key: string, dirty: boolean): void => {
+  const report = (key: symbol, dirty: boolean): void => {
     if (dirty) drafts.add(key);
     else drafts.delete(key);
     sync();
@@ -99,7 +100,7 @@ export function createDraftGuard(): DraftGuard {
     move.run();
   };
 
-  const discard = (key: string, message: string): void => {
+  const discard = (key: symbol, message: string): void => {
     report(key, false);
     setPendingMove(undefined);
     setNotice(message);

@@ -230,6 +230,19 @@ describe("createPostComments — the live Events", () => {
       expect(contents(postComments)).toEqual(["second"]);
     }));
 
+  it("deleted() names a Comment the shown thread dropped, and is false with no thread", () =>
+    withThread(async ({ postComments, onEvent }) => {
+      expect(postComments.deleted(10), "the thread still loads").toBe(false);
+      await tick();
+      expect(postComments.deleted(10)).toBe(false);
+
+      onEvent({ event_type: "post_comment_removal", payload: { id: 10, post_id: 1 } });
+      expect(postComments.deleted(10)).toBe(true);
+
+      postComments.setOpen(false);
+      expect(postComments.deleted(10), "no thread shows").toBe(false);
+    }));
+
   it("ignores an upsert for another Post's thread", () =>
     withThread(async ({ postComments, onEvent }) => {
       await tick();

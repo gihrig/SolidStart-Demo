@@ -256,7 +256,7 @@ describe("<Nav /> — the Draft guard (ADR-0030)", () => {
 
   // A form that holds a Draft, as a Comment compose box with text would.
   function DraftHolder() {
-    useDraftGuard().report("test-draft", true);
+    useDraftGuard().report(Symbol("test-draft"), true);
     return null;
   }
 
