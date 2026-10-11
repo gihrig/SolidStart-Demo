@@ -141,7 +141,7 @@ export default function CreatePostDialog(props: CreatePostDialogProps) {
         // (the close, or the rejection) stays visible.
         onCancel={(e) => create.pending() && e.preventDefault()}
         aria-labelledby={headingId}
-        class="m-auto w-full max-w-md rounded-2xl p-6 shadow-lg bg-(--theme-card-bg) text-(--theme-card-fg) backdrop:bg-black/50"
+        class="theme-dialog max-w-md"
       >
         <form onSubmit={handleSubmit} class="space-y-4">
           <h2 id={headingId} class="text-xl font-bold">

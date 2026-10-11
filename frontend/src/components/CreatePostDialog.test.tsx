@@ -3,21 +3,12 @@ import { render, screen, within, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { Suspense } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
+import { stubDialogModal } from "~/lib/test-utils";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { JediCategory, PostDraft, PostView } from "~/types/jedi";
 import CreatePostDialog from "./CreatePostDialog";
 
-// jsdom has `HTMLDialogElement` but not its modal methods; this minimal stand-in
-// toggles the `open` attribute, the state a browser's `showModal` / `close` set.
-beforeAll(() => {
-  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
-    this.open = true;
-  };
-  HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
-    this.open = false;
-    this.dispatchEvent(new Event("close"));
-  };
-});
+beforeAll(stubDialogModal);
 
 const CATEGORIES: JediCategory[] = [
   { id: 1, name: "Landscape", icon: "landscape" },

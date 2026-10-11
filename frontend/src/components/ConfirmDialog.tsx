@@ -46,7 +46,7 @@ export default function ConfirmDialog(props: ConfirmDialogProps) {
       // the owner must hear a cancel, or its state stays open with no dialog.
       onClose={() => props.open && cancel()}
       aria-labelledby={messageId}
-      class="m-auto w-full max-w-sm rounded-2xl p-6 shadow-lg bg-(--theme-card-bg) text-(--theme-card-fg) backdrop:bg-black/50"
+      class="theme-dialog max-w-sm"
     >
       <p id={messageId} class="mb-4">
         {props.message}

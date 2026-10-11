@@ -71,13 +71,11 @@ describe("<ConfirmDialog />", () => {
     const { setOpen, onCancel } = renderConfirm();
     setOpen(true);
     dialog().close();
-    fireEvent(dialog(), new Event("close"));
     expect(onCancel).toHaveBeenCalledOnce();
 
     // A close by the owner reports nothing.
     setOpen(true);
     setOpen(false);
-    fireEvent(dialog(), new Event("close"));
     expect(onCancel).toHaveBeenCalledOnce();
   });
 

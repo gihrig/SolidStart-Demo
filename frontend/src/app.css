@@ -104,6 +104,10 @@
     @apply hover:bg-(--theme-btn-primary-hover);
   }
 
+  .theme-dialog {
+    @apply m-auto w-full rounded-2xl p-6 shadow-lg bg-(--theme-card-bg) text-(--theme-card-fg) backdrop:bg-black/50;
+  }
+
   .theme-input {
     @apply block w-full rounded border border-(--theme-muted) bg-(--theme-background) px-3 py-2 text-(--theme-foreground);
   }

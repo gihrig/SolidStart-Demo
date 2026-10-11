@@ -2,8 +2,9 @@ import { vi } from "vite-plus/test";
 
 /**
  * jsdom has `HTMLDialogElement` but not its modal methods. This minimal stand-in
- * toggles the `open` attribute, the state a browser's `showModal` / `close` set.
- * Only imported by test files.
+ * toggles the `open` attribute, the state a browser's `showModal` / `close` set,
+ * and `close` fires the `close` event, as a browser does. Only imported by test
+ * files.
  */
 export function stubDialogModal() {
   HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
@@ -11,6 +12,7 @@ export function stubDialogModal() {
   };
   HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
     this.open = false;
+    this.dispatchEvent(new Event("close"));
   };
 }
 

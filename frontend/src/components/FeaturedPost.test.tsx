@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import { createDraftGuard, type DraftGuard } from "~/lib/createDraftGuard";
+import { stubDialogModal } from "~/lib/test-utils";
 import FeaturedPost from "./FeaturedPost";
 import { DraftGuardContext } from "./DraftGuardContext";
 import type { PostComments } from "~/lib/jedi/createPostComments";
@@ -461,9 +462,7 @@ describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123
   });
 
   it("opens the New Post dialog from the Post line's Add button", async () => {
-    HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
-      this.open = true;
-    };
+    stubDialogModal();
     const user = userEvent.setup();
     render(() => <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn />);
     expect(button("Add Post")).toHaveTextContent(/^Add$/);

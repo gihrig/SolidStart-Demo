@@ -243,11 +243,11 @@ function CommentItem(props: CommentItemProps) {
 
 /**
  * A Post's Comment thread (#124), the content of the inline panel in
- * `FeaturedPost`, which owns the panel element. Everyone
- * reads it; a logged-in User posts, and edits or deletes their own Comments.
- * The body is plain text (author display and markdown land in #125 / #126).
- * The compose box sits outside the list, and the rows come from a store keyed
- * by id, so a live Event or a reload never wipes a draft.
+ * `FeaturedPost`, which owns the panel element. Everyone reads it; a logged-in
+ * User posts, and edits or deletes their own Comments. The body is plain text
+ * (author display and markdown land in #125 / #126). The compose box sits
+ * outside the list, and the rows come from a store keyed by id, so a live Event
+ * or a reload never wipes a draft.
  */
 export default function CommentThread(props: CommentThreadProps) {
   return (
