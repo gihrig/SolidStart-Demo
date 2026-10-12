@@ -58,9 +58,9 @@ function LengthCount(props: LengthCountProps) {
 /** Whether a length can be sent: not empty after trim, and within the cap. */
 const sendable = (length: number) => length > 0 && length <= COMMENT_MAX_LENGTH;
 
-// A Comment's time, as absolute local time: "Oct 11, 2026, 9:14 AM" in US
-// English (#125). The thread renders in the browser only, so the viewer's
-// locale applies.
+// A Comment's time, as absolute local time in the viewer's locale (#125). US
+// English shows "Oct 11, 2026, 9:14 AM". The rows load in the browser only,
+// after hydration, so the server's locale never applies.
 const TIME_FORMAT = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 const formatTime = (time: string) => TIME_FORMAT.format(new Date(time));
 // The `<time datetime>` value. HTML allows at most 3 decimal places of a
