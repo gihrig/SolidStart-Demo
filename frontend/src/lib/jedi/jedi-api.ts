@@ -8,7 +8,7 @@ import type {
   CaptionView as CaptionViewWire,
   AuthorRef as AuthorRefWire,
   HeroView as HeroViewWire,
-  PostComment as PostCommentWire,
+  CommentView as CommentViewWire,
 } from "~/types/backend";
 import type {
   JediCategory,
@@ -17,7 +17,7 @@ import type {
   Like,
   PostDraft,
   PostView,
-  PostComment,
+  CommentView,
   CaptionView,
 } from "~/types/jedi";
 
@@ -81,14 +81,23 @@ const toCaptionView = (c: CaptionViewWire): CaptionView => ({
   likeCount: c.like_count,
 });
 
-// A Post Comment (#124), from a read or a Feed Event (`createPostComments`).
-// The wire audit columns are dropped: the back-end orders the thread, and no
-// component shows a time yet.
-export const toPostComment = (c: PostCommentWire): PostComment => ({
+// A Comment time must parse. A bad time fails here, where each caller has an
+// error path, and not later in a render (#125 review).
+const wireTime = (time: string): string => {
+  if (Number.isNaN(Date.parse(time))) throw new Error(`Invalid Comment time: ${time}`);
+  return time;
+};
+
+// A Comment (#124, #125), from a read, a write result or a Feed Event
+// (`createPostComments`). The author goes through the sanitize boundary; the
+// times stay the wire RFC 3339 strings.
+export const toCommentView = (c: CommentViewWire): CommentView => ({
   id: c.id,
-  postId: c.post_id,
-  ownerId: c.owner_id,
+  parentId: c.parent_id,
+  author: toAuthorRef(c.author),
   content: c.content,
+  ctime: wireTime(c.ctime),
+  mtime: wireTime(c.mtime),
 });
 
 // The Hero singleton (#119). The wire view has no `cta_href`: the CTA runs fixed
@@ -162,17 +171,17 @@ export const jediApi = {
   },
   comments: {
     // A Post's thread (#124): every Post is public, so the read needs no login;
-    // the back-end returns it oldest first. The writes need a login. Each write
-    // pushes on the Post's `post_comment` Channel; an add or delete also pokes
-    // `posts`, for the comment count.
-    listForPost: async (postId: number): Promise<PostComment[]> =>
-      (await publicRpc("list_post_comments", { id: postId })).map(toPostComment),
-    add: async (postId: number, content: string): Promise<PostComment> =>
-      toPostComment(
+    // the back-end returns it newest first (#125). The writes need a login. Each
+    // write pushes on the Post's `post_comment` Channel; an add or delete also
+    // pokes `posts`, for the comment count.
+    listForPost: async (postId: number): Promise<CommentView[]> =>
+      (await publicRpc("list_post_comments", { id: postId })).map(toCommentView),
+    add: async (postId: number, content: string): Promise<CommentView> =>
+      toCommentView(
         await authenticatedRpc("add_post_comment", { data: { post_id: postId, content } }),
       ),
-    update: async (id: number, content: string): Promise<PostComment> =>
-      toPostComment(await authenticatedRpc("update_post_comment", { id, data: { content } })),
+    update: async (id: number, content: string): Promise<CommentView> =>
+      toCommentView(await authenticatedRpc("update_post_comment", { id, data: { content } })),
     remove: async (id: number): Promise<void> => {
       await authenticatedRpc("delete_post_comment", { id });
     },

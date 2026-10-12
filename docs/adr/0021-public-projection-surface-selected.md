@@ -81,3 +81,36 @@ read.
 - **`CONTEXT.md` gains the term "Public projection."** The glossary defines the
   concept; this ADR carries the trade-off. The ADR index regenerates via
   `cgs adr:index`.
+
+## Addendum (2026-10-11) — a Comment's times on the public read (#125)
+
+#125 shows a time on each Post Comment, and the thread read is public (#124). The
+decisions above remove every audit column from a public projection, and the times
+too. A Comment thread with no times is hard to follow.
+
+**Decision.** A public projection never carries the actor ids (`cid`, `mid`). It
+carries a time (`ctime`, `mtime`) only when the UI shows that time. `CommentView` is
+the first case: `ctime` is the time of the Comment, and `mtime` gives the "(edited)"
+mark and its tooltip. `CategoryPublic`, `PostView`, `CaptionView` and `HeroView`
+show no time, so they still carry none.
+
+**Why.** A Comment's time is content: readers use it to follow a thread. The actor
+ids are bookkeeping: `author` already names the Owner.
+
+**Tests.** Each public read asserts that it carries no `cid` and no `mid`. A
+projection that shows no time also asserts that it carries no `ctime` and no
+`mtime`.
+
+**Considered and rejected.**
+
+- **No times on a Comment.** The old rule stays whole, but a reader cannot see
+  when each Comment was written.
+- **A thread for logged-in Users only.** It breaks the #124 decision: "A visitor
+  reads the thread once."
+
+**Consequences.**
+
+- The `PublicProjection` marker doc and the `CONTEXT.md` "Public projection" entry
+  state the new rule.
+- Before #125, the thread read sent the full `PostComment` row, with the actor ids.
+  #125 replaces it with `CommentView`.

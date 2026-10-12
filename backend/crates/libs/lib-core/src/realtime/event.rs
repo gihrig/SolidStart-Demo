@@ -1,6 +1,6 @@
 use super::channel::Channel;
+use crate::model::comment::{CommentRemoval, CommentView};
 use crate::model::conv_msg::ConvMsg;
-use crate::model::post_comment::{PostComment, PostCommentRemoval};
 use serde::Serialize;
 use ts_rs::TS;
 
@@ -11,24 +11,24 @@ use ts_rs::TS;
 /// the poke pushes no domain row, only the id its routing key needs, held inside
 /// the `Channel`. A subscriber refetches through the scoped `list_*` RPC. The two
 /// Jedi comment channels (`post_comment`, `caption_comment`) push a payload. A
-/// Post Comment add or edit pushes `post_comment` (the row), and a delete pushes
-/// `post_comment_removal` (the id and `post_id`) (#124); #125 changes the row to
-/// a `CommentView`. `caption_comment` stays subscribe-only until #127. The
-/// routing `Channel` is derived from the event (see the `channel` method below),
-/// not carried as a separate field: a payload event reads it from the payload, a
-/// poke carries it (ADR-0020).
+/// Post Comment add or edit pushes `post_comment` (a `CommentView`), and a
+/// delete pushes `post_comment_removal` (a `CommentRemoval`: the id and
+/// `parent_id`) (#124, #125). `caption_comment` stays subscribe-only until
+/// #127. The routing `Channel` is derived from the event (see the `channel`
+/// method below), not carried as a separate field: a payload event reads it
+/// from the payload, a poke carries it (ADR-0020).
 #[derive(Clone, Debug, Serialize, TS)]
 #[serde(tag = "event_type")]
 #[ts(export, export_to = "WsEvent.d.ts")]
 pub enum WsEvent {
 	#[serde(rename = "conv_msg")]
 	ConvMsg { payload: ConvMsg },
-	/// A Post Comment was added or edited (#124): an upsert of the row.
+	/// A Post Comment was added or edited (#124): an upsert of its view (#125).
 	#[serde(rename = "post_comment")]
-	PostComment { payload: PostComment },
+	PostComment { payload: CommentView },
 	/// A Post Comment was deleted (#124): a removal by id.
 	#[serde(rename = "post_comment_removal")]
-	PostCommentRemoval { payload: PostCommentRemoval },
+	PostCommentRemoval { payload: CommentRemoval },
 	/// A contentless poke on its [`Channel`]. It replaces the former
 	/// one-variant-per-poke set (`agent_update` / `conv_update` / `posts` /
 	/// `post_like` / `caption_like` / `post_caption`), so adding a poke channel
@@ -41,17 +41,17 @@ pub enum WsEvent {
 impl WsEvent {
 	/// The [`Channel`] this event is addressed to. A payload event derives it from
 	/// the payload (`conv_msg` reads `payload.conv_id`, a Post Comment event reads
-	/// `payload.post_id`); a poke carries it. The send
+	/// `payload.parent_id`); a poke carries it. The send
 	/// task matches its key against a connection's authorized subscription set
 	/// (ADR-0015).
 	pub fn channel(&self) -> Channel {
 		match self {
 			WsEvent::ConvMsg { payload } => Channel::Conv(payload.conv_id),
 			WsEvent::PostComment { payload } => {
-				Channel::PostComment(payload.post_id)
+				Channel::PostComment(payload.parent_id)
 			}
 			WsEvent::PostCommentRemoval { payload } => {
-				Channel::PostComment(payload.post_id)
+				Channel::PostComment(payload.parent_id)
 			}
 			WsEvent::Poke(channel) => *channel,
 		}
@@ -107,7 +107,7 @@ mod tests {
 	}
 
 	/// Wire-lock for the two Post Comment payload events (#124): an upsert carries
-	/// the `PostComment` row, a removal carries the Comment id and its `post_id`.
+	/// the `CommentView`, a removal the `CommentRemoval` (#125).
 	#[test]
 	fn post_comment_events_wire_shape_is_stable() {
 		let v = serde_json::to_value(WsEvent::PostComment {
@@ -116,23 +116,28 @@ mod tests {
 		.unwrap();
 		assert_eq!(v["event_type"].as_str(), Some("post_comment"));
 		assert_eq!(v["payload"]["id"].as_i64(), Some(3));
-		assert_eq!(v["payload"]["post_id"].as_i64(), Some(7));
+		assert_eq!(v["payload"]["parent_id"].as_i64(), Some(7));
+		assert_eq!(v["payload"]["author"]["name"].as_str(), Some("Lisa"));
 		assert_eq!(v["payload"]["content"].as_str(), Some("hi"));
+		assert!(v["payload"].get("cid").is_none(), "no actor id on the wire");
 
 		assert_eq!(
 			serde_json::to_value(WsEvent::PostCommentRemoval {
-				payload: PostCommentRemoval { id: 3, post_id: 7 },
+				payload: CommentRemoval {
+					id: 3,
+					parent_id: 7
+				},
 			})
 			.unwrap(),
 			serde_json::json!({
 				"event_type": "post_comment_removal",
-				"payload": { "id": 3, "post_id": 7 },
+				"payload": { "id": 3, "parent_id": 7 },
 			}),
 		);
 	}
 
 	/// Both Post Comment events route on their Post's thread Channel, read from
-	/// the payload (ADR-0020, #124).
+	/// the payload's `parent_id` (ADR-0020, #124, #125).
 	#[test]
 	fn post_comment_events_route_on_the_post_thread() {
 		assert_eq!(
@@ -145,7 +150,10 @@ mod tests {
 		);
 		assert_eq!(
 			WsEvent::PostCommentRemoval {
-				payload: PostCommentRemoval { id: 3, post_id: 7 },
+				payload: CommentRemoval {
+					id: 3,
+					parent_id: 7
+				},
 			}
 			.channel()
 			.key(),
@@ -153,16 +161,19 @@ mod tests {
 		);
 	}
 
-	fn post_comment(id: i64, post_id: i64) -> PostComment {
+	fn post_comment(id: i64, parent_id: i64) -> CommentView {
+		use crate::model::user::AuthorRef;
 		use time::OffsetDateTime;
-		PostComment {
+		CommentView {
 			id,
-			post_id,
-			owner_id: 2,
+			parent_id,
+			author: AuthorRef {
+				id: 2,
+				name: "Lisa".to_string(),
+				avatar_url: None,
+			},
 			content: "hi".to_string(),
-			cid: 2,
 			ctime: OffsetDateTime::UNIX_EPOCH,
-			mid: 2,
 			mtime: OffsetDateTime::UNIX_EPOCH,
 		}
 	}

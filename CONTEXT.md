@@ -173,13 +173,15 @@ _Lineage_: evolved from the live `Agent` (re-modeled — the `ai_provider` /
 A User's remark, authored in a Post's thread or a Caption's thread. Two flat
 entities, not one: a **PostComment** parented to a Post, and a **CaptionComment**
 parented to a Caption. Each is real-time — a new or edited Comment pushes to its
-thread's subscribers.
+thread's subscribers. A thread lists its Comments newest first (#125).
 _Avoid_: post, reply; Message (the retired FullStack term).
 _BE_ (Planned): `PostComment` carries `post_id`; `CaptionComment` carries
 `caption_id`. Each has **one direct-parent FK**, an `owner_id` author, and
 `content`; there is no polymorphic `parent_kind` discriminator (#108). An owner may
 edit or delete their own Comment
 ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md) addendum).
+Read returns an enriched `CommentView` (author, content and times), one shape for
+both kinds; `parent_id` is the Post or Caption id (#125).
 _Lineage_: evolved from the live `ConvMsg`, **split into two** (#108).
 
 **Like**:
@@ -301,6 +303,8 @@ comment channels) plus one `Poke(Channel)` for the contentless pokes, tagged by
 `event_type` (ts-rs-exported). A poke carries its `Channel`; a payload derives its
 `Channel` from the payload ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md)
 addendum, #109; [ADR-0020](docs/adr/0020-collapse-channel-vocabulary.md)).
+A Comment upsert carries a `CommentView`, and a removal a `CommentRemoval` (`id`,
+`parent_id`) (#125).
 
 **Channel semantics rule**:
 A Channel's semantics follow its data shape (#109):
@@ -391,16 +395,19 @@ _Avoid_: API schema, method registry; an RPC member per method.
 
 **Public projection** (an entity's audit-stripped public shape):
 A **public projection** is an entity's public-facing shape — its fields **minus** the
-internal audit columns (`cid` / `ctime` / `mid` / `mtime`), so an anonymous
-`/api/rpc-public` response never leaks actor ids or timestamps. Each public read names
+internal audit columns. It never carries the actor ids (`cid` / `mid`), so an
+anonymous `/api/rpc-public` response never leaks them. It carries a time (`ctime` /
+`mtime`) only when the UI shows that time
+([ADR-0021](docs/adr/0021-public-projection-surface-selected.md) addendum, #125). Each public read names
 one such type; **one read serves it** — `CategoryPublic` + `CategoryBmc::list_public`
 is the first (#116), `PostView` / `AuthorRef` (via `PostBmc`) the second (#117), and
-`CaptionView` (via `CaptionBmc`) the third (#118), and `HeroView` (via `HeroBmc`) the
-fourth (#119). The
+`CaptionView` (via `CaptionBmc`) the third (#118), `HeroView` (via `HeroBmc`) the
+fourth (#119), and `CommentView` (via `PostCommentBmc`) the fifth (#125). The
 shared convention is the `PublicProjection` marker in the model `base`: `base::list_public`
 requires it, so the audit-bearing entity row can never be served from a public read.
 A projection may be **enriched** (an author-and-counts `PostView`)
-or a bare **narrowing** (`CategoryPublic`); either way it carries no audit columns.
+or a bare **narrowing** (`CategoryPublic`); either way it carries no actor ids, and
+no time that the UI does not show.
 Audit visibility is chosen by **surface**, not by the caller's role: the public surface
 strips; a future admin surface reads the full row (the admin read is deferred with the
 admin system). Visitor and logged-in user share one read shape and differ only in

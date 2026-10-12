@@ -61,7 +61,7 @@ const channelOf = (event: WsEvent): Channel => {
       return Channel.conv(event.payload.conv_id);
     case "post_comment":
     case "post_comment_removal":
-      return Channel.postComment(event.payload.post_id);
+      return Channel.postComment(event.payload.parent_id);
     case "poke":
       return event;
   }
