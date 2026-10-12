@@ -81,6 +81,13 @@ const toCaptionView = (c: CaptionViewWire): CaptionView => ({
   likeCount: c.like_count,
 });
 
+// A Comment time must parse. A bad time fails here, where each caller has an
+// error path, and not later in a render (#125 review).
+const wireTime = (time: string): string => {
+  if (Number.isNaN(Date.parse(time))) throw new Error(`Invalid Comment time: ${time}`);
+  return time;
+};
+
 // A Comment (#124, #125), from a read, a write result or a Feed Event
 // (`createPostComments`). The author goes through the sanitize boundary; the
 // times stay the wire RFC 3339 strings.
@@ -89,8 +96,8 @@ export const toCommentView = (c: CommentViewWire): CommentView => ({
   parentId: c.parent_id,
   author: toAuthorRef(c.author),
   content: c.content,
-  ctime: c.ctime,
-  mtime: c.mtime,
+  ctime: wireTime(c.ctime),
+  mtime: wireTime(c.mtime),
 });
 
 // The Hero singleton (#119). The wire view has no `cta_href`: the CTA runs fixed

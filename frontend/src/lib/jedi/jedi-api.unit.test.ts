@@ -420,6 +420,18 @@ describe("jediApi.comments (#124, #125)", () => {
     expect(sanitizeSpy.mock.calls.flat()).toContain(view.author.avatarUrl);
   });
 
+  it.each(["ctime", "mtime"] as const)(
+    "rejects a Comment whose %s does not parse, at the wire boundary",
+    async (field) => {
+      onPublic({
+        list_post_comments: [{ ...wireComment(5, 2, "hi", null), [field]: "not a time" }],
+      });
+      await expect(jediApi.comments.listForPost(1)).rejects.toThrow(
+        "Invalid Comment time: not a time",
+      );
+    },
+  );
+
   it("add() sends the wire PostCommentForCreate and re-shapes the result", async () => {
     onAuthenticated({ add_post_comment: wireComment(7, 2, "hello", null) });
     expect(await jediApi.comments.add(1, "hello")).toEqual({

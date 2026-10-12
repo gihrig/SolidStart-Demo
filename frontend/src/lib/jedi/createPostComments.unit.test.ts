@@ -258,6 +258,16 @@ describe("createPostComments — the live Events", () => {
       expect(contents(postComments)).toEqual(["same time as second", "second", "first"]);
     }));
 
+  it("an upsert with a time that does not parse throws, and leaves the thread unchanged", () =>
+    withThread(async ({ postComments, onEvent }) => {
+      await tick();
+      const bad = { ...comment(12, 1, "bad time"), ctime: "not a time" };
+      expect(() => onEvent({ event_type: "post_comment", payload: wire(bad) })).toThrow(
+        "Invalid Comment time: not a time",
+      );
+      expect(contents(postComments)).toEqual(["second", "first"]);
+    }));
+
   it("a removal drops the Comment by id", () =>
     withThread(async ({ postComments, onEvent }) => {
       await tick();
