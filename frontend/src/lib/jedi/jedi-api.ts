@@ -182,6 +182,10 @@ export const jediApi = {
       ),
     update: async (id: number, content: string): Promise<CommentView> =>
       toCommentView(await authenticatedRpc("update_post_comment", { id, data: { content } })),
+    // The stored text of the viewer's own Comment, for its edit form (#126).
+    // Only the Owner may read it: a non-owner call fails.
+    source: async (id: number): Promise<string> =>
+      (await authenticatedRpc("get_post_comment", { id })).content,
     remove: async (id: number): Promise<void> => {
       await authenticatedRpc("delete_post_comment", { id });
     },

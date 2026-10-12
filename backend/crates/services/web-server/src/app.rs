@@ -1109,6 +1109,24 @@ mod tests {
 			.assert_status(axum::http::StatusCode::BAD_REQUEST);
 		assert!(rx.try_recv().is_err(), "a rejected write must not push");
 
+		// -- Exec & Check: the Owner reads the stored text of their Comment
+		//    (#126). A non-owner read is rejected (400).
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&rpc("get_post_comment", json!({ "id": id })))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data"),
+			Some(&json!({ "id": id, "content": "edited" })),
+			"got {body}"
+		);
+		server
+			.post("/api/rpc")
+			.json(&rpc("get_post_comment", json!({ "id": other_comment })))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+
 		// -- Exec & Check: the public thread lists both, newest first. Each row
 		//    has exactly the `CommentView` keys: no `cid`, `mid` or `owner_id`.
 		let list = rpc("list_post_comments", json!({ "id": post_id }));

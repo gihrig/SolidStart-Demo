@@ -110,6 +110,7 @@ const api: JediApi = {
     add: () => Promise.reject(new Error("not used here")),
     update: () => Promise.reject(new Error("not used here")),
     remove: () => Promise.reject(new Error("not used here")),
+    source: () => Promise.reject(new Error("not used here")),
   },
   hero: {
     get: () =>

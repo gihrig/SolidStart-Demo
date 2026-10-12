@@ -500,6 +500,7 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
       add: () => Promise.resolve(),
       update: () => Promise.resolve(),
       remove: () => Promise.resolve(),
+      source: () => Promise.resolve(""),
     };
   };
   const toggle = () => screen.getByRole("button", { name: /3 comments/i });

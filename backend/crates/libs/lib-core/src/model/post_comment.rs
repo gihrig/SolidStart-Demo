@@ -1,7 +1,7 @@
 use crate::ctx::Ctx;
 use crate::generate_common_bmc_fns;
 use crate::model::base::{self, Access, CommonIden, DbBmc, FieldHygiene};
-use crate::model::comment::CommentView;
+use crate::model::comment::{CommentSource, CommentView};
 use crate::model::modql_utils::time_to_sea_value;
 use crate::model::post::PostBmc;
 use crate::model::user::{AuthorRef, UserBmc};
@@ -162,6 +162,16 @@ impl PostCommentBmc {
 			entity: Self::TABLE,
 			id,
 		})
+	}
+
+	/// Read the stored text of the caller's own Comment (#126): the edit form
+	/// loads it. A non-owner gets `EntityNotFound` (the Write scope).
+	pub async fn get_source(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		id: i64,
+	) -> Result<CommentSource> {
+		base::get_writable::<Self, _>(ctx, mm, id).await
 	}
 
 	/// List one Post's Comments as `CommentView`s, newest first (#125). Ties
@@ -347,6 +357,43 @@ mod tests {
 
 		// -- Clean
 		_dev_utils::clean_users(&root, &mm, "test_pc_mtime-owner").await?;
+
+		Ok(())
+	}
+
+	/// The edit form's read (#126): the Owner gets the stored text as a
+	/// `CommentSource`, and a non-owner gets `EntityNotFound` (the Write
+	/// scope). A public read does not change the stored text.
+	#[serial]
+	#[tokio::test]
+	async fn test_post_comment_get_source_is_owner_only() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let a_id = seed_user(&root, &mm, "test_pc_source-A").await?;
+		let b_id = seed_user(&root, &mm, "test_pc_source-B").await?;
+		let ctx_a = Ctx::new(a_id)?;
+		let ctx_b = Ctx::new(b_id)?;
+		let post_id = seed_post(&ctx_a, &mm, "test_pc_source post", &[1]).await?;
+		let id = seed_post_comment(&ctx_a, &mm, post_id, "**bold**").await?;
+
+		// -- Exec: a public read, then the Owner's read.
+		PostCommentBmc::get_comment(&ctx_b, &mm, id).await?;
+		let source = PostCommentBmc::get_source(&ctx_a, &mm, id).await?;
+
+		// -- Check: the Owner gets the stored markdown.
+		assert_eq!(source.id, id);
+		assert_eq!(source.content, "**bold**");
+
+		// -- Check: a non-owner gets `EntityNotFound`.
+		let res = PostCommentBmc::get_source(&ctx_b, &mm, id).await;
+		assert!(
+			matches!(res, Err(model::Error::EntityNotFound { .. })),
+			"got {res:?}"
+		);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_pc_source").await?;
 
 		Ok(())
 	}

@@ -456,6 +456,12 @@ describe("jediApi.comments (#124, #125)", () => {
     });
   });
 
+  it("source() reads the Owner's stored text from the authenticated surface (#126)", async () => {
+    onAuthenticated({ get_post_comment: { id: 7, content: "**bold**" } });
+    expect(await jediApi.comments.source(7)).toBe("**bold**");
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("get_post_comment", { id: 7 });
+  });
+
   it("remove() deletes by Comment id", async () => {
     onAuthenticated({ delete_post_comment: { id: 7, parent_id: 1 } });
     await jediApi.comments.remove(7);

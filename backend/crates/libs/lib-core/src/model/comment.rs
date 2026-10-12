@@ -5,8 +5,10 @@
 use crate::model::base::PublicProjection;
 use crate::model::user::AuthorRef;
 use lib_utils::time::Rfc3339;
+use modql::field::Fields;
 use serde::Serialize;
 use serde_with::serde_as;
+use sqlx::FromRow;
 use time::OffsetDateTime;
 use ts_rs::TS;
 
@@ -56,6 +58,17 @@ pub struct CommentRemoval {
 	pub parent_id: i64,
 }
 
+/// The stored text of one Comment, for its Owner's edit form (#126): the
+/// `get_post_comment` result. It is **not** a `PublicProjection`: only an
+/// owner-scoped read (`base::get_writable`) returns it, so no public read and
+/// no push carries the stored text.
+#[derive(Debug, Clone, Fields, FromRow, Serialize, TS)]
+#[ts(export, export_to = "CommentSource.d.ts")]
+pub struct CommentSource {
+	pub id: i64,
+	pub content: String,
+}
+
 // endregion: --- Comment Types
 
 // region:    --- Tests
@@ -91,6 +104,20 @@ mod tests {
 				"ctime": "1970-01-01T00:00:00Z",
 				"mtime": "1970-01-01T00:00:00Z",
 			})
+		);
+	}
+
+	/// Wire-lock for `CommentSource` (#126): the Comment id and the stored
+	/// text, nothing else.
+	#[test]
+	fn test_comment_source_wire_shape() {
+		let source = CommentSource {
+			id: 3,
+			content: "**hi**".to_string(),
+		};
+		assert_eq!(
+			serde_json::to_value(&source).unwrap(),
+			serde_json::json!({ "id": 3, "content": "**hi**" })
 		);
 	}
 

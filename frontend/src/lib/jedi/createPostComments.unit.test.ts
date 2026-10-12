@@ -62,6 +62,7 @@ const api: JediApi["comments"] = {
   add: addMock,
   update: updateMock,
   remove: removeMock,
+  source: () => Promise.reject(new Error("not used here")),
 };
 beforeEach(() => {
   threads = new Map([
