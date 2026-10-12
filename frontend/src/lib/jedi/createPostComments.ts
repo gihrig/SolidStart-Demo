@@ -49,7 +49,9 @@ export interface PostComments {
 
 // Newest first, as the back-end orders a thread (#125): `ctime` descending,
 // then `id` descending. It compares `Date.parse`, as the wire trims trailing
-// zeros, so string order is not time order.
+// zeros, so string order is not time order. `Date.parse` keeps milliseconds
+// only, so a tie inside one millisecond falls to `id`. The back-end sorts by
+// microseconds, so its order can differ until the next load.
 const newestFirst = (a: CommentView, b: CommentView): number =>
   Date.parse(b.ctime) - Date.parse(a.ctime) || b.id - a.id;
 
