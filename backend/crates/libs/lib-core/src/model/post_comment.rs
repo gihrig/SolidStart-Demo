@@ -1,7 +1,7 @@
 use crate::ctx::Ctx;
 use crate::generate_common_bmc_fns;
 use crate::model::base::{self, Access, CommonIden, DbBmc, FieldHygiene};
-use crate::model::comment::{CommentSource, CommentView};
+use crate::model::comment::{render_comment_html, CommentSource, CommentView};
 use crate::model::modql_utils::time_to_sea_value;
 use crate::model::post::PostBmc;
 use crate::model::user::{AuthorRef, UserBmc};
@@ -205,6 +205,7 @@ impl PostCommentBmc {
 
 	/// Assemble `CommentView`s from `PostComment` rows with one author batch —
 	/// never one read per Comment (the N+1 trap). The order of the rows is kept.
+	/// Each stored markdown renders to sanitized HTML here (#126).
 	/// A missing author falls back to the bare `owner_id` with an empty name,
 	/// as `CaptionBmc::assemble_views` does.
 	async fn assemble_views(
@@ -236,7 +237,7 @@ impl PostCommentBmc {
 						avatar_url: None,
 					},
 				),
-				content: c.content,
+				content_html: render_comment_html(&c.content),
 				ctime: c.ctime,
 				mtime: c.mtime,
 			})
@@ -293,7 +294,10 @@ mod tests {
 		assert_eq!(mine.author.id, author_id);
 		assert_eq!(mine.author.name, "test_pc_list-author");
 		assert_eq!(mine.author.avatar_url, None);
-		assert_eq!(mine.content, "first", "hygiene trims the content");
+		assert_eq!(
+			mine.content_html, "<p>first</p>",
+			"hygiene trims the content"
+		);
 		assert_eq!(mine.ctime, mine.mtime, "a create writes one time to both");
 		assert_eq!(lisas.author.name, "Lisa");
 		assert_eq!(
@@ -351,7 +355,7 @@ mod tests {
 
 		// -- Check
 		assert_eq!(created.ctime, created.mtime);
-		assert_eq!(edited.content, "after");
+		assert_eq!(edited.content_html, "<p>after</p>");
 		assert_eq!(edited.ctime, created.ctime, "an edit keeps ctime");
 		assert!(edited.mtime > edited.ctime, "an edit moves mtime");
 

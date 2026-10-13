@@ -3,6 +3,7 @@ import { DRAFT_DISCARDED_NOTICE } from "~/lib/createDraftGuard";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { hygieneLength } from "~/lib/hygieneLength";
 import type { PostComments } from "~/lib/jedi/createPostComments";
+import { sanitizeCommentHtml } from "~/lib/sanitizeCommentHtml";
 import type { HygieneCaps } from "~/types/backend";
 import type { CommentView } from "~/types/jedi";
 import Avatar from "~/components/Avatar";
@@ -234,8 +235,9 @@ interface CommentItemProps {
  * One Comment, in the chat layout (#125): the avatar in a left column; at its
  * right, the name line and then the body. The name line holds the name, the
  * time, the "(edited)" mark and, for the Owner, Edit and Delete. An open edit
- * replaces only the body, and the buttons hide. The body is a text node, never
- * HTML: `content` is the raw text.
+ * replaces only the body, and the buttons hide. The body is the server's
+ * sanitized render, injected as HTML only after the `sanitizeCommentHtml`
+ * backstop (#126); `.comment-body` styles it.
  */
 function CommentItem(props: CommentItemProps) {
   const [editing, setEditing] = createSignal(false);
@@ -299,7 +301,12 @@ function CommentItem(props: CommentItemProps) {
         </div>
         <Show
           when={editOpen()}
-          fallback={<p class="whitespace-pre-wrap break-words">{props.comment.content}</p>}
+          fallback={
+            <div
+              class="comment-body break-words"
+              innerHTML={sanitizeCommentHtml(props.comment.contentHtml)}
+            />
+          }
         >
           <CommentForm
             id={`comment-${props.comment.id}-edit`}
@@ -318,8 +325,8 @@ function CommentItem(props: CommentItemProps) {
  * A Post's Comment thread (#124), the content of the inline panel in
  * `FeaturedPost`, which owns the panel element. Everyone reads it; a logged-in
  * User posts, and edits or deletes their own Comments. The thread lists the
- * newest Comment first, so the compose box sits above the list (#125). The
- * body is plain text (markdown lands in #126). The compose box sits outside
+ * newest Comment first, so the compose box sits above the list (#125). Each
+ * body is rendered markdown (#126). The compose box sits outside
  * the list, and the rows come from a store keyed by id, so a live Event or a
  * reload never wipes a draft.
  */

@@ -211,7 +211,7 @@ mod tests {
 				name: "Lisa".to_string(),
 				avatar_url: None,
 			},
-			content: "hi".to_string(),
+			content_html: "<p>hi</p>".to_string(),
 			ctime: OffsetDateTime::UNIX_EPOCH,
 			mtime: OffsetDateTime::UNIX_EPOCH,
 		};

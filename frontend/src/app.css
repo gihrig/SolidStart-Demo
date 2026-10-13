@@ -128,6 +128,73 @@
     @apply flex items-center p-2;
   }
 
+  /* A Comment body (#126): the server's sanitized markdown render. It styles
+     the tags and the six heading classes of `CommentHtmlPolicy.ts` (`p` and
+     `br` need no rule of their own). A single
+     newline renders as a space (CommonMark), so `pre-line` shows it as a line
+     break, as the plain-text body did before #126. An `li` with a block child
+     gets no `pre-line`: `markdown` puts a newline before each block child, and
+     `pre-line` would show it as an empty line. Its text is then in a `p`. */
+  .comment-body > * + * {
+    @apply mt-2;
+  }
+
+  .comment-body :is(p, li:not(:has(> :is(p, pre, blockquote, ul, ol, hr)))) {
+    @apply whitespace-pre-line;
+  }
+
+  .comment-body strong {
+    @apply font-bold;
+  }
+
+  .comment-body em {
+    @apply italic;
+  }
+
+  .comment-body code {
+    @apply rounded bg-(--theme-background) px-1 font-mono text-sm;
+  }
+
+  .comment-body pre {
+    @apply overflow-x-auto rounded bg-(--theme-background) p-2;
+  }
+
+  .comment-body pre code {
+    @apply p-0;
+  }
+
+  .comment-body blockquote {
+    @apply border-l-4 border-(--theme-muted) pl-3 text-(--theme-muted);
+  }
+
+  .comment-body ul {
+    @apply list-disc pl-6;
+  }
+
+  .comment-body ol {
+    @apply list-decimal pl-6;
+  }
+
+  .comment-body a {
+    @apply text-(--theme-accent) underline;
+  }
+
+  .comment-body hr {
+    @apply border-(--theme-muted);
+  }
+
+  .comment-body .md-h1 {
+    @apply text-xl font-bold;
+  }
+
+  .comment-body .md-h2 {
+    @apply text-lg font-bold;
+  }
+
+  .comment-body :is(.md-h3, .md-h4, .md-h5, .md-h6) {
+    @apply text-base font-bold;
+  }
+
   .site-header {
     @apply bg-gray-800 text-white sticky top-0 z-50;
   }

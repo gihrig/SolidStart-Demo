@@ -21,7 +21,7 @@ const comment = (id: number, parentId: number, content: string, authorId = 2): C
   id,
   parentId,
   author: { id: authorId, name: `user${authorId}`, avatarUrl: trustedUrl("") },
-  content,
+  contentHtml: content,
   ctime: at(id),
   mtime: at(id),
 });
@@ -31,7 +31,7 @@ const wire = (c: CommentView): CommentViewWire => ({
   id: c.id,
   parent_id: c.parentId,
   author: { id: c.author.id, name: c.author.name, avatar_url: null },
-  content: c.content,
+  content_html: c.contentHtml,
   ctime: c.ctime,
   mtime: c.mtime,
 });
@@ -84,7 +84,7 @@ beforeEach(() => {
   updateMock.mockReset();
   updateMock.mockImplementation((id, content) => {
     const found = find(id)!;
-    found.content = content;
+    found.contentHtml = content;
     return Promise.resolve({ ...found });
   });
   removeMock.mockReset();
@@ -119,7 +119,7 @@ async function withThread(run: (h: Harness) => Promise<void>, { open = true } = 
   });
 }
 
-const contents = (postComments: PostComments) => postComments.comments()?.map((c) => c.content);
+const contents = (postComments: PostComments) => postComments.comments()?.map((c) => c.contentHtml);
 
 describe("createPostComments — the open state (lazy thread)", () => {
   it("makes no read and merges no Event while the panel is closed", () =>
@@ -194,14 +194,14 @@ describe("createPostComments — the thread read", () => {
       await tick();
       const [second, first] = postComments.comments()!;
 
-      threads.get(1)![0].content = "second, edited elsewhere";
+      threads.get(1)![0].contentHtml = "second, edited elsewhere";
       onEvent(undefined); // the resync call after a (re)connect
       await tick();
 
       expect(listForPostMock).toHaveBeenCalledTimes(2);
       expect(postComments.comments()![0]).toBe(second);
       expect(postComments.comments()![1]).toBe(first);
-      expect(second.content).toBe("second, edited elsewhere");
+      expect(second.contentHtml).toBe("second, edited elsewhere");
     }));
 
   it("shows an error when the thread fails to load", () =>

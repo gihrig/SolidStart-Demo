@@ -7,6 +7,7 @@ export type { CaptionForCreate } from "~backend-bindings/CaptionForCreate.d";
 export type { CaptionView } from "~backend-bindings/CaptionView.d";
 export type { CategoryPublic } from "~backend-bindings/CategoryPublic.d";
 export type { Channel } from "~backend-bindings/Channel.d";
+export { COMMENT_HTML_POLICY } from "~backend-bindings/CommentHtmlPolicy";
 export type { CommentRemoval } from "~backend-bindings/CommentRemoval.d";
 export type { CommentView } from "~backend-bindings/CommentView.d";
 export type { Conv } from "~backend-bindings/Conv.d";

@@ -22,6 +22,13 @@ allow = [
   "Zlib",         # foldhash — single-license
 ]
 confidence-threshold = 0.8
+# Per-crate exceptions: a license allowed for one crate only, so any other crate
+# under it still fails the gate. MPL-2.0 (file-level copyleft, used unmodified):
+# `cssparser` and `dtoa-short`, required by `ammonia` (the #126 Comment render).
+exceptions = [
+  { crate = "cssparser", allow = ["MPL-2.0"] },
+  { crate = "dtoa-short", allow = ["MPL-2.0"] },
+]
 # The workspace's own crates declare no license field; skip them. `ignore = true`
 # skips crates marked `publish = false` (set on every member of this workspace).
 private = { ignore = true }

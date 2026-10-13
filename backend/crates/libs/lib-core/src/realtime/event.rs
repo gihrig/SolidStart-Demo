@@ -118,7 +118,7 @@ mod tests {
 		assert_eq!(v["payload"]["id"].as_i64(), Some(3));
 		assert_eq!(v["payload"]["parent_id"].as_i64(), Some(7));
 		assert_eq!(v["payload"]["author"]["name"].as_str(), Some("Lisa"));
-		assert_eq!(v["payload"]["content"].as_str(), Some("hi"));
+		assert_eq!(v["payload"]["content_html"].as_str(), Some("<p>hi</p>"));
 		assert!(v["payload"].get("cid").is_none(), "no actor id on the wire");
 
 		assert_eq!(
@@ -172,7 +172,7 @@ mod tests {
 				name: "Lisa".to_string(),
 				avatar_url: None,
 			},
-			content: "hi".to_string(),
+			content_html: "<p>hi</p>".to_string(),
 			ctime: OffsetDateTime::UNIX_EPOCH,
 			mtime: OffsetDateTime::UNIX_EPOCH,
 		}

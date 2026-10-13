@@ -1045,8 +1045,9 @@ mod tests {
 			.and_then(Value::as_i64)
 			.ok_or(format!("add_post_comment: missing id in {body}"))?;
 		assert_eq!(
-			body.pointer("/result/data/content").and_then(Value::as_str),
-			Some("hello")
+			body.pointer("/result/data/content_html")
+				.and_then(Value::as_str),
+			Some("<p>hello</p>")
 		);
 		assert_eq!(
 			body.pointer("/result/data/author/name")
@@ -1071,17 +1072,19 @@ mod tests {
 		assert_eq!(posts.channel().key(), "posts");
 
 		// -- Exec & Check: edit pushes the new row, and does not poke `posts`.
+		//    The view carries the rendered markdown (#126).
 		let body: Value = server
 			.post("/api/rpc")
 			.json(&rpc(
 				"update_post_comment",
-				json!({ "id": id, "data": { "content": "edited" } }),
+				json!({ "id": id, "data": { "content": "**edited**" } }),
 			))
 			.await
 			.json();
 		assert_eq!(
-			body.pointer("/result/data/content").and_then(Value::as_str),
-			Some("edited"),
+			body.pointer("/result/data/content_html")
+				.and_then(Value::as_str),
+			Some("<p><strong>edited</strong></p>"),
 			"got {body}"
 		);
 		let event = serde_json::to_value(rx.try_recv().expect("edit pushes"))?;
@@ -1109,7 +1112,7 @@ mod tests {
 			.assert_status(axum::http::StatusCode::BAD_REQUEST);
 		assert!(rx.try_recv().is_err(), "a rejected write must not push");
 
-		// -- Exec & Check: the Owner reads the stored text of their Comment
+		// -- Exec & Check: the Owner reads the stored markdown of their Comment
 		//    (#126). A non-owner read is rejected (400).
 		let body: Value = server
 			.post("/api/rpc")
@@ -1118,7 +1121,7 @@ mod tests {
 			.json();
 		assert_eq!(
 			body.pointer("/result/data"),
-			Some(&json!({ "id": id, "content": "edited" })),
+			Some(&json!({ "id": id, "content": "**edited**" })),
 			"got {body}"
 		);
 		server
@@ -1128,7 +1131,8 @@ mod tests {
 			.assert_status(axum::http::StatusCode::BAD_REQUEST);
 
 		// -- Exec & Check: the public thread lists both, newest first. Each row
-		//    has exactly the `CommentView` keys: no `cid`, `mid` or `owner_id`.
+		//    has exactly the `CommentView` keys: no `cid`, `mid` or `owner_id`,
+		//    and no stored text (#126).
 		let list = rpc("list_post_comments", json!({ "id": post_id }));
 		let body: Value = anon.post("/api/rpc-public").json(&list).await.json();
 		let rows = body
@@ -1150,7 +1154,14 @@ mod tests {
 			keys.sort_unstable();
 			assert_eq!(
 				keys,
-				vec!["author", "content", "ctime", "id", "mtime", "parent_id"]
+				vec![
+					"author",
+					"content_html",
+					"ctime",
+					"id",
+					"mtime",
+					"parent_id"
+				]
 			);
 		}
 

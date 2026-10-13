@@ -352,3 +352,31 @@ test.describe("Jedi Page - Comment row (#125)", () => {
     await expect(row).toHaveCount(0);
   });
 });
+
+// A Comment written in markdown renders as sanitized HTML (#126).
+test.describe("Jedi Page - Comment markdown (#126)", () => {
+  test("demo1 posts **bold**, sees a strong, then deletes it", async ({ page }) => {
+    // Log in on /fullstack, then go home in-app: the login state lives in the page.
+    await page.goto("/fullstack");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /login/i }).click();
+    await expect(page.getByText(/logged in as: demo1/i)).toBeVisible({ timeout: 10000 });
+    await page.getByRole("link", { name: /awesome/i }).click();
+
+    const article = page.locator("article").first();
+    await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
+    await article.getByRole("button", { name: /^Comments, /i }).click();
+    // A unique text, so a row left by an earlier failed run cannot match.
+    const text = `e2e bold ${Date.now()}`;
+    await article.getByRole("textbox", { name: "Your comment" }).fill(`**${text}**`);
+    await article.getByRole("button", { name: "Post Comment" }).click();
+
+    const row = article.getByRole("listitem").filter({ hasText: text });
+    await expect(row.locator("strong")).toHaveText(text);
+    await expect(row).not.toContainText("**");
+
+    // Delete it, so a rerun starts clean.
+    await row.getByRole("button", { name: "Delete comment" }).click();
+    await expect(row).toHaveCount(0);
+  });
+});

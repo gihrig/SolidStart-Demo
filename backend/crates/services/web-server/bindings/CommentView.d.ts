@@ -3,12 +3,14 @@ import type { AuthorRef } from "./AuthorRef.d";
 
 /**
  * The enriched **public projection** of a Comment (ADR-0021): the author
- * snapshot, the raw content and the times. The thread read, the write results
+ * snapshot, the rendered content and the times. The thread read, the write results
  * and the upsert Event all carry it. It carries no actor ids (`cid` / `mid`).
  * It carries `ctime` and `mtime` because the UI shows them: the time of the
  * Comment, and the "(edited)" mark (ADR-0021 addendum).
  *
- * `content` is the raw text after write-path hygiene. The server never
- * HTML-escapes it (ADR-0019), so a consumer shows it as text.
+ * `content_html` is the stored markdown, rendered to sanitized HTML on read
+ * (`render_comment_html`, ADR-0019 addendum). A consumer injects it as HTML,
+ * through its own backstop. No public read carries the stored text: the
+ * Owner's edit form reads it as a `CommentSource`.
  */
-export type CommentView = { id: number, parent_id: number, author: AuthorRef, content: string, ctime: string, mtime: string, };
+export type CommentView = { id: number, parent_id: number, author: AuthorRef, content_html: string, ctime: string, mtime: string, };

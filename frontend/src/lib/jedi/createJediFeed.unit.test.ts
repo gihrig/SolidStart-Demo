@@ -173,7 +173,7 @@ const commentOn = (postId: number, id: number): CommentView => ({
   id,
   parentId: postId,
   author: author(1, "Lisa"),
-  content: `comment ${id}`,
+  contentHtml: `<p>comment ${id}</p>`,
   ctime: "2026-10-10T12:00:00Z",
   mtime: "2026-10-10T12:00:00Z",
 });
@@ -695,7 +695,7 @@ describe("createJediFeed — the selected Post's Comment thread (#124)", () => {
           id: 1001,
           parent_id: 1,
           author: { id: 2, name: "Homer", avatar_url: null },
-          content: "live",
+          content_html: "<p>live</p>",
           ctime: "2026-10-10T12:01:00Z",
           mtime: "2026-10-10T12:01:00Z",
         },

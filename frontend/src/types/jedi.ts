@@ -72,14 +72,15 @@ export interface CaptionView {
 
 /** One Comment in a thread (#124, #125). `parentId` is the id of the Post that
  *  holds the thread. `author.id` gates the Edit / Delete buttons: a content
- *  entity's author is its Owner. `content` is the raw text, so a consumer shows
- *  it as text, never as HTML. `ctime` and `mtime` are the wire RFC 3339 times;
- *  `mtime` differs from `ctime` after an edit. */
+ *  entity's author is its Owner. `contentHtml` is the server's sanitized render
+ *  of the stored markdown (#126); a consumer injects it only through the
+ *  `sanitizeCommentHtml` backstop. `ctime` and `mtime` are the wire RFC 3339
+ *  times; `mtime` differs from `ctime` after an edit. */
 export interface CommentView {
   id: number;
   parentId: number;
   author: AuthorRef;
-  content: string;
+  contentHtml: string;
   ctime: string;
   mtime: string;
 }

@@ -375,12 +375,13 @@ describe("jediApi.captions", () => {
 });
 
 // A Comment as `list_post_comments` and the writes return it (#125): the
-// wire `CommentView`, with its author snapshot and its times.
-const wireComment = (id: number, authorId: number, content: string, avatarUrl: string | null) => ({
+// wire `CommentView`, with its author snapshot, its rendered HTML (#126) and
+// its times.
+const wireComment = (id: number, authorId: number, html: string, avatarUrl: string | null) => ({
   id,
   parent_id: 1,
   author: { id: authorId, name: `user${authorId}`, avatar_url: avatarUrl },
-  content,
+  content_html: html,
   ctime: "2026-10-10T12:00:00Z",
   mtime: "2026-10-10T12:05:00.123456Z",
 });
@@ -389,8 +390,8 @@ describe("jediApi.comments (#124, #125)", () => {
   it("listForPost() reads one Post's thread from the public surface, in order", async () => {
     onPublic({
       list_post_comments: [
-        wireComment(6, 3, "second", "https://example.com/a.png"),
-        wireComment(5, 2, "first", null),
+        wireComment(6, 3, "<p>second</p>", "https://example.com/a.png"),
+        wireComment(5, 2, "<p>first</p>", null),
       ],
     });
     expect(await jediApi.comments.listForPost(1)).toEqual([
@@ -398,7 +399,7 @@ describe("jediApi.comments (#124, #125)", () => {
         id: 6,
         parentId: 1,
         author: { id: 3, name: "user3", avatarUrl: "https://example.com/a.png" },
-        content: "second",
+        contentHtml: "<p>second</p>",
         ctime: "2026-10-10T12:00:00Z",
         mtime: "2026-10-10T12:05:00.123456Z",
       },
@@ -406,7 +407,7 @@ describe("jediApi.comments (#124, #125)", () => {
         id: 5,
         parentId: 1,
         author: { id: 2, name: "user2", avatarUrl: "" },
-        content: "first",
+        contentHtml: "<p>first</p>",
         ctime: "2026-10-10T12:00:00Z",
         mtime: "2026-10-10T12:05:00.123456Z",
       },
@@ -433,12 +434,12 @@ describe("jediApi.comments (#124, #125)", () => {
   );
 
   it("add() sends the wire PostCommentForCreate and re-shapes the result", async () => {
-    onAuthenticated({ add_post_comment: wireComment(7, 2, "hello", null) });
+    onAuthenticated({ add_post_comment: wireComment(7, 2, "<p>hello</p>", null) });
     expect(await jediApi.comments.add(1, "hello")).toEqual({
       id: 7,
       parentId: 1,
       author: { id: 2, name: "user2", avatarUrl: "" },
-      content: "hello",
+      contentHtml: "<p>hello</p>",
       ctime: "2026-10-10T12:00:00Z",
       mtime: "2026-10-10T12:05:00.123456Z",
     });
@@ -448,8 +449,8 @@ describe("jediApi.comments (#124, #125)", () => {
   });
 
   it("update() sends the Comment id and the new content", async () => {
-    onAuthenticated({ update_post_comment: wireComment(7, 2, "edited", null) });
-    expect((await jediApi.comments.update(7, "edited")).content).toBe("edited");
+    onAuthenticated({ update_post_comment: wireComment(7, 2, "<p>edited</p>", null) });
+    expect((await jediApi.comments.update(7, "edited")).contentHtml).toBe("<p>edited</p>");
     expect(authenticatedRpcMock).toHaveBeenCalledWith("update_post_comment", {
       id: 7,
       data: { content: "edited" },
