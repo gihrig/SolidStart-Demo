@@ -104,7 +104,9 @@ interface CommentFormProps {
  *
  * An edit loads the stored text with `get_post_comment` (#126): the view
  * carries no raw text. Until the text loads, the textarea is disabled and shows
- * "Loading…". A failed load shows the form's alert, and Save stays disabled.
+ * "Loading…". A failed load shows the form's alert, and Save stays disabled
+ * until a later load succeeds: a save could overwrite a remote edit that the
+ * form did not load.
  *
  * It reports its Draft to the app's guard (ADR-0030): a compose box holds one
  * while its text is not blank, and an edit while its text differs from the
@@ -215,7 +217,7 @@ function CommentForm(props: CommentFormProps) {
         </Show>
         <button
           type="submit"
-          disabled={write.pending() || !dirty() || !sendable(length())}
+          disabled={write.pending() || !dirty() || !sendable(length()) || !!loadError()}
           class="theme-button-primary shrink-0 disabled:opacity-50"
         >
           {write.pending() ? text().pending : text().submit}
@@ -303,7 +305,7 @@ function CommentItem(props: CommentItemProps) {
           when={editOpen()}
           fallback={
             <div
-              class="comment-body break-words"
+              class="comment-body wrap-break-word"
               innerHTML={sanitizeCommentHtml(props.comment.contentHtml)}
             />
           }

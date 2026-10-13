@@ -347,6 +347,31 @@ describe("<CommentThread /> — the Comment row (#125)", () => {
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
   });
 
+  it("an edit whose reload fails disables Save until a later reload succeeds (#126)", async () => {
+    const user = userEvent.setup();
+    const { postComments, setComments } = fakePostComments([comment(1, 2, "mine")]);
+    render(() => <CommentThread id="t" postComments={postComments} loggedIn userId={2} />);
+    const editBox = await openEdit(user);
+    await user.type(editBox, "!");
+    const save = screen.getByRole("button", { name: "Save" });
+    expect(save).toBeEnabled();
+
+    // A remote edit moves the row's `mtime`, and its reload fails.
+    vi.mocked(postComments.source).mockRejectedValueOnce(new Error("Network down"));
+    setComments([comment(1, 2, "theirs", { mtime: "2026-10-10T12:05:00Z" })]);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Network down");
+    expect(save, "a save would overwrite the unseen remote edit").toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();
+    expect(editBox, "the user keeps the text").toHaveValue("mine!");
+
+    // The next `mtime` move loads the text again.
+    setComments([comment(1, 2, "theirs again", { mtime: "2026-10-10T12:06:00Z" })]);
+    await waitFor(() => expect(save).toBeEnabled());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(editBox).toHaveValue("mine!");
+  });
+
   it("puts the compose box above the list", () => {
     const { postComments } = fakePostComments([comment(1, 3, "first")]);
     render(() => <CommentThread id="t" postComments={postComments} loggedIn userId={2} />);

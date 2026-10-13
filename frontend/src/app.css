@@ -159,6 +159,8 @@
     @apply overflow-x-auto rounded bg-(--theme-background) p-2;
   }
 
+  /* A code block's `code` is inline: its padding would move only the first
+     line, and break the indentation. The `pre` gives the padding. */
   .comment-body pre code {
     @apply p-0;
   }

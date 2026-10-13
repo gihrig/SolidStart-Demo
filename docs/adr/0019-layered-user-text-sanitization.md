@@ -104,7 +104,9 @@ Layer 3 above lists "comment" as a plain-text field. That text is older than
   `mailto`. ammonia sets `rel="noopener noreferrer nofollow ugc"` and
   `target="_blank"` on each link.
 - **Newlines.** CommonMark renders a single newline as a space. The client
-  styles the comment body's `p` and `li` with `white-space: pre-line`. So a
+  styles the comment body's `p` with `white-space: pre-line`, and each `li`
+  that has no block child. `markdown` writes a newline before each block
+  child of a list item, and `pre-line` would show it as an empty line. So a
   single newline shows as a line break, as plain text did before #126.
 - **One policy.** One Rust constant holds the tags, the attributes, the classes,
   the schemes and the link values. ammonia reads it. A generated `CommentHtmlPolicy.ts`
