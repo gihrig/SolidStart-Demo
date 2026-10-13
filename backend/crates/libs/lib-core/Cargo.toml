@@ -18,7 +18,9 @@ with-rpc = ["rpc-router"]
 lib-utils = { path = "../../libs/lib-utils" }
 lib-auth = { path = "../../libs/lib-auth" }
 
+ammonia = { workspace = true }
 derive_more = { workspace = true }
+markdown = { workspace = true }
 modql = { workspace = true }
 rpc-router = { workspace = true, optional = true }
 sea-query = { workspace = true }

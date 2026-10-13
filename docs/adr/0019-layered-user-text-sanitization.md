@@ -79,3 +79,66 @@ front-end sink (ADR-0006).
   resolved in a later effort, not here.
 - Open for `/to-spec`: exact per-field length caps, the reject error variant, and
   which fields are markdown-rendered versus plain text.
+
+## Addendum (2026-10-12) — the Comment render policy (#126)
+
+#126 builds Layers 3 and 4 for Comment `content`, the one markdown field (#113).
+Layer 3 above lists "comment" as a plain-text field. That text is older than
+#113 and is wrong: a Comment is plain text or markdown.
+
+**Decision.**
+
+- **Render.** `markdown::to_html` (CommonMark, default options) turns the stored
+  markdown into HTML. ammonia then cleans the HTML with an explicit policy, not
+  with the ammonia default.
+- **Tags.** `p`, `br`, `strong`, `em`, `code`, `pre`, `blockquote`, `ul`, `ol`,
+  `li`, `a`, `hr`. ammonia removes every other tag and keeps its text; it
+  removes the content too only for `script` and `style`. So no image loads from
+  a third party.
+- **Headings.** Before ammonia runs, the server changes each heading that
+  `markdown` made (`<hN>`) into `<p class="md-hN">`, for N = 1 to 6. ammonia
+  allows only those six classes, and only on `p`. The client styles them as
+  smaller headings. So user text never enters the page's heading outline. The
+  string change is safe because `markdown` escapes each `<` that a user types.
+- **Links.** A link keeps only `href`, with the scheme `http`, `https` or
+  `mailto`. ammonia sets `rel="noopener noreferrer nofollow ugc"` and
+  `target="_blank"` on each link.
+- **Newlines.** CommonMark renders a single newline as a space. The client
+  styles the comment body's `p` with `white-space: pre-line`, and each `li`
+  that has no block child. `markdown` writes a newline before each block
+  child of a list item, and `pre-line` would show it as an empty line. So a
+  single newline shows as a line break, as plain text did before #126.
+- **One policy.** One Rust constant holds the tags, the attributes, the classes,
+  the schemes and the link values. ammonia reads it. A generated `CommentHtmlPolicy.ts`
+  exports it, as `HygieneCaps.ts` exports the caps (ADR-0029). The
+  `neosanitize` backstop reads that file. The bindings drift guard catches a
+  change on one side only.
+
+**Why.** A Comment needs bold, links, lists and code, not a page layout. A short
+allow-list makes the attack surface small. It also stops tracking images. One
+policy for both layers stops the client from silently removing server output.
+
+**Considered and rejected.**
+
+- **The ammonia default.** It allows `img`, headings, tables and more. An image
+  loads from a third party for each viewer.
+- **`img` for `https` only.** It still loads from a third party for each viewer.
+- **A hand-written client copy of the policy.** It drifts. The client then
+  removes server output, for example `target`, and no test fails.
+- **Hard breaks on the server.** Changing each single newline before the render
+  is risky inside code blocks.
+- **Real heading tags.** Each Comment adds headings to the page outline, and a
+  screen reader lists them among the page's real headings.
+- **Headings as plain text.** The user's markup seems to disappear.
+
+**Consequences.**
+
+- `CommentView.content` becomes `content_html`. No read sends the raw markdown
+  except the owner-scoped `get_post_comment`. It returns a `CommentSource`
+  (`id`, `content`) for the edit form.
+- Caption Comments (#127) reuse the render, the policy and `CommentSource`.
+- A later `Page` entity possibly needs headings. It then gets its own policy.
+- A screen reader reads a Comment heading as a paragraph. A strict WCAG audit
+  can flag this (technique F2, criterion 1.3.1).
+- The heading change depends on the `markdown` output format. A test pins it,
+  and the exact version pin blocks a silent change.

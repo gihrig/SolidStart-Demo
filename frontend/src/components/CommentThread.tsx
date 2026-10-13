@@ -1,8 +1,9 @@
-import { createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
+import { batch, createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
 import { DRAFT_DISCARDED_NOTICE } from "~/lib/createDraftGuard";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { hygieneLength } from "~/lib/hygieneLength";
 import type { PostComments } from "~/lib/jedi/createPostComments";
+import { sanitizeCommentHtml } from "~/lib/sanitizeCommentHtml";
 import type { HygieneCaps } from "~/types/backend";
 import type { CommentView } from "~/types/jedi";
 import Avatar from "~/components/Avatar";
@@ -101,28 +102,57 @@ interface CommentFormProps {
  * the write as an RPC action, so each form shows its own error. A saved write
  * clears the compose box; an edit closes.
  *
+ * An edit loads the stored text with `get_post_comment` (#126): the view
+ * carries no raw text. Until the text loads, the textarea is disabled and shows
+ * "Loading…". A failed load shows the form's alert, and Save stays disabled
+ * until a later load succeeds: a save could overwrite a remote edit that the
+ * form did not load.
+ *
  * It reports its Draft to the app's guard (ADR-0030): a compose box holds one
  * while its text is not blank, and an edit while its text differs from the
- * saved Comment. A remote edit of a Comment the user has not changed shows the
- * new text in the edit.
+ * saved Comment. An edit holds none until its text loads. A remote edit moves
+ * the row's `mtime`, so the edit loads the text again: an unchanged edit shows
+ * the new text, and a changed one keeps the user's text.
  */
 function CommentForm(props: CommentFormProps) {
   const text = () => FORM_TEXT[props.comment ? "edit" : "compose"];
-  const saved = () => props.comment?.content ?? "";
-  const [value, setValue] = createSignal(saved());
+  // The saved text: "" for the compose box; for an edit, the stored text, and
+  // undefined until it loads.
+  const [saved, setSaved] = createSignal<string | undefined>(props.comment ? undefined : "");
+  const [loadError, setLoadError] = createSignal<string>();
+  const [value, setValue] = createSignal("");
+  const loaded = () => saved() !== undefined;
   const length = createMemo(() => hygieneLength(value()));
-  // An effect, as the edit follows an outside change: an unchanged edit takes
-  // the new saved text, and a changed one keeps the user's text. The first run
-  // has no previous text, so it changes nothing. Not `defer`: a deferred `on`
-  // does not record the first input as the previous one.
+  // An effect, so the edit loads its text when it opens, and again when the
+  // row's `mtime` moves (Decision 1). Only the latest load applies.
+  let loads = 0;
   createEffect(
-    on(saved, (next, previous) => {
-      if (value() === previous) setValue(next);
-    }),
+    on(
+      () => props.comment?.mtime,
+      () => {
+        const comment = props.comment;
+        if (!comment) return;
+        const thisLoad = ++loads;
+        props.postComments.source(comment.id).then(
+          (next) => {
+            if (thisLoad !== loads) return;
+            batch(() => {
+              if (value() === (saved() ?? "")) setValue(next);
+              setSaved(next);
+              setLoadError(undefined);
+            });
+          },
+          (e: unknown) => {
+            if (thisLoad === loads)
+              setLoadError(e instanceof Error ? e.message : "Could not load the Comment");
+          },
+        );
+      },
+    ),
   );
-  // An edit holds a Draft while its text differs from the saved Comment; the
-  // compose box while its text is not blank.
-  const dirty = () => (props.comment ? value() !== saved() : value().trim() !== "");
+  // An edit holds a Draft while its loaded text differs from the saved
+  // Comment; the compose box while its text is not blank.
+  const dirty = () => (props.comment ? loaded() && value() !== saved() : value().trim() !== "");
   const draft = useDraft({
     dirty,
     scope: props.postComments.draftScope,
@@ -145,7 +175,7 @@ function CommentForm(props: CommentFormProps) {
     e.preventDefault();
     if (!sendable(length())) return;
     if (await write.run(value())) {
-      setValue(saved());
+      setValue(saved() ?? "");
       props.onClose?.();
     }
   };
@@ -156,7 +186,7 @@ function CommentForm(props: CommentFormProps) {
 
   return (
     <form onSubmit={handleSubmit} class="space-y-2">
-      <ErrorAlert error={write.error()} />
+      <ErrorAlert error={write.error() ?? loadError()} />
       <label for={props.id} class={props.comment ? "sr-only" : "block font-medium"}>
         {text().label}
       </label>
@@ -165,6 +195,8 @@ function CommentForm(props: CommentFormProps) {
         name="content"
         rows={3}
         required
+        disabled={!loaded()}
+        placeholder={loaded() ? undefined : "Loading…"}
         aria-describedby={countId()}
         aria-invalid={length() > COMMENT_MAX_LENGTH}
         value={value()}
@@ -185,7 +217,7 @@ function CommentForm(props: CommentFormProps) {
         </Show>
         <button
           type="submit"
-          disabled={write.pending() || !dirty() || !sendable(length())}
+          disabled={write.pending() || !dirty() || !sendable(length()) || !!loadError()}
           class="theme-button-primary shrink-0 disabled:opacity-50"
         >
           {write.pending() ? text().pending : text().submit}
@@ -205,8 +237,9 @@ interface CommentItemProps {
  * One Comment, in the chat layout (#125): the avatar in a left column; at its
  * right, the name line and then the body. The name line holds the name, the
  * time, the "(edited)" mark and, for the Owner, Edit and Delete. An open edit
- * replaces only the body, and the buttons hide. The body is a text node, never
- * HTML: `content` is the raw text.
+ * replaces only the body, and the buttons hide. The body is the server's
+ * sanitized render, injected as HTML only after the `sanitizeCommentHtml`
+ * backstop (#126); `.comment-body` styles it.
  */
 function CommentItem(props: CommentItemProps) {
   const [editing, setEditing] = createSignal(false);
@@ -270,7 +303,12 @@ function CommentItem(props: CommentItemProps) {
         </div>
         <Show
           when={editOpen()}
-          fallback={<p class="whitespace-pre-wrap break-words">{props.comment.content}</p>}
+          fallback={
+            <div
+              class="comment-body wrap-break-word"
+              innerHTML={sanitizeCommentHtml(props.comment.contentHtml)}
+            />
+          }
         >
           <CommentForm
             id={`comment-${props.comment.id}-edit`}
@@ -289,8 +327,8 @@ function CommentItem(props: CommentItemProps) {
  * A Post's Comment thread (#124), the content of the inline panel in
  * `FeaturedPost`, which owns the panel element. Everyone reads it; a logged-in
  * User posts, and edits or deletes their own Comments. The thread lists the
- * newest Comment first, so the compose box sits above the list (#125). The
- * body is plain text (markdown lands in #126). The compose box sits outside
+ * newest Comment first, so the compose box sits above the list (#125). Each
+ * body is rendered markdown (#126). The compose box sits outside
  * the list, and the rows come from a store keyed by id, so a live Event or a
  * reload never wipes a draft.
  */

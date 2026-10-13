@@ -1,7 +1,7 @@
 use crate::ctx::Ctx;
 use crate::generate_common_bmc_fns;
 use crate::model::base::{self, Access, CommonIden, DbBmc, FieldHygiene};
-use crate::model::comment::CommentView;
+use crate::model::comment::{render_comment_html, CommentSource, CommentView};
 use crate::model::modql_utils::time_to_sea_value;
 use crate::model::post::PostBmc;
 use crate::model::user::{AuthorRef, UserBmc};
@@ -164,6 +164,16 @@ impl PostCommentBmc {
 		})
 	}
 
+	/// Read the stored text of the caller's own Comment (#126): the edit form
+	/// loads it. A non-owner gets `EntityNotFound` (the Write scope).
+	pub async fn get_source(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		id: i64,
+	) -> Result<CommentSource> {
+		base::get_writable::<Self, _>(ctx, mm, id).await
+	}
+
 	/// List one Post's Comments as `CommentView`s, newest first (#125). Ties
 	/// break by id descending. The caller's `order_bys` is ignored: a thread
 	/// reads in time order, so a `limit` keeps the newest Comments. `limit` /
@@ -195,6 +205,7 @@ impl PostCommentBmc {
 
 	/// Assemble `CommentView`s from `PostComment` rows with one author batch —
 	/// never one read per Comment (the N+1 trap). The order of the rows is kept.
+	/// Each stored markdown renders to sanitized HTML here (#126).
 	/// A missing author falls back to the bare `owner_id` with an empty name,
 	/// as `CaptionBmc::assemble_views` does.
 	async fn assemble_views(
@@ -226,7 +237,7 @@ impl PostCommentBmc {
 						avatar_url: None,
 					},
 				),
-				content: c.content,
+				content_html: render_comment_html(&c.content),
 				ctime: c.ctime,
 				mtime: c.mtime,
 			})
@@ -283,7 +294,10 @@ mod tests {
 		assert_eq!(mine.author.id, author_id);
 		assert_eq!(mine.author.name, "test_pc_list-author");
 		assert_eq!(mine.author.avatar_url, None);
-		assert_eq!(mine.content, "first", "hygiene trims the content");
+		assert_eq!(
+			mine.content_html, "<p>first</p>",
+			"hygiene trims the content"
+		);
 		assert_eq!(mine.ctime, mine.mtime, "a create writes one time to both");
 		assert_eq!(lisas.author.name, "Lisa");
 		assert_eq!(
@@ -341,12 +355,49 @@ mod tests {
 
 		// -- Check
 		assert_eq!(created.ctime, created.mtime);
-		assert_eq!(edited.content, "after");
+		assert_eq!(edited.content_html, "<p>after</p>");
 		assert_eq!(edited.ctime, created.ctime, "an edit keeps ctime");
 		assert!(edited.mtime > edited.ctime, "an edit moves mtime");
 
 		// -- Clean
 		_dev_utils::clean_users(&root, &mm, "test_pc_mtime-owner").await?;
+
+		Ok(())
+	}
+
+	/// The edit form's read (#126): the Owner gets the stored text as a
+	/// `CommentSource`, and a non-owner gets `EntityNotFound` (the Write
+	/// scope). A public read does not change the stored text.
+	#[serial]
+	#[tokio::test]
+	async fn test_post_comment_get_source_is_owner_only() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let a_id = seed_user(&root, &mm, "test_pc_source-A").await?;
+		let b_id = seed_user(&root, &mm, "test_pc_source-B").await?;
+		let ctx_a = Ctx::new(a_id)?;
+		let ctx_b = Ctx::new(b_id)?;
+		let post_id = seed_post(&ctx_a, &mm, "test_pc_source post", &[1]).await?;
+		let id = seed_post_comment(&ctx_a, &mm, post_id, "**bold**").await?;
+
+		// -- Exec: a public read, then the Owner's read.
+		PostCommentBmc::get_comment(&ctx_b, &mm, id).await?;
+		let source = PostCommentBmc::get_source(&ctx_a, &mm, id).await?;
+
+		// -- Check: the Owner gets the stored markdown.
+		assert_eq!(source.id, id);
+		assert_eq!(source.content, "**bold**");
+
+		// -- Check: a non-owner gets `EntityNotFound`.
+		let res = PostCommentBmc::get_source(&ctx_b, &mm, id).await;
+		assert!(
+			matches!(res, Err(model::Error::EntityNotFound { .. })),
+			"got {res:?}"
+		);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_pc_source").await?;
 
 		Ok(())
 	}

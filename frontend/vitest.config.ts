@@ -12,6 +12,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "~": path.resolve(import.meta.dirname, "./src"),
+      "~backend-bindings": path.resolve(
+        import.meta.dirname,
+        "../backend/crates/services/web-server/bindings",
+      ),
     },
     conditions: ["browser", "development"],
     dedupe: ["solid-js"],

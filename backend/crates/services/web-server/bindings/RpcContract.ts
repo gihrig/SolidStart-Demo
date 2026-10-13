@@ -4,6 +4,7 @@ import type { CaptionForCreate } from "./CaptionForCreate.d";
 import type { CaptionView } from "./CaptionView.d";
 import type { CategoryPublic } from "./CategoryPublic.d";
 import type { CommentRemoval } from "./CommentRemoval.d";
+import type { CommentSource } from "./CommentSource.d";
 import type { CommentView } from "./CommentView.d";
 import type { HeroForUpdate } from "./HeroForUpdate.d";
 import type { HeroView } from "./HeroView.d";
@@ -26,6 +27,7 @@ export type AuthenticatedRpc = {
   update_hero: { params: ParamsForUpdate<HeroForUpdate>; result: HeroView };
   add_post_comment: { params: ParamsForCreate<PostCommentForCreate>; result: CommentView };
   delete_post_comment: { params: ParamsIded; result: CommentRemoval };
+  get_post_comment: { params: ParamsIded; result: CommentSource };
   update_post_comment: { params: ParamsForUpdate<PostCommentForUpdate>; result: CommentView };
   create_post: { params: ParamsForCreate<PostForCreate>; result: PostView };
   get_post_like: { params: ParamsIded; result: LikeView };

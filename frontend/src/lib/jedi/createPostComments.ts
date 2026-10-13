@@ -45,6 +45,9 @@ export interface PostComments {
   update: (id: number, content: string) => Promise<void>;
   /** Delete the viewer's own Comment. The thread drops it at once. */
   remove: (id: number) => Promise<void>;
+  /** Read the stored text of the viewer's own Comment, for its edit form
+   *  (#126). Rejects on failure, and for a Comment the viewer does not own. */
+  source: (id: number) => Promise<string>;
 }
 
 // Newest first, as the back-end orders a thread (#125): `ctime` descending,
@@ -178,7 +181,18 @@ export function createPostComments(deps: PostCommentsDeps): {
   };
 
   return {
-    postComments: { open, setOpen, draftScope, comments, deleted, error, add, update, remove },
+    postComments: {
+      open,
+      setOpen,
+      draftScope,
+      comments,
+      deleted,
+      error,
+      add,
+      update,
+      remove,
+      source: api.source,
+    },
     onEvent,
   };
 }

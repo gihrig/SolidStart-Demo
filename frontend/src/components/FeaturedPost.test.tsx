@@ -485,7 +485,7 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
         id: 9,
         parentId: 1,
         author: { id: 2, name: "Homer", avatarUrl: trustedUrl("") },
-        content: "Nice cat",
+        contentHtml: "<p>Nice cat</p>",
         ctime: "2026-10-10T12:00:00Z",
         mtime: "2026-10-10T12:00:00Z",
       },
@@ -500,6 +500,7 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
       add: () => Promise.resolve(),
       update: () => Promise.resolve(),
       remove: () => Promise.resolve(),
+      source: () => Promise.resolve(""),
     };
   };
   const toggle = () => screen.getByRole("button", { name: /3 comments/i });

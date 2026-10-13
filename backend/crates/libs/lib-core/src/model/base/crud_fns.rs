@@ -107,6 +107,33 @@ where
 	E: for<'r> FromRow<'r, PgRow> + Unpin + Send,
 	E: HasSeaFields,
 {
+	get_scoped::<MC, E>(ctx, mm, id, Access::Read).await
+}
+
+/// Read one row under the **Write** scope (#126): only a caller who may write
+/// the row reads it, and any other caller gets `EntityNotFound`, as from
+/// [`update`] or [`delete`]. An owner-scoped read, such as the stored text for
+/// an edit form, uses it.
+pub async fn get_writable<MC, E>(ctx: &Ctx, mm: &ModelManager, id: i64) -> Result<E>
+where
+	MC: DbBmc,
+	E: for<'r> FromRow<'r, PgRow> + Unpin + Send,
+	E: HasSeaFields,
+{
+	get_scoped::<MC, E>(ctx, mm, id, Access::Write).await
+}
+
+async fn get_scoped<MC, E>(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	id: i64,
+	access: Access,
+) -> Result<E>
+where
+	MC: DbBmc,
+	E: for<'r> FromRow<'r, PgRow> + Unpin + Send,
+	E: HasSeaFields,
+{
 	// -- Build query
 	let mut query = Query::select();
 	query
@@ -114,8 +141,8 @@ where
 		.columns(E::sea_column_refs())
 		.cond_where(Expr::col(CommonIden::Id).eq(id));
 
-	// -- Row-scope (owner ∪ public); a non-matching scope yields no row.
-	if let Some(scope) = scope_cond::<MC>(ctx, Access::Read) {
+	// -- Row-scope at this `access`; a non-matching scope yields no row.
+	if let Some(scope) = scope_cond::<MC>(ctx, access) {
 		query.cond_where(scope);
 	}
 

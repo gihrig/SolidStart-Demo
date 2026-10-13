@@ -90,12 +90,13 @@ const wireTime = (time: string): string => {
 
 // A Comment (#124, #125), from a read, a write result or a Feed Event
 // (`createPostComments`). The author goes through the sanitize boundary; the
-// times stay the wire RFC 3339 strings.
+// times stay the wire RFC 3339 strings. `contentHtml` stays the server's
+// render: the thread passes it through `sanitizeCommentHtml` (#126).
 export const toCommentView = (c: CommentViewWire): CommentView => ({
   id: c.id,
   parentId: c.parent_id,
   author: toAuthorRef(c.author),
-  content: c.content,
+  contentHtml: c.content_html,
   ctime: wireTime(c.ctime),
   mtime: wireTime(c.mtime),
 });
@@ -182,6 +183,10 @@ export const jediApi = {
       ),
     update: async (id: number, content: string): Promise<CommentView> =>
       toCommentView(await authenticatedRpc("update_post_comment", { id, data: { content } })),
+    // The stored text of the viewer's own Comment, for its edit form (#126).
+    // Only the Owner may read it: a non-owner call fails.
+    source: async (id: number): Promise<string> =>
+      (await authenticatedRpc("get_post_comment", { id })).content,
     remove: async (id: number): Promise<void> => {
       await authenticatedRpc("delete_post_comment", { id });
     },

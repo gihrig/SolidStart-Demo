@@ -1,4 +1,4 @@
-use lib_core::model::comment::{CommentRemoval, CommentView};
+use lib_core::model::comment::{CommentRemoval, CommentSource, CommentView};
 use lib_core::model::post_comment::{
 	PostCommentBmc, PostCommentForCreate, PostCommentForUpdate,
 };
@@ -7,9 +7,14 @@ use lib_web::ws::poke::{self, PokedRpcResult};
 use lib_web::ws::WsState;
 
 /// The authenticated Post Comment RPCs (`/api/rpc`, login required): the
-/// writes (#124).
+/// writes (#124) and the Owner's read of the stored text (#126).
 pub fn rpc_router_builder() -> RouterBuilder {
-	router_builder!(add_post_comment, update_post_comment, delete_post_comment,)
+	router_builder!(
+		add_post_comment,
+		get_post_comment,
+		update_post_comment,
+		delete_post_comment,
+	)
 }
 
 /// The public Post Comment RPC: every Post is public (#106) and the Comment
@@ -35,6 +40,18 @@ pub async fn add_post_comment(
 	let receipt = ws_state.broadcast_post_comment(&comment);
 	ws_state.broadcast_posts_update();
 	Ok(PokedRpcResult::new(comment, receipt))
+}
+
+/// Read the stored text of the caller's own Comment (#126): the edit form
+/// loads it. It returns a `CommentSource` (`id`, `content`), the one read that
+/// carries the stored text. A non-owner read is `EntityNotFound` (400).
+pub async fn get_post_comment(
+	ctx: Ctx,
+	mm: ModelManager,
+	params: ParamsIded,
+) -> Result<DataRpcResult<CommentSource>> {
+	let source = PostCommentBmc::get_source(&ctx, &mm, params.id).await?;
+	Ok(source.into())
 }
 
 /// Edit the caller's own Comment (#124). It returns the edited `CommentView`
