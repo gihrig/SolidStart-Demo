@@ -180,8 +180,11 @@ _BE_ (Planned): `PostComment` carries `post_id`; `CaptionComment` carries
 `content`; there is no polymorphic `parent_kind` discriminator (#108). An owner may
 edit or delete their own Comment
 ([ADR-0011](docs/adr/0011-jedi-backend-domain-contract.md) addendum).
-Read returns an enriched `CommentView` (author, content and times), one shape for
-both kinds; `parent_id` is the Post or Caption id (#125).
+Read returns an enriched `CommentView` (author, `content_html` and times), one
+shape for both kinds; `parent_id` is the Post or Caption id (#125). A Comment's
+`content` is plain text or markdown, stored as written. The server renders it to
+sanitized HTML on read, and the Owner's edit form loads the stored text
+([ADR-0019](docs/adr/0019-layered-user-text-sanitization.md) addendum, #126).
 _Lineage_: evolved from the live `ConvMsg`, **split into two** (#108).
 
 **Like**:
