@@ -7,12 +7,6 @@ import { Channel } from "./channel";
 // test locks the same shape from Rust; together they guard the two sides against
 // drift.
 describe("Channel constructors mirror the wire kinds", () => {
-  test("existing conversation channels", () => {
-    expect(Channel.conv(5)).toEqual({ kind: "conv", id: 5 });
-    expect(Channel.agents).toEqual({ kind: "agents" });
-    expect(Channel.convs).toEqual({ kind: "convs" });
-  });
-
   test("posts is the id-less list-feed poke", () => {
     expect(Channel.posts).toEqual({ kind: "posts" });
   });

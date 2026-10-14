@@ -1,19 +1,30 @@
 import { Show } from "solid-js";
 import { useAuth } from "./AuthContext";
 
-export default function LoginForm() {
-  const { login, pending, error } = useAuth();
+export interface LoginFormProps {
+  /** Runs after a login that authenticated; a failed login leaves the form as is. */
+  onSuccess?: () => void;
+  /** The heading's id, so a wrapping dialog can take its name from it. */
+  headingId?: string;
+}
+
+export default function LoginForm(props: LoginFormProps) {
+  const { login, pending, error, isAuthenticated } = useAuth();
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
     await login(formData.get("username") as string, formData.get("password") as string);
+    // `login` never rejects; a failure shows as `error`, so check the outcome.
+    if (isAuthenticated()) props.onSuccess?.();
   };
 
   return (
     <form onSubmit={handleSubmit} class="space-y-4">
-      <h2 style="margin-left:0;">Login</h2>
+      <h2 id={props.headingId} style="margin-left:0;">
+        Login
+      </h2>
 
       <Show when={error()}>
         <div class="rounded bg-red-100 p-2 text-red-700">{error()}</div>

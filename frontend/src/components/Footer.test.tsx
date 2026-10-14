@@ -20,7 +20,7 @@ const renderWithRouter = (path: string = "/") => {
 };
 
 describe("<Footer />", () => {
-  it("renders navigation with Home, About, ReadMe and FullStack links", () => {
+  it("renders navigation with Home, About and ReadMe links", () => {
     renderWithRouter();
 
     const footer = screen.getByRole("contentinfo");
@@ -29,12 +29,11 @@ describe("<Footer />", () => {
     const homeLink = screen.getByRole("link", { name: "Home" });
     const aboutLink = screen.getByRole("link", { name: "About" });
     const readmeLink = screen.getByRole("link", { name: "ReadMe" });
-    const fullstackLink = screen.getByRole("link", { name: "FullStack" });
 
     expect(homeLink).toHaveAttribute("href", "/");
     expect(aboutLink).toHaveAttribute("href", "/about");
     expect(readmeLink).toHaveAttribute("href", "/readme");
-    expect(fullstackLink).toHaveAttribute("href", "/fullstack");
+    expect(screen.queryByRole("link", { name: "FullStack" })).not.toBeInTheDocument();
   });
 
   it("does not render a Jedi link (Jedi is now the home page)", () => {
@@ -48,7 +47,6 @@ describe("<Footer />", () => {
     expect(screen.getByRole("link", { name: "Home" })).toHaveClass("border-sky-600");
     expect(screen.getByRole("link", { name: "About" })).toHaveClass("border-transparent");
     expect(screen.getByRole("link", { name: "ReadMe" })).toHaveClass("border-transparent");
-    expect(screen.getByRole("link", { name: "FullStack" })).toHaveClass("border-transparent");
   });
 
   it("applies active styling to About link when on about path", () => {
@@ -57,7 +55,6 @@ describe("<Footer />", () => {
     expect(screen.getByRole("link", { name: "Home" })).toHaveClass("border-transparent");
     expect(screen.getByRole("link", { name: "About" })).toHaveClass("border-sky-600");
     expect(screen.getByRole("link", { name: "ReadMe" })).toHaveClass("border-transparent");
-    expect(screen.getByRole("link", { name: "FullStack" })).toHaveClass("border-transparent");
   });
 
   it("applies active styling to ReadMe link when on /readme path", () => {
@@ -66,16 +63,6 @@ describe("<Footer />", () => {
     expect(screen.getByRole("link", { name: "Home" })).toHaveClass("border-transparent");
     expect(screen.getByRole("link", { name: "About" })).toHaveClass("border-transparent");
     expect(screen.getByRole("link", { name: "ReadMe" })).toHaveClass("border-sky-600");
-    expect(screen.getByRole("link", { name: "FullStack" })).toHaveClass("border-transparent");
-  });
-
-  it("applies active styling to FullStack link when on /fullstack path", () => {
-    renderWithRouter("/fullstack");
-
-    expect(screen.getByRole("link", { name: "Home" })).toHaveClass("border-transparent");
-    expect(screen.getByRole("link", { name: "About" })).toHaveClass("border-transparent");
-    expect(screen.getByRole("link", { name: "ReadMe" })).toHaveClass("border-transparent");
-    expect(screen.getByRole("link", { name: "FullStack" })).toHaveClass("border-sky-600");
   });
 
   it("renders all links as inactive on unknown path", () => {
@@ -84,6 +71,5 @@ describe("<Footer />", () => {
     expect(screen.getByRole("link", { name: "Home" })).toHaveClass("border-transparent");
     expect(screen.getByRole("link", { name: "About" })).toHaveClass("border-transparent");
     expect(screen.getByRole("link", { name: "ReadMe" })).toHaveClass("border-transparent");
-    expect(screen.getByRole("link", { name: "FullStack" })).toHaveClass("border-transparent");
   });
 });

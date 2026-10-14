@@ -5,8 +5,8 @@ import type { WsEvent } from "~/types/backend";
 const WS_URL = "ws://localhost:8080/ws";
 
 // Reconnect back-off. The socket only exists inside the authenticated app (the
-// `<Show when={isAuthenticated()}>` in `fullstack.tsx` and the Jedi route), so a
-// logged-out client never dials and logout tears the socket down; this back-off
+// `<Show when={isAuthenticated()}>` in the Jedi route), so a logged-out client
+// never dials and logout tears the socket down; this back-off
 // governs the one remaining case — a mid-session token expiry, where the upgrade
 // 401s and a browser cannot read that status. Exponential from a 3s base, capped
 // and jittered, giving up after a bounded number of attempts (a new login remounts
@@ -102,7 +102,7 @@ const webSocketTransport: FeedTransport = (sink) => {
 
 /**
  * The one live **Feed** (`CONTEXT.md`) for a client, over a WebSocket. Build it
- * once at the authenticated boundary (`routes/fullstack.tsx`, `routes/index.tsx`)
+ * once at the authenticated boundary (`routes/index.tsx`)
  * and inject it into each view-model (ADR-0028). Its scope closes the socket.
  */
 export function createWebSocketFeed(): Feed {

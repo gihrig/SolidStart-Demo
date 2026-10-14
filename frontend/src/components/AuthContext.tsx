@@ -21,6 +21,8 @@ interface AuthContextValue {
   logoff: () => Promise<void>;
   pending: Accessor<boolean>;
   error: () => string | null;
+  /** Clears the login error, so a reopened login dialog shows no stale failure (#128). */
+  resetError: () => void;
   /** The logged-in User's profile name (the login username while it loads);
    *  undefined when logged out. */
   displayName: Accessor<string | undefined>;
@@ -99,6 +101,7 @@ export const AuthProvider: ParentComponent = (props) => {
         logoff,
         pending: loginAction.pending,
         error: loginAction.error,
+        resetError: loginAction.reset,
         displayName,
         avatarUrl,
         userId,

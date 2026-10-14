@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { loginAsDemo } from "./loginAsDemo";
 
 // Jedi is the home page now (#62): it renders at `/` under the global Jedi nav.
 test.describe("Jedi Page", () => {
@@ -59,7 +60,7 @@ test.describe("Jedi Page", () => {
     await expect(nav).toBeVisible();
     await expect(nav.getByRole("link", { name: /about/i })).toBeVisible();
     await expect(nav.getByRole("link", { name: /readme/i })).toBeVisible();
-    await expect(nav.getByRole("link", { name: /fullstack/i })).toBeVisible();
+    await expect(nav.getByRole("link", { name: /fullstack/i })).toHaveCount(0);
     // The brand is the home affordance; no Home or Jedi nav link.
     await expect(page.getByRole("link", { name: /awesome/i })).toHaveAttribute("href", "/");
   });
@@ -298,12 +299,8 @@ test.describe("Jedi Page - Draft guard (#124)", () => {
   test("a Top Photo click with a Comment Draft shows the dialog; Keep editing keeps it", async ({
     page,
   }) => {
-    // Log in on /fullstack, then go home in-app: the login state lives in the page.
-    await page.goto("/fullstack");
-    await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: /login/i }).click();
-    await expect(page.getByText(/logged in as: demo1/i)).toBeVisible({ timeout: 10000 });
-    await page.getByRole("link", { name: /awesome/i }).click();
+    await page.goto("/");
+    await loginAsDemo(page);
 
     const article = page.locator("article").first();
     await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
@@ -327,12 +324,8 @@ test.describe("Jedi Page - Draft guard (#124)", () => {
 // Each Comment row shows its author, its time and its text (#125).
 test.describe("Jedi Page - Comment row (#125)", () => {
   test("demo1 posts a Comment, sees the author row, then deletes it", async ({ page }) => {
-    // Log in on /fullstack, then go home in-app: the login state lives in the page.
-    await page.goto("/fullstack");
-    await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: /login/i }).click();
-    await expect(page.getByText(/logged in as: demo1/i)).toBeVisible({ timeout: 10000 });
-    await page.getByRole("link", { name: /awesome/i }).click();
+    await page.goto("/");
+    await loginAsDemo(page);
 
     const article = page.locator("article").first();
     await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
@@ -357,12 +350,8 @@ test.describe("Jedi Page - Comment row (#125)", () => {
 // A Comment written in markdown renders as sanitized HTML (#126).
 test.describe("Jedi Page - Comment markdown (#126)", () => {
   test("demo1 posts **bold**, sees a strong, then deletes it", async ({ page }) => {
-    // Log in on /fullstack, then go home in-app: the login state lives in the page.
-    await page.goto("/fullstack");
-    await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: /login/i }).click();
-    await expect(page.getByText(/logged in as: demo1/i)).toBeVisible({ timeout: 10000 });
-    await page.getByRole("link", { name: /awesome/i }).click();
+    await page.goto("/");
+    await loginAsDemo(page);
 
     const article = page.locator("article").first();
     await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
@@ -387,12 +376,8 @@ test.describe("Jedi Page - Caption Comments (#127)", () => {
   test("demo1 opens a Caption thread, posts a Comment, sees it, then deletes it", async ({
     page,
   }) => {
-    // Log in on /fullstack, then go home in-app: the login state lives in the page.
-    await page.goto("/fullstack");
-    await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: /login/i }).click();
-    await expect(page.getByText(/logged in as: demo1/i)).toBeVisible({ timeout: 10000 });
-    await page.getByRole("link", { name: /awesome/i }).click();
+    await page.goto("/");
+    await loginAsDemo(page);
 
     const article = page.locator("article").first();
     await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();

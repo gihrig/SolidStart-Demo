@@ -79,8 +79,8 @@ describe("createWebSocketFeed", () => {
   it("opens a single socket for many Subscriptions", () => {
     renderHook(() => {
       const feed = createWebSocketFeed();
-      feed.subscribe(() => Channel.agents, vi.fn());
-      feed.subscribe(() => Channel.convs, vi.fn());
+      feed.subscribe(() => Channel.posts, vi.fn());
+      feed.subscribe(() => Channel.postLike(1), vi.fn());
       return feed;
     });
     expect(MockWebSocket.instances).toHaveLength(1);
@@ -108,15 +108,15 @@ describe("createWebSocketFeed", () => {
 
   it("parses a pushed Event and routes it to the held Channel", () => {
     const handler = vi.fn();
-    renderHook(() => createWebSocketFeed().subscribe(() => Channel.conv(7), handler));
+    renderHook(() => createWebSocketFeed().subscribe(() => Channel.postComment(7), handler));
     const ws = MockWebSocket.instances[0];
     ws.open();
     handler.mockClear(); // drop the connect resync
 
-    const fakeMsg = { id: 42, conv_id: 7, content: "Hello" };
-    ws.simulateMessage({ event_type: "conv_msg", payload: fakeMsg });
+    const fakeComment = { id: 42, parent_id: 7, content: "Hello" };
+    ws.simulateMessage({ event_type: "post_comment", payload: fakeComment });
 
-    expect(handler).toHaveBeenCalledWith({ event_type: "conv_msg", payload: fakeMsg });
+    expect(handler).toHaveBeenCalledWith({ event_type: "post_comment", payload: fakeComment });
   });
 
   it("logs a message it cannot parse", () => {
@@ -130,44 +130,44 @@ describe("createWebSocketFeed", () => {
   });
 
   it("sends subscribe with the Channel kind and id when the socket is open", () => {
-    renderHook(() => createWebSocketFeed().subscribe(() => Channel.conv(5), vi.fn()));
+    renderHook(() => createWebSocketFeed().subscribe(() => Channel.postComment(5), vi.fn()));
     const ws = MockWebSocket.instances[0];
     ws.open();
 
     expect(ws.send).toHaveBeenCalledWith(
-      JSON.stringify({ action: "subscribe", kind: "conv", id: 5 }),
+      JSON.stringify({ action: "subscribe", kind: "post_comment", id: 5 }),
     );
   });
 
   it("sends unsubscribe when the hold moves off a Channel", () => {
-    const [convId, setConvId] = createSignal<number | undefined>(5);
+    const [postId, setPostId] = createSignal<number | undefined>(5);
     renderHook(() =>
       createWebSocketFeed().subscribe(() => {
-        const id = convId();
-        return id === undefined ? undefined : Channel.conv(id);
+        const id = postId();
+        return id === undefined ? undefined : Channel.postComment(id);
       }, vi.fn()),
     );
     const ws = MockWebSocket.instances[0];
     ws.open();
 
-    setConvId(undefined);
+    setPostId(undefined);
 
     expect(ws.send).toHaveBeenCalledWith(
-      JSON.stringify({ action: "unsubscribe", kind: "conv", id: 5 }),
+      JSON.stringify({ action: "unsubscribe", kind: "post_comment", id: 5 }),
     );
   });
 
   it("subscribes the server once when two Subscriptions hold the same Channel", () => {
     renderHook(() => {
       const feed = createWebSocketFeed();
-      feed.subscribe(() => Channel.conv(5), vi.fn());
-      feed.subscribe(() => Channel.conv(5), vi.fn());
+      feed.subscribe(() => Channel.postComment(5), vi.fn());
+      feed.subscribe(() => Channel.postComment(5), vi.fn());
     });
     const ws = MockWebSocket.instances[0];
     ws.open();
 
     expect(ws.send).toHaveBeenCalledTimes(1);
-    expect(ws.send).toHaveBeenCalledWith(wire("subscribe", Channel.conv(5)));
+    expect(ws.send).toHaveBeenCalledWith(wire("subscribe", Channel.postComment(5)));
   });
 
   it("reports socket errors through onError and logs them at the boundary", () => {
@@ -181,7 +181,7 @@ describe("createWebSocketFeed", () => {
   });
 
   it("does not send subscribe when the socket is not open", () => {
-    renderHook(() => createWebSocketFeed().subscribe(() => Channel.conv(5), vi.fn()));
+    renderHook(() => createWebSocketFeed().subscribe(() => Channel.postComment(5), vi.fn()));
     // Do NOT open — readyState stays 0.
 
     expect(MockWebSocket.instances[0].send).not.toHaveBeenCalled();
@@ -206,23 +206,23 @@ describe("createWebSocketFeed", () => {
   });
 
   it("replays a pending subscription once the socket opens", () => {
-    renderHook(() => createWebSocketFeed().subscribe(() => Channel.conv(5), vi.fn()));
+    renderHook(() => createWebSocketFeed().subscribe(() => Channel.postComment(5), vi.fn()));
     const ws = MockWebSocket.instances[0];
     // Subscribing before open cannot send yet, but the hold is remembered.
     expect(ws.send).not.toHaveBeenCalled();
 
     ws.open();
 
-    expect(ws.send).toHaveBeenCalledWith(wire("subscribe", Channel.conv(5)));
+    expect(ws.send).toHaveBeenCalledWith(wire("subscribe", Channel.postComment(5)));
   });
 
   it("replays subscriptions onto the new socket after a reconnect", () => {
     vi.useFakeTimers();
     try {
-      renderHook(() => createWebSocketFeed().subscribe(() => Channel.conv(5), vi.fn()));
+      renderHook(() => createWebSocketFeed().subscribe(() => Channel.postComment(5), vi.fn()));
       const first = MockWebSocket.instances[0];
       first.open();
-      expect(first.send).toHaveBeenCalledWith(wire("subscribe", Channel.conv(5)));
+      expect(first.send).toHaveBeenCalledWith(wire("subscribe", Channel.postComment(5)));
 
       first.close(); // unintended drop
       vi.advanceTimersByTime(3000);
@@ -230,7 +230,7 @@ describe("createWebSocketFeed", () => {
       const second = MockWebSocket.instances[1];
       second.open();
 
-      expect(second.send).toHaveBeenCalledWith(wire("subscribe", Channel.conv(5)));
+      expect(second.send).toHaveBeenCalledWith(wire("subscribe", Channel.postComment(5)));
     } finally {
       vi.useRealTimers();
     }
@@ -239,14 +239,14 @@ describe("createWebSocketFeed", () => {
   it("does not replay a subscription released before open", () => {
     const [held, setHeld] = createSignal(true);
     renderHook(() =>
-      createWebSocketFeed().subscribe(() => (held() ? Channel.conv(5) : undefined), vi.fn()),
+      createWebSocketFeed().subscribe(() => (held() ? Channel.postComment(5) : undefined), vi.fn()),
     );
     const ws = MockWebSocket.instances[0];
 
     setHeld(false);
     ws.open();
 
-    expect(ws.send).not.toHaveBeenCalledWith(wire("subscribe", Channel.conv(5)));
+    expect(ws.send).not.toHaveBeenCalledWith(wire("subscribe", Channel.postComment(5)));
   });
 
   it("backs off exponentially across consecutive drops", () => {
