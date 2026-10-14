@@ -153,6 +153,10 @@ Caption line, a visitor who is not logged in sees only the fire-heart and the
 count. A logged-in User sees every button, and a button that cannot act now is
 disabled: only the Owner can use **Edit** and **Delete**. The Post line's **Add**
 opens the same New Post dialog as the Nav.
+_Built_ (#127): the Caption actions start with a **Comments** toggle and the
+Caption's comment count. It opens the Caption's thread below the categories line,
+for the Caption shown. While the thread is open, a re-rank does not change the
+Caption shown ([ADR-0030](docs/adr/0030-unsaved-draft-guard.md) addendum).
 
 **Category**:
 A back-end-owned classification a Post carries; a Post's on-card "tags" _are_ its
@@ -185,6 +189,10 @@ shape for both kinds; `parent_id` is the Post or Caption id (#125). A Comment's
 `content` is plain text or markdown, stored as written. The server renders it to
 sanitized HTML on read, and the Owner's edit form loads the stored text
 ([ADR-0019](docs/adr/0019-layered-user-text-sanitization.md) addendum, #126).
+_Built_ (#124–#127): one Comment module serves both kinds
+([ADR-0024](docs/adr/0024-typed-bmc-owner-post-child-tables.md) addendum). An add or
+a delete also pokes the channel of the parent's comment count: `posts` for a
+PostComment, `post_caption:{post_id}` for a CaptionComment.
 _Lineage_: evolved from the live `ConvMsg`, **split into two** (#108).
 
 **Like**:
@@ -405,7 +413,7 @@ anonymous `/api/rpc-public` response never leaks them. It carries a time (`ctime
 one such type; **one read serves it** — `CategoryPublic` + `CategoryBmc::list_public`
 is the first (#116), `PostView` / `AuthorRef` (via `PostBmc`) the second (#117), and
 `CaptionView` (via `CaptionBmc`) the third (#118), `HeroView` (via `HeroBmc`) the
-fourth (#119), and `CommentView` (via `PostCommentBmc`) the fifth (#125). The
+fourth (#119), and `CommentView` (via the Comment module, for both kinds) the fifth (#125, #127). The
 shared convention is the `PublicProjection` marker in the model `base`: `base::list_public`
 requires it, so the audit-bearing entity row can never be served from a public read.
 A projection may be **enriched** (an author-and-counts `PostView`)
