@@ -3,6 +3,7 @@ use crate::generate_common_bmc_fns;
 use crate::model::base::{
 	self, Access, CommonIden, DbBmc, FieldHygiene, PublicProjection,
 };
+use crate::model::caption_comment::CaptionCommentBmc;
 use crate::model::like::LikeTarget;
 use crate::model::modql_utils::time_to_sea_value;
 use crate::model::post::PostBmc;
@@ -101,8 +102,9 @@ pub struct CaptionFilter {
 
 // Marker BMCs own their child table's identity (see `PostLikeBmc`).
 // `CaptionLikeBmc` is also a Like target (#123): the shared Like module
-// (`model::like`) is its write path and its read. `CaptionCommentBmc` stays a
-// marker until the comment writes land (#127).
+// (`model::like`) is its write path and its read. `caption_comment` has its
+// own module (`model::caption_comment`, #127); its `CaptionCommentBmc` feeds
+// the count.
 pub struct CaptionLikeBmc;
 
 impl DbBmc for CaptionLikeBmc {
@@ -113,12 +115,6 @@ impl LikeTarget for CaptionLikeBmc {
 	const PARENT_COL: &'static str = CAPTION_ID;
 	const UNKNOWN_PARENT: &'static str = "unknown Caption";
 	type Parent = CaptionBmc;
-}
-
-struct CaptionCommentBmc;
-
-impl DbBmc for CaptionCommentBmc {
-	const TABLE: &'static str = "caption_comment";
 }
 
 /// The parent key column of `caption_like` / `caption_comment`.

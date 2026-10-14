@@ -12,8 +12,8 @@
 //! bin crate fails `cgs check` on unused items.
 
 use super::{
-	all_rpc_router_builder, caption_rpc, category_rpc, hero_rpc, post_comment_rpc,
-	post_rpc, profile_rpc, public_rpc_router_builder,
+	all_rpc_router_builder, caption_comment_rpc, caption_rpc, category_rpc,
+	hero_rpc, post_comment_rpc, post_rpc, profile_rpc, public_rpc_router_builder,
 };
 use lib_rpc_core::{ts_dependencies, RpcData, RpcParamsTs};
 use rpc_router::{CallError, CallResult, Handler, Router};
@@ -79,11 +79,15 @@ macro_rules! entry {
 	};
 }
 
-/// The 19 Jedi methods. A new Jedi RPC adds one line here; until then, no
+/// The 24 Jedi methods. A new Jedi RPC adds one line here; until then, no
 /// typed front-end call can reach it.
 fn contract() -> Vec<Entry> {
 	vec![
 		// -- Authenticated
+		entry!(Authenticated, caption_comment_rpc::add_caption_comment),
+		entry!(Authenticated, caption_comment_rpc::delete_caption_comment),
+		entry!(Authenticated, caption_comment_rpc::get_caption_comment),
+		entry!(Authenticated, caption_comment_rpc::update_caption_comment),
 		entry!(Authenticated, caption_rpc::add_caption),
 		entry!(Authenticated, caption_rpc::get_caption_like),
 		entry!(Authenticated, caption_rpc::toggle_caption_like),
@@ -97,6 +101,7 @@ fn contract() -> Vec<Entry> {
 		entry!(Authenticated, post_rpc::toggle_post_like),
 		entry!(Authenticated, profile_rpc::get_profile),
 		// -- Public
+		entry!(Public, caption_comment_rpc::list_caption_comments),
 		entry!(Public, caption_rpc::list_captions_for_post),
 		entry!(Public, category_rpc::list_categories),
 		entry!(Public, hero_rpc::get_hero),

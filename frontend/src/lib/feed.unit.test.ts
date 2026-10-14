@@ -65,6 +65,27 @@ describe("Feed — routing a payload Event", () => {
     expect(onPost8).not.toHaveBeenCalled();
   });
 
+  it("routes a Caption Comment upsert and removal to caption_comment:{parent_id} (#127)", () => {
+    const mem = createMemoryFeed();
+    const onCaption7 = vi.fn();
+    const onPost7 = vi.fn();
+    createRoot(() => {
+      mem.feed.subscribe(() => Channel.captionComment(7), onCaption7);
+      mem.feed.subscribe(() => Channel.postComment(7), onPost7);
+    });
+
+    const upsert = { event_type: "caption_comment", payload: postComment(1, 7) } as const;
+    const removal = {
+      event_type: "caption_comment_removal",
+      payload: { id: 1, parent_id: 7 },
+    } as const;
+    mem.emit(upsert);
+    mem.emit(removal);
+
+    expect(onCaption7.mock.calls).toEqual([[upsert], [removal]]);
+    expect(onPost7).not.toHaveBeenCalled();
+  });
+
   it("drops an Event no Subscription holds", () => {
     const mem = createMemoryFeed();
     const onPostLike = vi.fn();

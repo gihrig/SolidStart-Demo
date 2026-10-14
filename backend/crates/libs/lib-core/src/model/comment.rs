@@ -225,9 +225,9 @@ pub struct CommentRemoval {
 }
 
 /// The stored text of one Comment, for its Owner's edit form (#126): the
-/// `get_post_comment` result. It is **not** a `PublicProjection`: only an
-/// owner-scoped read (`base::get_writable`) returns it, so no public read and
-/// no push carries the stored text.
+/// `get_post_comment` and `get_caption_comment` result. It is **not** a
+/// `PublicProjection`: only an owner-scoped read (`base::get_writable`) returns
+/// it, so no public read and no push carries the stored text.
 #[derive(Debug, Clone, Fields, FromRow, Serialize, TS)]
 #[ts(export, export_to = "CommentSource.d.ts")]
 pub struct CommentSource {

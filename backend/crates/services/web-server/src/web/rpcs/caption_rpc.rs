@@ -19,8 +19,8 @@ pub fn public_rpc_router_builder() -> RouterBuilder {
 }
 
 // The reads return the `CaptionView` public projection — author and derived
-// counts, never the audit columns (ADR-0021). The comment mutations land in a
-// later ticket on the authenticated surface.
+// counts, never the audit columns (ADR-0021). The Caption Comment RPCs live in
+// `caption_comment_rpc` (#127).
 
 /// Add a Caption owned by the caller to a Post (#121), then poke that Post's
 /// `post_caption:{post_id}` feed so every subscriber refetches Top Captions. The

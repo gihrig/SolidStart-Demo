@@ -1,6 +1,6 @@
 use super::poke::{
-	Agents, CaptionLike, Conv, Convs, PokeReceipt, PostCaption, PostComment,
-	PostLike, Posts,
+	Agents, CaptionComment, CaptionLike, Conv, Convs, PokeReceipt, PostCaption,
+	PostComment, PostLike, Posts,
 };
 use lib_core::model::comment::{CommentRemoval, CommentView};
 use lib_core::model::conv_msg::ConvMsg;
@@ -147,6 +147,31 @@ impl WsState {
 		self.broadcast(WsEvent::PostCommentRemoval { payload: removal });
 		PokeReceipt::new()
 	}
+
+	/// Push a Caption Comment add or edit on its Caption's thread
+	/// (`caption_comment:{parent_id}`): an upsert carrying the `CommentView`
+	/// (#127). Returns the [`PokeReceipt<CaptionComment>`]
+	/// `add_caption_comment` / `update_caption_comment` need.
+	pub fn broadcast_caption_comment(
+		&self,
+		comment: &CommentView,
+	) -> PokeReceipt<CaptionComment> {
+		self.broadcast(WsEvent::CaptionComment {
+			payload: comment.clone(),
+		});
+		PokeReceipt::new()
+	}
+
+	/// Push a Caption Comment delete on its Caption's thread: a removal
+	/// carrying the Comment id and its `parent_id` (#127). Returns the
+	/// [`PokeReceipt<CaptionComment>`] `delete_caption_comment` needs.
+	pub fn broadcast_caption_comment_removal(
+		&self,
+		removal: CommentRemoval,
+	) -> PokeReceipt<CaptionComment> {
+		self.broadcast(WsEvent::CaptionCommentRemoval { payload: removal });
+		PokeReceipt::new()
+	}
 }
 
 // endregion: --- Helper Functions for Broadcasting
@@ -234,6 +259,45 @@ mod tests {
 			WsEvent::PostCommentRemoval { payload } if payload.id == 3
 		));
 		assert_eq!(removal.channel().key(), "post_comment:7");
+	}
+
+	/// A Caption Comment add / edit pushes the view, and a delete pushes the
+	/// removal, each on the Caption's thread Channel (#127).
+	#[test]
+	fn caption_comment_helpers_push_on_the_caption_thread() {
+		use lib_core::model::user::AuthorRef;
+		use time::OffsetDateTime;
+
+		let ws = WsState::new();
+		let mut rx = ws.tx.subscribe();
+		let comment = CommentView {
+			id: 3,
+			parent_id: 7,
+			author: AuthorRef::unknown(2),
+			content_html: "<p>hi</p>".to_string(),
+			ctime: OffsetDateTime::UNIX_EPOCH,
+			mtime: OffsetDateTime::UNIX_EPOCH,
+		};
+
+		let _receipt: PokeReceipt<CaptionComment> =
+			ws.broadcast_caption_comment(&comment);
+		let _receipt: PokeReceipt<CaptionComment> = ws
+			.broadcast_caption_comment_removal(CommentRemoval {
+				id: 3,
+				parent_id: 7,
+			});
+
+		let upsert = rx.try_recv().unwrap();
+		assert!(
+			matches!(&upsert, WsEvent::CaptionComment { payload } if payload.id == 3)
+		);
+		assert_eq!(upsert.channel().key(), "caption_comment:7");
+		let removal = rx.try_recv().unwrap();
+		assert!(matches!(
+			&removal,
+			WsEvent::CaptionCommentRemoval { payload } if payload.id == 3
+		));
+		assert_eq!(removal.channel().key(), "caption_comment:7");
 	}
 
 	/// A like toggle that changed no row pokes nothing (#122): no client needs to
