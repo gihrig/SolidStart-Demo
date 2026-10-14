@@ -1,6 +1,7 @@
 // region:    --- Modules
 
 pub mod agent_rpc;
+pub mod caption_comment_rpc;
 pub mod caption_rpc;
 pub mod category_rpc;
 pub mod conv_rpc;

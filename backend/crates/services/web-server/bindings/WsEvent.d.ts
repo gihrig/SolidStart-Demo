@@ -14,9 +14,10 @@ import type { ConvMsg } from "./ConvMsg.d";
  * Jedi comment channels (`post_comment`, `caption_comment`) push a payload. A
  * Post Comment add or edit pushes `post_comment` (a `CommentView`), and a
  * delete pushes `post_comment_removal` (a `CommentRemoval`: the id and
- * `parent_id`) (#124, #125). `caption_comment` stays subscribe-only until
- * #127. The routing `Channel` is derived from the event (see the `channel`
- * method below), not carried as a separate field: a payload event reads it
- * from the payload, a poke carries it (ADR-0020).
+ * `parent_id`) (#124, #125). A Caption Comment pushes `caption_comment` and
+ * `caption_comment_removal` in the same shapes (#127). The routing `Channel`
+ * is derived from the event (see the `channel` method below), not carried as a
+ * separate field: a payload event reads it from the payload, a poke carries it
+ * (ADR-0020).
  */
-export type WsEvent = { "event_type": "conv_msg", payload: ConvMsg, } | { "event_type": "post_comment", payload: CommentView, } | { "event_type": "post_comment_removal", payload: CommentRemoval, } | { "event_type": "poke" } & Channel;
+export type WsEvent = { "event_type": "conv_msg", payload: ConvMsg, } | { "event_type": "post_comment", payload: CommentView, } | { "event_type": "post_comment_removal", payload: CommentRemoval, } | { "event_type": "caption_comment", payload: CommentView, } | { "event_type": "caption_comment_removal", payload: CommentRemoval, } | { "event_type": "poke" } & Channel;

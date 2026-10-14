@@ -86,3 +86,19 @@ and works as the notice.
   that leaves the selected category, is a forced discard, and it must show the
   notice. #187 records this.
 - The Add Caption form joins the guard in #124.
+
+## Addendum (2026-10-13) — the Caption thread holds its Caption (#127)
+
+The Caption Comments panel opens from the Caption line, for the Caption shown. By
+default, the Caption shown is the top-ranked Caption, so a Like on another Caption
+can change it.
+
+**Decision.** An open Caption thread holds the Caption shown. While the panel is
+open, a re-rank does not change the Caption shown. After a close, the Caption line
+follows the ranking again. A pick of another Caption in Top Captions closes the
+panel, so it is a guarded move in the panel's scope. A pick of the Caption already
+shown is not a guarded move.
+
+**Difference from the Post hold.** A Draft holds the Post. The open panel holds the
+Caption, with or without a Draft. Without this hold, a re-rank would close a thread
+that the User is reading.

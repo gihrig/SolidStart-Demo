@@ -63,6 +63,18 @@ pub struct AuthorRef {
 
 impl PublicProjection for AuthorRef {}
 
+impl AuthorRef {
+	/// The snapshot for an owner whose user row is missing: the bare id with
+	/// an empty name and no avatar.
+	pub fn unknown(id: i64) -> Self {
+		Self {
+			id,
+			name: String::new(),
+			avatar_url: None,
+		}
+	}
+}
+
 #[derive(Deserialize)]
 pub struct UserForCreate {
 	pub username: String,

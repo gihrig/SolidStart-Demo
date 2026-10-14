@@ -1,6 +1,6 @@
 import { createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
 import { createRpcAction } from "~/lib/createRpcAction";
-import type { PostComments } from "~/lib/jedi/createPostComments";
+import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { PostView, CaptionView, Like } from "~/types/jedi";
 import Image from "~/components/Image";
@@ -39,7 +39,10 @@ export interface FeaturedPostProps {
   /** This Post's Comment thread (#124), with the panel's open state. The
    *  Comments toggle opens it as an inline panel; without it, the toggle opens
    *  nothing. */
-  postComments?: PostComments;
+  postComments?: CommentThreadState;
+  /** The shown Caption's Comment thread (#127), with the panel's open state.
+   *  The Caption line's Comments toggle opens it as an inline panel. */
+  captionComments?: CommentThreadState;
 }
 
 /** A Like toggle as an RPC action. Only the error is used: the Like shows at
@@ -75,6 +78,11 @@ export default function FeaturedPost(props: FeaturedPostProps) {
   // closes it when the selected Post changes.
   const commentsOpen = () => props.postComments?.open() ?? false;
   const commentsPanelId = () => `post-${postId()}-comments`;
+  // The Caption Comments panel (#127), the same way. The view-model closes it
+  // when the Caption shown changes.
+  const captionCommentsOpen = () => props.captionComments?.open() ?? false;
+  const captionCommentsPanelId = () => `post-${postId()}-caption-comments`;
+  const captionCommentCount = () => props.caption?.commentCount ?? 0;
   // The author link is a placeholder until it lands on the feed seam.
   const notImplemented = (e: MouseEvent) => {
     e.preventDefault();
@@ -131,12 +139,27 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               </button>
             )}
           </For>
-          {/* The Caption actions (#123), for the Caption shown: fire-heart, count,
-              Like, Add, Edit, Delete. A visitor sees the fire-heart and the count
-              of a Caption that exists. A logged-in User sees every button; one
-              that cannot act now is disabled. pr-2 matches the Post line's px-2. */}
+          {/* The Caption actions (#123), for the Caption shown: the Comments
+              toggle and its count (#127), fire-heart, count, Like, Add, Edit,
+              Delete. A visitor sees the Comments toggle, the fire-heart and the
+              count of a Caption that exists. A logged-in User sees every button;
+              one that cannot act now is disabled. The toggle's accessible name
+              starts "Caption comments", so it never reads as the Post's toggle.
+              pr-2 matches the Post line's px-2. */}
           <Show when={props.loggedIn || props.caption}>
             <div class="flex items-center gap-4 ml-auto pr-2">
+              <button
+                type="button"
+                class="font-bold hover:underline rounded disabled:opacity-50 disabled:no-underline"
+                aria-label={`Caption comments, ${captionCommentCount()} comments`}
+                aria-expanded={captionCommentsOpen()}
+                aria-controls={captionCommentsPanelId()}
+                disabled={!props.caption}
+                onClick={() => props.captionComments?.setOpen(!captionCommentsOpen())}
+              >
+                Comments
+                <span class="font-light text-(--theme-card-fg) ml-2">{captionCommentCount()}</span>
+              </button>
               <LikeControl
                 like={props.caption ? props.captionLike : undefined}
                 fallbackCount={props.caption?.likeCount ?? 0}
@@ -170,6 +193,25 @@ export default function FeaturedPost(props: FeaturedPostProps) {
             </div>
           </Show>
         </div>
+        {/* The Caption Comments panel (#127): directly below the categories
+            line, above the Post's panel. Both panels may be open at once. */}
+        <section
+          id={captionCommentsPanelId()}
+          aria-label="Caption comments"
+          hidden={!captionCommentsOpen()}
+          class="mb-4 space-y-2 px-2 text-sm"
+        >
+          <Show when={captionCommentsOpen() && props.captionComments}>
+            {(captionComments) => (
+              <CommentThread
+                id={captionCommentsPanelId()}
+                thread={captionComments()}
+                loggedIn={props.loggedIn}
+                userId={props.userId}
+              />
+            )}
+          </Show>
+        </section>
         {/* The Comments panel (#124): below the categories line, above the
             Comments line, which stays at the bottom of the card. The element is
             always here, so the toggle's aria-controls resolves; the thread
@@ -184,7 +226,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
             {(postComments) => (
               <CommentThread
                 id={commentsPanelId()}
-                postComments={postComments()}
+                thread={postComments()}
                 loggedIn={props.loggedIn}
                 userId={props.userId}
               />

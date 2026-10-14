@@ -7,7 +7,7 @@ import { createDraftGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import { stubDialogModal } from "~/lib/test-utils";
 import FeaturedPost from "./FeaturedPost";
 import { DraftGuardContext } from "./DraftGuardContext";
-import type { PostComments } from "~/lib/jedi/createPostComments";
+import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
 import type { PostView, CaptionView, Like, CommentView } from "~/types/jedi";
 
 const post: PostView = {
@@ -33,6 +33,7 @@ const caption: CaptionView = {
   author: { id: 1, name: "Lisa", avatarUrl: trustedUrl("https://example.com/lisa.png") },
   text: "Jedi Kitty protects the street",
   likeCount: 8,
+  commentCount: 2,
 };
 
 // The categories line's Add button. The caption form's submit has the same name,
@@ -263,6 +264,7 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
     expect(names).toEqual([
       "Animals",
       "Cute",
+      "Caption comments, 2 comments",
       "Like caption by Lisa",
       "Add Caption",
       "Edit caption by Lisa",
@@ -402,6 +404,7 @@ describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123
     expect(names(categoriesLine)).toEqual([
       "Animals",
       "Cute",
+      "Caption comments, 2 comments",
       "Like caption by Bart",
       "Add Caption",
       "Edit caption by Bart",
@@ -478,7 +481,7 @@ describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123
 describe("<FeaturedPost /> — the Comments panel (#124)", () => {
   // A thread with one Comment by User 2, and its open state; the writes are
   // not used here. The view-model owns the open state, so a fresh one per test.
-  const fakePostComments = (): PostComments => {
+  const fakePostComments = (): CommentThreadState => {
     const [open, setOpen] = createSignal(false);
     const [comments] = createSignal<CommentView[] | undefined>([
       {
@@ -561,5 +564,112 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
     // A `posts` poke refetches the list: a new object for the same Post.
     setShown({ ...post, commentCount: 3 });
     expect(screen.getByRole("textbox", { name: "Your comment" })).toHaveValue("draft");
+  });
+});
+
+describe("<FeaturedPost /> — the Caption Comments panel (#127)", () => {
+  // A thread with one Comment, and its open state; the writes are not used
+  // here.
+  const fakeThread = (contentHtml: string): CommentThreadState => {
+    const [open, setOpen] = createSignal(false);
+    const [comments] = createSignal<CommentView[] | undefined>([
+      {
+        id: 9,
+        parentId: 1,
+        author: { id: 2, name: "Homer", avatarUrl: trustedUrl("") },
+        contentHtml,
+        ctime: "2026-10-10T12:00:00Z",
+        mtime: "2026-10-10T12:00:00Z",
+      },
+    ]);
+    return {
+      open,
+      setOpen,
+      draftScope: Symbol("comments"),
+      comments,
+      deleted: () => false,
+      error: () => undefined,
+      add: () => Promise.resolve(),
+      update: () => Promise.resolve(),
+      remove: () => Promise.resolve(),
+      source: () => Promise.resolve(""),
+    };
+  };
+  const toggle = () => screen.getByRole("button", { name: "Caption comments, 2 comments" });
+  const panel = () => document.getElementById(toggle().getAttribute("aria-controls")!);
+
+  it("shows the toggle first in the Caption actions, with the Caption's comment count", () => {
+    render(() => <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn />);
+    expect(toggle()).toHaveTextContent(/^Comments\s*2$/);
+    expect(toggle().parentElement!.firstElementChild).toBe(toggle());
+    expect(toggle()).toBeEnabled();
+  });
+
+  it("shows a visitor the toggle only when a Caption exists", () => {
+    const { unmount } = render(() => <FeaturedPost post={post} caption={caption} />);
+    expect(toggle()).toBeEnabled();
+    unmount();
+
+    render(() => <FeaturedPost post={post} caption={undefined} />);
+    expect(screen.queryByRole("button", { name: /^Caption comments/ })).toBeNull();
+  });
+
+  it("shows a logged-in User the toggle, disabled, on a Post with no Caption", () => {
+    render(() => <FeaturedPost post={post} captionsLoaded loggedIn userId={1} />);
+    expect(screen.getByRole("button", { name: "Caption comments, 0 comments" })).toBeDisabled();
+  });
+
+  it("the toggle opens and closes the Caption thread panel", async () => {
+    const user = userEvent.setup();
+    const captionComments = fakeThread("<p>Nice caption</p>");
+    render(() => <FeaturedPost post={post} caption={caption} captionComments={captionComments} />);
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
+    expect(panel()).not.toBeVisible();
+
+    await user.click(toggle());
+    expect(captionComments.open()).toBe(true);
+    expect(toggle()).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("region", { name: "Caption comments" })).toBe(panel());
+    expect(panel()).toHaveTextContent("Nice caption");
+
+    await user.click(toggle());
+    expect(captionComments.open()).toBe(false);
+    expect(panel()).toBeEmptyDOMElement();
+  });
+
+  it("opens beside the Post panel: under the categories line, above the Post panel", async () => {
+    const user = userEvent.setup();
+    const postComments = fakeThread("<p>On the Post</p>");
+    const captionComments = fakeThread("<p>On the Caption</p>");
+    render(() => (
+      <FeaturedPost
+        post={post}
+        caption={caption}
+        postComments={postComments}
+        captionComments={captionComments}
+        loggedIn
+        userId={2}
+      />
+    ));
+    await user.click(toggle());
+    await user.click(screen.getByRole("button", { name: "Comments, 3 comments" }));
+
+    const captionPanel = screen.getByRole("region", { name: "Caption comments" });
+    const postPanel = screen.getByRole("region", { name: "Comments" });
+    const follows = (a: Node, b: Node) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(screen.getByRole("button", { name: /^Cute$/ }), captionPanel)).toBe(true);
+    expect(follows(captionPanel, postPanel)).toBe(true);
+    expect(captionPanel).toHaveTextContent("On the Caption");
+    expect(postPanel).toHaveTextContent("On the Post");
+
+    // Both threads hold a Comment with id 9: with both edit forms open, each
+    // panel's element ids stay unique.
+    for (const edit of screen.getAllByRole("button", { name: "Edit comment" })) {
+      await user.click(edit);
+    }
+    expect(screen.getAllByRole("textbox", { name: "Edit your comment" })).toHaveLength(2);
+    const ids = [...document.querySelectorAll("[id]")].map((e) => e.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });

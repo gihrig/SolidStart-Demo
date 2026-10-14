@@ -68,7 +68,7 @@ mod tests {
 	use axum_test::TestServer;
 	use lib_core::_dev_utils::{
 		self, clean_agents, clean_convs, clean_posts, clean_users, seed_admin_user,
-		seed_caption, seed_post, seed_post_comment, seed_user,
+		seed_caption, seed_caption_comment, seed_post, seed_post_comment, seed_user,
 	};
 	use lib_core::ctx::Ctx;
 	use lib_core::model::user::{UserBmc, UserForCreate};
@@ -1205,6 +1205,152 @@ mod tests {
 		// -- Clean (the Post delete cascades its Comments)
 		clean_posts(&mm, fx_title).await?;
 		clean_users(&root, &mm, "test_web_pc_thread").await?;
+
+		Ok(())
+	}
+
+	/// A Caption's Comment thread over HTTP (#127). A logged-in User adds,
+	/// edits and deletes their own Comment: each write pushes on
+	/// `caption_comment:{caption_id}`. An add or a delete then pokes
+	/// `post_caption:{post_id}`, so the Caption list refetches its comment
+	/// count; an edit does not. An anonymous visitor reads the thread on
+	/// `/api/rpc-public`.
+	#[serial]
+	#[tokio::test]
+	async fn test_web_caption_comment_thread_ok() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let fx_title = "test_web_caption_comment_thread_ok";
+		let post_id = seed_post(&root, &mm, fx_title, &[1]).await?;
+		let caption_id = seed_caption(&root, &mm, post_id, "a caption").await?;
+		let other_id = seed_user(&root, &mm, "test_web_cc_thread-other").await?;
+		let other_comment =
+			seed_caption_comment(&Ctx::new(other_id)?, &mm, caption_id, "other's")
+				.await?;
+		let rpc = |method: &str, params: Value| json!({ "jsonrpc": "2.0", "id": 1, "method": method, "params": params });
+		let ws_state = Arc::new(WsState::new());
+		let mut rx = ws_state.tx.subscribe();
+		let anon = TestServer::new(app(mm.clone(), ws_state.clone()));
+		let mut server = TestServer::new(app(mm.clone(), ws_state.clone()));
+		server.save_cookies();
+		server
+			.post("/api/login")
+			.json(&json!({ "username": "demo1", "pwd": "welcome" }))
+			.await
+			.assert_status_ok();
+
+		// -- Exec & Check: add pushes the view on the Caption's thread, then
+		//    pokes `post_caption`.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&rpc(
+				"add_caption_comment",
+				json!({ "data": { "caption_id": caption_id, "content": "hello" } }),
+			))
+			.await
+			.json();
+		let id = body
+			.pointer("/result/data/id")
+			.and_then(Value::as_i64)
+			.ok_or(format!("add_caption_comment: missing id in {body}"))?;
+		assert_eq!(
+			body.pointer("/result/data/parent_id")
+				.and_then(Value::as_i64),
+			Some(caption_id)
+		);
+		let event = rx.try_recv().expect("add pushes the view");
+		assert_eq!(
+			event.channel().key(),
+			format!("caption_comment:{caption_id}")
+		);
+		let event = serde_json::to_value(event)?;
+		assert_eq!(event["event_type"], "caption_comment");
+		assert_eq!(Some(&event["payload"]), body.pointer("/result/data"));
+		let poke = rx.try_recv().expect("add pokes post_caption");
+		assert_eq!(poke.channel().key(), format!("post_caption:{post_id}"));
+
+		// -- Exec & Check: edit pushes the new view, and does not poke.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&rpc(
+				"update_caption_comment",
+				json!({ "id": id, "data": { "content": "**edited**" } }),
+			))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data/content_html")
+				.and_then(Value::as_str),
+			Some("<p><strong>edited</strong></p>"),
+			"got {body}"
+		);
+		let event = rx.try_recv().expect("edit pushes");
+		assert_eq!(
+			event.channel().key(),
+			format!("caption_comment:{caption_id}")
+		);
+		assert!(rx.try_recv().is_err(), "an edit must not poke post_caption");
+
+		// -- Exec & Check: the Owner reads the stored text; a non-owner write is
+		//    rejected (400) with no push.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&rpc("get_caption_comment", json!({ "id": id })))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data"),
+			Some(&json!({ "id": id, "content": "**edited**" })),
+			"got {body}"
+		);
+		server
+			.post("/api/rpc")
+			.json(&rpc(
+				"delete_caption_comment",
+				json!({ "id": other_comment }),
+			))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		assert!(rx.try_recv().is_err(), "a rejected write must not push");
+
+		// -- Exec & Check: an anonymous visitor reads the thread, newest first.
+		let list = rpc("list_caption_comments", json!({ "id": caption_id }));
+		let body: Value = anon.post("/api/rpc-public").json(&list).await.json();
+		let ids: Vec<i64> = body
+			.pointer("/result/data")
+			.and_then(Value::as_array)
+			.ok_or(format!("list_caption_comments: missing data in {body}"))?
+			.iter()
+			.filter_map(|c| c.pointer("/id").and_then(Value::as_i64))
+			.collect();
+		assert_eq!(ids, vec![id, other_comment]);
+
+		// -- Exec & Check: delete returns and pushes the removal, then pokes
+		//    `post_caption`.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&rpc("delete_caption_comment", json!({ "id": id })))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data"),
+			Some(&json!({ "id": id, "parent_id": caption_id })),
+			"got {body}"
+		);
+		assert_eq!(
+			serde_json::to_value(rx.try_recv().expect("delete pushes"))?,
+			json!({
+				"event_type": "caption_comment_removal",
+				"payload": { "id": id, "parent_id": caption_id },
+			})
+		);
+		let poke = rx.try_recv().expect("delete pokes post_caption");
+		assert_eq!(poke.channel().key(), format!("post_caption:{post_id}"));
+
+		// -- Clean (the Post delete cascades its Captions and their Comments)
+		clean_posts(&mm, fx_title).await?;
+		clean_users(&root, &mm, "test_web_cc_thread").await?;
 
 		Ok(())
 	}

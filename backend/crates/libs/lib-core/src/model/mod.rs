@@ -27,6 +27,7 @@ mod store;
 
 pub mod agent;
 pub mod caption;
+pub mod caption_comment;
 pub mod category;
 pub mod comment;
 pub mod conv;

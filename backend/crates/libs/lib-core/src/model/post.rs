@@ -459,13 +459,10 @@ impl PostBmc {
 			.into_iter()
 			.map(|p| PostView {
 				id: p.id,
-				author: author_by_id.get(&p.owner_id).cloned().unwrap_or(
-					AuthorRef {
-						id: p.owner_id,
-						name: String::new(),
-						avatar_url: None,
-					},
-				),
+				author: author_by_id
+					.get(&p.owner_id)
+					.cloned()
+					.unwrap_or_else(|| AuthorRef::unknown(p.owner_id)),
 				title: p.title,
 				image_src: p.image_src,
 				image_alt: p.image_alt,

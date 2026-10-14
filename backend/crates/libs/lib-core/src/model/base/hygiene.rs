@@ -156,6 +156,7 @@ mod tests {
 
 	use super::*;
 	use crate::model::caption::CaptionBmc;
+	use crate::model::caption_comment::CaptionCommentBmc;
 	use crate::model::category::CategoryBmc;
 	use crate::model::hero::HeroBmc;
 	use crate::model::post::PostBmc;
@@ -292,6 +293,7 @@ mod tests {
 			(PostBmc::TABLE, PostBmc::hygiene_rules()),
 			(CaptionBmc::TABLE, CaptionBmc::hygiene_rules()),
 			(PostCommentBmc::TABLE, PostCommentBmc::hygiene_rules()),
+			(CaptionCommentBmc::TABLE, CaptionCommentBmc::hygiene_rules()),
 			(HeroBmc::TABLE, HeroBmc::hygiene_rules()),
 			(CategoryBmc::TABLE, CategoryBmc::hygiene_rules()),
 		];

@@ -427,7 +427,7 @@ describe("Home route — the Draft guard (ADR-0030)", () => {
     renderApp();
     await user.click(screen.getByRole("button", { name: /do-login/i }));
     await screen.findByRole("heading", { name: /little jedi/i });
-    await user.click(screen.getByRole("button", { name: /comments, 0 comments/i }));
+    await user.click(screen.getByRole("button", { name: /^Comments, 0 comments/i }));
     await user.type(await screen.findByRole("textbox", { name: "Your comment" }), "draft");
     return user;
   }

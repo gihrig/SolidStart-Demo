@@ -1,6 +1,7 @@
 use crate::ctx::Ctx;
 use crate::model::agent::{AgentBmc, AgentFilter, AgentForCreate};
 use crate::model::caption::{CaptionBmc, CaptionForCreate};
+use crate::model::caption_comment::{CaptionCommentBmc, CaptionCommentForCreate};
 use crate::model::category::{CategoryBmc, CategoryFilter, CategoryForCreate};
 use crate::model::conv::{ConvBmc, ConvForCreate};
 use crate::model::post::{PostBmc, PostForCreate};
@@ -414,3 +415,26 @@ pub async fn seed_post_comment(
 }
 
 // endregion: --- PostComment seed
+
+// region:    --- CaptionComment seed
+
+/// Seed one Comment owned by `ctx` on the given Caption. Cleanup rides the
+/// owner or Caption delete, which cascades to the Comment.
+pub async fn seed_caption_comment(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	caption_id: i64,
+	content: &str,
+) -> model::Result<i64> {
+	CaptionCommentBmc::create(
+		ctx,
+		mm,
+		CaptionCommentForCreate {
+			caption_id,
+			content: content.to_string(),
+		},
+	)
+	.await
+}
+
+// endregion: --- CaptionComment seed

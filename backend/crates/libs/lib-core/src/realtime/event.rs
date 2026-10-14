@@ -13,10 +13,11 @@ use ts_rs::TS;
 /// Jedi comment channels (`post_comment`, `caption_comment`) push a payload. A
 /// Post Comment add or edit pushes `post_comment` (a `CommentView`), and a
 /// delete pushes `post_comment_removal` (a `CommentRemoval`: the id and
-/// `parent_id`) (#124, #125). `caption_comment` stays subscribe-only until
-/// #127. The routing `Channel` is derived from the event (see the `channel`
-/// method below), not carried as a separate field: a payload event reads it
-/// from the payload, a poke carries it (ADR-0020).
+/// `parent_id`) (#124, #125). A Caption Comment pushes `caption_comment` and
+/// `caption_comment_removal` in the same shapes (#127). The routing `Channel`
+/// is derived from the event (see the `channel` method below), not carried as a
+/// separate field: a payload event reads it from the payload, a poke carries it
+/// (ADR-0020).
 #[derive(Clone, Debug, Serialize, TS)]
 #[serde(tag = "event_type")]
 #[ts(export, export_to = "WsEvent.d.ts")]
@@ -29,6 +30,12 @@ pub enum WsEvent {
 	/// A Post Comment was deleted (#124): a removal by id.
 	#[serde(rename = "post_comment_removal")]
 	PostCommentRemoval { payload: CommentRemoval },
+	/// A Caption Comment was added or edited (#127): an upsert of its view.
+	#[serde(rename = "caption_comment")]
+	CaptionComment { payload: CommentView },
+	/// A Caption Comment was deleted (#127): a removal by id.
+	#[serde(rename = "caption_comment_removal")]
+	CaptionCommentRemoval { payload: CommentRemoval },
 	/// A contentless poke on its [`Channel`]. It replaces the former
 	/// one-variant-per-poke set (`agent_update` / `conv_update` / `posts` /
 	/// `post_like` / `caption_like` / `post_caption`), so adding a poke channel
@@ -40,7 +47,7 @@ pub enum WsEvent {
 
 impl WsEvent {
 	/// The [`Channel`] this event is addressed to. A payload event derives it from
-	/// the payload (`conv_msg` reads `payload.conv_id`, a Post Comment event reads
+	/// the payload (`conv_msg` reads `payload.conv_id`, a Comment event reads
 	/// `payload.parent_id`); a poke carries it. The send
 	/// task matches its key against a connection's authorized subscription set
 	/// (ADR-0015).
@@ -52,6 +59,12 @@ impl WsEvent {
 			}
 			WsEvent::PostCommentRemoval { payload } => {
 				Channel::PostComment(payload.parent_id)
+			}
+			WsEvent::CaptionComment { payload } => {
+				Channel::CaptionComment(payload.parent_id)
+			}
+			WsEvent::CaptionCommentRemoval { payload } => {
+				Channel::CaptionComment(payload.parent_id)
 			}
 			WsEvent::Poke(channel) => *channel,
 		}
@@ -159,6 +172,35 @@ mod tests {
 			.key(),
 			"post_comment:7"
 		);
+	}
+
+	/// Both Caption Comment events route on their Caption's thread Channel, read
+	/// from the payload's `parent_id`, as the Post ones do (#127).
+	#[test]
+	fn caption_comment_events_route_on_the_caption_thread() {
+		let upsert = WsEvent::CaptionComment {
+			payload: post_comment(3, 7),
+		};
+		assert_eq!(
+			serde_json::to_value(&upsert).unwrap()["event_type"].as_str(),
+			Some("caption_comment")
+		);
+		assert_eq!(upsert.channel().key(), "caption_comment:7");
+
+		let removal = WsEvent::CaptionCommentRemoval {
+			payload: CommentRemoval {
+				id: 3,
+				parent_id: 7,
+			},
+		};
+		assert_eq!(
+			serde_json::to_value(&removal).unwrap(),
+			serde_json::json!({
+				"event_type": "caption_comment_removal",
+				"payload": { "id": 3, "parent_id": 7 },
+			}),
+		);
+		assert_eq!(removal.channel().key(), "caption_comment:7");
 	}
 
 	fn post_comment(id: i64, parent_id: i64) -> CommentView {

@@ -136,3 +136,32 @@ prove two channels. A generic hub helper: it needs a trait across `lib-core` and
 
 **Consequence.** A like BMC is now a `LikeTarget`, not a write path of its own. A
 new Like target adds one `impl LikeTarget`, two thin handlers, and one hub helper.
+
+## Addendum (2026-10-13) — one Comment module for both Comment targets (#127)
+
+#124 built the Post Comment in `post_comment.rs`. #127 adds a second target, the
+Caption. A copy of the Post code would put the parent check, the view assembly, the
+Owner's read and the thread list in two places.
+
+**Decision.** The Comment module (`model/comment.rs`) owns the shared Comment logic.
+A trait `CommentTarget: DbBmc` describes one target: its parent column
+(`PARENT_COL`), its parent BMC (`type Parent`), the `Validation` reason for an
+unknown parent (`UNKNOWN_PARENT`), and how a row gives its parent id.
+`PostCommentBmc` and `CaptionCommentBmc` implement it. The shared functions are the
+create with its parent check, `get_comment`, `get_source`, the thread list and the
+view assembly.
+
+Each target keeps its own row, filter and input types (`PostCommentForCreate`,
+`CaptionCommentForCreate`, and the two `ForUpdate` types). `generate_common_bmc_fns!`
+needs them, and it still gives each target its owner-scoped `get`, `update` and
+`delete`. The wire outputs are shared: `CommentView` and `CommentRemoval` (#125).
+The RPC names, the Events, the hub helpers and the typed receipts stay per target,
+as for Likes.
+
+**Rejected.** A copy of `post_comment.rs`: two copies of the same rules drift. A full
+generic `CommentBmc::<T>`, as for Likes: it would replace the macro's per-entity
+types and its owner-scoped `update` and `delete` with new code.
+
+**Consequence.** A Comment BMC is a `CommentTarget` with its own types. A new Comment
+target adds one `impl CommentTarget`, its types, five thin handlers, two Events and
+two hub helpers.
