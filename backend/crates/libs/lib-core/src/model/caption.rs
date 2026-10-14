@@ -320,13 +320,10 @@ impl CaptionBmc {
 			.map(|c| CaptionView {
 				id: c.id,
 				post_id: c.post_id,
-				author: author_by_id.get(&c.owner_id).cloned().unwrap_or(
-					AuthorRef {
-						id: c.owner_id,
-						name: String::new(),
-						avatar_url: None,
-					},
-				),
+				author: author_by_id
+					.get(&c.owner_id)
+					.cloned()
+					.unwrap_or_else(|| AuthorRef::unknown(c.owner_id)),
 				text: c.text,
 				like_count: *likes_by_caption.get(&c.id).unwrap_or(&0),
 				comment_count: *comments_by_caption.get(&c.id).unwrap_or(&0),

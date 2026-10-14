@@ -230,13 +230,10 @@ impl PostCommentBmc {
 			.map(|c| CommentView {
 				id: c.id,
 				parent_id: c.post_id,
-				author: author_by_id.get(&c.owner_id).cloned().unwrap_or(
-					AuthorRef {
-						id: c.owner_id,
-						name: String::new(),
-						avatar_url: None,
-					},
-				),
+				author: author_by_id
+					.get(&c.owner_id)
+					.cloned()
+					.unwrap_or_else(|| AuthorRef::unknown(c.owner_id)),
 				content_html: render_comment_html(&c.content),
 				ctime: c.ctime,
 				mtime: c.mtime,
