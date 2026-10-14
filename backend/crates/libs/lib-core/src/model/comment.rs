@@ -1,18 +1,180 @@
-//! The shared Comment shapes (#125). A Post Comment uses them now; a Caption
-//! Comment reuses them (#127). `parent_id` is the id of the Post or Caption that
-//! holds the thread.
+//! The **Comment** module (#125, #127, ADR-0024 addendum): the shared Comment
+//! shapes and the shared Comment logic. A target is a comment BMC that
+//! implements [`CommentTarget`]: its comment table (`DbBmc::TABLE`), its parent
+//! key column, its parent BMC for the existence check, and its row. The shared
+//! functions are generic over the target, so the compiler checks each one.
+//! `parent_id` is the id of the Post or Caption that holds the thread.
 
-use crate::model::base::PublicProjection;
-use crate::model::user::AuthorRef;
+use crate::ctx::Ctx;
+use crate::model::base::{self, DbBmc, PublicProjection};
+use crate::model::user::{AuthorRef, UserBmc};
+use crate::model::ModelManager;
+use crate::model::{Error, Result};
 use lib_utils::time::Rfc3339;
-use modql::field::Fields;
+use modql::field::{Fields, HasSeaFields};
+use modql::filter::{FilterNode, ListOptions};
 use serde::Serialize;
 use serde_with::serde_as;
+use sqlx::postgres::PgRow;
 use sqlx::FromRow;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 use time::OffsetDateTime;
 use ts_rs::TS;
+
+// region:    --- CommentTarget
+
+/// One Comment target: a comment table keyed on its parent
+/// (`post_comment.post_id`, `caption_comment.caption_id`). The comment BMC
+/// implements it; the shared functions below do the work. Each target keeps its
+/// own row, filter and input types, so `generate_common_bmc_fns!` still gives it
+/// the owner-scoped `get`, `update` and `delete`.
+pub trait CommentTarget: DbBmc {
+	/// The parent key column of the comment table (`post_id` / `caption_id`).
+	const PARENT_COL: &'static str;
+
+	/// The `Validation` reason for an unknown parent (`"unknown Post"`).
+	const UNKNOWN_PARENT: &'static str;
+
+	/// The parent BMC: the existence check reads its table.
+	type Parent: DbBmc;
+
+	/// The comment row (`PostComment`, `CaptionComment`).
+	type Row: for<'r> FromRow<'r, PgRow> + HasSeaFields + Unpin + Send;
+
+	/// The parts of a row that the view assembly reads, with its parent id.
+	fn parts(row: Self::Row) -> CommentParts;
+}
+
+/// The columns that every comment row has, with the parent key as
+/// `parent_id`. Only the view assembly reads it; no wire carries it.
+pub struct CommentParts {
+	pub id: i64,
+	pub parent_id: i64,
+	pub owner_id: i64,
+	pub content: String,
+	pub ctime: OffsetDateTime,
+	pub mtime: OffsetDateTime,
+}
+
+/// Add a Comment to one `T` parent. `owner_id` is `ctx.user_id()` (owner-only
+/// write); any logged-in User may comment on any parent (every Post and Caption
+/// is public). An unknown parent is a `Validation` error on its parent column,
+/// rejected before the insert, not a foreign-key failure.
+pub async fn create<T, E>(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	parent_id: i64,
+	comment_c: E,
+) -> Result<i64>
+where
+	T: CommentTarget,
+	E: HasSeaFields,
+{
+	base::require_exists::<T::Parent>(
+		ctx,
+		mm,
+		parent_id,
+		T::PARENT_COL,
+		T::UNKNOWN_PARENT,
+	)
+	.await?;
+
+	base::create::<T, _>(ctx, mm, comment_c).await
+}
+
+/// Read one `T` Comment as its `CommentView` (public read, unscoped): the add
+/// and update result and push (#125).
+pub async fn get_comment<T: CommentTarget>(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	id: i64,
+) -> Result<CommentView> {
+	let comment = base::get::<T, T::Row>(ctx, mm, id).await?;
+	let mut views = assemble_views::<T>(ctx, mm, vec![comment]).await?;
+	views.pop().ok_or(Error::EntityNotFound {
+		entity: T::TABLE,
+		id,
+	})
+}
+
+/// Read the stored text of the caller's own `T` Comment (#126): the edit form
+/// loads it. A non-owner gets `EntityNotFound` (the Write scope).
+pub async fn get_source<T: CommentTarget>(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	id: i64,
+) -> Result<CommentSource> {
+	base::get_writable::<T, _>(ctx, mm, id).await
+}
+
+/// List one parent's `T` Comments as `CommentView`s, newest first (#125). Ties
+/// break by id descending. The caller's `order_bys` is ignored: a thread reads
+/// in time order, so a `limit` keeps the newest Comments. `limit` / `offset`
+/// page it under the shared list-limit contract (no limit -> 1000). Read is
+/// unscoped: every Comment is public. A parent with no Comments (or no such
+/// parent) yields an empty list.
+pub async fn list_for_parent<T: CommentTarget>(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	parent_id: i64,
+	list_options: Option<ListOptions>,
+) -> Result<Vec<CommentView>> {
+	let list_options = ListOptions {
+		order_bys: Some(vec!["!ctime", "!id"].into()),
+		..list_options.unwrap_or_default()
+	};
+	let comments = base::list::<T, T::Row, _>(
+		ctx,
+		mm,
+		Some(FilterNode::from((T::PARENT_COL, parent_id))),
+		Some(list_options),
+	)
+	.await?;
+	assemble_views::<T>(ctx, mm, comments).await
+}
+
+/// Assemble `CommentView`s from `T` rows with one author batch — never one
+/// read per Comment (the N+1 trap). The order of the rows is kept. Each stored
+/// markdown renders to sanitized HTML here (#126). A missing author falls back
+/// to `AuthorRef::unknown`, as `CaptionBmc::assemble_views` does.
+async fn assemble_views<T: CommentTarget>(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	comments: Vec<T::Row>,
+) -> Result<Vec<CommentView>> {
+	if comments.is_empty() {
+		return Ok(Vec::new());
+	}
+
+	let parts: Vec<CommentParts> = comments.into_iter().map(T::parts).collect();
+	let owner_ids = base::dedup(parts.iter().map(|c| c.owner_id));
+	let author_by_id: HashMap<i64, AuthorRef> =
+		UserBmc::author_refs_by_ids(ctx, mm, &owner_ids)
+			.await?
+			.into_iter()
+			.map(|a| (a.id, a))
+			.collect();
+
+	let views = parts
+		.into_iter()
+		.map(|c| CommentView {
+			id: c.id,
+			parent_id: c.parent_id,
+			author: author_by_id
+				.get(&c.owner_id)
+				.cloned()
+				.unwrap_or_else(|| AuthorRef::unknown(c.owner_id)),
+			content_html: render_comment_html(&c.content),
+			ctime: c.ctime,
+			mtime: c.mtime,
+		})
+		.collect();
+
+	Ok(views)
+}
+
+// endregion: --- CommentTarget
 
 // region:    --- Comment Types
 
@@ -298,8 +460,8 @@ mod tests {
 	/// runs it, and the CI bindings-drift guard checks the file, so a change on
 	/// one side only fails CI.
 	#[test]
-	fn export_bindings_comment_html_policy() -> Result<(), Box<dyn std::error::Error>>
-	{
+	fn export_bindings_comment_html_policy(
+	) -> std::result::Result<(), Box<dyn std::error::Error>> {
 		let policy = &COMMENT_HTML_POLICY;
 		let per_tag = |lists: &[(&str, &[&str])]| -> serde_json::Map<String, serde_json::Value> {
 			lists

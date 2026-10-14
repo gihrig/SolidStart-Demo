@@ -1,12 +1,13 @@
 use crate::ctx::Ctx;
 use crate::generate_common_bmc_fns;
 use crate::model::base::{self, Access, CommonIden, DbBmc, FieldHygiene};
-use crate::model::comment::{render_comment_html, CommentSource, CommentView};
+use crate::model::comment::{
+	self, CommentParts, CommentSource, CommentTarget, CommentView,
+};
 use crate::model::modql_utils::time_to_sea_value;
 use crate::model::post::PostBmc;
-use crate::model::user::{AuthorRef, UserBmc};
 use crate::model::ModelManager;
-use crate::model::{Error, Result};
+use crate::model::Result;
 use modql::field::Fields;
 use modql::filter::{
 	FilterNodes, ListOptions, OpValsInt64, OpValsString, OpValsValue,
@@ -14,7 +15,6 @@ use modql::filter::{
 use sea_query::{Condition, Expr};
 use serde::Deserialize;
 use sqlx::FromRow;
-use std::collections::HashMap;
 use time::OffsetDateTime;
 use ts_rs::TS;
 
@@ -118,6 +118,24 @@ impl DbBmc for PostCommentBmc {
 	}
 }
 
+impl CommentTarget for PostCommentBmc {
+	const PARENT_COL: &'static str = "post_id";
+	const UNKNOWN_PARENT: &'static str = "unknown Post";
+	type Parent = PostBmc;
+	type Row = PostComment;
+
+	fn parts(c: PostComment) -> CommentParts {
+		CommentParts {
+			id: c.id,
+			parent_id: c.post_id,
+			owner_id: c.owner_id,
+			content: c.content,
+			ctime: c.ctime,
+			mtime: c.mtime,
+		}
+	}
+}
+
 // `create` is hand-written (below) so it can reject an unknown Post as a client
 // error; the macro therefore gets no `ForCreate`.
 generate_common_bmc_fns!(
@@ -127,120 +145,44 @@ generate_common_bmc_fns!(
 	Filter: PostCommentFilter,
 );
 
+// The thin target-typed doors to the shared Comment module (`model::comment`).
 impl PostCommentBmc {
-	/// Add a Comment to a Post (#124). `owner_id` is `ctx.user_id()` (owner-only
-	/// write); any logged-in User may comment on any Post (every Post is
-	/// public). An unknown `post_id` is a `Validation` error, rejected before
-	/// the insert, not a foreign-key failure.
+	/// Add a Comment to a Post (#124). An unknown `post_id` is a `Validation`
+	/// error (see `comment::create`).
 	pub async fn create(
 		ctx: &Ctx,
 		mm: &ModelManager,
 		comment_c: PostCommentForCreate,
 	) -> Result<i64> {
-		base::require_exists::<PostBmc>(
-			ctx,
-			mm,
-			comment_c.post_id,
-			"post_id",
-			"unknown Post",
-		)
-		.await?;
-
-		base::create::<Self, _>(ctx, mm, comment_c).await
+		comment::create::<Self, _>(ctx, mm, comment_c.post_id, comment_c).await
 	}
 
-	/// Read one Comment as its `CommentView` (public read, unscoped): the
-	/// `add_post_comment` and `update_post_comment` result and push (#125).
+	/// Read one Comment as its `CommentView` (#125).
 	pub async fn get_comment(
 		ctx: &Ctx,
 		mm: &ModelManager,
 		id: i64,
 	) -> Result<CommentView> {
-		let comment = Self::get(ctx, mm, id).await?;
-		let mut views = Self::assemble_views(ctx, mm, vec![comment]).await?;
-		views.pop().ok_or(Error::EntityNotFound {
-			entity: Self::TABLE,
-			id,
-		})
+		comment::get_comment::<Self>(ctx, mm, id).await
 	}
 
-	/// Read the stored text of the caller's own Comment (#126): the edit form
-	/// loads it. A non-owner gets `EntityNotFound` (the Write scope).
+	/// Read the stored text of the caller's own Comment (#126).
 	pub async fn get_source(
 		ctx: &Ctx,
 		mm: &ModelManager,
 		id: i64,
 	) -> Result<CommentSource> {
-		base::get_writable::<Self, _>(ctx, mm, id).await
+		comment::get_source::<Self>(ctx, mm, id).await
 	}
 
-	/// List one Post's Comments as `CommentView`s, newest first (#125). Ties
-	/// break by id descending. The caller's `order_bys` is ignored: a thread
-	/// reads in time order, so a `limit` keeps the newest Comments. `limit` /
-	/// `offset` page it under the shared list-limit contract (no limit ->
-	/// 1000). Read is unscoped: every Comment is public. A Post with no
-	/// Comments (or no such Post) yields an empty list.
+	/// List one Post's Comments as `CommentView`s, newest first (#125).
 	pub async fn list_for_post(
 		ctx: &Ctx,
 		mm: &ModelManager,
 		post_id: i64,
 		list_options: Option<ListOptions>,
 	) -> Result<Vec<CommentView>> {
-		let list_options = ListOptions {
-			order_bys: Some(vec!["!ctime", "!id"].into()),
-			..list_options.unwrap_or_default()
-		};
-		let comments = Self::list(
-			ctx,
-			mm,
-			Some(vec![PostCommentFilter {
-				post_id: Some(post_id.into()),
-				..Default::default()
-			}]),
-			Some(list_options),
-		)
-		.await?;
-		Self::assemble_views(ctx, mm, comments).await
-	}
-
-	/// Assemble `CommentView`s from `PostComment` rows with one author batch —
-	/// never one read per Comment (the N+1 trap). The order of the rows is kept.
-	/// Each stored markdown renders to sanitized HTML here (#126).
-	/// A missing author falls back to the bare `owner_id` with an empty name,
-	/// as `CaptionBmc::assemble_views` does.
-	async fn assemble_views(
-		ctx: &Ctx,
-		mm: &ModelManager,
-		comments: Vec<PostComment>,
-	) -> Result<Vec<CommentView>> {
-		if comments.is_empty() {
-			return Ok(Vec::new());
-		}
-
-		let owner_ids = base::dedup(comments.iter().map(|c| c.owner_id));
-		let author_by_id: HashMap<i64, AuthorRef> =
-			UserBmc::author_refs_by_ids(ctx, mm, &owner_ids)
-				.await?
-				.into_iter()
-				.map(|a| (a.id, a))
-				.collect();
-
-		let views = comments
-			.into_iter()
-			.map(|c| CommentView {
-				id: c.id,
-				parent_id: c.post_id,
-				author: author_by_id
-					.get(&c.owner_id)
-					.cloned()
-					.unwrap_or_else(|| AuthorRef::unknown(c.owner_id)),
-				content_html: render_comment_html(&c.content),
-				ctime: c.ctime,
-				mtime: c.mtime,
-			})
-			.collect();
-
-		Ok(views)
+		comment::list_for_parent::<Self>(ctx, mm, post_id, list_options).await
 	}
 }
 
