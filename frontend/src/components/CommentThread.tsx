@@ -13,7 +13,10 @@ import { useDraft } from "~/components/DraftGuardContext";
 // `CaptionCommentBmc::hygiene_rules`, #127), counted the back-end's way
 // (`hygieneLength`). `satisfies` pins it to both caps, so a change of either
 // fails `tsc` (ADR-0029); the back-end stays the authoritative check.
-const COMMENT_MAX_LENGTH = 2000 satisfies HygieneCaps["post_comment"]["content"];
+// Two `satisfies`, not one intersection: both caps are the type `2000`, and the
+// lint fix drops a redundant intersection member.
+const COMMENT_MAX_LENGTH =
+  2000 satisfies HygieneCaps["post_comment"]["content"] satisfies HygieneCaps["caption_comment"]["content"];
 
 export interface CommentThreadProps {
   /** The panel's element id; the ids inside the thread derive from it. */

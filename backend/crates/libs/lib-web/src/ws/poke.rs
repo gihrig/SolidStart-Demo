@@ -58,8 +58,9 @@ pub struct CaptionComment;
 /// [`PokedRpcResult::new`] consumes it, so a mutation must poke its own feed to
 /// build its return value (ADR-0016). The marker `C` binds the receipt to one feed
 /// (`Convs` / `Agents` / `Conv` / `Posts` / `PostCaption` / `PostLike` /
-/// `CaptionLike` / `PostComment` / `CaptionComment`), so a wrong-feed poke is a type error. One exception: the like
-/// helpers (`broadcast_post_like`, `broadcast_caption_like`) take the write's
+/// `CaptionLike` / `PostComment` / `CaptionComment`), so a wrong-feed poke is a
+/// type error. One exception: the like helpers (`broadcast_post_like`,
+/// `broadcast_caption_like`) take the write's
 /// outcome and mint their receipt without a poke when no row changed (an
 /// idempotent repeat, ADR-0016 addendum, #122, #123).
 pub struct PokeReceipt<C> {
