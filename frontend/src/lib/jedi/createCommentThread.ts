@@ -6,7 +6,7 @@ import type { FeedHandler } from "~/lib/feed";
 import type { CommentView } from "~/types/jedi";
 
 /** The inputs of one Comment thread: the Post shown, and its back-end calls. */
-export interface PostCommentsDeps {
+export interface CommentThreadDeps {
   /** The id of the Post shown; undefined for none. */
   postId: Accessor<number | undefined>;
   /** The Comment calls. Defaults to the real `jediApi.comments`; a test
@@ -18,7 +18,7 @@ export interface PostCommentsDeps {
 }
 
 /** The selected Post's Comment thread (#124), and its actions. */
-export interface PostComments {
+export interface CommentThreadState {
   /** Whether the Comments panel is open. The thread loads only while it is
    *  open: a closed panel makes no read and merges no Event. A change of the
    *  selected Post closes it. */
@@ -64,13 +64,13 @@ const newestFirst = (a: CommentView, b: CommentView): number =>
  * The rows live in a store and reconcile by id, so a reload does not recreate
  * them: a row's DOM, and any input in it, survives (`reconcile`).
  *
- * It returns the public thread, `postComments`, and its Feed handler,
+ * It returns the public thread, `thread`, and its Feed handler,
  * `onEvent`. Only `createJediFeed` holds `onEvent`, for the Subscription on the
  * selected Post's `post_comment` Channel. An upsert adds or edits a row, a
  * removal drops one, and the resync call reloads the thread.
  */
-export function createPostComments(deps: PostCommentsDeps): {
-  postComments: PostComments;
+export function createCommentThread(deps: CommentThreadDeps): {
+  thread: CommentThreadState;
   onEvent: FeedHandler;
 } {
   // A memo, so a refetched Post with the same id (a `posts` poke) does not
@@ -92,7 +92,7 @@ export function createPostComments(deps: PostCommentsDeps): {
   const shownPostId = createMemo(() => (open() ? postId() : undefined));
   // `postId` names the Post the rows belong to, so a reload for another Post
   // never shows the previous Post's rows.
-  const [thread, setThread] = createStore<{ postId?: number; rows: CommentView[] }>({
+  const [store, setStore] = createStore<{ postId?: number; rows: CommentView[] }>({
     rows: [],
   });
   const [error, setError] = createSignal<string>();
@@ -111,8 +111,8 @@ export function createPostComments(deps: PostCommentsDeps): {
         if (changes !== changesAtSend) return load(id);
         batch(() => {
           setError(undefined);
-          setThread("postId", id);
-          setThread("rows", reconcile(rows, { key: "id" }));
+          setStore("postId", id);
+          setStore("rows", reconcile(rows, { key: "id" }));
         });
       },
       () => {
@@ -127,13 +127,13 @@ export function createPostComments(deps: PostCommentsDeps): {
     on(shownPostId, (id) => {
       if (id !== undefined) return load(id);
       loads++;
-      setThread({ postId: undefined, rows: [] });
+      setStore({ postId: undefined, rows: [] });
     }),
   );
 
   const comments = (): CommentView[] | undefined => {
     const id = shownPostId();
-    return id !== undefined && thread.postId === id ? thread.rows : undefined;
+    return id !== undefined && store.postId === id ? store.rows : undefined;
   };
 
   const deleted = (id: number): boolean => comments()?.every((c) => c.id !== id) === true;
@@ -144,16 +144,16 @@ export function createPostComments(deps: PostCommentsDeps): {
   // order, so a late push of an older Comment goes below a newer one.
   const upsertRow = (comment: CommentView): void => {
     changes++;
-    if (comment.parentId !== thread.postId) return;
-    const index = thread.rows.findIndex((c) => c.id === comment.id);
-    if (index !== -1) return setThread("rows", index, reconcile(comment));
-    const found = thread.rows.findIndex((c) => newestFirst(comment, c) < 0);
-    const at = found === -1 ? thread.rows.length : found;
-    setThread("rows", (rows) => [...rows.slice(0, at), comment, ...rows.slice(at)]);
+    if (comment.parentId !== store.postId) return;
+    const index = store.rows.findIndex((c) => c.id === comment.id);
+    if (index !== -1) return setStore("rows", index, reconcile(comment));
+    const found = store.rows.findIndex((c) => newestFirst(comment, c) < 0);
+    const at = found === -1 ? store.rows.length : found;
+    setStore("rows", (rows) => [...rows.slice(0, at), comment, ...rows.slice(at)]);
   };
   const removeRow = (id: number): void => {
     changes++;
-    setThread("rows", (rows) => rows.filter((c) => c.id !== id));
+    setStore("rows", (rows) => rows.filter((c) => c.id !== id));
   };
 
   const onEvent: FeedHandler = (event) => {
@@ -181,7 +181,7 @@ export function createPostComments(deps: PostCommentsDeps): {
   };
 
   return {
-    postComments: {
+    thread: {
       open,
       setOpen,
       draftScope,

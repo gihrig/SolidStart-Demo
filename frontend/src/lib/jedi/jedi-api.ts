@@ -89,7 +89,7 @@ const wireTime = (time: string): string => {
 };
 
 // A Comment (#124, #125), from a read, a write result or a Feed Event
-// (`createPostComments`). The author goes through the sanitize boundary; the
+// (`createCommentThread`). The author goes through the sanitize boundary; the
 // times stay the wire RFC 3339 strings. `contentHtml` stays the server's
 // render: the thread passes it through `sanitizeCommentHtml` (#126).
 export const toCommentView = (c: CommentViewWire): CommentView => ({

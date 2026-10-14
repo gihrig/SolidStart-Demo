@@ -1,6 +1,6 @@
 import { createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
 import { createRpcAction } from "~/lib/createRpcAction";
-import type { PostComments } from "~/lib/jedi/createPostComments";
+import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { PostView, CaptionView, Like } from "~/types/jedi";
 import Image from "~/components/Image";
@@ -39,7 +39,7 @@ export interface FeaturedPostProps {
   /** This Post's Comment thread (#124), with the panel's open state. The
    *  Comments toggle opens it as an inline panel; without it, the toggle opens
    *  nothing. */
-  postComments?: PostComments;
+  postComments?: CommentThreadState;
 }
 
 /** A Like toggle as an RPC action. Only the error is used: the Like shows at
@@ -184,7 +184,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
             {(postComments) => (
               <CommentThread
                 id={commentsPanelId()}
-                postComments={postComments()}
+                thread={postComments()}
                 loggedIn={props.loggedIn}
                 userId={props.userId}
               />

@@ -7,7 +7,7 @@ import { createDraftGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import { stubDialogModal } from "~/lib/test-utils";
 import FeaturedPost from "./FeaturedPost";
 import { DraftGuardContext } from "./DraftGuardContext";
-import type { PostComments } from "~/lib/jedi/createPostComments";
+import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
 import type { PostView, CaptionView, Like, CommentView } from "~/types/jedi";
 
 const post: PostView = {
@@ -478,7 +478,7 @@ describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123
 describe("<FeaturedPost /> — the Comments panel (#124)", () => {
   // A thread with one Comment by User 2, and its open state; the writes are
   // not used here. The view-model owns the open state, so a fresh one per test.
-  const fakePostComments = (): PostComments => {
+  const fakePostComments = (): CommentThreadState => {
     const [open, setOpen] = createSignal(false);
     const [comments] = createSignal<CommentView[] | undefined>([
       {

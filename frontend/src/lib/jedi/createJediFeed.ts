@@ -9,7 +9,7 @@ import {
 import { passThroughGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { createLikeState } from "~/lib/jedi/createLikeState";
-import { createPostComments, type PostComments } from "~/lib/jedi/createPostComments";
+import { createCommentThread, type CommentThreadState } from "~/lib/jedi/createCommentThread";
 import type { Feed } from "~/lib/feed";
 import { Channel } from "~/lib/channel";
 import type { JediCategory, Like, PostView, CaptionView, HeroView } from "~/types/jedi";
@@ -42,7 +42,7 @@ import type { JediCategory, Like, PostView, CaptionView, HeroView } from "~/type
  * `createLikeState`; this view-model keeps the Feed wiring around them.
  *
  * `postComments` is the selected Post's Comment thread (#124). It is its own
- * module (`createPostComments`), exposed as one nested member; this view-model
+ * module (`createCommentThread`), exposed as one nested member; this view-model
  * keeps the Feed wiring around it.
  *
  * Each user-started move that changes the selected Post, and a close of the
@@ -95,7 +95,7 @@ export interface JediFeed {
    *  rows and its writes. It loads only while the panel is open. The read is
    *  public, so it loads on the anonymous landing too; the writes need a login.
    *  A close goes through the Draft guard. */
-  postComments: PostComments;
+  postComments: CommentThreadState;
   /** Wire a live Feed after creation (#120): the route builds this view-model
    *  anonymously, then connects the socket's Feed once a User logs in. The
    *  subscription is owned by the caller's reactive scope, so it ends with it. */
@@ -250,7 +250,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // The selected Post's Comment thread (#124). It loads while its panel is
   // open; the read is public, so it does not wait for a live session. Its
   // close goes through the guard.
-  const { postComments, onEvent: onPostCommentEvent } = createPostComments({
+  const { thread: postComments, onEvent: onPostCommentEvent } = createCommentThread({
     postId: () => selectedPost()?.id,
     api: api.comments,
     guard,

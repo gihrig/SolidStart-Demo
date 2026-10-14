@@ -5,7 +5,7 @@ import type { JediApi } from "~/lib/jedi/jedi-api";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { CommentView as CommentViewWire } from "~/types/backend";
 import type { CommentView } from "~/types/jedi";
-import { createPostComments, type PostComments } from "./createPostComments";
+import { createCommentThread, type CommentThreadState } from "./createCommentThread";
 
 // The Comment thread of the selected Post (#124). This seam test drives the
 // factory with a selected Post id and a stateful fake back-end, and hands it
@@ -100,7 +100,7 @@ beforeEach(() => {
 });
 
 interface Harness {
-  postComments: PostComments;
+  thread: CommentThreadState;
   onEvent: FeedHandler;
   select: (id: number | undefined) => void;
 }
@@ -109,116 +109,116 @@ interface Harness {
 async function withThread(run: (h: Harness) => Promise<void>, { open = true } = {}) {
   await createRoot(async (dispose) => {
     const [postId, select] = createSignal<number | undefined>(1);
-    const { postComments, onEvent } = createPostComments({ postId, api });
-    postComments.setOpen(open);
+    const { thread, onEvent } = createCommentThread({ postId, api });
+    thread.setOpen(open);
     try {
-      await run({ postComments, onEvent, select });
+      await run({ thread, onEvent, select });
     } finally {
       dispose();
     }
   });
 }
 
-const contents = (postComments: PostComments) => postComments.comments()?.map((c) => c.contentHtml);
+const contents = (thread: CommentThreadState) => thread.comments()?.map((c) => c.contentHtml);
 
-describe("createPostComments — the open state (lazy thread)", () => {
+describe("createCommentThread — the open state (lazy thread)", () => {
   it("makes no read and merges no Event while the panel is closed", () =>
     withThread(
-      async ({ postComments, onEvent }) => {
+      async ({ thread, onEvent }) => {
         await tick();
-        expect(postComments.open()).toBe(false);
+        expect(thread.open()).toBe(false);
         expect(listForPostMock).not.toHaveBeenCalled();
 
         onEvent({ event_type: "post_comment", payload: wire(comment(12, 1, "third")) });
         onEvent(undefined); // the resync call after a (re)connect
         await tick();
         expect(listForPostMock).not.toHaveBeenCalled();
-        expect(postComments.comments()).toBeUndefined();
+        expect(thread.comments()).toBeUndefined();
       },
       { open: false },
     ));
 
   it("loads on open, and drops the rows on close", () =>
     withThread(
-      async ({ postComments }) => {
-        postComments.setOpen(true);
+      async ({ thread }) => {
+        thread.setOpen(true);
         await tick();
-        expect(contents(postComments)).toEqual(["second", "first"]);
+        expect(contents(thread)).toEqual(["second", "first"]);
 
-        postComments.setOpen(false);
-        expect(postComments.comments()).toBeUndefined();
-        postComments.setOpen(true);
-        expect(postComments.comments(), "no stale rows while it reloads").toBeUndefined();
+        thread.setOpen(false);
+        expect(thread.comments()).toBeUndefined();
+        thread.setOpen(true);
+        expect(thread.comments(), "no stale rows while it reloads").toBeUndefined();
         await tick();
         expect(listForPostMock).toHaveBeenCalledTimes(2);
-        expect(contents(postComments)).toEqual(["second", "first"]);
+        expect(contents(thread)).toEqual(["second", "first"]);
       },
       { open: false },
     ));
 
   it("closes when the selected Post changes, and stays closed on a return", () =>
-    withThread(async ({ postComments, select }) => {
+    withThread(async ({ thread, select }) => {
       await tick();
       select(2);
-      expect(postComments.open()).toBe(false);
+      expect(thread.open()).toBe(false);
       select(1);
       await tick();
-      expect(postComments.open()).toBe(false);
+      expect(thread.open()).toBe(false);
       expect(listForPostMock).toHaveBeenCalledTimes(1);
     }));
 });
 
-describe("createPostComments — the thread read", () => {
+describe("createCommentThread — the thread read", () => {
   it("loads the selected Post's thread, and re-keys with the selection", () =>
-    withThread(async ({ postComments, select }) => {
-      expect(postComments.comments()).toBeUndefined();
+    withThread(async ({ thread, select }) => {
+      expect(thread.comments()).toBeUndefined();
       await tick();
-      expect(contents(postComments)).toEqual(["second", "first"]);
+      expect(contents(thread)).toEqual(["second", "first"]);
 
       select(2);
-      postComments.setOpen(true);
-      expect(postComments.comments(), "no previous Post's thread while loading").toBeUndefined();
+      thread.setOpen(true);
+      expect(thread.comments(), "no previous Post's thread while loading").toBeUndefined();
       await tick();
-      expect(contents(postComments)).toEqual(["other post"]);
+      expect(contents(thread)).toEqual(["other post"]);
     }));
 
   it("has no thread while no Post is selected", () =>
-    withThread(async ({ postComments, select }) => {
+    withThread(async ({ thread, select }) => {
       select(undefined);
       await tick();
-      expect(postComments.comments()).toBeUndefined();
+      expect(thread.comments()).toBeUndefined();
     }));
 
   it("keeps each row on a reload: rows reconcile by id, never recreate", () =>
-    withThread(async ({ postComments, onEvent }) => {
+    withThread(async ({ thread, onEvent }) => {
       await tick();
-      const [second, first] = postComments.comments()!;
+      const [second, first] = thread.comments()!;
 
       threads.get(1)![0].contentHtml = "second, edited elsewhere";
       onEvent(undefined); // the resync call after a (re)connect
       await tick();
 
       expect(listForPostMock).toHaveBeenCalledTimes(2);
-      expect(postComments.comments()![0]).toBe(second);
-      expect(postComments.comments()![1]).toBe(first);
+      expect(thread.comments()![0]).toBe(second);
+      expect(thread.comments()![1]).toBe(first);
       expect(second.contentHtml).toBe("second, edited elsewhere");
     }));
 
   it("shows an error when the thread fails to load", () =>
-    withThread(async ({ postComments, onEvent }) => {
+    withThread(async ({ thread, onEvent }) => {
       await tick();
       listForPostMock.mockRejectedValueOnce(new Error("Network down"));
       onEvent(undefined);
       await tick();
-      expect(postComments.error()).toBe("Could not load the Comments");
+      expect(thread.error()).toBe("Could not load the Comments");
     }));
 });
 
-describe("createPostComments — the live Events", () => {
+describe("createCommentThread — the live Events", () => {
   it("an upsert of a new Comment puts it on top; an upsert of a known one edits it in place", () =>
-    withThread(async ({ postComments, onEvent }) => {
+    withThread(async ({ thread, onEvent }) => {
       await tick();
-      const first = postComments.comments()![1];
+      const first = thread.comments()![1];
 
       onEvent({ event_type: "post_comment", payload: wire(comment(12, 1, "third")) });
       onEvent({
@@ -226,78 +226,78 @@ describe("createPostComments — the live Events", () => {
         payload: wire(comment(10, 1, "first, edited")),
       });
 
-      expect(contents(postComments)).toEqual(["third", "second", "first, edited"]);
-      expect(postComments.comments()![2]).toBe(first);
+      expect(contents(thread)).toEqual(["third", "second", "first, edited"]);
+      expect(thread.comments()![2]).toBe(first);
     }));
 
   it("a late push of an older Comment goes below a newer one", () =>
-    withThread(async ({ postComments, onEvent }) => {
+    withThread(async ({ thread, onEvent }) => {
       await tick();
       const between = { ...comment(12, 1, "between"), ctime: "2026-10-10T12:00:10.5Z" };
       onEvent({ event_type: "post_comment", payload: wire(comment(5, 1, "oldest")) });
       onEvent({ event_type: "post_comment", payload: wire(between) });
 
-      expect(contents(postComments)).toEqual(["second", "between", "first", "oldest"]);
+      expect(contents(thread)).toEqual(["second", "between", "first", "oldest"]);
     }));
 
   it("places by time, not by string order: the wire trims trailing zeros", () =>
-    withThread(async ({ postComments, onEvent }) => {
+    withThread(async ({ thread, onEvent }) => {
       await tick();
       // "…:11.1Z" sorts before "…:11Z" as a string, but it is the later time.
       const later = { ...comment(12, 1, "a tenth later"), ctime: "2026-10-10T12:00:11.1Z" };
       onEvent({ event_type: "post_comment", payload: wire(later) });
 
-      expect(contents(postComments)).toEqual(["a tenth later", "second", "first"]);
+      expect(contents(thread)).toEqual(["a tenth later", "second", "first"]);
     }));
 
   it("breaks a time tie by id: the higher id goes first", () =>
-    withThread(async ({ postComments, onEvent }) => {
+    withThread(async ({ thread, onEvent }) => {
       await tick();
       const tie = { ...comment(12, 1, "same time as second"), ctime: at(11) };
       onEvent({ event_type: "post_comment", payload: wire(tie) });
 
-      expect(contents(postComments)).toEqual(["same time as second", "second", "first"]);
+      expect(contents(thread)).toEqual(["same time as second", "second", "first"]);
     }));
 
   it("an upsert with a time that does not parse throws, and leaves the thread unchanged", () =>
-    withThread(async ({ postComments, onEvent }) => {
+    withThread(async ({ thread, onEvent }) => {
       await tick();
       const bad = { ...comment(12, 1, "bad time"), ctime: "not a time" };
       expect(() => onEvent({ event_type: "post_comment", payload: wire(bad) })).toThrow(
         "Invalid Comment time: not a time",
       );
-      expect(contents(postComments)).toEqual(["second", "first"]);
+      expect(contents(thread)).toEqual(["second", "first"]);
     }));
 
   it("a removal drops the Comment by id", () =>
-    withThread(async ({ postComments, onEvent }) => {
+    withThread(async ({ thread, onEvent }) => {
       await tick();
       onEvent({ event_type: "post_comment_removal", payload: { id: 10, parent_id: 1 } });
-      expect(contents(postComments)).toEqual(["second"]);
+      expect(contents(thread)).toEqual(["second"]);
     }));
 
   it("deleted() names a Comment the shown thread dropped, and is false with no thread", () =>
-    withThread(async ({ postComments, onEvent }) => {
-      expect(postComments.deleted(10), "the thread still loads").toBe(false);
+    withThread(async ({ thread, onEvent }) => {
+      expect(thread.deleted(10), "the thread still loads").toBe(false);
       await tick();
-      expect(postComments.deleted(10)).toBe(false);
+      expect(thread.deleted(10)).toBe(false);
 
       onEvent({ event_type: "post_comment_removal", payload: { id: 10, parent_id: 1 } });
-      expect(postComments.deleted(10)).toBe(true);
+      expect(thread.deleted(10)).toBe(true);
 
-      postComments.setOpen(false);
-      expect(postComments.deleted(10), "no thread shows").toBe(false);
+      thread.setOpen(false);
+      expect(thread.deleted(10), "no thread shows").toBe(false);
     }));
 
   it("ignores an upsert for another Post's thread", () =>
-    withThread(async ({ postComments, onEvent }) => {
+    withThread(async ({ thread, onEvent }) => {
       await tick();
       onEvent({ event_type: "post_comment", payload: wire(comment(30, 2, "elsewhere")) });
-      expect(contents(postComments)).toEqual(["second", "first"]);
+      expect(contents(thread)).toEqual(["second", "first"]);
     }));
 
   it("a list that was read before a change landed is not applied: the thread reloads", () =>
-    withThread(async ({ postComments, onEvent }) => {
+    withThread(async ({ thread, onEvent }) => {
       await tick();
       const stale = deferred<CommentView[]>();
       listForPostMock.mockReturnValueOnce(stale.promise);
@@ -307,44 +307,44 @@ describe("createPostComments — the live Events", () => {
       stale.resolve([comment(11, 1, "second"), comment(10, 1, "first")]); // ...read before it
       await tick();
 
-      expect(contents(postComments)).toEqual(["third", "second", "first"]);
+      expect(contents(thread)).toEqual(["third", "second", "first"]);
     }));
 });
 
-describe("createPostComments — the writes", () => {
+describe("createCommentThread — the writes", () => {
   it("add() posts to the selected Post and shows the new Comment at once", () =>
-    withThread(async ({ postComments, onEvent }) => {
+    withThread(async ({ thread, onEvent }) => {
       await tick();
-      await postComments.add("hello");
+      await thread.add("hello");
       expect(addMock).toHaveBeenCalledWith(1, "hello");
-      expect(contents(postComments)).toEqual(["hello", "second", "first"]);
+      expect(contents(thread)).toEqual(["hello", "second", "first"]);
 
       // The back-end's push of the same Comment does not add it twice.
       onEvent({ event_type: "post_comment", payload: wire(comment(100, 1, "hello")) });
-      expect(contents(postComments)).toEqual(["hello", "second", "first"]);
+      expect(contents(thread)).toEqual(["hello", "second", "first"]);
     }));
 
   it("update() shows the edited content at once", () =>
-    withThread(async ({ postComments }) => {
+    withThread(async ({ thread }) => {
       await tick();
-      await postComments.update(11, "second, edited");
+      await thread.update(11, "second, edited");
       expect(updateMock).toHaveBeenCalledWith(11, "second, edited");
-      expect(contents(postComments)).toEqual(["second, edited", "first"]);
+      expect(contents(thread)).toEqual(["second, edited", "first"]);
     }));
 
   it("remove() drops the Comment at once", () =>
-    withThread(async ({ postComments }) => {
+    withThread(async ({ thread }) => {
       await tick();
-      await postComments.remove(10);
+      await thread.remove(10);
       expect(removeMock).toHaveBeenCalledWith(10);
-      expect(contents(postComments)).toEqual(["second"]);
+      expect(contents(thread)).toEqual(["second"]);
     }));
 
   it("a failed write rejects and leaves the thread unchanged", () =>
-    withThread(async ({ postComments }) => {
+    withThread(async ({ thread }) => {
       await tick();
       addMock.mockRejectedValueOnce(new Error("Network down"));
-      await expect(postComments.add("hello")).rejects.toThrow("Network down");
-      expect(contents(postComments)).toEqual(["second", "first"]);
+      await expect(thread.add("hello")).rejects.toThrow("Network down");
+      expect(contents(thread)).toEqual(["second", "first"]);
     }));
 });

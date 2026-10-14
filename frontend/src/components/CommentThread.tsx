@@ -2,7 +2,7 @@ import { batch, createEffect, createMemo, createSignal, For, on, Show } from "so
 import { DRAFT_DISCARDED_NOTICE } from "~/lib/createDraftGuard";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { hygieneLength } from "~/lib/hygieneLength";
-import type { PostComments } from "~/lib/jedi/createPostComments";
+import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
 import { sanitizeCommentHtml } from "~/lib/sanitizeCommentHtml";
 import type { HygieneCaps } from "~/types/backend";
 import type { CommentView } from "~/types/jedi";
@@ -17,8 +17,8 @@ const COMMENT_MAX_LENGTH = 2000 satisfies HygieneCaps["post_comment"]["content"]
 export interface CommentThreadProps {
   /** The panel's element id; the ids inside the thread derive from it. */
   id: string;
-  /** The selected Post's thread (`createJediFeed().postComments`). */
-  postComments: PostComments;
+  /** The thread to show (`createCommentThread`). */
+  thread: CommentThreadState;
   /** Only a logged-in User sees the compose box and the Edit / Delete buttons. */
   loggedIn?: boolean;
   /** The logged-in User's id: Edit / Delete show on the User's own Comments
@@ -90,7 +90,7 @@ const COMMENT_DELETED_NOTICE = "This Comment was deleted. Your unsaved changes w
 interface CommentFormProps {
   /** The textarea's element id; the count's id derives from it. */
   id: string;
-  postComments: PostComments;
+  thread: CommentThreadState;
   /** The Comment to edit. Without it, the form composes a new Comment. */
   comment?: CommentView;
   /** Called on Cancel, and after a saved write. An edit closes on it. */
@@ -133,7 +133,7 @@ function CommentForm(props: CommentFormProps) {
         const comment = props.comment;
         if (!comment) return;
         const thisLoad = ++loads;
-        props.postComments.source(comment.id).then(
+        props.thread.source(comment.id).then(
           (next) => {
             if (thisLoad !== loads) return;
             batch(() => {
@@ -155,16 +155,16 @@ function CommentForm(props: CommentFormProps) {
   const dirty = () => (props.comment ? loaded() && value() !== saved() : value().trim() !== "");
   const draft = useDraft({
     dirty,
-    scope: props.postComments.draftScope,
+    scope: props.thread.draftScope,
     notice: () =>
-      props.comment && props.postComments.deleted(props.comment.id)
+      props.comment && props.thread.deleted(props.comment.id)
         ? COMMENT_DELETED_NOTICE
         : DRAFT_DISCARDED_NOTICE,
   });
   const write = createRpcAction(
     async (content: string) => {
-      if (props.comment) await props.postComments.update(props.comment.id, content);
-      else await props.postComments.add(content);
+      if (props.comment) await props.thread.update(props.comment.id, content);
+      else await props.thread.add(content);
       return true;
     },
     { fallbackError: text().error },
@@ -229,7 +229,7 @@ function CommentForm(props: CommentFormProps) {
 
 interface CommentItemProps {
   comment: CommentView;
-  postComments: PostComments;
+  thread: CommentThreadState;
   isOwner: boolean;
 }
 
@@ -249,7 +249,7 @@ function CommentItem(props: CommentItemProps) {
   const edited = () => Date.parse(props.comment.mtime) !== Date.parse(props.comment.ctime);
   const remove = createRpcAction(
     async () => {
-      await props.postComments.remove(props.comment.id);
+      await props.thread.remove(props.comment.id);
       return true;
     },
     { fallbackError: "Could not delete the Comment" },
@@ -312,7 +312,7 @@ function CommentItem(props: CommentItemProps) {
         >
           <CommentForm
             id={`comment-${props.comment.id}-edit`}
-            postComments={props.postComments}
+            thread={props.thread}
             comment={props.comment}
             onClose={() => setEditing(false)}
           />
@@ -336,11 +336,11 @@ export default function CommentThread(props: CommentThreadProps) {
   return (
     <>
       <Show when={props.loggedIn}>
-        <CommentForm id={`${props.id}-compose`} postComments={props.postComments} />
+        <CommentForm id={`${props.id}-compose`} thread={props.thread} />
       </Show>
-      <ErrorAlert error={props.postComments.error()} />
+      <ErrorAlert error={props.thread.error()} />
       <Show
-        when={props.postComments.comments()}
+        when={props.thread.comments()}
         fallback={<p class="text-(--theme-muted)">Loading Comments…</p>}
       >
         {(comments) => (
@@ -353,7 +353,7 @@ export default function CommentThread(props: CommentThreadProps) {
                 {(comment) => (
                   <CommentItem
                     comment={comment}
-                    postComments={props.postComments}
+                    thread={props.thread}
                     isOwner={
                       props.loggedIn === true &&
                       props.userId !== undefined &&
