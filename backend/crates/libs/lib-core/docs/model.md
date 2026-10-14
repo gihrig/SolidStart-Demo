@@ -4,7 +4,7 @@
 
 The Model layer is the core data management component of the application, providing a standardized interface for all data access operations. This layer normalizes data type structures and access patterns across the application, ensuring consistency and proper encapsulation of database operations.
 
-The Model layer follows a structured design where a central `ModelManager` holds internal resources (like database connections) needed by specialized controllers to access data. These Model Controllers (e.g., `ConvBmc`, `AgentBmc`) implement CRUD (Create, Read, Update, Delete) and other data access methods for specific entities. This architecture establishes a clear separation between data access logic and business rules.
+The Model layer follows a structured design where a central `ModelManager` holds internal resources (like database connections) needed by specialized controllers to access data. These Model Controllers (e.g., `PostBmc`, `CategoryBmc`) implement CRUD (Create, Read, Update, Delete) and other data access methods for specific entities. This architecture establishes a clear separation between data access logic and business rules.
 
 A key principle of this layer is that all application code data access must go through the Model layer, preventing direct database access from other parts of the application. This ensures proper validation, error handling, and consistent transaction management.
 
@@ -28,9 +28,9 @@ let mm_txn = mm.new_with_txn()?;
 
 Common entities that represent data objects in the system:
 
-- `Agent`: Represents an AI agent in the system
-- `Conv`: Represents a conversation container
-- `ConvMsg`: Represents a message in a conversation
+- `Category`: Represents an entry in the static Category taxonomy
+- `Post`: Represents a shared photo, the core feed entity
+- `PostComment`: Represents a Comment on a Post
 - `User`: Represents a system user
 
 Example:
@@ -42,13 +42,11 @@ let user = User {
     typ: UserTyp::User,
 };
 
-// Agent type example
-let agent = Agent {
-    id: 456,
-    owner_id: 123,
-    name: "Assistant".to_string(),
-    ai_provider: "OpenAI".to_string(),
-    ai_model: "gpt-4".to_string(),
+// Category type example
+let category = Category {
+    id: 3,
+    name: "Animals".to_string(),
+    icon: "dog".to_string(),
     cid: 123,
     ctime: now_utc(),
     mid: 123,
@@ -60,8 +58,8 @@ let agent = Agent {
 
 Backend Model Controllers that provide data access patterns for entities:
 
-- `AgentBmc`: CRUD operations for Agent entities
-- `ConvBmc`: CRUD operations for Conv entities
+- `CategoryBmc`: CRUD operations for Category entities
+- `PostBmc`: Create, read and owner-only write operations for Post entities
 - `UserBmc`: CRUD operations for User entities
 
 Example:
@@ -76,26 +74,26 @@ let user_id = UserBmc::create(
     },
 ).await?;
 
-// Retrieving a conversation
-let conv = ConvBmc::get(&ctx, &mm, conv_id).await?;
+// Retrieving a Post as its public view
+let post = PostBmc::get_post(&ctx, &mm, post_id).await?;
 ```
 
 #### Filter Types
 
 Types used to filter entities when listing or querying:
 
-- `AgentFilter`
-- `ConvFilter`
+- `CategoryFilter`
+- `PostFilter`
 - `UserFilter`
 
 Example:
 ```rust
-// Listing agents with filtering
-let agents = AgentBmc::list(
+// Listing Categories with filtering
+let categories = CategoryBmc::list(
     &ctx,
     &mm,
-    Some(vec![AgentFilter {
-        name: Some(OpValString::Contains("assistant".to_string()).into()),
+    Some(vec![CategoryFilter {
+        name: Some(OpValString::Contains("Animal".to_string()).into()),
         ..Default::default()
     }]),
     Some(ListOptions { limit: Some(10), ..Default::default() }),
@@ -125,20 +123,21 @@ Most entity BMCs implement these common CRUD operations:
 
 Example:
 ```rust
-// Creating an agent
-let agent_id = AgentBmc::create(
+// Creating a Category
+let category_id = CategoryBmc::create(
     &ctx,
     &mm,
-    AgentForCreate {
-        name: "My Assistant".to_string(),
+    CategoryForCreate {
+        name: "Cute".to_string(),
+        icon: "fire-heart".to_string(),
     },
 ).await?;
 
 // Updating a user's password
 UserBmc::update_pwd(&ctx, &mm, user_id, "new_password").await?;
 
-// Listing conversations with pagination
-let convs = ConvBmc::list(
+// Listing Categories with pagination
+let categories = CategoryBmc::list(
     &ctx,
     &mm,
     None,
@@ -157,7 +156,7 @@ let convs = ConvBmc::list(
 The Model layer follows a hierarchical architecture:
 
 1. **Base Layer**: Provides common database operations through the `DbBmc` trait and utility functions
-2. **Entity Layer**: Defines data structures (`User`, `Agent`, etc.) that map to database tables
+2. **Entity Layer**: Defines data structures (`User`, `Post`, etc.) that map to database tables
 3. **Controller Layer**: Implements specific business logic for each entity type through BMC structs
 
 This architecture enables a consistent pattern for data access while allowing specialized behavior for different entity types.
@@ -192,9 +191,10 @@ This allows complex operations to be composed of smaller transactional units whi
 ### Entity Relationships
 
 - **User**: Core identity entity
-- **Agent**: Owned by a User, represents an AI assistant
-- **Conv**: Container entity for conversations, linked to an Agent and a User
-- **ConvMsg**: Child entity of Conv, contains individual messages
+- **Category**: Static taxonomy entry, with no owner
+- **Post**: Owned by a User, linked to one or more Categories
+- **Caption**: Child entity of a Post, owned by a User
+- **PostComment** / **CaptionComment**: Comments on a Post or a Caption, owned by a User
 
 ### Common Design Patterns
 

@@ -168,7 +168,6 @@ vpr test:e2e --update-snapshots
 - home.spec.ts - Home page functionality
 - about.spec.ts - About page functionality
 - readme.spec.ts - Readme page functionality
-- fullstack.spec.ts - FullStack page functionality
 - jedi.spec.ts - Jedi page functionality
 - not-found.spec.ts - 404 handling
 - navigation.spec.ts - Cross-page navigation flows

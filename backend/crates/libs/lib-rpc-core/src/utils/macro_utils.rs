@@ -73,8 +73,8 @@ macro_rules! generate_common_rpc_fns {
 ///
 /// Use this when an entity's `create`/`update`/`delete` must do more than the
 /// common pattern — e.g. broadcast a WebSocket event — so those three are
-/// hand-written with the extra resource (see `agent_rpc`, `conv_rpc`), while the
-/// two read functions stay generated.
+/// hand-written with the extra resource, while the two read functions stay
+/// generated.
 ///
 /// NOTE: Make sure to import the Ctx, ModelManager, ... in the model that uses this macro.
 #[macro_export]

@@ -8,11 +8,6 @@ INSERT INTO "user"
     (username, cid, ctime, mid, mtime) VALUES 
     ('demo1',  0,   now(), 0,   now());
 
--- Agent mock-01 (with 'parrot' model) (id: 100)
-INSERT INTO "agent"
-    (id,  owner_id, name,      cid, ctime, mid, mtime) VALUES
-    (100, 0,        'mock-01', 0,   now(), 0,   now());
-
 -- Category taxonomy (ids 1..6), seeded from the front-end mock fixture
 -- (frontend/src/lib/jedi/data.json). `icon` is an opaque key (ADR-0011).
 INSERT INTO "category"

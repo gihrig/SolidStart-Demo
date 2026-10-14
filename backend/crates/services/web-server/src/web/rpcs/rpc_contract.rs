@@ -7,7 +7,6 @@
 //! `export_bindings_rpc_contract` writes `bindings/RpcContract.ts`, and the
 //! routing test proves that each method is routed on its own surface.
 //!
-//! The FullStack methods stay outside the contract until #128 removes them.
 //! The module is `#[cfg(test)]`: only the tests read it, and the web-server
 //! bin crate fails `cgs check` on unused items.
 

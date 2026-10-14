@@ -57,10 +57,6 @@ export const channelKey = (channel: Channel): string =>
 // payload. A new payload variant adds one case here.
 const channelOf = (event: WsEvent): Channel => {
   switch (event.event_type) {
-    // The FullStack conv stream: no front-end Subscription holds it, and the
-    // back-end commit of #128 removes the variant.
-    case "conv_msg":
-      return { kind: "conv", id: event.payload.conv_id };
     case "post_comment":
     case "post_comment_removal":
       return Channel.postComment(event.payload.parent_id);

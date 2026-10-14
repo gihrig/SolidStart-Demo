@@ -60,7 +60,7 @@ test.describe("Jedi Page", () => {
     await expect(nav).toBeVisible();
     await expect(nav.getByRole("link", { name: /about/i })).toBeVisible();
     await expect(nav.getByRole("link", { name: /readme/i })).toBeVisible();
-    await expect(nav.getByRole("link", { name: /fullstack/i })).toHaveCount(0);
+    await expect(nav.getByRole("link", { name: "FullStack" })).toHaveCount(0);
     // The brand is the home affordance; no Home or Jedi nav link.
     await expect(page.getByRole("link", { name: /awesome/i })).toHaveAttribute("href", "/");
   });

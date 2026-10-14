@@ -24,7 +24,7 @@ use ts_rs::TS;
 // region:    --- Post Types
 
 /// The `post` base row (#117). Every Post is public — read is unscoped, write is
-/// owner-only (`ConvBmc`'s `kind`/`state` scope is dropped, #106). The audit
+/// owner-only (the FullStack `kind`/`state` read scope is dropped, #106). The audit
 /// columns exist in the table but are intentionally absent from this struct: the
 /// model never reads them, and `PostView` (the public projection) is audit-free.
 /// `like` / `comment` counts are derived by COUNT, never stored here.
@@ -95,8 +95,7 @@ pub struct PostForCreate {
 #[derive(Fields, Deserialize, Default)]
 pub struct PostForUpdate {
 	// Note: `owner_id` is intentionally not updatable — the owner-only Write scope
-	//       keys on it (see `ConvForUpdate`). Ownership transfer belongs to a
-	//       future privilege ACS.
+	//       keys on it. Ownership transfer belongs to a future privilege ACS.
 	pub title: Option<String>,
 	pub image_src: Option<String>,
 	pub image_alt: Option<String>,

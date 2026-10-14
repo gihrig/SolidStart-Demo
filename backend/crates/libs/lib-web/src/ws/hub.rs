@@ -1,9 +1,8 @@
 use super::poke::{
-	Agents, CaptionComment, CaptionLike, Conv, Convs, PokeReceipt, PostCaption,
-	PostComment, PostLike, Posts,
+	CaptionComment, CaptionLike, PokeReceipt, PostCaption, PostComment, PostLike,
+	Posts,
 };
 use lib_core::model::comment::{CommentRemoval, CommentView};
-use lib_core::model::conv_msg::ConvMsg;
 use lib_core::realtime::{Channel, WsEvent};
 use tokio::sync::broadcast;
 
@@ -42,34 +41,6 @@ impl WsState {
 // region:    --- Helper Functions for Broadcasting
 
 impl WsState {
-	/// Broadcast a conversation message event. Takes the typed `ConvMsg`; the
-	/// envelope derives its `conv:{id}` channel from the payload. Returns the
-	/// [`PokeReceipt<Conv>`] the `add_conv_msg` handler needs to build its result.
-	pub fn broadcast_conv_msg(&self, msg: &ConvMsg) -> PokeReceipt<Conv> {
-		self.broadcast(WsEvent::ConvMsg {
-			payload: msg.clone(),
-		});
-		PokeReceipt::new()
-	}
-
-	/// Poke the global Agent-list channel: the Agent list may have changed (#85).
-	/// Carries no payload — a subscriber refetches through the scoped
-	/// `list_agents` RPC, so no Agent row crosses the push path. Returns the
-	/// [`PokeReceipt<Agents>`] the Agent mutations need to build their result.
-	pub fn broadcast_agent_update(&self) -> PokeReceipt<Agents> {
-		self.broadcast(WsEvent::Poke(Channel::Agents));
-		PokeReceipt::new()
-	}
-
-	/// Poke the global Conversation-list channel: some Conversation list may have
-	/// changed (#85). Contentless for the same reason as `broadcast_agent_update`;
-	/// the refetch re-applies the read scope, so no Conversation row leaks. Returns
-	/// the [`PokeReceipt<Convs>`] the Conversation mutations need for their result.
-	pub fn broadcast_conv_update(&self) -> PokeReceipt<Convs> {
-		self.broadcast(WsEvent::Poke(Channel::Convs));
-		PokeReceipt::new()
-	}
-
 	/// Poke the global Post-list channel: the Post list may have changed (#115).
 	/// Contentless — a subscriber refetches through the scoped `list_*` RPC, so no
 	/// Post row crosses the push path (#85). Returns the [`PokeReceipt<Posts>`]
@@ -181,26 +152,6 @@ impl WsState {
 #[cfg(test)]
 mod tests {
 	use super::*;
-
-	#[test]
-	fn broadcast_agent_update_pokes_agents_channel() {
-		let ws = WsState::new();
-		let mut rx = ws.tx.subscribe();
-		ws.broadcast_agent_update();
-		let event = rx.try_recv().expect("an event was broadcast");
-		assert!(matches!(event, WsEvent::Poke(Channel::Agents)));
-		assert_eq!(event.channel().key(), "agents");
-	}
-
-	#[test]
-	fn broadcast_conv_update_pokes_convs_channel() {
-		let ws = WsState::new();
-		let mut rx = ws.tx.subscribe();
-		ws.broadcast_conv_update();
-		let event = rx.try_recv().expect("an event was broadcast");
-		assert!(matches!(event, WsEvent::Poke(Channel::Convs)));
-		assert_eq!(event.channel().key(), "convs");
-	}
 
 	/// Each Jedi broadcast helper emits its poke on the right channel (#115).
 	#[test]

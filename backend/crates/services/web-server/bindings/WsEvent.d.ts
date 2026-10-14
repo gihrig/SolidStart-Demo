@@ -2,13 +2,11 @@
 import type { Channel } from "./Channel.d";
 import type { CommentRemoval } from "./CommentRemoval.d";
 import type { CommentView } from "./CommentView.d";
-import type { ConvMsg } from "./ConvMsg.d";
 
 /**
  * The realtime feed envelope, a discriminated union tagged by `event_type`
  * (internal serde tagging). ts-rs exports it, so the front-end narrows on the
- * tag and reads a typed payload — no cast. `conv_msg` carries the new `ConvMsg`.
- * Every contentless poke is one `Poke` variant carrying its [`Channel`] (#85):
+ * tag and reads a typed payload — no cast. Every contentless poke is one `Poke` variant carrying its [`Channel`] (#85):
  * the poke pushes no domain row, only the id its routing key needs, held inside
  * the `Channel`. A subscriber refetches through the scoped `list_*` RPC. The two
  * Jedi comment channels (`post_comment`, `caption_comment`) push a payload. A
@@ -20,4 +18,4 @@ import type { ConvMsg } from "./ConvMsg.d";
  * separate field: a payload event reads it from the payload, a poke carries it
  * (ADR-0020).
  */
-export type WsEvent = { "event_type": "conv_msg", payload: ConvMsg, } | { "event_type": "post_comment", payload: CommentView, } | { "event_type": "post_comment_removal", payload: CommentRemoval, } | { "event_type": "caption_comment", payload: CommentView, } | { "event_type": "caption_comment_removal", payload: CommentRemoval, } | { "event_type": "poke" } & Channel;
+export type WsEvent = { "event_type": "post_comment", payload: CommentView, } | { "event_type": "post_comment_removal", payload: CommentRemoval, } | { "event_type": "caption_comment", payload: CommentView, } | { "event_type": "caption_comment_removal", payload: CommentRemoval, } | { "event_type": "poke" } & Channel;
