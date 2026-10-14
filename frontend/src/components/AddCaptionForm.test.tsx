@@ -13,6 +13,7 @@ const ADDED: CaptionView = {
   author: { id: 1, name: "Lisa", avatarUrl: trustedUrl("") },
   text: "Use the Force, Kitty",
   likeCount: 0,
+  commentCount: 0,
 };
 
 const captionAddMock = vi.fn<JediApi["captions"]["add"]>();

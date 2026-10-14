@@ -1,11 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { createRoot, createSignal } from "solid-js";
 import type { FeedHandler } from "~/lib/feed";
-import type { JediApi } from "~/lib/jedi/jedi-api";
+import type { CommentApi } from "~/lib/jedi/jedi-api";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { CommentView as CommentViewWire } from "~/types/backend";
 import type { CommentView } from "~/types/jedi";
-import { createCommentThread, type CommentThreadState } from "./createCommentThread";
+import {
+  CAPTION_COMMENT_EVENTS,
+  createCommentThread,
+  POST_COMMENT_EVENTS,
+  type CommentEvents,
+  type CommentThreadState,
+} from "./createCommentThread";
 
 // The Comment thread of the selected Post (#124). This seam test drives the
 // factory with a selected Post id and a stateful fake back-end, and hands it
@@ -53,12 +59,12 @@ const tick = () => new Promise<void>((r) => setTimeout(r, 0));
 // changes the thread, so a later read sees it.
 let threads: Map<number, CommentView[]>;
 let nextId: number;
-const listForPostMock = vi.fn<JediApi["comments"]["listForPost"]>();
-const addMock = vi.fn<JediApi["comments"]["add"]>();
-const updateMock = vi.fn<JediApi["comments"]["update"]>();
-const removeMock = vi.fn<JediApi["comments"]["remove"]>();
-const api: JediApi["comments"] = {
-  listForPost: listForPostMock,
+const listMock = vi.fn<CommentApi["list"]>();
+const addMock = vi.fn<CommentApi["add"]>();
+const updateMock = vi.fn<CommentApi["update"]>();
+const removeMock = vi.fn<CommentApi["remove"]>();
+const api: CommentApi = {
+  list: listMock,
   add: addMock,
   update: updateMock,
   remove: removeMock,
@@ -71,8 +77,8 @@ beforeEach(() => {
   ]);
   nextId = 100;
   const find = (id: number) => [...threads.values()].flat().find((c) => c.id === id);
-  listForPostMock.mockReset();
-  listForPostMock.mockImplementation((postId) =>
+  listMock.mockReset();
+  listMock.mockImplementation((postId) =>
     Promise.resolve((threads.get(postId) ?? []).map((c) => ({ ...c }))),
   );
   addMock.mockReset();
@@ -106,10 +112,13 @@ interface Harness {
 }
 
 // The panel starts open, unless a test asks for it closed.
-async function withThread(run: (h: Harness) => Promise<void>, { open = true } = {}) {
+async function withThread(
+  run: (h: Harness) => Promise<void>,
+  { open = true, events = POST_COMMENT_EVENTS }: { open?: boolean; events?: CommentEvents } = {},
+) {
   await createRoot(async (dispose) => {
     const [postId, select] = createSignal<number | undefined>(1);
-    const { thread, onEvent } = createCommentThread({ postId, api });
+    const { thread, onEvent } = createCommentThread({ parentId: postId, api, events });
     thread.setOpen(open);
     try {
       await run({ thread, onEvent, select });
@@ -127,12 +136,12 @@ describe("createCommentThread — the open state (lazy thread)", () => {
       async ({ thread, onEvent }) => {
         await tick();
         expect(thread.open()).toBe(false);
-        expect(listForPostMock).not.toHaveBeenCalled();
+        expect(listMock).not.toHaveBeenCalled();
 
         onEvent({ event_type: "post_comment", payload: wire(comment(12, 1, "third")) });
         onEvent(undefined); // the resync call after a (re)connect
         await tick();
-        expect(listForPostMock).not.toHaveBeenCalled();
+        expect(listMock).not.toHaveBeenCalled();
         expect(thread.comments()).toBeUndefined();
       },
       { open: false },
@@ -150,7 +159,7 @@ describe("createCommentThread — the open state (lazy thread)", () => {
         thread.setOpen(true);
         expect(thread.comments(), "no stale rows while it reloads").toBeUndefined();
         await tick();
-        expect(listForPostMock).toHaveBeenCalledTimes(2);
+        expect(listMock).toHaveBeenCalledTimes(2);
         expect(contents(thread)).toEqual(["second", "first"]);
       },
       { open: false },
@@ -164,7 +173,7 @@ describe("createCommentThread — the open state (lazy thread)", () => {
       select(1);
       await tick();
       expect(thread.open()).toBe(false);
-      expect(listForPostMock).toHaveBeenCalledTimes(1);
+      expect(listMock).toHaveBeenCalledTimes(1);
     }));
 });
 
@@ -198,7 +207,7 @@ describe("createCommentThread — the thread read", () => {
       onEvent(undefined); // the resync call after a (re)connect
       await tick();
 
-      expect(listForPostMock).toHaveBeenCalledTimes(2);
+      expect(listMock).toHaveBeenCalledTimes(2);
       expect(thread.comments()![0]).toBe(second);
       expect(thread.comments()![1]).toBe(first);
       expect(second.contentHtml).toBe("second, edited elsewhere");
@@ -207,7 +216,7 @@ describe("createCommentThread — the thread read", () => {
   it("shows an error when the thread fails to load", () =>
     withThread(async ({ thread, onEvent }) => {
       await tick();
-      listForPostMock.mockRejectedValueOnce(new Error("Network down"));
+      listMock.mockRejectedValueOnce(new Error("Network down"));
       onEvent(undefined);
       await tick();
       expect(thread.error()).toBe("Could not load the Comments");
@@ -215,6 +224,23 @@ describe("createCommentThread — the thread read", () => {
 });
 
 describe("createCommentThread — the live Events", () => {
+  it("a Caption thread merges only the Caption Comment Events (#127)", () =>
+    withThread(
+      async ({ thread, onEvent }) => {
+        await tick();
+        // Post 1 and Caption 1 share the id 1: a Post Comment Event is not this
+        // thread's.
+        onEvent({ event_type: "post_comment", payload: wire(comment(12, 1, "on the Post")) });
+        onEvent({ event_type: "post_comment_removal", payload: { id: 11, parent_id: 1 } });
+        expect(contents(thread)).toEqual(["second", "first"]);
+
+        onEvent({ event_type: "caption_comment", payload: wire(comment(12, 1, "third")) });
+        onEvent({ event_type: "caption_comment_removal", payload: { id: 10, parent_id: 1 } });
+        expect(contents(thread)).toEqual(["third", "second"]);
+      },
+      { events: CAPTION_COMMENT_EVENTS },
+    ));
+
   it("an upsert of a new Comment puts it on top; an upsert of a known one edits it in place", () =>
     withThread(async ({ thread, onEvent }) => {
       await tick();
@@ -300,7 +326,7 @@ describe("createCommentThread — the live Events", () => {
     withThread(async ({ thread, onEvent }) => {
       await tick();
       const stale = deferred<CommentView[]>();
-      listForPostMock.mockReturnValueOnce(stale.promise);
+      listMock.mockReturnValueOnce(stale.promise);
       onEvent(undefined); // a reload starts...
       onEvent({ event_type: "post_comment", payload: wire(comment(12, 1, "third")) });
       threads.get(1)!.unshift(comment(12, 1, "third"));

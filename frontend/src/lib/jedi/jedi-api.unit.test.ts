@@ -282,7 +282,7 @@ const WIRE_CAPTIONS_POST_1 = [
     },
     text: "Jedi Kitty protects the street",
     like_count: 8,
-    comment_count: 0,
+    comment_count: 4,
   },
   {
     id: 2,
@@ -316,6 +316,11 @@ describe("jediApi.captions", () => {
     expect(caps.map((c) => c.likeCount)).toEqual([8, 5]);
     expect(caps[0].text).toBe("Jedi Kitty protects the street");
     expect(caps[0].postId).toBe(1);
+  });
+
+  it("carries the back-end-derived commentCount (#127)", async () => {
+    const caps = await jediApi.captions.listForPost(1);
+    expect(caps.map((c) => c.commentCount)).toEqual([4, 0]);
   });
 
   it("re-shapes the author snapshot from the wire view", async () => {
@@ -352,6 +357,7 @@ describe("jediApi.captions", () => {
       },
       text: "May the paws be with you",
       likeCount: 5,
+      commentCount: 0,
     });
   });
 
@@ -387,14 +393,14 @@ const wireComment = (id: number, authorId: number, html: string, avatarUrl: stri
 });
 
 describe("jediApi.comments (#124, #125)", () => {
-  it("listForPost() reads one Post's thread from the public surface, in order", async () => {
+  it("list() reads one Post's thread from the public surface, in order", async () => {
     onPublic({
       list_post_comments: [
         wireComment(6, 3, "<p>second</p>", "https://example.com/a.png"),
         wireComment(5, 2, "<p>first</p>", null),
       ],
     });
-    expect(await jediApi.comments.listForPost(1)).toEqual([
+    expect(await jediApi.comments.list(1)).toEqual([
       {
         id: 6,
         parentId: 1,
@@ -417,7 +423,7 @@ describe("jediApi.comments (#124, #125)", () => {
 
   it("maps the author's avatar URL through the sanitize boundary", async () => {
     onPublic({ list_post_comments: [wireComment(5, 2, "hi", "https://example.com/b.png")] });
-    const [view] = await jediApi.comments.listForPost(1);
+    const [view] = await jediApi.comments.list(1);
     expect(sanitizeSpy.mock.calls.flat()).toContain(view.author.avatarUrl);
   });
 
@@ -427,9 +433,7 @@ describe("jediApi.comments (#124, #125)", () => {
       onPublic({
         list_post_comments: [{ ...wireComment(5, 2, "hi", null), [field]: "not a time" }],
       });
-      await expect(jediApi.comments.listForPost(1)).rejects.toThrow(
-        "Invalid Comment time: not a time",
-      );
+      await expect(jediApi.comments.list(1)).rejects.toThrow("Invalid Comment time: not a time");
     },
   );
 
@@ -467,5 +471,40 @@ describe("jediApi.comments (#124, #125)", () => {
     onAuthenticated({ delete_post_comment: { id: 7, parent_id: 1 } });
     await jediApi.comments.remove(7);
     expect(authenticatedRpcMock).toHaveBeenCalledWith("delete_post_comment", { id: 7 });
+  });
+});
+
+describe("jediApi.captionComments (#127)", () => {
+  it("list() reads one Caption's thread from the public surface", async () => {
+    onPublic({ list_caption_comments: [wireComment(6, 3, "<p>hi</p>", null)] });
+    const [view] = await jediApi.captionComments.list(1);
+    expect(view.id).toBe(6);
+    expect(view.parentId).toBe(1);
+    expect(publicRpcMock).toHaveBeenCalledWith("list_caption_comments", { id: 1 });
+  });
+
+  it("add() sends the wire CaptionCommentForCreate", async () => {
+    onAuthenticated({ add_caption_comment: wireComment(7, 2, "<p>hello</p>", null) });
+    expect((await jediApi.captionComments.add(1, "hello")).id).toBe(7);
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("add_caption_comment", {
+      data: { caption_id: 1, content: "hello" },
+    });
+  });
+
+  it("update(), source() and remove() call the Caption Comment RPCs by Comment id", async () => {
+    onAuthenticated({
+      update_caption_comment: wireComment(7, 2, "<p>edited</p>", null),
+      get_caption_comment: { id: 7, content: "**bold**" },
+      delete_caption_comment: { id: 7, parent_id: 1 },
+    });
+    expect((await jediApi.captionComments.update(7, "edited")).contentHtml).toBe("<p>edited</p>");
+    expect(await jediApi.captionComments.source(7)).toBe("**bold**");
+    await jediApi.captionComments.remove(7);
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("update_caption_comment", {
+      id: 7,
+      data: { content: "edited" },
+    });
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("get_caption_comment", { id: 7 });
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("delete_caption_comment", { id: 7 });
   });
 });

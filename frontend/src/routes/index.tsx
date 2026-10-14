@@ -45,6 +45,7 @@ export default function Home() {
     selectedCaptionLike,
     toggleCaptionLike,
     postComments,
+    captionComments,
     connectFeed,
   } = createJediFeed({ guard: useDraftGuard() });
 
@@ -100,6 +101,7 @@ export default function Home() {
                   captionLike={selectedCaptionLike()}
                   onToggleCaptionLike={toggleCaptionLike}
                   postComments={postComments}
+                  captionComments={captionComments}
                 />
               )}
             </Match>

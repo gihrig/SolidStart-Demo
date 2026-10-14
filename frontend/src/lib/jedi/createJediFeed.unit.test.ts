@@ -82,6 +82,7 @@ const captionsFor = (postId: number): CaptionView[] =>
       author: author(c.owner_id, users.get(c.owner_id)!.name),
       text: c.text,
       likeCount: c.likeCount,
+      commentCount: 0,
     }));
 
 const postListMock = vi.fn<JediApi["posts"]["list"]>();
@@ -90,7 +91,8 @@ const postToggleLikeMock = vi.fn<JediApi["posts"]["toggleLike"]>();
 const captionListForPostMock = vi.fn<JediApi["captions"]["listForPost"]>();
 const captionGetLikeMock = vi.fn<JediApi["captions"]["getLike"]>();
 const captionToggleLikeMock = vi.fn<JediApi["captions"]["toggleLike"]>();
-const commentListForPostMock = vi.fn<JediApi["comments"]["listForPost"]>();
+const commentListForPostMock = vi.fn<JediApi["comments"]["list"]>();
+const captionCommentListMock = vi.fn<JediApi["captionComments"]["list"]>();
 const api: JediApi = {
   categories: { list: () => Promise.resolve(CATEGORIES) },
   posts: {
@@ -106,7 +108,14 @@ const api: JediApi = {
     toggleLike: captionToggleLikeMock,
   },
   comments: {
-    listForPost: commentListForPostMock,
+    list: commentListForPostMock,
+    add: () => Promise.reject(new Error("not used here")),
+    update: () => Promise.reject(new Error("not used here")),
+    remove: () => Promise.reject(new Error("not used here")),
+    source: () => Promise.reject(new Error("not used here")),
+  },
+  captionComments: {
+    list: captionCommentListMock,
     add: () => Promise.reject(new Error("not used here")),
     update: () => Promise.reject(new Error("not used here")),
     remove: () => Promise.reject(new Error("not used here")),
@@ -166,6 +175,11 @@ beforeEach(() => {
   commentListForPostMock.mockReset();
   commentListForPostMock.mockImplementation((postId: number) =>
     Promise.resolve([commentOn(postId, postId * 1000)]),
+  );
+  // Caption N's thread holds one Comment, id N * 100.
+  captionCommentListMock.mockReset();
+  captionCommentListMock.mockImplementation((captionId: number) =>
+    Promise.resolve([commentOn(captionId, captionId * 100)]),
   );
 });
 
@@ -560,6 +574,7 @@ describe("createJediFeed — the realtime post_caption poke (#121)", () => {
     author: HOMER,
     text: "A new contender",
     likeCount: 0,
+    commentCount: 0,
   });
 
   it("subscribes to the selected Post's Caption feed, and moves it with the selection", async () => {
@@ -733,6 +748,88 @@ describe("createJediFeed — the selected Post's Comment thread (#124)", () => {
   });
 });
 
+describe("createJediFeed — the shown Caption's Comment thread (#127)", () => {
+  const ids = (jedi: JediFeed) => jedi.captionComments.comments()?.map((c) => c.id);
+  // A Like re-ranks Post 1's Captions: Caption 2 is now first.
+  const reRankCaptions = () => {
+    const [first, second] = captionsFor(1);
+    captionListForPostMock.mockResolvedValue([{ ...second, likeCount: 9 }, first]);
+  };
+
+  it("loads the shown Caption's thread only while its panel is open, also on the anonymous landing", () =>
+    withAnonymousJedi(async (jedi) => {
+      expect(jedi.captionComments.open()).toBe(false);
+      expect(captionCommentListMock).not.toHaveBeenCalled();
+
+      jedi.captionComments.setOpen(true);
+      await tick();
+      expect(ids(jedi)).toEqual([100]);
+
+      // A pick of another Caption closes the panel.
+      jedi.selectCaption(2);
+      expect(jedi.captionComments.open()).toBe(false);
+    }));
+
+  it("the Post and Caption panels open independently", () =>
+    withAnonymousJedi(async (jedi) => {
+      jedi.captionComments.setOpen(true);
+      jedi.postComments.setOpen(true);
+      await tick();
+      expect(ids(jedi)).toEqual([100]);
+      expect(jedi.postComments.comments()?.map((c) => c.id)).toEqual([1000]);
+
+      jedi.postComments.setOpen(false);
+      expect(jedi.captionComments.open()).toBe(true);
+    }));
+
+  it("holds the caption_comment Subscription only while the panel is open", async () => {
+    const mem = memoryFeed();
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
+      await tick();
+      await tick();
+      const threadChannels = () => mem.held().filter((c) => c.kind === "caption_comment");
+      expect(threadChannels()).toEqual([]);
+
+      jedi.captionComments.setOpen(true);
+      await tick();
+      expect(threadChannels()).toEqual([Channel.captionComment(1)]);
+
+      jedi.captionComments.setOpen(false);
+      await tick();
+      expect(threadChannels()).toEqual([]);
+
+      dispose();
+    });
+  });
+
+  it("an open panel holds the Caption shown across a re-rank; after a close, the line follows the ranking", async () => {
+    const mem = memoryFeed();
+    await createRoot(async (dispose) => {
+      const jedi = createJediFeed({ api });
+      jedi.connectFeed(mem.feed);
+      await tick();
+      await tick();
+      expect(jedi.selectedCaption()?.id).toBe(1);
+      jedi.captionComments.setOpen(true);
+
+      reRankCaptions();
+      mem.emit(pokeOn(Channel.postCaption(1)));
+      await tick();
+      await tick();
+      expect(jedi.visibleCaptions()![0].id).toBe(2);
+      expect(jedi.selectedCaption()?.id, "the Caption line stays").toBe(1);
+      expect(jedi.captionComments.open(), "the panel stays open").toBe(true);
+
+      jedi.captionComments.setOpen(false);
+      expect(jedi.selectedCaption()?.id, "it follows the ranking again").toBe(2);
+
+      dispose();
+    });
+  });
+});
+
 describe("createJediFeed — the Draft guard (ADR-0030)", () => {
   // The view-model inside a guard that holds a Draft, as a form would report.
   async function withDraft(run: (jedi: JediFeed, guard: DraftGuard) => void | Promise<void>) {
@@ -807,6 +904,26 @@ describe("createJediFeed — the Draft guard (ADR-0030)", () => {
       guard.confirmMove();
       expect(jedi.postComments.open()).toBe(false);
       expect(guard.hasDraft(), "Discard keeps the Draft outside the panel").toBe(true);
+    }));
+
+  it("guards a Caption pick that changes the Caption shown, in the Caption thread's scope (#127)", () =>
+    withDraft((jedi, guard) => {
+      // `withDraft`'s Draft sits outside the Caption panel: a pick runs at once.
+      jedi.selectCaption(2);
+      expect(guard.pending()).toBe(false);
+      expect(jedi.selectedCaption()?.id).toBe(2);
+
+      jedi.captionComments.setOpen(true);
+      guard.report(Symbol("caption comment"), true, jedi.captionComments.draftScope);
+      jedi.selectCaption(2);
+      expect(guard.pending(), "a pick of the Caption shown is no move").toBe(false);
+
+      jedi.selectCaption(1);
+      expect(guard.pending()).toBe(true);
+      expect(jedi.selectedCaption()?.id).toBe(2);
+      guard.confirmMove();
+      expect(jedi.selectedCaption()?.id).toBe(1);
+      expect(jedi.captionComments.open()).toBe(false);
     }));
 
   it("keeps the shown Post while a Draft exists: a re-rank does not move the article", async () => {

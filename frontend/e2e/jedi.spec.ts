@@ -74,7 +74,8 @@ test.describe("Jedi Page", () => {
     await expect(article.getByRole("link").filter({ hasText: "Lisa" })).toBeVisible();
     await expect(article.getByRole("button", { name: /animals/i })).toBeVisible();
     await expect(article.getByRole("button", { name: /cute/i })).toBeVisible();
-    await expect(article.getByRole("button", { name: /Comments/i })).toBeVisible();
+    await expect(article.getByRole("button", { name: /^Comments, /i })).toBeVisible();
+    await expect(article.getByRole("button", { name: /^Caption comments, /i })).toBeVisible();
     await expect(article.getByText("Likes: 5")).toBeVisible();
     await expect(article.getByText("Caption likes: 8")).toBeVisible();
     for (const name of [/^Like /i, /^Edit /i, /^Delete /i, /^Add Caption$/i]) {
@@ -374,6 +375,37 @@ test.describe("Jedi Page - Comment markdown (#126)", () => {
     const row = article.getByRole("listitem").filter({ hasText: text });
     await expect(row.locator("strong")).toHaveText(text);
     await expect(row).not.toContainText("**");
+
+    // Delete it, so a rerun starts clean.
+    await row.getByRole("button", { name: "Delete comment" }).click();
+    await expect(row).toHaveCount(0);
+  });
+});
+
+// A Caption has its own Comment thread (#127), opened from the Caption line.
+test.describe("Jedi Page - Caption Comments (#127)", () => {
+  test("demo1 opens a Caption thread, posts a Comment, sees it, then deletes it", async ({
+    page,
+  }) => {
+    // Log in on /fullstack, then go home in-app: the login state lives in the page.
+    await page.goto("/fullstack");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /login/i }).click();
+    await expect(page.getByText(/logged in as: demo1/i)).toBeVisible({ timeout: 10000 });
+    await page.getByRole("link", { name: /awesome/i }).click();
+
+    const article = page.locator("article").first();
+    await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
+    await article.getByRole("button", { name: /^Caption comments, /i }).click();
+    const panel = article.getByRole("region", { name: "Caption comments" });
+    // A unique text, so a row left by an earlier failed run cannot match.
+    const text = `e2e caption comment ${Date.now()}`;
+    await panel.getByRole("textbox", { name: "Your comment" }).fill(text);
+    await panel.getByRole("button", { name: "Post Comment" }).click();
+
+    const row = panel.getByRole("listitem").filter({ hasText: text });
+    await expect(row).toBeVisible();
+    await expect(row.getByText("demo1", { exact: true })).toBeVisible();
 
     // Delete it, so a rerun starts clean.
     await row.getByRole("button", { name: "Delete comment" }).click();

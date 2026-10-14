@@ -71,14 +71,13 @@ const toLike = (l: LikeViewWire): Like => ({
   liked: l.liked,
 });
 
-// The wire `comment_count` is dropped here: front-end Caption comment counts
-// land with Caption Comments (#127).
 const toCaptionView = (c: CaptionViewWire): CaptionView => ({
   id: c.id,
   postId: c.post_id,
   author: toAuthorRef(c.author),
   text: c.text,
   likeCount: c.like_count,
+  commentCount: c.comment_count,
 });
 
 // A Comment time must parse. A bad time fails here, where each caller has an
@@ -175,7 +174,7 @@ export const jediApi = {
     // the back-end returns it newest first (#125). The writes need a login. Each
     // write pushes on the Post's `post_comment` Channel; an add or delete also
     // pokes `posts`, for the comment count.
-    listForPost: async (postId: number): Promise<CommentView[]> =>
+    list: async (postId: number): Promise<CommentView[]> =>
       (await publicRpc("list_post_comments", { id: postId })).map(toCommentView),
     add: async (postId: number, content: string): Promise<CommentView> =>
       toCommentView(
@@ -191,6 +190,26 @@ export const jediApi = {
       await authenticatedRpc("delete_post_comment", { id });
     },
   },
+  captionComments: {
+    // A Caption's thread (#127), in the same shape as `comments`. Each write
+    // pushes on the Caption's `caption_comment` Channel; an add or delete also
+    // pokes the Post's `post_caption`, for the comment count.
+    list: async (captionId: number): Promise<CommentView[]> =>
+      (await publicRpc("list_caption_comments", { id: captionId })).map(toCommentView),
+    add: async (captionId: number, content: string): Promise<CommentView> =>
+      toCommentView(
+        await authenticatedRpc("add_caption_comment", {
+          data: { caption_id: captionId, content },
+        }),
+      ),
+    update: async (id: number, content: string): Promise<CommentView> =>
+      toCommentView(await authenticatedRpc("update_caption_comment", { id, data: { content } })),
+    source: async (id: number): Promise<string> =>
+      (await authenticatedRpc("get_caption_comment", { id })).content,
+    remove: async (id: number): Promise<void> => {
+      await authenticatedRpc("delete_caption_comment", { id });
+    },
+  },
   hero: {
     // Real back-end call now (#119): the public `get_hero` singleton read.
     get: async (): Promise<HeroView> => toHeroView(await publicRpc("get_hero")),
@@ -204,3 +223,7 @@ export const jediApi = {
 
 /** The `jediApi` contract, so a consumer can inject an in-memory stand-in. */
 export type JediApi = typeof jediApi;
+
+/** The calls of one Comment target: `comments` (a Post's thread) or
+ *  `captionComments` (a Caption's thread). Both have this one shape. */
+export type CommentApi = JediApi["comments"];

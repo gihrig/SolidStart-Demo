@@ -9,9 +9,10 @@ import type { CommentView } from "~/types/jedi";
 import Avatar from "~/components/Avatar";
 import { useDraft } from "~/components/DraftGuardContext";
 
-// Mirrors the back-end cap (`PostCommentBmc::hygiene_rules`), counted the
-// back-end's way (`hygieneLength`). `satisfies` pins it to the cap, so a changed
-// cap fails `tsc` (ADR-0029); the back-end stays the authoritative check.
+// Mirrors the back-end caps (`PostCommentBmc::hygiene_rules` and
+// `CaptionCommentBmc::hygiene_rules`, #127), counted the back-end's way
+// (`hygieneLength`). `satisfies` pins it to both caps, so a change of either
+// fails `tsc` (ADR-0029); the back-end stays the authoritative check.
 const COMMENT_MAX_LENGTH = 2000 satisfies HygieneCaps["post_comment"]["content"];
 
 export interface CommentThreadProps {
@@ -228,6 +229,10 @@ function CommentForm(props: CommentFormProps) {
 }
 
 interface CommentItemProps {
+  /** The thread's element id. The edit form's id derives from it, so two open
+   *  threads never share an id (#127): a Post Comment and a Caption Comment
+   *  can have the same Comment id. */
+  threadId: string;
   comment: CommentView;
   thread: CommentThreadState;
   isOwner: boolean;
@@ -311,7 +316,7 @@ function CommentItem(props: CommentItemProps) {
           }
         >
           <CommentForm
-            id={`comment-${props.comment.id}-edit`}
+            id={`${props.threadId}-comment-${props.comment.id}-edit`}
             thread={props.thread}
             comment={props.comment}
             onClose={() => setEditing(false)}
@@ -324,8 +329,8 @@ function CommentItem(props: CommentItemProps) {
 }
 
 /**
- * A Post's Comment thread (#124), the content of the inline panel in
- * `FeaturedPost`, which owns the panel element. Everyone reads it; a logged-in
+ * A Post's or a Caption's Comment thread (#124, #127), the content of an
+ * inline panel in `FeaturedPost`, which owns the panel element. Everyone reads it; a logged-in
  * User posts, and edits or deletes their own Comments. The thread lists the
  * newest Comment first, so the compose box sits above the list (#125). Each
  * body is rendered markdown (#126). The compose box sits outside
@@ -352,6 +357,7 @@ export default function CommentThread(props: CommentThreadProps) {
               <For each={comments()}>
                 {(comment) => (
                   <CommentItem
+                    threadId={props.id}
                     comment={comment}
                     thread={props.thread}
                     isOwner={

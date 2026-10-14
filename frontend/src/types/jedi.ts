@@ -68,10 +68,12 @@ export interface CaptionView {
   author: AuthorRef;
   text: string;
   likeCount: number;
+  /** The derived count of the Caption's Comments (#127). */
+  commentCount: number;
 }
 
-/** One Comment in a thread (#124, #125). `parentId` is the id of the Post that
- *  holds the thread. `author.id` gates the Edit / Delete buttons: a content
+/** One Comment in a thread (#124, #125). `parentId` is the id of the Post or
+ *  the Caption that holds the thread (#127). `author.id` gates the Edit / Delete buttons: a content
  *  entity's author is its Owner. `contentHtml` is the server's sanitized render
  *  of the stored markdown (#126); a consumer injects it only through the
  *  `sanitizeCommentHtml` backstop. `ctime` and `mtime` are the wire RFC 3339

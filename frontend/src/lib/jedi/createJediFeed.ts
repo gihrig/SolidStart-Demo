@@ -9,7 +9,12 @@ import {
 import { passThroughGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { createLikeState } from "~/lib/jedi/createLikeState";
-import { createCommentThread, type CommentThreadState } from "~/lib/jedi/createCommentThread";
+import {
+  CAPTION_COMMENT_EVENTS,
+  createCommentThread,
+  POST_COMMENT_EVENTS,
+  type CommentThreadState,
+} from "~/lib/jedi/createCommentThread";
 import type { Feed } from "~/lib/feed";
 import { Channel } from "~/lib/channel";
 import type { JediCategory, Like, PostView, CaptionView, HeroView } from "~/types/jedi";
@@ -35,19 +40,22 @@ import type { JediCategory, Like, PostView, CaptionView, HeroView } from "~/type
  * `selectedCaption` is the caption shown under the post (#33): it defaults to
  * the `winningCaption` and follows `selectCaption(id)`. Like `selectedPost` it
  * self-resets — the old caption's id is absent from the new post's captions, so
- * it falls back to that post's winner.
+ * it falls back to that post's winner. While its Comments panel is open, a
+ * re-rank does not change it (#127, ADR-0030 addendum).
  *
  * `selectedPostLike` / `selectedCaptionLike` are the viewer's like state of the
  * selected Post and the selected Caption (#122, #123). Each comes from one
  * `createLikeState`; this view-model keeps the Feed wiring around them.
  *
- * `postComments` is the selected Post's Comment thread (#124). It is its own
- * module (`createCommentThread`), exposed as one nested member; this view-model
- * keeps the Feed wiring around it.
+ * `postComments` is the selected Post's Comment thread (#124), and
+ * `captionComments` the shown Caption's (#127). Each is one
+ * `createCommentThread`, exposed as one nested member, with its own open state,
+ * Draft scope and Subscription; this view-model keeps the Feed wiring around
+ * them.
  *
- * Each user-started move that changes the selected Post, and a close of the
- * Comments panel, goes through the app's Draft guard (ADR-0030): with a Draft,
- * it waits for the confirm dialog.
+ * Each user-started move that changes the selected Post, a Caption pick that
+ * changes the Caption shown, and a close of a Comments panel, goes through the
+ * app's Draft guard (ADR-0030): with a Draft, it waits for the confirm dialog.
  *
  * `hero` (the header banner content) is the externalized header data (#32): the
  * route renders the Hero from `hero`, so it is not hard-coded in the markup. The
@@ -69,6 +77,9 @@ export interface JediFeed {
    *  post is selected (an empty category), so the card clears with `<main>`. */
   visibleCaptions: Accessor<CaptionView[] | undefined>;
   selectedCaption: Accessor<CaptionView | undefined>;
+  /** Select a Caption (a Top Captions click). A change of the Caption shown
+   *  closes its Comments panel, so it goes through the Draft guard, in that
+   *  panel's scope (#127). */
   selectCaption: (id: number) => void;
   selectedCategory: Accessor<number>;
   /** Select a category by index. A change that changes the selected Post goes
@@ -96,6 +107,9 @@ export interface JediFeed {
    *  public, so it loads on the anonymous landing too; the writes need a login.
    *  A close goes through the Draft guard. */
   postComments: CommentThreadState;
+  /** The shown Caption's Comment thread (#127), as `postComments` is for the
+   *  Post. While its panel is open, it holds the Caption shown. */
+  captionComments: CommentThreadState;
   /** Wire a live Feed after creation (#120): the route builds this view-model
    *  anonymously, then connects the socket's Feed once a User logs in. The
    *  subscription is owned by the caller's reactive scope, so it ends with it. */
@@ -223,11 +237,27 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const visibleCaptions = (): CaptionView[] | undefined =>
     selectedPost() ? selectedPostCaptions() : [];
 
-  // Self-resets on a post change: the old id is absent from the new captions.
-  const selectedCaption = (): CaptionView | undefined =>
-    selectedPostCaptions()?.find((c) => c.id === selectedCaptionId()) ?? winningCaption();
+  // The Caption that its Comments panel is open on (#127). The view-model owns
+  // this signal, as the hold below reads it; the Caption thread sets and clears
+  // it.
+  const captionThreadOpenOn = createSignal<number>();
+  // The picked Caption; then the Caption its Comments panel is open on (#127):
+  // a re-rank must not close a thread the User is reading; otherwise the
+  // winner. Self-resets on a post change: the old ids are absent from the new
+  // captions.
+  const selectedCaption = (): CaptionView | undefined => {
+    const captions = selectedPostCaptions();
+    const [heldId] = captionThreadOpenOn;
+    return (
+      captions?.find((c) => c.id === selectedCaptionId()) ??
+      captions?.find((c) => c.id === heldId()) ??
+      winningCaption()
+    );
+  };
+  // A pick of the Caption shown unmounts no form, so it is no guarded move.
   const selectCaption = (id: number): void => {
-    setSelectedCaptionId(id);
+    if (id === selectedCaption()?.id) setSelectedCaptionId(id);
+    else guard.attempt(() => setSelectedCaptionId(id), captionComments.draftScope);
   };
 
   // The viewer's like state of the selected Post (#122) and of the selected
@@ -251,8 +281,17 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // open; the read is public, so it does not wait for a live session. Its
   // close goes through the guard.
   const { thread: postComments, onEvent: onPostCommentEvent } = createCommentThread({
-    postId: () => selectedPost()?.id,
+    parentId: () => selectedPost()?.id,
     api: api.comments,
+    events: POST_COMMENT_EVENTS,
+    guard,
+  });
+  // The shown Caption's Comment thread (#127), the same way.
+  const { thread: captionComments, onEvent: onCaptionCommentEvent } = createCommentThread({
+    parentId: () => selectedCaption()?.id,
+    api: api.captionComments,
+    events: CAPTION_COMMENT_EVENTS,
+    openOn: captionThreadOpenOn,
     guard,
   });
 
@@ -263,7 +302,8 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // only. A `caption_like` poke means one Caption's like count changed (#123),
   // held for the selected Caption. A `post_comment` Event carries a Comment
   // upsert or removal for one Post's thread (#124), held for the selected Post
-  // while its Comments panel is open. Each Subscription names its Channel
+  // while its Comments panel is open; a `caption_comment` Event, the same for
+  // the shown Caption's thread (#127). Each Subscription names its Channel
   // through an accessor, so the Feed moves the hold with the selection and
   // routes only the held Channel here (ADR-0028). Each handler refetches on a
   // poke and on the resync call after a (re)connect, so a poke lost while the
@@ -296,6 +336,11 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     // The thread's Subscription is held only while the Comments panel is open.
     const shownThreadId = () => (postComments.open() ? postId() : undefined);
     feed.subscribe(selectedChannel(shownThreadId, Channel.postComment), onPostCommentEvent);
+    const shownCaptionThreadId = () => (captionComments.open() ? captionId() : undefined);
+    feed.subscribe(
+      selectedChannel(shownCaptionThreadId, Channel.captionComment),
+      onCaptionCommentEvent,
+    );
   };
 
   const [hero] = createResource(() => api.hero.get());
@@ -317,6 +362,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     selectedCaptionLike: captionLike.like,
     toggleCaptionLike: captionLike.toggle,
     postComments,
+    captionComments,
     connectFeed,
   };
 }
