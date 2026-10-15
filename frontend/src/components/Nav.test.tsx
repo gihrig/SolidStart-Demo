@@ -175,6 +175,8 @@ describe("<Nav />", () => {
       await user.click(screen.getByRole("button", { name: /log in/i }));
       const dialog = screen.getByRole("dialog", { name: "Login" }) as HTMLDialogElement;
 
+      await user.type(within(dialog).getByLabelText(/username/i), "demo1");
+      await user.type(within(dialog).getByLabelText(/password/i), "welcome");
       await user.click(within(dialog).getByRole("button", { name: /^login$/i }));
 
       await waitFor(() => expect(dialog.open).toBe(false));

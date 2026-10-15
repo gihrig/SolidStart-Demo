@@ -39,7 +39,15 @@ function renderDialog() {
     </AuthProvider>
   ));
   const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
-  return { user: userEvent.setup(), dialog, form: within(dialog), open };
+  const user = userEvent.setup();
+  const form = within(dialog);
+  // The fields open empty and are required, so type the credentials first.
+  const submitLogin = async () => {
+    await user.type(form.getByLabelText(/username/i), "demo1");
+    await user.type(form.getByLabelText(/password/i), "welcome");
+    await user.click(form.getByRole("button", { name: /^login$/i }));
+  };
+  return { user, dialog, form, open, submitLogin };
 }
 
 describe("<LoginDialog />", () => {
@@ -61,10 +69,10 @@ describe("<LoginDialog />", () => {
     const { backendRpc } = await import("~/lib/backend-rpc");
     // eslint-disable-next-line @typescript-eslint/unbound-method
     vi.mocked(backendRpc.auth.login).mockResolvedValueOnce({ result: { success: true } });
-    const { user, dialog, form, open } = renderDialog();
+    const { user, dialog, open, submitLogin } = renderDialog();
     await user.click(screen.getByRole("button", { name: "open-login" }));
 
-    await user.click(form.getByRole("button", { name: /^login$/i }));
+    await submitLogin();
 
     await waitFor(() => expect(dialog.open).toBe(false));
     expect(open()).toBe(false);
@@ -74,10 +82,10 @@ describe("<LoginDialog />", () => {
     const { backendRpc } = await import("~/lib/backend-rpc");
     // eslint-disable-next-line @typescript-eslint/unbound-method
     vi.mocked(backendRpc.auth.login).mockRejectedValueOnce(new Error("Invalid credentials"));
-    const { user, dialog, form } = renderDialog();
+    const { user, dialog, form, submitLogin } = renderDialog();
     await user.click(screen.getByRole("button", { name: "open-login" }));
 
-    await user.click(form.getByRole("button", { name: /^login$/i }));
+    await submitLogin();
 
     expect(await form.findByText("Invalid credentials")).toBeInTheDocument();
     expect(dialog.open).toBe(true);
@@ -98,7 +106,7 @@ describe("<LoginDialog />", () => {
     let resolveLogin!: (v: { result: { success: boolean } }) => void;
     // eslint-disable-next-line @typescript-eslint/unbound-method
     vi.mocked(backendRpc.auth.login).mockReturnValueOnce(new Promise((r) => (resolveLogin = r)));
-    const { user, dialog, form } = renderDialog();
+    const { user, dialog, form, submitLogin } = renderDialog();
     await user.click(screen.getByRole("button", { name: "open-login" }));
 
     const idleEsc = new Event("cancel", { cancelable: true });
@@ -106,7 +114,7 @@ describe("<LoginDialog />", () => {
     expect(idleEsc.defaultPrevented).toBe(false);
     expect(form.getByRole("button", { name: "Cancel" })).toHaveProperty("disabled", false);
 
-    await user.click(form.getByRole("button", { name: /^login$/i }));
+    await submitLogin();
     const pendingEsc = new Event("cancel", { cancelable: true });
     dialog.dispatchEvent(pendingEsc);
     expect(pendingEsc.defaultPrevented).toBe(true);
@@ -120,9 +128,9 @@ describe("<LoginDialog />", () => {
     const { backendRpc } = await import("~/lib/backend-rpc");
     // eslint-disable-next-line @typescript-eslint/unbound-method
     vi.mocked(backendRpc.auth.login).mockRejectedValueOnce(new Error("Invalid credentials"));
-    const { user, dialog, form } = renderDialog();
+    const { user, dialog, form, submitLogin } = renderDialog();
     await user.click(screen.getByRole("button", { name: "open-login" }));
-    await user.click(form.getByRole("button", { name: /^login$/i }));
+    await submitLogin();
     expect(await form.findByText("Invalid credentials")).toBeInTheDocument();
 
     dialog.close();

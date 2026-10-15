@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginAsDemo } from "./loginAsDemo";
+import { loginAs } from "./login";
 
 // Jedi is the home page now (#62): it renders at `/` under the global Jedi nav.
 test.describe("Jedi Page", () => {
@@ -300,7 +300,7 @@ test.describe("Jedi Page - Draft guard (#124)", () => {
     page,
   }) => {
     await page.goto("/");
-    await loginAsDemo(page);
+    await loginAs(page, "demo1", "welcome");
 
     const article = page.locator("article").first();
     await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
@@ -325,7 +325,7 @@ test.describe("Jedi Page - Draft guard (#124)", () => {
 test.describe("Jedi Page - Comment row (#125)", () => {
   test("demo1 posts a Comment, sees the author row, then deletes it", async ({ page }) => {
     await page.goto("/");
-    await loginAsDemo(page);
+    await loginAs(page, "demo1", "welcome");
 
     const article = page.locator("article").first();
     await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
@@ -351,7 +351,7 @@ test.describe("Jedi Page - Comment row (#125)", () => {
 test.describe("Jedi Page - Comment markdown (#126)", () => {
   test("demo1 posts **bold**, sees a strong, then deletes it", async ({ page }) => {
     await page.goto("/");
-    await loginAsDemo(page);
+    await loginAs(page, "demo1", "welcome");
 
     const article = page.locator("article").first();
     await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
@@ -377,7 +377,7 @@ test.describe("Jedi Page - Caption Comments (#127)", () => {
     page,
   }) => {
     await page.goto("/");
-    await loginAsDemo(page);
+    await loginAs(page, "demo1", "welcome");
 
     const article = page.locator("article").first();
     await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();

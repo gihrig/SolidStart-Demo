@@ -41,7 +41,6 @@ export default function LoginForm(props: LoginFormProps) {
           name="username"
           type="text"
           required
-          value="demo1"
           class="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>
@@ -55,7 +54,6 @@ export default function LoginForm(props: LoginFormProps) {
           name="password"
           type="password"
           required
-          value="welcome"
           class="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>

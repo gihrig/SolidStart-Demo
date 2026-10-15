@@ -172,6 +172,11 @@ test("logs in through the Nav login dialog", async ({ page }) => {
   await header.getByRole("button", { name: "Log In" }).click();
   const dialog = page.getByRole("dialog", { name: "Login" });
   await expect(dialog).toBeVisible();
+  // The fields open empty, so type the demo credentials.
+  await expect(dialog.getByLabel("Username")).toHaveValue("");
+  await expect(dialog.getByLabel("Password")).toHaveValue("");
+  await dialog.getByLabel("Username").fill("demo1");
+  await dialog.getByLabel("Password").fill("welcome");
 
   await dialog.getByRole("button", { name: /^login$/i }).click();
 

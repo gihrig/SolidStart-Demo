@@ -1,5 +1,5 @@
 import { test, expect, type Browser, type Locator, type Page } from "@playwright/test";
-import { loginAs, loginAsDemo } from "./loginAsDemo";
+import { loginAs } from "./login";
 
 // Two clients, two Users (#129): client A (demo1) acts, and client B (Bart)
 // sees each change with no refresh. Then A undoes the change. These tests change
@@ -20,7 +20,7 @@ async function openClients(browser: Browser): Promise<Clients> {
   const a = await contextA.newPage();
   const b = await contextB.newPage();
   await Promise.all([a.goto("/"), b.goto("/")]);
-  await Promise.all([loginAsDemo(a), loginAs(b, "Bart", "bart_01")]);
+  await Promise.all([loginAs(a, "demo1", "welcome"), loginAs(b, "Bart", "bart_01")]);
   return {
     a,
     b,
