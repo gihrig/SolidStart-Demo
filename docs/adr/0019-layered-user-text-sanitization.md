@@ -1,4 +1,4 @@
-# Layered user-text sanitization: hygiene on write, server markdown→sanitized-HTML on read, escape at every sink
+# User-text sanitization: hygiene on write, markdown→sanitized-HTML on read, escape at sinks
 
 [ADR-0006](0006-safeurl-brand-enforces-sanitize-boundary.md) made the front-end
 seam the single boundary that sanitizes **URLs**, and

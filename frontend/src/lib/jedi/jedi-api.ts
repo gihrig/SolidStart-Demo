@@ -45,10 +45,11 @@ const toJediCategory = (c: CategoryPublic): JediCategory => ({
 // the contract the components consume — URL fields routed through the single
 // sanitize boundary, opaque Category icons mapped to sprite names. The back-end
 // already ranks and derives the counts, so the front-end never re-ranks.
+// No avatar is not an unsafe URL, so it skips the sanitizer and its warning.
 const toAuthorRef = (a: AuthorRefWire): AuthorRef => ({
   id: a.id,
   name: a.name,
-  avatarUrl: safe(a.avatar_url ?? ""),
+  avatarUrl: a.avatar_url == null ? trustedUrl("") : safe(a.avatar_url),
 });
 
 const toPostView = (p: PostViewWire): PostView => ({

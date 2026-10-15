@@ -1,7 +1,6 @@
 // The ts-rs bindings, re-exported unchanged. Consumers import them from this
 // barrel, never from raw `bindings/` files (ADR-0010). A binding that needs a
 // different type is fixed at its Rust source, not re-typed here (ADR-0027).
-export type { Agent } from "~backend-bindings/Agent.d";
 export type { AuthorRef } from "~backend-bindings/AuthorRef.d";
 export type { CaptionForCreate } from "~backend-bindings/CaptionForCreate.d";
 export type { CaptionView } from "~backend-bindings/CaptionView.d";
@@ -10,11 +9,6 @@ export type { Channel } from "~backend-bindings/Channel.d";
 export { COMMENT_HTML_POLICY } from "~backend-bindings/CommentHtmlPolicy";
 export type { CommentRemoval } from "~backend-bindings/CommentRemoval.d";
 export type { CommentView } from "~backend-bindings/CommentView.d";
-export type { Conv } from "~backend-bindings/Conv.d";
-export type { ConvKind } from "~backend-bindings/ConvKind.d";
-export type { ConvMsg } from "~backend-bindings/ConvMsg.d";
-export type { ConvState } from "~backend-bindings/ConvState.d";
-export type { ConvUser } from "~backend-bindings/ConvUser.d";
 export type { HeroView } from "~backend-bindings/HeroView.d";
 export type { HygieneCaps } from "~backend-bindings/HygieneCaps";
 export type { LikeForToggle } from "~backend-bindings/LikeForToggle.d";
@@ -29,32 +23,6 @@ export type { AuthenticatedRpc, PublicRpc } from "~backend-bindings/RpcContract"
 export type { User } from "~backend-bindings/User.d";
 export type { UserTyp } from "~backend-bindings/UserTyp.d";
 export type { WsEvent } from "~backend-bindings/WsEvent.d";
-
-// Input types for create operations (not in generated bindings)
-export interface AgentForCreate {
-  name: string;
-}
-
-export interface AgentForUpdate {
-  name?: string;
-}
-
-export interface ConvForCreate {
-  agent_id: number;
-  title?: string | null;
-  kind?: "OwnerOnly" | "MultiUsers";
-}
-
-export interface ConvForUpdate {
-  owner_id?: number;
-  title?: string | null;
-  state?: "Active" | "Archived";
-}
-
-export interface ConvMsgForCreate {
-  conv_id: number;
-  content: string;
-}
 
 // Login/Logoff payloads
 export interface LoginPayload {

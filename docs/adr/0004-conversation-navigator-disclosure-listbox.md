@@ -16,6 +16,14 @@ Because the accordion keeps exactly one Agent open, "which Agent is expanded" is
 just the existing `selectedAgent` signal (`src/lib/conversationWorkspace.ts`), so no
 new tree-state and no new tree primitive is introduced.
 
+<!-- index-status: superseded-in-part by ADR-0031 (see the blockquote below) -->
+
+> **Superseded in part (2026-10-14):** [ADR-0031](0031-jedi-tables-built-beside-fullstack-then-removed.md)
+> records the removal of the Conversation navigator with the `/fullstack` page
+> (#128). The navigator decision above, with its "Considered and rejected" and
+> "Consequences" sections, no longer applies. The `useDisclosure` section below is
+> unchanged and stays in force.
+
 ## Considered and rejected
 
 - **Canonical `role=tree` with a new `useTree` primitive** — rejected: it cannot

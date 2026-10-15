@@ -1,20 +1,21 @@
-import { For, Show } from "solid-js";
+import { createSignal, For, Show } from "solid-js";
 import { useDisclosure } from "~/lib/useDisclosure";
 import { useAuth } from "~/components/AuthContext";
 import { useDraftGuard } from "~/components/DraftGuardContext";
 import CreatePostDialog from "~/components/CreatePostDialog";
 import Icon from "~/components/Icon";
 import InitialsAvatar from "~/components/InitialsAvatar";
+import LoginDialog from "~/components/LoginDialog";
 import ThemeToggle from "~/components/ThemeToggle";
 
 const NAV_LINKS = [
   { href: "/about", label: "About" },
   { href: "/readme", label: "Readme" },
-  { href: "/fullstack", label: "FullStack" },
 ] as const;
 
 export default function Nav() {
   let dropdownRef: HTMLDivElement | undefined;
+  let profileTriggerRef: HTMLButtonElement | undefined;
 
   // Identity (avatar + display name) comes from the useAuth seam: the logged-in
   // User's profile lives there, not here (see ADR-0007).
@@ -30,6 +31,19 @@ export default function Nav() {
     ref: () => dropdownRef,
   });
   const mobileNav = useDisclosure({ id: "site-mobile-nav" });
+
+  // The login dialog (#128). Log In sits in the dropdown, so the click closes the
+  // dropdown first. On close, focus goes to the Profile menu button: the Log In
+  // button that had it is now inert, or gone after a login.
+  const [loginOpen, setLoginOpen] = createSignal(false);
+  const openLogin = () => {
+    dropdown.toggle();
+    setLoginOpen(true);
+  };
+  const closeLogin = () => {
+    setLoginOpen(false);
+    profileTriggerRef?.focus();
+  };
 
   return (
     <header class="site-header">
@@ -58,6 +72,7 @@ export default function Nav() {
           {/* Profile dropdown — always visible */}
           <div ref={(el) => (dropdownRef = el)} class="relative">
             <button
+              ref={(el) => (profileTriggerRef = el)}
               type="button"
               aria-label="Profile menu"
               {...dropdown.triggerProps}
@@ -93,7 +108,14 @@ export default function Nav() {
                   </button>
                 </li>
                 <li>
-                  <Show when={isAuthenticated()} fallback={<a href="/fullstack">Log In</a>}>
+                  <Show
+                    when={isAuthenticated()}
+                    fallback={
+                      <button type="button" onClick={openLogin}>
+                        Log In
+                      </button>
+                    }
+                  >
                     <button type="button" onClick={() => guard.attempt(() => void logoff())}>
                       Log Out
                     </button>
@@ -102,6 +124,8 @@ export default function Nav() {
               </ul>
             </div>
           </div>
+
+          <LoginDialog open={loginOpen()} onClose={closeLogin} />
 
           {/* Create a Post (#120) — a logged-in User only */}
           <Show when={isAuthenticated()}>

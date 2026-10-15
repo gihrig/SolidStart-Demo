@@ -1,5 +1,4 @@
 use crate::ctx::Ctx;
-use crate::model::conv::ConvBmc;
 use crate::model::ModelManager;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -11,23 +10,15 @@ use ts_rs::TS;
 /// `ChannelKind` wire, `Channel` routing), merged into one (ADR-0020). ts-rs
 /// exports it, so the front-end mirrors it. Adjacently tagged: the wire is
 /// `{ "kind": <string>, "id": <i64> }`, with `id` present only where the variant
-/// carries one. `conv:{id}` names one Conversation's Event stream (C03/Q9);
-/// `agents`, `convs` and `posts` are id-less global list-feed pokes — a subscriber
-/// refetches through the scoped `list_*` RPC, so no row crosses the push path
-/// (#85). The five id-bearing Jedi channels key on their entity id (#115):
+/// carries one. `posts` is the id-less global list-feed poke — a subscriber
+/// refetches through the `list_*` RPC, so no row crosses the push path (#85).
+/// The five id-bearing Jedi channels key on their entity id (#115):
 /// `post_comment:{id}`, `caption_comment:{id}`, `post_like:{id}`,
 /// `caption_like:{id}`, `post_caption:{id}`.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, TS)]
 #[serde(tag = "kind", content = "id")]
 #[ts(export, export_to = "Channel.d.ts")]
 pub enum Channel {
-	#[serde(rename = "conv")]
-	Conv(i64),
-	#[serde(rename = "agents")]
-	Agents,
-	#[serde(rename = "convs")]
-	Convs,
-	// --- Jedi channels (expand step, #115) ---
 	#[serde(rename = "posts")]
 	Posts,
 	#[serde(rename = "post_comment")]
@@ -47,9 +38,6 @@ impl Channel {
 	/// send task matches it against a connection's authorized subscription set.
 	pub fn key(&self) -> String {
 		match self {
-			Channel::Conv(id) => format!("conv:{id}"),
-			Channel::Agents => "agents".to_string(),
-			Channel::Convs => "convs".to_string(),
 			Channel::Posts => "posts".to_string(),
 			Channel::PostComment(id) => format!("post_comment:{id}"),
 			Channel::CaptionComment(id) => format!("caption_comment:{id}"),
@@ -59,21 +47,17 @@ impl Channel {
 		}
 	}
 
-	/// Whether this caller may subscribe. Fails closed. A Conversation channel
-	/// reuses the ADR-0014 read scope: entitled iff `ConvBmc::get` (owner ∪
-	/// `MultiUsers`) returns the row. Every other channel is authenticated-read —
-	/// the list-feed pokes are contentless (#85) and every Post is public (#106),
-	/// so a logged-in socket suffices; identity is fixed at upgrade and a poke leaks
-	/// no row. #128 removes `Conv` and collapses this to uniform authenticated-read.
-	pub async fn authorize(&self, ctx: &Ctx, mm: &ModelManager) -> bool {
+	/// Whether this caller may subscribe. Uniform authenticated-read today: the
+	/// list-feed poke is contentless (#85) and every Post is public (#106), so a
+	/// logged-in socket suffices; identity is fixed at upgrade and a poke leaks no
+	/// row. The `(ctx, mm)` arguments and the `async` stay as the seam for a future
+	/// scoped channel that must read the model (ADR-0015).
+	pub async fn authorize(&self, _ctx: &Ctx, _mm: &ModelManager) -> bool {
 		// Exhaustive on purpose (no `_` arm): `Channel` is the shared vocabulary, so
 		// a new variant must force an authorization decision here — a bare `_ => true`
 		// would silently open a future scoped channel to any authenticated socket.
 		match self {
-			Channel::Conv(id) => ConvBmc::get(ctx, mm, *id).await.is_ok(),
-			Channel::Agents
-			| Channel::Convs
-			| Channel::Posts
+			Channel::Posts
 			| Channel::PostComment(_)
 			| Channel::CaptionComment(_)
 			| Channel::PostLike(_)
@@ -90,8 +74,7 @@ mod tests {
 	type Result<T> = core::result::Result<T, Box<dyn std::error::Error>>;
 
 	use super::*;
-	use crate::_dev_utils::{self, seed_agent, seed_user};
-	use crate::model::conv::{ConvForCreate, ConvKind};
+	use crate::_dev_utils::{self, seed_user};
 	use serial_test::serial;
 
 	/// Test sugar: the subscribe resolution `handle_socket` performs
@@ -111,18 +94,6 @@ mod tests {
 	/// the ts-rs binding.
 	#[test]
 	fn channel_wire_shape_is_stable() {
-		assert_eq!(
-			serde_json::to_value(Channel::Conv(5)).unwrap(),
-			serde_json::json!({ "kind": "conv", "id": 5 })
-		);
-		assert_eq!(
-			serde_json::to_value(Channel::Agents).unwrap(),
-			serde_json::json!({ "kind": "agents" })
-		);
-		assert_eq!(
-			serde_json::to_value(Channel::Convs).unwrap(),
-			serde_json::json!({ "kind": "convs" })
-		);
 		assert_eq!(
 			serde_json::to_value(Channel::Posts).unwrap(),
 			serde_json::json!({ "kind": "posts" })
@@ -150,12 +121,9 @@ mod tests {
 	}
 
 	/// Routing-key lock (ADR-0020). `key()` is the one place the `post_like:{id}`
-	/// format lives; `agents` / `convs` / `posts` are id-less.
+	/// format lives; `posts` is id-less.
 	#[test]
 	fn channel_keys_are_stable() {
-		assert_eq!(Channel::Conv(5).key(), "conv:5");
-		assert_eq!(Channel::Agents.key(), "agents");
-		assert_eq!(Channel::Convs.key(), "convs");
 		assert_eq!(Channel::Posts.key(), "posts");
 		assert_eq!(Channel::PostComment(3).key(), "post_comment:3");
 		assert_eq!(Channel::CaptionComment(4).key(), "caption_comment:4");
@@ -164,10 +132,9 @@ mod tests {
 		assert_eq!(Channel::PostCaption(8).key(), "post_caption:8");
 	}
 
-	/// C03 subscribe gate: entitlement reuses the C01 read scope. User B may
-	/// subscribe to A's `MultiUsers` conv but not A's `OwnerOnly` one. Every other
-	/// channel is authenticated-read, so B is admitted without a DB scope check.
-	/// (The scope itself is proven in `test_access_scope_conv_two_user`.)
+	/// The subscribe gate is uniform authenticated-read (#128): B, a logged-in
+	/// socket with no relation to A's rows, is admitted to every channel. No
+	/// per-row scope applies, so the ids need no rows behind them.
 	#[serial]
 	#[tokio::test]
 	async fn test_authorize_subscription_two_user() -> Result<()> {
@@ -175,74 +142,24 @@ mod tests {
 		let root = Ctx::root_ctx();
 		let fx_prefix = "test_authorize_subscription_two_user";
 
-		let a_id = seed_user(&root, &mm, &format!("{fx_prefix}-A")).await?;
 		let b_id = seed_user(&root, &mm, &format!("{fx_prefix}-B")).await?;
-		let ctx_a = Ctx::new(a_id)?;
 		let ctx_b = Ctx::new(b_id)?;
 
-		let agent_id =
-			seed_agent(&ctx_a, &mm, &format!("{fx_prefix} agent")).await?;
-		let owner_conv_id = ConvBmc::create(
-			&ctx_a,
-			&mm,
-			ConvForCreate {
-				agent_id,
-				title: Some(format!("{fx_prefix} owner-only")),
-				kind: Some(ConvKind::OwnerOnly),
-			},
-		)
-		.await?;
-		let multi_conv_id = ConvBmc::create(
-			&ctx_a,
-			&mm,
-			ConvForCreate {
-				agent_id,
-				title: Some(format!("{fx_prefix} multi-users")),
-				kind: Some(ConvKind::MultiUsers),
-			},
-		)
-		.await?;
-
-		// B may subscribe to the public conv.
-		assert_eq!(
-			authorize_to_key(&ctx_b, &mm, Channel::Conv(multi_conv_id)).await,
-			Some(format!("conv:{multi_conv_id}")),
-		);
-		// B may NOT subscribe to A's private conv (scope miss → None).
-		assert_eq!(
-			authorize_to_key(&ctx_b, &mm, Channel::Conv(owner_conv_id)).await,
-			None,
-			"B must not subscribe to A's OwnerOnly conv",
-		);
-		// A may subscribe to its own private conv.
-		assert_eq!(
-			authorize_to_key(&ctx_a, &mm, Channel::Conv(owner_conv_id)).await,
-			Some(format!("conv:{owner_conv_id}")),
-		);
-
-		// The list-feed channels are contentless pokes: any authenticated caller
-		// may subscribe (#85), so B is admitted to both without a DB scope check.
-		assert_eq!(
-			authorize_to_key(&ctx_b, &mm, Channel::Agents).await,
-			Some("agents".to_string()),
-		);
-		assert_eq!(
-			authorize_to_key(&ctx_b, &mm, Channel::Convs).await,
-			Some("convs".to_string()),
-		);
-
-		// Every Jedi channel is authenticated-read (#115): B, a logged-in socket
-		// with no relation to A's rows, may subscribe to the id-less `posts` feed
-		// and to any Post's comment thread. No per-row scope applies.
-		assert_eq!(
-			authorize_to_key(&ctx_b, &mm, Channel::Posts).await,
-			Some("posts".to_string()),
-		);
-		assert_eq!(
-			authorize_to_key(&ctx_b, &mm, Channel::PostComment(999)).await,
-			Some("post_comment:999".to_string()),
-			"any logged-in socket may subscribe to any Post comment thread",
-		);
+		for channel in [
+			Channel::Posts,
+			Channel::PostComment(999),
+			Channel::CaptionComment(999),
+			Channel::PostLike(999),
+			Channel::CaptionLike(999),
+			Channel::PostCaption(999),
+		] {
+			assert_eq!(
+				authorize_to_key(&ctx_b, &mm, channel).await,
+				Some(channel.key()),
+				"any logged-in socket may subscribe to {}",
+				channel.key(),
+			);
+		}
 
 		Ok(())
 	}

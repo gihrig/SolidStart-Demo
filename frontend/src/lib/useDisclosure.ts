@@ -9,8 +9,8 @@ import { useDismiss } from "~/lib/useDismiss";
  * `panelProps` carries the panel's `id` and the `inert` gate that removes a
  * hidden panel from the tab order. Callers spread these and keep only their own
  * open-driven paint (transitions differ per site). The home sidebar, the site
- * nav's mobile menu, the conversation drawer, and the site nav's profile dropdown
- * are the call sites; all hand-wired the identical `signal + aria + useDismiss + inert`
+ * nav's mobile menu, and the site nav's profile dropdown are the call sites;
+ * all hand-wired the identical `signal + aria + useDismiss + inert`
  * before this module owned it.
  */
 export type DisclosureMode = "drawer" | "popup";

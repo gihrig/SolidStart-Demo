@@ -89,6 +89,7 @@ export default function CreatePostDialog(props: CreatePostDialogProps) {
   const openDialog = () => {
     setCategoriesWanted(true);
     setCategoryError(null);
+    create.reset();
     dialogRef?.showModal();
   };
 

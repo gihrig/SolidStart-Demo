@@ -22,10 +22,11 @@ use tracing::{debug, warn};
 // region:    --- Subscription request
 
 /// The client → server subscribe/unsubscribe request. It carries a [`Channel`]
-/// flattened onto the request, so the wire stays `{ action, kind, id? }`: `kind`
-/// selects the variant and `id` rides inside it (ADR-0020). A `conv` request with
-/// no id therefore fails to deserialize — the arity check the old `parse` did by
-/// hand — and an unknown `kind` is a deserialize error, not a silent miss.
+/// flattened onto the request, so the wire stays `{ action, kind, id? }`:
+/// `kind` selects the variant and `id` rides inside it (ADR-0020). A
+/// `post_like` request with no id therefore fails to deserialize — the arity
+/// check the old `parse` did by hand — and an unknown `kind` is a deserialize
+/// error, not a silent miss.
 #[derive(Debug, Deserialize)]
 struct SubscriptionRequest {
 	action: String, // "subscribe" | "unsubscribe"
@@ -65,18 +66,18 @@ fn should_forward(subs: &HashSet<String>, channel: &str) -> bool {
 	subs.contains(channel)
 }
 
-/// The per-connection subscription cap. Because it is checked *before* the
-/// authorizing `ConvBmc::get`, it bounds both the authorized set and the number
-/// of concurrent authorizing DB reads a single connection can hold. The
-/// front-end holds one active subscription at a time, so 16 is generous headroom
-/// for conversation-switching and reconnect replay. Subscribe-frequency and
-/// server-side connection rate-limiting are deferred (#91 "Realtime hardening
-/// II").
+/// The per-connection subscription cap. It is checked *before*
+/// `Channel::authorize`, so it bounds the authorized set, and any authorizing
+/// read a future scoped channel adds (authorize is uniform authenticated-read
+/// today). The front-end holds one subscription per Jedi channel, six in all,
+/// so 16 is generous headroom for a moved selection and reconnect replay.
+/// Subscribe-frequency and server-side connection rate-limiting are deferred
+/// (#91 "Realtime hardening II").
 const MAX_SUBSCRIPTIONS: usize = 16;
 
 /// Whether a connection may admit another subscription without exceeding
-/// [`MAX_SUBSCRIPTIONS`]. Checked before the authorizing read, so a full set
-/// issues no further `ConvBmc::get`s.
+/// [`MAX_SUBSCRIPTIONS`]. Checked before `Channel::authorize`, so a full set
+/// runs no further authorization.
 fn has_subscription_capacity(subs: &HashSet<String>) -> bool {
 	subs.len() < MAX_SUBSCRIPTIONS
 }
@@ -163,10 +164,10 @@ async fn handle_socket(
 							// arity-broken channel never reaches here — serde rejects
 							// it while deserializing the request (ADR-0020).
 							"subscribe" => {
-								// Cap the per-connection set *before* the
-								// authorizing read, so a full connection
-								// issues no further `ConvBmc::get`s. Over the
-								// cap is ignored, like an unauthorized channel.
+								// Cap the per-connection set *before*
+								// `authorize`, so a full connection runs no
+								// further authorization. Over the cap is
+								// ignored, like an unauthorized channel.
 								let has_capacity = {
 									let subs = recv_subs.read().await;
 									has_subscription_capacity(&subs)
@@ -225,25 +226,17 @@ mod tests {
 	/// unknown-kind checks the old `parse` did by hand).
 	#[test]
 	fn subscription_request_deserialize_enforces_arity() {
-		// `conv` needs an id.
+		// An id-bearing kind deserializes with its id.
 		assert!(serde_json::from_str::<SubscriptionRequest>(
-			r#"{"action":"subscribe","kind":"conv","id":5}"#
+			r#"{"action":"subscribe","kind":"post_comment","id":5}"#
 		)
 		.is_ok());
-		assert!(serde_json::from_str::<SubscriptionRequest>(
-			r#"{"action":"subscribe","kind":"conv"}"#
-		)
-		.is_err());
-		// The id-less feeds deserialize with no id.
-		assert!(serde_json::from_str::<SubscriptionRequest>(
-			r#"{"action":"subscribe","kind":"agents"}"#
-		)
-		.is_ok());
+		// The id-less feed deserializes with no id.
 		assert!(serde_json::from_str::<SubscriptionRequest>(
 			r#"{"action":"subscribe","kind":"posts"}"#
 		)
 		.is_ok());
-		// An id-bearing Jedi kind needs an id.
+		// An id-bearing kind needs an id.
 		assert!(serde_json::from_str::<SubscriptionRequest>(
 			r#"{"action":"subscribe","kind":"post_like"}"#
 		)
@@ -251,7 +244,7 @@ mod tests {
 		// A stray id on an id-less kind is rejected: adjacent tagging requires the
 		// content (`id`) to be absent for a unit variant.
 		assert!(serde_json::from_str::<SubscriptionRequest>(
-			r#"{"action":"subscribe","kind":"agents","id":7}"#
+			r#"{"action":"subscribe","kind":"posts","id":7}"#
 		)
 		.is_err());
 		// An unknown kind is rejected.
@@ -265,10 +258,10 @@ mod tests {
 	#[test]
 	fn subscription_request_resolves_to_channel_key() {
 		let req = serde_json::from_str::<SubscriptionRequest>(
-			r#"{"action":"subscribe","kind":"conv","id":5}"#,
+			r#"{"action":"subscribe","kind":"post_comment","id":5}"#,
 		)
 		.unwrap();
-		assert_eq!(req.channel.key(), "conv:5");
+		assert_eq!(req.channel.key(), "post_comment:5");
 		let req = serde_json::from_str::<SubscriptionRequest>(
 			r#"{"action":"subscribe","kind":"post_like","id":9}"#,
 		)
@@ -280,16 +273,16 @@ mod tests {
 	fn should_forward_is_default_deny() {
 		let mut subs = HashSet::new();
 		assert!(
-			!should_forward(&subs, "conv:1"),
+			!should_forward(&subs, "post_comment:1"),
 			"empty set forwards nothing"
 		);
-		subs.insert("conv:1".to_string());
+		subs.insert("post_comment:1".to_string());
 		assert!(
-			should_forward(&subs, "conv:1"),
+			should_forward(&subs, "post_comment:1"),
 			"subscribed channel forwards"
 		);
 		assert!(
-			!should_forward(&subs, "conv:2"),
+			!should_forward(&subs, "post_comment:2"),
 			"unsubscribed channel is dropped"
 		);
 	}
@@ -302,7 +295,7 @@ mod tests {
 				has_subscription_capacity(&subs),
 				"a set below the cap admits another subscription"
 			);
-			subs.insert(format!("conv:{i}"));
+			subs.insert(format!("post_comment:{i}"));
 		}
 		assert_eq!(subs.len(), MAX_SUBSCRIPTIONS);
 		assert!(

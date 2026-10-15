@@ -1,4 +1,4 @@
-# Keep SolidStart for the front-end; treat full-Rust (Leptos / Topcoat) as a trade-off study, not a migration
+# SolidStart for the front-end; Full-Rust (Leptos / Topcoat) as a trade-off study
 
 Issue #17 pairs a back-end expansion and a mono-repo (see [ADR-0012](0012-postgres-turso-db-swap-seam.md),
 [ADR-0010](0010-monorepo-structure.md)) with a third question: is this the moment

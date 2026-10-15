@@ -51,6 +51,7 @@ function AuthTestConsumer() {
         Login
       </button>
       <button onClick={() => auth.logoff()}>Logoff</button>
+      <button onClick={() => auth.resetError()}>Reset error</button>
     </div>
   );
 }
@@ -116,6 +117,23 @@ describe("AuthContext", () => {
     expect(screen.getByTestId("threw").textContent).toBe("no");
     expect(screen.getByTestId("status").textContent).toBe("logged-out");
     expect(screen.getByTestId("username").textContent).toBe("none");
+  });
+
+  it("resetError() clears a failed login's error (a reopened login dialog, #128)", async () => {
+    const { backendRpc } = await import("~/lib/backend-rpc");
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    vi.mocked(backendRpc.auth.login).mockRejectedValueOnce(new Error("Invalid credentials"));
+    const user = userEvent.setup();
+    renderWithAuth();
+
+    await user.click(screen.getByRole("button", { name: /^login$/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId("error").textContent).toBe("Invalid credentials");
+    });
+
+    await user.click(screen.getByRole("button", { name: /reset error/i }));
+
+    expect(screen.getByTestId("error").textContent).toBe("none");
   });
 
   it("pending is true while login is in flight, then false", async () => {

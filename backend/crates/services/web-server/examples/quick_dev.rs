@@ -3,13 +3,14 @@
 pub type Result<T> = core::result::Result<T, Error>;
 pub type Error = Box<dyn std::error::Error>; // For examples.
 
+use lib_core::ctx::Ctx;
+use lib_core::model::post::PostBmc;
+use lib_core::model::ModelManager;
 use serde_json::{json, Value};
 
 #[tokio::main]
 async fn main() -> Result<()> {
 	let hc = httpc_test::new_client("http://localhost:8080")?;
-
-	// hc.do_get("/index.html").await?.print().await?;
 
 	// 1. Login
 	let req_login = hc.do_post(
@@ -21,79 +22,84 @@ async fn main() -> Result<()> {
 	);
 	req_login.await?.print().await?;
 
-	// 2. Create Agent
-	let req_create_agent = hc.do_post(
+	// 2. Create Post
+	let req_create_post = hc.do_post(
 		"/api/rpc",
 		json!({
 			"jsonrpc": "2.0",
 			"id": 1,
-			"method": "create_agent",
+			"method": "create_post",
 			"params": {
 				"data": {
-					"name": "agent AAA"
+					"title": "quick_dev post",
+					"image_src": "https://example.com/quick_dev.jpg",
+					"image_alt": "A quick_dev photo",
+					"photographer": "quick_dev",
+					"photographer_url": "https://example.com/quick_dev/",
+					"source_url": "https://example.com/quick_dev/1/",
+					"category_ids": [1]
 				}
 			}
 		}),
 	);
-	let result = req_create_agent.await?;
+	let result = req_create_post.await?;
 	result.print().await?;
-	// Extract agent_id
-	let agent_id = result.json_value::<i64>("/result/data/id")?;
+	// Extract post_id
+	let post_id = result.json_value::<i64>("/result/data/id")?;
 
-	// 3. Get Agent
-	let req_get_agent = hc.do_post(
+	// 3. Add Caption
+	let req_add_caption = hc.do_post(
 		"/api/rpc",
 		json!({
 			"jsonrpc": "2.0",
 			"id": 1,
-			"method": "get_agent",
-			"params": {
-					"id": agent_id
-			}
-		}),
-	);
-	let result = req_get_agent.await?;
-	result.print().await?;
-
-	// 4. Create Conversation
-	let req_create_conv = hc.do_post(
-		"/api/rpc",
-		json!({
-			"jsonrpc": "2.0",
-			"id": 1,
-			"method": "create_conv",
+			"method": "add_caption",
 			"params": {
 				"data": {
-					"agent_id": agent_id,
-					"title": "conv 01"
+					"post_id": post_id,
+					"text": "The first caption"
 				}
 			}
 		}),
 	);
-	let result = req_create_conv.await?;
+	let result = req_add_caption.await?;
 	result.print().await?;
-	// Extract conv_id
-	let conv_id = result.json_value::<i64>("/result/data/id")?;
+	// Extract caption_id
+	let caption_id = result.json_value::<i64>("/result/data/id")?;
 
-	// 5. Add Conv Message
-	let req_create_conv = hc.do_post(
+	// 4. Add Post Comment
+	let req_add_post_comment = hc.do_post(
 		"/api/rpc",
 		json!({
 			"jsonrpc": "2.0",
 			"id": 1,
-			"method": "add_conv_msg",
+			"method": "add_post_comment",
 			"params": {
 				"data": {
-					"conv_id": conv_id,
+					"post_id": post_id,
 					"content": "This is the first comment"
 				}
 			}
 		}),
 	);
-	let result = req_create_conv.await?;
+	let result = req_add_post_comment.await?;
 	result.print().await?;
-	// Extract conv_msg_id
-	let conv_msg_id = result.json_value::<i64>("/result/data/id")?;
+	// Extract post_comment_id
+	let post_comment_id = result.json_value::<i64>("/result/data/id")?;
+
+	// 5. Delete Post Comment
+	let req_delete_post_comment = hc.do_post(
+		"/api/rpc",
+		json!({
+			"jsonrpc": "2.0",
+			"id": 1,
+			"method": "delete_post_comment",
+			"params": {
+				"id": post_comment_id
+			}
+		}),
+	);
+	req_delete_post_comment.await?.print().await?;
 
 	// 6. Logoff
 	let req_logoff = hc.do_post(
@@ -103,6 +109,12 @@ async fn main() -> Result<()> {
 		}),
 	);
 	req_logoff.await?.print().await?;
+
+	// 7. Clean up: the API has no Post delete, so delete the Post through the
+	// model layer as root. The delete cascades to its Caption.
+	let mm = ModelManager::new().await?;
+	PostBmc::delete(&Ctx::root_ctx(), &mm, post_id).await?;
+	println!("=== Cleaned up: Post {post_id} and its Caption {caption_id}");
 
 	Ok(())
 }

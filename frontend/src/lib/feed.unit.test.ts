@@ -2,10 +2,8 @@ import { describe, it, expect, vi } from "vite-plus/test";
 import { createRoot, createSignal } from "solid-js";
 import { createMemoryFeed } from "./feed.memory";
 import { Channel } from "./channel";
-import type { CommentView, ConvMsg } from "~/types/backend";
+import type { CommentView } from "~/types/backend";
 
-const convMsg = (id: number, convId: number) =>
-  ({ id, conv_id: convId, content: `m${id}` }) as unknown as ConvMsg;
 const postComment = (id: number, postId: number) =>
   ({ id, parent_id: postId, content: `c${id}` }) as unknown as CommentView;
 
@@ -13,37 +11,21 @@ describe("Feed — routing by Channel key", () => {
   it("delivers a poke only to the Subscription held on its Channel", () => {
     const mem = createMemoryFeed();
     const onPosts = vi.fn();
-    const onAgents = vi.fn();
+    const onPostLike = vi.fn();
     createRoot(() => {
       mem.feed.subscribe(() => Channel.posts, onPosts);
-      mem.feed.subscribe(() => Channel.agents, onAgents);
+      mem.feed.subscribe(() => Channel.postLike(1), onPostLike);
     });
 
     mem.emit({ event_type: "poke", kind: "posts" });
 
     expect(onPosts).toHaveBeenCalledTimes(1);
     expect(onPosts).toHaveBeenCalledWith({ event_type: "poke", kind: "posts" });
-    expect(onAgents).not.toHaveBeenCalled();
+    expect(onPostLike).not.toHaveBeenCalled();
   });
 });
 
 describe("Feed — routing a payload Event", () => {
-  it("routes a conv_msg to conv:{conv_id}, as the back-end event.channel() does", () => {
-    const mem = createMemoryFeed();
-    const onConv7 = vi.fn();
-    const onConv8 = vi.fn();
-    createRoot(() => {
-      mem.feed.subscribe(() => Channel.conv(7), onConv7);
-      mem.feed.subscribe(() => Channel.conv(8), onConv8);
-    });
-
-    const event = { event_type: "conv_msg", payload: convMsg(1, 7) } as const;
-    mem.emit(event);
-
-    expect(onConv7).toHaveBeenCalledWith(event);
-    expect(onConv8).not.toHaveBeenCalled();
-  });
-
   it("routes a Post Comment upsert and removal to post_comment:{parent_id} (#124, #125)", () => {
     const mem = createMemoryFeed();
     const onPost7 = vi.fn();
@@ -104,24 +86,24 @@ describe("Feed — the per-holder refcount", () => {
     const a = vi.fn();
     const b = vi.fn();
     const disposeA = createRoot((d) => {
-      mem.feed.subscribe(() => Channel.conv(5), a);
+      mem.feed.subscribe(() => Channel.postComment(5), a);
       return d;
     });
     const disposeB = createRoot((d) => {
-      mem.feed.subscribe(() => Channel.conv(5), b);
+      mem.feed.subscribe(() => Channel.postComment(5), b);
       return d;
     });
     // The strict memory wire throws on a repeat subscribe, so one entry here
     // means one wire subscribe.
-    expect(mem.held()).toEqual([Channel.conv(5)]);
+    expect(mem.held()).toEqual([Channel.postComment(5)]);
 
-    mem.emit({ event_type: "conv_msg", payload: convMsg(1, 5) });
+    mem.emit({ event_type: "post_comment", payload: postComment(1, 5) });
     expect(a).toHaveBeenCalledTimes(1);
     expect(b).toHaveBeenCalledTimes(1);
 
     disposeA(); // one holder remains
-    expect(mem.held()).toEqual([Channel.conv(5)]);
-    mem.emit({ event_type: "conv_msg", payload: convMsg(2, 5) });
+    expect(mem.held()).toEqual([Channel.postComment(5)]);
+    mem.emit({ event_type: "post_comment", payload: postComment(2, 5) });
     expect(a).toHaveBeenCalledTimes(1);
     expect(b).toHaveBeenCalledTimes(2);
 
@@ -179,15 +161,16 @@ describe("Feed — the move on an accessor change", () => {
     createRoot(() => {
       mem.feed.subscribe(() => {
         tick();
-        return Channel.conv(3); // a new object with the same key
+        return Channel.postComment(3); // a new object with the same key
       }, vi.fn());
-      mem.feed.subscribe(() => Channel.conv(4), vi.fn());
+      mem.feed.subscribe(() => Channel.postComment(4), vi.fn());
     });
-    expect(mem.held()).toEqual([Channel.conv(3), Channel.conv(4)]);
+    expect(mem.held()).toEqual([Channel.postComment(3), Channel.postComment(4)]);
 
-    // A churn (unsubscribe, then subscribe) would move conv:3 behind conv:4.
+    // A churn (unsubscribe, then subscribe) would move post_comment:3 behind
+    // post_comment:4.
     setTick(1);
-    expect(mem.held()).toEqual([Channel.conv(3), Channel.conv(4)]);
+    expect(mem.held()).toEqual([Channel.postComment(3), Channel.postComment(4)]);
   });
 });
 
@@ -197,14 +180,14 @@ describe("Feed — replay and resync on each connect", () => {
     const calls: string[] = [];
     createRoot(() => {
       mem.feed.subscribe(
-        () => Channel.agents,
+        () => Channel.posts,
         (event) =>
-          calls.push(`agents:${event === undefined ? "resync" : "event"}:${mem.held().length}`),
+          calls.push(`posts:${event === undefined ? "resync" : "event"}:${mem.held().length}`),
       );
       mem.feed.subscribe(
-        () => Channel.convs,
+        () => Channel.postLike(1),
         (event) =>
-          calls.push(`convs:${event === undefined ? "resync" : "event"}:${mem.held().length}`),
+          calls.push(`post_like:${event === undefined ? "resync" : "event"}:${mem.held().length}`),
       );
     });
     // Disconnected: nothing reaches the server yet.
@@ -212,9 +195,9 @@ describe("Feed — replay and resync on each connect", () => {
 
     mem.setConnected(true);
 
-    expect(mem.held()).toEqual([Channel.agents, Channel.convs]);
+    expect(mem.held()).toEqual([Channel.posts, Channel.postLike(1)]);
     // Each resync ran after the full replay (both Channels already held).
-    expect(calls).toEqual(["agents:resync:2", "convs:resync:2"]);
+    expect(calls).toEqual(["posts:resync:2", "post_like:resync:2"]);
   });
 
   it("replays and resyncs again after a reconnect", () => {
