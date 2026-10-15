@@ -5,14 +5,15 @@ import LoginForm from "./LoginForm";
 export interface LoginDialogProps {
   /** Opens the modal when true; the owner sets it false from `onClose`. */
   open: boolean;
-  /** Runs on every close: a successful login, or Escape. */
+  /** Runs on every close: a successful login, Cancel, or Escape. */
   onClose: () => void;
 }
 
 /**
  * The login overlay (#128): the LoginForm in a modal `<dialog>`. The Nav owns
  * the open state. A successful login closes the dialog; a failed one keeps it
- * open with the error. Each open clears the last error.
+ * open with the error. Cancel and Escape close it, except while the login is in
+ * flight. Each open clears the last error.
  */
 export default function LoginDialog(props: LoginDialogProps) {
   const { pending, resetError } = useAuth();
@@ -38,7 +39,11 @@ export default function LoginDialog(props: LoginDialogProps) {
       aria-labelledby={headingId}
       class="theme-dialog max-w-md"
     >
-      <LoginForm headingId={headingId} onSuccess={() => dialogRef?.close()} />
+      <LoginForm
+        headingId={headingId}
+        onSuccess={() => dialogRef?.close()}
+        onCancel={() => dialogRef?.close()}
+      />
     </dialog>
   );
 }

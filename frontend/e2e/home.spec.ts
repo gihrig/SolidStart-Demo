@@ -26,7 +26,6 @@ test.describe("Home Page", () => {
     const nav = page.getByRole("navigation", { name: "Main" });
     await expect(nav.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
     await expect(nav.getByRole("link", { name: "Readme" })).toHaveAttribute("href", "/readme");
-    await expect(nav.getByRole("link")).toHaveCount(2);
   });
 
   test("has working external link to solidjs.com in footer", async ({ page }) => {

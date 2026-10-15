@@ -22,10 +22,11 @@ use tracing::{debug, warn};
 // region:    --- Subscription request
 
 /// The client → server subscribe/unsubscribe request. It carries a [`Channel`]
-/// flattened onto the request, so the wire stays `{ action, kind, id? }`: `kind`
-/// selects the variant and `id` rides inside it (ADR-0020). A `post_like` request
-/// with no id therefore fails to deserialize — the arity check the old `parse` did by
-/// hand — and an unknown `kind` is a deserialize error, not a silent miss.
+/// flattened onto the request, so the wire stays `{ action, kind, id? }`:
+/// `kind` selects the variant and `id` rides inside it (ADR-0020). A
+/// `post_like` request with no id therefore fails to deserialize — the arity
+/// check the old `parse` did by hand — and an unknown `kind` is a deserialize
+/// error, not a silent miss.
 #[derive(Debug, Deserialize)]
 struct SubscriptionRequest {
 	action: String, // "subscribe" | "unsubscribe"
@@ -70,9 +71,8 @@ fn should_forward(subs: &HashSet<String>, channel: &str) -> bool {
 /// read a future scoped channel adds (authorize is uniform authenticated-read
 /// today). The front-end holds one subscription per Jedi channel, six in all,
 /// so 16 is generous headroom for a moved selection and reconnect replay.
-/// Subscribe-frequency and
-/// server-side connection rate-limiting are deferred (#91 "Realtime hardening
-/// II").
+/// Subscribe-frequency and server-side connection rate-limiting are deferred
+/// (#91 "Realtime hardening II").
 const MAX_SUBSCRIPTIONS: usize = 16;
 
 /// Whether a connection may admit another subscription without exceeding

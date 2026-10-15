@@ -24,9 +24,9 @@ use ts_rs::TS;
 // region:    --- Post Types
 
 /// The `post` base row (#117). Every Post is public — read is unscoped, write is
-/// owner-only (the FullStack `kind`/`state` read scope is dropped, #106). The audit
-/// columns exist in the table but are intentionally absent from this struct: the
-/// model never reads them, and `PostView` (the public projection) is audit-free.
+/// owner-only (#106). The audit columns exist in the table but are intentionally
+/// absent from this struct: the model never reads them, and `PostView` (the
+/// public projection) is audit-free.
 /// `like` / `comment` counts are derived by COUNT, never stored here.
 #[derive(Debug, Clone, Fields, FromRow)]
 pub struct Post {

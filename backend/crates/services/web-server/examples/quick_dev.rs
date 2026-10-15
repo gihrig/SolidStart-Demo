@@ -3,6 +3,9 @@
 pub type Result<T> = core::result::Result<T, Error>;
 pub type Error = Box<dyn std::error::Error>; // For examples.
 
+use lib_core::ctx::Ctx;
+use lib_core::model::post::PostBmc;
+use lib_core::model::ModelManager;
 use serde_json::{json, Value};
 
 #[tokio::main]
@@ -84,7 +87,21 @@ async fn main() -> Result<()> {
 	// Extract post_comment_id
 	let post_comment_id = result.json_value::<i64>("/result/data/id")?;
 
-	// 5. Logoff
+	// 5. Delete Post Comment
+	let req_delete_post_comment = hc.do_post(
+		"/api/rpc",
+		json!({
+			"jsonrpc": "2.0",
+			"id": 1,
+			"method": "delete_post_comment",
+			"params": {
+				"id": post_comment_id
+			}
+		}),
+	);
+	req_delete_post_comment.await?.print().await?;
+
+	// 6. Logoff
 	let req_logoff = hc.do_post(
 		"/api/logoff",
 		json!({
@@ -92,6 +109,12 @@ async fn main() -> Result<()> {
 		}),
 	);
 	req_logoff.await?.print().await?;
+
+	// 7. Clean up: the API has no Post delete, so delete the Post through the
+	// model layer as root. The delete cascades to its Caption.
+	let mm = ModelManager::new().await?;
+	PostBmc::delete(&Ctx::root_ctx(), &mm, post_id).await?;
+	println!("=== Cleaned up: Post {post_id} and its Caption {caption_id}");
 
 	Ok(())
 }

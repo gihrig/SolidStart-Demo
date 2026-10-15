@@ -18,7 +18,7 @@ This update ([GitHub tag: E06](https://github.com/rust10x/rust-web-app/releases/
 - **1) Data Model Change**
   - The upstream blueprint moved from the simple `Project / Task` model to an AI-chat model.
   - This project has since replaced that model with the Jedi model: `Category`, `Post`, `Caption`, and the Post and Caption Comments (#128).
-  - The `examples/quick_dev` reflects the Jedi model: login, `create_post`, `add_caption`, `add_post_comment`.
+  - The `examples/quick_dev` reflects the Jedi model: login, `create_post`, `add_caption`, `add_post_comment`, `delete_post_comment`, logoff, then a model-layer delete of the Post, so each run leaves no rows.
 
 - **2) ModelManager DB Transaction Support**
   - There's a significant enhancement to the `ModelManager`, which now contains a `lib_core::model::store::Dbx` implementing an on-demand **database transaction** support.

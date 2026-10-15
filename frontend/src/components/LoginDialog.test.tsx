@@ -83,24 +83,36 @@ describe("<LoginDialog />", () => {
     expect(dialog.open).toBe(true);
   });
 
-  it("refuses Escape while the login is pending, and allows it otherwise", async () => {
+  it("closes on Cancel and reports the close", async () => {
+    const { user, dialog, form, open } = renderDialog();
+    await user.click(screen.getByRole("button", { name: "open-login" }));
+
+    await user.click(form.getByRole("button", { name: "Cancel" }));
+
+    expect(dialog.open).toBe(false);
+    expect(open()).toBe(false);
+  });
+
+  it("refuses Escape and Cancel while the login is pending, and allows them otherwise", async () => {
     const { backendRpc } = await import("~/lib/backend-rpc");
-    let land!: (v: { result: { success: boolean } }) => void;
+    let resolveLogin!: (v: { result: { success: boolean } }) => void;
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    vi.mocked(backendRpc.auth.login).mockReturnValueOnce(new Promise((r) => (land = r)));
+    vi.mocked(backendRpc.auth.login).mockReturnValueOnce(new Promise((r) => (resolveLogin = r)));
     const { user, dialog, form } = renderDialog();
     await user.click(screen.getByRole("button", { name: "open-login" }));
 
     const idleEsc = new Event("cancel", { cancelable: true });
     dialog.dispatchEvent(idleEsc);
     expect(idleEsc.defaultPrevented).toBe(false);
+    expect(form.getByRole("button", { name: "Cancel" })).toHaveProperty("disabled", false);
 
     await user.click(form.getByRole("button", { name: /^login$/i }));
     const pendingEsc = new Event("cancel", { cancelable: true });
     dialog.dispatchEvent(pendingEsc);
     expect(pendingEsc.defaultPrevented).toBe(true);
+    expect(form.getByRole("button", { name: "Cancel" })).toHaveProperty("disabled", true);
 
-    land({ result: { success: true } });
+    resolveLogin({ result: { success: true } });
     await waitFor(() => expect(dialog.open).toBe(false));
   });
 

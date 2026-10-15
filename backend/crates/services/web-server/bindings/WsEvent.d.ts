@@ -6,13 +6,14 @@ import type { CommentView } from "./CommentView.d";
 /**
  * The realtime feed envelope, a discriminated union tagged by `event_type`
  * (internal serde tagging). ts-rs exports it, so the front-end narrows on the
- * tag and reads a typed payload — no cast. Every contentless poke is one `Poke` variant carrying its [`Channel`] (#85):
- * the poke pushes no domain row, only the id its routing key needs, held inside
- * the `Channel`. A subscriber refetches through the scoped `list_*` RPC. The two
- * Jedi comment channels (`post_comment`, `caption_comment`) push a payload. A
- * Post Comment add or edit pushes `post_comment` (a `CommentView`), and a
- * delete pushes `post_comment_removal` (a `CommentRemoval`: the id and
- * `parent_id`) (#124, #125). A Caption Comment pushes `caption_comment` and
+ * tag and reads a typed payload — no cast. Every contentless poke is one
+ * `Poke` variant carrying its [`Channel`] (#85): the poke pushes no domain
+ * row, only the id its routing key needs, held inside the `Channel`. A
+ * subscriber refetches through the scoped `list_*` RPC. The two Jedi comment
+ * channels (`post_comment`, `caption_comment`) push a payload. A Post Comment
+ * add or edit pushes `post_comment` (a `CommentView`), and a delete pushes
+ * `post_comment_removal` (a `CommentRemoval`: the id and `parent_id`) (#124,
+ * #125). A Caption Comment pushes `caption_comment` and
  * `caption_comment_removal` in the same shapes (#127). The routing `Channel`
  * is derived from the event (see the `channel` method below), not carried as a
  * separate field: a payload event reads it from the payload, a poke carries it

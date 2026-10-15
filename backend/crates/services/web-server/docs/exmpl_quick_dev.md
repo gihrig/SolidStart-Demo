@@ -4,9 +4,9 @@
 
 The quick development testing module provides a comprehensive end-to-end testing framework for the web application's API endpoints. This module serves as an integration testing tool that validates the complete user workflow from authentication through core application functionality, ensuring all API endpoints work correctly together.
 
-The module implements a sequential testing pattern that mirrors real user interactions with the application. It performs user authentication, creates Jedi entities (a Post, a Caption and a Post Comment), and tests write operations through the JSON-RPC API interface. This approach validates not only individual endpoint functionality but also the integration between different system components.
+The module implements a sequential testing pattern that mirrors real user interactions with the application. It performs user authentication, creates Jedi entities (a Post, a Caption and a Post Comment), tests write operations through the JSON-RPC API interface, and then deletes the rows it created. This approach validates not only individual endpoint functionality but also the integration between different system components.
 
-Key responsibilities include authenticating users through the login endpoint, testing Post creation, testing Caption and Post Comment creation on that Post, and ensuring proper session management through logout operations.
+Key responsibilities include authenticating users through the login endpoint, testing Post creation, testing Caption and Post Comment creation on that Post, testing the Post Comment delete, ensuring proper session management through logout operations, and leaving the development database as it found it.
 
 ## API Summary
 
@@ -49,7 +49,9 @@ async fn main() -> Result<()>
 3. Create a Post
 4. Add a Caption to the Post
 5. Add a Comment to the Post
-6. Perform user logout to clean up session
+6. Delete the Comment
+7. Perform user logout to clean up session
+8. Delete the Post through the model layer (the delete cascades to its Caption)
 
 **Example Usage:**
 ```bash
@@ -78,7 +80,9 @@ The testing process follows these sequential steps:
 3. **Post Creation**: A new Post is created using the JSON-RPC create_post method
 4. **Caption Addition**: A Caption is added to the Post using the add_caption method
 5. **Comment Addition**: A Comment is added to the Post using the add_post_comment method
-6. **Session Cleanup**: User logout is performed to properly terminate the session
+6. **Comment Deletion**: The Comment is deleted using the delete_post_comment method
+7. **Session Cleanup**: User logout is performed to properly terminate the session
+8. **Data Cleanup**: The API has no Post delete, so the example connects to the database through a `ModelManager` and deletes the Post as root with `PostBmc::delete`; the delete cascades to its Caption
 
 ### API Testing Coverage
 
@@ -92,6 +96,7 @@ The module provides comprehensive testing coverage for key API endpoints:
 - **create_post**: Post creation with its photo fields and at least one Category id
 - **add_caption**: Caption creation on a Post, with the Caption text
 - **add_post_comment**: Comment creation on a Post, with the Comment content
+- **delete_post_comment**: Comment deletion by id (owner-only)
 
 ### Request Pattern Analysis
 
@@ -165,6 +170,7 @@ The module relies on several key dependencies for its testing functionality:
 - **httpc_test**: HTTP client testing library for making requests to the development server
 - **serde_json**: JSON serialization and deserialization with macro support for request building
 - **std::error::Error**: Standard error handling trait for flexible error management
+- **lib_core**: `ModelManager`, `Ctx::root_ctx()` and `PostBmc::delete` for the final cleanup; the database URL comes from `SERVICE_DB_URL` in `backend/.cargo/config.toml`
 
 ### Design Decisions
 
@@ -180,6 +186,7 @@ The module relies on several key dependencies for its testing functionality:
 2. **Local Server Only**: Hardcoded to localhost:8080 to prevent accidental production testing
 3. **Session Cleanup**: Properly logs out after testing to clean up authentication state
 4. **No Sensitive Data**: All test data uses generic placeholder content
+5. **Root Cleanup**: The final delete uses the root ctx, which bypasses the owner scope; it deletes only the Post id the run created
 
 ### Performance Considerations
 
@@ -203,7 +210,7 @@ When using the quick development module:
 
 - **Server State**: Ensure the development server is running on localhost:8080
 - **Database State**: Verify that demo user exists and test entities can be created
-- **Clean State**: Run tests from a clean database state for consistent results
+- **Clean State**: Each run deletes the rows it creates; if a step fails, the run stops and the rows created so far stay in the database
 - **Output Review**: Manually review printed responses to verify correct behavior
 - **Error Analysis**: Investigate any step failures to identify system issues
 - **Performance Monitoring**: Monitor response times to detect performance regressions

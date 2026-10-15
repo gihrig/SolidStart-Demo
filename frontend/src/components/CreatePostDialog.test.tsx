@@ -207,6 +207,7 @@ describe("<CreatePostDialog />", () => {
     expect((await form.findByRole("alert")).textContent).toContain("unsafe URL");
     expect((dialog as HTMLDialogElement).open).toBe(true);
   });
+
   it("shows no old rejection when it opens again (#128)", async () => {
     postCreateMock.mockRejectedValue(new Error("RPC Error: unsafe URL"));
     const { user, dialog, form } = await openAndFill();

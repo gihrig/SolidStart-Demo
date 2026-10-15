@@ -6,6 +6,8 @@ export interface LoginFormProps {
   onSuccess?: () => void;
   /** The heading's id, so a wrapping dialog can take its name from it. */
   headingId?: string;
+  /** Shows a Cancel button that runs this; it is disabled while the login is in flight. */
+  onCancel?: () => void;
 }
 
 export default function LoginForm(props: LoginFormProps) {
@@ -58,13 +60,25 @@ export default function LoginForm(props: LoginFormProps) {
         />
       </div>
 
-      <button
-        type="submit"
-        disabled={pending()}
-        class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-      >
-        {pending() ? "Logging in..." : "Login"}
-      </button>
+      <div class="flex justify-end gap-2">
+        <Show when={props.onCancel}>
+          <button
+            type="button"
+            disabled={pending()}
+            onClick={() => props.onCancel?.()}
+            class="theme-button disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </Show>
+        <button
+          type="submit"
+          disabled={pending()}
+          class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          {pending() ? "Logging in..." : "Login"}
+        </button>
+      </div>
     </form>
   );
 }

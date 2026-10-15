@@ -14,12 +14,13 @@ test("renders the global nav with brand + links", async ({ page }) => {
 
   await expect(nav.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
   await expect(nav.getByRole("link", { name: "Readme" })).toHaveAttribute("href", "/readme");
-  await expect(nav.getByRole("link")).toHaveCount(2);
 
-  // Brand is the home affordance; no separate Home or Jedi link.
+  // Brand is the home affordance; no separate Home or Jedi link. The FullStack
+  // link is gone (#128).
   await expect(page.getByRole("link", { name: /awesome/i })).toHaveAttribute("href", "/");
   await expect(nav.getByRole("link", { name: "Home" })).toHaveCount(0);
   await expect(nav.getByRole("link", { name: "Jedi" })).toHaveCount(0);
+  await expect(nav.getByRole("link", { name: "FullStack" })).toHaveCount(0);
 });
 
 // 2. Nav link navigation
