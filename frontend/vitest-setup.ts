@@ -1,6 +1,10 @@
 import { cleanup } from "@solidjs/testing-library";
 import { afterEach, expect } from "vite-plus/test";
 
+// jsdom has no `window.scrollTo`; the router calls it after each navigation and
+// jsdom prints "Not implemented". Scrolling has no effect in jsdom, so a no-op.
+window.scrollTo = () => {};
+
 // Solid warns when a computation, a cleanup or an error handler is created with
 // no owner, e.g. after an `await` or in an event handler. Nothing disposes it,
 // so it leaks. Each such warning fails the test that raised it. The fix is to

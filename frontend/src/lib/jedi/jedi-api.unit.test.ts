@@ -261,10 +261,13 @@ describe("jediApi.profile", () => {
     expect(sanitizeSpy.mock.calls.flat()).toContain(profile.avatarUrl);
   });
 
-  it("maps a User with no avatar to the empty URL", async () => {
+  it("maps a User with no avatar to the empty URL, without the sanitizer", async () => {
     onAuthenticated({ get_profile: { id: 1000, name: "demo1", avatar_url: null } });
     const profile = await jediApi.profile.get();
     expect(profile).toEqual({ id: 1000, name: "demo1", avatarUrl: "" });
+    // No avatar is not an unsafe URL: the sanitizer would warn "Blocked unsafe
+    // URL" for the empty string on every login of a User with no avatar.
+    expect(sanitizeSpy).not.toHaveBeenCalled();
   });
 });
 
