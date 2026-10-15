@@ -8,6 +8,9 @@ import { defineConfig, devices } from "@playwright/test";
 // import path from 'path';
 // dotenv.config({ path: path.resolve(__dirname, '.env') });
 
+/** The spec that changes seeded Like counts; only the `live` project runs it (#129). */
+const LIVE_SPEC = /live\.spec\.ts$/;
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -47,16 +50,28 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      testIgnore: LIVE_SPEC,
     },
 
     {
       name: "firefox",
       use: { ...devices["Desktop Firefox"] },
+      testIgnore: LIVE_SPEC,
     },
 
     {
       name: "webkit",
       use: { ...devices["Desktop Safari"] },
+      testIgnore: LIVE_SPEC,
+    },
+
+    /* The two-client live test changes seeded counts (#129), so it runs once,
+       after every seed-count check in the browser projects has finished. */
+    {
+      name: "live",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: LIVE_SPEC,
+      dependencies: ["chromium", "firefox", "webkit"],
     },
 
     /* Test against mobile viewports. */

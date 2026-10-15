@@ -4,6 +4,8 @@
 # Starts the Back-End server (release) and the Front-End server, runs Playwright,
 # then stops both. Assumes Postgres is running (see `cgs db`); a cold release
 # compile can be slow, so run `cgs release` first if the back-end times out below.
+# It refuses to reuse a running back-end (#129): each back-end start rebuilds the
+# DB from the seed, so each run starts from the seed counts the specs check.
 
 # Exit on error
 set -e
@@ -69,40 +71,44 @@ be_ready() {
   [ "$code" = "401" ] && echo "$body" | grep -q "NO_AUTH"
 }
 
-# Reuse an already-running back-end if one is up; otherwise start our own.
-# When we start it, it's quiet by default (the back-end logs at debug via
-# .cargo/config.toml, which is noisy under Playwright). Override the level per
-# run, e.g. `E2E_RUST_LOG=debug vpr test:e2e`. A back-end we did NOT start keeps
-# its own log level — stop it first if you want E2E_RUST_LOG to take effect.
-if be_ready; then
-  echo "Back-End already running on :8080 — reusing it."
-  echo "  (Its log level is that process's own, not E2E_RUST_LOG=${E2E_RUST_LOG:-warn}.)"
-else
-  # The web-server logs to stdout (kept visible); cargo/cgs build output and the
-  # SIGTERM "failure" it prints when we stop it go to stderr -> a log file, so
-  # they don't clutter the e2e run. Inspect the file if the back-end misbehaves.
-  BE_ERR_LOG="reports/e2e-backend.stderr.log"
-  mkdir -p reports
-  echo "Starting Back-End server (release, RUST_LOG=${E2E_RUST_LOG:-warn}; build log -> $BE_ERR_LOG)..."
-  (cd ../backend && RUST_LOG="${E2E_RUST_LOG:-warn}" cgs start) 2>"$BE_ERR_LOG" &
-  BE_PID=$!
-  BE_STARTED=1
-
-  # Wait for the Back-End to be ready (with timeout)
-  echo "Waiting for Back-End server to be ready..."
-  BE_MAX_ATTEMPTS=240  # 120 seconds (240 * 0.5s) — allows for a release compile
-  BE_ATTEMPT=0
-  until be_ready; do
-    BE_ATTEMPT=$((BE_ATTEMPT + 1))
-    if [ $BE_ATTEMPT -ge $BE_MAX_ATTEMPTS ]; then
-      echo "Back-End server failed to start within 120 seconds. Last stderr:"
-      tail -n 20 "$BE_ERR_LOG" 2>/dev/null || true
-      exit 1
-    fi
-    sleep 0.5
-  done
-  echo "Back-End server OK: RPC unauthenticated request returned HTTP 401 with NO_AUTH"
+# Refuse a running back-end (#129): its DB may hold counts that differ from the
+# seed (a Like click in manual use, or an earlier run), and the specs check the
+# seed counts. Also refuse any other listener on :8080, which our back-end
+# could not bind. Neither is ours, so the cleanup trap leaves it running.
+if be_ready || [ -n "$(lsof -ti tcp:8080 -sTCP:LISTEN 2>/dev/null || true)" ]; then
+  echo "Error: a server is already listening on :8080." >&2
+  echo "  Stop it, then run the e2e tests again. Each run starts its own back-end," >&2
+  echo "  which rebuilds the DB from the seed." >&2
+  exit 1
 fi
+
+# Our back-end is quiet by default (it logs at debug via .cargo/config.toml,
+# which is noisy under Playwright). Override the level per run, e.g.
+# `E2E_RUST_LOG=debug vpr test:e2e`.
+# The web-server logs to stdout (kept visible); cargo/cgs build output and the
+# SIGTERM "failure" it prints when we stop it go to stderr -> a log file, so
+# they don't clutter the e2e run. Inspect the file if the back-end misbehaves.
+BE_ERR_LOG="reports/e2e-backend.stderr.log"
+mkdir -p reports
+echo "Starting Back-End server (release, RUST_LOG=${E2E_RUST_LOG:-warn}; build log -> $BE_ERR_LOG)..."
+(cd ../backend && RUST_LOG="${E2E_RUST_LOG:-warn}" cgs start) 2>"$BE_ERR_LOG" &
+BE_PID=$!
+BE_STARTED=1
+
+# Wait for the Back-End to be ready (with timeout)
+echo "Waiting for Back-End server to be ready..."
+BE_MAX_ATTEMPTS=240  # 120 seconds (240 * 0.5s) — allows for a release compile
+BE_ATTEMPT=0
+until be_ready; do
+  BE_ATTEMPT=$((BE_ATTEMPT + 1))
+  if [ $BE_ATTEMPT -ge $BE_MAX_ATTEMPTS ]; then
+    echo "Back-End server failed to start within 120 seconds. Last stderr:"
+    tail -n 20 "$BE_ERR_LOG" 2>/dev/null || true
+    exit 1
+  fi
+  sleep 0.5
+done
+echo "Back-End server OK: RPC unauthenticated request returned HTTP 401 with NO_AUTH"
 echo
 
 # Create project release build
