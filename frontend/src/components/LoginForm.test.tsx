@@ -46,14 +46,14 @@ describe("<LoginForm />", () => {
     expect(screen.getByRole("button", { name: /login/i })).toBeInTheDocument();
   });
 
-  it("has default demo credentials pre-filled", () => {
+  it("opens with the username and password fields empty", () => {
     renderWithAuth();
 
     const usernameInput = screen.getByLabelText(/username/i) as HTMLInputElement;
     const passwordInput = screen.getByLabelText(/password/i) as HTMLInputElement;
 
-    expect(usernameInput.value).toBe("demo1");
-    expect(passwordInput.value).toBe("welcome");
+    expect(usernameInput.value).toBe("");
+    expect(passwordInput.value).toBe("");
   });
 
   it("disables the button and shows 'Logging in...' while login is in flight", async () => {
@@ -66,6 +66,8 @@ describe("<LoginForm />", () => {
     const user = userEvent.setup();
     renderWithAuth();
 
+    await user.type(screen.getByLabelText(/username/i), "demo1");
+    await user.type(screen.getByLabelText(/password/i), "welcome");
     await user.click(screen.getByRole("button", { name: /^login$/i }));
 
     await waitFor(() => expect(screen.getByRole("button", { name: /logging in/i })).toBeDisabled());
@@ -83,9 +85,7 @@ describe("<LoginForm />", () => {
     const passwordInput = screen.getByLabelText(/password/i);
     const submitButton = screen.getByRole("button", { name: /login/i });
 
-    await user.clear(usernameInput);
     await user.type(usernameInput, "testuser");
-    await user.clear(passwordInput);
     await user.type(passwordInput, "testpass");
     await user.click(submitButton);
 
