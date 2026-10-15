@@ -619,3 +619,10 @@ jobs:
       - name: Run Playwright e2e
         working-directory: frontend
         run: playwright test --project=chromium
+
+      # The two-client test changes seeded counts, so it runs after the
+      # seed-count checks above (#129). --no-deps skips the firefox and webkit
+      # projects that `live` depends on; CI installs chromium only.
+      - name: Run Playwright live e2e
+        working-directory: frontend
+        run: playwright test --project=live --no-deps
