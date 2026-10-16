@@ -1,6 +1,6 @@
 import { Show } from "solid-js";
 import type { CaptionView } from "~/types/jedi";
-import AddCaptionForm, { type AddCaptionFormProps } from "~/components/AddCaptionForm";
+import CaptionForm, { type CaptionFormProps } from "~/components/CaptionForm";
 
 export interface PostCaptionProps {
   /** The Post the caption belongs to. */
@@ -16,7 +16,7 @@ export interface PostCaptionProps {
   /** Called when the form closes: on Cancel, or once the back-end commits. */
   onClose: () => void;
   /** Passed through to the form (the inject-or-default idiom). */
-  api?: AddCaptionFormProps["api"];
+  api?: CaptionFormProps["api"];
 }
 
 /**
@@ -43,7 +43,7 @@ export default function PostCaption(props: PostCaptionProps) {
             refetch keeps the id, so it never clears a draft mid-typing. */}
         <Show when={props.postId} keyed>
           {(postId) => (
-            <AddCaptionForm
+            <CaptionForm
               postId={postId}
               api={props.api}
               autofocus={props.adding}

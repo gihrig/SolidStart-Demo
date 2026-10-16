@@ -11,7 +11,7 @@ import { useDraft } from "~/components/DraftGuardContext";
 // `tsc` (ADR-0029); the back-end stays the authoritative check.
 const CAPTION_MAX_LENGTH = 36 satisfies HygieneCaps["caption"]["text"];
 
-export interface AddCaptionFormProps {
+export interface CaptionFormProps {
   /** The Post the Caption competes on. */
   postId: number;
   /** Called with the new Caption once the back-end has committed it. */
@@ -32,7 +32,7 @@ export interface AddCaptionFormProps {
  * the back-end fires on commit, not through this form. It reports a Draft to
  * the app's guard while its text is not blank (ADR-0030).
  */
-export default function AddCaptionForm(props: AddCaptionFormProps) {
+export default function CaptionForm(props: CaptionFormProps) {
   const api = props.api ?? jediApi;
   let inputRef: HTMLInputElement | undefined;
   const [value, setValue] = createSignal("");

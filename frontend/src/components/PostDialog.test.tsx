@@ -6,7 +6,7 @@ import { trustedUrl } from "~/lib/sanitizeUrl";
 import { stubDialogModal } from "~/lib/test-utils";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { JediCategory, PostDraft, PostView } from "~/types/jedi";
-import CreatePostDialog from "./CreatePostDialog";
+import PostDialog from "./PostDialog";
 
 beforeAll(stubDialogModal);
 
@@ -56,7 +56,7 @@ beforeEach(() => {
 // unchecked so each test chooses its own.
 async function openAndFill() {
   const user = userEvent.setup();
-  render(() => <CreatePostDialog api={api} />);
+  render(() => <PostDialog api={api} />);
   await user.click(screen.getByRole("button", { name: "New Post" }));
   const dialog = screen.getByRole("dialog", { hidden: true });
   const form = within(dialog);
@@ -69,10 +69,10 @@ async function openAndFill() {
   return { user, dialog, form };
 }
 
-describe("<CreatePostDialog />", () => {
+describe("<PostDialog />", () => {
   it("opens as a modal and loads the Categories to choose from", async () => {
     const user = userEvent.setup();
-    render(() => <CreatePostDialog api={api} />);
+    render(() => <PostDialog api={api} />);
     const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
     expect(dialog.open).toBe(false);
     expect(categoryListMock).not.toHaveBeenCalled();
@@ -87,7 +87,7 @@ describe("<CreatePostDialog />", () => {
 
   it("opens from a custom trigger: 'Add', named 'Add Post' (the Post line, #123)", async () => {
     const user = userEvent.setup();
-    render(() => <CreatePostDialog api={api} triggerLabel="Add" triggerAriaLabel="Add Post" />);
+    render(() => <PostDialog api={api} triggerLabel="Add" triggerAriaLabel="Add Post" />);
     const trigger = screen.getByRole("button", { name: "Add Post" });
     expect(trigger).toHaveTextContent(/^Add$/);
 
@@ -106,7 +106,7 @@ describe("<CreatePostDialog />", () => {
     const user = userEvent.setup();
     render(() => (
       <Suspense fallback="Loading">
-        <CreatePostDialog api={api} triggerLabel="Add" triggerAriaLabel="Add Post" />
+        <PostDialog api={api} triggerLabel="Add" triggerAriaLabel="Add Post" />
       </Suspense>
     ));
 
@@ -124,8 +124,8 @@ describe("<CreatePostDialog />", () => {
   it("gives each dialog its own heading id, so two on one page keep their names", () => {
     render(() => (
       <>
-        <CreatePostDialog api={api} />
-        <CreatePostDialog api={api} triggerLabel="Add" triggerAriaLabel="Add Post" />
+        <PostDialog api={api} />
+        <PostDialog api={api} triggerLabel="Add" triggerAriaLabel="Add Post" />
       </>
     ));
     const ids = screen
@@ -138,7 +138,7 @@ describe("<CreatePostDialog />", () => {
   it("shows a failed Categories load and retries it (#120 review)", async () => {
     categoryListMock.mockRejectedValueOnce(new Error("RPC Error: down"));
     const user = userEvent.setup();
-    render(() => <CreatePostDialog api={api} />);
+    render(() => <PostDialog api={api} />);
     await user.click(screen.getByRole("button", { name: "New Post" }));
     const form = within(screen.getByRole("dialog", { hidden: true }));
 

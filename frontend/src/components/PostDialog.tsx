@@ -49,7 +49,7 @@ const TEXT_FIELDS = [
 
 type TextFieldName = (typeof TEXT_FIELDS)[number]["name"];
 
-export interface CreatePostDialogProps {
+export interface PostDialogProps {
   /** The Jedi seam slice the dialog uses. Defaults to the real `jediApi`; a test
    *  injects an in-memory stand-in (the inject-or-default idiom). */
   api?: {
@@ -69,7 +69,7 @@ export interface CreatePostDialogProps {
  * the back-end has committed the Post, then closes. The new Post reaches the feed
  * through the `posts` poke the back-end fires on commit, not through this form.
  */
-export default function CreatePostDialog(props: CreatePostDialogProps) {
+export default function PostDialog(props: PostDialogProps) {
   const api = props.api ?? jediApi;
   // One id per instance: the Nav and the Post line can both render this dialog.
   const headingId = createUniqueId();

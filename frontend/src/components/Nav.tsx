@@ -2,7 +2,7 @@ import { createSignal, For, Show } from "solid-js";
 import { useDisclosure } from "~/lib/useDisclosure";
 import { useAuth } from "~/components/AuthContext";
 import { useDraftGuard } from "~/components/DraftGuardContext";
-import CreatePostDialog from "~/components/CreatePostDialog";
+import PostDialog from "~/components/PostDialog";
 import Icon from "~/components/Icon";
 import InitialsAvatar from "~/components/InitialsAvatar";
 import LoginDialog from "~/components/LoginDialog";
@@ -129,7 +129,7 @@ export default function Nav() {
 
           {/* Create a Post (#120) — a logged-in User only */}
           <Show when={isAuthenticated()}>
-            <CreatePostDialog />
+            <PostDialog />
           </Show>
 
           <ThemeToggle />

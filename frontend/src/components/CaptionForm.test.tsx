@@ -5,7 +5,7 @@ import { createSignal, Show } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { CaptionView } from "~/types/jedi";
-import AddCaptionForm, { type AddCaptionFormProps } from "./AddCaptionForm";
+import CaptionForm, { type CaptionFormProps } from "./CaptionForm";
 
 const ADDED: CaptionView = {
   id: 99,
@@ -23,13 +23,13 @@ beforeEach(() => {
   captionAddMock.mockReset();
 });
 
-function renderForm(props: Partial<AddCaptionFormProps> = {}) {
+function renderForm(props: Partial<CaptionFormProps> = {}) {
   const user = userEvent.setup();
-  render(() => <AddCaptionForm postId={1} api={api} {...props} />);
+  render(() => <CaptionForm postId={1} api={api} {...props} />);
   return { user, input: screen.getByLabelText("Your caption") as HTMLInputElement };
 }
 
-describe("<AddCaptionForm />", () => {
+describe("<CaptionForm />", () => {
   it("submits the text for the Post, then clears the input (#121)", async () => {
     captionAddMock.mockResolvedValue(ADDED);
     const { user, input } = renderForm();
@@ -131,7 +131,7 @@ describe("<AddCaptionForm />", () => {
     const user = userEvent.setup();
     render(() => (
       <Show when={shown()}>
-        <AddCaptionForm postId={1} api={api} onAdded={onAdded} />
+        <CaptionForm postId={1} api={api} onAdded={onAdded} />
       </Show>
     ));
 

@@ -6,7 +6,7 @@ import type { PostView, CaptionView, Like } from "~/types/jedi";
 import Image from "~/components/Image";
 import Author from "~/components/Author";
 import CommentThread from "~/components/CommentThread";
-import CreatePostDialog from "~/components/CreatePostDialog";
+import PostDialog from "~/components/PostDialog";
 import LikeControl from "~/components/LikeControl";
 import OwnerActions from "~/components/OwnerActions";
 import PostCaption from "~/components/PostCaption";
@@ -266,7 +266,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               onToggle={() => void toggleLike.run(undefined)}
             />
             <Show when={props.loggedIn}>
-              <CreatePostDialog triggerLabel="Add" triggerAriaLabel="Add Post" />
+              <PostDialog triggerLabel="Add" triggerAriaLabel="Add Post" />
             </Show>
             <OwnerActions
               noun="Post"
