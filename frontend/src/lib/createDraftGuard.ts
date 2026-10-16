@@ -2,7 +2,7 @@ import { batch, createSignal, getOwner, onCleanup, type Accessor } from "solid-j
 import { isServer } from "solid-js/web";
 
 /** A group of forms that one move unmounts, such as the forms in one panel.
- *  A move with a scope asks only about the Drafts in it. */
+ *  A move that names scopes asks only about the Drafts in them. */
 export type DraftScope = symbol;
 
 /** The app-level guard for unsaved form text (ADR-0030). */
@@ -18,14 +18,17 @@ export interface DraftGuard {
    *  reports it too. */
   report: (key: symbol, dirty: boolean, scope?: DraftScope) => void;
   /** Run a user-started move. With no Draft, it runs at once. With a Draft, it
-   *  waits for the confirm dialog: `confirmMove` or `cancelMove`. A move with a
-   *  `scope` unmounts only that scope's forms, so it asks only about their
-   *  Drafts. */
-  attempt: (move: () => void, scope?: DraftScope) => void;
+   *  waits for the confirm dialog: `confirmMove` or `cancelMove`. A move names
+   *  every scope that it unmounts, and it asks only about the Drafts in them. A
+   *  move with no `scopes` asks about every Draft. */
+  attempt: (move: () => void, scopes?: readonly DraftScope[]) => void;
+  /** Whether a form in any of `scopes` holds a Draft; with no `scopes`, any
+   *  form. */
+  hasDraftIn: (scopes?: readonly DraftScope[]) => boolean;
   /** Whether a move waits for the confirm dialog. */
   pending: Accessor<boolean>;
   /** "Discard": drop the Drafts the waiting move unmounts (every Draft, or
-   *  its scope's), then run it. */
+   *  its scopes'), then run it. */
   confirmMove: () => void;
   /** "Keep editing": drop the waiting move. The Drafts stay. */
   cancelMove: () => void;
@@ -48,6 +51,7 @@ export const passThroughGuard: DraftGuard = {
   holds: () => false,
   report: () => {},
   attempt: (move) => move(),
+  hasDraftIn: () => false,
   pending: () => false,
   confirmMove: () => {},
   cancelMove: () => {},
@@ -70,7 +74,10 @@ export function createDraftGuard(): DraftGuard {
   const [hasDraft, setHasDraft] = createSignal(false);
   // The move sits in an object: a bare function given to a setter runs as an
   // updater.
-  const [pendingMove, setPendingMove] = createSignal<{ run: () => void; scope?: DraftScope }>();
+  const [pendingMove, setPendingMove] = createSignal<{
+    run: () => void;
+    scopes?: readonly DraftScope[];
+  }>();
   const [notice, setNotice] = createSignal<string>();
 
   let listening = false;
@@ -95,13 +102,15 @@ export function createDraftGuard(): DraftGuard {
     sync();
   };
 
-  // The keys of the Drafts a move with `scope` unmounts.
-  const draftsIn = (scope: DraftScope | undefined): symbol[] =>
-    [...drafts].filter(([, s]) => scope === undefined || s === scope).map(([key]) => key);
+  // The keys of the Drafts in `scopes`; with no `scopes`, every Draft's key.
+  const draftsIn = (scopes: readonly DraftScope[] | undefined): symbol[] =>
+    [...drafts]
+      .filter(([, s]) => scopes === undefined || (s !== undefined && scopes.includes(s)))
+      .map(([key]) => key);
 
-  const attempt = (move: () => void, scope?: DraftScope): void => {
-    if (draftsIn(scope).length === 0) move();
-    else setPendingMove({ run: move, scope });
+  const attempt = (move: () => void, scopes?: readonly DraftScope[]): void => {
+    if (draftsIn(scopes).length === 0) move();
+    else setPendingMove({ run: move, scopes });
   };
 
   // One batch: the view never sees the state between the drop and the move,
@@ -111,7 +120,7 @@ export function createDraftGuard(): DraftGuard {
     if (!move) return;
     batch(() => {
       setPendingMove(undefined);
-      for (const key of draftsIn(move.scope)) drafts.delete(key);
+      for (const key of draftsIn(move.scopes)) drafts.delete(key);
       sync();
       move.run();
     });
@@ -128,6 +137,7 @@ export function createDraftGuard(): DraftGuard {
     holds: (key) => drafts.has(key),
     report,
     attempt,
+    hasDraftIn: (scopes) => draftsIn(scopes).length > 0,
     pending: () => pendingMove() !== undefined,
     confirmMove,
     cancelMove: () => setPendingMove(undefined),

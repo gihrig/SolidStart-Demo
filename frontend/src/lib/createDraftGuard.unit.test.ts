@@ -9,8 +9,9 @@ import { createDraftGuard, type DraftGuard } from "./createDraftGuard";
 const compose = Symbol("compose");
 const edit1 = Symbol("edit-1");
 const caption = Symbol("caption");
-// The scope of one panel's forms.
+// The scope of one panel's forms, and of one edit form.
 const panel = Symbol("panel");
+const captionEdit = Symbol("caption-edit");
 
 function withGuard(run: (guard: DraftGuard) => void) {
   createRoot((dispose) => {
@@ -135,11 +136,11 @@ describe("createDraftGuard — scopes", () => {
     withGuard((guard) => {
       const move = vi.fn();
       guard.report(caption, true);
-      guard.attempt(move, panel);
+      guard.attempt(move, [panel]);
       expect(move, "a Draft outside the scope").toHaveBeenCalledOnce();
 
       guard.report(compose, true, panel);
-      guard.attempt(move, panel);
+      guard.attempt(move, [panel]);
       expect(guard.pending()).toBe(true);
       guard.confirmMove();
       expect(move).toHaveBeenCalledTimes(2);
@@ -156,5 +157,50 @@ describe("createDraftGuard — scopes", () => {
       guard.confirmMove();
       expect(move).toHaveBeenCalledOnce();
       expect(guard.hasDraft()).toBe(false);
+    }));
+
+  it("a move with two scopes asks about the Drafts in both, and Discard drops them", () =>
+    withGuard((guard) => {
+      const move = vi.fn();
+      guard.report(edit1, true, captionEdit);
+      guard.report(caption, true);
+      guard.attempt(move, [captionEdit, panel]);
+      expect(guard.pending(), "a Draft in the first scope").toBe(true);
+      guard.cancelMove();
+
+      guard.report(edit1, false, captionEdit);
+      guard.report(compose, true, panel);
+      guard.attempt(move, [captionEdit, panel]);
+      expect(guard.pending(), "a Draft in the second scope").toBe(true);
+      guard.report(edit1, true, captionEdit);
+      guard.confirmMove();
+      expect(move).toHaveBeenCalledOnce();
+      expect(guard.holds(edit1), "Discard drops the first scope's Drafts").toBe(false);
+      expect(guard.holds(compose), "and the second scope's").toBe(false);
+      expect(guard.holds(caption), "and keeps the others").toBe(true);
+    }));
+
+  it("a panel close names one scope, so it asks only about that panel", () =>
+    withGuard((guard) => {
+      const move = vi.fn();
+      guard.report(edit1, true, captionEdit);
+      guard.attempt(move, [panel]);
+      expect(move).toHaveBeenCalledOnce();
+    }));
+
+  it("hasDraftIn tells whether a Draft exists in any of the scopes", () =>
+    withGuard((guard) => {
+      guard.report(caption, true);
+      expect(guard.hasDraftIn([panel, captionEdit])).toBe(false);
+      guard.report(compose, true, panel);
+      expect(guard.hasDraftIn([panel, captionEdit])).toBe(true);
+      expect(guard.hasDraftIn([captionEdit])).toBe(false);
+    }));
+
+  it("hasDraftIn with no scope asks about every Draft", () =>
+    withGuard((guard) => {
+      expect(guard.hasDraftIn()).toBe(false);
+      guard.report(caption, true);
+      expect(guard.hasDraftIn()).toBe(true);
     }));
 });

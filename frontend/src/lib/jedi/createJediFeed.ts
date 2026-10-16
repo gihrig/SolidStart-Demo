@@ -257,7 +257,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // A pick of the Caption shown unmounts no form, so it is no guarded move.
   const selectCaption = (id: number): void => {
     if (id === selectedCaption()?.id) setSelectedCaptionId(id);
-    else guard.attempt(() => setSelectedCaptionId(id), captionComments.draftScope);
+    else guard.attempt(() => setSelectedCaptionId(id), [captionComments.draftScope]);
   };
 
   // The viewer's like state of the selected Post (#122) and of the selected

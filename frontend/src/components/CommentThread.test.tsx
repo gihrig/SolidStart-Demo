@@ -405,7 +405,7 @@ describe("<CommentThread /> — Drafts (ADR-0030)", () => {
     expect(guard.hasDraft(), "blank after a trim").toBe(false);
     await user.type(composeBox(), "hello");
     expect(guard.hasDraft()).toBe(true);
-    guard.attempt(() => {}, thread.draftScope);
+    guard.attempt(() => {}, [thread.draftScope]);
     expect(guard.pending(), "the Draft is in the panel's scope").toBe(true);
     guard.cancelMove();
 
