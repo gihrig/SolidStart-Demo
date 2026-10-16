@@ -78,7 +78,7 @@ macro_rules! entry {
 	};
 }
 
-/// The 24 Jedi methods. A new Jedi RPC adds one line here; until then, no
+/// The 26 Jedi methods. A new Jedi RPC adds one line here; until then, no
 /// typed front-end call can reach it.
 fn contract() -> Vec<Entry> {
 	vec![
@@ -96,8 +96,10 @@ fn contract() -> Vec<Entry> {
 		entry!(Authenticated, post_comment_rpc::get_post_comment),
 		entry!(Authenticated, post_comment_rpc::update_post_comment),
 		entry!(Authenticated, post_rpc::create_post),
+		entry!(Authenticated, post_rpc::delete_post),
 		entry!(Authenticated, post_rpc::get_post_like),
 		entry!(Authenticated, post_rpc::toggle_post_like),
+		entry!(Authenticated, post_rpc::update_post),
 		entry!(Authenticated, profile_rpc::get_profile),
 		// -- Public
 		entry!(Public, caption_comment_rpc::list_caption_comments),

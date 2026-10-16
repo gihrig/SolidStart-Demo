@@ -19,6 +19,7 @@ import type { ParamsIdedList } from "./ParamsIdedList.d";
 import type { PostCommentForCreate } from "./PostCommentForCreate.d";
 import type { PostCommentForUpdate } from "./PostCommentForUpdate.d";
 import type { PostForCreate } from "./PostForCreate.d";
+import type { PostForUpdate } from "./PostForUpdate.d";
 import type { PostView } from "./PostView.d";
 
 /** The authenticated RPC surface (`/api/rpc`, login required). */
@@ -36,8 +37,10 @@ export type AuthenticatedRpc = {
   get_post_comment: { params: ParamsIded; result: CommentSource };
   update_post_comment: { params: ParamsForUpdate<PostCommentForUpdate>; result: CommentView };
   create_post: { params: ParamsForCreate<PostForCreate>; result: PostView };
+  delete_post: { params: ParamsIded; result: number };
   get_post_like: { params: ParamsIded; result: LikeView };
   toggle_post_like: { params: ParamsForCreate<LikeForToggle>; result: LikeView };
+  update_post: { params: ParamsForUpdate<PostForUpdate>; result: PostView };
   get_profile: { params: undefined; result: AuthorRef };
 };
 

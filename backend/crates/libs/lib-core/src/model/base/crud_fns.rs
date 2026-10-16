@@ -333,6 +333,15 @@ where
 	Ok(count)
 }
 
+/// The `Validation` error of an update that names no field to change (#187):
+/// without it, the update succeeds and only moves `mtime`.
+pub fn no_field_to_change() -> Error {
+	Error::Validation {
+		field: "data".to_string(),
+		reason: "no field to change".to_string(),
+	}
+}
+
 pub async fn update<MC, E>(
 	ctx: &Ctx,
 	mm: &ModelManager,

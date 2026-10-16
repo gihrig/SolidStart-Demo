@@ -10,7 +10,7 @@ use crate::model::post_comment::PostCommentBmc;
 use crate::model::user::{AuthorRef, UserBmc};
 use crate::model::ModelManager;
 use crate::model::{Error, Result};
-use modql::field::Fields;
+use modql::field::{Fields, HasSeaFields};
 use modql::filter::{
 	FilterNodes, ListOptions, OpValInt64, OpValsInt64, OpValsString, OpValsValue,
 };
@@ -92,16 +92,26 @@ pub struct PostForCreate {
 	pub category_ids: Vec<i64>,
 }
 
-#[derive(Fields, Deserialize, Default)]
+/// The `update_post` input (#187). Each field is optional: a missing or `null`
+/// field is left unchanged. `image_src` is not here: the Post _is_ the photo, so
+/// the photo never changes. `category_ids`, when given, replaces the Category
+/// links (`#[field(skip)]` keeps it out of the row update). An unknown key is a
+/// parse error, so a typo never passes as an empty update.
+#[derive(Clone, Fields, Deserialize, Default, TS)]
+#[serde(deny_unknown_fields)]
+#[ts(export, export_to = "PostForUpdate.d.ts", optional_fields = nullable)]
 pub struct PostForUpdate {
 	// Note: `owner_id` is intentionally not updatable — the owner-only Write scope
 	//       keys on it. Ownership transfer belongs to a future privilege ACS.
 	pub title: Option<String>,
-	pub image_src: Option<String>,
 	pub image_alt: Option<String>,
 	pub photographer: Option<String>,
 	pub photographer_url: Option<String>,
 	pub source_url: Option<String>,
+
+	// -- The Categories to link instead, at least one (#107)
+	#[field(skip)]
+	pub category_ids: Option<Vec<i64>>,
 }
 
 #[derive(FilterNodes, Deserialize, Default, Debug)]
@@ -232,12 +242,12 @@ impl DbBmc for PostBmc {
 	}
 }
 
-// `create` is hand-written (below) so it can insert the `post_category` links in
-// the same transaction; the macro therefore gets no `ForCreate`.
+// `create` and `update` are hand-written (below) so they can write the
+// `post_category` links in the same transaction; the macro therefore gets no
+// `ForCreate` and no `ForUpdate`.
 generate_common_bmc_fns!(
 	Bmc: PostBmc,
 	Entity: Post,
-	ForUpdate: PostForUpdate,
 	Filter: PostFilter,
 );
 
@@ -253,49 +263,53 @@ impl PostBmc {
 		mut post_c: PostForCreate,
 	) -> Result<i64> {
 		let category_ids =
-			base::dedup(std::mem::take(&mut post_c.category_ids).into_iter());
-		if category_ids.is_empty() {
-			return Err(Error::Validation {
-				field: "category_ids".to_string(),
-				reason: "a Post requires at least one Category".to_string(),
-			});
-		}
-
-		// -- An unknown Category id is a client error, not a foreign-key failure.
-		let known = CategoryBmc::list_public(
-			ctx,
-			mm,
-			Some(vec![CategoryFilter {
-				id: Some(OpValInt64::In(category_ids.clone()).into()),
-				..Default::default()
-			}]),
-			None,
-		)
-		.await?;
-		if known.len() != category_ids.len() {
-			return Err(Error::Validation {
-				field: "category_ids".to_string(),
-				reason: "unknown Category".to_string(),
-			});
-		}
+			check_category_ids(ctx, mm, std::mem::take(&mut post_c.category_ids))
+				.await?;
 
 		let mm = mm.new_with_txn()?;
 		mm.dbx().begin_txn().await?;
 
 		let post_id = base::create::<Self, _>(ctx, &mm, post_c).await?;
-
-		let links: Vec<PostCategoryForInsert> = category_ids
-			.iter()
-			.map(|&category_id| PostCategoryForInsert {
-				post_id,
-				category_id,
-			})
-			.collect();
-		base::create_many::<PostCategoryBmc, _>(ctx, &mm, links).await?;
+		insert_category_links(ctx, &mm, post_id, &category_ids).await?;
 
 		mm.dbx().commit_txn().await?;
 
 		Ok(post_id)
+	}
+
+	/// Edit a Post (#187), owner-only. `category_ids`, when given, replaces the
+	/// Category links in the same transaction as the row update. The row update
+	/// runs first, so its owner scope guards the link change: a non-Owner gets
+	/// `EntityNotFound` and nothing changes. An empty list or an unknown id is a
+	/// `Validation` error, as on create, and so is an update with no field.
+	pub async fn update(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		id: i64,
+		mut post_u: PostForUpdate,
+	) -> Result<()> {
+		let category_ids = match post_u.category_ids.take() {
+			Some(ids) => Some(check_category_ids(ctx, mm, ids).await?),
+			None => None,
+		};
+		let no_row_field =
+			post_u.clone().not_none_sea_fields().into_vec().is_empty();
+		if category_ids.is_none() && no_row_field {
+			return Err(base::no_field_to_change());
+		}
+
+		let mm = mm.new_with_txn()?;
+		mm.dbx().begin_txn().await?;
+
+		base::update::<Self, _>(ctx, &mm, id, post_u).await?;
+		if let Some(category_ids) = category_ids {
+			delete_category_links(&mm, id).await?;
+			insert_category_links(ctx, &mm, id, &category_ids).await?;
+		}
+
+		mm.dbx().commit_txn().await?;
+
+		Ok(())
 	}
 
 	/// Read a single Post as its enriched `PostView` (public read, unscoped).
@@ -479,6 +493,78 @@ impl PostBmc {
 }
 
 // endregion: --- PostBmc
+
+// region:    --- Category link helpers
+
+/// Check the Category ids of a create or an edit (#107, #187): repeated ids
+/// count once; an empty list or an unknown id is a `Validation` error on
+/// `category_ids`, not a foreign-key failure. Returns the ids, deduplicated.
+async fn check_category_ids(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	category_ids: Vec<i64>,
+) -> Result<Vec<i64>> {
+	let category_ids = base::dedup(category_ids.into_iter());
+	if category_ids.is_empty() {
+		return Err(Error::Validation {
+			field: "category_ids".to_string(),
+			reason: "a Post requires at least one Category".to_string(),
+		});
+	}
+
+	let known = CategoryBmc::list_public(
+		ctx,
+		mm,
+		Some(vec![CategoryFilter {
+			id: Some(OpValInt64::In(category_ids.clone()).into()),
+			..Default::default()
+		}]),
+		None,
+	)
+	.await?;
+	if known.len() != category_ids.len() {
+		return Err(Error::Validation {
+			field: "category_ids".to_string(),
+			reason: "unknown Category".to_string(),
+		});
+	}
+
+	Ok(category_ids)
+}
+
+/// Link one Post to each Category in `category_ids`.
+async fn insert_category_links(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	post_id: i64,
+	category_ids: &[i64],
+) -> Result<()> {
+	let links: Vec<PostCategoryForInsert> = category_ids
+		.iter()
+		.map(|&category_id| PostCategoryForInsert {
+			post_id,
+			category_id,
+		})
+		.collect();
+	base::create_many::<PostCategoryBmc, _>(ctx, mm, links).await?;
+	Ok(())
+}
+
+/// Delete every Category link of one Post. Only `PostBmc::update` calls it,
+/// after the owner-scoped row update.
+async fn delete_category_links(mm: &ModelManager, post_id: i64) -> Result<()> {
+	let mut query = Query::delete();
+	query
+		.from_table(PostCategoryBmc::table_ref())
+		.and_where(Expr::col(Alias::new(POST_ID)).eq(post_id));
+
+	let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+	mm.dbx().execute(sqlx::query_with(&sql, values)).await?;
+
+	Ok(())
+}
+
+// endregion: --- Category link helpers
 
 // region:    --- Batched read helpers
 
@@ -709,6 +795,7 @@ mod tests {
 					post_id,
 					PostForUpdate {
 						title: Some("hijack".to_string()),
+						category_ids: Some(vec![2]),
 						..Default::default()
 					},
 				)
@@ -717,6 +804,9 @@ mod tests {
 			),
 			"B update A's Post should be EntityNotFound"
 		);
+		let view = PostBmc::get_post(&ctx_b, &mm, post_id).await?;
+		let cat_ids: Vec<i64> = view.categories.iter().map(|c| c.id).collect();
+		assert_eq!(cat_ids, vec![1], "B's update changes no Category link");
 		assert!(
 			matches!(
 				PostBmc::delete(&ctx_b, &mm, post_id).await,
@@ -739,6 +829,286 @@ mod tests {
 
 		// -- Clean
 		_dev_utils::clean_users(&root, &mm, "test_owner_only").await?;
+
+		Ok(())
+	}
+
+	/// The Category ids of one Post, read through its view.
+	async fn category_ids_of(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		post_id: i64,
+	) -> Result<Vec<i64>> {
+		let view = PostBmc::get_post(ctx, mm, post_id).await?;
+		Ok(view.categories.iter().map(|c| c.id).collect())
+	}
+
+	/// An edit with `category_ids` replaces the Post's Category links, in the
+	/// same write as the row fields (#187). `None` keeps the links.
+	#[serial]
+	#[tokio::test]
+	async fn test_update_replaces_category_links() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_update_cats-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+		let post_id = seed_post(&ctx, &mm, "test_update_cats post", &[1, 3]).await?;
+
+		// -- Exec: a title edit keeps the links.
+		PostBmc::update(
+			&ctx,
+			&mm,
+			post_id,
+			PostForUpdate {
+				title: Some("test_update_cats edited".to_string()),
+				..Default::default()
+			},
+		)
+		.await?;
+		assert_eq!(category_ids_of(&ctx, &mm, post_id).await?, vec![1, 3]);
+
+		// -- Exec: a Category edit replaces the links; a repeated id links once.
+		PostBmc::update(
+			&ctx,
+			&mm,
+			post_id,
+			PostForUpdate {
+				title: Some("test_update_cats again".to_string()),
+				category_ids: Some(vec![6, 2, 6]),
+				..Default::default()
+			},
+		)
+		.await?;
+
+		// -- Check
+		let view = PostBmc::get_post(&ctx, &mm, post_id).await?;
+		assert_eq!(view.title, "test_update_cats again");
+		assert_eq!(category_ids_of(&ctx, &mm, post_id).await?, vec![2, 6]);
+
+		// -- Exec & Check: a Category edit alone is a change.
+		PostBmc::update(
+			&ctx,
+			&mm,
+			post_id,
+			PostForUpdate {
+				category_ids: Some(vec![4]),
+				..Default::default()
+			},
+		)
+		.await?;
+		assert_eq!(category_ids_of(&ctx, &mm, post_id).await?, vec![4]);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_update_cats").await?;
+
+		Ok(())
+	}
+
+	/// An empty `category_ids` or an unknown id is a `Validation` error, and
+	/// neither the row nor the links change (#187).
+	#[serial]
+	#[tokio::test]
+	async fn test_update_rejects_bad_category_ids() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_update_bad_cats-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+		let post_id =
+			seed_post(&ctx, &mm, "test_update_bad_cats post", &[1, 3]).await?;
+
+		for (category_ids, reason) in [
+			(vec![], "a Post requires at least one Category"),
+			(vec![2, 999_999], "unknown Category"),
+		] {
+			// -- Exec
+			let res = PostBmc::update(
+				&ctx,
+				&mm,
+				post_id,
+				PostForUpdate {
+					title: Some("test_update_bad_cats changed".to_string()),
+					category_ids: Some(category_ids),
+					..Default::default()
+				},
+			)
+			.await;
+
+			// -- Check
+			assert!(
+				matches!(&res, Err(model::Error::Validation { field, reason: r })
+					if field == "category_ids" && r == reason),
+				"got {res:?}"
+			);
+			let view = PostBmc::get_post(&ctx, &mm, post_id).await?;
+			assert_eq!(view.title, "test_update_bad_cats post", "the row stays");
+			assert_eq!(
+				category_ids_of(&ctx, &mm, post_id).await?,
+				vec![1, 3],
+				"the links stay"
+			);
+		}
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_update_bad_cats").await?;
+
+		Ok(())
+	}
+
+	/// An update that names no field to change is a `Validation` error on
+	/// `data` (#187), not a success that moves `mtime`.
+	#[serial]
+	#[tokio::test]
+	async fn test_update_with_no_field_is_rejected() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_update_empty-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+		let post_id = seed_post(&ctx, &mm, "test_update_empty post", &[1]).await?;
+
+		// -- Exec
+		let res =
+			PostBmc::update(&ctx, &mm, post_id, PostForUpdate::default()).await;
+
+		// -- Check
+		assert!(
+			matches!(&res, Err(model::Error::Validation { field, reason })
+				if field == "data" && reason == "no field to change"),
+			"got {res:?}"
+		);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_update_empty").await?;
+
+		Ok(())
+	}
+
+	/// The update params are strict (#187): an unknown key, `image_src` too, is
+	/// a parse error, so the photo of a Post never changes.
+	#[test]
+	fn test_post_for_update_denies_unknown_fields() {
+		for data in [
+			serde_json::json!({ "image_src": "https://example.test/b.jpg" }),
+			serde_json::json!({ "titel": "typo" }),
+		] {
+			assert!(
+				serde_json::from_value::<PostForUpdate>(data.clone()).is_err(),
+				"{data} must not parse"
+			);
+		}
+		let ok: PostForUpdate = serde_json::from_value(
+			serde_json::json!({ "title": "t", "category_ids": [1] }),
+		)
+		.unwrap();
+		assert_eq!(ok.title.as_deref(), Some("t"));
+		assert_eq!(ok.category_ids, Some(vec![1]));
+	}
+
+	/// The number of rows `sql` counts for `id` (test-only). The cascade test
+	/// reads the child tables directly: no model read reaches the rows of a
+	/// deleted parent.
+	async fn count_rows(mm: &ModelManager, sql: &str, id: i64) -> Result<i64> {
+		let (count,): (i64,) = sqlx::query_as(sql)
+			.bind(id)
+			.fetch_one(mm.dbx().db())
+			.await?;
+		Ok(count)
+	}
+
+	/// A Post delete cascades to every row under it, rows that other Users own
+	/// too (#187, ADR-0032): its Category links, Likes, Comments and Captions,
+	/// and each Caption's Likes and Comments. Another Post's rows stay.
+	#[serial]
+	#[tokio::test]
+	async fn test_delete_cascades_to_every_row_under_the_post() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let a_id = seed_user(&root, &mm, "test_post_cascade-A").await?;
+		let b_id = seed_user(&root, &mm, "test_post_cascade-B").await?;
+		let ctx_a = Ctx::new(a_id)?;
+		let ctx_b = Ctx::new(b_id)?;
+		let post_id =
+			seed_post(&ctx_a, &mm, "test_post_cascade post", &[1, 3]).await?;
+		let other_post =
+			seed_post(&ctx_a, &mm, "test_post_cascade other", &[1]).await?;
+
+		// A's and B's rows under the Post; B's rows under the other Post.
+		seed_post_like(&mm, post_id, b_id).await?;
+		_dev_utils::seed_post_comment(&ctx_b, &mm, post_id, "B's comment").await?;
+		let caption_a =
+			_dev_utils::seed_caption(&ctx_a, &mm, post_id, "A's caption").await?;
+		let caption_b =
+			_dev_utils::seed_caption(&ctx_b, &mm, post_id, "B's caption").await?;
+		for caption_id in [caption_a, caption_b] {
+			sqlx::query(
+				"INSERT INTO caption_like (caption_id, user_id, cid, ctime, mid, mtime) \
+				 VALUES ($1, $2, 0, now(), 0, now())",
+			)
+			.bind(caption_id)
+			.bind(b_id)
+			.execute(mm.dbx().db())
+			.await?;
+			_dev_utils::seed_caption_comment(&ctx_b, &mm, caption_id, "B's reply")
+				.await?;
+		}
+		seed_post_like(&mm, other_post, b_id).await?;
+		let other_caption =
+			_dev_utils::seed_caption(&ctx_b, &mm, other_post, "stays").await?;
+
+		// -- Exec
+		PostBmc::delete(&ctx_a, &mm, post_id).await?;
+
+		// -- Check: no row under the Post remains.
+		for (table, sql) in [
+			("post", "SELECT count(*) FROM post WHERE id = $1"),
+			(
+				"post_category",
+				"SELECT count(*) FROM post_category WHERE post_id = $1",
+			),
+			(
+				"post_like",
+				"SELECT count(*) FROM post_like WHERE post_id = $1",
+			),
+			(
+				"post_comment",
+				"SELECT count(*) FROM post_comment WHERE post_id = $1",
+			),
+			("caption", "SELECT count(*) FROM caption WHERE post_id = $1"),
+		] {
+			assert_eq!(count_rows(&mm, sql, post_id).await?, 0, "{table}");
+		}
+		for caption_id in [caption_a, caption_b] {
+			for (table, sql) in [
+				(
+					"caption_like",
+					"SELECT count(*) FROM caption_like WHERE caption_id = $1",
+				),
+				(
+					"caption_comment",
+					"SELECT count(*) FROM caption_comment WHERE caption_id = $1",
+				),
+			] {
+				assert_eq!(count_rows(&mm, sql, caption_id).await?, 0, "{table}");
+			}
+		}
+
+		// -- Check: the other Post's rows stay.
+		let other = PostBmc::get_post(&ctx_a, &mm, other_post).await?;
+		assert_eq!(other.like_count, 1);
+		let captions = crate::model::caption::CaptionBmc::list_captions_for_post(
+			&ctx_a, &mm, other_post, None,
+		)
+		.await?;
+		assert_eq!(
+			captions.iter().map(|c| c.id).collect::<Vec<_>>(),
+			vec![other_caption]
+		);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_post_cascade").await?;
 
 		Ok(())
 	}
