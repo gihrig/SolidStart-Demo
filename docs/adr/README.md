@@ -41,3 +41,4 @@ flat "what has been decided" view.
 | [0029](0029-rpc-contract-from-handler-signatures.md) | The RPC contract is read from the handler signatures and pinned by one test | Accepted |
 | [0030](0030-unsaved-draft-guard.md) | Unsaved Drafts are guarded by one app-level guard | Accepted |
 | [0031](0031-jedi-tables-built-beside-fullstack-then-removed.md) | Jedi tables are built beside the FullStack tables, which are then removed | Accepted |
+| [0032](0032-delete-cascades-to-every-row-under-it.md) | A Post or Caption delete cascades to every row under it, other Users' rows too | Accepted |

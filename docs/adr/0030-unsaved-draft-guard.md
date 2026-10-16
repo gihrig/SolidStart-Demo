@@ -102,3 +102,63 @@ shown is not a guarded move.
 **Difference from the Post hold.** A Draft holds the Post. The open panel holds the
 Caption, with or without a Draft. Without this hold, a re-rank would close a thread
 that the User is reading.
+
+## Addendum (2026-10-16) — Post and Caption edits and deletes (#187)
+
+#187 lets the Owner edit and delete a Post or a Caption. The consequences above
+gave #187 two Event causes. One is a deleted Post or Caption. The other is a Post
+that leaves the selected Category. #187 also adds a Post edit and a Caption edit.
+
+**A deleted subject is a forced discard.** The notice names the subject: "This Post
+was deleted. Your unsaved changes were discarded." or "This Caption was deleted.
+Your unsaved changes were discarded." When the Post is gone, every form on it shows
+the Post notice, the Caption forms too. The view-model finds the cause after a
+refetch. A held Post that is not in the full list was deleted. A held Caption that
+is not in its Post's list was deleted.
+
+**A Category leave asks.** This replaces the Category case of the consequence
+above. An Event can move the held Post out of the selected Category. Then the Post
+stays shown, and the guard asks: "This Post is no longer in <Category>. Your
+unsaved changes may not apply." "Keep editing" keeps every Draft and is the
+default. Escape means "Keep editing". "Discard" drops every Draft. The question
+cancels a waiting move, as a notice does. When the last Draft ends, the article
+shows the top-ranked Post in the Category. A User's own Category change does not
+keep the held Post. It asks first, as before. So "A held Post that leaves the list
+is a forced discard" now applies only to a deleted Post.
+
+**An open edit holds its subject.** An open Post edit holds the shown Post. An open
+Caption edit holds the Caption shown. Each holds with or without a Draft, as the
+open Caption thread does. An edit holds a Draft while a field differs from the
+saved entity. Save sends only the changed fields, so a remote edit of another field
+stays.
+
+**A move names every scope that it unmounts.** `attempt(move, scopes)` takes a
+list. A Caption pick names the Caption edit scope and the Caption thread scope. A
+close of the Caption Comments panel names only the thread scope. A move with no
+scope still asks about every Draft.
+
+**The Owner's own delete asks once.** If the delete removes a Draft, the delete
+question adds "Your unsaved changes will be discarded." The client drops those
+Drafts when the Owner confirms. The poke can arrive before the delete result
+([ADR-0016](0016-poke-rule-typed-receipt.md)), so the drop cannot wait. If the
+delete fails, the forms keep their text, and the guard holds their Drafts again.
+
+**The Owner's own Category edit keeps the Post shown.** A save can remove the
+selected Category from the Post. The client then switches the filter to "All" when
+it sends the save. So the Owner sees the edited Post, and no question shows.
+
+**A viewer without a Draft hears the cause.** The Jedi route has one polite live
+region. It says "This Post was deleted.", "This Caption was deleted." or "This Post
+is no longer in <Category>." No dialog shows, so it does not stop a User who is
+only reading.
+
+**The New Post dialog reports no Draft.** The Nav keeps the dialog mounted across a
+route move. A route move would then ask about a Draft that the move does not
+remove. The edit mode of the dialog reports its Draft.
+
+**Rejected.** A forced discard for a Category leave: the Post still exists, so the
+Draft can still apply. One notice text for every cause: the Category text would say
+that the Post was deleted. The labels "Save" and "Delete" for the question: in this
+app, "Save" submits and "Delete" removes a saved row. Two dialogs for the Owner's
+delete: one decision gets one question. A form that reports two scopes: each thread
+form would need to know its parent.
