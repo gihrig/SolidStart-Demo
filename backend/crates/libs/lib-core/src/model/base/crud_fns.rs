@@ -352,6 +352,23 @@ where
 	MC: DbBmc,
 	E: HasSeaFields,
 {
+	update_where::<MC, E>(ctx, mm, id, data, None).await
+}
+
+/// [`update`] with an extra condition ANDed into the `WHERE` (#187), such as
+/// the Caption lock. A row that fails it updates 0 rows, so the result is
+/// `EntityNotFound`, as for a row out of scope; the caller picks a finer error.
+pub async fn update_where<MC, E>(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	id: i64,
+	data: E,
+	extra: Option<Condition>,
+) -> Result<()>
+where
+	MC: DbBmc,
+	E: HasSeaFields,
+{
 	// -- Prep Fields
 	let fields = data.not_none_sea_fields();
 	// -- Write-path hygiene: normalize/trim and reject bad free-text input.
@@ -369,6 +386,9 @@ where
 	// -- Row-scope (owner-only); a non-matching scope updates 0 rows.
 	if let Some(scope) = scope_cond::<MC>(ctx, Access::Write) {
 		query.cond_where(scope);
+	}
+	if let Some(extra) = extra {
+		query.cond_where(extra);
 	}
 
 	// -- Execute query
