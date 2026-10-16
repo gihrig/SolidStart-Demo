@@ -278,10 +278,12 @@ impl PostBmc {
 	}
 
 	/// Edit a Post (#187), owner-only. `category_ids`, when given, replaces the
-	/// Category links in the same transaction as the row update. The row update
-	/// runs first, so its owner scope guards the link change: a non-Owner gets
-	/// `EntityNotFound` and nothing changes. An empty list or an unknown id is a
-	/// `Validation` error, as on create, and so is an update with no field.
+	/// Category links in the same transaction as the row update. A non-Owner
+	/// gets `EntityNotFound` and nothing changes, even with bad `category_ids`:
+	/// an owner-scoped read runs before the Category check. For the Owner, an
+	/// empty list or an unknown id is a `Validation` error, as on create, and so
+	/// is an update with no field. The row update runs first in the transaction,
+	/// so its owner scope still guards the link change.
 	pub async fn update(
 		ctx: &Ctx,
 		mm: &ModelManager,
@@ -289,7 +291,10 @@ impl PostBmc {
 		mut post_u: PostForUpdate,
 	) -> Result<()> {
 		let category_ids = match post_u.category_ids.take() {
-			Some(ids) => Some(check_category_ids(ctx, mm, ids).await?),
+			Some(ids) => {
+				base::get_writable::<Self, Post>(ctx, mm, id).await?;
+				Some(check_category_ids(ctx, mm, ids).await?)
+			}
 			None => None,
 		};
 		let no_row_field =
@@ -768,7 +773,8 @@ mod tests {
 
 	/// Every Post is public: Read is unscoped, so a non-owner reads any Post.
 	/// Write is owner-only: a non-owner update / delete is `EntityNotFound`, while
-	/// the Owner may update. (#106)
+	/// the Owner may update. (#106) A non-owner's bad `category_ids` is
+	/// `EntityNotFound` too, not `Validation` (#187).
 	#[serial]
 	#[tokio::test]
 	async fn test_post_write_is_owner_only() -> Result<()> {
@@ -807,6 +813,22 @@ mod tests {
 		let view = PostBmc::get_post(&ctx_b, &mm, post_id).await?;
 		let cat_ids: Vec<i64> = view.categories.iter().map(|c| c.id).collect();
 		assert_eq!(cat_ids, vec![1], "B's update changes no Category link");
+		for category_ids in [vec![], vec![999_999]] {
+			let res = PostBmc::update(
+				&ctx_b,
+				&mm,
+				post_id,
+				PostForUpdate {
+					category_ids: Some(category_ids),
+					..Default::default()
+				},
+			)
+			.await;
+			assert!(
+				matches!(&res, Err(model::Error::EntityNotFound { .. })),
+				"B's bad category_ids should be EntityNotFound, got {res:?}"
+			);
+		}
 		assert!(
 			matches!(
 				PostBmc::delete(&ctx_b, &mm, post_id).await,
