@@ -3,6 +3,7 @@
 // different type is fixed at its Rust source, not re-typed here (ADR-0027).
 export type { AuthorRef } from "~backend-bindings/AuthorRef.d";
 export type { CaptionForCreate } from "~backend-bindings/CaptionForCreate.d";
+export type { CaptionForUpdate } from "~backend-bindings/CaptionForUpdate.d";
 export type { CaptionView } from "~backend-bindings/CaptionView.d";
 export type { CategoryPublic } from "~backend-bindings/CategoryPublic.d";
 export type { Channel } from "~backend-bindings/Channel.d";
@@ -18,6 +19,7 @@ export type { ParamsIded } from "~backend-bindings/ParamsIded.d";
 export type { PostCommentForCreate } from "~backend-bindings/PostCommentForCreate.d";
 export type { PostCommentForUpdate } from "~backend-bindings/PostCommentForUpdate.d";
 export type { PostForCreate } from "~backend-bindings/PostForCreate.d";
+export type { PostForUpdate } from "~backend-bindings/PostForUpdate.d";
 export type { PostView } from "~backend-bindings/PostView.d";
 export type { AuthenticatedRpc, PublicRpc } from "~backend-bindings/RpcContract";
 export type { User } from "~backend-bindings/User.d";

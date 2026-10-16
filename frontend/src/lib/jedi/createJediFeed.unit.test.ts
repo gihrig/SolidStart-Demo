@@ -88,10 +88,12 @@ const captionsFor = (postId: number): CaptionView[] =>
 const postListMock = vi.fn<JediApi["posts"]["list"]>();
 const postGetLikeMock = vi.fn<JediApi["posts"]["getLike"]>();
 const postToggleLikeMock = vi.fn<JediApi["posts"]["toggleLike"]>();
+const postUpdateMock = vi.fn<JediApi["posts"]["update"]>();
 const postRemoveMock = vi.fn<JediApi["posts"]["remove"]>();
 const captionListForPostMock = vi.fn<JediApi["captions"]["listForPost"]>();
 const captionGetLikeMock = vi.fn<JediApi["captions"]["getLike"]>();
 const captionToggleLikeMock = vi.fn<JediApi["captions"]["toggleLike"]>();
+const captionUpdateMock = vi.fn<JediApi["captions"]["update"]>();
 const captionRemoveMock = vi.fn<JediApi["captions"]["remove"]>();
 const commentListForPostMock = vi.fn<JediApi["comments"]["list"]>();
 const captionCommentListMock = vi.fn<JediApi["captionComments"]["list"]>();
@@ -102,6 +104,7 @@ const api: JediApi = {
     create: () => Promise.reject(new Error("not used by the view-model")),
     getLike: postGetLikeMock,
     toggleLike: postToggleLikeMock,
+    update: postUpdateMock,
     remove: postRemoveMock,
   },
   captions: {
@@ -109,6 +112,7 @@ const api: JediApi = {
     add: () => Promise.reject(new Error("not used by the view-model")),
     getLike: captionGetLikeMock,
     toggleLike: captionToggleLikeMock,
+    update: captionUpdateMock,
     remove: captionRemoveMock,
   },
   comments: {
@@ -171,6 +175,14 @@ beforeEach(() => {
     else viewerCaptionLikes.delete(id);
     return Promise.resolve(captionLikeOf(id));
   });
+  postUpdateMock.mockReset();
+  postUpdateMock.mockImplementation((id: number) =>
+    Promise.resolve(RANKED_POSTS.find((p) => p.id === id)!),
+  );
+  captionUpdateMock.mockReset();
+  captionUpdateMock.mockImplementation((id: number) =>
+    Promise.resolve(captionsFor(1).find((c) => c.id === id)!),
+  );
   postRemoveMock.mockReset();
   postRemoveMock.mockResolvedValue(undefined);
   captionRemoveMock.mockReset();
@@ -963,32 +975,32 @@ describe("createJediFeed — the Draft guard (ADR-0030)", () => {
   });
 });
 
+// The view-model with a live Feed, inside a real guard (#187).
+async function withLive(
+  run: (jedi: JediFeed, guard: DraftGuard, mem: ReturnType<typeof memoryFeed>) => Promise<void>,
+) {
+  const mem = memoryFeed();
+  await createRoot(async (dispose) => {
+    try {
+      const guard = createDraftGuard();
+      const jedi = createJediFeed({ api, guard });
+      jedi.connectFeed(mem.feed);
+      await tick();
+      await tick();
+      await run(jedi, guard, mem);
+    } finally {
+      dispose();
+    }
+  });
+}
+const settle = async () => {
+  await tick();
+  await tick();
+};
+
 describe("createJediFeed — a Post or Caption delete (#187)", () => {
   const POST_DELETED = "This Post was deleted. Your unsaved changes were discarded.";
   const CAPTION_DELETED = "This Caption was deleted. Your unsaved changes were discarded.";
-
-  // The view-model with a live Feed, inside a real guard.
-  async function withLive(
-    run: (jedi: JediFeed, guard: DraftGuard, mem: ReturnType<typeof memoryFeed>) => Promise<void>,
-  ) {
-    const mem = memoryFeed();
-    await createRoot(async (dispose) => {
-      try {
-        const guard = createDraftGuard();
-        const jedi = createJediFeed({ api, guard });
-        jedi.connectFeed(mem.feed);
-        await tick();
-        await tick();
-        await run(jedi, guard, mem);
-      } finally {
-        dispose();
-      }
-    });
-  }
-  const settle = async () => {
-    await tick();
-    await tick();
-  };
   // The back-end after a delete: Post 1 is gone.
   const withoutPost1 = () => postListMock.mockResolvedValue(RANKED_POSTS.slice(1));
   // The back-end after a delete: the Caption `id` of Post 1 is gone.
@@ -1109,6 +1121,232 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
       expect(guard.notice()).toBeUndefined();
       expect(guard.hasDraft()).toBe(true);
       expect(jedi.announcement()).toBe("");
+    }));
+});
+
+describe("createJediFeed — the Post and Caption edits (#187)", () => {
+  // Category index 3 is Animals: Posts 1 and 3, in that rank.
+  const ANIMALS = 3;
+  const T6 = "This Post is no longer in Animals. Your unsaved changes may not apply.";
+  const LEFT = "This Post is no longer in Animals.";
+  // The back-end after another User's edit: Post 1 is only in Landscape.
+  const post1LeavesAnimals = () =>
+    postListMock.mockResolvedValue(
+      RANKED_POSTS.map((p) => (p.id === 1 ? { ...p, categories: [CAT[1]] } : p)),
+    );
+  // The back-end after a re-rank: Post 3 first.
+  const reRanked = () => {
+    const [first, second, ...rest] = RANKED_POSTS;
+    postListMock.mockResolvedValue([second, first, ...rest]);
+  };
+
+  it("an open Post edit holds the shown Post across a re-rank, with no Draft", () =>
+    withLive(async (jedi, guard, mem) => {
+      jedi.postEdit.setOpen(true);
+      expect(jedi.postEdit.open()).toBe(true);
+      reRanked();
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(guard.hasDraft()).toBe(false);
+      expect(jedi.selectedPost()?.id, "the edit holds the Post").toBe(1);
+
+      jedi.postEdit.setOpen(false);
+      expect(jedi.selectedPost()?.id, "a close lets it follow the ranking").toBe(3);
+    }));
+
+  it("an open Caption edit holds the Caption shown across a re-rank", () =>
+    withLive(async (jedi, _guard, mem) => {
+      const [winner, next] = captionsFor(1);
+      jedi.captionEdit.setOpen(true);
+      captionListForPostMock.mockImplementation((postId: number) =>
+        Promise.resolve(postId === 1 ? [next, winner] : captionsFor(postId)),
+      );
+      mem.emit(pokeOn(Channel.postCaption(1)));
+      await settle();
+      expect(jedi.selectedCaption()?.id).toBe(winner.id);
+      expect(jedi.captionEdit.open()).toBe(true);
+
+      jedi.captionEdit.setOpen(false);
+      expect(jedi.selectedCaption()?.id).toBe(next.id);
+    }));
+
+  it("a change of the shown Post or Caption closes its edit", () =>
+    withLive(async (jedi) => {
+      jedi.captionEdit.setOpen(true);
+      jedi.selectCaption(captionsFor(1)[1].id);
+      await settle();
+      expect(jedi.captionEdit.open()).toBe(false);
+
+      jedi.postEdit.setOpen(true);
+      jedi.selectPost(2);
+      await settle();
+      expect(jedi.postEdit.open()).toBe(false);
+      jedi.selectPost(1);
+      await settle();
+      expect(jedi.postEdit.open(), "a return does not reopen it").toBe(false);
+    }));
+
+  it("a Caption pick names the Caption edit and Caption thread scopes", () =>
+    withLive(async (jedi, guard) => {
+      const other = captionsFor(1)[1].id;
+      guard.report(Symbol("add caption"), true);
+      jedi.selectCaption(other);
+      expect(guard.pending(), "a Draft outside both scopes").toBe(false);
+      jedi.selectCaption(captionsFor(1)[0].id);
+
+      const edit = Symbol("caption edit");
+      guard.report(edit, true, jedi.captionEdit.draftScope);
+      jedi.selectCaption(other);
+      expect(guard.pending(), "a Draft in the Caption edit").toBe(true);
+      guard.cancelMove();
+      guard.report(edit, false, jedi.captionEdit.draftScope);
+
+      guard.report(Symbol("caption comment"), true, jedi.captionComments.draftScope);
+      jedi.selectCaption(other);
+      expect(guard.pending(), "a Draft in the Caption thread").toBe(true);
+    }));
+
+  it("updatePost saves the changes, refetches at once and speaks", () =>
+    withLive(async (jedi) => {
+      const before = postListMock.mock.calls.length;
+      await jedi.updatePost(1, { title: "Big Jedi" });
+      expect(postUpdateMock).toHaveBeenCalledWith(1, { title: "Big Jedi" });
+      expect(postListMock.mock.calls.length).toBeGreaterThan(before);
+      expect(jedi.announcement()).toBe("Post saved.");
+    }));
+
+  it("the Owner's own Category edit switches the filter to All when it sends the save", () =>
+    withLive(async (jedi, guard) => {
+      jedi.setSelectedCategory(ANIMALS);
+      guard.report(Symbol("post edit"), true, jedi.postEdit.draftScope);
+      let answer!: (post: PostView) => void;
+      postUpdateMock.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+      const saved = jedi.updatePost(1, { categoryIds: [1] });
+
+      expect(jedi.selectedCategory()).toBe(0);
+      expect(jedi.selectedPost()?.id).toBe(1);
+      expect(guard.pending(), "no question").toBe(false);
+      answer(RANKED_POSTS[0]);
+      await saved;
+    }));
+
+  it("updateCaption saves the text, refetches at once and speaks", () =>
+    withLive(async (jedi) => {
+      const id = jedi.selectedCaption()!.id;
+      const before = captionListForPostMock.mock.calls.length;
+      await jedi.updateCaption(id, "New text");
+      expect(captionUpdateMock).toHaveBeenCalledWith(id, "New text");
+      expect(captionListForPostMock.mock.calls.length).toBeGreaterThan(before);
+      expect(jedi.announcement()).toBe("Caption saved.");
+    }));
+
+  it("an Event Category leave keeps the Post with a Draft and asks once; Keep editing keeps it", () =>
+    withLive(async (jedi, guard, mem) => {
+      jedi.setSelectedCategory(ANIMALS);
+      const draft = Symbol("comment");
+      guard.report(draft, true, jedi.postComments.draftScope);
+      post1LeavesAnimals();
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+
+      expect(jedi.selectedPost()?.id, "the Post stays shown").toBe(1);
+      expect(guard.pending()).toBe(true);
+      expect(guard.question()).toBe(T6);
+      guard.cancelMove();
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(guard.pending(), "once per leave").toBe(false);
+      expect(jedi.selectedPost()?.id).toBe(1);
+
+      // The last Draft ends: the top-ranked Post in the Category shows.
+      guard.report(draft, false);
+      await settle();
+      expect(jedi.selectedPost()?.id).toBe(3);
+      expect(jedi.announcement()).toBe(LEFT);
+    }));
+
+  it("Discard on the Category question drops the Drafts and moves the article", () =>
+    withLive(async (jedi, guard, mem) => {
+      jedi.setSelectedCategory(ANIMALS);
+      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
+      post1LeavesAnimals();
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+
+      guard.confirmMove();
+      await settle();
+      expect(guard.hasDraft()).toBe(false);
+      expect(jedi.selectedPost()?.id).toBe(3);
+      expect(jedi.announcement()).toBe(LEFT);
+    }));
+
+  it("a viewer without a Draft sees the article move and hears why", () =>
+    withLive(async (jedi, guard, mem) => {
+      jedi.setSelectedCategory(ANIMALS);
+      post1LeavesAnimals();
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+
+      expect(guard.pending()).toBe(false);
+      expect(jedi.selectedPost()?.id).toBe(3);
+      expect(jedi.announcement()).toBe(LEFT);
+    }));
+
+  it("an open edit with no Draft keeps the Post with no question, until it closes", () =>
+    withLive(async (jedi, guard, mem) => {
+      jedi.setSelectedCategory(ANIMALS);
+      jedi.postEdit.setOpen(true);
+      post1LeavesAnimals();
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(guard.pending()).toBe(false);
+      expect(jedi.selectedPost()?.id).toBe(1);
+
+      jedi.postEdit.setOpen(false);
+      await settle();
+      expect(jedi.selectedPost()?.id).toBe(3);
+      expect(jedi.announcement()).toBe(LEFT);
+    }));
+
+  it("a User's own Category change still asks first, then moves", () =>
+    withLive(async (jedi, guard) => {
+      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
+      jedi.setSelectedCategory(1); // Landscape does not list Post 1
+      expect(guard.pending()).toBe(true);
+      expect(guard.question()).toBe("You have unsaved changes. Discard them?");
+      guard.confirmMove();
+      expect(jedi.selectedPost()?.id).toBe(2);
+      expect(jedi.announcement(), "a User's own move says nothing").toBe("");
+    }));
+
+  it("a Post delete while the Category question is open shows the Post notice instead", () =>
+    withLive(async (jedi, guard, mem) => {
+      jedi.setSelectedCategory(ANIMALS);
+      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
+      post1LeavesAnimals();
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(guard.pending()).toBe(true);
+
+      postListMock.mockResolvedValue(RANKED_POSTS.slice(1));
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(guard.pending()).toBe(false);
+      expect(guard.notice()).toBe("This Post was deleted. Your unsaved changes were discarded.");
+    }));
+
+  it("a deleted Caption discards the Caption edit's Draft too", () =>
+    withLive(async (jedi, guard, mem) => {
+      const shown = jedi.selectedCaption()!.id;
+      jedi.captionEdit.setOpen(true);
+      guard.report(Symbol("caption edit"), true, jedi.captionEdit.draftScope);
+      captionListForPostMock.mockImplementation((postId: number) =>
+        Promise.resolve(captionsFor(postId).filter((c) => c.id !== shown)),
+      );
+      mem.emit(pokeOn(Channel.postCaption(1)));
+      await settle();
+      expect(guard.notice()).toBe("This Caption was deleted. Your unsaved changes were discarded.");
+      expect(guard.hasDraft()).toBe(false);
     }));
 });
 

@@ -46,6 +46,10 @@ export default function Home() {
     toggleCaptionLike,
     postComments,
     captionComments,
+    postEdit,
+    captionEdit,
+    updatePost,
+    updateCaption,
     deletePost,
     deleteCaption,
     postDeleteDiscardsDraft,
@@ -117,6 +121,10 @@ export default function Home() {
                   postDeleteDiscardsDraft={postDeleteDiscardsDraft}
                   onDeleteCaption={deleteCaption}
                   captionDeleteDiscardsDraft={captionDeleteDiscardsDraft}
+                  postEdit={postEdit}
+                  captionEdit={captionEdit}
+                  onUpdatePost={updatePost}
+                  onUpdateCaption={updateCaption}
                 />
               )}
             </Match>

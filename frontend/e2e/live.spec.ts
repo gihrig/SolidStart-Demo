@@ -193,7 +193,7 @@ test.describe("Live updates across Users (#129)", () => {
     }
   });
 
-  test("demo1 deletes a new Post while Bart writes a Comment on it; Bart sees the notice (#187)", async ({
+  test("demo1 edits then deletes a new Post while Bart writes a Comment on it (#187)", async ({
     browser,
   }) => {
     const { a, b, close } = await openClients(browser);
@@ -206,6 +206,16 @@ test.describe("Live updates across Users (#129)", () => {
       await createPost(a, title, alt);
       const articleA = await selectPost(a, alt);
       const articleB = await selectPost(b, alt);
+
+      // A edits the title, and B sees the new title.
+      const edited = `${title} edited`;
+      await articleA.getByRole("button", { name: "Edit Post by demo1" }).click();
+      const dialog = a.getByRole("dialog", { name: "Edit Post" });
+      await dialog.getByLabel("Title").fill(edited);
+      await dialog.getByRole("button", { name: "Save" }).click();
+      await expect(dialog).toBeHidden();
+      await expect(a.getByRole("status")).toHaveText("Post saved.");
+      await expect(articleB.getByRole("heading", { name: edited })).toBeVisible();
 
       // B holds a Draft on the Post: an unsaved Comment.
       await articleB.getByRole("button", { name: /^Comments, /i }).click();
@@ -226,7 +236,7 @@ test.describe("Live updates across Users (#129)", () => {
     }
   });
 
-  test("demo1 adds then deletes a Caption on a new Post; Bart sees it come and go (#187)", async ({
+  test("demo1 adds, edits and deletes a Caption on a new Post; Bart sees each change (#187)", async ({
     browser,
   }) => {
     const { a, b, close } = await openClients(browser);
@@ -246,9 +256,18 @@ test.describe("Live updates across Users (#129)", () => {
       await captionBox.press("Enter");
       await expect(articleB.getByText(text, { exact: true })).toBeVisible();
 
+      // A edits the Caption: the edit form takes the place of the text.
+      const edited = `${text.slice(0, 30)} ed`;
+      await articleA.getByRole("button", { name: "Edit caption by demo1" }).click();
+      const editBox = articleA.getByRole("textbox", { name: "Edit your caption" });
+      await editBox.fill(edited);
+      await editBox.press("Enter");
+      await expect(a.getByRole("status")).toHaveText("Caption saved.");
+      await expect(articleB.getByText(edited, { exact: true })).toBeVisible();
+
       await confirmDelete(a, articleA, "Delete caption by demo1");
       await expect(a.getByRole("status")).toHaveText("Caption deleted.");
-      await expect(articleB.getByText(text, { exact: true })).toHaveCount(0);
+      await expect(articleB.getByText(edited, { exact: true })).toHaveCount(0);
       await expect(b.getByRole("status")).toHaveText("This Caption was deleted.");
 
       // Delete the Post, so the next run starts clean.

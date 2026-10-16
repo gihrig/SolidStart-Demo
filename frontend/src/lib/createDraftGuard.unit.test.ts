@@ -279,3 +279,47 @@ describe("createDraftGuard — a forced discard of a scope (#187)", () => {
       expect(guard.hasDraft()).toBe(false);
     }));
 });
+
+describe("createDraftGuard — the question after an Event (#187)", () => {
+  const T6 = "This Post is no longer in Animals. Your unsaved changes may not apply.";
+
+  it("asks with its own message; Keep editing keeps the Drafts, Discard drops them", () =>
+    withGuard((guard) => {
+      expect(guard.question()).toBe("You have unsaved changes. Discard them?");
+      guard.report(compose, true);
+      guard.ask(T6);
+      expect(guard.pending()).toBe(true);
+      expect(guard.question()).toBe(T6);
+
+      guard.cancelMove();
+      expect(guard.hasDraft(), "Keep editing").toBe(true);
+      guard.ask(T6);
+      guard.confirmMove();
+      expect(guard.hasDraft(), "Discard").toBe(false);
+    }));
+
+  it("cancels a waiting move", () =>
+    withGuard((guard) => {
+      const move = vi.fn();
+      guard.report(compose, true);
+      guard.attempt(move);
+      guard.ask(T6);
+      guard.confirmMove();
+      expect(move).not.toHaveBeenCalled();
+    }));
+
+  it("does not ask without a Draft", () =>
+    withGuard((guard) => {
+      guard.ask(T6);
+      expect(guard.pending()).toBe(false);
+    }));
+
+  it("a forced discard replaces the question", () =>
+    withGuard((guard) => {
+      guard.report(compose, true);
+      guard.ask(T6);
+      guard.discardIn(undefined, "This Post was deleted. Your unsaved changes were discarded.");
+      expect(guard.pending()).toBe(false);
+      expect(guard.notice()).toContain("This Post was deleted.");
+    }));
+});

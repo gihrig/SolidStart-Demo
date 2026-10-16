@@ -23,6 +23,12 @@ export interface OwnerActionsProps {
   onDelete?: () => void;
   /** Disables Delete, such as while a delete runs. */
   deleteDisabled?: boolean;
+  /** Called when the Owner clicks Edit (#187). */
+  onEdit?: () => void;
+  /** Disables Edit, such as while another form is open in the line. */
+  editDisabled?: boolean;
+  /** The Edit button, which takes focus back after an edit closes. */
+  editRef?: (el: HTMLButtonElement) => void;
 }
 
 /**
@@ -30,8 +36,7 @@ export interface OwnerActionsProps {
  * only for the Owner, and stay disabled until the viewer's id loads. This only
  * gates buttons; the back-end owns enforcement. Delete asks first (#187), with
  * "Cancel" the default; Escape cancels. The question exists only while it is
- * open, and focus then returns to Delete. Edit stays a placeholder until its
- * write path lands.
+ * open, and focus then returns to Delete. Edit calls `onEdit` (#187).
  */
 export default function OwnerActions(props: OwnerActionsProps) {
   const isOwner = () => props.userId !== undefined && props.userId === props.author?.id;
@@ -56,9 +61,10 @@ export default function OwnerActions(props: OwnerActionsProps) {
   return (
     <Show when={props.loggedIn}>
       <button
+        ref={props.editRef}
         type="button"
-        onClick={() => {}}
-        disabled={!isOwner()}
+        onClick={() => props.onEdit?.()}
+        disabled={!isOwner() || props.editDisabled}
         class="theme-button disabled:opacity-50"
         aria-label={label("Edit")}
       >

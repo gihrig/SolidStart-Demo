@@ -3,9 +3,11 @@ import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal, Show } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
+import { createDraftGuard } from "~/lib/createDraftGuard";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { CaptionView } from "~/types/jedi";
 import CaptionForm, { type CaptionFormProps } from "./CaptionForm";
+import { DraftGuardContext } from "./DraftGuardContext";
 
 const ADDED: CaptionView = {
   id: 99,
@@ -173,5 +175,76 @@ describe("<CaptionForm />", () => {
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
     resolve(ADDED);
     await waitFor(() => expect(screen.getByRole("button", { name: "Add Caption" })).toBeEnabled());
+  });
+});
+
+describe("<CaptionForm /> — the edit mode (#187)", () => {
+  const scope = Symbol("caption-edit");
+
+  function renderEdit() {
+    const [caption, setCaption] = createSignal(ADDED);
+    const onSave = vi.fn<(text: string) => Promise<void>>(() => Promise.resolve());
+    const onSaved = vi.fn();
+    const onCancel = vi.fn();
+    const guard = createDraftGuard();
+    render(() => (
+      <DraftGuardContext.Provider value={guard}>
+        <CaptionForm
+          postId={1}
+          api={api}
+          caption={caption()}
+          draftScope={scope}
+          onSave={onSave}
+          onSaved={onSaved}
+          onCancel={onCancel}
+        />
+      </DraftGuardContext.Provider>
+    ));
+    const input = screen.getByLabelText("Edit your caption") as HTMLInputElement;
+    return { user: userEvent.setup(), input, onSave, onSaved, onCancel, guard, setCaption };
+  }
+
+  it("fills the text and keeps Save disabled until it changes; Save sends the text", async () => {
+    const { user, input, onSave, onSaved } = renderEdit();
+    expect(input.value).toBe(ADDED.text);
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+
+    await user.type(input, "!");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenCalledWith(`${ADDED.text}!`);
+    await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
+    expect(captionAddMock).not.toHaveBeenCalled();
+  });
+
+  it("holds a Draft in its scope while the text differs; Cancel drops it", async () => {
+    const { user, input, guard, onCancel } = renderEdit();
+    expect(guard.hasDraftIn([scope])).toBe(false);
+    await user.type(input, "!");
+    expect(guard.hasDraftIn([scope])).toBe(true);
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(guard.hasDraft()).toBe(false);
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it("shows a remote change while the text is unchanged, and keeps a changed text", async () => {
+    const { user, input, setCaption } = renderEdit();
+    setCaption({ ...ADDED, text: "Remote" });
+    expect(input.value).toBe("Remote");
+
+    await user.type(input, "!");
+    setCaption({ ...ADDED, text: "Remote again" });
+    expect(input.value).toBe("Remote!");
+  });
+
+  it("shows the save error and stays open", async () => {
+    const { user, input, onSave, onSaved } = renderEdit();
+    // A rejection that is not an Error shows the fallback text.
+    onSave.mockRejectedValueOnce({ status: 500 });
+    await user.type(input, "!");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not edit the Caption");
+    expect(onSaved).not.toHaveBeenCalled();
   });
 });

@@ -9,12 +9,14 @@ import type {
   AuthorRef as AuthorRefWire,
   HeroView as HeroViewWire,
   CommentView as CommentViewWire,
+  PostForUpdate,
 } from "~/types/backend";
 import type {
   JediCategory,
   HeroView,
   AuthorRef,
   Like,
+  PostChanges,
   PostDraft,
   PostView,
   CommentView,
@@ -64,6 +66,17 @@ const toPostView = (p: PostViewWire): PostView => ({
   categories: p.categories.map(toJediCategory),
   likeCount: p.like_count,
   commentCount: p.comment_count,
+});
+
+// A Post edit sends only its changed fields (#187), so a remote edit of
+// another field stays.
+const toPostForUpdate = (changes: PostChanges): PostForUpdate => ({
+  ...(changes.title !== undefined && { title: changes.title }),
+  ...(changes.imageAlt !== undefined && { image_alt: changes.imageAlt }),
+  ...(changes.photographer !== undefined && { photographer: changes.photographer }),
+  ...(changes.photographerUrl !== undefined && { photographer_url: changes.photographerUrl }),
+  ...(changes.sourceUrl !== undefined && { source_url: changes.sourceUrl }),
+  ...(changes.categoryIds !== undefined && { category_ids: changes.categoryIds }),
 });
 
 const toLike = (l: LikeViewWire): Like => ({
@@ -151,8 +164,13 @@ export const jediApi = {
       toLike(await authenticatedRpc("get_post_like", { id: postId })),
     toggleLike: async (postId: number, liked: boolean): Promise<Like> =>
       toLike(await authenticatedRpc("toggle_post_like", { data: { id: postId, liked } })),
-    // Real back-end call (#187): only the Owner deletes. The back-end deletes
-    // every row under the Post too (ADR-0032) and pokes `posts`.
+    // Real back-end calls (#187): only the Owner edits or deletes. An edit
+    // sends the changed fields; the back-end refuses an empty one. A delete
+    // removes every row under the Post too (ADR-0032). Each pokes `posts`.
+    update: async (postId: number, changes: PostChanges): Promise<PostView> =>
+      toPostView(
+        await authenticatedRpc("update_post", { id: postId, data: toPostForUpdate(changes) }),
+      ),
     remove: async (postId: number): Promise<void> => {
       await authenticatedRpc("delete_post", { id: postId });
     },
@@ -174,9 +192,12 @@ export const jediApi = {
       toLike(await authenticatedRpc("get_caption_like", { id: captionId })),
     toggleLike: async (captionId: number, liked: boolean): Promise<Like> =>
       toLike(await authenticatedRpc("toggle_caption_like", { data: { id: captionId, liked } })),
-    // Real back-end call (#187): only the Owner deletes. The back-end deletes
-    // the Caption's Likes and Comments too (ADR-0032) and pokes the Post's
-    // `post_caption`.
+    // Real back-end calls (#187): only the Owner edits or deletes. The
+    // back-end refuses an edit after the first Like or Comment. A delete
+    // removes the Caption's Likes and Comments too (ADR-0032). Each pokes the
+    // Post's `post_caption`.
+    update: async (captionId: number, text: string): Promise<CaptionView> =>
+      toCaptionView(await authenticatedRpc("update_caption", { id: captionId, data: { text } })),
     remove: async (captionId: number): Promise<void> => {
       await authenticatedRpc("delete_caption", { id: captionId });
     },

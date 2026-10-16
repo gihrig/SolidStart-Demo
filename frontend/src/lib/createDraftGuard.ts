@@ -27,6 +27,15 @@ export interface DraftGuard {
   hasDraftIn: (scopes?: readonly DraftScope[]) => boolean;
   /** Whether a move waits for the confirm dialog. */
   pending: Accessor<boolean>;
+  /** The confirm dialog's question: the waiting `ask`'s message, else the
+   *  question of a move. */
+  question: Accessor<string>;
+  /** Ask whether to keep the Drafts in `scopes`, or every Draft with no
+   *  `scopes`, after an Event made them doubtful (#187), such as a Post that
+   *  left the selected Category. It waits as a move does, with no move: "Keep
+   *  editing" keeps them, and "Discard" drops them. It replaces a waiting
+   *  move. With no Draft, it does not ask. */
+  ask: (message: string, scopes?: readonly DraftScope[]) => void;
   /** "Discard": drop the Drafts the waiting move unmounts (every Draft, or
    *  its scopes'), then run it. */
   confirmMove: () => void;
@@ -54,6 +63,9 @@ export interface DraftGuard {
 /** The notice of a forced discard whose cause the form cannot name. */
 export const DRAFT_DISCARDED_NOTICE = "Your unsaved changes were discarded.";
 
+/** The question of a user-started move with a Draft. */
+const MOVE_QUESTION = "You have unsaved changes. Discard them?";
+
 /** A guard that holds nothing: each move runs at once. The default where no
  *  app guard is given (a component or view-model test). */
 export const passThroughGuard: DraftGuard = {
@@ -63,6 +75,8 @@ export const passThroughGuard: DraftGuard = {
   attempt: (move) => move(),
   hasDraftIn: () => false,
   pending: () => false,
+  question: () => MOVE_QUESTION,
+  ask: () => {},
   confirmMove: () => {},
   cancelMove: () => {},
   notice: () => undefined,
@@ -92,6 +106,7 @@ export function createDraftGuard(): DraftGuard {
   const [pendingMove, setPendingMove] = createSignal<{
     run: () => void;
     scopes?: readonly DraftScope[];
+    message?: string;
   }>();
   const [notice, setNotice] = createSignal<string>();
 
@@ -188,6 +203,10 @@ export function createDraftGuard(): DraftGuard {
     attempt,
     hasDraftIn: (scopes) => draftsIn(scopes).length > 0,
     pending: () => pendingMove() !== undefined,
+    question: () => pendingMove()?.message ?? MOVE_QUESTION,
+    ask: (message, scopes) => {
+      if (draftsIn(scopes).length > 0) setPendingMove({ run: () => {}, scopes, message });
+    },
     confirmMove,
     cancelMove: () => setPendingMove(undefined),
     notice,

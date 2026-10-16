@@ -41,7 +41,7 @@ export const DraftGuardProvider: ParentComponent = (props) => {
       {props.children}
       <ConfirmDialog
         open={guard.pending()}
-        message="You have unsaved changes. Discard them?"
+        message={guard.question()}
         confirmLabel="Discard"
         cancelLabel="Keep editing"
         onConfirm={guard.confirmMove}
@@ -74,8 +74,10 @@ export interface DraftOptions {
 }
 
 export interface Draft {
-  /** The user drops the Draft (a Cancel). The form's unmount then shows no
-   *  notice. */
+  /** The user drops the Draft (a Cancel, or a saved write that closes the
+   *  form). The form's unmount then shows no notice. The Draft stays released
+   *  until the form is clean: a report that re-runs before the saved text
+   *  reloads does not hold it again (#187). */
   clear: () => void;
 }
 
@@ -88,12 +90,22 @@ export interface Draft {
 export function useDraft(options: DraftOptions): Draft {
   const guard = useDraftGuard();
   const key = Symbol("draft");
-  createEffect(() => guard.report(key, options.dirty(), options.scope));
+  let cleared = false;
+  createEffect(() => {
+    const dirty = options.dirty();
+    if (!dirty) cleared = false;
+    guard.report(key, dirty && !cleared, options.scope);
+  });
   // A Draft that an own delete released (`guard.drop`) ends here too, with no
   // notice.
   onCleanup(() => {
     if (guard.holds(key)) guard.discard(key, options.notice?.() ?? DRAFT_DISCARDED_NOTICE);
     else guard.report(key, false);
   });
-  return { clear: () => guard.report(key, false) };
+  return {
+    clear: () => {
+      cleared = true;
+      guard.report(key, false);
+    },
+  };
 }

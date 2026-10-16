@@ -1,12 +1,15 @@
 import {
+  createEffect,
   createMemo,
   createResource,
   createSignal,
+  on,
   onCleanup,
   untrack,
   type Accessor,
 } from "solid-js";
-import { passThroughGuard, type DraftGuard } from "~/lib/createDraftGuard";
+import { isServer } from "solid-js/web";
+import { passThroughGuard, type DraftGuard, type DraftScope } from "~/lib/createDraftGuard";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { createLikeState } from "~/lib/jedi/createLikeState";
 import {
@@ -17,7 +20,14 @@ import {
 } from "~/lib/jedi/createCommentThread";
 import type { Feed } from "~/lib/feed";
 import { Channel } from "~/lib/channel";
-import type { JediCategory, Like, PostView, CaptionView, HeroView } from "~/types/jedi";
+import type {
+  JediCategory,
+  Like,
+  PostChanges,
+  PostView,
+  CaptionView,
+  HeroView,
+} from "~/types/jedi";
 
 /**
  * The Jedi feed's view-model: it owns the route's four data resources and the
@@ -63,10 +73,28 @@ import type { JediCategory, Like, PostView, CaptionView, HeroView } from "~/type
  * Post's list. That is a forced discard of the Drafts on it, with the notice
  * that names it; a viewer without a Draft hears it in `announcement`.
  *
+ * `postEdit` / `captionEdit` are the Owner's edits (#187). An open edit holds
+ * its subject, with or without a Draft. A held Post that an Event moves out of
+ * the selected Category stays shown, and the guard asks whether to keep the
+ * Drafts on it. When the hold ends, the article shows the top-ranked Post in
+ * the Category.
+ *
  * `hero` (the header banner content) is the externalized header data (#32): the
  * route renders the Hero from `hero`, so it is not hard-coded in the markup. The
  * nav avatar's profile now lives in the global Nav, not here (see ADR-0007).
  */
+/** One edit's open state (#187): the Post edit or the Caption edit. */
+export interface EditState {
+  /** Whether the edit is open on the subject shown. A change of the subject
+   *  shown closes it. While it is open, it holds its subject. */
+  open: Accessor<boolean>;
+  /** Open the edit on the subject shown, or close it. A close is the form's
+   *  own Cancel or Save, so it is no guarded move. */
+  setOpen: (open: boolean) => void;
+  /** The scope of the edit form's Draft (ADR-0030). */
+  draftScope: DraftScope;
+}
+
 export interface JediFeed {
   /** The real categories behind an "All" row at index 0 (`selectedCategory`). */
   categories: Accessor<JediCategory[] | undefined>;
@@ -124,6 +152,19 @@ export interface JediFeed {
   /** Delete the shown Caption (#187), as its Owner, as `deletePost` does. It
    *  releases the Drafts in the Caption's Comments panel. */
   deleteCaption: () => Promise<void>;
+  /** The Post edit (#187): the Edit dialog's open state. */
+  postEdit: EditState;
+  /** The Caption edit (#187): the edit form's open state in the Caption
+   *  line. */
+  captionEdit: EditState;
+  /** Save the Owner's edit of the Post `id`: only the changed fields. When
+   *  the Categories drop the selected one, the filter switches to "All" when
+   *  the save is sent, so the Post stays shown. Refetches the Posts at once.
+   *  Rejects on failure. */
+  updatePost: (id: number, changes: PostChanges) => Promise<void>;
+  /** Save the Owner's edit of the Caption `id`. Refetches the Captions at
+   *  once. Rejects on failure, such as a Caption that got a Like. */
+  updateCaption: (id: number, text: string) => Promise<void>;
   /** Whether `deletePost` would discard a Draft: the delete question says so. */
   postDeleteDiscardsDraft: () => boolean;
   /** Whether `deleteCaption` would discard a Draft. */
@@ -166,6 +207,12 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const [selectedCaptionId, setSelectedCaptionId] = createSignal<number | undefined>();
 
   const [announcement, setAnnouncement] = createSignal("");
+  // The Subject each edit is open on (#187), else undefined.
+  const [postEditOn, setPostEditOn] = createSignal<number>();
+  const [captionEditOn, setCaptionEditOn] = createSignal<number>();
+  // The held Post that an Event moved out of the selected Category (#187): it
+  // stays shown while the hold lasts.
+  const [keptPostId, setKeptPostId] = createSignal<number>();
   // The ids of the Owner's own deletes (#187): their absence from a list is no
   // Event cause, so it shows no notice.
   const ownDeletedPosts = new Set<number>();
@@ -173,10 +220,12 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
 
   const [realCategories] = createResource(() => api.categories.list());
   // Each load finds the cause of a change before the view sees the new list:
-  // a form that the change unmounts then holds no Draft (#187).
+  // a form that the change unmounts then holds no Draft (#187). Only in the
+  // browser: an Event reaches no server render, and on the server a read after
+  // the `await` can meet another request's render context.
   const [postsResource, { refetch: refetchPosts }] = createResource(async () => {
     const list = await api.posts.list();
-    untrack(() => noteDeletedPost(list));
+    if (!isServer) untrack(() => noteChangedPost(list));
     return list;
   });
   // The first load reads `postsResource()`, so the route's <Suspense> (and SSR)
@@ -206,29 +255,38 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const visiblePosts = () => visiblePostsIn(selectedCategory());
 
   // The clicked post, but only while the filter still lists it; then the held
-  // post; otherwise the top-ranked visible post. `visible === undefined` is the
-  // loading state (fall back to `featured`); an empty array is a real category
-  // with no posts, which stays undefined so `<main>` can show the empty panel
-  // instead of a stale post.
+  // post; then the held post that an Event moved out of the filter, when
+  // `keep` (#187); otherwise the top-ranked visible post. `visible ===
+  // undefined` is the loading state (fall back to `featured`); an empty array
+  // is a real category with no posts, which stays undefined so `<main>` can
+  // show the empty panel instead of a stale post.
   const selectedPostIn = (
     categoryIndex: number,
     heldId: number | undefined,
+    keep: boolean,
   ): PostView | undefined => {
     const visible = visiblePostsIn(categoryIndex);
     if (visible === undefined) return featured();
     const id = selectedPostId();
-    return visible.find((p) => p.id === id) ?? visible.find((p) => p.id === heldId) ?? visible[0];
+    const kept =
+      keep && heldId !== undefined && heldId === keptPostId()
+        ? posts()?.find((p) => p.id === heldId)
+        : undefined;
+    return (
+      visible.find((p) => p.id === id) ?? visible.find((p) => p.id === heldId) ?? kept ?? visible[0]
+    );
   };
-  // The Post shown when the first Draft started, held while a Draft exists: a
-  // re-rank (a Like) must not move the article and discard the Draft. With no
-  // Draft, the article follows the ranking again. A held Post that leaves the
-  // list is no longer shown, which is a forced discard.
+  // The Post shown when the first Draft started, held while a Draft exists or
+  // the Post edit is open (#187): a re-rank (a Like) must not move the article
+  // and discard the Draft or close the edit. With no hold, the article follows
+  // the ranking again. A held Post that leaves the list is no longer shown,
+  // which is a forced discard.
   const heldPostId = createMemo<number | undefined>((held) =>
-    guard.hasDraft()
-      ? (held ?? untrack(() => selectedPostIn(selectedCategory(), undefined))?.id)
+    guard.hasDraft() || postEditOn() !== undefined
+      ? (held ?? untrack(() => selectedPostIn(selectedCategory(), undefined, false))?.id)
       : undefined,
   );
-  const selectedPost = () => selectedPostIn(selectedCategory(), heldPostId());
+  const selectedPost = () => selectedPostIn(selectedCategory(), heldPostId(), true);
 
   // A move that keeps the selected Post unmounts no form, so it is no guarded
   // move.
@@ -246,8 +304,13 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const selectPost = (id: number): void => {
     guardPostChange(id, () => setSelectedPostId(id));
   };
+  // A User's own Category change does not keep a held Post outside the filter
+  // (#187): it asks first, then moves.
   const setSelectedCategory = (index: number): void => {
-    guardPostChange(selectedPostIn(index, heldPostId())?.id, () => setSelectedCategoryIndex(index));
+    guardPostChange(selectedPostIn(index, heldPostId(), false)?.id, () => {
+      setKeptPostId(undefined);
+      setSelectedCategoryIndex(index);
+    });
   };
 
   // Each result carries the Post id it was fetched for, so even an empty list
@@ -256,7 +319,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     () => selectedPost()?.id,
     async (postId) => {
       const captions = await api.captions.listForPost(postId);
-      untrack(() => noteDeletedCaption(postId, captions));
+      if (!isServer) untrack(() => noteDeletedCaption(postId, captions));
       return { postId, captions };
     },
   );
@@ -284,23 +347,54 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // it.
   const captionThreadOpenOn = createSignal<number>();
   // The picked Caption; then the Caption its Comments panel is open on (#127):
-  // a re-rank must not close a thread the User is reading; otherwise the
-  // winner. Self-resets on a post change: the old ids are absent from the new
-  // captions.
+  // a re-rank must not close a thread the User is reading; then the Caption its
+  // edit is open on (#187); otherwise the winner. Self-resets on a post change:
+  // the old ids are absent from the new captions.
   const selectedCaption = (): CaptionView | undefined => {
     const captions = selectedPostCaptions();
     const [heldId] = captionThreadOpenOn;
     return (
       captions?.find((c) => c.id === selectedCaptionId()) ??
       captions?.find((c) => c.id === heldId()) ??
+      captions?.find((c) => c.id === captionEditOn()) ??
       winningCaption()
     );
   };
-  // A pick of the Caption shown unmounts no form, so it is no guarded move.
+  // A pick of the Caption shown unmounts no form, so it is no guarded move. A
+  // pick names both scopes that it unmounts: the edit and the thread (#187).
   const selectCaption = (id: number): void => {
     if (id === selectedCaption()?.id) setSelectedCaptionId(id);
-    else guard.attempt(() => setSelectedCaptionId(id), [captionComments.draftScope]);
+    else
+      guard.attempt(
+        () => setSelectedCaptionId(id),
+        [captionEdit.draftScope, captionComments.draftScope],
+      );
   };
+
+  // The Owner's edits (#187). Each is open on its subject's id, so a change of
+  // the subject shown closes it, and a return does not reopen it.
+  const editState = (
+    openOn: Accessor<number | undefined>,
+    setOpenOn: (id: number | undefined) => void,
+    shownId: () => number | undefined,
+    name: string,
+  ): EditState => {
+    // A memo, so a refetched subject with the same id does not close the edit.
+    const shown = createMemo(shownId);
+    createEffect(on(shown, () => setOpenOn(undefined), { defer: true }));
+    return {
+      open: () => openOn() !== undefined && openOn() === shown(),
+      setOpen: (open) => setOpenOn(open ? shown() : undefined),
+      draftScope: Symbol(name),
+    };
+  };
+  const postEdit = editState(postEditOn, setPostEditOn, () => selectedPost()?.id, "post-edit");
+  const captionEdit = editState(
+    captionEditOn,
+    setCaptionEditOn,
+    () => selectedCaption()?.id,
+    "caption-edit",
+  );
 
   // The viewer's like state of the selected Post (#122) and of the selected
   // Caption (#123). The read needs a login, so each loads only while a live
@@ -338,21 +432,52 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   });
 
   // A held Post that is not in the full list was deleted (#187): a forced
-  // discard of every Draft on it. A viewer without a Draft hears it.
-  const noteDeletedPost = (list: PostView[]): void => {
+  // discard of every Draft on it. A viewer without a Draft hears it. A held
+  // Post that the list moves out of the selected Category stays shown, and the
+  // guard asks, once per leave, whether to keep the Drafts on it.
+  const noteChangedPost = (list: PostView[]): void => {
     const shown = selectedPost();
-    if (!shown || ownDeletedPosts.has(shown.id) || list.some((p) => p.id === shown.id)) return;
-    if (!guard.discardIn(undefined, POST_DELETED_NOTICE)) {
-      setAnnouncement("This Post was deleted.");
+    if (!shown || ownDeletedPosts.has(shown.id)) return;
+    const next = list.find((p) => p.id === shown.id);
+    if (!next) {
+      if (!guard.discardIn(undefined, POST_DELETED_NOTICE)) {
+        setAnnouncement("This Post was deleted.");
+      }
+      return;
     }
+    const category = categories()?.[selectedCategory()];
+    if (!category || category.id === ALL_CATEGORIES.id || heldPostId() !== shown.id) return;
+    const inCategory = (p: PostView) => p.categories.some((c) => c.id === category.id);
+    if (!inCategory(shown) || inCategory(next)) return;
+    setKeptPostId(shown.id);
+    guard.ask(`This Post is no longer in ${category.name}. Your unsaved changes may not apply.`);
   };
+  // When the article moves off a Post that is no longer in the selected
+  // Category, and the User did not change the Category, the live region says
+  // why (#187).
+  createEffect(
+    on(
+      () => [selectedPost()?.id, selectedCategory()] as const,
+      ([id, categoryIndex], prev) => {
+        if (!prev) return;
+        const [prevId, prevCategoryIndex] = prev;
+        if (prevId === undefined || id === prevId || categoryIndex !== prevCategoryIndex) return;
+        const category = categories()?.[categoryIndex];
+        const left = posts()?.find((p) => p.id === prevId);
+        if (!category || category.id === ALL_CATEGORIES.id || !left) return;
+        if (left.categories.some((c) => c.id === category.id)) return;
+        setAnnouncement(`This Post is no longer in ${category.name}.`);
+      },
+    ),
+  );
   // A held Caption that is not in its Post's list was deleted (#187): a forced
   // discard of the Drafts in its Comments panel.
   const noteDeletedCaption = (postId: number, captions: CaptionView[]): void => {
     const shown = selectedCaption();
     if (!shown || shown.postId !== postId || ownDeletedCaptions.has(shown.id)) return;
     if (captions.some((c) => c.id === shown.id)) return;
-    if (!guard.discardIn([captionComments.draftScope], CAPTION_DELETED_NOTICE)) {
+    const scopes = [captionEdit.draftScope, captionComments.draftScope];
+    if (!guard.discardIn(scopes, CAPTION_DELETED_NOTICE)) {
       setAnnouncement("This Caption was deleted.");
     }
   };
@@ -391,6 +516,31 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
       guard.drop([captionComments.draftScope]),
     );
     setAnnouncement("Caption deleted.");
+    void refetchCaptions();
+  };
+
+  // The Owner's own edits (#187). The refetch does not wait for the poke.
+  const updatePost = async (id: number, changes: PostChanges): Promise<void> => {
+    // A save that drops the selected Category keeps the Post shown: the
+    // filter switches to "All" when the save is sent, as the poke can arrive
+    // before the result.
+    const category = categories()?.[selectedCategory()];
+    const dropsCategory =
+      changes.categoryIds !== undefined &&
+      category !== undefined &&
+      category.id !== ALL_CATEGORIES.id &&
+      !changes.categoryIds.includes(category.id);
+    if (dropsCategory) {
+      selectPost(id);
+      setSelectedCategory(0);
+    }
+    await api.posts.update(id, changes);
+    setAnnouncement("Post saved.");
+    void refetchPosts();
+  };
+  const updateCaption = async (id: number, text: string): Promise<void> => {
+    await api.captions.update(id, text);
+    setAnnouncement("Caption saved.");
     void refetchCaptions();
   };
 
@@ -462,6 +612,10 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     toggleCaptionLike: captionLike.toggle,
     postComments,
     captionComments,
+    postEdit,
+    captionEdit,
+    updatePost,
+    updateCaption,
     deletePost,
     deleteCaption,
     postDeleteDiscardsDraft: () => guard.hasDraftIn(),

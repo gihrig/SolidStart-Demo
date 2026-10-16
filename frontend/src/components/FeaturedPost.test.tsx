@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vite-plus/test";
-import { render, screen, waitFor } from "@solidjs/testing-library";
+import { render, screen, waitFor, within } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
@@ -8,7 +8,24 @@ import { stubDialogModal } from "~/lib/test-utils";
 import FeaturedPost from "./FeaturedPost";
 import { DraftGuardContext } from "./DraftGuardContext";
 import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
+import type { EditState } from "~/lib/jedi/createJediFeed";
 import type { PostView, CaptionView, Like, CommentView } from "~/types/jedi";
+
+// The Post edit dialog loads the Categories on mount (#187): the RPC client
+// answers from memory.
+vi.mock("~/lib/backend-rpc", () => ({
+  publicRpc: vi.fn((method: string) =>
+    Promise.resolve(
+      method === "list_categories"
+        ? [
+            { id: 3, name: "Animals", icon: "dog" },
+            { id: 6, name: "Cute", icon: "fire-heart" },
+          ]
+        : [],
+    ),
+  ),
+  authenticatedRpc: vi.fn(() => Promise.reject(new Error("not used here"))),
+}));
 
 const post: PostView = {
   id: 1,
@@ -737,5 +754,91 @@ describe("<FeaturedPost /> — the Owner's delete (#187)", () => {
         "Could not delete the Caption",
       ),
     );
+  });
+});
+
+describe("<FeaturedPost /> — the Owner's edits (#187)", () => {
+  // An edit's open state, as the view-model holds it.
+  const fakeEdit = (): EditState => {
+    const [open, setOpen] = createSignal(false);
+    return { open, setOpen, draftScope: Symbol("edit") };
+  };
+  const unlocked: CaptionView = { ...caption, likeCount: 0, commentCount: 0 };
+
+  function renderOwner(shown: CaptionView = unlocked) {
+    stubDialogModal();
+    const postEdit = fakeEdit();
+    const captionEdit = fakeEdit();
+    const onUpdatePost = vi.fn(() => Promise.resolve());
+    const onUpdateCaption = vi.fn(() => Promise.resolve());
+    render(() => (
+      <FeaturedPost
+        loggedIn
+        userId={1}
+        post={post}
+        caption={shown}
+        captionsLoaded
+        postEdit={postEdit}
+        captionEdit={captionEdit}
+        onUpdatePost={onUpdatePost}
+        onUpdateCaption={onUpdateCaption}
+      />
+    ));
+    return { user: userEvent.setup(), postEdit, captionEdit, onUpdatePost, onUpdateCaption };
+  }
+  const button = (name: string) => screen.getByRole("button", { name });
+
+  it("the Post line's Edit opens the Edit Post dialog; Save sends this Post's changes", async () => {
+    const { user, postEdit, onUpdatePost } = renderOwner();
+    await user.click(button("Edit Post by Lisa"));
+    expect(postEdit.open()).toBe(true);
+    const dialog = screen.getByRole("dialog", { name: "Edit Post" });
+    const title = within(dialog).getByLabelText("Title");
+
+    await user.type(title, "!");
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    expect(onUpdatePost).toHaveBeenCalledWith(1, { title: "Little Jedi!" });
+    await waitFor(() => expect(postEdit.open()).toBe(false));
+    expect(screen.queryByRole("dialog", { name: "Edit Post" })).toBeNull();
+    expect(button("Edit Post by Lisa"), "focus returns to Edit").toHaveFocus();
+  });
+
+  it("the Caption edit form takes the place of the Caption text", async () => {
+    const { user, captionEdit, onUpdateCaption } = renderOwner();
+    await user.click(button("Edit caption by Lisa"));
+    expect(captionEdit.open()).toBe(true);
+    const input = screen.getByLabelText("Edit your caption") as HTMLInputElement;
+    expect(input.value).toBe(caption.text);
+    expect(screen.queryByText(caption.text, { selector: "p" })).toBeNull();
+
+    // One form in the Caption line: Add, Edit and Delete wait.
+    expect(button("Add Caption")).toBeDisabled();
+    expect(button("Edit caption by Lisa")).toBeDisabled();
+    expect(button("Delete caption by Lisa")).toBeDisabled();
+
+    await user.type(input, "!");
+    await user.click(button("Save"));
+    expect(onUpdateCaption).toHaveBeenCalledWith(caption.id, `${caption.text}!`);
+    await waitFor(() => expect(captionEdit.open()).toBe(false));
+    expect(button("Edit caption by Lisa"), "focus returns to Edit").toHaveFocus();
+  });
+
+  it("disables the Caption's Edit while the Add form is open", async () => {
+    const { user } = renderOwner();
+    await user.click(addCaptionTrigger()!);
+    expect(button("Edit caption by Lisa")).toBeDisabled();
+  });
+
+  it("a locked Caption explains itself, and focus returns to Edit", async () => {
+    const { user, captionEdit } = renderOwner(caption);
+    await user.click(button("Edit caption by Lisa"));
+    expect(captionEdit.open()).toBe(false);
+    const notice = screen.getByRole("dialog", {
+      name: "A Caption with Likes or Comments cannot be edited.",
+    });
+    await user.click(within(notice).getByRole("button", { name: "OK" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(button("Edit caption by Lisa")).toHaveFocus();
   });
 });
