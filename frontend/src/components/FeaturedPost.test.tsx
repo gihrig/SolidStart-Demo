@@ -673,3 +673,69 @@ describe("<FeaturedPost /> — the Caption Comments panel (#127)", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 });
+
+describe("<FeaturedPost /> — the Owner's delete (#187)", () => {
+  const T1 = "Delete this Post? Its Captions, Comments and Likes are deleted too.";
+  const T2 = "Delete this Caption? Its Comments and Likes are deleted too.";
+
+  function renderOwner(props: {
+    onDeletePost?: () => Promise<void>;
+    onDeleteCaption?: () => Promise<void>;
+    postDeleteDiscardsDraft?: () => boolean;
+  }) {
+    stubDialogModal();
+    render(() => (
+      <FeaturedPost loggedIn userId={1} post={post} caption={caption} captionsLoaded {...props} />
+    ));
+  }
+  const confirm = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+    await user.click(screen.getByRole("button", { name }));
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+  };
+
+  it("asks the Post question, deletes on Delete and moves focus to the Post title", async () => {
+    const user = userEvent.setup();
+    const onDeletePost = vi.fn(() => Promise.resolve());
+    renderOwner({ onDeletePost, postDeleteDiscardsDraft: () => true });
+
+    await user.click(screen.getByRole("button", { name: "Delete Post by Lisa" }));
+    expect(screen.getByRole("dialog")).toHaveAccessibleName(
+      `${T1} Your unsaved changes will be discarded.`,
+    );
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(onDeletePost).toHaveBeenCalledOnce();
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Little Jedi" })).toHaveFocus());
+  });
+
+  it("asks the Caption question, deletes on Delete and moves focus to the Caption line", async () => {
+    const user = userEvent.setup();
+    const onDeleteCaption = vi.fn(() => Promise.resolve());
+    renderOwner({ onDeleteCaption });
+
+    await user.click(screen.getByRole("button", { name: "Delete caption by Lisa" }));
+    expect(screen.getByRole("dialog")).toHaveAccessibleName(T2);
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(onDeleteCaption).toHaveBeenCalledOnce();
+    await waitFor(() => expect(screen.getByText(caption.text).closest("[tabindex]")).toHaveFocus());
+  });
+
+  it("shows the delete error, and focus stays on Delete", async () => {
+    const user = userEvent.setup();
+    // A rejection that is not an Error shows the fallback text (T13).
+    const fail = () => Promise.reject({ status: 500 });
+    renderOwner({ onDeletePost: fail, onDeleteCaption: fail });
+
+    await confirm(user, "Delete Post by Lisa");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not delete the Post");
+    expect(screen.getByRole("button", { name: "Delete Post by Lisa" })).toHaveFocus();
+
+    await confirm(user, "Delete caption by Lisa");
+    await waitFor(() =>
+      expect(screen.getAllByRole("alert").map((a) => a.textContent)).toContain(
+        "Could not delete the Caption",
+      ),
+    );
+  });
+});

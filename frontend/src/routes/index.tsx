@@ -46,6 +46,11 @@ export default function Home() {
     toggleCaptionLike,
     postComments,
     captionComments,
+    deletePost,
+    deleteCaption,
+    postDeleteDiscardsDraft,
+    captionDeleteDiscardsDraft,
+    announcement,
     connectFeed,
   } = createJediFeed({ guard: useDraftGuard() });
 
@@ -64,6 +69,12 @@ export default function Home() {
       </Show>
 
       <Show when={hero()}>{(h) => <Hero {...h()} />}</Show>
+
+      {/* The route's one polite live region (#187): the view-model finds the
+          cause of a change, so it owns the message. */}
+      <p role="status" class="sr-only">
+        {announcement()}
+      </p>
 
       <div class="grid grid-cols-3 max-w-7xl mx-auto mt-6">
         {/* Mobile sidebar toggle */}
@@ -102,6 +113,10 @@ export default function Home() {
                   onToggleCaptionLike={toggleCaptionLike}
                   postComments={postComments}
                   captionComments={captionComments}
+                  onDeletePost={deletePost}
+                  postDeleteDiscardsDraft={postDeleteDiscardsDraft}
+                  onDeleteCaption={deleteCaption}
+                  captionDeleteDiscardsDraft={captionDeleteDiscardsDraft}
                 />
               )}
             </Match>

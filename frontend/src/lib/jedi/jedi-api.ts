@@ -151,6 +151,11 @@ export const jediApi = {
       toLike(await authenticatedRpc("get_post_like", { id: postId })),
     toggleLike: async (postId: number, liked: boolean): Promise<Like> =>
       toLike(await authenticatedRpc("toggle_post_like", { data: { id: postId, liked } })),
+    // Real back-end call (#187): only the Owner deletes. The back-end deletes
+    // every row under the Post too (ADR-0032) and pokes `posts`.
+    remove: async (postId: number): Promise<void> => {
+      await authenticatedRpc("delete_post", { id: postId });
+    },
   },
   captions: {
     // Real back-end call now (#118): Top Captions come from
@@ -169,6 +174,12 @@ export const jediApi = {
       toLike(await authenticatedRpc("get_caption_like", { id: captionId })),
     toggleLike: async (captionId: number, liked: boolean): Promise<Like> =>
       toLike(await authenticatedRpc("toggle_caption_like", { data: { id: captionId, liked } })),
+    // Real back-end call (#187): only the Owner deletes. The back-end deletes
+    // the Caption's Likes and Comments too (ADR-0032) and pokes the Post's
+    // `post_caption`.
+    remove: async (captionId: number): Promise<void> => {
+      await authenticatedRpc("delete_caption", { id: captionId });
+    },
   },
   comments: {
     // A Post's thread (#124): every Post is public, so the read needs no login;

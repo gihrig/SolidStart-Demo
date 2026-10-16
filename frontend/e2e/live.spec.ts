@@ -46,6 +46,43 @@ async function readCount(article: Locator, label: string): Promise<number> {
   return count;
 }
 
+/**
+ * Create a Post through the Nav's New Post dialog (#120). `alt` is the photo
+ * description, which names the Post's Top Photos row: a unique value per run,
+ * so a row left by an earlier failed run cannot match.
+ */
+async function createPost(page: Page, title: string, alt: string): Promise<void> {
+  await page.getByRole("banner").getByRole("button", { name: "New Post" }).click();
+  const dialog = page.getByRole("dialog", { name: "New Post" });
+  await dialog.getByLabel("Title").fill(title);
+  await dialog.getByLabel("Image URL").fill("https://example.com/e2e.jpg");
+  await dialog.getByLabel("Image description").fill(alt);
+  await dialog.getByLabel("Photographer", { exact: true }).fill("e2e");
+  await dialog.getByLabel("Photographer URL").fill("https://example.com/e2e");
+  await dialog.getByLabel("Photo page URL").fill("https://example.com/e2e/photo");
+  await dialog.getByLabel("Animals").check();
+  await dialog.getByRole("button", { name: "Post", exact: true }).click();
+  await expect(dialog).toBeHidden();
+}
+
+/** Show a Post: click its Top Photos row, found by its photo description. */
+async function selectPost(page: Page, alt: string): Promise<Locator> {
+  await page
+    .getByRole("listbox", { name: "Top Photos" })
+    .getByRole("option")
+    .filter({ has: page.getByRole("img", { name: alt, exact: true }) })
+    .click();
+  const article = page.locator("article").first();
+  await expect(article.getByRole("img", { name: alt, exact: true })).toBeVisible();
+  return article;
+}
+
+/** Answer the delete question of `name` with "Delete" (#187). */
+async function confirmDelete(page: Page, article: Locator, name: string): Promise<void> {
+  await article.getByRole("button", { name }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
+}
+
 test.describe("Live updates across Users (#129)", () => {
   test("demo1 likes then unlikes Post 1; Bart sees the count and Top Photos change", async ({
     browser,
@@ -151,6 +188,72 @@ test.describe("Live updates across Users (#129)", () => {
       await rowA.getByRole("button", { name: "Delete comment" }).click();
       await expect(rowA).toHaveCount(0);
       await expect(rowB).toHaveCount(0);
+    } finally {
+      await close();
+    }
+  });
+
+  test("demo1 deletes a new Post while Bart writes a Comment on it; Bart sees the notice (#187)", async ({
+    browser,
+  }) => {
+    const { a, b, close } = await openClients(browser);
+    const stamp = Date.now();
+    const title = `e2e ${stamp}`;
+    const alt = `e2e photo ${stamp}`;
+    try {
+      await featuredArticle(a);
+      await featuredArticle(b);
+      await createPost(a, title, alt);
+      const articleA = await selectPost(a, alt);
+      const articleB = await selectPost(b, alt);
+
+      // B holds a Draft on the Post: an unsaved Comment.
+      await articleB.getByRole("button", { name: /^Comments, /i }).click();
+      await articleB.getByRole("textbox", { name: "Your comment" }).fill("an unsaved Comment");
+
+      await confirmDelete(a, articleA, "Delete Post by demo1");
+      await expect(a.getByRole("status")).toHaveText("Post deleted.");
+      await expect(articleA.getByRole("img", { name: alt, exact: true })).toHaveCount(0);
+
+      const notice = b.getByRole("dialog", {
+        name: "This Post was deleted. Your unsaved changes were discarded.",
+      });
+      await expect(notice).toBeVisible();
+      await notice.getByRole("button", { name: "OK" }).click();
+      await expect(articleB.getByRole("img", { name: alt, exact: true })).toHaveCount(0);
+    } finally {
+      await close();
+    }
+  });
+
+  test("demo1 adds then deletes a Caption on a new Post; Bart sees it come and go (#187)", async ({
+    browser,
+  }) => {
+    const { a, b, close } = await openClients(browser);
+    const stamp = Date.now();
+    const alt = `e2e photo ${stamp}`;
+    const text = `e2e caption ${stamp}`.slice(0, 36);
+    try {
+      await featuredArticle(a);
+      await featuredArticle(b);
+      await createPost(a, `e2e ${stamp}`, alt);
+      const articleA = await selectPost(a, alt);
+      const articleB = await selectPost(b, alt);
+
+      // A Post with no Caption shows the Add Caption form directly.
+      const captionBox = articleA.getByRole("textbox", { name: "Your caption" });
+      await captionBox.fill(text);
+      await captionBox.press("Enter");
+      await expect(articleB.getByText(text, { exact: true })).toBeVisible();
+
+      await confirmDelete(a, articleA, "Delete caption by demo1");
+      await expect(a.getByRole("status")).toHaveText("Caption deleted.");
+      await expect(articleB.getByText(text, { exact: true })).toHaveCount(0);
+      await expect(b.getByRole("status")).toHaveText("This Caption was deleted.");
+
+      // Delete the Post, so the next run starts clean.
+      await confirmDelete(a, articleA, "Delete Post by demo1");
+      await expect(articleB.getByRole("img", { name: alt, exact: true })).toHaveCount(0);
     } finally {
       await close();
     }

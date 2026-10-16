@@ -194,7 +194,7 @@ describe("Home route (Jedi feed, data-driven from jedi-api)", () => {
     renderHome();
     const categories = await screen.findByRole("listbox", { name: "Categories" });
     const photos = await screen.findByRole("listbox", { name: "Top Photos" });
-    expect(within(photos).getAllByRole("option")).toHaveLength(4);
+    await waitFor(() => expect(within(photos).getAllByRole("option")).toHaveLength(4));
 
     // Row 0 is "All"; row 1 is Landscape — "Brilliant tree" and "Serine Beach" are tagged with it.
     within(categories).getAllByRole("option")[1].click();

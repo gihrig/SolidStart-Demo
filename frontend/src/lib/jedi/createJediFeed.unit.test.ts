@@ -88,9 +88,11 @@ const captionsFor = (postId: number): CaptionView[] =>
 const postListMock = vi.fn<JediApi["posts"]["list"]>();
 const postGetLikeMock = vi.fn<JediApi["posts"]["getLike"]>();
 const postToggleLikeMock = vi.fn<JediApi["posts"]["toggleLike"]>();
+const postRemoveMock = vi.fn<JediApi["posts"]["remove"]>();
 const captionListForPostMock = vi.fn<JediApi["captions"]["listForPost"]>();
 const captionGetLikeMock = vi.fn<JediApi["captions"]["getLike"]>();
 const captionToggleLikeMock = vi.fn<JediApi["captions"]["toggleLike"]>();
+const captionRemoveMock = vi.fn<JediApi["captions"]["remove"]>();
 const commentListForPostMock = vi.fn<JediApi["comments"]["list"]>();
 const captionCommentListMock = vi.fn<JediApi["captionComments"]["list"]>();
 const api: JediApi = {
@@ -100,12 +102,14 @@ const api: JediApi = {
     create: () => Promise.reject(new Error("not used by the view-model")),
     getLike: postGetLikeMock,
     toggleLike: postToggleLikeMock,
+    remove: postRemoveMock,
   },
   captions: {
     listForPost: captionListForPostMock,
     add: () => Promise.reject(new Error("not used by the view-model")),
     getLike: captionGetLikeMock,
     toggleLike: captionToggleLikeMock,
+    remove: captionRemoveMock,
   },
   comments: {
     list: commentListForPostMock,
@@ -167,6 +171,10 @@ beforeEach(() => {
     else viewerCaptionLikes.delete(id);
     return Promise.resolve(captionLikeOf(id));
   });
+  postRemoveMock.mockReset();
+  postRemoveMock.mockResolvedValue(undefined);
+  captionRemoveMock.mockReset();
+  captionRemoveMock.mockResolvedValue(undefined);
   captionListForPostMock.mockReset();
   captionListForPostMock.mockImplementation((postId: number) =>
     Promise.resolve(captionsFor(postId)),
@@ -953,6 +961,155 @@ describe("createJediFeed — the Draft guard (ADR-0030)", () => {
       dispose();
     });
   });
+});
+
+describe("createJediFeed — a Post or Caption delete (#187)", () => {
+  const POST_DELETED = "This Post was deleted. Your unsaved changes were discarded.";
+  const CAPTION_DELETED = "This Caption was deleted. Your unsaved changes were discarded.";
+
+  // The view-model with a live Feed, inside a real guard.
+  async function withLive(
+    run: (jedi: JediFeed, guard: DraftGuard, mem: ReturnType<typeof memoryFeed>) => Promise<void>,
+  ) {
+    const mem = memoryFeed();
+    await createRoot(async (dispose) => {
+      try {
+        const guard = createDraftGuard();
+        const jedi = createJediFeed({ api, guard });
+        jedi.connectFeed(mem.feed);
+        await tick();
+        await tick();
+        await run(jedi, guard, mem);
+      } finally {
+        dispose();
+      }
+    });
+  }
+  const settle = async () => {
+    await tick();
+    await tick();
+  };
+  // The back-end after a delete: Post 1 is gone.
+  const withoutPost1 = () => postListMock.mockResolvedValue(RANKED_POSTS.slice(1));
+  // The back-end after a delete: the Caption `id` of Post 1 is gone.
+  const withoutCaption = (id: number) =>
+    captionListForPostMock.mockImplementation((postId: number) =>
+      Promise.resolve(captionsFor(postId).filter((c) => c.id !== id)),
+    );
+
+  it("the Owner's Post delete releases every Draft, shows no notice, refetches and speaks", () =>
+    withLive(async (jedi, guard, mem) => {
+      guard.report(Symbol("add caption"), true);
+      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
+      expect(jedi.postDeleteDiscardsDraft()).toBe(true);
+      let answer!: () => void;
+      postRemoveMock.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+      withoutPost1();
+
+      const deleted = jedi.deletePost();
+      expect(postRemoveMock).toHaveBeenCalledWith(1);
+      expect(guard.hasDraft(), "released when the Owner confirms").toBe(false);
+      // The poke can arrive before the delete result (ADR-0016).
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      answer();
+      await deleted;
+      await settle();
+
+      expect(guard.notice()).toBeUndefined();
+      expect(jedi.selectedPost()?.id, "the fallback picks what shows").toBe(3);
+      expect(jedi.announcement()).toBe("Post deleted.");
+    }));
+
+  it("a failed Post delete holds the Drafts again and rejects", () =>
+    withLive(async (jedi, guard) => {
+      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
+      postRemoveMock.mockRejectedValueOnce(new Error("Could not delete the Post"));
+
+      await expect(jedi.deletePost()).rejects.toThrow("Could not delete the Post");
+      expect(guard.hasDraft()).toBe(true);
+      expect(jedi.selectedPost()?.id).toBe(1);
+    }));
+
+  it("the Owner's Caption delete releases only its Comments panel's Drafts", () =>
+    withLive(async (jedi, guard) => {
+      const shown = jedi.selectedCaption()!.id;
+      const outside = Symbol("add caption");
+      guard.report(outside, true);
+      expect(jedi.captionDeleteDiscardsDraft()).toBe(false);
+      guard.report(Symbol("caption comment"), true, jedi.captionComments.draftScope);
+      expect(jedi.captionDeleteDiscardsDraft()).toBe(true);
+      withoutCaption(shown);
+
+      await jedi.deleteCaption();
+      await settle();
+
+      expect(captionRemoveMock).toHaveBeenCalledWith(shown);
+      expect(guard.holds(outside), "a Draft outside the panel stays").toBe(true);
+      expect(guard.notice()).toBeUndefined();
+      expect(jedi.selectedCaption()?.id).not.toBe(shown);
+      expect(jedi.announcement()).toBe("Caption deleted.");
+    }));
+
+  it("another User's Post delete discards every Draft on the Post with the Post notice", () =>
+    withLive(async (jedi, guard, mem) => {
+      guard.report(Symbol("add caption"), true);
+      guard.report(Symbol("caption comment"), true, jedi.captionComments.draftScope);
+      withoutPost1();
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+
+      expect(guard.notice()).toBe(POST_DELETED);
+      expect(guard.hasDraft()).toBe(false);
+      expect(jedi.selectedPost()?.id).toBe(3);
+    }));
+
+  it("a viewer without a Draft hears the Post delete and gets no dialog", () =>
+    withLive(async (jedi, guard, mem) => {
+      withoutPost1();
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+
+      expect(guard.notice()).toBeUndefined();
+      expect(jedi.announcement()).toBe("This Post was deleted.");
+    }));
+
+  it("another User's Caption delete discards its panel's Drafts with the Caption notice", () =>
+    withLive(async (jedi, guard, mem) => {
+      const shown = jedi.selectedCaption()!.id;
+      const outside = Symbol("add caption");
+      guard.report(outside, true);
+      guard.report(Symbol("caption comment"), true, jedi.captionComments.draftScope);
+      withoutCaption(shown);
+      mem.emit(pokeOn(Channel.postCaption(1)));
+      await settle();
+
+      expect(guard.notice()).toBe(CAPTION_DELETED);
+      expect(guard.holds(outside), "a Draft outside the Caption stays").toBe(true);
+      expect(jedi.selectedCaption()?.id).not.toBe(shown);
+    }));
+
+  it("a viewer without a Draft on the Caption hears its delete", () =>
+    withLive(async (jedi, guard, mem) => {
+      withoutCaption(jedi.selectedCaption()!.id);
+      mem.emit(pokeOn(Channel.postCaption(1)));
+      await settle();
+
+      expect(guard.notice()).toBeUndefined();
+      expect(jedi.announcement()).toBe("This Caption was deleted.");
+    }));
+
+  it("a refetch that keeps the shown Post and Caption says nothing", () =>
+    withLive(async (jedi, guard, mem) => {
+      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
+      mem.emit(pokeOn(Channel.posts));
+      mem.emit(pokeOn(Channel.postCaption(1)));
+      await settle();
+
+      expect(guard.notice()).toBeUndefined();
+      expect(guard.hasDraft()).toBe(true);
+      expect(jedi.announcement()).toBe("");
+    }));
 });
 
 describe("createJediFeed — the selected Post's like state (#122)", () => {

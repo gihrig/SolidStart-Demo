@@ -210,6 +210,12 @@ describe("jediApi.posts", () => {
       data: { id: 2, liked: false },
     });
   });
+
+  it("remove() deletes the Post by id (#187)", async () => {
+    onAuthenticated({ delete_post: 2 });
+    await jediApi.posts.remove(2);
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("delete_post", { id: 2 });
+  });
 });
 
 // The wire `HeroView` the back-end returns: the seeded singleton (#119). It has
@@ -380,6 +386,12 @@ describe("jediApi.captions", () => {
     expect(authenticatedRpcMock).toHaveBeenCalledWith("toggle_caption_like", {
       data: { id: 2, liked: false },
     });
+  });
+
+  it("remove() deletes the Caption by id (#187)", async () => {
+    onAuthenticated({ delete_caption: 2 });
+    await jediApi.captions.remove(2);
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("delete_caption", { id: 2 });
   });
 });
 

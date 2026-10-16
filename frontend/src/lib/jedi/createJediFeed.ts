@@ -57,6 +57,12 @@ import type { JediCategory, Like, PostView, CaptionView, HeroView } from "~/type
  * changes the Caption shown, and a close of a Comments panel, goes through the
  * app's Draft guard (ADR-0030): with a Draft, it waits for the confirm dialog.
  *
+ * `deletePost` / `deleteCaption` are the Owner's deletes (#187). A refetch
+ * finds the cause of a change that it did not start: a held Post that is not
+ * in the full list was deleted, and so was a held Caption that is not in its
+ * Post's list. That is a forced discard of the Drafts on it, with the notice
+ * that names it; a viewer without a Draft hears it in `announcement`.
+ *
  * `hero` (the header banner content) is the externalized header data (#32): the
  * route renders the Hero from `hero`, so it is not hard-coded in the markup. The
  * nav avatar's profile now lives in the global Nav, not here (see ADR-0007).
@@ -110,11 +116,31 @@ export interface JediFeed {
   /** The shown Caption's Comment thread (#127), as `postComments` is for the
    *  Post. While its panel is open, it holds the Caption shown. */
   captionComments: CommentThreadState;
+  /** Delete the shown Post (#187), as its Owner. It releases every Draft on
+   *  the Post first, as the poke can arrive before the result, and refetches
+   *  the Posts at once. Rejects on failure, and the guard holds the Drafts
+   *  again. */
+  deletePost: () => Promise<void>;
+  /** Delete the shown Caption (#187), as its Owner, as `deletePost` does. It
+   *  releases the Drafts in the Caption's Comments panel. */
+  deleteCaption: () => Promise<void>;
+  /** Whether `deletePost` would discard a Draft: the delete question says so. */
+  postDeleteDiscardsDraft: () => boolean;
+  /** Whether `deleteCaption` would discard a Draft. */
+  captionDeleteDiscardsDraft: () => boolean;
+  /** The message of the route's polite live region (#187): the result of the
+   *  Owner's own delete, or a delete by another User that discarded no Draft.
+   *  Empty until the first message. */
+  announcement: Accessor<string>;
   /** Wire a live Feed after creation (#120): the route builds this view-model
    *  anonymously, then connects the socket's Feed once a User logs in. The
    *  subscription is owned by the caller's reactive scope, so it ends with it. */
   connectFeed: (feed: Feed) => void;
 }
+
+/** The forced-discard notices of a deleted subject (#187, ADR-0030 addendum). */
+const POST_DELETED_NOTICE = "This Post was deleted. Your unsaved changes were discarded.";
+const CAPTION_DELETED_NOTICE = "This Caption was deleted. Your unsaved changes were discarded.";
 
 /** The synthetic "no filter" row. Id 0 is unused by the real categories. */
 const ALL_CATEGORIES: JediCategory = { id: 0, name: "All", icon: "menu" };
@@ -139,8 +165,20 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const [selectedPostId, setSelectedPostId] = createSignal<number | undefined>();
   const [selectedCaptionId, setSelectedCaptionId] = createSignal<number | undefined>();
 
+  const [announcement, setAnnouncement] = createSignal("");
+  // The ids of the Owner's own deletes (#187): their absence from a list is no
+  // Event cause, so it shows no notice.
+  const ownDeletedPosts = new Set<number>();
+  const ownDeletedCaptions = new Set<number>();
+
   const [realCategories] = createResource(() => api.categories.list());
-  const [postsResource, { refetch: refetchPosts }] = createResource(() => api.posts.list());
+  // Each load finds the cause of a change before the view sees the new list:
+  // a form that the change unmounts then holds no Draft (#187).
+  const [postsResource, { refetch: refetchPosts }] = createResource(async () => {
+    const list = await api.posts.list();
+    untrack(() => noteDeletedPost(list));
+    return list;
+  });
   // The first load reads `postsResource()`, so the route's <Suspense> (and SSR)
   // waits for the Posts. After that, read `.latest`: a refetch (a `posts` poke,
   // e.g. a Post Like) must not suspend again, or the app's <Suspense> swaps the
@@ -216,7 +254,11 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // belongs to one Post (#185 review).
   const [topCaptions, { refetch: refetchCaptions }] = createResource(
     () => selectedPost()?.id,
-    async (postId) => ({ postId, captions: await api.captions.listForPost(postId) }),
+    async (postId) => {
+      const captions = await api.captions.listForPost(postId);
+      untrack(() => noteDeletedCaption(postId, captions));
+      return { postId, captions };
+    },
   );
   // Read `.latest`, not `topCaptions()`: a suspending read here re-triggered
   // Suspense on every post re-key, reconciling the route subtree and blurring
@@ -295,6 +337,63 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     guard,
   });
 
+  // A held Post that is not in the full list was deleted (#187): a forced
+  // discard of every Draft on it. A viewer without a Draft hears it.
+  const noteDeletedPost = (list: PostView[]): void => {
+    const shown = selectedPost();
+    if (!shown || ownDeletedPosts.has(shown.id) || list.some((p) => p.id === shown.id)) return;
+    if (!guard.discardIn(undefined, POST_DELETED_NOTICE)) {
+      setAnnouncement("This Post was deleted.");
+    }
+  };
+  // A held Caption that is not in its Post's list was deleted (#187): a forced
+  // discard of the Drafts in its Comments panel.
+  const noteDeletedCaption = (postId: number, captions: CaptionView[]): void => {
+    const shown = selectedCaption();
+    if (!shown || shown.postId !== postId || ownDeletedCaptions.has(shown.id)) return;
+    if (captions.some((c) => c.id === shown.id)) return;
+    if (!guard.discardIn([captionComments.draftScope], CAPTION_DELETED_NOTICE)) {
+      setAnnouncement("This Caption was deleted.");
+    }
+  };
+
+  // The Owner's own delete (#187). The Drafts on the subject go when the Owner
+  // confirms, as the poke can arrive before the result (ADR-0016); a failed
+  // delete holds them again. The refetch does not wait for the poke, which a
+  // socket drop can lose.
+  const deleteSubject = async (
+    id: number,
+    own: Set<number>,
+    remove: (id: number) => Promise<void>,
+    release: () => () => void,
+  ): Promise<void> => {
+    own.add(id);
+    const restore = release();
+    try {
+      await remove(id);
+    } catch (e) {
+      own.delete(id);
+      restore();
+      throw e;
+    }
+  };
+  const deletePost = async (): Promise<void> => {
+    const post = selectedPost();
+    if (!post) return;
+    await deleteSubject(post.id, ownDeletedPosts, api.posts.remove, () => guard.drop());
+    setAnnouncement("Post deleted.");
+    void refetchPosts();
+  };
+  const deleteCaption = async (): Promise<void> => {
+    const caption = selectedCaption();
+    if (!caption) return;
+    await deleteSubject(caption.id, ownDeletedCaptions, api.captions.remove, () =>
+      guard.drop([captionComments.draftScope]),
+    );
+    setAnnouncement("Caption deleted.");
+    void refetchCaptions();
+  };
+
   // Live propagation (#117): a `posts` poke means the Post list may have changed,
   // so refetch the list (the featured post re-derives from it). A `post_caption`
   // poke means one Post's Captions changed (#121), and a `post_like` poke means
@@ -363,6 +462,11 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     toggleCaptionLike: captionLike.toggle,
     postComments,
     captionComments,
+    deletePost,
+    deleteCaption,
+    postDeleteDiscardsDraft: () => guard.hasDraftIn(),
+    captionDeleteDiscardsDraft: () => guard.hasDraftIn([captionComments.draftScope]),
+    announcement,
     connectFeed,
   };
 }

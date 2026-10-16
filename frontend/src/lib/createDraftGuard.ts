@@ -37,8 +37,18 @@ export interface DraftGuard {
   /** A forced discard: an Event removed the subject of the Draft under `key`.
    *  It drops that Draft, cancels a waiting move, and shows `message`. */
   discard: (key: symbol, message: string) => void;
+  /** A forced discard of every Draft in `scopes`, or of every Draft with no
+   *  `scopes` (#187): an Event removed their subject, such as a deleted Post.
+   *  With a Draft, it drops them, cancels a waiting move and shows `message`.
+   *  Returns whether it dropped a Draft. */
+  discardIn: (scopes: readonly DraftScope[] | undefined, message: string) => boolean;
   /** Close the notice ("OK"). */
   dismissNotice: () => void;
+  /** The Owner's own delete (#187): release the Drafts in `scopes`, or every
+   *  Draft with no `scopes`, with no notice. A released form's unmount shows
+   *  none. Returns `restore`, which holds them again after a failed delete; a
+   *  form that ended its Draft or unmounted meanwhile is not held again. */
+  drop: (scopes?: readonly DraftScope[]) => () => void;
 }
 
 /** The notice of a forced discard whose cause the form cannot name. */
@@ -57,7 +67,9 @@ export const passThroughGuard: DraftGuard = {
   cancelMove: () => {},
   notice: () => undefined,
   discard: () => {},
+  discardIn: () => false,
   dismissNotice: () => {},
+  drop: () => () => {},
 };
 
 const blockUnload = (e: BeforeUnloadEvent) => e.preventDefault();
@@ -71,6 +83,9 @@ const blockUnload = (e: BeforeUnloadEvent) => e.preventDefault();
 export function createDraftGuard(): DraftGuard {
   // Each form's key with a Draft, and the form's scope.
   const drafts = new Map<symbol, DraftScope | undefined>();
+  // The Drafts that an own delete released (`drop`), until it fails or the
+  // form ends its Draft.
+  const released = new Map<symbol, DraftScope | undefined>();
   const [hasDraft, setHasDraft] = createSignal(false);
   // The move sits in an object: a bare function given to a setter runs as an
   // updater.
@@ -97,6 +112,11 @@ export function createDraftGuard(): DraftGuard {
   }
 
   const report = (key: symbol, dirty: boolean, scope?: DraftScope): void => {
+    if (released.has(key)) {
+      if (dirty) released.set(key, scope);
+      else released.delete(key);
+      return;
+    }
     if (dirty) drafts.set(key, scope);
     else drafts.delete(key);
     sync();
@@ -132,6 +152,35 @@ export function createDraftGuard(): DraftGuard {
     setNotice(message);
   };
 
+  const discardIn = (scopes: readonly DraftScope[] | undefined, message: string): boolean => {
+    const keys = draftsIn(scopes);
+    if (keys.length === 0) return false;
+    batch(() => {
+      for (const key of keys) drafts.delete(key);
+      sync();
+      setPendingMove(undefined);
+      setNotice(message);
+    });
+    return true;
+  };
+
+  const drop = (scopes?: readonly DraftScope[]): (() => void) => {
+    const keys = draftsIn(scopes);
+    for (const key of keys) {
+      released.set(key, drafts.get(key));
+      drafts.delete(key);
+    }
+    sync();
+    return () => {
+      for (const key of keys) {
+        if (!released.has(key)) continue;
+        drafts.set(key, released.get(key));
+        released.delete(key);
+      }
+      sync();
+    };
+  };
+
   return {
     hasDraft,
     holds: (key) => drafts.has(key),
@@ -143,6 +192,8 @@ export function createDraftGuard(): DraftGuard {
     cancelMove: () => setPendingMove(undefined),
     notice,
     discard,
+    discardIn,
     dismissNotice: () => setNotice(undefined),
+    drop,
   };
 }

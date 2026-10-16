@@ -204,3 +204,78 @@ describe("createDraftGuard — scopes", () => {
       expect(guard.hasDraftIn()).toBe(true);
     }));
 });
+
+describe("createDraftGuard — the Owner's own delete (#187)", () => {
+  it("drop releases the Drafts in the scopes with no notice, and restore holds them again", () =>
+    withGuard((guard) => {
+      guard.report(compose, true, panel);
+      guard.report(caption, true);
+      const restore = guard.drop([panel]);
+      expect(guard.holds(compose), "the scope's Draft is released").toBe(false);
+      expect(guard.holds(caption), "the other Draft stays").toBe(true);
+      expect(guard.notice()).toBeUndefined();
+
+      restore();
+      expect(guard.holds(compose), "a failed delete holds it again").toBe(true);
+    }));
+
+  it("drop with no scope releases every Draft", () =>
+    withGuard((guard) => {
+      guard.report(compose, true, panel);
+      guard.report(caption, true);
+      guard.drop();
+      expect(guard.hasDraft()).toBe(false);
+    }));
+
+  it("a released form that unmounts or ends its Draft is not held again", () =>
+    withGuard((guard) => {
+      guard.report(compose, true, panel);
+      guard.report(edit1, true, panel);
+      const restore = guard.drop([panel]);
+      guard.report(compose, false, panel);
+      restore();
+      expect(guard.holds(compose)).toBe(false);
+      expect(guard.holds(edit1)).toBe(true);
+    }));
+
+  it("a released form keeps its Draft released while it types", () =>
+    withGuard((guard) => {
+      guard.report(compose, true, panel);
+      guard.drop([panel]);
+      guard.report(compose, true, panel);
+      expect(guard.hasDraft()).toBe(false);
+    }));
+});
+
+describe("createDraftGuard — a forced discard of a scope (#187)", () => {
+  it("drops the Drafts in the scopes, shows the notice and cancels a waiting move", () =>
+    withGuard((guard) => {
+      const move = vi.fn();
+      guard.report(compose, true, panel);
+      guard.report(caption, true);
+      guard.attempt(move);
+
+      expect(guard.discardIn([panel], "This Caption was deleted.")).toBe(true);
+      expect(guard.holds(compose)).toBe(false);
+      expect(guard.holds(caption)).toBe(true);
+      expect(guard.notice()).toBe("This Caption was deleted.");
+      expect(guard.pending()).toBe(false);
+    }));
+
+  it("with no Draft in the scopes, shows no notice and keeps a waiting move", () =>
+    withGuard((guard) => {
+      guard.report(caption, true);
+      guard.attempt(() => {});
+      expect(guard.discardIn([panel], "This Caption was deleted.")).toBe(false);
+      expect(guard.notice()).toBeUndefined();
+      expect(guard.pending()).toBe(true);
+    }));
+
+  it("with no scope, drops every Draft", () =>
+    withGuard((guard) => {
+      guard.report(compose, true, panel);
+      guard.report(caption, true);
+      expect(guard.discardIn(undefined, "This Post was deleted.")).toBe(true);
+      expect(guard.hasDraft()).toBe(false);
+    }));
+});

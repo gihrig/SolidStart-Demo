@@ -17,6 +17,9 @@ export interface PostCaptionProps {
   onClose: () => void;
   /** Passed through to the form (the inject-or-default idiom). */
   api?: CaptionFormProps["api"];
+  /** The line's element, which takes focus after the Owner's Caption delete
+   *  (#187). */
+  ref?: (el: HTMLDivElement) => void;
 }
 
 /**
@@ -34,7 +37,7 @@ export default function PostCaption(props: PostCaptionProps) {
   const onCancel = () => (props.caption ? props.onClose : undefined);
 
   return (
-    <div class="mb-10 px-4">
+    <div ref={props.ref} tabindex="-1" class="mb-10 px-4">
       <Show
         when={showForm()}
         fallback={<p class="text-5xl font-hero">{props.caption?.text ?? ""}</p>}

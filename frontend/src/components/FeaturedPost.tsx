@@ -43,7 +43,19 @@ export interface FeaturedPostProps {
   /** The shown Caption's Comment thread (#127), with the panel's open state.
    *  The Caption line's Comments toggle opens it as an inline panel. */
   captionComments?: CommentThreadState;
+  /** Delete this Post, as its Owner (#187). Rejects on failure. */
+  onDeletePost?: () => Promise<void>;
+  /** Whether the Post delete would discard a Draft: the question says so. */
+  postDeleteDiscardsDraft?: () => boolean;
+  /** Delete the Caption shown, as its Owner (#187). Rejects on failure. */
+  onDeleteCaption?: () => Promise<void>;
+  /** Whether the Caption delete would discard a Draft. */
+  captionDeleteDiscardsDraft?: () => boolean;
 }
+
+/** The delete questions (#187): each names what the delete removes. */
+const POST_DELETE_QUESTION = "Delete this Post? Its Captions, Comments and Likes are deleted too.";
+const CAPTION_DELETE_QUESTION = "Delete this Caption? Its Comments and Likes are deleted too.";
 
 /** A Like toggle as an RPC action. Only the error is used: the Like shows at
  *  once, so the button stays enabled while a toggle runs, and a fast click
@@ -57,10 +69,35 @@ const createLikeAction = (toggle: () => Promise<void> | undefined) =>
     { fallbackError: "Could not update the Like" },
   );
 
+/** An Owner's delete as an RPC action (#187), so each reports its own error. */
+const createDeleteAction = (remove: () => Promise<void> | undefined, fallbackError: string) =>
+  createRpcAction(
+    async () => {
+      await remove();
+      return true;
+    },
+    { fallbackError },
+  );
+
 export default function FeaturedPost(props: FeaturedPostProps) {
   // One action per Like target (#123), so each toggle reports its own error.
   const toggleLike = createLikeAction(() => props.onToggleLike?.());
   const toggleCaptionLike = createLikeAction(() => props.onToggleCaptionLike?.());
+  // After the Owner's delete, focus moves to the Post title or the Caption
+  // line (#187): each element stays while the next Post or Caption shows.
+  let titleRef: HTMLHeadingElement | undefined;
+  let captionLineRef: HTMLDivElement | undefined;
+  const deletePost = createDeleteAction(() => props.onDeletePost?.(), "Could not delete the Post");
+  const deleteCaption = createDeleteAction(
+    () => props.onDeleteCaption?.(),
+    "Could not delete the Caption",
+  );
+  const runDelete = async (
+    action: typeof deletePost,
+    focusAfter: () => HTMLElement | undefined,
+  ) => {
+    if (await action.run(undefined)) focusAfter()?.focus();
+  };
   // A `posts` poke refetches the Post as a new object with the same id. The memo
   // keeps that from closing the Caption form.
   const postId = createMemo(() => props.post.id);
@@ -93,7 +130,9 @@ export default function FeaturedPost(props: FeaturedPostProps) {
     <article class="card-style">
       {/* Title bar */}
       <div class="flex items-center justify-between px-4 h-14">
-        <h2 class="text-2xl font-bold w-1/2 truncate">{props.post.title}</h2>
+        <h2 ref={(el) => (titleRef = el)} tabindex="-1" class="text-2xl font-bold w-1/2 truncate">
+          {props.post.title}
+        </h2>
         <div class="text-sm text-(--theme-muted)">
           flickr @{" "}
           <a
@@ -130,6 +169,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           canAdd={props.loggedIn ?? false}
           adding={addingCaption()}
           onClose={closeCaptionForm}
+          ref={(el) => (captionLineRef = el)}
         />
         <div class="flex items-center gap-2 text-sm mb-10">
           <For each={props.post.categories}>
@@ -189,6 +229,10 @@ export default function FeaturedPost(props: FeaturedPostProps) {
                 author={props.caption?.author}
                 loggedIn={props.loggedIn}
                 userId={props.userId}
+                deleteQuestion={CAPTION_DELETE_QUESTION}
+                deleteDiscardsDraft={props.captionDeleteDiscardsDraft}
+                deleteDisabled={deleteCaption.pending()}
+                onDelete={() => void runDelete(deleteCaption, () => captionLineRef)}
               />
             </div>
           </Show>
@@ -233,8 +277,15 @@ export default function FeaturedPost(props: FeaturedPostProps) {
             )}
           </Show>
         </section>
-        {/* One alert per toggle, so a Caption error never hides a Post error. */}
-        <For each={[toggleCaptionLike.error(), toggleLike.error()].filter((e) => e !== null)}>
+        {/* One alert per action, so a Caption error never hides a Post error. */}
+        <For
+          each={[
+            toggleCaptionLike.error(),
+            deleteCaption.error(),
+            toggleLike.error(),
+            deletePost.error(),
+          ].filter((e) => e !== null)}
+        >
           {(error) => (
             <div role="alert" class="rounded bg-red-100 p-2 mb-2 text-red-700 text-sm">
               {error}
@@ -273,6 +324,10 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               author={props.post.author}
               loggedIn={props.loggedIn}
               userId={props.userId}
+              deleteQuestion={POST_DELETE_QUESTION}
+              deleteDiscardsDraft={props.postDeleteDiscardsDraft}
+              deleteDisabled={deletePost.pending()}
+              onDelete={() => void runDelete(deletePost, () => titleRef)}
             />
           </div>
         </div>

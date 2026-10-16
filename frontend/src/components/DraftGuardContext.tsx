@@ -89,8 +89,11 @@ export function useDraft(options: DraftOptions): Draft {
   const guard = useDraftGuard();
   const key = Symbol("draft");
   createEffect(() => guard.report(key, options.dirty(), options.scope));
+  // A Draft that an own delete released (`guard.drop`) ends here too, with no
+  // notice.
   onCleanup(() => {
     if (guard.holds(key)) guard.discard(key, options.notice?.() ?? DRAFT_DISCARDED_NOTICE);
+    else guard.report(key, false);
   });
   return { clear: () => guard.report(key, false) };
 }
