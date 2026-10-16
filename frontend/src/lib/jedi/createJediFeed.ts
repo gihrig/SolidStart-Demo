@@ -29,6 +29,18 @@ import type {
   HeroView,
 } from "~/types/jedi";
 
+/** One edit's open state (#187): the Post edit or the Caption edit. */
+export interface EditState {
+  /** Whether the edit is open on the subject shown. A change of the subject
+   *  shown closes it. While it is open, it holds its subject. */
+  open: Accessor<boolean>;
+  /** Open the edit on the subject shown, or close it. A close is the form's
+   *  own Cancel or Save, so it is no guarded move. */
+  setOpen: (open: boolean) => void;
+  /** The scope of the edit form's Draft (ADR-0030). */
+  draftScope: DraftScope;
+}
+
 /**
  * The Jedi feed's view-model: it owns the route's four data resources and the
  * derivations over them, exposing a small accessor interface. The route reads
@@ -83,18 +95,6 @@ import type {
  * route renders the Hero from `hero`, so it is not hard-coded in the markup. The
  * nav avatar's profile now lives in the global Nav, not here (see ADR-0007).
  */
-/** One edit's open state (#187): the Post edit or the Caption edit. */
-export interface EditState {
-  /** Whether the edit is open on the subject shown. A change of the subject
-   *  shown closes it. While it is open, it holds its subject. */
-  open: Accessor<boolean>;
-  /** Open the edit on the subject shown, or close it. A close is the form's
-   *  own Cancel or Save, so it is no guarded move. */
-  setOpen: (open: boolean) => void;
-  /** The scope of the edit form's Draft (ADR-0030). */
-  draftScope: DraftScope;
-}
-
 export interface JediFeed {
   /** The real categories behind an "All" row at index 0 (`selectedCategory`). */
   categories: Accessor<JediCategory[] | undefined>;
@@ -207,6 +207,12 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const [selectedCaptionId, setSelectedCaptionId] = createSignal<number | undefined>();
 
   const [announcement, setAnnouncement] = createSignal("");
+  // The live region speaks a change of its text, so it clears first: a repeat
+  // of the same message, such as a second save, is spoken again.
+  const announce = (message: string): void => {
+    setAnnouncement("");
+    queueMicrotask(() => setAnnouncement(message));
+  };
   // The Subject each edit is open on (#187), else undefined.
   const [postEditOn, setPostEditOn] = createSignal<number>();
   const [captionEditOn, setCaptionEditOn] = createSignal<number>();
@@ -441,7 +447,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     const next = list.find((p) => p.id === shown.id);
     if (!next) {
       if (!guard.discardIn(undefined, POST_DELETED_NOTICE)) {
-        setAnnouncement("This Post was deleted.");
+        announce("This Post was deleted.");
       }
       return;
     }
@@ -450,7 +456,13 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     const inCategory = (p: PostView) => p.categories.some((c) => c.id === category.id);
     if (!inCategory(shown) || inCategory(next)) return;
     setKeptPostId(shown.id);
-    guard.ask(`This Post is no longer in ${category.name}. Your unsaved changes may not apply.`);
+    // "Discard" also closes the Post edit, so the hold ends and the article
+    // moves: no form stays open with text that the guard no longer holds.
+    guard.ask(
+      `This Post is no longer in ${category.name}. Your unsaved changes may not apply.`,
+      undefined,
+      () => setPostEditOn(undefined),
+    );
   };
   // When the article moves off a Post that is no longer in the selected
   // Category, and the User did not change the Category, the live region says
@@ -466,7 +478,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
         const left = posts()?.find((p) => p.id === prevId);
         if (!category || category.id === ALL_CATEGORIES.id || !left) return;
         if (left.categories.some((c) => c.id === category.id)) return;
-        setAnnouncement(`This Post is no longer in ${category.name}.`);
+        announce(`This Post is no longer in ${category.name}.`);
       },
     ),
   );
@@ -478,7 +490,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     if (captions.some((c) => c.id === shown.id)) return;
     const scopes = [captionEdit.draftScope, captionComments.draftScope];
     if (!guard.discardIn(scopes, CAPTION_DELETED_NOTICE)) {
-      setAnnouncement("This Caption was deleted.");
+      announce("This Caption was deleted.");
     }
   };
 
@@ -506,7 +518,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     const post = selectedPost();
     if (!post) return;
     await deleteSubject(post.id, ownDeletedPosts, api.posts.remove, () => guard.drop());
-    setAnnouncement("Post deleted.");
+    announce("Post deleted.");
     void refetchPosts();
   };
   const deleteCaption = async (): Promise<void> => {
@@ -515,7 +527,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     await deleteSubject(caption.id, ownDeletedCaptions, api.captions.remove, () =>
       guard.drop([captionComments.draftScope]),
     );
-    setAnnouncement("Caption deleted.");
+    announce("Caption deleted.");
     void refetchCaptions();
   };
 
@@ -535,12 +547,12 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
       setSelectedCategory(0);
     }
     await api.posts.update(id, changes);
-    setAnnouncement("Post saved.");
+    announce("Post saved.");
     void refetchPosts();
   };
   const updateCaption = async (id: number, text: string): Promise<void> => {
     await api.captions.update(id, text);
-    setAnnouncement("Caption saved.");
+    announce("Caption saved.");
     void refetchCaptions();
   };
 

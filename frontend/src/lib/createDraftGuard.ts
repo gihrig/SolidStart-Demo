@@ -32,10 +32,10 @@ export interface DraftGuard {
   question: Accessor<string>;
   /** Ask whether to keep the Drafts in `scopes`, or every Draft with no
    *  `scopes`, after an Event made them doubtful (#187), such as a Post that
-   *  left the selected Category. It waits as a move does, with no move: "Keep
-   *  editing" keeps them, and "Discard" drops them. It replaces a waiting
-   *  move. With no Draft, it does not ask. */
-  ask: (message: string, scopes?: readonly DraftScope[]) => void;
+   *  left the selected Category. It waits as a move does: "Keep editing" keeps
+   *  them, and "Discard" drops them, then runs `onDiscard`, such as a close of
+   *  the forms. It replaces a waiting move. With no Draft, it does not ask. */
+  ask: (message: string, scopes?: readonly DraftScope[], onDiscard?: () => void) => void;
   /** "Discard": drop the Drafts the waiting move unmounts (every Draft, or
    *  its scopes'), then run it. */
   confirmMove: () => void;
@@ -204,8 +204,10 @@ export function createDraftGuard(): DraftGuard {
     hasDraftIn: (scopes) => draftsIn(scopes).length > 0,
     pending: () => pendingMove() !== undefined,
     question: () => pendingMove()?.message ?? MOVE_QUESTION,
-    ask: (message, scopes) => {
-      if (draftsIn(scopes).length > 0) setPendingMove({ run: () => {}, scopes, message });
+    ask: (message, scopes, onDiscard) => {
+      if (draftsIn(scopes).length > 0) {
+        setPendingMove({ run: onDiscard ?? (() => {}), scopes, message });
+      }
     },
     confirmMove,
     cancelMove: () => setPendingMove(undefined),

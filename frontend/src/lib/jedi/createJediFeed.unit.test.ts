@@ -1280,6 +1280,34 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
       expect(jedi.announcement()).toBe(LEFT);
     }));
 
+  it("Discard on the Category question also closes an open Post edit, so its forms unmount", () =>
+    withLive(async (jedi, guard, mem) => {
+      jedi.setSelectedCategory(ANIMALS);
+      jedi.postEdit.setOpen(true);
+      guard.report(Symbol("post edit"), true, jedi.postEdit.draftScope);
+      post1LeavesAnimals();
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(guard.question()).toBe(T6);
+
+      guard.confirmMove();
+      await settle();
+      expect(jedi.postEdit.open()).toBe(false);
+      expect(jedi.selectedPost()?.id).toBe(3);
+    }));
+
+  it("a repeated message is spoken again: the live region clears first", () =>
+    withLive(async (jedi) => {
+      await jedi.updatePost(1, { title: "Big Jedi" });
+      expect(jedi.announcement()).toBe("Post saved.");
+      const saved = jedi.updatePost(1, { title: "Bigger Jedi" });
+      await Promise.resolve();
+      expect(jedi.announcement(), "cleared before the same text").toBe("");
+      await saved;
+      await settle();
+      expect(jedi.announcement()).toBe("Post saved.");
+    }));
+
   it("a viewer without a Draft sees the article move and hears why", () =>
     withLive(async (jedi, guard, mem) => {
       jedi.setSelectedCategory(ANIMALS);
