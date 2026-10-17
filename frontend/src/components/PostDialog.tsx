@@ -6,6 +6,7 @@ import {
   createUniqueId,
   For,
   on,
+  onCleanup,
   onMount,
   Show,
 } from "solid-js";
@@ -219,6 +220,12 @@ export default function PostDialog(props: PostDialogProps) {
     if (editing) dialogRef?.showModal();
   });
 
+  // A Save can outlive its edit: a browser close unmounts the edit while the
+  // Save waits. A stale result must not close the next edit (PR #216 review).
+  // The Post itself is still saved.
+  let unmounted = false;
+  onCleanup(() => (unmounted = true));
+
   // The edit's Cancel drops its Draft: the close then shows no notice.
   const closeEdit = () => {
     draft?.clear();
@@ -237,7 +244,7 @@ export default function PostDialog(props: PostDialogProps) {
     }
     setCategoryError(null);
     if (editing) {
-      if (await save.run(changes())) closeEdit();
+      if ((await save.run(changes())) && !unmounted) closeEdit();
       return;
     }
     const created = await create.run({

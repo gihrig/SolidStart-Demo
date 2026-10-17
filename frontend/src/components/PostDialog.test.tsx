@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vite-plus/test";
 import { render, screen, within, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
-import { createSignal, Suspense } from "solid-js";
+import { createSignal, Show, Suspense } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import { createDraftGuard } from "~/lib/createDraftGuard";
 import { stubDialogModal } from "~/lib/test-utils";
@@ -273,6 +273,35 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
     dialog.close();
     expect(onClose).toHaveBeenCalledOnce();
     expect(guard.hasDraft()).toBe(false);
+  });
+
+  it("a Save that ends after a browser close does not close the next edit (PR #216 review)", async () => {
+    let answer!: () => void;
+    const onSave = vi.fn(() => new Promise<void>((resolve) => (answer = resolve)));
+    // The owner unmounts the edit when it closes, as FeaturedPost does.
+    const [open, setOpen] = createSignal(true);
+    const onClose = vi.fn(() => setOpen(false));
+    render(() => (
+      <DraftGuardContext.Provider value={createDraftGuard()}>
+        <Show when={open()}>
+          <PostDialog api={api} post={CREATED} onSave={onSave} onClose={onClose} />
+        </Show>
+      </DraftGuardContext.Provider>
+    ));
+    const user = userEvent.setup();
+    const first = within(screen.getByRole("dialog"));
+    await user.type(input(first, "Title"), "!");
+    await user.click(first.getByRole("button", { name: "Save" }));
+
+    // Chrome closes the dialog while the Save waits; the User opens a new edit.
+    (screen.getByRole("dialog") as HTMLDialogElement).close();
+    expect(onClose).toHaveBeenCalledOnce();
+    setOpen(true);
+
+    answer();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(onClose, "the old Save does not close the new edit").toHaveBeenCalledOnce();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("shows the photo URL, disabled, with the hint", () => {
