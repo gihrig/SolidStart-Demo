@@ -1018,7 +1018,7 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
       postRemoveMock.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
       withoutPost1();
 
-      const deleted = jedi.postOwner.remove();
+      const deleted = jedi.postOwner.remove(1);
       expect(postRemoveMock).toHaveBeenCalledWith(1);
       expect(guard.hasDraft(), "released when the Owner confirms").toBe(false);
       // The poke can arrive before the delete result (ADR-0016).
@@ -1038,9 +1038,25 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
       guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
       postRemoveMock.mockRejectedValueOnce(new Error("Could not delete the Post"));
 
-      await expect(jedi.postOwner.remove()).rejects.toThrow("Could not delete the Post");
+      await expect(jedi.postOwner.remove(1)).rejects.toThrow("Could not delete the Post");
       expect(guard.hasDraft()).toBe(true);
       expect(jedi.selectedPost()?.id).toBe(1);
+    }));
+
+  it("a delete of a subject that is no longer shown deletes nothing and rejects", () =>
+    withLive(async (jedi, guard) => {
+      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
+      const caption = jedi.selectedCaption()!.id;
+
+      await expect(jedi.postOwner.remove(3)).rejects.toThrow(
+        "The Post shown changed. Nothing was deleted.",
+      );
+      await expect(jedi.captionOwner.remove(caption + 1)).rejects.toThrow(
+        "The Caption shown changed. Nothing was deleted.",
+      );
+      expect(postRemoveMock).not.toHaveBeenCalled();
+      expect(captionRemoveMock).not.toHaveBeenCalled();
+      expect(guard.hasDraft(), "no Draft is released").toBe(true);
     }));
 
   it("the Owner's Caption delete releases only its Comments panel's Drafts", () =>
@@ -1053,7 +1069,7 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
       expect(jedi.captionOwner.removeDiscardsDraft()).toBe(true);
       withoutCaption(shown);
 
-      await jedi.captionOwner.remove();
+      await jedi.captionOwner.remove(shown);
       await settle();
 
       expect(captionRemoveMock).toHaveBeenCalledWith(shown);
@@ -1263,6 +1279,32 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
       await settle();
       expect(jedi.selectedPost()?.id).toBe(3);
       expect(jedi.announcement()).toBe(LEFT);
+    }));
+
+  it("a held Post that leaves its Category empty stays shown, with no empty panel", () =>
+    withLive(async (jedi, guard, mem) => {
+      jedi.setSelectedCategory(ANIMALS);
+      const draft = Symbol("comment");
+      guard.report(draft, true, jedi.postComments.draftScope);
+      // Every Post leaves Animals, so the filter lists none.
+      postListMock.mockResolvedValue(
+        RANKED_POSTS.map((p) => ({
+          ...p,
+          categories: p.categories.filter((c) => c.id !== ANIMALS),
+        })),
+      );
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+
+      expect(jedi.selectedPost()?.id, "the Post stays shown").toBe(1);
+      expect(jedi.emptyCategoryLabel(), "no empty panel unmounts its forms").toBeUndefined();
+      expect(guard.question()).toBe(T6);
+
+      // The last Draft ends: the Category is empty.
+      guard.cancelMove();
+      guard.report(draft, false);
+      await settle();
+      expect(jedi.emptyCategoryLabel()).toBe("Animals");
     }));
 
   it("Discard on the Category question drops the Drafts and moves the article", () =>

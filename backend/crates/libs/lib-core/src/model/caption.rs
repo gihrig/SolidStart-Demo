@@ -157,6 +157,7 @@ impl DbBmc for CaptionBmc {
 		const RULES: &[FieldHygiene] = &[FieldHygiene {
 			field: "text",
 			max_len: Some(36),
+			required: true,
 		}];
 		RULES
 	}

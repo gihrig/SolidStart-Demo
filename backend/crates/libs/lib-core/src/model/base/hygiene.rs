@@ -7,12 +7,14 @@ use unicode_normalization::UnicodeNormalization;
 /// A free-text field an entity submits to write-path hygiene.
 ///
 /// `field` is the column name. `max_len` is an optional cap on the character
-/// count (Unicode scalar values) after normalization and trim. Each later
-/// entity ticket declares its own rules via `DbBmc::hygiene_rules`.
+/// count (Unicode scalar values) after normalization and trim. A `required`
+/// field must not be blank after the trim. Each later entity ticket declares
+/// its own rules via `DbBmc::hygiene_rules`.
 #[derive(Clone, Copy)]
 pub struct FieldHygiene {
 	pub field: &'static str,
 	pub max_len: Option<usize>,
+	pub required: bool,
 }
 
 /// Return the rejection reason for a character that must never persist in free
@@ -138,6 +140,12 @@ pub fn apply_hygiene<MC: DbBmc>(fields: SeaFields) -> Result<SeaFields> {
 			Some(rule) => hygiene_value(&name, s, rule.max_len)?,
 			None => s.to_string(),
 		};
+		if rule.is_some_and(|r| r.required) && cleaned.is_empty() {
+			return Err(Error::Validation {
+				field: name,
+				reason: "must not be blank".to_string(),
+			});
+		}
 		if is_url {
 			check_safe_url(&name, &cleaned)?;
 		}
@@ -162,6 +170,8 @@ mod tests {
 	use crate::model::post::PostBmc;
 	use crate::model::post_comment::PostCommentBmc;
 	use crate::model::Error as ModelError;
+	use modql::field::SeaField;
+	use sea_query::Alias;
 
 	/// A control character in the middle of the text is rejected.
 	#[test]
@@ -242,6 +252,39 @@ mod tests {
 		);
 		// The cap counts characters after trim, so trailing spaces do not count.
 		assert_eq!(hygiene_value("title", "abcde  ", Some(5))?, "abcde");
+		Ok(())
+	}
+
+	/// Run `MC`'s rules over one blank `field` (whitespace only).
+	fn apply_blank<MC: DbBmc>(
+		field: &'static str,
+	) -> crate::model::Result<SeaFields> {
+		let blank = SeaField::new(Alias::new(field), " \n\t ");
+		apply_hygiene::<MC>(SeaFields::new(vec![blank]))
+	}
+
+	/// A required field that is blank after the trim is rejected (PR #216
+	/// review): the server is the authoritative boundary (ADR-0019). An
+	/// optional field may stay blank.
+	#[test]
+	fn test_required_field_rejects_blank() -> Result<()> {
+		for (field, res) in [
+			("content", apply_blank::<PostCommentBmc>("content")),
+			("content", apply_blank::<CaptionCommentBmc>("content")),
+			("text", apply_blank::<CaptionBmc>("text")),
+			("title", apply_blank::<PostBmc>("title")),
+			("name", apply_blank::<CategoryBmc>("name")),
+			("title", apply_blank::<HeroBmc>("title")),
+			("cta_text", apply_blank::<HeroBmc>("cta_text")),
+		] {
+			assert!(
+				matches!(&res, Err(ModelError::Validation { field: f, reason })
+					if f == field && reason == "must not be blank"),
+				"{field}: got {res:?}"
+			);
+		}
+		apply_blank::<PostBmc>("photographer")?;
+		apply_blank::<HeroBmc>("subtitle")?;
 		Ok(())
 	}
 

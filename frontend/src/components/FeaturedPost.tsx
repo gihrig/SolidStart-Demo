@@ -73,10 +73,13 @@ const createLikeAction = (toggle: () => Promise<void> | undefined) =>
   );
 
 /** An Owner's delete as an RPC action (#187), so each reports its own error. */
-const createDeleteAction = (remove: () => Promise<void> | undefined, fallbackError: string) =>
+const createDeleteAction = (
+  remove: (id: number) => Promise<void> | undefined,
+  fallbackError: string,
+) =>
   createRpcAction(
-    async () => {
-      await remove();
+    async (id: number) => {
+      await remove(id);
       return true;
     },
     { fallbackError },
@@ -91,18 +94,19 @@ export default function FeaturedPost(props: FeaturedPostProps) {
   let titleRef: HTMLHeadingElement | undefined;
   let captionLineRef: HTMLDivElement | undefined;
   const deletePost = createDeleteAction(
-    () => props.postOwner?.remove(),
+    (id) => props.postOwner?.remove(id),
     "Could not delete the Post",
   );
   const deleteCaption = createDeleteAction(
-    () => props.captionOwner?.remove(),
+    (id) => props.captionOwner?.remove(id),
     "Could not delete the Caption",
   );
   const runDelete = async (
     action: typeof deletePost,
+    id: number,
     focusAfter: () => HTMLElement | undefined,
   ) => {
-    if (await action.run(undefined)) focusAfter()?.focus();
+    if (await action.run(id)) focusAfter()?.focus();
   };
   // The Owner's edits (#187). The view-model holds each open state; when an
   // edit closes, focus returns to its Edit button.
@@ -270,10 +274,11 @@ export default function FeaturedPost(props: FeaturedPostProps) {
                 author={props.caption?.author}
                 loggedIn={props.loggedIn}
                 userId={props.userId}
+                subjectId={props.caption?.id}
                 deleteQuestion={CAPTION_DELETE_QUESTION}
                 deleteDiscardsDraft={props.captionOwner?.removeDiscardsDraft}
                 deleteDisabled={deleteCaption.pending() || captionEditOpen()}
-                onDelete={() => void runDelete(deleteCaption, () => captionLineRef)}
+                onDelete={(id) => void runDelete(deleteCaption, id, () => captionLineRef)}
                 onEdit={editCaption}
                 editDisabled={addingCaption() || captionEditOpen()}
                 editRef={(el) => (captionEditRef = el)}
@@ -376,10 +381,11 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               author={props.post.author}
               loggedIn={props.loggedIn}
               userId={props.userId}
+              subjectId={props.post.id}
               deleteQuestion={POST_DELETE_QUESTION}
               deleteDiscardsDraft={props.postOwner?.removeDiscardsDraft}
               deleteDisabled={deletePost.pending()}
-              onDelete={() => void runDelete(deletePost, () => titleRef)}
+              onDelete={(id) => void runDelete(deletePost, id, () => titleRef)}
               onEdit={() => props.postOwner?.edit.setOpen(true)}
               editRef={(el) => (postEditRef = el)}
             />

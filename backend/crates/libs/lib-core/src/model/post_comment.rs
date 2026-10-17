@@ -113,6 +113,7 @@ impl DbBmc for PostCommentBmc {
 		const RULES: &[FieldHygiene] = &[FieldHygiene {
 			field: "content",
 			max_len: Some(2000),
+			required: true,
 		}];
 		RULES
 	}

@@ -209,26 +209,32 @@ impl DbBmc for PostBmc {
 			FieldHygiene {
 				field: "title",
 				max_len: Some(36),
+				required: true,
 			},
 			FieldHygiene {
 				field: "image_alt",
 				max_len: Some(200),
+				required: false,
 			},
 			FieldHygiene {
 				field: "photographer",
 				max_len: Some(120),
+				required: false,
 			},
 			FieldHygiene {
 				field: "image_src",
 				max_len: Some(1024),
+				required: false,
 			},
 			FieldHygiene {
 				field: "photographer_url",
 				max_len: Some(1024),
+				required: false,
 			},
 			FieldHygiene {
 				field: "source_url",
 				max_len: Some(1024),
+				required: false,
 			},
 		];
 		RULES

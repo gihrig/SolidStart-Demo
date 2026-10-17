@@ -101,6 +101,7 @@ impl DbBmc for CategoryBmc {
 		const RULES: &[FieldHygiene] = &[FieldHygiene {
 			field: "name",
 			max_len: Some(20),
+			required: true,
 		}];
 		RULES
 	}

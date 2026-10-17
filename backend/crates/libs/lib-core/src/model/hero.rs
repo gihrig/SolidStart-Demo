@@ -61,18 +61,22 @@ impl DbBmc for HeroBmc {
 			FieldHygiene {
 				field: "title",
 				max_len: Some(40),
+				required: true,
 			},
 			FieldHygiene {
 				field: "subtitle",
 				max_len: Some(100),
+				required: false,
 			},
 			FieldHygiene {
 				field: "cta_text",
 				max_len: Some(20),
+				required: true,
 			},
 			FieldHygiene {
 				field: "background_image",
 				max_len: Some(1024),
+				required: false,
 			},
 		];
 		RULES

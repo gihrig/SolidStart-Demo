@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from "vite-plus/test";
 import { fireEvent, render, screen } from "@solidjs/testing-library";
+import { createSignal } from "solid-js";
 import userEvent from "@testing-library/user-event";
 import { stubDialogModal } from "~/lib/test-utils";
 import { trustedUrl } from "~/lib/sanitizeUrl";
@@ -57,7 +58,11 @@ describe("<OwnerActions />", () => {
     const T3 = "Your unsaved changes will be discarded.";
     const dialog = () => screen.queryByRole("dialog") as HTMLDialogElement | null;
 
+    // The subject shown: a live re-rank can change it while the question is open.
+    const [subjectId, setSubjectId] = createSignal(7);
+
     function renderOwner(discardsDraft = false) {
+      setSubjectId(7);
       const onDelete = vi.fn();
       render(() => (
         <OwnerActions
@@ -66,6 +71,7 @@ describe("<OwnerActions />", () => {
           author={lisa}
           userId={1}
           deleteQuestion={T1}
+          subjectId={subjectId()}
           deleteDiscardsDraft={() => discardsDraft}
           onDelete={onDelete}
         />
@@ -73,7 +79,7 @@ describe("<OwnerActions />", () => {
       return onDelete;
     }
 
-    it("asks first, and Delete calls onDelete", async () => {
+    it("asks first, and Delete calls onDelete with the subject asked about", async () => {
       const user = userEvent.setup();
       const onDelete = renderOwner();
       await user.click(screen.getByRole("button", { name: "Delete Post by Lisa" }));
@@ -82,8 +88,21 @@ describe("<OwnerActions />", () => {
       expect(dialog()).toHaveAccessibleName(T1);
 
       await user.click(screen.getByRole("button", { name: "Delete" }));
-      expect(onDelete).toHaveBeenCalledOnce();
+      expect(onDelete).toHaveBeenCalledExactlyOnceWith(7);
       expect(dialog()).toBeNull();
+    });
+
+    it("a change of the subject closes the question, so Delete never removes another", async () => {
+      const user = userEvent.setup();
+      const onDelete = renderOwner();
+      const deleteButton = screen.getByRole("button", { name: "Delete Post by Lisa" });
+      await user.click(deleteButton);
+      expect(dialog()?.open).toBe(true);
+
+      setSubjectId(8);
+      expect(dialog()).toBeNull();
+      expect(deleteButton, "focus returns to Delete").toHaveFocus();
+      expect(onDelete).not.toHaveBeenCalled();
     });
 
     it("adds the Draft warning when the delete discards a Draft", async () => {

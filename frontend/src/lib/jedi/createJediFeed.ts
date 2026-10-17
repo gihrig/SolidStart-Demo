@@ -48,10 +48,12 @@ export interface OwnerWrites<Changes> {
   /** Save the Owner's edit of the subject `id`: only the changes. Refetches at
    *  once. Rejects on failure. */
   save: (id: number, changes: Changes) => Promise<void>;
-  /** Delete the shown subject, as its Owner. It releases the Drafts on the
-   *  subject first, as the poke can arrive before the result, and refetches at
-   *  once. Rejects on failure, and the guard holds the Drafts again. */
-  remove: () => Promise<void>;
+  /** Delete the subject `id`, as its Owner: the one the delete question
+   *  asked about. It must still be the subject shown, or nothing is deleted
+   *  and it rejects (PR #216 review). It releases the Drafts on the subject
+   *  first, as the poke can arrive before the result, and refetches at once.
+   *  Rejects on failure, and the guard holds the Drafts again. */
+  remove: (id: number) => Promise<void>;
   /** Whether `remove` would discard a Draft: the delete question says so. */
   removeDiscardsDraft: () => boolean;
 }
@@ -184,6 +186,10 @@ const CAPTION_DELETED_NOTICE = "This Caption was deleted. Your unsaved changes w
 /** The question when an Event moves a held Post out of the Category (T6). */
 const leftCategoryNotice = (name: string) =>
   `This Post is no longer in ${name}. Your unsaved changes may not apply.`;
+
+/** The error of a delete whose subject is no longer shown (PR #216 review). */
+const POST_CHANGED_ERROR = "The Post shown changed. Nothing was deleted.";
+const CAPTION_CHANGED_ERROR = "The Caption shown changed. Nothing was deleted.";
 
 /** The live region's texts for the Owner's own write (T8). */
 const POST_DELETED_ANNOUNCEMENT = "Post deleted.";
@@ -323,9 +329,11 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     else guard.attempt(move);
   };
 
-  // Truthy only when a real (non-"All") category filters every post away.
+  // Truthy only when a real (non-"All") category filters every post away. A
+  // held Post that an Event moved out of the filter still shows: the empty
+  // panel would unmount the forms on it (PR #216 review).
   const emptyCategoryLabel = (): string | undefined => {
-    if (visiblePosts()?.length !== 0) return undefined;
+    if (visiblePosts()?.length !== 0 || selectedPost()) return undefined;
     return filterCategory()?.name;
   };
   const selectPost = (id: number): void => {
@@ -529,17 +537,15 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
       throw e;
     }
   };
-  const deletePost = async (): Promise<void> => {
-    const post = selectedPost();
-    if (!post) return;
-    await deleteSubject(post.id, ownDeletedPosts, api.posts.remove, () => guard.release());
+  const deletePost = async (id: number): Promise<void> => {
+    if (selectedPost()?.id !== id) throw new Error(POST_CHANGED_ERROR);
+    await deleteSubject(id, ownDeletedPosts, api.posts.remove, () => guard.release());
     announce(POST_DELETED_ANNOUNCEMENT);
     void refetchPosts();
   };
-  const deleteCaption = async (): Promise<void> => {
-    const caption = selectedCaption();
-    if (!caption) return;
-    await deleteSubject(caption.id, ownDeletedCaptions, api.captions.remove, () =>
+  const deleteCaption = async (id: number): Promise<void> => {
+    if (selectedCaption()?.id !== id) throw new Error(CAPTION_CHANGED_ERROR);
+    await deleteSubject(id, ownDeletedCaptions, api.captions.remove, () =>
       guard.release([captionComments.draftScope]),
     );
     announce(CAPTION_DELETED_ANNOUNCEMENT);

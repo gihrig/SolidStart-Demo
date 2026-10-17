@@ -282,6 +282,11 @@ export default function PostDialog(props: PostDialogProps) {
             closeEdit();
           }
         }}
+        // A browser can still close it (Chrome closes on a second Escape). The
+        // edit's owner must hear it, or the edit stays open with no dialog.
+        onClose={() => {
+          if (editing) closeEdit();
+        }}
         aria-labelledby={headingId}
         class="theme-dialog max-w-md"
       >

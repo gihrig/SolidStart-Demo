@@ -264,6 +264,17 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
     expect(form.getByRole("checkbox", { name: "Landscape" })).not.toBeChecked();
   });
 
+  it("a close by the browser is the edit's Cancel (PR #216 review)", async () => {
+    const { user, dialog, form, guard, onClose } = renderEdit();
+    await user.type(input(form, "Photographer"), "!");
+    expect(guard.hasDraft()).toBe(true);
+
+    // Chrome closes a modal dialog on a second Escape, with no `cancel` event.
+    dialog.close();
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(guard.hasDraft()).toBe(false);
+  });
+
   it("shows the photo URL, disabled, with the hint", () => {
     const { form } = renderEdit();
     const imageUrl = input(form, "Image URL");
