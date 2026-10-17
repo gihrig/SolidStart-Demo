@@ -173,21 +173,31 @@ export function createCommentThread(deps: CommentThreadDeps): {
 
   const deleted = (id: number): boolean => comments()?.every((c) => c.id !== id) === true;
 
+  // The ids removed while this thread lives. Ids are never reused, so a write
+  // response that arrives after its Comment's removal does not bring it back
+  // (PR #216 review).
+  const removed = new Set<number>();
   // The one merge point for pushed Events and the viewer's own writes: a row
   // id already shown is edited in place, so a push of the viewer's own write
-  // never adds it twice. A new row goes to its place in the newest-first
-  // order, so a late push of an older Comment goes below a newer one.
+  // never adds it twice. An edit older than the row shown is a late response,
+  // so it does not overwrite a newer edit. A new row goes to its place in the
+  // newest-first order, so a late push of an older Comment goes below a newer
+  // one.
   const upsertRow = (comment: CommentView): void => {
     changes++;
-    if (comment.parentId !== store.parentId) return;
+    if (comment.parentId !== store.parentId || removed.has(comment.id)) return;
     const index = store.rows.findIndex((c) => c.id === comment.id);
-    if (index !== -1) return setStore("rows", index, reconcile(comment));
+    if (index !== -1) {
+      if (Date.parse(comment.mtime) < Date.parse(store.rows[index].mtime)) return;
+      return setStore("rows", index, reconcile(comment));
+    }
     const found = store.rows.findIndex((c) => newestFirst(comment, c) < 0);
     const at = found === -1 ? store.rows.length : found;
     setStore("rows", (rows) => [...rows.slice(0, at), comment, ...rows.slice(at)]);
   };
   const removeRow = (id: number): void => {
     changes++;
+    removed.add(id);
     setStore("rows", (rows) => rows.filter((c) => c.id !== id));
   };
 

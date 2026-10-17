@@ -366,6 +366,36 @@ describe("createCommentThread — the writes", () => {
       expect(contents(thread)).toEqual(["second"]);
     }));
 
+  it("a late edit response does not bring back a Comment that a push removed", () =>
+    withThread(async ({ thread, onEvent }) => {
+      await tick();
+      const answer = deferred<CommentView>();
+      updateMock.mockReturnValueOnce(answer.promise);
+      const updated = thread.update(10, "first, edited");
+
+      // Another tab deletes it before the edit's response arrives.
+      onEvent({ event_type: "post_comment_removal", payload: { id: 10, parent_id: 1 } });
+      answer.resolve(comment(10, 1, "first, edited"));
+      await updated;
+      expect(contents(thread)).toEqual(["second"]);
+    }));
+
+  it("a late edit response does not overwrite a newer edit", () =>
+    withThread(async ({ thread, onEvent }) => {
+      await tick();
+      const answer = deferred<CommentView>();
+      updateMock.mockReturnValueOnce(answer.promise);
+      const updated = thread.update(11, "older");
+
+      onEvent({
+        event_type: "post_comment",
+        payload: wire({ ...comment(11, 1, "newer"), mtime: at(50) }),
+      });
+      answer.resolve({ ...comment(11, 1, "older"), mtime: at(40) });
+      await updated;
+      expect(contents(thread)).toEqual(["newer", "first"]);
+    }));
+
   it("a failed write rejects and leaves the thread unchanged", () =>
     withThread(async ({ thread }) => {
       await tick();
