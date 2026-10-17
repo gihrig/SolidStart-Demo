@@ -24,7 +24,7 @@ recipe-only setting, a plain `cargo test` would write `bigint` back.
 
 ADR-0003 rejected a ts-rs override because "the Rust back-end is not in this repo".
 [ADR-0010](0010-monorepo-structure.md) moved the back-end here and logged the
-follow-on that this ADR closes. ADR-0010's other reason, "keep generated files
+follow-on that this ADR closes. ADR-0003's other reason, "keep generated files
 pristine", still holds: nobody edits a generated file.
 
 ## Considered and rejected
