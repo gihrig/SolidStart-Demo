@@ -275,10 +275,29 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
     expect(guard.hasDraft()).toBe(false);
   });
 
-  it("a Save that ends after a browser close does not close the next edit (PR #216 review)", async () => {
+  it("a browser close during a Save reopens the dialog; a failed Save keeps the text (PR #216 review)", async () => {
+    const { user, dialog, form, guard, onSave, onClose } = renderEdit();
+    let fail!: (reason: unknown) => void;
+    onSave.mockReturnValueOnce(new Promise<void>((_, reject) => (fail = reject)));
+    await user.type(input(form, "Title"), "!");
+    await user.click(form.getByRole("button", { name: "Save" }));
+
+    // Chrome closes the dialog while the Save waits.
+    dialog.close();
+    expect(dialog.open, "the dialog opens again").toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
+
+    fail({ status: 500 });
+    expect(await form.findByRole("alert")).toHaveTextContent("Could not edit the Post");
+    expect(input(form, "Title").value).toBe(`${DRAFT.title}!`);
+    expect(guard.hasDraft()).toBe(true);
+  });
+
+  it("a Save that ends after its edit unmounts does not close the next edit (PR #216 review)", async () => {
     let answer!: () => void;
     const onSave = vi.fn(() => new Promise<void>((resolve) => (answer = resolve)));
-    // The owner unmounts the edit when it closes, as FeaturedPost does.
+    // The owner unmounts the edit when it closes, as FeaturedPost does, and
+    // when the Post shown changes.
     const [open, setOpen] = createSignal(true);
     const onClose = vi.fn(() => setOpen(false));
     render(() => (
@@ -293,14 +312,13 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
     await user.type(input(first, "Title"), "!");
     await user.click(first.getByRole("button", { name: "Save" }));
 
-    // Chrome closes the dialog while the Save waits; the User opens a new edit.
-    (screen.getByRole("dialog") as HTMLDialogElement).close();
-    expect(onClose).toHaveBeenCalledOnce();
+    // The Post shown changes while the Save waits; the User opens a new edit.
+    setOpen(false);
     setOpen(true);
 
     answer();
     await new Promise((r) => setTimeout(r, 0));
-    expect(onClose, "the old Save does not close the new edit").toHaveBeenCalledOnce();
+    expect(onClose, "the old Save does not close the new edit").not.toHaveBeenCalled();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
