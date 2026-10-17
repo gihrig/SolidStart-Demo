@@ -186,6 +186,10 @@ const CAPTION_DELETED_NOTICE = "This Caption was deleted. Your unsaved changes w
 /** The synthetic "no filter" row. Id 0 is unused by the real categories. */
 const ALL_CATEGORIES: JediCategory = { id: 0, name: "All", icon: "menu" };
 
+/** Whether the Post is in the Category. */
+const inCategory = (post: PostView, category: JediCategory): boolean =>
+  post.categories.some((c) => c.id === category.id);
+
 /** Injectable seam for the view-model. */
 export interface CreateJediFeedDeps {
   /**
@@ -248,15 +252,21 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     const list = realCategories();
     return list && [ALL_CATEGORIES, ...list];
   };
+  // The real Category that filters the Posts at `categoryIndex`, by default
+  // the selected one. Undefined for "All", and while the Categories load.
+  const filterCategory = (categoryIndex = selectedCategory()): JediCategory | undefined => {
+    const category = categories()?.[categoryIndex];
+    return category?.id === ALL_CATEGORIES.id ? undefined : category;
+  };
 
   // Filtering happens here so the Top Photos card stays presentational. Ranking
   // is inherited from `posts` — filter preserves order. It takes the category
   // index, so a category change can check the Post it would select.
   const visiblePostsIn = (categoryIndex: number): PostView[] | undefined => {
     const all = posts();
-    const category = categories()?.[categoryIndex];
-    if (!all || !category || category.id === ALL_CATEGORIES.id) return all;
-    return all.filter((p) => p.categories.some((c) => c.id === category.id));
+    const category = filterCategory(categoryIndex);
+    if (!all || !category) return all;
+    return all.filter((p) => inCategory(p, category));
   };
   const visiblePosts = () => visiblePostsIn(selectedCategory());
 
@@ -304,8 +314,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // Truthy only when a real (non-"All") category filters every post away.
   const emptyCategoryLabel = (): string | undefined => {
     if (visiblePosts()?.length !== 0) return undefined;
-    const category = categories()?.[selectedCategory()];
-    return category && category.id !== ALL_CATEGORIES.id ? category.name : undefined;
+    return filterCategory()?.name;
   };
   const selectPost = (id: number): void => {
     guardPostChange(id, () => setSelectedPostId(id));
@@ -451,10 +460,9 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
       }
       return;
     }
-    const category = categories()?.[selectedCategory()];
-    if (!category || category.id === ALL_CATEGORIES.id || heldPostId() !== shown.id) return;
-    const inCategory = (p: PostView) => p.categories.some((c) => c.id === category.id);
-    if (!inCategory(shown) || inCategory(next)) return;
+    const category = filterCategory();
+    if (!category || heldPostId() !== shown.id) return;
+    if (!inCategory(shown, category) || inCategory(next, category)) return;
     setKeptPostId(shown.id);
     // "Discard" also closes the Post edit, so the hold ends and the article
     // moves: no form stays open with text that the guard no longer holds.
@@ -474,10 +482,9 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
         if (!prev) return;
         const [prevId, prevCategoryIndex] = prev;
         if (prevId === undefined || id === prevId || categoryIndex !== prevCategoryIndex) return;
-        const category = categories()?.[categoryIndex];
+        const category = filterCategory(categoryIndex);
         const left = posts()?.find((p) => p.id === prevId);
-        if (!category || category.id === ALL_CATEGORIES.id || !left) return;
-        if (left.categories.some((c) => c.id === category.id)) return;
+        if (!category || !left || inCategory(left, category)) return;
         announce(`This Post is no longer in ${category.name}.`);
       },
     ),
@@ -536,11 +543,10 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     // A save that drops the selected Category keeps the Post shown: the
     // filter switches to "All" when the save is sent, as the poke can arrive
     // before the result.
-    const category = categories()?.[selectedCategory()];
+    const category = filterCategory();
     const dropsCategory =
       changes.categoryIds !== undefined &&
       category !== undefined &&
-      category.id !== ALL_CATEGORIES.id &&
       !changes.categoryIds.includes(category.id);
     if (dropsCategory) {
       selectPost(id);
