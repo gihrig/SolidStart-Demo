@@ -182,6 +182,19 @@ export interface JediFeed {
 /** The forced-discard notices of a deleted subject (#187, ADR-0030 addendum). */
 const POST_DELETED_NOTICE = "This Post was deleted. Your unsaved changes were discarded.";
 const CAPTION_DELETED_NOTICE = "This Caption was deleted. Your unsaved changes were discarded.";
+/** The question when an Event moves a held Post out of the Category (T6). */
+const leftCategoryNotice = (name: string) =>
+  `This Post is no longer in ${name}. Your unsaved changes may not apply.`;
+
+/** The live region's texts for the Owner's own write (T8). */
+const POST_DELETED_ANNOUNCEMENT = "Post deleted.";
+const CAPTION_DELETED_ANNOUNCEMENT = "Caption deleted.";
+const POST_SAVED_ANNOUNCEMENT = "Post saved.";
+const CAPTION_SAVED_ANNOUNCEMENT = "Caption saved.";
+/** The live region's texts for a change by another User (T9). */
+const POST_WAS_DELETED_ANNOUNCEMENT = "This Post was deleted.";
+const CAPTION_WAS_DELETED_ANNOUNCEMENT = "This Caption was deleted.";
+const leftCategoryAnnouncement = (name: string) => `This Post is no longer in ${name}.`;
 
 /** The synthetic "no filter" row. Id 0 is unused by the real categories. */
 const ALL_CATEGORIES: JediCategory = { id: 0, name: "All", icon: "menu" };
@@ -456,7 +469,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     const next = list.find((p) => p.id === shown.id);
     if (!next) {
       if (!guard.discardIn(undefined, POST_DELETED_NOTICE)) {
-        announce("This Post was deleted.");
+        announce(POST_WAS_DELETED_ANNOUNCEMENT);
       }
       return;
     }
@@ -466,11 +479,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     setKeptPostId(shown.id);
     // "Discard" also closes the Post edit, so the hold ends and the article
     // moves: no form stays open with text that the guard no longer holds.
-    guard.ask(
-      `This Post is no longer in ${category.name}. Your unsaved changes may not apply.`,
-      undefined,
-      () => setPostEditOn(undefined),
-    );
+    guard.ask(leftCategoryNotice(category.name), undefined, () => setPostEditOn(undefined));
   };
   // When the article moves off a Post that is no longer in the selected
   // Category, and the User did not change the Category, the live region says
@@ -485,7 +494,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
         const category = filterCategory(categoryIndex);
         const left = posts()?.find((p) => p.id === prevId);
         if (!category || !left || inCategory(left, category)) return;
-        announce(`This Post is no longer in ${category.name}.`);
+        announce(leftCategoryAnnouncement(category.name));
       },
     ),
   );
@@ -497,7 +506,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     if (captions.some((c) => c.id === shown.id)) return;
     const scopes = [captionEdit.draftScope, captionComments.draftScope];
     if (!guard.discardIn(scopes, CAPTION_DELETED_NOTICE)) {
-      announce("This Caption was deleted.");
+      announce(CAPTION_WAS_DELETED_ANNOUNCEMENT);
     }
   };
 
@@ -525,7 +534,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     const post = selectedPost();
     if (!post) return;
     await deleteSubject(post.id, ownDeletedPosts, api.posts.remove, () => guard.drop());
-    announce("Post deleted.");
+    announce(POST_DELETED_ANNOUNCEMENT);
     void refetchPosts();
   };
   const deleteCaption = async (): Promise<void> => {
@@ -534,7 +543,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     await deleteSubject(caption.id, ownDeletedCaptions, api.captions.remove, () =>
       guard.drop([captionComments.draftScope]),
     );
-    announce("Caption deleted.");
+    announce(CAPTION_DELETED_ANNOUNCEMENT);
     void refetchCaptions();
   };
 
@@ -553,12 +562,12 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
       setSelectedCategory(0);
     }
     await api.posts.update(id, changes);
-    announce("Post saved.");
+    announce(POST_SAVED_ANNOUNCEMENT);
     void refetchPosts();
   };
   const updateCaption = async (id: number, text: string): Promise<void> => {
     await api.captions.update(id, text);
-    announce("Caption saved.");
+    announce(CAPTION_SAVED_ANNOUNCEMENT);
     void refetchCaptions();
   };
 
