@@ -747,7 +747,7 @@ describe("<FeaturedPost /> — the Owner's delete (#187)", () => {
     );
     await user.click(screen.getByRole("button", { name: "Delete" }));
 
-    expect(onDeletePost).toHaveBeenCalledOnce();
+    expect(onDeletePost).toHaveBeenCalledExactlyOnceWith(post.id);
     await waitFor(() => expect(screen.getByRole("heading", { name: "Little Jedi" })).toHaveFocus());
   });
 
@@ -760,7 +760,7 @@ describe("<FeaturedPost /> — the Owner's delete (#187)", () => {
     expect(screen.getByRole("dialog")).toHaveAccessibleName(T2);
     await user.click(screen.getByRole("button", { name: "Delete" }));
 
-    expect(onDeleteCaption).toHaveBeenCalledOnce();
+    expect(onDeleteCaption).toHaveBeenCalledExactlyOnceWith(caption.id);
     await waitFor(() => expect(screen.getByText(caption.text).closest("[tabindex]")).toHaveFocus());
   });
 
