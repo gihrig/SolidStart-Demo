@@ -57,7 +57,7 @@ export interface DraftGuard {
    *  Draft with no `scopes`, with no notice. A released form's unmount shows
    *  none. Returns `restore`, which holds them again after a failed delete; a
    *  form that ended its Draft or unmounted meanwhile is not held again. */
-  drop: (scopes?: readonly DraftScope[]) => () => void;
+  release: (scopes?: readonly DraftScope[]) => () => void;
 }
 
 /** The notice of a forced discard whose cause the form cannot name. */
@@ -83,7 +83,7 @@ export const passThroughGuard: DraftGuard = {
   discard: () => {},
   discardIn: () => false,
   dismissNotice: () => {},
-  drop: () => () => {},
+  release: () => () => {},
 };
 
 const blockUnload = (e: BeforeUnloadEvent) => e.preventDefault();
@@ -97,7 +97,7 @@ const blockUnload = (e: BeforeUnloadEvent) => e.preventDefault();
 export function createDraftGuard(): DraftGuard {
   // Each form's key with a Draft, and the form's scope.
   const drafts = new Map<symbol, DraftScope | undefined>();
-  // The Drafts that an own delete released (`drop`), until it fails or the
+  // The Drafts that an own delete released (`release`), until it fails or the
   // form ends its Draft.
   const released = new Map<symbol, DraftScope | undefined>();
   const [hasDraft, setHasDraft] = createSignal(false);
@@ -179,7 +179,7 @@ export function createDraftGuard(): DraftGuard {
     return true;
   };
 
-  const drop = (scopes?: readonly DraftScope[]): (() => void) => {
+  const release = (scopes?: readonly DraftScope[]): (() => void) => {
     const keys = draftsIn(scopes);
     for (const key of keys) {
       released.set(key, drafts.get(key));
@@ -215,6 +215,6 @@ export function createDraftGuard(): DraftGuard {
     discard,
     discardIn,
     dismissNotice: () => setNotice(undefined),
-    drop,
+    release,
   };
 }

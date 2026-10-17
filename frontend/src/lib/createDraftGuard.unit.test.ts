@@ -206,11 +206,11 @@ describe("createDraftGuard — scopes", () => {
 });
 
 describe("createDraftGuard — the Owner's own delete (#187)", () => {
-  it("drop releases the Drafts in the scopes with no notice, and restore holds them again", () =>
+  it("release frees the Drafts in the scopes with no notice, and restore holds them again", () =>
     withGuard((guard) => {
       guard.report(compose, true, panel);
       guard.report(caption, true);
-      const restore = guard.drop([panel]);
+      const restore = guard.release([panel]);
       expect(guard.holds(compose), "the scope's Draft is released").toBe(false);
       expect(guard.holds(caption), "the other Draft stays").toBe(true);
       expect(guard.notice()).toBeUndefined();
@@ -219,11 +219,11 @@ describe("createDraftGuard — the Owner's own delete (#187)", () => {
       expect(guard.holds(compose), "a failed delete holds it again").toBe(true);
     }));
 
-  it("drop with no scope releases every Draft", () =>
+  it("release with no scope releases every Draft", () =>
     withGuard((guard) => {
       guard.report(compose, true, panel);
       guard.report(caption, true);
-      guard.drop();
+      guard.release();
       expect(guard.hasDraft()).toBe(false);
     }));
 
@@ -231,7 +231,7 @@ describe("createDraftGuard — the Owner's own delete (#187)", () => {
     withGuard((guard) => {
       guard.report(compose, true, panel);
       guard.report(edit1, true, panel);
-      const restore = guard.drop([panel]);
+      const restore = guard.release([panel]);
       guard.report(compose, false, panel);
       restore();
       expect(guard.holds(compose)).toBe(false);
@@ -241,7 +241,7 @@ describe("createDraftGuard — the Owner's own delete (#187)", () => {
   it("a released form keeps its Draft released while it types", () =>
     withGuard((guard) => {
       guard.report(compose, true, panel);
-      guard.drop([panel]);
+      guard.release([panel]);
       guard.report(compose, true, panel);
       expect(guard.hasDraft()).toBe(false);
     }));

@@ -533,7 +533,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const deletePost = async (): Promise<void> => {
     const post = selectedPost();
     if (!post) return;
-    await deleteSubject(post.id, ownDeletedPosts, api.posts.remove, () => guard.drop());
+    await deleteSubject(post.id, ownDeletedPosts, api.posts.remove, () => guard.release());
     announce(POST_DELETED_ANNOUNCEMENT);
     void refetchPosts();
   };
@@ -541,7 +541,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     const caption = selectedCaption();
     if (!caption) return;
     await deleteSubject(caption.id, ownDeletedCaptions, api.captions.remove, () =>
-      guard.drop([captionComments.draftScope]),
+      guard.release([captionComments.draftScope]),
     );
     announce(CAPTION_DELETED_ANNOUNCEMENT);
     void refetchCaptions();

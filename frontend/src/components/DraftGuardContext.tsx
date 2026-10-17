@@ -96,7 +96,7 @@ export function useDraft(options: DraftOptions): Draft {
     if (!dirty) cleared = false;
     guard.report(key, dirty && !cleared, options.scope);
   });
-  // A Draft that an own delete released (`guard.drop`) ends here too, with no
+  // A Draft that an own delete released (`guard.release`) ends here too, with no
   // notice.
   onCleanup(() => {
     if (guard.holds(key)) guard.discard(key, options.notice?.() ?? DRAFT_DISCARDED_NOTICE);
