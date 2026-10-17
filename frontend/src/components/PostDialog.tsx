@@ -291,8 +291,12 @@ export default function PostDialog(props: PostDialogProps) {
         }}
         // A browser can still close it (Chrome closes on a second Escape). The
         // edit's owner must hear it, or the edit stays open with no dialog.
+        // While the write is in flight, it opens again, as Esc is refused, so
+        // a failed Save keeps the text and shows its error (PR #216 review).
         onClose={() => {
-          if (editing) closeEdit();
+          if (!editing) return;
+          if (pending()) return dialogRef?.showModal();
+          closeEdit();
         }}
         aria-labelledby={headingId}
         class="theme-dialog max-w-md"
