@@ -323,9 +323,11 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     else guard.attempt(move);
   };
 
-  // Truthy only when a real (non-"All") category filters every post away.
+  // Truthy only when a real (non-"All") category filters every post away. A
+  // held Post that an Event moved out of the filter still shows: the empty
+  // panel would unmount the forms on it (PR #216 review).
   const emptyCategoryLabel = (): string | undefined => {
-    if (visiblePosts()?.length !== 0) return undefined;
+    if (visiblePosts()?.length !== 0 || selectedPost()) return undefined;
     return filterCategory()?.name;
   };
   const selectPost = (id: number): void => {

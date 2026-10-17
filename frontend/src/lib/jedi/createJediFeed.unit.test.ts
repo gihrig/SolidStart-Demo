@@ -1265,6 +1265,32 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
       expect(jedi.announcement()).toBe(LEFT);
     }));
 
+  it("a held Post that leaves its Category empty stays shown, with no empty panel", () =>
+    withLive(async (jedi, guard, mem) => {
+      jedi.setSelectedCategory(ANIMALS);
+      const draft = Symbol("comment");
+      guard.report(draft, true, jedi.postComments.draftScope);
+      // Every Post leaves Animals, so the filter lists none.
+      postListMock.mockResolvedValue(
+        RANKED_POSTS.map((p) => ({
+          ...p,
+          categories: p.categories.filter((c) => c.id !== ANIMALS),
+        })),
+      );
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+
+      expect(jedi.selectedPost()?.id, "the Post stays shown").toBe(1);
+      expect(jedi.emptyCategoryLabel(), "no empty panel unmounts its forms").toBeUndefined();
+      expect(guard.question()).toBe(T6);
+
+      // The last Draft ends: the Category is empty.
+      guard.cancelMove();
+      guard.report(draft, false);
+      await settle();
+      expect(jedi.emptyCategoryLabel()).toBe("Animals");
+    }));
+
   it("Discard on the Category question drops the Drafts and moves the article", () =>
     withLive(async (jedi, guard, mem) => {
       jedi.setSelectedCategory(ANIMALS);
