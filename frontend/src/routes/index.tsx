@@ -46,14 +46,8 @@ export default function Home() {
     toggleCaptionLike,
     postComments,
     captionComments,
-    postEdit,
-    captionEdit,
-    updatePost,
-    updateCaption,
-    deletePost,
-    deleteCaption,
-    postDeleteDiscardsDraft,
-    captionDeleteDiscardsDraft,
+    postOwner,
+    captionOwner,
     announcement,
     connectFeed,
   } = createJediFeed({ guard: useDraftGuard() });
@@ -117,14 +111,8 @@ export default function Home() {
                   onToggleCaptionLike={toggleCaptionLike}
                   postComments={postComments}
                   captionComments={captionComments}
-                  onDeletePost={deletePost}
-                  postDeleteDiscardsDraft={postDeleteDiscardsDraft}
-                  onDeleteCaption={deleteCaption}
-                  captionDeleteDiscardsDraft={captionDeleteDiscardsDraft}
-                  postEdit={postEdit}
-                  captionEdit={captionEdit}
-                  onUpdatePost={updatePost}
-                  onUpdateCaption={updateCaption}
+                  postOwner={postOwner}
+                  captionOwner={captionOwner}
                 />
               )}
             </Match>

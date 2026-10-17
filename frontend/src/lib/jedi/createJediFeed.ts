@@ -41,6 +41,21 @@ export interface EditState {
   draftScope: DraftScope;
 }
 
+/** The Owner's writes on one subject (#187): its edit, save and delete. */
+export interface OwnerWrites<Changes> {
+  /** The edit's open state. */
+  edit: EditState;
+  /** Save the Owner's edit of the subject `id`: only the changes. Refetches at
+   *  once. Rejects on failure. */
+  save: (id: number, changes: Changes) => Promise<void>;
+  /** Delete the shown subject, as its Owner. It releases the Drafts on the
+   *  subject first, as the poke can arrive before the result, and refetches at
+   *  once. Rejects on failure, and the guard holds the Drafts again. */
+  remove: () => Promise<void>;
+  /** Whether `remove` would discard a Draft: the delete question says so. */
+  removeDiscardsDraft: () => boolean;
+}
+
 /**
  * The Jedi feed's view-model: it owns the route's four data resources and the
  * derivations over them, exposing a small accessor interface. The route reads
@@ -79,14 +94,14 @@ export interface EditState {
  * changes the Caption shown, and a close of a Comments panel, goes through the
  * app's Draft guard (ADR-0030): with a Draft, it waits for the confirm dialog.
  *
- * `deletePost` / `deleteCaption` are the Owner's deletes (#187). A refetch
- * finds the cause of a change that it did not start: a held Post that is not
- * in the full list was deleted, and so was a held Caption that is not in its
- * Post's list. That is a forced discard of the Drafts on it, with the notice
- * that names it; a viewer without a Draft hears it in `announcement`.
+ * `postOwner` / `captionOwner` are the Owner's writes (#187): the edit, the
+ * save and the delete. A refetch finds the cause of a change that it did not
+ * start: a held Post that is not in the full list was deleted, and so was a
+ * held Caption that is not in its Post's list. That is a forced discard of the
+ * Drafts on it, with the notice that names it; a viewer without a Draft hears
+ * it in `announcement`.
  *
- * `postEdit` / `captionEdit` are the Owner's edits (#187). An open edit holds
- * its subject, with or without a Draft. A held Post that an Event moves out of
+ * An open edit holds its subject, with or without a Draft. A held Post that an Event moves out of
  * the selected Category stays shown, and the guard asks whether to keep the
  * Drafts on it. When the hold ends, the article shows the top-ranked Post in
  * the Category.
@@ -144,31 +159,15 @@ export interface JediFeed {
   /** The shown Caption's Comment thread (#127), as `postComments` is for the
    *  Post. While its panel is open, it holds the Caption shown. */
   captionComments: CommentThreadState;
-  /** Delete the shown Post (#187), as its Owner. It releases every Draft on
-   *  the Post first, as the poke can arrive before the result, and refetches
-   *  the Posts at once. Rejects on failure, and the guard holds the Drafts
-   *  again. */
-  deletePost: () => Promise<void>;
-  /** Delete the shown Caption (#187), as its Owner, as `deletePost` does. It
+  /** The Owner's writes on the shown Post (#187). The edit is the Edit
+   *  dialog. When a save's Categories drop the selected one, the filter
+   *  switches to "All" when the save is sent, so the Post stays shown. A
+   *  delete releases every Draft on the Post. */
+  postOwner: OwnerWrites<PostChanges>;
+  /** The Owner's writes on the shown Caption (#187). The edit is the form in
+   *  the Caption line. A save rejects for a Caption that got a Like. A delete
    *  releases the Drafts in the Caption's Comments panel. */
-  deleteCaption: () => Promise<void>;
-  /** The Post edit (#187): the Edit dialog's open state. */
-  postEdit: EditState;
-  /** The Caption edit (#187): the edit form's open state in the Caption
-   *  line. */
-  captionEdit: EditState;
-  /** Save the Owner's edit of the Post `id`: only the changed fields. When
-   *  the Categories drop the selected one, the filter switches to "All" when
-   *  the save is sent, so the Post stays shown. Refetches the Posts at once.
-   *  Rejects on failure. */
-  updatePost: (id: number, changes: PostChanges) => Promise<void>;
-  /** Save the Owner's edit of the Caption `id`. Refetches the Captions at
-   *  once. Rejects on failure, such as a Caption that got a Like. */
-  updateCaption: (id: number, text: string) => Promise<void>;
-  /** Whether `deletePost` would discard a Draft: the delete question says so. */
-  postDeleteDiscardsDraft: () => boolean;
-  /** Whether `deleteCaption` would discard a Draft. */
-  captionDeleteDiscardsDraft: () => boolean;
+  captionOwner: OwnerWrites<string>;
   /** The message of the route's polite live region (#187): the result of the
    *  Owner's own delete, or a delete by another User that discarded no Draft.
    *  Empty until the first message. */
@@ -639,14 +638,18 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     toggleCaptionLike: captionLike.toggle,
     postComments,
     captionComments,
-    postEdit,
-    captionEdit,
-    updatePost,
-    updateCaption,
-    deletePost,
-    deleteCaption,
-    postDeleteDiscardsDraft: () => guard.hasDraftIn(),
-    captionDeleteDiscardsDraft: () => guard.hasDraftIn([captionComments.draftScope]),
+    postOwner: {
+      edit: postEdit,
+      save: updatePost,
+      remove: deletePost,
+      removeDiscardsDraft: () => guard.hasDraftIn(),
+    },
+    captionOwner: {
+      edit: captionEdit,
+      save: updateCaption,
+      remove: deleteCaption,
+      removeDiscardsDraft: () => guard.hasDraftIn([captionComments.draftScope]),
+    },
     announcement,
     connectFeed,
   };

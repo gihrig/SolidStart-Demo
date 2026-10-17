@@ -8,8 +8,8 @@ import { stubDialogModal } from "~/lib/test-utils";
 import FeaturedPost from "./FeaturedPost";
 import { DraftGuardContext } from "./DraftGuardContext";
 import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
-import type { EditState } from "~/lib/jedi/createJediFeed";
-import type { PostView, CaptionView, Like, CommentView } from "~/types/jedi";
+import type { OwnerWrites } from "~/lib/jedi/createJediFeed";
+import type { PostChanges, PostView, CaptionView, Like, CommentView } from "~/types/jedi";
 
 // The Post edit dialog loads the Categories on mount (#187): the RPC client
 // answers from memory.
@@ -691,6 +691,19 @@ describe("<FeaturedPost /> — the Caption Comments panel (#127)", () => {
   });
 });
 
+/** The Owner's writes on one subject, as the view-model holds them (#187). */
+function fakeOwner<Changes>(
+  writes: Partial<Omit<OwnerWrites<Changes>, "edit">> = {},
+): OwnerWrites<Changes> {
+  const [open, setOpen] = createSignal(false);
+  return {
+    edit: { open, setOpen, draftScope: Symbol("edit") },
+    save: writes.save ?? (() => Promise.resolve()),
+    remove: writes.remove ?? (() => Promise.resolve()),
+    removeDiscardsDraft: writes.removeDiscardsDraft ?? (() => false),
+  };
+}
+
 describe("<FeaturedPost /> — the Owner's delete (#187)", () => {
   const T1 = "Delete this Post? Its Captions, Comments and Likes are deleted too.";
   const T2 = "Delete this Caption? Its Comments and Likes are deleted too.";
@@ -701,8 +714,21 @@ describe("<FeaturedPost /> — the Owner's delete (#187)", () => {
     postDeleteDiscardsDraft?: () => boolean;
   }) {
     stubDialogModal();
+    const postOwner = fakeOwner<PostChanges>({
+      remove: props.onDeletePost,
+      removeDiscardsDraft: props.postDeleteDiscardsDraft,
+    });
+    const captionOwner = fakeOwner<string>({ remove: props.onDeleteCaption });
     render(() => (
-      <FeaturedPost loggedIn userId={1} post={post} caption={caption} captionsLoaded {...props} />
+      <FeaturedPost
+        loggedIn
+        userId={1}
+        post={post}
+        caption={caption}
+        captionsLoaded
+        postOwner={postOwner}
+        captionOwner={captionOwner}
+      />
     ));
   }
   const confirm = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
@@ -758,19 +784,14 @@ describe("<FeaturedPost /> — the Owner's delete (#187)", () => {
 });
 
 describe("<FeaturedPost /> — the Owner's edits (#187)", () => {
-  // An edit's open state, as the view-model holds it.
-  const fakeEdit = (): EditState => {
-    const [open, setOpen] = createSignal(false);
-    return { open, setOpen, draftScope: Symbol("edit") };
-  };
   const unlocked: CaptionView = { ...caption, likeCount: 0, commentCount: 0 };
 
   function renderOwner(shown: CaptionView = unlocked) {
     stubDialogModal();
-    const postEdit = fakeEdit();
-    const captionEdit = fakeEdit();
     const onUpdatePost = vi.fn(() => Promise.resolve());
     const onUpdateCaption = vi.fn(() => Promise.resolve());
+    const postOwner = fakeOwner<PostChanges>({ save: onUpdatePost });
+    const captionOwner = fakeOwner<string>({ save: onUpdateCaption });
     render(() => (
       <FeaturedPost
         loggedIn
@@ -778,13 +799,17 @@ describe("<FeaturedPost /> — the Owner's edits (#187)", () => {
         post={post}
         caption={shown}
         captionsLoaded
-        postEdit={postEdit}
-        captionEdit={captionEdit}
-        onUpdatePost={onUpdatePost}
-        onUpdateCaption={onUpdateCaption}
+        postOwner={postOwner}
+        captionOwner={captionOwner}
       />
     ));
-    return { user: userEvent.setup(), postEdit, captionEdit, onUpdatePost, onUpdateCaption };
+    return {
+      user: userEvent.setup(),
+      postEdit: postOwner.edit,
+      captionEdit: captionOwner.edit,
+      onUpdatePost,
+      onUpdateCaption,
+    };
   }
   const button = (name: string) => screen.getByRole("button", { name });
 

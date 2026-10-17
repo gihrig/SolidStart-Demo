@@ -46,7 +46,7 @@ export interface CaptionFormProps {
    *  from the Caption text. The mode is fixed for the form's life: its owner
    *  keys an edit on the Caption id. */
   caption?: CaptionView;
-  /** Edit mode: save the new text (the view-model's `updateCaption`). Rejects
+  /** Edit mode: save the new text (the view-model's `captionOwner.save`). Rejects
    *  on failure. */
   onSave?: (text: string) => Promise<void>;
   /** Edit mode: called once the save has committed. */

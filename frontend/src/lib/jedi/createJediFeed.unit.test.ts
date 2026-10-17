@@ -1013,12 +1013,12 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
     withLive(async (jedi, guard, mem) => {
       guard.report(Symbol("add caption"), true);
       guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
-      expect(jedi.postDeleteDiscardsDraft()).toBe(true);
+      expect(jedi.postOwner.removeDiscardsDraft()).toBe(true);
       let answer!: () => void;
       postRemoveMock.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
       withoutPost1();
 
-      const deleted = jedi.deletePost();
+      const deleted = jedi.postOwner.remove();
       expect(postRemoveMock).toHaveBeenCalledWith(1);
       expect(guard.hasDraft(), "released when the Owner confirms").toBe(false);
       // The poke can arrive before the delete result (ADR-0016).
@@ -1038,7 +1038,7 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
       guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
       postRemoveMock.mockRejectedValueOnce(new Error("Could not delete the Post"));
 
-      await expect(jedi.deletePost()).rejects.toThrow("Could not delete the Post");
+      await expect(jedi.postOwner.remove()).rejects.toThrow("Could not delete the Post");
       expect(guard.hasDraft()).toBe(true);
       expect(jedi.selectedPost()?.id).toBe(1);
     }));
@@ -1048,12 +1048,12 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
       const shown = jedi.selectedCaption()!.id;
       const outside = Symbol("add caption");
       guard.report(outside, true);
-      expect(jedi.captionDeleteDiscardsDraft()).toBe(false);
+      expect(jedi.captionOwner.removeDiscardsDraft()).toBe(false);
       guard.report(Symbol("caption comment"), true, jedi.captionComments.draftScope);
-      expect(jedi.captionDeleteDiscardsDraft()).toBe(true);
+      expect(jedi.captionOwner.removeDiscardsDraft()).toBe(true);
       withoutCaption(shown);
 
-      await jedi.deleteCaption();
+      await jedi.captionOwner.remove();
       await settle();
 
       expect(captionRemoveMock).toHaveBeenCalledWith(shown);
@@ -1142,48 +1142,48 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
 
   it("an open Post edit holds the shown Post across a re-rank, with no Draft", () =>
     withLive(async (jedi, guard, mem) => {
-      jedi.postEdit.setOpen(true);
-      expect(jedi.postEdit.open()).toBe(true);
+      jedi.postOwner.edit.setOpen(true);
+      expect(jedi.postOwner.edit.open()).toBe(true);
       reRanked();
       mem.emit(pokeOn(Channel.posts));
       await settle();
       expect(guard.hasDraft()).toBe(false);
       expect(jedi.selectedPost()?.id, "the edit holds the Post").toBe(1);
 
-      jedi.postEdit.setOpen(false);
+      jedi.postOwner.edit.setOpen(false);
       expect(jedi.selectedPost()?.id, "a close lets it follow the ranking").toBe(3);
     }));
 
   it("an open Caption edit holds the Caption shown across a re-rank", () =>
     withLive(async (jedi, _guard, mem) => {
       const [winner, next] = captionsFor(1);
-      jedi.captionEdit.setOpen(true);
+      jedi.captionOwner.edit.setOpen(true);
       captionListForPostMock.mockImplementation((postId: number) =>
         Promise.resolve(postId === 1 ? [next, winner] : captionsFor(postId)),
       );
       mem.emit(pokeOn(Channel.postCaption(1)));
       await settle();
       expect(jedi.selectedCaption()?.id).toBe(winner.id);
-      expect(jedi.captionEdit.open()).toBe(true);
+      expect(jedi.captionOwner.edit.open()).toBe(true);
 
-      jedi.captionEdit.setOpen(false);
+      jedi.captionOwner.edit.setOpen(false);
       expect(jedi.selectedCaption()?.id).toBe(next.id);
     }));
 
   it("a change of the shown Post or Caption closes its edit", () =>
     withLive(async (jedi) => {
-      jedi.captionEdit.setOpen(true);
+      jedi.captionOwner.edit.setOpen(true);
       jedi.selectCaption(captionsFor(1)[1].id);
       await settle();
-      expect(jedi.captionEdit.open()).toBe(false);
+      expect(jedi.captionOwner.edit.open()).toBe(false);
 
-      jedi.postEdit.setOpen(true);
+      jedi.postOwner.edit.setOpen(true);
       jedi.selectPost(2);
       await settle();
-      expect(jedi.postEdit.open()).toBe(false);
+      expect(jedi.postOwner.edit.open()).toBe(false);
       jedi.selectPost(1);
       await settle();
-      expect(jedi.postEdit.open(), "a return does not reopen it").toBe(false);
+      expect(jedi.postOwner.edit.open(), "a return does not reopen it").toBe(false);
     }));
 
   it("a Caption pick names the Caption edit and Caption thread scopes", () =>
@@ -1195,21 +1195,21 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
       jedi.selectCaption(captionsFor(1)[0].id);
 
       const edit = Symbol("caption edit");
-      guard.report(edit, true, jedi.captionEdit.draftScope);
+      guard.report(edit, true, jedi.captionOwner.edit.draftScope);
       jedi.selectCaption(other);
       expect(guard.pending(), "a Draft in the Caption edit").toBe(true);
       guard.cancelMove();
-      guard.report(edit, false, jedi.captionEdit.draftScope);
+      guard.report(edit, false, jedi.captionOwner.edit.draftScope);
 
       guard.report(Symbol("caption comment"), true, jedi.captionComments.draftScope);
       jedi.selectCaption(other);
       expect(guard.pending(), "a Draft in the Caption thread").toBe(true);
     }));
 
-  it("updatePost saves the changes, refetches at once and speaks", () =>
+  it("postOwner.save saves the changes, refetches at once and speaks", () =>
     withLive(async (jedi) => {
       const before = postListMock.mock.calls.length;
-      await jedi.updatePost(1, { title: "Big Jedi" });
+      await jedi.postOwner.save(1, { title: "Big Jedi" });
       expect(postUpdateMock).toHaveBeenCalledWith(1, { title: "Big Jedi" });
       expect(postListMock.mock.calls.length).toBeGreaterThan(before);
       expect(jedi.announcement()).toBe("Post saved.");
@@ -1218,10 +1218,10 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
   it("the Owner's own Category edit switches the filter to All when it sends the save", () =>
     withLive(async (jedi, guard) => {
       jedi.setSelectedCategory(ANIMALS);
-      guard.report(Symbol("post edit"), true, jedi.postEdit.draftScope);
+      guard.report(Symbol("post edit"), true, jedi.postOwner.edit.draftScope);
       let answer!: (post: PostView) => void;
       postUpdateMock.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
-      const saved = jedi.updatePost(1, { categoryIds: [1] });
+      const saved = jedi.postOwner.save(1, { categoryIds: [1] });
 
       expect(jedi.selectedCategory()).toBe(0);
       expect(jedi.selectedPost()?.id).toBe(1);
@@ -1230,11 +1230,11 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
       await saved;
     }));
 
-  it("updateCaption saves the text, refetches at once and speaks", () =>
+  it("captionOwner.save saves the text, refetches at once and speaks", () =>
     withLive(async (jedi) => {
       const id = jedi.selectedCaption()!.id;
       const before = captionListForPostMock.mock.calls.length;
-      await jedi.updateCaption(id, "New text");
+      await jedi.captionOwner.save(id, "New text");
       expect(captionUpdateMock).toHaveBeenCalledWith(id, "New text");
       expect(captionListForPostMock.mock.calls.length).toBeGreaterThan(before);
       expect(jedi.announcement()).toBe("Caption saved.");
@@ -1283,8 +1283,8 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
   it("Discard on the Category question also closes an open Post edit, so its forms unmount", () =>
     withLive(async (jedi, guard, mem) => {
       jedi.setSelectedCategory(ANIMALS);
-      jedi.postEdit.setOpen(true);
-      guard.report(Symbol("post edit"), true, jedi.postEdit.draftScope);
+      jedi.postOwner.edit.setOpen(true);
+      guard.report(Symbol("post edit"), true, jedi.postOwner.edit.draftScope);
       post1LeavesAnimals();
       mem.emit(pokeOn(Channel.posts));
       await settle();
@@ -1292,15 +1292,15 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
 
       guard.confirmMove();
       await settle();
-      expect(jedi.postEdit.open()).toBe(false);
+      expect(jedi.postOwner.edit.open()).toBe(false);
       expect(jedi.selectedPost()?.id).toBe(3);
     }));
 
   it("a repeated message is spoken again: the live region clears first", () =>
     withLive(async (jedi) => {
-      await jedi.updatePost(1, { title: "Big Jedi" });
+      await jedi.postOwner.save(1, { title: "Big Jedi" });
       expect(jedi.announcement()).toBe("Post saved.");
-      const saved = jedi.updatePost(1, { title: "Bigger Jedi" });
+      const saved = jedi.postOwner.save(1, { title: "Bigger Jedi" });
       await Promise.resolve();
       expect(jedi.announcement(), "cleared before the same text").toBe("");
       await saved;
@@ -1323,14 +1323,14 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
   it("an open edit with no Draft keeps the Post with no question, until it closes", () =>
     withLive(async (jedi, guard, mem) => {
       jedi.setSelectedCategory(ANIMALS);
-      jedi.postEdit.setOpen(true);
+      jedi.postOwner.edit.setOpen(true);
       post1LeavesAnimals();
       mem.emit(pokeOn(Channel.posts));
       await settle();
       expect(guard.pending()).toBe(false);
       expect(jedi.selectedPost()?.id).toBe(1);
 
-      jedi.postEdit.setOpen(false);
+      jedi.postOwner.edit.setOpen(false);
       await settle();
       expect(jedi.selectedPost()?.id).toBe(3);
       expect(jedi.announcement()).toBe(LEFT);
@@ -1366,8 +1366,8 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
   it("a deleted Caption discards the Caption edit's Draft too", () =>
     withLive(async (jedi, guard, mem) => {
       const shown = jedi.selectedCaption()!.id;
-      jedi.captionEdit.setOpen(true);
-      guard.report(Symbol("caption edit"), true, jedi.captionEdit.draftScope);
+      jedi.captionOwner.edit.setOpen(true);
+      guard.report(Symbol("caption edit"), true, jedi.captionOwner.edit.draftScope);
       captionListForPostMock.mockImplementation((postId: number) =>
         Promise.resolve(captionsFor(postId).filter((c) => c.id !== shown)),
       );

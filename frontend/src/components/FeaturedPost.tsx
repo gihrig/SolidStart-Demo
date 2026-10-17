@@ -1,7 +1,7 @@
 import { createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
 import { createRpcAction } from "~/lib/createRpcAction";
 import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
-import type { EditState } from "~/lib/jedi/createJediFeed";
+import type { OwnerWrites } from "~/lib/jedi/createJediFeed";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { PostChanges, PostView, CaptionView, Like } from "~/types/jedi";
 import Image from "~/components/Image";
@@ -45,22 +45,12 @@ export interface FeaturedPostProps {
   /** The shown Caption's Comment thread (#127), with the panel's open state.
    *  The Caption line's Comments toggle opens it as an inline panel. */
   captionComments?: CommentThreadState;
-  /** Delete this Post, as its Owner (#187). Rejects on failure. */
-  onDeletePost?: () => Promise<void>;
-  /** Whether the Post delete would discard a Draft: the question says so. */
-  postDeleteDiscardsDraft?: () => boolean;
-  /** Delete the Caption shown, as its Owner (#187). Rejects on failure. */
-  onDeleteCaption?: () => Promise<void>;
-  /** Whether the Caption delete would discard a Draft. */
-  captionDeleteDiscardsDraft?: () => boolean;
-  /** The Post edit's open state (#187): the Edit dialog. */
-  postEdit?: EditState;
-  /** The Caption edit's open state (#187): the edit form in the Caption line. */
-  captionEdit?: EditState;
-  /** Save the Owner's edit of the Post `id`. Rejects on failure. */
-  onUpdatePost?: (id: number, changes: PostChanges) => Promise<void>;
-  /** Save the Owner's edit of the Caption `id`. Rejects on failure. */
-  onUpdateCaption?: (id: number, text: string) => Promise<void>;
+  /** The Owner's writes on this Post (#187): the Edit dialog, its save and
+   *  the delete. */
+  postOwner?: OwnerWrites<PostChanges>;
+  /** The Owner's writes on the Caption shown (#187): the edit form in the
+   *  Caption line, its save and the delete. */
+  captionOwner?: OwnerWrites<string>;
 }
 
 /** The notice of a locked Caption's Edit (#187, T7). */
@@ -100,9 +90,12 @@ export default function FeaturedPost(props: FeaturedPostProps) {
   // line (#187): each element stays while the next Post or Caption shows.
   let titleRef: HTMLHeadingElement | undefined;
   let captionLineRef: HTMLDivElement | undefined;
-  const deletePost = createDeleteAction(() => props.onDeletePost?.(), "Could not delete the Post");
+  const deletePost = createDeleteAction(
+    () => props.postOwner?.remove(),
+    "Could not delete the Post",
+  );
   const deleteCaption = createDeleteAction(
-    () => props.onDeleteCaption?.(),
+    () => props.captionOwner?.remove(),
     "Could not delete the Caption",
   );
   const runDelete = async (
@@ -115,14 +108,14 @@ export default function FeaturedPost(props: FeaturedPostProps) {
   // edit closes, focus returns to its Edit button.
   let postEditRef: HTMLButtonElement | undefined;
   let captionEditRef: HTMLButtonElement | undefined;
-  const postEditOpen = () => props.postEdit?.open() ?? false;
-  const captionEditOpen = () => props.captionEdit?.open() ?? false;
+  const postEditOpen = () => props.postOwner?.edit.open() ?? false;
+  const captionEditOpen = () => props.captionOwner?.edit.open() ?? false;
   const closePostEdit = () => {
-    props.postEdit?.setOpen(false);
+    props.postOwner?.edit.setOpen(false);
     postEditRef?.focus();
   };
   const closeCaptionEdit = () => {
-    props.captionEdit?.setOpen(false);
+    props.captionOwner?.edit.setOpen(false);
     captionEditRef?.focus();
   };
   // A Caption locks at its first Like or Comment, the Owner's own Like too. The
@@ -135,7 +128,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
   const [lockedNotice, setLockedNotice] = createSignal(false);
   const editCaption = () => {
     if (captionLocked()) setLockedNotice(true);
-    else props.captionEdit?.setOpen(true);
+    else props.captionOwner?.edit.setOpen(true);
   };
   const closeLockedNotice = () => {
     setLockedNotice(false);
@@ -214,8 +207,8 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           onClose={closeCaptionForm}
           ref={(el) => (captionLineRef = el)}
           editing={captionEditOpen()}
-          editScope={props.captionEdit?.draftScope}
-          onSaveEdit={(id, text) => props.onUpdateCaption?.(id, text) ?? Promise.resolve()}
+          editScope={props.captionOwner?.edit.draftScope}
+          onSaveEdit={(id, text) => props.captionOwner?.save(id, text) ?? Promise.resolve()}
           onEditClose={closeCaptionEdit}
         />
         <div class="flex items-center gap-2 text-sm mb-10">
@@ -278,7 +271,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
                 loggedIn={props.loggedIn}
                 userId={props.userId}
                 deleteQuestion={CAPTION_DELETE_QUESTION}
-                deleteDiscardsDraft={props.captionDeleteDiscardsDraft}
+                deleteDiscardsDraft={props.captionOwner?.removeDiscardsDraft}
                 deleteDisabled={deleteCaption.pending() || captionEditOpen()}
                 onDelete={() => void runDelete(deleteCaption, () => captionLineRef)}
                 onEdit={editCaption}
@@ -384,10 +377,10 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               loggedIn={props.loggedIn}
               userId={props.userId}
               deleteQuestion={POST_DELETE_QUESTION}
-              deleteDiscardsDraft={props.postDeleteDiscardsDraft}
+              deleteDiscardsDraft={props.postOwner?.removeDiscardsDraft}
               deleteDisabled={deletePost.pending()}
               onDelete={() => void runDelete(deletePost, () => titleRef)}
-              onEdit={() => props.postEdit?.setOpen(true)}
+              onEdit={() => props.postOwner?.edit.setOpen(true)}
               editRef={(el) => (postEditRef = el)}
             />
             {/* The Post edit (#187), keyed on the Post id: an edit never writes
@@ -396,8 +389,8 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               {(id) => (
                 <PostDialog
                   post={props.post}
-                  draftScope={props.postEdit?.draftScope}
-                  onSave={(changes) => props.onUpdatePost?.(id, changes) ?? Promise.resolve()}
+                  draftScope={props.postOwner?.edit.draftScope}
+                  onSave={(changes) => props.postOwner?.save(id, changes) ?? Promise.resolve()}
                   onClose={closePostEdit}
                 />
               )}

@@ -121,7 +121,7 @@ export interface PostDialogProps {
    *  trigger and opens on mount, so its owner mounts it to open it, keyed on
    *  the Post id. The mode is fixed for the dialog's life. */
   post?: PostView;
-  /** Edit mode: save the changed fields (the view-model's `updatePost`).
+  /** Edit mode: save the changed fields (the view-model's `postOwner.save`).
    *  Rejects on failure. */
   onSave?: (changes: PostChanges) => Promise<void>;
   /** Edit mode: called on Cancel and after a save. */
