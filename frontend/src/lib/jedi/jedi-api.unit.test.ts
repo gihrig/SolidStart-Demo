@@ -210,6 +210,38 @@ describe("jediApi.posts", () => {
       data: { id: 2, liked: false },
     });
   });
+
+  it("update() sends only the changed fields as the wire PostForUpdate (#187)", async () => {
+    onAuthenticated({ update_post: WIRE_POST_2 });
+    const updated = await jediApi.posts.update(2, { title: "Brilliant tree", categoryIds: [1, 3] });
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("update_post", {
+      id: 2,
+      data: { title: "Brilliant tree", category_ids: [1, 3] },
+    });
+    expect(updated.id).toBe(2);
+
+    await jediApi.posts.update(2, {
+      imageAlt: "a",
+      photographer: "p",
+      photographerUrl: "https://example.test/p",
+      sourceUrl: "https://example.test/s",
+    });
+    expect(authenticatedRpcMock).toHaveBeenLastCalledWith("update_post", {
+      id: 2,
+      data: {
+        image_alt: "a",
+        photographer: "p",
+        photographer_url: "https://example.test/p",
+        source_url: "https://example.test/s",
+      },
+    });
+  });
+
+  it("remove() deletes the Post by id (#187)", async () => {
+    onAuthenticated({ delete_post: 2 });
+    await jediApi.posts.remove(2);
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("delete_post", { id: 2 });
+  });
 });
 
 // The wire `HeroView` the back-end returns: the seeded singleton (#119). It has
@@ -380,6 +412,22 @@ describe("jediApi.captions", () => {
     expect(authenticatedRpcMock).toHaveBeenCalledWith("toggle_caption_like", {
       data: { id: 2, liked: false },
     });
+  });
+
+  it("update() sends the new text as the wire CaptionForUpdate (#187)", async () => {
+    onAuthenticated({ update_caption: WIRE_CAPTIONS_POST_1[1] });
+    const updated = await jediApi.captions.update(2, "May the paws be with you");
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("update_caption", {
+      id: 2,
+      data: { text: "May the paws be with you" },
+    });
+    expect(updated.text).toBe("May the paws be with you");
+  });
+
+  it("remove() deletes the Caption by id (#187)", async () => {
+    onAuthenticated({ delete_caption: 2 });
+    await jediApi.captions.remove(2);
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("delete_caption", { id: 2 });
   });
 });
 

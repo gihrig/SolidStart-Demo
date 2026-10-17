@@ -120,7 +120,7 @@ export function createCommentThread(deps: CommentThreadDeps): {
   const open = (): boolean => openOn() !== undefined && openOn() === parentId();
   const setOpen = (value: boolean): void => {
     if (value) setOpenOn(parentId());
-    else guard.attempt(() => setOpenOn(undefined), draftScope);
+    else guard.attempt(() => setOpenOn(undefined), [draftScope]);
   };
   createEffect(on(parentId, () => setOpenOn(undefined), { defer: true }));
   // The parent whose thread is shown: the parent shown while the panel is open.

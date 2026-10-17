@@ -1,5 +1,5 @@
 use lib_core::model::caption::{
-	CaptionBmc, CaptionForCreate, CaptionLikeBmc, CaptionView,
+	CaptionBmc, CaptionForCreate, CaptionForUpdate, CaptionLikeBmc, CaptionView,
 };
 use lib_core::model::like::{LikeBmc, LikeForToggle, LikeView};
 use lib_rpc_core::prelude::*;
@@ -9,7 +9,13 @@ use lib_web::ws::WsState;
 /// The authenticated Caption RPCs (`/api/rpc`, login required): the mutations,
 /// and the caller's own like state, which is per-User and so not public (#123).
 pub fn rpc_router_builder() -> RouterBuilder {
-	router_builder!(add_caption, toggle_caption_like, get_caption_like,)
+	router_builder!(
+		add_caption,
+		update_caption,
+		delete_caption,
+		toggle_caption_like,
+		get_caption_like,
+	)
 }
 
 /// The public Caption RPCs: every Caption is public (#106), so the reads run on
@@ -38,6 +44,45 @@ pub async fn add_caption(
 	let receipt = ws_state.broadcast_post_caption(post_id);
 	let view = CaptionBmc::get_caption(&ctx, &mm, id).await?;
 	Ok(PokedRpcResult::new(view, receipt))
+}
+
+/// Edit the text of the caller's own Caption (#187), only while it has no Like
+/// and no Comment. It returns the edited `CaptionView` and pokes
+/// `post_caption:{post_id}`; a Caption write changes no `PostView`, so it does
+/// not poke `posts`. The handler reads the Caption first, for its `post_id`. A
+/// locked Caption, an unknown key or an empty update is rejected (400); a
+/// non-Owner edit is `EntityNotFound` (400). A rejected edit pokes nothing. The
+/// poke fires on write-commit, before the re-get (ADR-0016).
+pub async fn update_caption(
+	ctx: Ctx,
+	mm: ModelManager,
+	ws_state: WsState,
+	params: ParamsForUpdate<CaptionForUpdate>,
+) -> Result<PokedRpcResult<CaptionView, poke::PostCaption>> {
+	let ParamsForUpdate { id, data } = params;
+	let post_id = CaptionBmc::get(&ctx, &mm, id).await?.post_id;
+	CaptionBmc::update(&ctx, &mm, id, data).await?;
+	let receipt = ws_state.broadcast_post_caption(post_id);
+	let view = CaptionBmc::get_caption(&ctx, &mm, id).await?;
+	Ok(PokedRpcResult::new(view, receipt))
+}
+
+/// Delete the caller's own Caption (#187). The database cascades the delete to
+/// its Likes and Comments, rows that other Users own too (ADR-0032). It returns
+/// the deleted id and pokes `post_caption:{post_id}`; no Event goes to a Channel
+/// of a deleted row. The handler reads the Caption first, for its `post_id`: the
+/// read is public, the delete is owner-only. A non-Owner delete is
+/// `EntityNotFound` (400), with no poke.
+pub async fn delete_caption(
+	ctx: Ctx,
+	mm: ModelManager,
+	ws_state: WsState,
+	params: ParamsIded,
+) -> Result<PokedRpcResult<i64, poke::PostCaption>> {
+	let caption = CaptionBmc::get(&ctx, &mm, params.id).await?;
+	CaptionBmc::delete(&ctx, &mm, caption.id).await?;
+	let receipt = ws_state.broadcast_post_caption(caption.post_id);
+	Ok(PokedRpcResult::new(caption.id, receipt))
 }
 
 /// Set the caller's Like on a Caption to `data.liked` (#123). Idempotent: a

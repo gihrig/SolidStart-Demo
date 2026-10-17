@@ -1,12 +1,14 @@
 import { createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
 import { createRpcAction } from "~/lib/createRpcAction";
 import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
+import type { OwnerWrites } from "~/lib/jedi/createJediFeed";
 import { trustedUrl } from "~/lib/sanitizeUrl";
-import type { PostView, CaptionView, Like } from "~/types/jedi";
+import type { PostChanges, PostView, CaptionView, Like } from "~/types/jedi";
 import Image from "~/components/Image";
 import Author from "~/components/Author";
 import CommentThread from "~/components/CommentThread";
-import CreatePostDialog from "~/components/CreatePostDialog";
+import ConfirmDialog from "~/components/ConfirmDialog";
+import PostDialog from "~/components/PostDialog";
 import LikeControl from "~/components/LikeControl";
 import OwnerActions from "~/components/OwnerActions";
 import PostCaption from "~/components/PostCaption";
@@ -43,7 +45,20 @@ export interface FeaturedPostProps {
   /** The shown Caption's Comment thread (#127), with the panel's open state.
    *  The Caption line's Comments toggle opens it as an inline panel. */
   captionComments?: CommentThreadState;
+  /** The Owner's writes on this Post (#187): the Edit dialog, its save and
+   *  the delete. */
+  postOwner?: OwnerWrites<PostChanges>;
+  /** The Owner's writes on the Caption shown (#187): the edit form in the
+   *  Caption line, its save and the delete. */
+  captionOwner?: OwnerWrites<string>;
 }
+
+/** The notice of a locked Caption's Edit (#187, T7). */
+const CAPTION_LOCKED_NOTICE = "A Caption with Likes or Comments cannot be edited.";
+
+/** The delete questions (#187): each names what the delete removes. */
+const POST_DELETE_QUESTION = "Delete this Post? Its Captions, Comments and Likes are deleted too.";
+const CAPTION_DELETE_QUESTION = "Delete this Caption? Its Comments and Likes are deleted too.";
 
 /** A Like toggle as an RPC action. Only the error is used: the Like shows at
  *  once, so the button stays enabled while a toggle runs, and a fast click
@@ -57,10 +72,68 @@ const createLikeAction = (toggle: () => Promise<void> | undefined) =>
     { fallbackError: "Could not update the Like" },
   );
 
+/** An Owner's delete as an RPC action (#187), so each reports its own error. */
+const createDeleteAction = (remove: () => Promise<void> | undefined, fallbackError: string) =>
+  createRpcAction(
+    async () => {
+      await remove();
+      return true;
+    },
+    { fallbackError },
+  );
+
 export default function FeaturedPost(props: FeaturedPostProps) {
   // One action per Like target (#123), so each toggle reports its own error.
   const toggleLike = createLikeAction(() => props.onToggleLike?.());
   const toggleCaptionLike = createLikeAction(() => props.onToggleCaptionLike?.());
+  // After the Owner's delete, focus moves to the Post title or the Caption
+  // line (#187): each element stays while the next Post or Caption shows.
+  let titleRef: HTMLHeadingElement | undefined;
+  let captionLineRef: HTMLDivElement | undefined;
+  const deletePost = createDeleteAction(
+    () => props.postOwner?.remove(),
+    "Could not delete the Post",
+  );
+  const deleteCaption = createDeleteAction(
+    () => props.captionOwner?.remove(),
+    "Could not delete the Caption",
+  );
+  const runDelete = async (
+    action: typeof deletePost,
+    focusAfter: () => HTMLElement | undefined,
+  ) => {
+    if (await action.run(undefined)) focusAfter()?.focus();
+  };
+  // The Owner's edits (#187). The view-model holds each open state; when an
+  // edit closes, focus returns to its Edit button.
+  let postEditRef: HTMLButtonElement | undefined;
+  let captionEditRef: HTMLButtonElement | undefined;
+  const postEditOpen = () => props.postOwner?.edit.open() ?? false;
+  const captionEditOpen = () => props.captionOwner?.edit.open() ?? false;
+  const closePostEdit = () => {
+    props.postOwner?.edit.setOpen(false);
+    postEditRef?.focus();
+  };
+  const closeCaptionEdit = () => {
+    props.captionOwner?.edit.setOpen(false);
+    captionEditRef?.focus();
+  };
+  // A Caption locks at its first Like or Comment, the Owner's own Like too. The
+  // back-end stays the authority: a stale count gets its `Validation` error.
+  const captionLocked = () => {
+    const shown = props.caption;
+    if (!shown) return false;
+    return (props.captionLike?.likeCount ?? shown.likeCount) > 0 || shown.commentCount > 0;
+  };
+  const [lockedNotice, setLockedNotice] = createSignal(false);
+  const editCaption = () => {
+    if (captionLocked()) setLockedNotice(true);
+    else props.captionOwner?.edit.setOpen(true);
+  };
+  const closeLockedNotice = () => {
+    setLockedNotice(false);
+    captionEditRef?.focus();
+  };
   // A `posts` poke refetches the Post as a new object with the same id. The memo
   // keeps that from closing the Caption form.
   const postId = createMemo(() => props.post.id);
@@ -93,7 +166,9 @@ export default function FeaturedPost(props: FeaturedPostProps) {
     <article class="card-style">
       {/* Title bar */}
       <div class="flex items-center justify-between px-4 h-14">
-        <h2 class="text-2xl font-bold w-1/2 truncate">{props.post.title}</h2>
+        <h2 ref={(el) => (titleRef = el)} tabindex="-1" class="text-2xl font-bold w-1/2 truncate">
+          {props.post.title}
+        </h2>
         <div class="text-sm text-(--theme-muted)">
           flickr @{" "}
           <a
@@ -130,6 +205,11 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           canAdd={props.loggedIn ?? false}
           adding={addingCaption()}
           onClose={closeCaptionForm}
+          ref={(el) => (captionLineRef = el)}
+          editing={captionEditOpen()}
+          editScope={props.captionOwner?.edit.draftScope}
+          onSaveEdit={(id, text) => props.captionOwner?.save(id, text) ?? Promise.resolve()}
+          onEditClose={closeCaptionEdit}
         />
         <div class="flex items-center gap-2 text-sm mb-10">
           <For each={props.post.categories}>
@@ -171,13 +251,14 @@ export default function FeaturedPost(props: FeaturedPostProps) {
                 onToggle={() => void toggleCaptionLike.run(undefined)}
               />
               <Show when={props.loggedIn}>
-                {/* Disabled while the form is open: on Add, or on a Post with no
-                    Caption, which shows the form directly. */}
+                {/* Disabled while a form is open: on Add, on a Post with no
+                    Caption, which shows the form directly, and while the
+                    Caption edit is open (#187). */}
                 <button
                   ref={(el) => (addCaptionRef = el)}
                   type="button"
                   onClick={() => setAddingCaption(true)}
-                  disabled={!props.caption || addingCaption()}
+                  disabled={!props.caption || addingCaption() || captionEditOpen()}
                   class="theme-button disabled:opacity-50"
                   aria-label="Add Caption"
                 >
@@ -189,7 +270,22 @@ export default function FeaturedPost(props: FeaturedPostProps) {
                 author={props.caption?.author}
                 loggedIn={props.loggedIn}
                 userId={props.userId}
+                deleteQuestion={CAPTION_DELETE_QUESTION}
+                deleteDiscardsDraft={props.captionOwner?.removeDiscardsDraft}
+                deleteDisabled={deleteCaption.pending() || captionEditOpen()}
+                onDelete={() => void runDelete(deleteCaption, () => captionLineRef)}
+                onEdit={editCaption}
+                editDisabled={addingCaption() || captionEditOpen()}
+                editRef={(el) => (captionEditRef = el)}
               />
+              <Show when={lockedNotice()}>
+                <ConfirmDialog
+                  open
+                  message={CAPTION_LOCKED_NOTICE}
+                  confirmLabel="OK"
+                  onConfirm={closeLockedNotice}
+                />
+              </Show>
             </div>
           </Show>
         </div>
@@ -233,8 +329,15 @@ export default function FeaturedPost(props: FeaturedPostProps) {
             )}
           </Show>
         </section>
-        {/* One alert per toggle, so a Caption error never hides a Post error. */}
-        <For each={[toggleCaptionLike.error(), toggleLike.error()].filter((e) => e !== null)}>
+        {/* One alert per action, so a Caption error never hides a Post error. */}
+        <For
+          each={[
+            toggleCaptionLike.error(),
+            deleteCaption.error(),
+            toggleLike.error(),
+            deletePost.error(),
+          ].filter((e) => e !== null)}
+        >
           {(error) => (
             <div role="alert" class="rounded bg-red-100 p-2 mb-2 text-red-700 text-sm">
               {error}
@@ -266,14 +369,32 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               onToggle={() => void toggleLike.run(undefined)}
             />
             <Show when={props.loggedIn}>
-              <CreatePostDialog triggerLabel="Add" triggerAriaLabel="Add Post" />
+              <PostDialog triggerLabel="Add" triggerAriaLabel="Add Post" />
             </Show>
             <OwnerActions
               noun="Post"
               author={props.post.author}
               loggedIn={props.loggedIn}
               userId={props.userId}
+              deleteQuestion={POST_DELETE_QUESTION}
+              deleteDiscardsDraft={props.postOwner?.removeDiscardsDraft}
+              deleteDisabled={deletePost.pending()}
+              onDelete={() => void runDelete(deletePost, () => titleRef)}
+              onEdit={() => props.postOwner?.edit.setOpen(true)}
+              editRef={(el) => (postEditRef = el)}
             />
+            {/* The Post edit (#187), keyed on the Post id: an edit never writes
+                to another Post. */}
+            <Show when={postEditOpen() && props.post.id} keyed>
+              {(id) => (
+                <PostDialog
+                  post={props.post}
+                  draftScope={props.postOwner?.edit.draftScope}
+                  onSave={(changes) => props.postOwner?.save(id, changes) ?? Promise.resolve()}
+                  onClose={closePostEdit}
+                />
+              )}
+            </Show>
           </div>
         </div>
       </div>

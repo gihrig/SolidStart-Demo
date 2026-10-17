@@ -3,6 +3,7 @@ import type { AuthorRef } from "./AuthorRef.d";
 import type { CaptionCommentForCreate } from "./CaptionCommentForCreate.d";
 import type { CaptionCommentForUpdate } from "./CaptionCommentForUpdate.d";
 import type { CaptionForCreate } from "./CaptionForCreate.d";
+import type { CaptionForUpdate } from "./CaptionForUpdate.d";
 import type { CaptionView } from "./CaptionView.d";
 import type { CategoryPublic } from "./CategoryPublic.d";
 import type { CommentRemoval } from "./CommentRemoval.d";
@@ -19,6 +20,7 @@ import type { ParamsIdedList } from "./ParamsIdedList.d";
 import type { PostCommentForCreate } from "./PostCommentForCreate.d";
 import type { PostCommentForUpdate } from "./PostCommentForUpdate.d";
 import type { PostForCreate } from "./PostForCreate.d";
+import type { PostForUpdate } from "./PostForUpdate.d";
 import type { PostView } from "./PostView.d";
 
 /** The authenticated RPC surface (`/api/rpc`, login required). */
@@ -28,16 +30,20 @@ export type AuthenticatedRpc = {
   get_caption_comment: { params: ParamsIded; result: CommentSource };
   update_caption_comment: { params: ParamsForUpdate<CaptionCommentForUpdate>; result: CommentView };
   add_caption: { params: ParamsForCreate<CaptionForCreate>; result: CaptionView };
+  delete_caption: { params: ParamsIded; result: number };
   get_caption_like: { params: ParamsIded; result: LikeView };
   toggle_caption_like: { params: ParamsForCreate<LikeForToggle>; result: LikeView };
+  update_caption: { params: ParamsForUpdate<CaptionForUpdate>; result: CaptionView };
   update_hero: { params: ParamsForUpdate<HeroForUpdate>; result: HeroView };
   add_post_comment: { params: ParamsForCreate<PostCommentForCreate>; result: CommentView };
   delete_post_comment: { params: ParamsIded; result: CommentRemoval };
   get_post_comment: { params: ParamsIded; result: CommentSource };
   update_post_comment: { params: ParamsForUpdate<PostCommentForUpdate>; result: CommentView };
   create_post: { params: ParamsForCreate<PostForCreate>; result: PostView };
+  delete_post: { params: ParamsIded; result: number };
   get_post_like: { params: ParamsIded; result: LikeView };
   toggle_post_like: { params: ParamsForCreate<LikeForToggle>; result: LikeView };
+  update_post: { params: ParamsForUpdate<PostForUpdate>; result: PostView };
   get_profile: { params: undefined; result: AuthorRef };
 };
 

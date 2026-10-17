@@ -84,9 +84,11 @@ _BE_: `UserTyp = "User"`.
 **Owner**:
 The User who created a Post, Caption, or Comment — the `owner_id`. Fixed for the
 entity's life; an entity never transfers to another User. Only its Owner or an Admin
-user may delete it; only its Owner may edit it. Category and Hero have **no** Owner
-— the taxonomy is back-end-owned and the Hero is a singleton, both Admin-managed
-(write-gating deferred).
+user may delete it; only its Owner may edit it. A delete also removes the rows under
+the entity, even rows that other Users own
+([ADR-0032](docs/adr/0032-delete-cascades-to-every-row-under-it.md)). Category and
+Hero have **no** Owner — the taxonomy is back-end-owned and the Hero is a singleton,
+both Admin-managed (write-gating deferred).
 _Avoid_: creator.
 _BE_: the `owner_id` column on `Post`, `Caption`, `PostComment`, and
 `CaptionComment`.
@@ -105,9 +107,9 @@ _Avoid_: author (that names the owning User); user.
 **Post**:
 The core feed entity — a shared Flickr photo with its owner, Categories, caption
 competition, real-time Comment thread, and real-time Likes. The Post _is_ the photo
-(mandatory). **Every Post is public** — any logged-in User may read and take part;
-there is no private or archived scope. **Top Photos** is Posts ranked by likes, not
-a separate entity.
+(mandatory, and fixed for the Post's life). **Every Post is public** — any logged-in
+User may read and take part; there is no private or archived scope. **Top Photos**
+is Posts ranked by likes, not a separate entity.
 _Avoid_: Photo (as a distinct entity), Image, feed item; Conversation, thread, room
 (the retired FullStack terms).
 _BE_: a first-class entity, `owner_id → User`. The FullStack access
@@ -122,6 +124,10 @@ _Built_ (#120): the authenticated `create_post` takes a `PostForCreate` (with it
 unknown `category_ids`, a title over 36 characters, or an unsafe URL is a
 `Validation` error. A create pokes `posts`; the Jedi route subscribes while a User
 is logged in, so every client refetches. The Nav's **New Post** dialog submits it.
+_Built_ (#187): the Owner edits a Post with `update_post` and deletes it with
+`delete_post`. An edit changes the title, the image description, the attribution
+and the Categories, never the photo. A delete also removes the Post's Captions,
+Comments and Likes. Each write pokes `posts`. The Admin delete waits for #181.
 _Lineage_: built beside the FullStack `Conv`, which #128 removed
 ([ADR-0031](docs/adr/0031-jedi-tables-built-beside-fullstack-then-removed.md)).
 
@@ -129,7 +135,8 @@ _Lineage_: built beside the FullStack `Conv`, which #128 removed
 An independently-liked line of text a User submits for a Post, with its own
 real-time Comment thread and real-time Likes. Many Captions compete per Post, each
 ranked by its own Likes; the top one is shown on the Post. A first-class entity —
-never merely a Post's "caption text".
+never merely a Post's "caption text". Its Owner may edit its text only until its
+first Like or Comment; after that, the Owner may only delete it.
 _Avoid_: title; caption text (as a Post field).
 _BE_: a first-class entity; ranked by its own `caption_like` rows; hosts
 its own `CaptionComment` thread (#106, #108). Read returns an enriched
@@ -155,6 +162,11 @@ _Built_ (#127): the Caption actions start with a **Comments** toggle and the
 Caption's comment count. It opens the Caption's thread below the categories line,
 for the Caption shown. While the thread is open, a re-rank does not change the
 Caption shown ([ADR-0030](docs/adr/0030-unsaved-draft-guard.md) addendum).
+_Built_ (#187): the Owner edits the text with `update_caption` and deletes the
+Caption with `delete_caption`. An edit after the first Like or Comment, the
+Owner's own Like too, is a `Validation` error. A delete also removes the Caption's
+Comments and Likes. Each write pokes `post_caption:{post_id}`. In the Caption line,
+the edit form takes the place of the Caption text.
 
 **Category**:
 A back-end-owned classification a Post carries; a Post's on-card "tags" _are_ its
@@ -567,8 +579,10 @@ _Avoid_: always-on focus outlines; showing the ring on pointer interaction.
 
 **Draft** (unsaved form text):
 Text a User typed in a form and has not saved: a non-blank Comment compose box or Add
-Caption form, or an open Comment edit that differs from the saved Comment. A
-user-started move that would unmount the form asks first. An Event that removes the
-form's subject discards the Draft, and a notice says so
+Caption form, or an open Comment, Caption or Post edit that differs from the saved
+entity. A user-started move that would unmount the form asks first. An Event that
+removes the form's subject discards the Draft, and a notice says so. An Event that
+moves the Post out of the selected Category keeps the Post shown, and the User
+chooses to keep or discard the Draft
 ([ADR-0030](docs/adr/0030-unsaved-draft-guard.md)).
 _Avoid_: unsaved comment, pending edit; "lost" or "rejected" for a forced discard.

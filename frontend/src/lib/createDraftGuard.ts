@@ -2,7 +2,7 @@ import { batch, createSignal, getOwner, onCleanup, type Accessor } from "solid-j
 import { isServer } from "solid-js/web";
 
 /** A group of forms that one move unmounts, such as the forms in one panel.
- *  A move with a scope asks only about the Drafts in it. */
+ *  A move that names scopes asks only about the Drafts in them. */
 export type DraftScope = symbol;
 
 /** The app-level guard for unsaved form text (ADR-0030). */
@@ -18,14 +18,26 @@ export interface DraftGuard {
    *  reports it too. */
   report: (key: symbol, dirty: boolean, scope?: DraftScope) => void;
   /** Run a user-started move. With no Draft, it runs at once. With a Draft, it
-   *  waits for the confirm dialog: `confirmMove` or `cancelMove`. A move with a
-   *  `scope` unmounts only that scope's forms, so it asks only about their
-   *  Drafts. */
-  attempt: (move: () => void, scope?: DraftScope) => void;
+   *  waits for the confirm dialog: `confirmMove` or `cancelMove`. A move names
+   *  every scope that it unmounts, and it asks only about the Drafts in them. A
+   *  move with no `scopes` asks about every Draft. */
+  attempt: (move: () => void, scopes?: readonly DraftScope[]) => void;
+  /** Whether a form in any of `scopes` holds a Draft; with no `scopes`, any
+   *  form. */
+  hasDraftIn: (scopes?: readonly DraftScope[]) => boolean;
   /** Whether a move waits for the confirm dialog. */
   pending: Accessor<boolean>;
+  /** The confirm dialog's question: the waiting `ask`'s message, else the
+   *  question of a move. */
+  question: Accessor<string>;
+  /** Ask whether to keep the Drafts in `scopes`, or every Draft with no
+   *  `scopes`, after an Event made them doubtful (#187), such as a Post that
+   *  left the selected Category. It waits as a move does: "Keep editing" keeps
+   *  them, and "Discard" drops them, then runs `onDiscard`, such as a close of
+   *  the forms. It replaces a waiting move. With no Draft, it does not ask. */
+  ask: (message: string, scopes?: readonly DraftScope[], onDiscard?: () => void) => void;
   /** "Discard": drop the Drafts the waiting move unmounts (every Draft, or
-   *  its scope's), then run it. */
+   *  its scopes'), then run it. */
   confirmMove: () => void;
   /** "Keep editing": drop the waiting move. The Drafts stay. */
   cancelMove: () => void;
@@ -34,12 +46,25 @@ export interface DraftGuard {
   /** A forced discard: an Event removed the subject of the Draft under `key`.
    *  It drops that Draft, cancels a waiting move, and shows `message`. */
   discard: (key: symbol, message: string) => void;
+  /** A forced discard of every Draft in `scopes`, or of every Draft with no
+   *  `scopes` (#187): an Event removed their subject, such as a deleted Post.
+   *  With a Draft, it drops them, cancels a waiting move and shows `message`.
+   *  Returns whether it dropped a Draft. */
+  discardIn: (scopes: readonly DraftScope[] | undefined, message: string) => boolean;
   /** Close the notice ("OK"). */
   dismissNotice: () => void;
+  /** The Owner's own delete (#187): release the Drafts in `scopes`, or every
+   *  Draft with no `scopes`, with no notice. A released form's unmount shows
+   *  none. Returns `restore`, which holds them again after a failed delete; a
+   *  form that ended its Draft or unmounted meanwhile is not held again. */
+  release: (scopes?: readonly DraftScope[]) => () => void;
 }
 
 /** The notice of a forced discard whose cause the form cannot name. */
 export const DRAFT_DISCARDED_NOTICE = "Your unsaved changes were discarded.";
+
+/** The question of a user-started move with a Draft. */
+const MOVE_QUESTION = "You have unsaved changes. Discard them?";
 
 /** A guard that holds nothing: each move runs at once. The default where no
  *  app guard is given (a component or view-model test). */
@@ -48,12 +73,17 @@ export const passThroughGuard: DraftGuard = {
   holds: () => false,
   report: () => {},
   attempt: (move) => move(),
+  hasDraftIn: () => false,
   pending: () => false,
+  question: () => MOVE_QUESTION,
+  ask: () => {},
   confirmMove: () => {},
   cancelMove: () => {},
   notice: () => undefined,
   discard: () => {},
+  discardIn: () => false,
   dismissNotice: () => {},
+  release: () => () => {},
 };
 
 const blockUnload = (e: BeforeUnloadEvent) => e.preventDefault();
@@ -67,10 +97,17 @@ const blockUnload = (e: BeforeUnloadEvent) => e.preventDefault();
 export function createDraftGuard(): DraftGuard {
   // Each form's key with a Draft, and the form's scope.
   const drafts = new Map<symbol, DraftScope | undefined>();
+  // The Drafts that an own delete released (`release`), until it fails or the
+  // form ends its Draft.
+  const released = new Map<symbol, DraftScope | undefined>();
   const [hasDraft, setHasDraft] = createSignal(false);
   // The move sits in an object: a bare function given to a setter runs as an
   // updater.
-  const [pendingMove, setPendingMove] = createSignal<{ run: () => void; scope?: DraftScope }>();
+  const [pendingMove, setPendingMove] = createSignal<{
+    run: () => void;
+    scopes?: readonly DraftScope[];
+    message?: string;
+  }>();
   const [notice, setNotice] = createSignal<string>();
 
   let listening = false;
@@ -90,18 +127,25 @@ export function createDraftGuard(): DraftGuard {
   }
 
   const report = (key: symbol, dirty: boolean, scope?: DraftScope): void => {
+    if (released.has(key)) {
+      if (dirty) released.set(key, scope);
+      else released.delete(key);
+      return;
+    }
     if (dirty) drafts.set(key, scope);
     else drafts.delete(key);
     sync();
   };
 
-  // The keys of the Drafts a move with `scope` unmounts.
-  const draftsIn = (scope: DraftScope | undefined): symbol[] =>
-    [...drafts].filter(([, s]) => scope === undefined || s === scope).map(([key]) => key);
+  // The keys of the Drafts in `scopes`; with no `scopes`, every Draft's key.
+  const draftsIn = (scopes: readonly DraftScope[] | undefined): symbol[] =>
+    [...drafts]
+      .filter(([, s]) => scopes === undefined || (s !== undefined && scopes.includes(s)))
+      .map(([key]) => key);
 
-  const attempt = (move: () => void, scope?: DraftScope): void => {
-    if (draftsIn(scope).length === 0) move();
-    else setPendingMove({ run: move, scope });
+  const attempt = (move: () => void, scopes?: readonly DraftScope[]): void => {
+    if (draftsIn(scopes).length === 0) move();
+    else setPendingMove({ run: move, scopes });
   };
 
   // One batch: the view never sees the state between the drop and the move,
@@ -111,7 +155,7 @@ export function createDraftGuard(): DraftGuard {
     if (!move) return;
     batch(() => {
       setPendingMove(undefined);
-      for (const key of draftsIn(move.scope)) drafts.delete(key);
+      for (const key of draftsIn(move.scopes)) drafts.delete(key);
       sync();
       move.run();
     });
@@ -123,16 +167,54 @@ export function createDraftGuard(): DraftGuard {
     setNotice(message);
   };
 
+  const discardIn = (scopes: readonly DraftScope[] | undefined, message: string): boolean => {
+    const keys = draftsIn(scopes);
+    if (keys.length === 0) return false;
+    batch(() => {
+      for (const key of keys) drafts.delete(key);
+      sync();
+      setPendingMove(undefined);
+      setNotice(message);
+    });
+    return true;
+  };
+
+  const release = (scopes?: readonly DraftScope[]): (() => void) => {
+    const keys = draftsIn(scopes);
+    for (const key of keys) {
+      released.set(key, drafts.get(key));
+      drafts.delete(key);
+    }
+    sync();
+    return () => {
+      for (const key of keys) {
+        if (!released.has(key)) continue;
+        drafts.set(key, released.get(key));
+        released.delete(key);
+      }
+      sync();
+    };
+  };
+
   return {
     hasDraft,
     holds: (key) => drafts.has(key),
     report,
     attempt,
+    hasDraftIn: (scopes) => draftsIn(scopes).length > 0,
     pending: () => pendingMove() !== undefined,
+    question: () => pendingMove()?.message ?? MOVE_QUESTION,
+    ask: (message, scopes, onDiscard) => {
+      if (draftsIn(scopes).length > 0) {
+        setPendingMove({ run: onDiscard ?? (() => {}), scopes, message });
+      }
+    },
     confirmMove,
     cancelMove: () => setPendingMove(undefined),
     notice,
     discard,
+    discardIn,
     dismissNotice: () => setNotice(undefined),
+    release,
   };
 }

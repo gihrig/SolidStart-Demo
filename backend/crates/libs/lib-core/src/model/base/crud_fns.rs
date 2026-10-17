@@ -333,11 +333,37 @@ where
 	Ok(count)
 }
 
+/// The `Validation` error of an update that names no field to change (#187):
+/// without it, the update succeeds and only moves `mtime`.
+pub fn no_field_to_change() -> Error {
+	Error::Validation {
+		field: "data".to_string(),
+		reason: "no field to change".to_string(),
+	}
+}
+
 pub async fn update<MC, E>(
 	ctx: &Ctx,
 	mm: &ModelManager,
 	id: i64,
 	data: E,
+) -> Result<()>
+where
+	MC: DbBmc,
+	E: HasSeaFields,
+{
+	update_where::<MC, E>(ctx, mm, id, data, None).await
+}
+
+/// [`update`] with an extra condition ANDed into the `WHERE` (#187), such as
+/// the Caption lock. A row that fails it updates 0 rows, so the result is
+/// `EntityNotFound`, as for a row out of scope; the caller picks a finer error.
+pub async fn update_where<MC, E>(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	id: i64,
+	data: E,
+	extra: Option<Condition>,
 ) -> Result<()>
 where
 	MC: DbBmc,
@@ -360,6 +386,9 @@ where
 	// -- Row-scope (owner-only); a non-matching scope updates 0 rows.
 	if let Some(scope) = scope_cond::<MC>(ctx, Access::Write) {
 		query.cond_where(scope);
+	}
+	if let Some(extra) = extra {
+		query.cond_where(extra);
 	}
 
 	// -- Execute query

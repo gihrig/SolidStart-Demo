@@ -14,7 +14,7 @@ use modql::field::Fields;
 use modql::filter::{
 	FilterNodes, ListOptions, OpValInt64, OpValsInt64, OpValsString, OpValsValue,
 };
-use sea_query::{Condition, Expr};
+use sea_query::{Alias, Condition, Expr, Query, SimpleExpr};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use std::collections::HashMap;
@@ -73,7 +73,11 @@ pub struct CaptionForCreate {
 	pub text: String,
 }
 
-#[derive(Fields, Deserialize, Default)]
+/// The `update_caption` input (#187): the new text. An unknown key is a parse
+/// error, so a typo never passes as an empty update.
+#[derive(Fields, Deserialize, Default, TS)]
+#[serde(deny_unknown_fields)]
+#[ts(export, export_to = "CaptionForUpdate.d.ts", optional_fields = nullable)]
 pub struct CaptionForUpdate {
 	// Note: `owner_id` and `post_id` are intentionally not updatable — the
 	//       owner-only Write scope keys on `owner_id`, and a Caption belongs to
@@ -159,11 +163,11 @@ impl DbBmc for CaptionBmc {
 }
 
 // `create` is hand-written (below) so it can reject an unknown Post as a client
-// error; the macro therefore gets no `ForCreate`.
+// error, and `update` so it can apply the Caption lock; the macro therefore gets
+// no `ForCreate` and no `ForUpdate`.
 generate_common_bmc_fns!(
 	Bmc: CaptionBmc,
 	Entity: Caption,
-	ForUpdate: CaptionForUpdate,
 	Filter: CaptionFilter,
 );
 
@@ -187,6 +191,36 @@ impl CaptionBmc {
 		.await?;
 
 		base::create::<Self, _>(ctx, mm, caption_c).await
+	}
+
+	/// Edit the text of the caller's own Caption (#187), only while it has no
+	/// Like and no Comment: the Owner's own Like locks it too. The lock is in the
+	/// UPDATE statement, so a Like or a Comment that commits first wins. If no
+	/// row changes, an owner-scoped read picks the error: `Validation` on `text`
+	/// for the Owner's locked Caption, else `EntityNotFound`. An update with no
+	/// field is a `Validation` error.
+	pub async fn update(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		id: i64,
+		caption_u: CaptionForUpdate,
+	) -> Result<()> {
+		if caption_u.text.is_none() {
+			return Err(base::no_field_to_change());
+		}
+		match base::update_where::<Self, _>(ctx, mm, id, caption_u, Some(unlocked()))
+			.await
+		{
+			Err(Error::EntityNotFound { .. }) => {
+				base::get_writable::<Self, Caption>(ctx, mm, id).await?;
+				Err(Error::Validation {
+					field: "text".to_string(),
+					reason: "a Caption with Likes or Comments cannot be edited"
+						.to_string(),
+				})
+			}
+			res => res,
+		}
 	}
 
 	/// The Post id of one Caption (#123): a Caption Like re-ranks that Post's Top
@@ -332,6 +366,34 @@ impl CaptionBmc {
 
 // endregion: --- CaptionBmc
 
+// region:    --- Caption lock
+
+/// The condition of an editable Caption (#187): no `caption_like` row and no
+/// `caption_comment` row points at it.
+fn unlocked() -> Condition {
+	Condition::all()
+		.add(none_in::<CaptionLikeBmc>())
+		.add(none_in::<CaptionCommentBmc>())
+}
+
+/// `NOT EXISTS` a row of the child table `MC` whose `caption_id` is the
+/// Caption's id.
+fn none_in<MC: DbBmc>() -> SimpleExpr {
+	Expr::exists(
+		Query::select()
+			.expr(Expr::val(1))
+			.from(MC::table_ref())
+			.and_where(
+				Expr::col((Alias::new(MC::TABLE), Alias::new(CAPTION_ID)))
+					.equals((Alias::new(CaptionBmc::TABLE), CommonIden::Id)),
+			)
+			.to_owned(),
+	)
+	.not()
+}
+
+// endregion: --- Caption lock
+
 // region:    --- Tests
 
 #[cfg(test)]
@@ -341,6 +403,7 @@ mod tests {
 	use super::*;
 	use crate::_dev_utils::{self, seed_caption, seed_post, seed_user};
 	use crate::model;
+	use crate::model::like::{LikeBmc, LikeForToggle};
 	use serial_test::serial;
 
 	/// Insert one `caption_like` row directly (test-only). The ranking tests seed
@@ -567,6 +630,193 @@ mod tests {
 
 		// -- Clean
 		_dev_utils::clean_users(&root, &mm, "test_cap_owner_only").await?;
+
+		Ok(())
+	}
+
+	/// The text of one Caption, read through its view.
+	async fn text_of(ctx: &Ctx, mm: &ModelManager, id: i64) -> Result<String> {
+		Ok(CaptionBmc::get_caption(ctx, mm, id).await?.text)
+	}
+
+	/// The Owner's edit of the Caption text, as `ctx`.
+	async fn edit(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		id: i64,
+		text: &str,
+	) -> model::Result<()> {
+		CaptionBmc::update(
+			ctx,
+			mm,
+			id,
+			CaptionForUpdate {
+				text: Some(text.to_string()),
+			},
+		)
+		.await
+	}
+
+	/// Whether `res` is the lock's `Validation` error (#187).
+	fn is_locked(res: &model::Result<()>) -> bool {
+		matches!(res, Err(model::Error::Validation { field, reason })
+			if field == "text"
+				&& reason == "a Caption with Likes or Comments cannot be edited")
+	}
+
+	/// The Caption lock (#187): the Owner edits a Caption only while it has no
+	/// Like and no Comment. Another User's Like, the Owner's own Like and a
+	/// Comment each lock it, and the text stays. When that row goes, the edit
+	/// passes. A non-Owner edit of a locked Caption is still `EntityNotFound`.
+	#[serial]
+	#[tokio::test]
+	async fn test_caption_edit_locks_at_first_like_or_comment() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let a_id = seed_user(&root, &mm, "test_cap_lock-A").await?;
+		let b_id = seed_user(&root, &mm, "test_cap_lock-B").await?;
+		let ctx_a = Ctx::new(a_id)?;
+		let ctx_b = Ctx::new(b_id)?;
+		let post_id = seed_post(&ctx_b, &mm, "test_cap_lock post", &[1]).await?;
+		let id = seed_caption(&ctx_a, &mm, post_id, "first").await?;
+		let like = |liked| LikeForToggle { id, liked };
+
+		// -- Check: an unlocked Caption takes the edit.
+		edit(&ctx_a, &mm, id, "second").await?;
+
+		// -- Check: another User's Like locks it, and its removal unlocks it.
+		LikeBmc::toggle::<CaptionLikeBmc>(&ctx_b, &mm, like(true)).await?;
+		let res = edit(&ctx_a, &mm, id, "third").await;
+		assert!(is_locked(&res), "B's Like: got {res:?}");
+		assert_eq!(text_of(&ctx_a, &mm, id).await?, "second", "the text stays");
+		let res = edit(&ctx_b, &mm, id, "hijack").await;
+		assert!(
+			matches!(res, Err(model::Error::EntityNotFound { .. })),
+			"a non-Owner edit: got {res:?}"
+		);
+		LikeBmc::toggle::<CaptionLikeBmc>(&ctx_b, &mm, like(false)).await?;
+		edit(&ctx_a, &mm, id, "third").await?;
+
+		// -- Check: the Owner's own Like locks it too.
+		LikeBmc::toggle::<CaptionLikeBmc>(&ctx_a, &mm, like(true)).await?;
+		let res = edit(&ctx_a, &mm, id, "fourth").await;
+		assert!(is_locked(&res), "A's own Like: got {res:?}");
+		LikeBmc::toggle::<CaptionLikeBmc>(&ctx_a, &mm, like(false)).await?;
+
+		// -- Check: a Comment locks it, and its delete unlocks it.
+		let comment_id =
+			_dev_utils::seed_caption_comment(&ctx_b, &mm, id, "nice").await?;
+		let res = edit(&ctx_a, &mm, id, "fourth").await;
+		assert!(is_locked(&res), "B's Comment: got {res:?}");
+		assert_eq!(text_of(&ctx_a, &mm, id).await?, "third", "the text stays");
+		CaptionCommentBmc::delete(&ctx_b, &mm, comment_id).await?;
+		edit(&ctx_a, &mm, id, "fourth").await?;
+		assert_eq!(text_of(&ctx_a, &mm, id).await?, "fourth");
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_cap_lock").await?;
+
+		Ok(())
+	}
+
+	/// An update that names no field to change is a `Validation` error on
+	/// `data` (#187).
+	#[serial]
+	#[tokio::test]
+	async fn test_caption_update_with_no_field_is_rejected() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_cap_empty-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+		let post_id = seed_post(&ctx, &mm, "test_cap_empty post", &[1]).await?;
+		let id = seed_caption(&ctx, &mm, post_id, "text").await?;
+
+		// -- Exec
+		let res =
+			CaptionBmc::update(&ctx, &mm, id, CaptionForUpdate::default()).await;
+
+		// -- Check
+		assert!(
+			matches!(&res, Err(model::Error::Validation { field, reason })
+				if field == "data" && reason == "no field to change"),
+			"got {res:?}"
+		);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_cap_empty").await?;
+
+		Ok(())
+	}
+
+	/// The update params are strict (#187): an unknown key is a parse error.
+	#[test]
+	fn test_caption_for_update_denies_unknown_fields() {
+		for data in [
+			serde_json::json!({ "post_id": 1 }),
+			serde_json::json!({ "txt": "typo" }),
+		] {
+			assert!(
+				serde_json::from_value::<CaptionForUpdate>(data.clone()).is_err(),
+				"{data} must not parse"
+			);
+		}
+	}
+
+	/// A Caption delete cascades to its Likes and Comments, rows that other
+	/// Users own too (#187, ADR-0032). The Post's own rows and its other
+	/// Captions stay.
+	#[serial]
+	#[tokio::test]
+	async fn test_caption_delete_cascades_to_its_likes_and_comments() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let a_id = seed_user(&root, &mm, "test_cap_cascade-A").await?;
+		let b_id = seed_user(&root, &mm, "test_cap_cascade-B").await?;
+		let ctx_a = Ctx::new(a_id)?;
+		let ctx_b = Ctx::new(b_id)?;
+		let post_id = seed_post(&ctx_b, &mm, "test_cap_cascade post", &[1]).await?;
+		let id = seed_caption(&ctx_a, &mm, post_id, "goes").await?;
+		let other = seed_caption(&ctx_b, &mm, post_id, "stays").await?;
+		seed_caption_like(&mm, id, b_id).await?;
+		_dev_utils::seed_caption_comment(&ctx_b, &mm, id, "B's reply").await?;
+		seed_caption_like(&mm, other, a_id).await?;
+		_dev_utils::seed_post_comment(&ctx_b, &mm, post_id, "on the Post").await?;
+
+		// -- Exec
+		CaptionBmc::delete(&ctx_a, &mm, id).await?;
+
+		// -- Check: no row under the Caption remains.
+		for (table, sql) in [
+			("caption", "SELECT count(*) FROM caption WHERE id = $1"),
+			(
+				"caption_like",
+				"SELECT count(*) FROM caption_like WHERE caption_id = $1",
+			),
+			(
+				"caption_comment",
+				"SELECT count(*) FROM caption_comment WHERE caption_id = $1",
+			),
+		] {
+			let (count,): (i64,) = sqlx::query_as(sql)
+				.bind(id)
+				.fetch_one(mm.dbx().db())
+				.await?;
+			assert_eq!(count, 0, "{table}");
+		}
+
+		// -- Check: the Post, its Comment and its other Caption stay.
+		let post = PostBmc::get_post(&ctx_a, &mm, post_id).await?;
+		assert_eq!(post.comment_count, 1);
+		let views =
+			CaptionBmc::list_captions_for_post(&ctx_a, &mm, post_id, None).await?;
+		assert_eq!(views.len(), 1);
+		assert_eq!((views[0].id, views[0].like_count), (other, 1));
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_cap_cascade").await?;
 
 		Ok(())
 	}

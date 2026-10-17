@@ -15,7 +15,7 @@ export interface ConfirmDialogProps {
 
 /**
  * A modal confirm (ADR-0030): a native `<dialog>` opened with `showModal()`, as
- * `CreatePostDialog` is. The cancel button is the default, and Escape cancels.
+ * `PostDialog` is. The cancel button is the default, and Escape cancels.
  * Without a `cancelLabel`, it is a notice: one button, and Escape confirms.
  */
 export default function ConfirmDialog(props: ConfirmDialogProps) {

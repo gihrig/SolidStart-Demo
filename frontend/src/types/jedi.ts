@@ -53,6 +53,10 @@ export interface PostDraft {
   categoryIds: number[];
 }
 
+/** The changed fields of a Post edit (#187): the seam maps them to the wire
+ *  `PostForUpdate`. The photo never changes, so there is no `imageSrc`. */
+export type PostChanges = Partial<Omit<PostDraft, "imageSrc">>;
+
 /** Hero as returned by the seam: its URL field is sanitized. There is no CTA
  *  href: the CTA runs fixed front-end code (#119, ADR-0011 addendum). */
 export interface HeroView {
