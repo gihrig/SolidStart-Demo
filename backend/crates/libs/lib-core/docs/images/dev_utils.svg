@@ -44,10 +44,7 @@
   <text x="175" y="330" class="text-box-title">User Operations</text>
 
   <rect x="325" y="300" width="150" height="50" rx="5" class="fill-primary stroke-primary"/>
-  <text x="400" y="330" class="text-box-title">Conv Operations</text>
-
-  <rect x="550" y="300" width="150" height="50" rx="5" class="fill-primary stroke-primary"/>
-  <text x="625" y="330" class="text-box-title">Agent Operations</text>
+  <text x="400" y="330" class="text-box-title">Category Operations</text>
 
   <!-- User Functions -->
   <rect x="130" y="380" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
@@ -59,25 +56,15 @@
   <rect x="130" y="480" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
   <text x="175" y="505" class="text-small">clean_users()</text>
 
-  <!-- Conv Functions -->
-  <rect x="355" y="380" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
-  <text x="400" y="405" class="text-small">seed_convs()</text>
+  <!-- Category Functions -->
+  <rect x="345" y="380" width="110" height="40" rx="5" class="fill-secondary stroke-secondary"/>
+  <text x="400" y="405" class="text-small">seed_categories()</text>
 
-  <rect x="355" y="430" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
-  <text x="400" y="455" class="text-small">seed_conv()</text>
+  <rect x="345" y="430" width="110" height="40" rx="5" class="fill-secondary stroke-secondary"/>
+  <text x="400" y="455" class="text-small">seed_category()</text>
 
-  <rect x="355" y="480" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
-  <text x="400" y="505" class="text-small">clean_convs()</text>
-
-  <!-- Agent Functions -->
-  <rect x="580" y="380" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
-  <text x="625" y="405" class="text-small">seed_agents()</text>
-
-  <rect x="580" y="430" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
-  <text x="625" y="455" class="text-small">seed_agent()</text>
-
-  <rect x="580" y="480" width="90" height="40" rx="5" class="fill-secondary stroke-secondary"/>
-  <text x="625" y="505" class="text-small">clean_agents()</text>
+  <rect x="345" y="480" width="110" height="40" rx="5" class="fill-secondary stroke-secondary"/>
+  <text x="400" y="505" class="text-small">clean_categories()</text>
 
   <!-- DB Operations -->
   <rect x="75" y="550" width="650" height="70" rx="5" class="fill-secondary stroke-secondary"/>
@@ -90,14 +77,11 @@
 
   <line x1="400" y1="250" x2="400" y2="300" class="line-primary" marker-end="url(#arrowhead)"/>
   <line x1="360" y1="250" x2="200" y2="300" class="line-primary" marker-end="url(#arrowhead)"/>
-  <line x1="440" y1="250" x2="600" y2="300" class="line-primary" marker-end="url(#arrowhead)"/>
 
   <line x1="175" y1="350" x2="175" y2="380" class="line-secondary" marker-end="url(#arrowhead)"/>
   <line x1="400" y1="350" x2="400" y2="380" class="line-secondary" marker-end="url(#arrowhead)"/>
-  <line x1="625" y1="350" x2="625" y2="380" class="line-secondary" marker-end="url(#arrowhead)"/>
 
   <line x1="175" y1="520" x2="175" y2="550" class="line-secondary" marker-end="url(#arrowhead)"/>
   <line x1="400" y1="520" x2="400" y2="550" class="line-secondary" marker-end="url(#arrowhead)"/>
-  <line x1="625" y1="520" x2="625" y2="550" class="line-secondary" marker-end="url(#arrowhead)"/>
 
 </svg>

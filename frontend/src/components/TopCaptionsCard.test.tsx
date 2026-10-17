@@ -11,6 +11,7 @@ const makeCaption = (id: number, name: string, likeCount: number): CaptionView =
   author: { id, name, avatarUrl: trustedUrl(`https://example.com/${name}.png`) },
   text: `Caption ${id}`,
   likeCount,
+  commentCount: 0,
 });
 
 const captions = [makeCaption(1, "Lisa", 8), makeCaption(2, "Bart", 5)];

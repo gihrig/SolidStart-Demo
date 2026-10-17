@@ -2,12 +2,12 @@
 
 ## Overview:
 
-The `dev_utils` module provides utilities specifically designed for development and testing environments in the application. It serves as a critical component for initializing development and test environments, setting up databases with test data, and managing test entities (Users, Conversations, Agents) throughout the development lifecycle.
+The `dev_utils` module provides utilities specifically designed for development and testing environments in the application. It serves as a critical component for initializing development and test environments, setting up databases with test data, and managing test entities (Users, Categories, Posts, Captions, Comments) throughout the development lifecycle.
 
 This module implements a comprehensive suite of functions to:
 1. Initialize development environments with proper database setup
 2. Initialize test environments with required model managers
-3. Seed test data for users, conversations, and agents
+3. Seed test data for users, categories, posts, captions, and comments
 4. Clean up test data when no longer needed
 
 The module is intentionally prefixed with an underscore (`_dev_utils`) and conditionally compiled based on build configuration, indicating that it should not be part of the production code but is essential for development and testing phases.
@@ -55,50 +55,27 @@ The module is intentionally prefixed with an underscore (`_dev_utils`) and condi
   let deleted_count = dev_utils::clean_users(&ctx, &mm, "test").await?;
   ```
 
-#### Conversation Operations
+#### Category Operations
 
-- `seed_convs(ctx: &Ctx, mm: &ModelManager, agent_id: i64, titles: &[&str]) -> Future<Result<Vec<i64>>>` - Creates multiple conversations with provided titles for a specific agent and returns their IDs.
+- `seed_categories(ctx: &Ctx, mm: &ModelManager, names: &[&str], icon: &str) -> Future<Result<Vec<i64>>>` - Creates multiple categories with provided names and one shared icon, and returns their IDs.
   
   ```rust
-  // Create test conversations
-  let conv_ids = dev_utils::seed_convs(&ctx, &mm, agent_id, &["Test Conv 1", "Test Conv 2"]).await?;
+  // Create test categories
+  let category_ids = dev_utils::seed_categories(&ctx, &mm, &["Test Cat 1", "Test Cat 2"], "dog").await?;
   ```
 
-- `seed_conv(ctx: &Ctx, mm: &ModelManager, agent_id: i64, title: &str) -> Future<Result<i64>>` - Creates a single conversation with provided title for a specific agent and returns its ID.
+- `seed_category(ctx: &Ctx, mm: &ModelManager, name: &str, icon: &str) -> Future<Result<i64>>` - Creates a single category with provided name and icon, and returns its ID.
   
   ```rust
-  // Create a single test conversation
-  let conv_id = dev_utils::seed_conv(&ctx, &mm, agent_id, "Test Conversation").await?;
+  // Create a single test category
+  let category_id = dev_utils::seed_category(&ctx, &mm, "Test Cat", "dog").await?;
   ```
 
-- `clean_convs(ctx: &Ctx, mm: &ModelManager, contains_title: &str) -> Future<Result<usize>>` - Deletes conversations whose titles contain the specified string and returns the count of deleted conversations.
+- `clean_categories(ctx: &Ctx, mm: &ModelManager, contains_name: &str) -> Future<Result<usize>>` - Deletes categories whose names contain the specified string and returns the count of deleted categories.
   
   ```rust
-  // Clean up test conversations
-  let deleted_count = dev_utils::clean_convs(&ctx, &mm, "Test").await?;
-  ```
-
-#### Agent Operations
-
-- `seed_agents(ctx: &Ctx, mm: &ModelManager, names: &[&str]) -> Future<Result<Vec<i64>>>` - Creates multiple agents with provided names and returns their IDs.
-  
-  ```rust
-  // Create test agents
-  let agent_ids = dev_utils::seed_agents(&ctx, &mm, &["Test Agent 1", "Test Agent 2"]).await?;
-  ```
-
-- `seed_agent(ctx: &Ctx, mm: &ModelManager, name: &str) -> Future<Result<i64>>` - Creates a single agent with provided name and returns its ID.
-  
-  ```rust
-  // Create a single test agent
-  let agent_id = dev_utils::seed_agent(&ctx, &mm, "Test Agent").await?;
-  ```
-
-- `clean_agents(ctx: &Ctx, mm: &ModelManager, contains_name: &str) -> Future<Result<usize>>` - Deletes agents whose names contain the specified string and returns the count of deleted agents.
-  
-  ```rust
-  // Clean up test agents
-  let deleted_count = dev_utils::clean_agents(&ctx, &mm, "Test").await?;
+  // Clean up test categories
+  let deleted_count = dev_utils::clean_categories(&ctx, &mm, "Test").await?;
   ```
 
 ### Internal Module: dev_db
@@ -130,8 +107,7 @@ The `dev_utils` module follows a layered architecture for development and testin
 
 3. **Entity Management Layer**
    - User Operations (`seed_users()`, `seed_user()`, `clean_users()`)
-   - Conversation Operations (`seed_convs()`, `seed_conv()`, `clean_convs()`)
-   - Agent Operations (`seed_agents()`, `seed_agent()`, `clean_agents()`)
+   - Category Operations (`seed_categories()`, `seed_category()`, `clean_categories()`)
 
 When `init_dev()` is called, it uses `OnceCell` to ensure the initialization happens only once, even if called multiple times. This function then calls `dev_db::init_dev_db()` to set up the database.
 
@@ -145,7 +121,7 @@ The database initialization in `dev_db::init_dev_db()` follows these steps:
 5. Execute all remaining SQL files in order
 6. Initialize the model layer and set the password for the demo user
 
-The entity management functions provide a consistent pattern for each entity type (Users, Conversations, Agents):
+The entity management functions provide a consistent pattern for each entity type (for example, Users and Categories):
 1. Seed functions to create test entities (both single and multiple)
 2. Clean functions to remove test entities
 

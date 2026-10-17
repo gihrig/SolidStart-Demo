@@ -8,53 +8,40 @@ vi.mock("~/lib/sanitizeUrl", () => ({
   trustedUrl: (u: string) => u,
 }));
 
-// `categories.list` / `posts.*` / `captions.listForPost` now call the real RPCs
-// (ADR-0011, #117, #118), so the back-end client is mocked here — the seam under
+// `categories.list` / `posts.*` / `captions.*` / `hero` / `profile` call the
+// typed RPCs (ADR-0029), so the back-end client is mocked here. The seam under
 // test is the wire→contract mapping (icon mapping, URL sanitize, author/category
-// re-shape), not the network. The hoisted fns let each test program its own rows.
-const {
-  categoryListMock,
-  postListMock,
-  postFeaturedMock,
-  postCreateMock,
-  postGetLikeMock,
-  postToggleLikeMock,
-  captionListForPostMock,
-  captionAddMock,
-  heroGetMock,
-  profileGetMock,
-} = vi.hoisted(() => ({
-  categoryListMock: vi.fn(),
-  postListMock: vi.fn(),
-  postFeaturedMock: vi.fn(),
-  postCreateMock: vi.fn(),
-  postGetLikeMock: vi.fn(),
-  postToggleLikeMock: vi.fn(),
-  captionListForPostMock: vi.fn(),
-  captionAddMock: vi.fn(),
-  heroGetMock: vi.fn(),
-  profileGetMock: vi.fn(),
+// re-shape) and the method and params of each call, not the network. Each test
+// programs the rows per method with `onPublic` / `onAuthenticated`.
+const { authenticatedRpcMock, publicRpcMock } = vi.hoisted(() => ({
+  authenticatedRpcMock: vi.fn(),
+  publicRpcMock: vi.fn(),
 }));
 vi.mock("~/lib/backend-rpc", () => ({
-  category: { list: categoryListMock },
-  post: {
-    list: postListMock,
-    featured: postFeaturedMock,
-    create: postCreateMock,
-    getLike: postGetLikeMock,
-    toggleLike: postToggleLikeMock,
-  },
-  caption: { listForPost: captionListForPostMock, add: captionAddMock },
-  hero: { get: heroGetMock },
-  profile: { get: profileGetMock },
+  authenticatedRpc: authenticatedRpcMock,
+  publicRpc: publicRpcMock,
 }));
+
+// Resolve each call by its method name.
+const byMethod = (rows: Record<string, unknown>) => (method: string) =>
+  Promise.resolve(rows[method]);
+const onPublic = (rows: Record<string, unknown>): void => {
+  publicRpcMock.mockImplementation(byMethod(rows));
+};
+const onAuthenticated = (rows: Record<string, unknown>): void => {
+  authenticatedRpcMock.mockImplementation(byMethod(rows));
+};
 
 import { sanitizeUrl } from "~/lib/sanitizeUrl";
 import { ICON_NAMES } from "~/components/Icon";
 import { jediApi } from "./jedi-api";
 
 const sanitizeSpy = sanitizeUrl as unknown as ReturnType<typeof vi.fn>;
-beforeEach(() => sanitizeSpy.mockClear());
+beforeEach(() => {
+  sanitizeSpy.mockClear();
+  authenticatedRpcMock.mockReset();
+  publicRpcMock.mockReset();
+});
 
 // The seeded taxonomy (frontend/src/lib/jedi/data.json ↔ 02-dev-seed.sql).
 const SEEDED_CATEGORIES = [
@@ -67,10 +54,11 @@ const SEEDED_CATEGORIES = [
 ];
 
 describe("jediApi.categories", () => {
-  beforeEach(() => categoryListMock.mockResolvedValue(SEEDED_CATEGORIES));
+  beforeEach(() => onPublic({ list_categories: SEEDED_CATEGORIES }));
 
   it("lists all categories including the added 'Cute'", async () => {
     const cats = await jediApi.categories.list();
+    expect(publicRpcMock).toHaveBeenCalledWith("list_categories");
     expect(cats.map((c) => c.name)).toEqual([
       "Landscape",
       "People",
@@ -85,10 +73,12 @@ describe("jediApi.categories", () => {
   // an opaque key, so the seam maps a known key to itself and any unknown key to
   // the fallback. Either way the result is always a valid IconName.
   it("maps each opaque icon key to a known IconName or the fallback", async () => {
-    categoryListMock.mockResolvedValueOnce([
-      { id: 1, name: "Known", icon: "dog" },
-      { id: 2, name: "Unknown", icon: "no-such-icon" },
-    ]);
+    onPublic({
+      list_categories: [
+        { id: 1, name: "Known", icon: "dog" },
+        { id: 2, name: "Unknown", icon: "no-such-icon" },
+      ],
+    });
     const cats = await jediApi.categories.list();
     expect(cats.map((c) => c.icon)).toEqual(["dog", "menu"]);
     for (const c of cats) expect(ICON_NAMES).toContain(c.icon);
@@ -137,13 +127,11 @@ const WIRE_POST_2 = {
 };
 
 describe("jediApi.posts", () => {
-  beforeEach(() => {
-    postListMock.mockResolvedValue([WIRE_POST_1, WIRE_POST_2]);
-    postFeaturedMock.mockResolvedValue(WIRE_POST_1);
-  });
+  beforeEach(() => onPublic({ list_posts: [WIRE_POST_1, WIRE_POST_2] }));
 
   it("preserves the back-end ranking order (does not re-rank)", async () => {
     const posts = await jediApi.posts.list();
+    expect(publicRpcMock).toHaveBeenCalledWith("list_posts");
     expect(posts.map((p) => p.id)).toEqual([1, 2]);
     expect(posts[0].title).toBe("Little Jedi");
     expect(posts.map((p) => p.likeCount)).toEqual([5, 4]);
@@ -169,12 +157,6 @@ describe("jediApi.posts", () => {
     expect(first.commentCount).toBe(3);
   });
 
-  it("featured() re-shapes the top-ranked wire post", async () => {
-    const featured = await jediApi.posts.featured();
-    expect(featured.id).toBe(1);
-    expect(featured.title).toBe("Little Jedi");
-  });
-
   it("routes every URL field through the sanitizer (single boundary)", async () => {
     const [post] = await jediApi.posts.list();
     const args = sanitizeSpy.mock.calls.flat();
@@ -185,7 +167,7 @@ describe("jediApi.posts", () => {
   });
 
   it("create() sends the draft as the wire PostForCreate and re-shapes the result (#120)", async () => {
-    postCreateMock.mockResolvedValue(WIRE_POST_2);
+    onAuthenticated({ create_post: WIRE_POST_2 });
     const created = await jediApi.posts.create({
       title: "Brilliant tree",
       imageSrc: "https://live.staticflickr.com/2.jpg",
@@ -195,14 +177,16 @@ describe("jediApi.posts", () => {
       sourceUrl: "https://www.flickr.com/photos/sunsward7/2/",
       categoryIds: [1],
     });
-    expect(postCreateMock).toHaveBeenCalledWith({
-      title: "Brilliant tree",
-      image_src: "https://live.staticflickr.com/2.jpg",
-      image_alt: "Brilliant tree",
-      photographer: "Sunsword & Moonsabre",
-      photographer_url: "https://www.flickr.com/photos/sunsward7/",
-      source_url: "https://www.flickr.com/photos/sunsward7/2/",
-      category_ids: [1],
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("create_post", {
+      data: {
+        title: "Brilliant tree",
+        image_src: "https://live.staticflickr.com/2.jpg",
+        image_alt: "Brilliant tree",
+        photographer: "Sunsword & Moonsabre",
+        photographer_url: "https://www.flickr.com/photos/sunsward7/",
+        source_url: "https://www.flickr.com/photos/sunsward7/2/",
+        category_ids: [1],
+      },
     });
     expect(created.id).toBe(2);
     expect(created.author.name).toBe("Homer");
@@ -210,19 +194,53 @@ describe("jediApi.posts", () => {
   });
 
   it("getLike() reads the caller's like state of a Post (#122)", async () => {
-    postGetLikeMock.mockResolvedValue({ post_id: 2, like_count: 4, liked: true });
-    expect(await jediApi.posts.getLike(2)).toEqual({ postId: 2, likeCount: 4, liked: true });
-    expect(postGetLikeMock).toHaveBeenCalledWith(2);
+    onAuthenticated({ get_post_like: { id: 2, like_count: 4, liked: true } });
+    expect(await jediApi.posts.getLike(2)).toEqual({ id: 2, likeCount: 4, liked: true });
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("get_post_like", { id: 2 });
   });
 
-  it("toggleLike() sends the wanted state as the wire PostLikeForToggle (#122)", async () => {
-    postToggleLikeMock.mockResolvedValue({ post_id: 2, like_count: 3, liked: false });
+  it("toggleLike() sends the wanted state as the wire LikeForToggle (#122)", async () => {
+    onAuthenticated({ toggle_post_like: { id: 2, like_count: 3, liked: false } });
     expect(await jediApi.posts.toggleLike(2, false)).toEqual({
-      postId: 2,
+      id: 2,
       likeCount: 3,
       liked: false,
     });
-    expect(postToggleLikeMock).toHaveBeenCalledWith({ post_id: 2, liked: false });
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("toggle_post_like", {
+      data: { id: 2, liked: false },
+    });
+  });
+
+  it("update() sends only the changed fields as the wire PostForUpdate (#187)", async () => {
+    onAuthenticated({ update_post: WIRE_POST_2 });
+    const updated = await jediApi.posts.update(2, { title: "Brilliant tree", categoryIds: [1, 3] });
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("update_post", {
+      id: 2,
+      data: { title: "Brilliant tree", category_ids: [1, 3] },
+    });
+    expect(updated.id).toBe(2);
+
+    await jediApi.posts.update(2, {
+      imageAlt: "a",
+      photographer: "p",
+      photographerUrl: "https://example.test/p",
+      sourceUrl: "https://example.test/s",
+    });
+    expect(authenticatedRpcMock).toHaveBeenLastCalledWith("update_post", {
+      id: 2,
+      data: {
+        image_alt: "a",
+        photographer: "p",
+        photographer_url: "https://example.test/p",
+        source_url: "https://example.test/s",
+      },
+    });
+  });
+
+  it("remove() deletes the Post by id (#187)", async () => {
+    onAuthenticated({ delete_post: 2 });
+    await jediApi.posts.remove(2);
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("delete_post", { id: 2 });
   });
 });
 
@@ -237,10 +255,11 @@ const WIRE_HERO = {
 };
 
 describe("jediApi.hero", () => {
-  beforeEach(() => heroGetMock.mockResolvedValue(WIRE_HERO));
+  beforeEach(() => onPublic({ get_hero: WIRE_HERO }));
 
   it("returns the back-end Hero, re-shaped with no CTA href", async () => {
     const hero = await jediApi.hero.get();
+    expect(publicRpcMock).toHaveBeenCalledWith("get_hero");
     expect(hero).toEqual({
       title: "Awesome Photos & Captions",
       subtitle: "Share your favorite Photos from Flickr and add a great caption",
@@ -257,12 +276,15 @@ describe("jediApi.hero", () => {
 
 describe("jediApi.profile", () => {
   it("returns the current User from get_profile for the nav avatar", async () => {
-    profileGetMock.mockResolvedValue({
-      id: 1,
-      name: "Lisa",
-      avatar_url: "https://img.icons8.com/doodle/96/null/lisa-simpson.png",
+    onAuthenticated({
+      get_profile: {
+        id: 1,
+        name: "Lisa",
+        avatar_url: "https://img.icons8.com/doodle/96/null/lisa-simpson.png",
+      },
     });
     const profile = await jediApi.profile.get();
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("get_profile");
     expect(profile).toEqual({
       id: 1,
       name: "Lisa",
@@ -271,10 +293,13 @@ describe("jediApi.profile", () => {
     expect(sanitizeSpy.mock.calls.flat()).toContain(profile.avatarUrl);
   });
 
-  it("maps a User with no avatar to the empty URL", async () => {
-    profileGetMock.mockResolvedValue({ id: 1000, name: "demo1", avatar_url: null });
+  it("maps a User with no avatar to the empty URL, without the sanitizer", async () => {
+    onAuthenticated({ get_profile: { id: 1000, name: "demo1", avatar_url: null } });
     const profile = await jediApi.profile.get();
     expect(profile).toEqual({ id: 1000, name: "demo1", avatarUrl: "" });
+    // No avatar is not an unsafe URL: the sanitizer would warn "Blocked unsafe
+    // URL" for the empty string on every login of a User with no avatar.
+    expect(sanitizeSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -292,7 +317,7 @@ const WIRE_CAPTIONS_POST_1 = [
     },
     text: "Jedi Kitty protects the street",
     like_count: 8,
-    comment_count: 0,
+    comment_count: 4,
   },
   {
     id: 2,
@@ -310,15 +335,14 @@ const WIRE_CAPTIONS_POST_1 = [
 
 describe("jediApi.captions", () => {
   beforeEach(() => {
-    captionListForPostMock.mockReset();
-    captionListForPostMock.mockImplementation((postId: number) =>
-      Promise.resolve(postId === 1 ? WIRE_CAPTIONS_POST_1 : []),
+    publicRpcMock.mockImplementation((_method: string, params: { id: number }) =>
+      Promise.resolve(params.id === 1 ? WIRE_CAPTIONS_POST_1 : []),
     );
   });
 
   it("asks the back-end for the given post's captions", async () => {
     await jediApi.captions.listForPost(1);
-    expect(captionListForPostMock).toHaveBeenCalledWith(1);
+    expect(publicRpcMock).toHaveBeenCalledWith("list_captions_for_post", { id: 1 });
   });
 
   it("preserves the back-end ranking order (Top Captions, does not re-rank)", async () => {
@@ -327,6 +351,11 @@ describe("jediApi.captions", () => {
     expect(caps.map((c) => c.likeCount)).toEqual([8, 5]);
     expect(caps[0].text).toBe("Jedi Kitty protects the street");
     expect(caps[0].postId).toBe(1);
+  });
+
+  it("carries the back-end-derived commentCount (#127)", async () => {
+    const caps = await jediApi.captions.listForPost(1);
+    expect(caps.map((c) => c.commentCount)).toEqual([4, 0]);
   });
 
   it("re-shapes the author snapshot from the wire view", async () => {
@@ -348,9 +377,11 @@ describe("jediApi.captions", () => {
   });
 
   it("add() sends the wire CaptionForCreate and re-shapes the result (#121)", async () => {
-    captionAddMock.mockResolvedValue(WIRE_CAPTIONS_POST_1[1]);
+    onAuthenticated({ add_caption: WIRE_CAPTIONS_POST_1[1] });
     const added = await jediApi.captions.add(1, "May the paws be with you");
-    expect(captionAddMock).toHaveBeenCalledWith({ post_id: 1, text: "May the paws be with you" });
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("add_caption", {
+      data: { post_id: 1, text: "May the paws be with you" },
+    });
     expect(added).toEqual({
       id: 2,
       postId: 1,
@@ -361,6 +392,170 @@ describe("jediApi.captions", () => {
       },
       text: "May the paws be with you",
       likeCount: 5,
+      commentCount: 0,
     });
+  });
+
+  it("getLike() reads the caller's like state of a Caption (#123)", async () => {
+    onAuthenticated({ get_caption_like: { id: 2, like_count: 5, liked: true } });
+    expect(await jediApi.captions.getLike(2)).toEqual({ id: 2, likeCount: 5, liked: true });
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("get_caption_like", { id: 2 });
+  });
+
+  it("toggleLike() sends the wanted state as the wire LikeForToggle (#123)", async () => {
+    onAuthenticated({ toggle_caption_like: { id: 2, like_count: 4, liked: false } });
+    expect(await jediApi.captions.toggleLike(2, false)).toEqual({
+      id: 2,
+      likeCount: 4,
+      liked: false,
+    });
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("toggle_caption_like", {
+      data: { id: 2, liked: false },
+    });
+  });
+
+  it("update() sends the new text as the wire CaptionForUpdate (#187)", async () => {
+    onAuthenticated({ update_caption: WIRE_CAPTIONS_POST_1[1] });
+    const updated = await jediApi.captions.update(2, "May the paws be with you");
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("update_caption", {
+      id: 2,
+      data: { text: "May the paws be with you" },
+    });
+    expect(updated.text).toBe("May the paws be with you");
+  });
+
+  it("remove() deletes the Caption by id (#187)", async () => {
+    onAuthenticated({ delete_caption: 2 });
+    await jediApi.captions.remove(2);
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("delete_caption", { id: 2 });
+  });
+});
+
+// A Comment as `list_post_comments` and the writes return it (#125): the
+// wire `CommentView`, with its author snapshot, its rendered HTML (#126) and
+// its times.
+const wireComment = (id: number, authorId: number, html: string, avatarUrl: string | null) => ({
+  id,
+  parent_id: 1,
+  author: { id: authorId, name: `user${authorId}`, avatar_url: avatarUrl },
+  content_html: html,
+  ctime: "2026-10-10T12:00:00Z",
+  mtime: "2026-10-10T12:05:00.123456Z",
+});
+
+describe("jediApi.comments (#124, #125)", () => {
+  it("list() reads one Post's thread from the public surface, in order", async () => {
+    onPublic({
+      list_post_comments: [
+        wireComment(6, 3, "<p>second</p>", "https://example.com/a.png"),
+        wireComment(5, 2, "<p>first</p>", null),
+      ],
+    });
+    expect(await jediApi.comments.list(1)).toEqual([
+      {
+        id: 6,
+        parentId: 1,
+        author: { id: 3, name: "user3", avatarUrl: "https://example.com/a.png" },
+        contentHtml: "<p>second</p>",
+        ctime: "2026-10-10T12:00:00Z",
+        mtime: "2026-10-10T12:05:00.123456Z",
+      },
+      {
+        id: 5,
+        parentId: 1,
+        author: { id: 2, name: "user2", avatarUrl: "" },
+        contentHtml: "<p>first</p>",
+        ctime: "2026-10-10T12:00:00Z",
+        mtime: "2026-10-10T12:05:00.123456Z",
+      },
+    ]);
+    expect(publicRpcMock).toHaveBeenCalledWith("list_post_comments", { id: 1 });
+  });
+
+  it("maps the author's avatar URL through the sanitize boundary", async () => {
+    onPublic({ list_post_comments: [wireComment(5, 2, "hi", "https://example.com/b.png")] });
+    const [view] = await jediApi.comments.list(1);
+    expect(sanitizeSpy.mock.calls.flat()).toContain(view.author.avatarUrl);
+  });
+
+  it.each(["ctime", "mtime"] as const)(
+    "rejects a Comment whose %s does not parse, at the wire boundary",
+    async (field) => {
+      onPublic({
+        list_post_comments: [{ ...wireComment(5, 2, "hi", null), [field]: "not a time" }],
+      });
+      await expect(jediApi.comments.list(1)).rejects.toThrow("Invalid Comment time: not a time");
+    },
+  );
+
+  it("add() sends the wire PostCommentForCreate and re-shapes the result", async () => {
+    onAuthenticated({ add_post_comment: wireComment(7, 2, "<p>hello</p>", null) });
+    expect(await jediApi.comments.add(1, "hello")).toEqual({
+      id: 7,
+      parentId: 1,
+      author: { id: 2, name: "user2", avatarUrl: "" },
+      contentHtml: "<p>hello</p>",
+      ctime: "2026-10-10T12:00:00Z",
+      mtime: "2026-10-10T12:05:00.123456Z",
+    });
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("add_post_comment", {
+      data: { post_id: 1, content: "hello" },
+    });
+  });
+
+  it("update() sends the Comment id and the new content", async () => {
+    onAuthenticated({ update_post_comment: wireComment(7, 2, "<p>edited</p>", null) });
+    expect((await jediApi.comments.update(7, "edited")).contentHtml).toBe("<p>edited</p>");
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("update_post_comment", {
+      id: 7,
+      data: { content: "edited" },
+    });
+  });
+
+  it("source() reads the Owner's stored text from the authenticated surface (#126)", async () => {
+    onAuthenticated({ get_post_comment: { id: 7, content: "**bold**" } });
+    expect(await jediApi.comments.source(7)).toBe("**bold**");
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("get_post_comment", { id: 7 });
+  });
+
+  it("remove() deletes by Comment id", async () => {
+    onAuthenticated({ delete_post_comment: { id: 7, parent_id: 1 } });
+    await jediApi.comments.remove(7);
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("delete_post_comment", { id: 7 });
+  });
+});
+
+describe("jediApi.captionComments (#127)", () => {
+  it("list() reads one Caption's thread from the public surface", async () => {
+    onPublic({ list_caption_comments: [wireComment(6, 3, "<p>hi</p>", null)] });
+    const [view] = await jediApi.captionComments.list(1);
+    expect(view.id).toBe(6);
+    expect(view.parentId).toBe(1);
+    expect(publicRpcMock).toHaveBeenCalledWith("list_caption_comments", { id: 1 });
+  });
+
+  it("add() sends the wire CaptionCommentForCreate", async () => {
+    onAuthenticated({ add_caption_comment: wireComment(7, 2, "<p>hello</p>", null) });
+    expect((await jediApi.captionComments.add(1, "hello")).id).toBe(7);
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("add_caption_comment", {
+      data: { caption_id: 1, content: "hello" },
+    });
+  });
+
+  it("update(), source() and remove() call the Caption Comment RPCs by Comment id", async () => {
+    onAuthenticated({
+      update_caption_comment: wireComment(7, 2, "<p>edited</p>", null),
+      get_caption_comment: { id: 7, content: "**bold**" },
+      delete_caption_comment: { id: 7, parent_id: 1 },
+    });
+    expect((await jediApi.captionComments.update(7, "edited")).contentHtml).toBe("<p>edited</p>");
+    expect(await jediApi.captionComments.source(7)).toBe("**bold**");
+    await jediApi.captionComments.remove(7);
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("update_caption_comment", {
+      id: 7,
+      data: { content: "edited" },
+    });
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("get_caption_comment", { id: 7 });
+    expect(authenticatedRpcMock).toHaveBeenCalledWith("delete_caption_comment", { id: 7 });
   });
 });

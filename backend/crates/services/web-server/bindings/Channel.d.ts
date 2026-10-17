@@ -8,11 +8,10 @@
  * `ChannelKind` wire, `Channel` routing), merged into one (ADR-0020). ts-rs
  * exports it, so the front-end mirrors it. Adjacently tagged: the wire is
  * `{ "kind": <string>, "id": <i64> }`, with `id` present only where the variant
- * carries one. `conv:{id}` names one Conversation's Event stream (C03/Q9);
- * `agents`, `convs` and `posts` are id-less global list-feed pokes — a subscriber
- * refetches through the scoped `list_*` RPC, so no row crosses the push path
- * (#85). The five id-bearing Jedi channels key on their entity id (#115):
+ * carries one. `posts` is the id-less global list-feed poke — a subscriber
+ * refetches through the `list_*` RPC, so no row crosses the push path (#85).
+ * The five id-bearing Jedi channels key on their entity id (#115):
  * `post_comment:{id}`, `caption_comment:{id}`, `post_like:{id}`,
  * `caption_like:{id}`, `post_caption:{id}`.
  */
-export type Channel = { "kind": "conv", "id": bigint } | { "kind": "agents" } | { "kind": "convs" } | { "kind": "posts" } | { "kind": "post_comment", "id": bigint } | { "kind": "caption_comment", "id": bigint } | { "kind": "post_like", "id": bigint } | { "kind": "caption_like", "id": bigint } | { "kind": "post_caption", "id": bigint };
+export type Channel = { "kind": "posts" } | { "kind": "post_comment", "id": number } | { "kind": "caption_comment", "id": number } | { "kind": "post_like", "id": number } | { "kind": "caption_like", "id": number } | { "kind": "post_caption", "id": number };

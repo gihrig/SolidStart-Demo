@@ -1,5 +1,11 @@
 # Entity identity is `number`, made honest at the type barrel
 
+> **⚠️ Superseded by [ADR-0027](0027-backend-integers-cross-seam-as-number.md).** The
+> generator now emits `number` (`TS_RS_LARGE_INT`), so the `NumericIds` barrel
+> rewrite below is gone. The `number` choice and the 2⁵³ limit carry over into
+> ADR-0027. Kept as the record of why ids became `number`, and why the fix moved
+> to the generator.
+
 The generated ts-rs bindings declare entity ids as `bigint`, but every id arrives
 via `response.json()` / `JSON.parse`, which yield `number` — so the declared type
 never matched the runtime value, and callers papered over the gap with `Number(id)`

@@ -4,9 +4,9 @@
 
 The quick development testing module provides a comprehensive end-to-end testing framework for the web application's API endpoints. This module serves as an integration testing tool that validates the complete user workflow from authentication through core application functionality, ensuring all API endpoints work correctly together.
 
-The module implements a sequential testing pattern that mirrors real user interactions with the application. It performs user authentication, creates application entities (agents and conversations), and tests CRUD operations through the JSON-RPC API interface. This approach validates not only individual endpoint functionality but also the integration between different system components.
+The module implements a sequential testing pattern that mirrors real user interactions with the application. It performs user authentication, creates Jedi entities (a Post, a Caption and a Post Comment), tests write operations through the JSON-RPC API interface, and then deletes the rows it created. This approach validates not only individual endpoint functionality but also the integration between different system components.
 
-Key responsibilities include authenticating users through the login endpoint, testing agent creation and retrieval operations, validating conversation management functionality, testing message creation within conversations, and ensuring proper session management through logout operations.
+Key responsibilities include authenticating users through the login endpoint, testing Post creation, testing Caption and Post Comment creation on that Post, testing the Post Comment delete, ensuring proper session management through logout operations, and leaving the development database as it found it.
 
 ## API Summary
 
@@ -46,10 +46,12 @@ async fn main() -> Result<()>
 **Process Flow:**
 1. Initialize HTTP test client for localhost:8080
 2. Perform user authentication with demo credentials
-3. Create and retrieve an agent entity
-4. Create a conversation associated with the agent
-5. Add a message to the conversation
-6. Perform user logout to clean up session
+3. Create a Post
+4. Add a Caption to the Post
+5. Add a Comment to the Post
+6. Delete the Comment
+7. Perform user logout to clean up session
+8. Delete the Post through the model layer (the delete cascades to its Caption)
 
 **Example Usage:**
 ```bash
@@ -66,7 +68,7 @@ The quick development module follows a linear integration testing architecture t
 1. **HTTP Client Layer**: Uses httpc_test crate for HTTP request management and response validation
 2. **Authentication Layer**: Tests login/logout endpoints with credential validation
 3. **JSON-RPC Layer**: Validates JSON-RPC 2.0 protocol implementation for API operations
-4. **Entity Management Layer**: Tests CRUD operations for agents, conversations, and messages
+4. **Entity Management Layer**: Tests write operations for Posts, Captions, and Post Comments
 5. **Session Management Layer**: Verifies proper session lifecycle from login to logout
 
 ### Testing Flow Process
@@ -75,11 +77,12 @@ The testing process follows these sequential steps:
 
 1. **Client Initialization**: HTTP test client is created targeting the local development server
 2. **User Authentication**: Login request is sent with demo user credentials (username: "demo1", password: "welcome")
-3. **Agent Creation**: New agent entity is created using JSON-RPC create_agent method
-4. **Agent Retrieval**: Created agent is retrieved using get_agent method to verify creation success
-5. **Conversation Creation**: New conversation is created associated with the agent
-6. **Message Addition**: Message is added to the conversation using add_conv_msg method
+3. **Post Creation**: A new Post is created using the JSON-RPC create_post method
+4. **Caption Addition**: A Caption is added to the Post using the add_caption method
+5. **Comment Addition**: A Comment is added to the Post using the add_post_comment method
+6. **Comment Deletion**: The Comment is deleted using the delete_post_comment method
 7. **Session Cleanup**: User logout is performed to properly terminate the session
+8. **Data Cleanup**: The API has no Post delete, so the example connects to the database through a `ModelManager` and deletes the Post as root with `PostBmc::delete`; the delete cascades to its Caption
 
 ### API Testing Coverage
 
@@ -90,10 +93,10 @@ The module provides comprehensive testing coverage for key API endpoints:
 - **POST /api/logoff**: Session termination and cleanup
 
 #### JSON-RPC API Endpoints
-- **create_agent**: Agent entity creation with name parameter
-- **get_agent**: Agent retrieval by ID with existence validation
-- **create_conv**: Conversation creation with agent association and title
-- **add_conv_msg**: Message creation within conversation context
+- **create_post**: Post creation with its photo fields and at least one Category id
+- **add_caption**: Caption creation on a Post, with the Caption text
+- **add_post_comment**: Comment creation on a Post, with the Comment content
+- **delete_post_comment**: Comment deletion by id (owner-only)
 
 ### Request Pattern Analysis
 
@@ -140,7 +143,7 @@ The module implements integration testing best practices:
 
 #### End-to-End Validation
 - **Complete Workflow Testing**: Tests the entire user journey from login to logout
-- **Entity Relationship Testing**: Validates proper relationships between agents, conversations, and messages
+- **Entity Relationship Testing**: Validates proper relationships between a Post, its Caption, and its Comment
 - **API Contract Testing**: Ensures JSON-RPC API conforms to expected interface specifications
 
 #### Real Environment Testing
@@ -155,7 +158,7 @@ The module implements integration testing best practices:
 
 ## Flow Diagram
 
-![Authentication Middleware Flow Diagram](../../../services/web-server/docs/images/quick_dev.svg)
+![quick_dev Flow Diagram](../../../services/web-server/docs/images/quick_dev.svg)
 
 ## Implementation Notes
 
@@ -167,6 +170,7 @@ The module relies on several key dependencies for its testing functionality:
 - **httpc_test**: HTTP client testing library for making requests to the development server
 - **serde_json**: JSON serialization and deserialization with macro support for request building
 - **std::error::Error**: Standard error handling trait for flexible error management
+- **lib_core**: `ModelManager`, `Ctx::root_ctx()` and `PostBmc::delete` for the final cleanup; the database URL comes from `SERVICE_DB_URL` in `backend/.cargo/config.toml`
 
 ### Design Decisions
 
@@ -182,6 +186,7 @@ The module relies on several key dependencies for its testing functionality:
 2. **Local Server Only**: Hardcoded to localhost:8080 to prevent accidental production testing
 3. **Session Cleanup**: Properly logs out after testing to clean up authentication state
 4. **No Sensitive Data**: All test data uses generic placeholder content
+5. **Root Cleanup**: The final delete uses the root ctx, which bypasses the owner scope; it deletes only the Post id the run created
 
 ### Performance Considerations
 
@@ -205,7 +210,7 @@ When using the quick development module:
 
 - **Server State**: Ensure the development server is running on localhost:8080
 - **Database State**: Verify that demo user exists and test entities can be created
-- **Clean State**: Run tests from a clean database state for consistent results
+- **Clean State**: Each run deletes the rows it creates; if a step fails, the run stops and the rows created so far stay in the database
 - **Output Review**: Manually review printed responses to verify correct behavior
 - **Error Analysis**: Investigate any step failures to identify system issues
 - **Performance Monitoring**: Monitor response times to detect performance regressions

@@ -17,18 +17,20 @@ pub enum Access {
 
 // region:    --- Public projection (ADR-0021)
 
-/// Marker for an entity's **public projection**: the audit-free shape a public
-/// read returns on `/api/rpc-public` (under `root_ctx`). A public projection
-/// carries an entity's public-facing fields minus the audit columns (`cid` /
-/// `mid` actor ids, `ctime` / `mtime`), so an anonymous response never leaks
-/// internal storage detail.
+/// Marker for an entity's **public projection**: the shape a public read
+/// returns on `/api/rpc-public` (under `root_ctx`). A public projection carries
+/// an entity's public-facing fields minus the internal audit columns. It never
+/// carries the actor ids (`cid` / `mid`), so an anonymous response never leaks
+/// them. It carries a time (`ctime` / `mtime`) only when the UI shows that time
+/// (ADR-0021 addendum, #125).
 ///
 /// This is the shared convention ADR-0021 records: each entity names exactly one
 /// such type, and one read serves it. `CategoryPublic` is the first (#116);
 /// `PostView` and `AuthorRef` are the second (#117); `CaptionView` is the third
-/// (#118). A projection may **enrich**
-/// (an author-and-counts `PostView`) or **narrow** (`CategoryPublic`); either way
-/// it is audit-free. `base::list_public` requires this bound, so the full
+/// (#118); `HeroView` is the fourth (#119); `CommentView` is the fifth (#125).
+/// A projection may **enrich** (an author-and-counts `PostView`) or **narrow**
+/// (`CategoryPublic`); either way it carries no actor ids, and no time that the
+/// UI does not show. `base::list_public` requires this bound, so the full
 /// audit-bearing entity row can never be served from a public read by mistake.
 pub trait PublicProjection {}
 

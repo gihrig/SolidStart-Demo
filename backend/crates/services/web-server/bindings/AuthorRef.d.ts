@@ -10,4 +10,4 @@
  * User's `username`; the query aliases it so a rename of the wire field does not
  * touch the column.
  */
-export type AuthorRef = { id: bigint, name: string, avatar_url: string | null, };
+export type AuthorRef = { id: number, name: string, avatar_url: string | null, };

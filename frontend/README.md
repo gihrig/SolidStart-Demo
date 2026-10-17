@@ -70,6 +70,35 @@ Start a development server:
 vpr dev
 ```
 
+### Developing without the back-end
+
+The app reads all its data from the back-end. Every `jediApi` call in
+`src/lib/jedi/jedi-api.ts` is a back-end RPC. There is no mock switch yet;
+[#209](https://github.com/gihrig/SolidStart-Demo/issues/209) tracks a read-only
+one (`VITE_JEDI_MOCK`).
+
+The mock data still exists. `src/lib/jedi/data.json` mirrors the dev seed
+(`backend/sql/dev_initial/02-dev-seed.sql`), and the unit tests use it as a
+fixture. To read from it now, inject a stand-in through the existing seams:
+
+1. Write an object that satisfies the `JediApi` type and serves its reads from
+   `data.json`. The type-checker shows any call it misses. The last read-only
+   mock is a starting point: `git show 16462c9^:frontend/src/lib/jedi/jedi-api.ts`.
+   `data.json` has no comment counts, no Caption Comments, and its Comments
+   have `body`, not `contentHtml`, and no times, so the stand-in must fill these.
+2. Pass it to the view-model in `src/routes/index.tsx`:
+   `createJediFeed({ api: mockJediApi, guard: useDraftGuard() })`.
+3. `CreatePostDialog` and `AddCaptionForm` do not use the view-model's `api`.
+   Each takes its own `api` prop: `CreatePostDialog` reads the Categories and
+   creates a Post through it, and `AddCaptionForm` adds a Caption.
+
+Some parts still need the back-end:
+
+- Login and logoff: `AuthContext` calls `backendRpc.auth` directly, and loads
+  the profile through the `jediApi` singleton, not the injected stand-in.
+- The live feed: it connects to `ws://localhost:8080/ws`.
+- Likes and Comment writes, unless the stand-in implements them.
+
 ## Building
 
 Solid apps are built with _presets_, which optimize your project for deployment to different environments.
@@ -118,10 +147,12 @@ End to end tests are run with Playwright
 
 `vpr test:e2e` boots **both** servers — the back-end (release) and the front-end —
 runs Playwright, then stops the ones it started. **Postgres must already be
-running** (`cgs db` from `backend/`); if a back-end is already listening on
-`:8080` it is reused and left running. Back-end logs default to `warn` (quiet);
-raise them for a run with `E2E_RUST_LOG=debug vpr test:e2e`. Back-end build/stderr
-goes to `reports/e2e-backend.stderr.log`.
+running** (`cgs db` from `backend/`). If anything already listens on `:8080`,
+the script exits with an error and leaves it running: stop it first. Each run
+starts its own back-end, which rebuilds the DB from the seed. Back-end logs
+default to `warn` (quiet); raise them for a run with
+`E2E_RUST_LOG=debug vpr test:e2e`. Back-end build/stderr goes to
+`reports/e2e-backend.stderr.log`.
 
 Run end-to-end test with:
 
@@ -168,7 +199,6 @@ vpr test:e2e --update-snapshots
 - home.spec.ts - Home page functionality
 - about.spec.ts - About page functionality
 - readme.spec.ts - Readme page functionality
-- fullstack.spec.ts - FullStack page functionality
 - jedi.spec.ts - Jedi page functionality
 - not-found.spec.ts - 404 handling
 - navigation.spec.ts - Cross-page navigation flows

@@ -6,26 +6,19 @@
 //! [`WsState`](super::WsState) mints a channel-typed [`PokeReceipt<C>`], and
 //! [`PokedRpcResult::new`] consumes it — so a mutation cannot build its return
 //! value without having poked its own feed: no poke, no receipt, no compile. The
-//! marker `C` binds each mutation to the right feed: a `Convs` result cannot be
-//! built from an `Agents` receipt, so a wrong-feed poke is a type error.
+//! marker `C` binds each mutation to the right feed: a `Posts` result cannot be
+//! built from a `PostLike` receipt, so a wrong-feed poke is a type error.
 //!
 //! [`PokeReceipt::new`] is `pub(super)`, so only code inside `lib-web::ws` — the
 //! `broadcast_*` helpers — can mint one; an external handler cannot fabricate a
 //! receipt.
 
+use lib_rpc_core::RpcData;
 use serde::Serialize;
 use std::marker::PhantomData;
+use ts_rs::TS;
 
 // region:    --- Channel markers
-
-/// Channel marker: the global Conversation-list feed (`convs`).
-pub struct Convs;
-
-/// Channel marker: the global Agent-list feed (`agents`).
-pub struct Agents;
-
-/// Channel marker: one Conversation's message channel (`conv:{id}`).
-pub struct Conv;
 
 /// Channel marker: the global Post-list feed (`posts`).
 pub struct Posts;
@@ -36,6 +29,16 @@ pub struct PostCaption;
 /// Channel marker: one Post's like-count feed (`post_like:{post_id}`).
 pub struct PostLike;
 
+/// Channel marker: one Caption's like-count feed (`caption_like:{caption_id}`).
+pub struct CaptionLike;
+
+/// Channel marker: one Post's Comment thread (`post_comment:{post_id}`).
+pub struct PostComment;
+
+/// Channel marker: one Caption's Comment thread
+/// (`caption_comment:{caption_id}`).
+pub struct CaptionComment;
+
 // endregion: --- Channel markers
 
 // region:    --- Poke receipt
@@ -45,10 +48,12 @@ pub struct PostLike;
 /// [`WsState`](super::WsState) mints one — a handler cannot fabricate a receipt.
 /// [`PokedRpcResult::new`] consumes it, so a mutation must poke its own feed to
 /// build its return value (ADR-0016). The marker `C` binds the receipt to one feed
-/// (`Convs` / `Agents` / `Conv` / `Posts` / `PostCaption` / `PostLike`), so a
-/// wrong-feed poke is a type error. One exception: `broadcast_post_like` takes the
-/// write's outcome and mints its receipt without a poke when no row changed (an
-/// idempotent repeat, ADR-0016 addendum, #122).
+/// (`Posts` / `PostCaption` / `PostLike` / `CaptionLike` / `PostComment` /
+/// `CaptionComment`), so a wrong-feed poke is a
+/// type error. One exception: the like helpers (`broadcast_post_like`,
+/// `broadcast_caption_like`) take the write's
+/// outcome and mint their receipt without a poke when no row changed (an
+/// idempotent repeat, ADR-0016 addendum, #122, #123).
 pub struct PokeReceipt<C> {
 	_channel: PhantomData<C>,
 }
@@ -98,6 +103,15 @@ where
 	}
 }
 
+/// The RPC contract reads a mutation's `data` type through this, as it does a
+/// read's `DataRpcResult` (ADR-0029). The channel marker stays off the wire.
+impl<T, C> RpcData for PokedRpcResult<T, C>
+where
+	T: Serialize + TS + 'static,
+{
+	type Data = T;
+}
+
 // endregion: --- Poked RPC result
 
 // region:    --- Tests
@@ -114,7 +128,7 @@ mod tests {
 	#[test]
 	fn poked_rpc_result_serializes_as_data_only() {
 		let ws = WsState::new();
-		let receipt = ws.broadcast_conv_update(); // PokeReceipt<Convs>
+		let receipt = ws.broadcast_posts_update(); // PokeReceipt<Posts>
 		let result = PokedRpcResult::new(42_i64, receipt);
 		assert_eq!(
 			serde_json::to_value(result).unwrap(),

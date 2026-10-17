@@ -21,12 +21,19 @@ interface AuthContextValue {
   logoff: () => Promise<void>;
   pending: Accessor<boolean>;
   error: () => string | null;
+  /** Clears the login error, so a reopened login dialog shows no stale failure (#128). */
+  resetError: () => void;
   /** The logged-in User's profile name (the login username while it loads);
    *  undefined when logged out. */
   displayName: Accessor<string | undefined>;
   /** The logged-in User's avatar; undefined when logged out, still loading, or
    *  when the User has none (an empty `SafeUrl`). */
   avatarUrl: Accessor<SafeUrl | undefined>;
+  /** The logged-in User's id, from the same profile (#123); undefined when
+   *  logged out, still loading, or when the profile fails. The Jedi route uses
+   *  it to show Edit / Delete to the Owner only. This only hides buttons; the
+   *  back-end owns enforcement. */
+  userId: Accessor<number | undefined>;
 }
 
 const AuthContext = createContext<AuthContextValue>();
@@ -52,6 +59,7 @@ export const AuthProvider: ParentComponent = (props) => {
   const displayName = () =>
     isAuthenticated() ? (profile.latest?.name ?? username() ?? undefined) : undefined;
   const avatarUrl = () => (isAuthenticated() ? profile.latest?.avatarUrl : undefined);
+  const userId = () => (isAuthenticated() ? profile.latest?.id : undefined);
 
   // The pending + error choreography is owned by createRpcAction; the success
   // step runs inside so auth state is set only on success. `login` stays void —
@@ -93,8 +101,10 @@ export const AuthProvider: ParentComponent = (props) => {
         logoff,
         pending: loginAction.pending,
         error: loginAction.error,
+        resetError: loginAction.reset,
         displayName,
         avatarUrl,
+        userId,
       }}
     >
       {props.children}

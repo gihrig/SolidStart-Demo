@@ -11,6 +11,7 @@
 //!
 
 use serde::Serialize;
+use ts_rs::TS;
 
 #[derive(Serialize)]
 pub struct DataRpcResult<T>
@@ -27,4 +28,17 @@ where
 	fn from(val: T) -> Self {
 		Self { data: val }
 	}
+}
+
+/// The type of an RPC result's `data`, for the RPC contract export (ADR-0029).
+/// The front-end typed call resolves to this type.
+pub trait RpcData {
+	type Data: TS + 'static;
+}
+
+impl<T> RpcData for DataRpcResult<T>
+where
+	T: Serialize + TS + 'static,
+{
+	type Data = T;
 }

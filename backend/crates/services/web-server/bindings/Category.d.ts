@@ -5,4 +5,4 @@
  * (ADR-0011). `icon` is an opaque key the back-end never interprets; the
  * front-end maps it to a sprite name with a fallback.
  */
-export type Category = { id: bigint, name: string, icon: string, cid: bigint, ctime: string, mid: bigint, mtime: string, };
+export type Category = { id: number, name: string, icon: string, cid: number, ctime: string, mid: number, mtime: string, };

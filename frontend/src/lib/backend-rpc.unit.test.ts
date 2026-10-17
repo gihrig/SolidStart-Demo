@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
-import { auth, agent, category, conv, convMsg, backendRpc, createRpcClient } from "./backend-rpc";
+import { auth, authenticatedRpc, backendRpc, createRpcClient, publicRpc } from "./backend-rpc";
 
 // Test credentials sourced from .env.test (VITE_-prefixed vars reach import.meta.env).
 const TEST_USERNAME = import.meta.env.VITE_TEST_USERNAME;
@@ -123,16 +123,16 @@ describe("auth.logoff", () => {
   });
 });
 
-// -- rpcCall (via agent methods) --
+// -- rpcCall (via the typed calls) --
 
 describe("rpcCall core behaviour", () => {
   it("sends POST to /api/rpc with JSON-RPC envelope", async () => {
     const fetchMock = vi.fn(() =>
-      Promise.resolve(mockResponse(rpcSuccess({ id: 1, name: "Test Agent" }))),
+      Promise.resolve(mockResponse(rpcSuccess({ id: 1, like_count: 0, liked: false }))),
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await agent.create({ name: "Test Agent" });
+    await authenticatedRpc("get_post_like", { id: 1 });
 
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:8080/api/rpc",
@@ -144,21 +144,21 @@ describe("rpcCall core behaviour", () => {
     );
     const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
     expect(body.jsonrpc).toBe("2.0");
-    expect(body.method).toBe("create_agent");
-    expect(body.params).toEqual({ data: { name: "Test Agent" } });
+    expect(body.method).toBe("get_post_like");
+    expect(body.params).toEqual({ id: 1 });
     expect(typeof body.id).toBe("number");
   });
 
   it("returns result.data on success", async () => {
-    const agentData = { id: 42, name: "My Agent" };
+    const likeData = { id: 42, like_count: 3, liked: true };
     vi.stubGlobal(
       "fetch",
-      vi.fn(() => Promise.resolve(mockResponse(rpcSuccess(agentData)))),
+      vi.fn(() => Promise.resolve(mockResponse(rpcSuccess(likeData)))),
     );
 
-    const result = await agent.create({ name: "My Agent" });
+    const result = await authenticatedRpc("get_post_like", { id: 42 });
 
-    expect(result).toEqual(agentData);
+    expect(result).toEqual(likeData);
   });
 
   it("throws on HTTP error (non-ok response)", async () => {
@@ -167,18 +167,20 @@ describe("rpcCall core behaviour", () => {
       vi.fn(() => Promise.resolve(mockResponse({}, false, 500))),
     );
 
-    await expect(agent.list()).rejects.toThrow("HTTP 500");
+    await expect(publicRpc("list_categories")).rejects.toThrow("HTTP 500");
   });
 
   it("throws RPC error detail when response contains error with detail", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(() =>
-        Promise.resolve(mockResponse(rpcError("Method not found", "create_agent not registered"))),
+        Promise.resolve(mockResponse(rpcError("Method not found", "get_post_like not registered"))),
       ),
     );
 
-    await expect(agent.create({ name: "X" })).rejects.toThrow("create_agent not registered");
+    await expect(authenticatedRpc("get_post_like", { id: 1 })).rejects.toThrow(
+      "get_post_like not registered",
+    );
   });
 
   it("falls back to error.message when no detail", async () => {
@@ -187,7 +189,7 @@ describe("rpcCall core behaviour", () => {
       vi.fn(() => Promise.resolve(mockResponse(rpcError("Entity not found")))),
     );
 
-    await expect(agent.get(1)).rejects.toThrow("Entity not found");
+    await expect(authenticatedRpc("get_post_like", { id: 1 })).rejects.toThrow("Entity not found");
   });
 
   it("numbers requests from 1 within a fresh client", async () => {
@@ -195,8 +197,8 @@ describe("rpcCall core behaviour", () => {
     vi.stubGlobal("fetch", fetchMock);
     const client = createRpcClient();
 
-    await client.agent.list();
-    await client.agent.list();
+    await client.publicRpc("list_categories");
+    await client.publicRpc("list_categories");
 
     const id1 = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body).id;
     const id2 = JSON.parse((fetchMock.mock.calls[1] as any[])[1].body).id;
@@ -208,8 +210,8 @@ describe("rpcCall core behaviour", () => {
     const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
     vi.stubGlobal("fetch", fetchMock);
 
-    await createRpcClient().agent.list();
-    await createRpcClient().agent.list();
+    await createRpcClient().publicRpc("list_categories");
+    await createRpcClient().publicRpc("list_categories");
 
     const idA = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body).id;
     const idB = JSON.parse((fetchMock.mock.calls[1] as any[])[1].body).id;
@@ -218,146 +220,62 @@ describe("rpcCall core behaviour", () => {
   });
 });
 
-// -- agent methods --
+// -- typed RPC calls (the RPC contract, ADR-0029) --
 
-describe("agent", () => {
-  it("agent.get sends get_agent with numeric id", async () => {
-    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess({ id: 5, name: "A" }))));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await agent.get(5);
-
-    const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
-    expect(body.method).toBe("get_agent");
-    expect(body.params).toEqual({ id: 5 });
-  });
-
-  it("agent.list sends list_agents", async () => {
-    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await agent.list();
-
-    const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
-    expect(body.method).toBe("list_agents");
-  });
-
-  it("agent.update sends update_agent with id and data", async () => {
+describe("authenticatedRpc / publicRpc", () => {
+  it("authenticatedRpc posts the method and params to /api/rpc", async () => {
     const fetchMock = vi.fn(() =>
-      Promise.resolve(mockResponse(rpcSuccess({ id: 3, name: "Updated" }))),
+      Promise.resolve(mockResponse(rpcSuccess({ id: 2, like_count: 4, liked: true }))),
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await agent.update(3, { name: "Updated" });
+    const like = await authenticatedRpc("get_post_like", { id: 2 });
 
+    expect((fetchMock.mock.calls[0] as any[])[0]).toBe("http://localhost:8080/api/rpc");
     const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
-    expect(body.method).toBe("update_agent");
-    expect(body.params).toEqual({ id: 3, data: { name: "Updated" } });
+    expect(body.method).toBe("get_post_like");
+    expect(body.params).toEqual({ id: 2 });
+    expect(like).toEqual({ id: 2, like_count: 4, liked: true });
   });
 
-  it("agent.delete sends delete_agent with id", async () => {
-    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess({ id: 3 }))));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await agent.delete(3);
-
-    const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
-    expect(body.method).toBe("delete_agent");
-    expect(body.params).toEqual({ id: 3 });
-  });
-});
-
-// -- category methods --
-
-describe("category", () => {
-  it("category.list sends list_categories to the public RPC surface", async () => {
+  it("publicRpc posts the method to /api/rpc-public, with no params for a list", async () => {
     const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
     vi.stubGlobal("fetch", fetchMock);
 
-    await category.list();
+    await publicRpc("list_categories");
 
     // The taxonomy is public, so it posts to /api/rpc-public (no auth), not /api/rpc.
     expect((fetchMock.mock.calls[0] as any[])[0]).toBe("http://localhost:8080/api/rpc-public");
     const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
     expect(body.method).toBe("list_categories");
-  });
-});
-
-// -- conv methods --
-
-describe("conv", () => {
-  it("conv.create sends create_conv", async () => {
-    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess({ id: 10 }))));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await conv.create({ agent_id: 1, title: "My Conv" });
-
-    const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
-    expect(body.method).toBe("create_conv");
-    expect(body.params).toEqual({ data: { agent_id: 1, title: "My Conv" } });
+    expect(body).not.toHaveProperty("params");
   });
 
-  it("conv.list sends list_convs filtered by agent_id", async () => {
-    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await conv.list(1);
-
-    const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
-    expect(body.method).toBe("list_convs");
-    // The ModQL array shape the back-end's OneOrMany<Vec<ConvFilter>> actually filters
-    // on. The prior `{ filters: { agent_id: 1 } }` object was coerced to an empty
-    // filter (every field None), returning every Agent's Convs (arch-review C1).
-    expect(body.params).toEqual({ filters: [{ agent_id: { $eq: 1 } }] });
-  });
-
-  it("conv.update sends update_conv", async () => {
-    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess({ id: 10 }))));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await conv.update(10, { title: "Renamed" });
-
-    const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
-    expect(body.method).toBe("update_conv");
-    expect(body.params).toEqual({ id: 10, data: { title: "Renamed" } });
-  });
-
-  it("conv.delete sends delete_conv", async () => {
-    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess({ id: 10 }))));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await conv.delete(10);
-
-    const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
-    expect(body.method).toBe("delete_conv");
-    expect(body.params).toEqual({ id: 10 });
-  });
-});
-
-// -- convMsg methods --
-
-describe("convMsg", () => {
-  it("convMsg.add sends add_conv_msg with data", async () => {
-    const fetchMock = vi.fn(() =>
-      Promise.resolve(mockResponse(rpcSuccess({ id: 100, content: "Hello" }))),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    await convMsg.add({ conv_id: 10, content: "Hello" });
-
-    const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
-    expect(body.method).toBe("add_conv_msg");
-    expect(body.params).toEqual({ data: { conv_id: 10, content: "Hello" } });
+  // Each `@ts-expect-error` pins one `tsc` failure: if the call ever compiles,
+  // the unused directive fails `tsc`. The function only type-checks; no test
+  // calls it, so it sends no request.
+  it("rejects a wrong call at compile time", () => {
+    const typeChecks = async () => {
+      // @ts-expect-error a wrong method name
+      await publicRpc("get_posts", { id: 1 });
+      // @ts-expect-error a wrong params shape
+      await authenticatedRpc("get_post_like", { post_id: 2 });
+      const posts = await publicRpc("list_posts");
+      // @ts-expect-error a wrong result use: `list_posts` returns a list
+      expect(posts.title).toBeUndefined();
+      // @ts-expect-error a method on the wrong surface
+      await publicRpc("get_post_like", { id: 2 });
+      // @ts-expect-error a list's `filters` stay on the back-end (#176)
+      await publicRpc("list_posts", { filters: [] });
+    };
+    expect(typeChecks).toBeTypeOf("function");
   });
 });
 
 // -- backendRpc unified export --
 
 describe("backendRpc unified export", () => {
-  it("exports auth, agent, conv, and convMsg", () => {
-    expect(backendRpc).toHaveProperty("auth");
-    expect(backendRpc).toHaveProperty("agent");
-    expect(backendRpc).toHaveProperty("conv");
-    expect(backendRpc).toHaveProperty("convMsg");
+  it("exports auth and the typed calls", () => {
+    expect(Object.keys(backendRpc).sort()).toEqual(["auth", "authenticatedRpc", "publicRpc"]);
   });
 });

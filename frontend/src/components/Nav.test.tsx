@@ -1,7 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
-import { render, screen, within } from "@solidjs/testing-library";
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vite-plus/test";
+import { render, screen, within, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Route } from "@solidjs/router";
+import { stubDialogModal } from "~/lib/test-utils";
 import { AuthProvider, useAuth } from "./AuthContext";
+import { DraftGuardProvider, useDraftGuard } from "./DraftGuardContext";
 import Nav from "./Nav";
 
 // The nav reads useAuth(); AuthProvider's login/logoff hit backend-rpc, mocked
@@ -43,6 +46,8 @@ const renderNav = (withLogin = false) =>
     </AuthProvider>
   ));
 
+beforeAll(stubDialogModal);
+
 describe("<Nav />", () => {
   beforeEach(() => {
     profileGetMock.mockReset();
@@ -61,7 +66,7 @@ describe("<Nav />", () => {
     expect(brand).toHaveAttribute("href", "/");
   });
 
-  it("renders About, Readme and FullStack in the main nav", () => {
+  it("renders About and Readme in the main nav", () => {
     renderNav();
     const mainNav = screen.getByRole("navigation", { name: "Main" });
     expect(within(mainNav).getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
@@ -69,14 +74,12 @@ describe("<Nav />", () => {
       "href",
       "/readme",
     );
-    expect(within(mainNav).getByRole("link", { name: "FullStack" })).toHaveAttribute(
-      "href",
-      "/fullstack",
-    );
+    expect(within(mainNav).getAllByRole("link")).toHaveLength(2);
   });
 
-  it("drops the Home, Create Post and Jedi links", () => {
+  it("drops the Home, Create Post, Jedi and FullStack links", () => {
     renderNav();
+    expect(screen.queryByRole("link", { name: "FullStack" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Home" })).not.toBeInTheDocument();
     expect(screen.queryByText("Create Post")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Jedi" })).not.toBeInTheDocument();
@@ -128,12 +131,12 @@ describe("<Nav />", () => {
       expect(screen.queryByRole("img")).not.toBeInTheDocument();
     });
 
-    it("offers My Profile + Log In → /fullstack when logged out", async () => {
+    it("offers My Profile + Log In when logged out", async () => {
       const user = userEvent.setup();
       renderNav();
       await user.click(screen.getByRole("button", { name: /profile menu/i }));
       expect(screen.getByRole("button", { name: /my profile/i })).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: /log in/i })).toHaveAttribute("href", "/fullstack");
+      expect(screen.getByRole("button", { name: /log in/i })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /log out/i })).not.toBeInTheDocument();
     });
 
@@ -146,7 +149,39 @@ describe("<Nav />", () => {
       await user.click(screen.getByRole("button", { name: /do-login/i }));
       await user.click(screen.getByRole("button", { name: /profile menu/i }));
       expect(await screen.findByRole("button", { name: /log out/i })).toBeInTheDocument();
-      expect(screen.queryByRole("link", { name: /log in/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /log in/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("login dialog (#128)", () => {
+    it("a Log In click closes the dropdown, then opens the login dialog", async () => {
+      const user = userEvent.setup();
+      renderNav();
+      const panel = document.getElementById("profile-menu")! as HTMLElement & { inert: boolean };
+      await user.click(screen.getByRole("button", { name: /profile menu/i }));
+
+      await user.click(screen.getByRole("button", { name: /log in/i }));
+
+      expect(panel.inert).toBe(true);
+      expect((screen.getByRole("dialog", { name: "Login" }) as HTMLDialogElement).open).toBe(true);
+    });
+
+    it("a successful login closes the dialog, shows the name, and returns focus to the Profile menu", async () => {
+      profileGetMock.mockResolvedValue({ id: 1000, name: "demo1", avatarUrl: "" });
+      const user = userEvent.setup();
+      renderNav();
+      const trigger = screen.getByRole("button", { name: /profile menu/i });
+      await user.click(trigger);
+      await user.click(screen.getByRole("button", { name: /log in/i }));
+      const dialog = screen.getByRole("dialog", { name: "Login" }) as HTMLDialogElement;
+
+      await user.type(within(dialog).getByLabelText(/username/i), "demo1");
+      await user.type(within(dialog).getByLabelText(/password/i), "welcome");
+      await user.click(within(dialog).getByRole("button", { name: /^login$/i }));
+
+      await waitFor(() => expect(dialog.open).toBe(false));
+      expect(await within(trigger).findByText("demo1")).toBeInTheDocument();
+      expect(document.activeElement).toBe(trigger);
     });
   });
 
@@ -199,15 +234,12 @@ describe("<Nav />", () => {
       expect(btn.querySelector("use")!.getAttribute("href")).toContain("menu");
     });
 
-    it("lists About/Readme/FullStack in the mobile menu", () => {
+    it("lists About/Readme in the mobile menu", () => {
       renderNav();
       const menu = screen.getByRole("navigation", { name: /site menu/i });
       expect(within(menu).getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
       expect(within(menu).getByRole("link", { name: "Readme" })).toHaveAttribute("href", "/readme");
-      expect(within(menu).getByRole("link", { name: "FullStack" })).toHaveAttribute(
-        "href",
-        "/fullstack",
-      );
+      expect(within(menu).getAllByRole("link")).toHaveLength(2);
     });
   });
 
@@ -241,5 +273,50 @@ describe("<Nav />", () => {
       expect(panel.inert).toBe(true);
       expect(panel).toHaveClass("pointer-events-none");
     });
+  });
+});
+
+describe("<Nav /> — the Draft guard (ADR-0030)", () => {
+  beforeEach(() => {
+    profileGetMock.mockReset();
+    setupMatchMedia(false); // desktop
+  });
+
+  // A form that holds a Draft, as a Comment compose box with text would.
+  function DraftHolder() {
+    useDraftGuard().report(Symbol("test-draft"), true);
+    return null;
+  }
+
+  // The app shell: the guard sits inside the Router, as in app.tsx.
+  const renderShell = () =>
+    render(() => (
+      <MemoryRouter
+        root={(props) => (
+          <AuthProvider>
+            <DraftGuardProvider>
+              <Nav />
+              <LoginTrigger />
+              {props.children}
+            </DraftGuardProvider>
+          </AuthProvider>
+        )}
+      >
+        <Route path="/" component={DraftHolder} />
+      </MemoryRouter>
+    ));
+
+  it("a logoff click with a Draft shows the dialog, and Discard logs off", async () => {
+    const user = userEvent.setup();
+    renderShell();
+    await user.click(screen.getByRole("button", { name: /do-login/i }));
+    await user.click(screen.getByRole("button", { name: /profile menu/i }));
+
+    await user.click(await screen.findByRole("button", { name: /log out/i }));
+    const dialog = screen.getByRole("dialog", { name: "You have unsaved changes. Discard them?" });
+    expect(screen.getByRole("button", { name: /log out/i }), "still logged in").toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("button", { name: "Discard" }));
+    expect(await screen.findByRole("button", { name: /log in/i })).toBeInTheDocument();
   });
 });

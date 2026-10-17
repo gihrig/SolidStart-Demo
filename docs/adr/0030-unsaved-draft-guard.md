@@ -1,0 +1,164 @@
+# Unsaved Drafts are guarded by one app-level guard
+
+#124 adds the Comment thread panel to `FeaturedPost`. A Post change, a panel close, a
+page move or a logoff unmounts its forms, and the typed text is gone. The Add Caption
+form had the same gap before #124: `FeaturedPost` closes it when the Post changes.
+Later forms will have it too, for example #127 Caption Comments and #187 edits.
+
+## Decisions
+
+**A Draft is the unsaved text of a form.** A Comment compose box or an Add Caption form
+holds a Draft when its text is not blank after a trim. An open Comment edit holds a
+Draft when its text differs from the saved Comment.
+
+**A form reports yes or no.** A form calls `useDraft({ dirty, scope, notice })`. The
+hook makes the form's key, a `Symbol`, so two forms never share a key. An effect
+reports `dirty()` to the guard each time it changes, so a change of the saved text also
+reports. "Cancel" calls `clear()`. The form keeps its own text. The guard holds only the
+keys with a Draft, each with its scope.
+
+**Every user-started move goes through `guard.attempt(move)`.** With no Draft, the
+move runs at once. With a Draft, the move waits in `pendingMove`, and the UI shows the
+confirm dialog. "Discard" calls `confirmMove()`, which runs the move. "Keep editing"
+calls `cancelMove()`. The guarded moves are:
+
+- a Top Photo click;
+- a category change that changes the selected Post;
+- a click that closes the Comments panel;
+- the logoff;
+- an in-app route move.
+
+A move that unmounts only one group of forms names the scope of that group:
+`attempt(move, scope)`. It asks only about the Drafts in that scope, and "Discard" drops
+only those Drafts. The Comments panel close uses `postComments.draftScope`, so an Add
+Caption Draft does not block it.
+
+**One guard per app.** `createDraftGuard` (`lib/createDraftGuard.ts`) builds it.
+`DraftGuardProvider` in `app.tsx` shares it. The `Nav` and the Jedi view-model use the
+same guard, so a later route gets the guard with no new wiring.
+
+**A Draft holds the shown Post.** While a Draft exists, a re-rank does not move the
+article. The view-model keeps the Post that was shown when the first Draft started.
+When the last Draft ends, the article follows the ranking again. A held Post that
+leaves the list is a forced discard.
+
+**Page moves use the router and the browser.** The router calls the guard through
+`useBeforeLeave`: it calls `preventDefault()`, and "Discard" calls `retry(true)`. A
+reload, a tab close or an external link fires `beforeunload`. The guard listens to
+`beforeunload` only while a Draft exists. The browser then shows its own text.
+
+**A forced discard shows a notice.** An Event can remove the subject of a Draft, for
+example a Comment under edit that its Owner deletes in another tab. The guard cannot
+block that move. The UI shows "This Comment was deleted. Your unsaved changes were
+discarded." with one "OK" button. If a move waits, the notice cancels it, and the
+user stays where they were. When the form cannot name the cause, the notice is "Your
+unsaved changes were discarded." An example is a session that ends in another tab.
+
+**One dialog component.** `ConfirmDialog` uses a native `<dialog>` with `showModal()`,
+as `CreatePostDialog` does. The guard text is "You have unsaved changes. Discard
+them?". "Keep editing" is the default button, and Escape means "Keep editing". The
+other button is "Discard". Without a `cancelLabel`, the dialog shows one "OK" button
+and works as the notice.
+
+## Considered and rejected
+
+- **`window.confirm`.** It cannot follow the theme, and it blocks the page's script
+  while open. A standard project must not teach it.
+- **`useDisclosure` for a panel that holds a Draft.** Escape and a click outside the
+  panel close it, and either one drops the Draft.
+- **The guard inside `createJediFeed`.** The `Nav` logoff and other routes cannot
+  reach it.
+- **The Draft text in the view-model.** Every form becomes controlled, and the guard
+  needs only yes or no.
+- **One dialog text per form.** Two forms can hold Drafts at the same time.
+- **Run the waiting move after a forced discard.** Another Draft can still exist, and
+  the move would discard it without a question.
+- **One question for every move.** A panel close then asks about an Add Caption Draft
+  that the close does not unmount.
+- **Guard only `beforeunload`.** An in-app link does not unload the page, so it does
+  not fire `beforeunload`.
+
+## Consequences
+
+- A new form with free text reports its Draft. A new move that can unmount a form
+  goes through `guard.attempt`.
+- Post edit and delete arrive with #187. Then a deleted Post or Caption, or a Post
+  that leaves the selected category, is a forced discard, and it must show the
+  notice. #187 records this.
+- The Add Caption form joins the guard in #124.
+
+## Addendum (2026-10-13) — the Caption thread holds its Caption (#127)
+
+The Caption Comments panel opens from the Caption line, for the Caption shown. By
+default, the Caption shown is the top-ranked Caption, so a Like on another Caption
+can change it.
+
+**Decision.** An open Caption thread holds the Caption shown. While the panel is
+open, a re-rank does not change the Caption shown. After a close, the Caption line
+follows the ranking again. A pick of another Caption in Top Captions closes the
+panel, so it is a guarded move in the panel's scope. A pick of the Caption already
+shown is not a guarded move.
+
+**Difference from the Post hold.** A Draft holds the Post. The open panel holds the
+Caption, with or without a Draft. Without this hold, a re-rank would close a thread
+that the User is reading.
+
+## Addendum (2026-10-16) — Post and Caption edits and deletes (#187)
+
+#187 lets the Owner edit and delete a Post or a Caption. The consequences above
+gave #187 two Event causes. One is a deleted Post or Caption. The other is a Post
+that leaves the selected Category. #187 also adds a Post edit and a Caption edit.
+
+**A deleted subject is a forced discard.** The notice names the subject: "This Post
+was deleted. Your unsaved changes were discarded." or "This Caption was deleted.
+Your unsaved changes were discarded." When the Post is gone, every form on it shows
+the Post notice, the Caption forms too. The view-model finds the cause after a
+refetch. A held Post that is not in the full list was deleted. A held Caption that
+is not in its Post's list was deleted.
+
+**A Category leave asks.** This replaces the Category case of the consequence
+above. An Event can move the held Post out of the selected Category. Then the Post
+stays shown, and the guard asks: "This Post is no longer in <Category>. Your
+unsaved changes may not apply." "Keep editing" keeps every Draft and is the
+default. Escape means "Keep editing". "Discard" drops every Draft. The question
+cancels a waiting move, as a notice does. When the last Draft ends, the article
+shows the top-ranked Post in the Category. A User's own Category change does not
+keep the held Post. It asks first, as before. So "A held Post that leaves the list
+is a forced discard" now applies only to a deleted Post.
+
+**An open edit holds its subject.** An open Post edit holds the shown Post. An open
+Caption edit holds the Caption shown. Each holds with or without a Draft, as the
+open Caption thread does. An edit holds a Draft while a field differs from the
+saved entity. Save sends only the changed fields, so a remote edit of another field
+stays.
+
+**A move names every scope that it unmounts.** `attempt(move, scopes)` takes a
+list. A Caption pick names the Caption edit scope and the Caption thread scope. A
+close of the Caption Comments panel names only the thread scope. A move with no
+scope still asks about every Draft.
+
+**The Owner's own delete asks once.** If the delete removes a Draft, the delete
+question adds "Your unsaved changes will be discarded." The client drops those
+Drafts when the Owner confirms. The poke can arrive before the delete result
+([ADR-0016](0016-poke-rule-typed-receipt.md)), so the drop cannot wait. If the
+delete fails, the forms keep their text, and the guard holds their Drafts again.
+
+**The Owner's own Category edit keeps the Post shown.** A save can remove the
+selected Category from the Post. The client then switches the filter to "All" when
+it sends the save. So the Owner sees the edited Post, and no question shows.
+
+**A viewer without a Draft hears the cause.** The Jedi route has one polite live
+region. It says "This Post was deleted.", "This Caption was deleted." or "This Post
+is no longer in <Category>." No dialog shows, so it does not stop a User who is
+only reading.
+
+**The New Post dialog reports no Draft.** The Nav keeps the dialog mounted across a
+route move. A route move would then ask about a Draft that the move does not
+remove. The edit mode of the dialog reports its Draft.
+
+**Rejected.** A forced discard for a Category leave: the Post still exists, so the
+Draft can still apply. One notice text for every cause: the Category text would say
+that the Post was deleted. The labels "Save" and "Delete" for the question: in this
+app, "Save" submits and "Delete" removes a saved row. Two dialogs for the Owner's
+delete: one decision gets one question. A form that reports two scopes: each thread
+form would need to know its parent.

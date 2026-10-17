@@ -32,10 +32,11 @@ export interface PostView {
   commentCount: number;
 }
 
-/** The viewer's like state of one Post (#122): the live count, and whether the
- *  logged-in viewer likes it. The anonymous `PostView` cannot carry `liked`. */
-export interface PostLike {
-  postId: number;
+/** The viewer's like state of one Like target, a Post (#122) or a Caption
+ *  (#123): the live count, and whether the logged-in viewer likes it. `id` is
+ *  the target's id. The anonymous `PostView` cannot carry `liked`. */
+export interface Like {
+  id: number;
   likeCount: number;
   liked: boolean;
 }
@@ -52,6 +53,10 @@ export interface PostDraft {
   categoryIds: number[];
 }
 
+/** The changed fields of a Post edit (#187): the seam maps them to the wire
+ *  `PostForUpdate`. The photo never changes, so there is no `imageSrc`. */
+export type PostChanges = Partial<Omit<PostDraft, "imageSrc">>;
+
 /** Hero as returned by the seam: its URL field is sanitized. There is no CTA
  *  href: the CTA runs fixed front-end code (#119, ADR-0011 addendum). */
 export interface HeroView {
@@ -67,4 +72,21 @@ export interface CaptionView {
   author: AuthorRef;
   text: string;
   likeCount: number;
+  /** The derived count of the Caption's Comments (#127). */
+  commentCount: number;
+}
+
+/** One Comment in a thread (#124, #125). `parentId` is the id of the Post or
+ *  the Caption that holds the thread (#127). `author.id` gates the Edit / Delete buttons: a content
+ *  entity's author is its Owner. `contentHtml` is the server's sanitized render
+ *  of the stored markdown (#126); a consumer injects it only through the
+ *  `sanitizeCommentHtml` backstop. `ctime` and `mtime` are the wire RFC 3339
+ *  times; `mtime` differs from `ctime` after an edit. */
+export interface CommentView {
+  id: number;
+  parentId: number;
+  author: AuthorRef;
+  contentHtml: string;
+  ctime: string;
+  mtime: string;
 }

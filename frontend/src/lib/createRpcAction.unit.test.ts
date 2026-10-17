@@ -100,4 +100,19 @@ describe("createRpcAction", () => {
       dispose();
     });
   });
+
+  it("reset() clears a prior error without a run (a reopened dialog, #128)", async () => {
+    await createRoot(async (dispose) => {
+      const action = createRpcAction(async () => {
+        throw new Error("stale failure");
+      });
+
+      await action.run(undefined);
+      expect(action.error()).toBe("stale failure");
+
+      action.reset();
+      expect(action.error()).toBeNull();
+      dispose();
+    });
+  });
 });

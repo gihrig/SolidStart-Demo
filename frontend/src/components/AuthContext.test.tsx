@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { createSignal } from "solid-js";
 import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
+import { silenceWarn } from "~/lib/test-utils";
 import { AuthProvider, useAuth } from "./AuthContext";
 
 vi.mock("~/lib/backend-rpc", () => ({
@@ -34,6 +35,7 @@ function AuthTestConsumer() {
       <span data-testid="username">{auth.username() ?? "none"}</span>
       <span data-testid="display-name">{auth.displayName?.() ?? "none"}</span>
       <span data-testid="avatar-url">{auth.avatarUrl?.() ?? ""}</span>
+      <span data-testid="user-id">{auth.userId?.() ?? "none"}</span>
       <span data-testid="error">{auth.error() ?? "none"}</span>
       <span data-testid="pending">{auth.pending() ? "yes" : "no"}</span>
       <span data-testid="threw">{threw()}</span>
@@ -49,6 +51,7 @@ function AuthTestConsumer() {
         Login
       </button>
       <button onClick={() => auth.logoff()}>Logoff</button>
+      <button onClick={() => auth.resetError()}>Reset error</button>
     </div>
   );
 }
@@ -116,6 +119,23 @@ describe("AuthContext", () => {
     expect(screen.getByTestId("username").textContent).toBe("none");
   });
 
+  it("resetError() clears a failed login's error (a reopened login dialog, #128)", async () => {
+    const { backendRpc } = await import("~/lib/backend-rpc");
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    vi.mocked(backendRpc.auth.login).mockRejectedValueOnce(new Error("Invalid credentials"));
+    const user = userEvent.setup();
+    renderWithAuth();
+
+    await user.click(screen.getByRole("button", { name: /^login$/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId("error").textContent).toBe("Invalid credentials");
+    });
+
+    await user.click(screen.getByRole("button", { name: /reset error/i }));
+
+    expect(screen.getByTestId("error").textContent).toBe("none");
+  });
+
   it("pending is true while login is in flight, then false", async () => {
     const { backendRpc } = await import("~/lib/backend-rpc");
     let resolveLogin!: (v: { result: { success: boolean } }) => void;
@@ -155,6 +175,7 @@ describe("AuthContext", () => {
       await Promise.resolve();
       expect(screen.getByTestId("display-name").textContent).toBe("none");
       expect(screen.getByTestId("avatar-url").textContent).toBe("");
+      expect(screen.getByTestId("user-id").textContent).toBe("none");
       expect(profileGetMock).not.toHaveBeenCalled();
     });
 
@@ -171,6 +192,18 @@ describe("AuthContext", () => {
       expect(profileGetMock).toHaveBeenCalledTimes(1);
     });
 
+    it("exposes the logged-in User's id from the profile, for the Owner check (#123)", async () => {
+      const user = userEvent.setup();
+      renderWithAuth();
+      expect(screen.getByTestId("user-id").textContent).toBe("none");
+
+      await user.click(screen.getByRole("button", { name: /^login$/i }));
+
+      await waitFor(() =>
+        expect(screen.getByTestId("user-id").textContent).toBe(String(DEMO1_PROFILE.id)),
+      );
+    });
+
     it("clears the identity on logoff", async () => {
       const user = userEvent.setup();
       renderWithAuth();
@@ -183,12 +216,13 @@ describe("AuthContext", () => {
 
       await waitFor(() => expect(screen.getByTestId("display-name").textContent).toBe("none"));
       expect(screen.getByTestId("avatar-url").textContent).toBe("");
+      expect(screen.getByTestId("user-id").textContent).toBe("none");
     });
 
     it("falls back to the login username with no avatar when the profile fails", async () => {
       const failure = new Error("RPC Error: boom");
       profileGetMock.mockRejectedValue(failure);
-      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const warn = silenceWarn("[AuthContext]");
       const user = userEvent.setup();
       renderWithAuth();
 
@@ -198,6 +232,7 @@ describe("AuthContext", () => {
       await waitFor(() => expect(profileGetMock).toHaveBeenCalled());
       expect(screen.getByTestId("display-name").textContent).toBe("demo1");
       expect(screen.getByTestId("avatar-url").textContent).toBe("");
+      expect(screen.getByTestId("user-id").textContent).toBe("none");
       // The failure is logged, not silent.
       await waitFor(() =>
         expect(warn).toHaveBeenCalledWith("[AuthContext] Profile load failed:", failure),

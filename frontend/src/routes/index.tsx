@@ -3,8 +3,10 @@ import { Title, Meta } from "@solidjs/meta";
 import { Show, Switch, Match } from "solid-js";
 import { useDisclosure } from "~/lib/useDisclosure";
 import { createJediFeed } from "~/lib/jedi/createJediFeed";
-import { createFeed, type MessageFeedFactory } from "~/lib/websocket";
+import type { Feed } from "~/lib/feed";
+import { createWebSocketFeed } from "~/lib/feed.websocket";
 import { useAuth } from "~/components/AuthContext";
+import { useDraftGuard } from "~/components/DraftGuardContext";
 import Hero from "~/components/Hero";
 import FeaturedPost from "~/components/FeaturedPost";
 import CategoriesCard from "~/components/CategoriesCard";
@@ -13,19 +15,19 @@ import TopCaptionsCard from "~/components/TopCaptionsCard";
 import Icon from "~/components/Icon";
 
 interface LiveFeedProps {
-  connect: (feed: MessageFeedFactory) => void;
+  connect: (feed: Feed) => void;
 }
 
 // The live Feed exists only while a User is logged in: the WebSocket needs
 // auth, so this renders under the `isAuthenticated` boundary. Its socket and
 // `posts` subscription belong to this scope, so logout tears both down (#120).
 function LiveFeed(props: LiveFeedProps) {
-  props.connect(createFeed());
+  props.connect(createWebSocketFeed());
   return null;
 }
 
 export default function Home() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, userId } = useAuth();
   const {
     categories,
     visiblePosts,
@@ -39,9 +41,16 @@ export default function Home() {
     setSelectedCategory,
     hero,
     selectedPostLike,
-    toggleLike,
+    togglePostLike,
+    selectedCaptionLike,
+    toggleCaptionLike,
+    postComments,
+    captionComments,
+    postOwner,
+    captionOwner,
+    announcement,
     connectFeed,
-  } = createJediFeed();
+  } = createJediFeed({ guard: useDraftGuard() });
 
   const sidebar = useDisclosure({ id: "jedi-sidebar" });
 
@@ -58,6 +67,12 @@ export default function Home() {
       </Show>
 
       <Show when={hero()}>{(h) => <Hero {...h()} />}</Show>
+
+      {/* The route's one polite live region (#187): the view-model finds the
+          cause of a change, so it owns the message. */}
+      <p role="status" class="sr-only">
+        {announcement()}
+      </p>
 
       <div class="grid grid-cols-3 max-w-7xl mx-auto mt-6">
         {/* Mobile sidebar toggle */}
@@ -87,10 +102,17 @@ export default function Home() {
                 <FeaturedPost
                   post={post()}
                   caption={selectedCaption()}
-                  canAddCaption={isAuthenticated()}
+                  loggedIn={isAuthenticated()}
+                  userId={userId()}
                   captionsLoaded={visibleCaptions() !== undefined}
                   like={selectedPostLike()}
-                  onToggleLike={toggleLike}
+                  onToggleLike={togglePostLike}
+                  captionLike={selectedCaptionLike()}
+                  onToggleCaptionLike={toggleCaptionLike}
+                  postComments={postComments}
+                  captionComments={captionComments}
+                  postOwner={postOwner}
+                  captionOwner={captionOwner}
                 />
               )}
             </Match>

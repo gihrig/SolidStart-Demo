@@ -7,4 +7,4 @@
  * addendum). `base::get` selects exactly these columns, so the audit columns
  * are never queried.
  */
-export type HeroView = { id: bigint, title: string, subtitle: string, cta_text: string, background_image: string, };
+export type HeroView = { id: number, title: string, subtitle: string, cta_text: string, background_image: string, };

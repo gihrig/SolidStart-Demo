@@ -1,6 +1,6 @@
+use lib_core::model::like::{LikeBmc, LikeForToggle, LikeView};
 use lib_core::model::post::{
-	PostBmc, PostFilter, PostForCreate, PostLikeBmc, PostLikeForToggle,
-	PostLikeView, PostView,
+	PostBmc, PostFilter, PostForCreate, PostForUpdate, PostLikeBmc, PostView,
 };
 use lib_rpc_core::prelude::*;
 use lib_web::ws::poke::{self, PokedRpcResult};
@@ -9,7 +9,13 @@ use lib_web::ws::WsState;
 /// The authenticated Post RPCs (`/api/rpc`, login required): the mutations, and
 /// the caller's own like state, which is per-User and so not public (#122).
 pub fn rpc_router_builder() -> RouterBuilder {
-	router_builder!(create_post, toggle_post_like, get_post_like,)
+	router_builder!(
+		create_post,
+		update_post,
+		delete_post,
+		toggle_post_like,
+		get_post_like,
+	)
 }
 
 /// The public Post RPCs: every Post is public (#106), so the reads run on
@@ -39,37 +45,72 @@ pub async fn create_post(
 	Ok(PokedRpcResult::new(view, receipt))
 }
 
+/// Edit the caller's own Post (#187): the title, the image description, the
+/// attribution and the Categories, never the photo. It returns the edited
+/// `PostView` and pokes `posts`. A non-Owner edit is `EntityNotFound` (400); an
+/// unknown key, an empty update or a bad Category is rejected (400). A rejected
+/// edit pokes nothing. The poke fires on write-commit, before the re-get
+/// (ADR-0016).
+pub async fn update_post(
+	ctx: Ctx,
+	mm: ModelManager,
+	ws_state: WsState,
+	params: ParamsForUpdate<PostForUpdate>,
+) -> Result<PokedRpcResult<PostView, poke::Posts>> {
+	let ParamsForUpdate { id, data } = params;
+	PostBmc::update(&ctx, &mm, id, data).await?;
+	let receipt = ws_state.broadcast_posts_update();
+	let view = PostBmc::get_post(&ctx, &mm, id).await?;
+	Ok(PokedRpcResult::new(view, receipt))
+}
+
+/// Delete the caller's own Post (#187). The database cascades the delete to
+/// every row under the Post, rows that other Users own too (ADR-0032). It
+/// returns the deleted id and pokes `posts`; no Event goes to a Channel of a
+/// deleted row. A non-Owner delete is `EntityNotFound` (400), with no poke.
+pub async fn delete_post(
+	ctx: Ctx,
+	mm: ModelManager,
+	ws_state: WsState,
+	params: ParamsIded,
+) -> Result<PokedRpcResult<i64, poke::Posts>> {
+	PostBmc::delete(&ctx, &mm, params.id).await?;
+	let receipt = ws_state.broadcast_posts_update();
+	Ok(PokedRpcResult::new(params.id, receipt))
+}
+
 /// Set the caller's Like on a Post to `data.liked` (#122). Idempotent: a second
 /// like or unlike is a no-op. A toggle that changed the Like pokes
 /// `post_like:{post_id}`, so subscribers refetch the count, and `posts`, so the
 /// Top Photos ranking refetches; a no-op pokes nothing. The pokes fire on
 /// write-commit, before the re-get (ADR-0016). An unknown Post is rejected
-/// (400). The `{ data }` params shape matches the other mutations.
+/// (400). The `{ data }` params shape matches the other mutations; `data.id` is
+/// the Post id.
 pub async fn toggle_post_like(
 	ctx: Ctx,
 	mm: ModelManager,
 	ws_state: WsState,
-	params: ParamsForCreate<PostLikeForToggle>,
-) -> Result<PokedRpcResult<PostLikeView, poke::PostLike>> {
+	params: ParamsForCreate<LikeForToggle>,
+) -> Result<PokedRpcResult<LikeView, poke::PostLike>> {
 	let ParamsForCreate { data } = params;
-	let post_id = data.post_id;
-	let changed = PostLikeBmc::toggle(&ctx, &mm, data).await?;
+	let post_id = data.id;
+	let changed = LikeBmc::toggle::<PostLikeBmc>(&ctx, &mm, data).await?;
 	let receipt = ws_state.broadcast_post_like(post_id, changed);
 	if changed {
 		ws_state.broadcast_posts_update();
 	}
-	let view = PostLikeBmc::get_post_like(&ctx, &mm, post_id).await?;
+	let view = LikeBmc::get::<PostLikeBmc>(&ctx, &mm, post_id).await?;
 	Ok(PokedRpcResult::new(view, receipt))
 }
 
-/// Read the caller's `PostLikeView` of one Post: the like count and whether the
+/// Read the caller's `LikeView` of one Post: the like count and whether the
 /// caller likes it (#122). `params.id` is the Post id.
 pub async fn get_post_like(
 	ctx: Ctx,
 	mm: ModelManager,
 	params: ParamsIded,
-) -> Result<DataRpcResult<PostLikeView>> {
-	let view = PostLikeBmc::get_post_like(&ctx, &mm, params.id).await?;
+) -> Result<DataRpcResult<LikeView>> {
+	let view = LikeBmc::get::<PostLikeBmc>(&ctx, &mm, params.id).await?;
 	Ok(view.into())
 }
 

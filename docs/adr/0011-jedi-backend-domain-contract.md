@@ -13,6 +13,14 @@ The new entities: **Post, Caption, Category, Comment, PostLike, CaptionLike,
 Hero**, alongside the existing, unified **User**. `Top Photos` and `Top Captions`
 stay **derived views** (ordered by like count), not stored tables.
 
+<!-- index-status: superseded-in-part by ADR-0031 (see the blockquote below) -->
+
+> **Superseded in part (2026-10-14):** [ADR-0031](0031-jedi-tables-built-beside-fullstack-then-removed.md)
+> replaces the lineage claim in the addendum's "Entity lineage" table. `Agent` and
+> `Conv` were not renamed, and their tables did not live on. Each Jedi table was
+> built beside its FullStack table, and #128 removed the FullStack tables. The
+> addendum's other decisions are unchanged.
+
 ## Decisions
 
 **Like is a first-class entity, not a stored counter.** Two tables —

@@ -16,10 +16,9 @@ You can find this change in the `. update to modql 0.4.0-rc.4`
 This update ([GitHub tag: E06](https://github.com/rust10x/rust-web-app/releases/tag/E06)) is significant in many respects:
 
 - **1) Data Model Change**
-  - We are transitioning from the simple `Project / Task` model to a more intricate one centered around AI chat, specifically `Agent, Conv / ConvMsg`.
-  - Subsequently, we'll introduce `Org / Space` constructs to demonstrate multi-tenancy and a "workspace" type of container, common in many use cases (like GitHub repositories, Discord servers, etc.).
-  - The `examples/quick_dev` has been updated to reflect the new data model.
-  - IMPORTANT - While `Agent` and `Conv` concepts exist, the blueprint's purpose isn't to develop a complete AI chat system. Instead, it aims to illustrate the common structures needed to build such an application and others. The Agents are merely examples of entities and might later exhibit some "Echo" capability to demonstrate the integration of long-running, event-based services.
+  - The upstream blueprint moved from the simple `Project / Task` model to an AI-chat model.
+  - This project has since replaced that model with the Jedi model: `Category`, `Post`, `Caption`, and the Post and Caption Comments (#128).
+  - The `examples/quick_dev` reflects the Jedi model: login, `create_post`, `add_caption`, `add_post_comment`, `delete_post_comment`, logoff, then a model-layer delete of the Post, so each run leaves no rows.
 
 - **2) ModelManager DB Transaction Support**
   - There's a significant enhancement to the `ModelManager`, which now contains a `lib_core::model::store::Dbx` implementing an on-demand **database transaction** support.
@@ -34,7 +33,6 @@ This update ([GitHub tag: E06](https://github.com/rust10x/rust-web-app/releases/
 - **4) Code Update**
   - All JSON-RPC responses now include a `.data` field as `result.data` to represent the requested data. This adds flexibility to later include metadata at the root of the `result` object (the JSON-RPC specification prohibits adding anything at the root of the JSON response).
     - This is in the `lib_rpc::response` crate/module.
-  - The introduction of a `conv_id` in the `Ctx` paves the way for a future `Access Control System`, which will be privilege-based and tied to key container constructs (e.g., `Org`, `Space`, `Conv`).
 
 ## Rust10x Web App YouTube Videos:
 

@@ -8,11 +8,6 @@ INSERT INTO "user"
     (username, cid, ctime, mid, mtime) VALUES 
     ('demo1',  0,   now(), 0,   now());
 
--- Agent mock-01 (with 'parrot' model) (id: 100)
-INSERT INTO "agent"
-    (id,  owner_id, name,      cid, ctime, mid, mtime) VALUES
-    (100, 0,        'mock-01', 0,   now(), 0,   now());
-
 -- Category taxonomy (ids 1..6), seeded from the front-end mock fixture
 -- (frontend/src/lib/jedi/data.json). `icon` is an opaque key (ADR-0011).
 INSERT INTO "category"
@@ -27,6 +22,8 @@ INSERT INTO "category"
 -- Author Users (ids 1..3), seeded from the front-end mock fixture
 -- (frontend/src/lib/jedi/data.json). Each carries a persisted avatar_url (#117);
 -- they own the seeded Posts and Captions. username is the fixture display name.
+-- dev_db.rs sets a dev-only pwd for each (Lisa / lisa_01, Homer / homer_01,
+-- Bart / bart_01), so a developer can log in as an Owner.
 INSERT INTO "user"
     (id, username, avatar_url,                                                 cid, ctime, mid, mtime) VALUES
     (1,  'Lisa',   'https://img.icons8.com/doodle/96/null/lisa-simpson.png',   0,   now(), 0,   now()),

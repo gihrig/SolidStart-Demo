@@ -1,5 +1,6 @@
 use super::{
-	agent_rpc, caption_rpc, category_rpc, conv_rpc, hero_rpc, post_rpc, profile_rpc,
+	caption_comment_rpc, caption_rpc, category_rpc, hero_rpc, post_comment_rpc,
+	post_rpc, profile_rpc,
 };
 use rpc_router::{Router, RouterBuilder};
 
@@ -7,10 +8,10 @@ use rpc_router::{Router, RouterBuilder};
 /// mutation and every row-scoped read.
 pub fn all_rpc_router_builder() -> RouterBuilder {
 	Router::builder()
-		.extend(agent_rpc::rpc_router_builder())
+		.extend(caption_comment_rpc::rpc_router_builder())
 		.extend(caption_rpc::rpc_router_builder())
-		.extend(conv_rpc::rpc_router_builder())
 		.extend(hero_rpc::rpc_router_builder())
+		.extend(post_comment_rpc::rpc_router_builder())
 		.extend(post_rpc::rpc_router_builder())
 		.extend(profile_rpc::rpc_router_builder())
 }
@@ -26,5 +27,7 @@ pub fn public_rpc_router_builder() -> RouterBuilder {
 		.extend(category_rpc::rpc_router_builder())
 		.extend(post_rpc::public_rpc_router_builder())
 		.extend(caption_rpc::public_rpc_router_builder())
+		.extend(caption_comment_rpc::public_rpc_router_builder())
+		.extend(post_comment_rpc::public_rpc_router_builder())
 		.extend(hero_rpc::public_rpc_router_builder())
 }

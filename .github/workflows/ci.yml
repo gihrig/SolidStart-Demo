@@ -49,7 +49,7 @@ jobs:
       # `prepare: vp config` during `bun install`. vite-plus 1.0 needs
       # ^22.18.0 || ^24.11.0 || >=26.0.0; pin it rather than inherit the runner's.
       # frontend/.node-version is the single pin (the Vite+ `node` shim reads it locally).
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: frontend/.node-version
 
@@ -93,7 +93,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # stable
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # stable
         with:
           toolchain: stable
           components: rustfmt, clippy
@@ -102,7 +102,7 @@ jobs:
         with:
           workspaces: backend
 
-      - uses: taiki-e/install-action@861a07ce7084f55488e375df125cdc99bba60eb7 # v2
+      - uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2
         with:
           tool: nextest
 
@@ -133,7 +133,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # stable
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # stable
         with:
           toolchain: stable
 
@@ -142,7 +142,8 @@ jobs:
           workspaces: backend
 
       # Equivalent to `cgs bindings` (backend/Scripts.toml: cargo test
-      # export_bindings); TS_RS_EXPORT_DIR is set in backend/.cargo/config.toml.
+      # export_bindings); TS_RS_EXPORT_DIR and TS_RS_LARGE_INT are set in
+      # backend/.cargo/config.toml.
       - name: Regenerate bindings
         working-directory: backend
         run: cargo test export_bindings
@@ -197,7 +198,7 @@ jobs:
       # `prepare: vp config` during `bun install`. vite-plus 1.0 needs
       # ^22.18.0 || ^24.11.0 || >=26.0.0; pin it rather than inherit the runner's.
       # frontend/.node-version is the single pin (the Vite+ `node` shim reads it locally).
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: frontend/.node-version
 
@@ -236,10 +237,10 @@ jobs:
     if: github.head_ref != 'deps/weekly-update'
     runs-on: ubuntu-latest
     env:
-      GRYPE_VERSION: v0.120.0
+      GRYPE_VERSION: v0.120.1
       # sha256 of grype_<version>_linux_amd64.tar.gz from the release's
       # grype_<version>_checksums.txt. Bump both together on a version change.
-      GRYPE_SHA256: a5a1218dce63acdac152a6b3b5bb366e7267e36f4069848cf455543b3fa5700e
+      GRYPE_SHA256: 0a9ee97ef5ae2ee953b0a80098105052e846cdbe319a57d808b519c33cd1343d
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -304,11 +305,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # stable
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # stable
         with:
           toolchain: stable
 
-      - uses: taiki-e/install-action@861a07ce7084f55488e375df125cdc99bba60eb7 # v2
+      - uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2
         with:
           tool: cargo-audit
 
@@ -337,13 +338,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # stable
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # stable
         with:
           toolchain: stable
 
       # cargo-deny is PINNED: a new version can change lint output or defaults,
       # so the runner must match the version the policy was written against.
-      - uses: taiki-e/install-action@861a07ce7084f55488e375df125cdc99bba60eb7 # v2
+      - uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2
         with:
           tool: cargo-deny@0.20.2
 
@@ -380,7 +381,7 @@ jobs:
       # `toolchain: nightly` input selects the channel (cargo-udeps needs
       # nightly). Pin the commit AND name the channel — the ref name alone would
       # otherwise decide the channel.
-      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # stable
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # stable
         with:
           toolchain: nightly
 
@@ -390,7 +391,7 @@ jobs:
 
       # cargo-udeps is PINNED for reproducibility. Bump it if a newer nightly
       # stops it building — it links cargo's own internals.
-      - uses: taiki-e/install-action@861a07ce7084f55488e375df125cdc99bba60eb7 # v2
+      - uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2
         with:
           tool: cargo-udeps@0.1.61
 
@@ -430,7 +431,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # stable
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # stable
         with:
           toolchain: stable
 
@@ -440,7 +441,7 @@ jobs:
 
       # cargo-auditable writes the embedded section; cargo-audit reads it back.
       # cargo-auditable is PINNED for reproducibility.
-      - uses: taiki-e/install-action@861a07ce7084f55488e375df125cdc99bba60eb7 # v2
+      - uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2
         with:
           tool: cargo-auditable@0.7.6,cargo-audit
 
@@ -489,7 +490,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # stable
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # stable
         with:
           toolchain: stable
 
@@ -547,7 +548,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # stable
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # stable
         with:
           toolchain: stable
 
@@ -563,7 +564,7 @@ jobs:
       # `prepare: vp config` during `bun install`. vite-plus 1.0 needs
       # ^22.18.0 || ^24.11.0 || >=26.0.0; pin it rather than inherit the runner's.
       # frontend/.node-version is the single pin (the Vite+ `node` shim reads it locally).
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: frontend/.node-version
 
@@ -618,3 +619,10 @@ jobs:
       - name: Run Playwright e2e
         working-directory: frontend
         run: playwright test --project=chromium
+
+      # The two-client test changes seeded counts, so it runs after the
+      # seed-count checks above (#129). --no-deps skips the firefox and webkit
+      # projects that `live` depends on; CI installs chromium only.
+      - name: Run Playwright live e2e
+        working-directory: frontend
+        run: playwright test --project=live --no-deps

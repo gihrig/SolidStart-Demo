@@ -1,5 +1,8 @@
-use super::poke::{Agents, Conv, Convs, PokeReceipt, PostCaption, PostLike, Posts};
-use lib_core::model::conv_msg::ConvMsg;
+use super::poke::{
+	CaptionComment, CaptionLike, PokeReceipt, PostCaption, PostComment, PostLike,
+	Posts,
+};
+use lib_core::model::comment::{CommentRemoval, CommentView};
 use lib_core::realtime::{Channel, WsEvent};
 use tokio::sync::broadcast;
 
@@ -38,34 +41,6 @@ impl WsState {
 // region:    --- Helper Functions for Broadcasting
 
 impl WsState {
-	/// Broadcast a conversation message event. Takes the typed `ConvMsg`; the
-	/// envelope derives its `conv:{id}` channel from the payload. Returns the
-	/// [`PokeReceipt<Conv>`] the `add_conv_msg` handler needs to build its result.
-	pub fn broadcast_conv_msg(&self, msg: &ConvMsg) -> PokeReceipt<Conv> {
-		self.broadcast(WsEvent::ConvMsg {
-			payload: msg.clone(),
-		});
-		PokeReceipt::new()
-	}
-
-	/// Poke the global Agent-list channel: the Agent list may have changed (#85).
-	/// Carries no payload — a subscriber refetches through the scoped
-	/// `list_agents` RPC, so no Agent row crosses the push path. Returns the
-	/// [`PokeReceipt<Agents>`] the Agent mutations need to build their result.
-	pub fn broadcast_agent_update(&self) -> PokeReceipt<Agents> {
-		self.broadcast(WsEvent::Poke(Channel::Agents));
-		PokeReceipt::new()
-	}
-
-	/// Poke the global Conversation-list channel: some Conversation list may have
-	/// changed (#85). Contentless for the same reason as `broadcast_agent_update`;
-	/// the refetch re-applies the read scope, so no Conversation row leaks. Returns
-	/// the [`PokeReceipt<Convs>`] the Conversation mutations need for their result.
-	pub fn broadcast_conv_update(&self) -> PokeReceipt<Convs> {
-		self.broadcast(WsEvent::Poke(Channel::Convs));
-		PokeReceipt::new()
-	}
-
 	/// Poke the global Post-list channel: the Post list may have changed (#115).
 	/// Contentless — a subscriber refetches through the scoped `list_*` RPC, so no
 	/// Post row crosses the push path (#85). Returns the [`PokeReceipt<Posts>`]
@@ -93,14 +68,20 @@ impl WsState {
 		PokeReceipt::new()
 	}
 
-	// The Caption like poke helper below has no caller yet: the Caption like
-	// handler calls it in #123. As lib-web public API it needs no dead-code
-	// allowance; the tests construct it.
-
-	/// Poke one Caption's like-count channel (`caption_like:{caption_id}`): the
-	/// like count changed (#115). Carries only the `caption_id` for routing.
-	pub fn broadcast_caption_like(&self, caption_id: i64) {
-		self.broadcast(WsEvent::Poke(Channel::CaptionLike(caption_id)));
+	/// Poke one Caption's like-count channel (`caption_like:{caption_id}`) when
+	/// the like count changed (#115). Carries only the `caption_id` for routing.
+	/// The same change rule as `broadcast_post_like`: a toggle that changed no
+	/// row pokes nothing (#123). Returns the [`PokeReceipt<CaptionLike>`]
+	/// `toggle_caption_like` needs to build its result.
+	pub fn broadcast_caption_like(
+		&self,
+		caption_id: i64,
+		changed: bool,
+	) -> PokeReceipt<CaptionLike> {
+		if changed {
+			self.broadcast(WsEvent::Poke(Channel::CaptionLike(caption_id)));
+		}
+		PokeReceipt::new()
 	}
 
 	/// Poke one Post's Caption-list channel (`post_caption:{post_id}`): the
@@ -109,6 +90,57 @@ impl WsState {
 	/// [`PokeReceipt<PostCaption>`] `add_caption` needs to build its result (#121).
 	pub fn broadcast_post_caption(&self, post_id: i64) -> PokeReceipt<PostCaption> {
 		self.broadcast(WsEvent::Poke(Channel::PostCaption(post_id)));
+		PokeReceipt::new()
+	}
+
+	/// Push a Post Comment add or edit on its Post's thread
+	/// (`post_comment:{parent_id}`): an upsert carrying the `CommentView` (#124,
+	/// #125). The envelope derives its Channel from the payload. Returns the
+	/// [`PokeReceipt<PostComment>`] `add_post_comment` / `update_post_comment`
+	/// need to build their result.
+	pub fn broadcast_post_comment(
+		&self,
+		comment: &CommentView,
+	) -> PokeReceipt<PostComment> {
+		self.broadcast(WsEvent::PostComment {
+			payload: comment.clone(),
+		});
+		PokeReceipt::new()
+	}
+
+	/// Push a Post Comment delete on its Post's thread: a removal carrying the
+	/// Comment id and its `parent_id` (#124, #125). Returns the
+	/// [`PokeReceipt<PostComment>`] `delete_post_comment` needs.
+	pub fn broadcast_post_comment_removal(
+		&self,
+		removal: CommentRemoval,
+	) -> PokeReceipt<PostComment> {
+		self.broadcast(WsEvent::PostCommentRemoval { payload: removal });
+		PokeReceipt::new()
+	}
+
+	/// Push a Caption Comment add or edit on its Caption's thread
+	/// (`caption_comment:{parent_id}`): an upsert carrying the `CommentView`
+	/// (#127). Returns the [`PokeReceipt<CaptionComment>`]
+	/// `add_caption_comment` / `update_caption_comment` need.
+	pub fn broadcast_caption_comment(
+		&self,
+		comment: &CommentView,
+	) -> PokeReceipt<CaptionComment> {
+		self.broadcast(WsEvent::CaptionComment {
+			payload: comment.clone(),
+		});
+		PokeReceipt::new()
+	}
+
+	/// Push a Caption Comment delete on its Caption's thread: a removal
+	/// carrying the Comment id and its `parent_id` (#127). Returns the
+	/// [`PokeReceipt<CaptionComment>`] `delete_caption_comment` needs.
+	pub fn broadcast_caption_comment_removal(
+		&self,
+		removal: CommentRemoval,
+	) -> PokeReceipt<CaptionComment> {
+		self.broadcast(WsEvent::CaptionCommentRemoval { payload: removal });
 		PokeReceipt::new()
 	}
 }
@@ -121,26 +153,6 @@ impl WsState {
 mod tests {
 	use super::*;
 
-	#[test]
-	fn broadcast_agent_update_pokes_agents_channel() {
-		let ws = WsState::new();
-		let mut rx = ws.tx.subscribe();
-		ws.broadcast_agent_update();
-		let event = rx.try_recv().expect("an event was broadcast");
-		assert!(matches!(event, WsEvent::Poke(Channel::Agents)));
-		assert_eq!(event.channel().key(), "agents");
-	}
-
-	#[test]
-	fn broadcast_conv_update_pokes_convs_channel() {
-		let ws = WsState::new();
-		let mut rx = ws.tx.subscribe();
-		ws.broadcast_conv_update();
-		let event = rx.try_recv().expect("an event was broadcast");
-		assert!(matches!(event, WsEvent::Poke(Channel::Convs)));
-		assert_eq!(event.channel().key(), "convs");
-	}
-
 	/// Each Jedi broadcast helper emits its poke on the right channel (#115).
 	#[test]
 	fn jedi_broadcast_helpers_poke_their_channels() {
@@ -149,13 +161,94 @@ mod tests {
 
 		ws.broadcast_posts_update();
 		ws.broadcast_post_like(5, true);
-		ws.broadcast_caption_like(6);
+		ws.broadcast_caption_like(6, true);
 		ws.broadcast_post_caption(8);
 
 		assert_eq!(rx.try_recv().unwrap().channel().key(), "posts");
 		assert_eq!(rx.try_recv().unwrap().channel().key(), "post_like:5");
 		assert_eq!(rx.try_recv().unwrap().channel().key(), "caption_like:6");
 		assert_eq!(rx.try_recv().unwrap().channel().key(), "post_caption:8");
+	}
+
+	/// A Post Comment add / edit pushes the view, and a delete pushes the
+	/// removal, each on the Post's thread Channel (#124, #125).
+	#[test]
+	fn post_comment_helpers_push_on_the_post_thread() {
+		use lib_core::model::user::AuthorRef;
+		use time::OffsetDateTime;
+
+		let ws = WsState::new();
+		let mut rx = ws.tx.subscribe();
+		let comment = CommentView {
+			id: 3,
+			parent_id: 7,
+			author: AuthorRef {
+				id: 2,
+				name: "Lisa".to_string(),
+				avatar_url: None,
+			},
+			content_html: "<p>hi</p>".to_string(),
+			ctime: OffsetDateTime::UNIX_EPOCH,
+			mtime: OffsetDateTime::UNIX_EPOCH,
+		};
+
+		let _receipt: PokeReceipt<PostComment> = ws.broadcast_post_comment(&comment);
+		let _receipt: PokeReceipt<PostComment> =
+			ws.broadcast_post_comment_removal(CommentRemoval {
+				id: 3,
+				parent_id: 7,
+			});
+
+		let upsert = rx.try_recv().unwrap();
+		assert!(
+			matches!(&upsert, WsEvent::PostComment { payload } if payload.id == 3)
+		);
+		assert_eq!(upsert.channel().key(), "post_comment:7");
+		let removal = rx.try_recv().unwrap();
+		assert!(matches!(
+			&removal,
+			WsEvent::PostCommentRemoval { payload } if payload.id == 3
+		));
+		assert_eq!(removal.channel().key(), "post_comment:7");
+	}
+
+	/// A Caption Comment add / edit pushes the view, and a delete pushes the
+	/// removal, each on the Caption's thread Channel (#127).
+	#[test]
+	fn caption_comment_helpers_push_on_the_caption_thread() {
+		use lib_core::model::user::AuthorRef;
+		use time::OffsetDateTime;
+
+		let ws = WsState::new();
+		let mut rx = ws.tx.subscribe();
+		let comment = CommentView {
+			id: 3,
+			parent_id: 7,
+			author: AuthorRef::unknown(2),
+			content_html: "<p>hi</p>".to_string(),
+			ctime: OffsetDateTime::UNIX_EPOCH,
+			mtime: OffsetDateTime::UNIX_EPOCH,
+		};
+
+		let _receipt: PokeReceipt<CaptionComment> =
+			ws.broadcast_caption_comment(&comment);
+		let _receipt: PokeReceipt<CaptionComment> = ws
+			.broadcast_caption_comment_removal(CommentRemoval {
+				id: 3,
+				parent_id: 7,
+			});
+
+		let upsert = rx.try_recv().unwrap();
+		assert!(
+			matches!(&upsert, WsEvent::CaptionComment { payload } if payload.id == 3)
+		);
+		assert_eq!(upsert.channel().key(), "caption_comment:7");
+		let removal = rx.try_recv().unwrap();
+		assert!(matches!(
+			&removal,
+			WsEvent::CaptionCommentRemoval { payload } if payload.id == 3
+		));
+		assert_eq!(removal.channel().key(), "caption_comment:7");
 	}
 
 	/// A like toggle that changed no row pokes nothing (#122): no client needs to
@@ -165,6 +258,16 @@ mod tests {
 		let ws = WsState::new();
 		let mut rx = ws.tx.subscribe();
 		let _receipt: PokeReceipt<PostLike> = ws.broadcast_post_like(5, false);
+		assert!(rx.try_recv().is_err(), "an unchanged Like must not poke");
+	}
+
+	/// The same rule for a Caption Like (#123): a toggle that changed no row
+	/// pokes nothing, but the handler still gets its receipt.
+	#[test]
+	fn broadcast_caption_like_unchanged_pokes_nothing() {
+		let ws = WsState::new();
+		let mut rx = ws.tx.subscribe();
+		let _receipt: PokeReceipt<CaptionLike> = ws.broadcast_caption_like(6, false);
 		assert!(rx.try_recv().is_err(), "an unchanged Like must not poke");
 	}
 }

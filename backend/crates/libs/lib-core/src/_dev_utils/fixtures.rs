@@ -1,9 +1,9 @@
 use crate::ctx::Ctx;
-use crate::model::agent::{AgentBmc, AgentFilter, AgentForCreate};
 use crate::model::caption::{CaptionBmc, CaptionForCreate};
+use crate::model::caption_comment::{CaptionCommentBmc, CaptionCommentForCreate};
 use crate::model::category::{CategoryBmc, CategoryFilter, CategoryForCreate};
-use crate::model::conv::{ConvBmc, ConvForCreate};
 use crate::model::post::{PostBmc, PostForCreate};
+use crate::model::post_comment::{PostCommentBmc, PostCommentForCreate};
 use crate::model::{self, ModelManager};
 use modql::filter::OpValString;
 use tokio::sync::OnceCell;
@@ -129,128 +129,6 @@ pub async fn clean_users(
 }
 
 // endregion: --- User seed/clean
-
-// region:    --- Conv seed/clean
-
-pub async fn seed_convs(
-	ctx: &Ctx,
-	mm: &ModelManager,
-	agent_id: i64,
-	titles: &[&str],
-) -> model::Result<Vec<i64>> {
-	let mut ids = Vec::new();
-
-	for title in titles {
-		let id = seed_conv(ctx, mm, agent_id, title).await?;
-		ids.push(id);
-	}
-
-	Ok(ids)
-}
-
-pub async fn seed_conv(
-	ctx: &Ctx,
-	mm: &ModelManager,
-	agent_id: i64,
-	title: &str,
-) -> model::Result<i64> {
-	ConvBmc::create(
-		ctx,
-		mm,
-		ConvForCreate {
-			agent_id,
-			title: Some(title.to_string()),
-			..Default::default()
-		},
-	)
-	.await
-}
-
-pub async fn clean_convs(
-	ctx: &Ctx,
-	mm: &ModelManager,
-	contains_title: &str,
-) -> model::Result<usize> {
-	let convs = ConvBmc::list(
-		ctx,
-		mm,
-		Some(vec![model::conv::ConvFilter {
-			title: Some(OpValString::Contains(contains_title.to_string()).into()),
-			..Default::default()
-		}]),
-		None,
-	)
-	.await?;
-
-	let count = convs.len();
-
-	for conv in convs {
-		ConvBmc::delete(ctx, mm, conv.id).await?;
-	}
-
-	Ok(count)
-}
-
-// endregion: --- Conv seed/clean
-
-// region:    --- Agent seed/clean
-
-pub async fn seed_agents(
-	ctx: &Ctx,
-	mm: &ModelManager,
-	names: &[&str],
-) -> model::Result<Vec<i64>> {
-	let mut ids = Vec::new();
-
-	for name in names {
-		let id = seed_agent(ctx, mm, name).await?;
-		ids.push(id);
-	}
-
-	Ok(ids)
-}
-
-pub async fn seed_agent(
-	ctx: &Ctx,
-	mm: &ModelManager,
-	name: &str,
-) -> model::Result<i64> {
-	AgentBmc::create(
-		ctx,
-		mm,
-		AgentForCreate {
-			name: name.to_string(),
-		},
-	)
-	.await
-}
-
-/// Delete all agents that have their title contains contains_name
-pub async fn clean_agents(
-	ctx: &Ctx,
-	mm: &ModelManager,
-	contains_name: &str,
-) -> model::Result<usize> {
-	let agents = AgentBmc::list(
-		ctx,
-		mm,
-		Some(vec![AgentFilter {
-			name: Some(OpValString::Contains(contains_name.to_string()).into()),
-			..Default::default()
-		}]),
-		None,
-	)
-	.await?;
-	let count = agents.len();
-
-	for agent in agents {
-		AgentBmc::delete(ctx, mm, agent.id).await?;
-	}
-
-	Ok(count)
-}
-
-// endregion: --- Agent seed/clean
 
 // region:    --- Category seed/clean
 
@@ -390,3 +268,49 @@ pub async fn seed_caption(
 }
 
 // endregion: --- Caption seed
+
+// region:    --- PostComment seed
+
+/// Seed one Comment owned by `ctx` on the given Post. Cleanup rides the owner or
+/// Post delete, which cascades to the Comment.
+pub async fn seed_post_comment(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	post_id: i64,
+	content: &str,
+) -> model::Result<i64> {
+	PostCommentBmc::create(
+		ctx,
+		mm,
+		PostCommentForCreate {
+			post_id,
+			content: content.to_string(),
+		},
+	)
+	.await
+}
+
+// endregion: --- PostComment seed
+
+// region:    --- CaptionComment seed
+
+/// Seed one Comment owned by `ctx` on the given Caption. Cleanup rides the
+/// owner or Caption delete, which cascades to the Comment.
+pub async fn seed_caption_comment(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	caption_id: i64,
+	content: &str,
+) -> model::Result<i64> {
+	CaptionCommentBmc::create(
+		ctx,
+		mm,
+		CaptionCommentForCreate {
+			caption_id,
+			content: content.to_string(),
+		},
+	)
+	.await
+}
+
+// endregion: --- CaptionComment seed

@@ -17,6 +17,8 @@ export interface RpcAction<TArgs, TResult> {
   run: (args: TArgs) => Promise<TResult | undefined>;
   pending: Accessor<boolean>;
   error: Accessor<string | null>;
+  /** Clears the error without a run, so a reopened form shows no stale failure. */
+  reset: () => void;
 }
 
 export function createRpcAction<TArgs, TResult>(
@@ -40,5 +42,5 @@ export function createRpcAction<TArgs, TResult>(
     }
   };
 
-  return { run, pending, error };
+  return { run, pending, error, reset: () => setError(null) };
 }

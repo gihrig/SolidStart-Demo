@@ -107,6 +107,33 @@ where
 	E: for<'r> FromRow<'r, PgRow> + Unpin + Send,
 	E: HasSeaFields,
 {
+	get_scoped::<MC, E>(ctx, mm, id, Access::Read).await
+}
+
+/// Read one row under the **Write** scope (#126): only a caller who may write
+/// the row reads it, and any other caller gets `EntityNotFound`, as from
+/// [`update`] or [`delete`]. An owner-scoped read, such as the stored text for
+/// an edit form, uses it.
+pub async fn get_writable<MC, E>(ctx: &Ctx, mm: &ModelManager, id: i64) -> Result<E>
+where
+	MC: DbBmc,
+	E: for<'r> FromRow<'r, PgRow> + Unpin + Send,
+	E: HasSeaFields,
+{
+	get_scoped::<MC, E>(ctx, mm, id, Access::Write).await
+}
+
+async fn get_scoped<MC, E>(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	id: i64,
+	access: Access,
+) -> Result<E>
+where
+	MC: DbBmc,
+	E: for<'r> FromRow<'r, PgRow> + Unpin + Send,
+	E: HasSeaFields,
+{
 	// -- Build query
 	let mut query = Query::select();
 	query
@@ -114,8 +141,8 @@ where
 		.columns(E::sea_column_refs())
 		.cond_where(Expr::col(CommonIden::Id).eq(id));
 
-	// -- Row-scope (owner ∪ public); a non-matching scope yields no row.
-	if let Some(scope) = scope_cond::<MC>(ctx, Access::Read) {
+	// -- Row-scope at this `access`; a non-matching scope yields no row.
+	if let Some(scope) = scope_cond::<MC>(ctx, access) {
 		query.cond_where(scope);
 	}
 
@@ -232,6 +259,41 @@ where
 	list::<MC, P, F>(ctx, mm, filter, list_options).await
 }
 
+/// Reject an unknown parent row as a client error before a child write or read
+/// (#123): when no `MC` row with this `id` is readable by `ctx`, return a
+/// `Validation` error on `field` with `reason` (400), never a foreign-key failure
+/// or a silent empty result. The read scope applies, as in [`get`].
+pub async fn require_exists<MC>(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	id: i64,
+	field: &str,
+	reason: &str,
+) -> Result<()>
+where
+	MC: DbBmc,
+{
+	let mut query = Query::select();
+	query
+		.from(MC::table_ref())
+		.column(CommonIden::Id)
+		.cond_where(Expr::col(CommonIden::Id).eq(id));
+	if let Some(scope) = scope_cond::<MC>(ctx, Access::Read) {
+		query.cond_where(scope);
+	}
+
+	let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+	let sqlx_query = sqlx::query_as_with::<_, (i64,), _>(&sql, values);
+	if mm.dbx().fetch_optional(sqlx_query).await?.is_none() {
+		return Err(Error::Validation {
+			field: field.to_string(),
+			reason: reason.to_string(),
+		});
+	}
+
+	Ok(())
+}
+
 pub async fn count<MC, F>(
 	ctx: &Ctx,
 	mm: &ModelManager,
@@ -271,11 +333,37 @@ where
 	Ok(count)
 }
 
+/// The `Validation` error of an update that names no field to change (#187):
+/// without it, the update succeeds and only moves `mtime`.
+pub fn no_field_to_change() -> Error {
+	Error::Validation {
+		field: "data".to_string(),
+		reason: "no field to change".to_string(),
+	}
+}
+
 pub async fn update<MC, E>(
 	ctx: &Ctx,
 	mm: &ModelManager,
 	id: i64,
 	data: E,
+) -> Result<()>
+where
+	MC: DbBmc,
+	E: HasSeaFields,
+{
+	update_where::<MC, E>(ctx, mm, id, data, None).await
+}
+
+/// [`update`] with an extra condition ANDed into the `WHERE` (#187), such as
+/// the Caption lock. A row that fails it updates 0 rows, so the result is
+/// `EntityNotFound`, as for a row out of scope; the caller picks a finer error.
+pub async fn update_where<MC, E>(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	id: i64,
+	data: E,
+	extra: Option<Condition>,
 ) -> Result<()>
 where
 	MC: DbBmc,
@@ -298,6 +386,9 @@ where
 	// -- Row-scope (owner-only); a non-matching scope updates 0 rows.
 	if let Some(scope) = scope_cond::<MC>(ctx, Access::Write) {
 		query.cond_where(scope);
+	}
+	if let Some(extra) = extra {
+		query.cond_where(extra);
 	}
 
 	// -- Execute query

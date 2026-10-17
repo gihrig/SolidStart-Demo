@@ -12,6 +12,15 @@ Conversation was selected.
 This ADR records making the Feed singular: one socket per client, shared by every
 view-model, created once at the authenticated boundary.
 
+<!-- index-status: superseded-in-part by ADR-0028 (see the blockquote below) -->
+
+> **Superseded in part (2026-10-07):** [ADR-0028](0028-feed-subscriptions-by-channel.md)
+> reverses two decisions below: "The seam stays a factory" and "Callbacks fan out
+> through a registry". It also reverses the rejection of "Inject one `MessageFeed`
+> instance". A view-model now holds one Subscription per Channel on one injected
+> `Feed`. The one Feed at the authenticated boundary and the per-holder refcount stay.
+> The holder is now a Subscription, not a view.
+
 ## Decisions
 
 **One Feed, created at the authenticated boundary.** `createFeed()`

@@ -8,4 +8,4 @@ import type { CategoryPublic } from "./CategoryPublic.d";
  * the model seam so the front-end renders without joining. It carries no audit
  * columns (`cid` / `mid` / `ctime` / `mtime`).
  */
-export type PostView = { id: bigint, author: AuthorRef, title: string, image_src: string, image_alt: string, photographer: string, photographer_url: string, source_url: string, categories: Array<CategoryPublic>, like_count: bigint, comment_count: bigint, };
+export type PostView = { id: number, author: AuthorRef, title: string, image_src: string, image_alt: string, photographer: string, photographer_url: string, source_url: string, categories: Array<CategoryPublic>, like_count: number, comment_count: number, };

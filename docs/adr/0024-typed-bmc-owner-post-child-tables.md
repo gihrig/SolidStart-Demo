@@ -108,3 +108,60 @@ markers until their writes land.
 
 **Unchanged.** The column-qualification aliases and the test-only INSERT
 (`seed_post_like`) stay as the Decisions describe.
+
+## Addendum (2026-10-04) — one Like module for every Like target (#123, C-19)
+
+The first addendum makes `PostLikeBmc` the Like write path. #123 adds a second
+Like target, the Caption. A copy of the Post code would put the toggle, the read,
+and the parent check in two places.
+
+**Decision.** A shared Like module (`model/like.rs`) owns the Like write path and
+the Like read. A trait `LikeTarget: DbBmc` describes one target: its like table
+(`TABLE`), its parent column (`PARENT_COL`), and its parent BMC. A fourth item,
+`UNKNOWN_PARENT`, holds the `Validation` reason for an unknown parent ("unknown
+Post", "unknown Caption"). `PostLikeBmc` and `CaptionLikeBmc` implement it. `LikeBmc::toggle::<T>` and `LikeBmc::get::<T>` serve
+every target. One generic `base::require_exists::<MC>` is the parent check;
+`CaptionBmc::create` uses it too.
+
+The wire types are shared: `LikeView { id, like_count, liked }` and
+`LikeForToggle { id, liked }`. The RPC names stay per target (`toggle_post_like`,
+`toggle_caption_like`, and the two `get_*_like`). The hub helpers and their typed
+receipts also stay per target (`PokeReceipt<PostLike>`, `PokeReceipt<CaptionLike>`).
+Each helper pokes only when a row changed.
+
+**Rejected.** A runtime target value or a `macro_rules!`: the compiler would not
+check each target. One `toggle_like { target, … }` RPC: one typed receipt cannot
+prove two channels. A generic hub helper: it needs a trait across `lib-core` and
+`lib-web`, which costs more than two short helpers.
+
+**Consequence.** A like BMC is now a `LikeTarget`, not a write path of its own. A
+new Like target adds one `impl LikeTarget`, two thin handlers, and one hub helper.
+
+## Addendum (2026-10-13) — one Comment module for both Comment targets (#127)
+
+#124 built the Post Comment in `post_comment.rs`. #127 adds a second target, the
+Caption. A copy of the Post code would put the parent check, the view assembly, the
+Owner's read and the thread list in two places.
+
+**Decision.** The Comment module (`model/comment.rs`) owns the shared Comment logic.
+A trait `CommentTarget: DbBmc` describes one target: its parent column
+(`PARENT_COL`), its parent BMC (`type Parent`), the `Validation` reason for an
+unknown parent (`UNKNOWN_PARENT`), and how a row gives its parent id.
+`PostCommentBmc` and `CaptionCommentBmc` implement it. The shared functions are the
+create with its parent check, `get_comment`, `get_source`, the thread list and the
+view assembly.
+
+Each target keeps its own row, filter and input types (`PostCommentForCreate`,
+`CaptionCommentForCreate`, and the two `ForUpdate` types). `generate_common_bmc_fns!`
+needs them, and it still gives each target its owner-scoped `get`, `update` and
+`delete`. The wire outputs are shared: `CommentView` and `CommentRemoval` (#125).
+The RPC names, the Events, the hub helpers and the typed receipts stay per target,
+as for Likes.
+
+**Rejected.** A copy of `post_comment.rs`: two copies of the same rules drift. A full
+generic `CommentBmc::<T>`, as for Likes: it would replace the macro's per-entity
+types and its owner-scoped `update` and `delete` with new code.
+
+**Consequence.** A Comment BMC is a `CommentTarget` with its own types. A new Comment
+target adds one `impl CommentTarget`, its types, five thin handlers, two Events and
+two hub helpers.

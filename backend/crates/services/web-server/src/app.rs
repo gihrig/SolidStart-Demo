@@ -67,11 +67,10 @@ mod tests {
 	use super::app;
 	use axum_test::TestServer;
 	use lib_core::_dev_utils::{
-		self, clean_agents, clean_convs, clean_posts, clean_users, seed_admin_user,
-		seed_post,
+		self, clean_posts, clean_users, seed_admin_user, seed_caption,
+		seed_caption_comment, seed_post, seed_post_comment, seed_user,
 	};
 	use lib_core::ctx::Ctx;
-	use lib_core::model::user::{UserBmc, UserForCreate};
 	use lib_web::ws::WsState;
 	use serde_json::{json, Value};
 	use serial_test::serial;
@@ -100,8 +99,7 @@ mod tests {
 		let mm = _dev_utils::init_test().await;
 		let mut server = TestServer::new(app(mm.clone(), Arc::new(WsState::new())));
 		server.save_cookies(); // persist the auth cookie across requests
-		let fx_agent_name = "test_web_login_rpc_logoff_ok agent 01";
-		let fx_conv_title = "test_web_login_rpc_logoff_ok conv 01";
+		let fx_title = "test_web_login_rpc_logoff_ok";
 
 		// -- Exec & Check: login
 		server
@@ -110,63 +108,32 @@ mod tests {
 			.await
 			.assert_status_ok();
 
-		// -- Exec & Check: create_agent (authed rpc)
+		// -- Exec & Check: create_post (authed rpc) returns the caller as author
 		let body: Value = server
 			.post("/api/rpc")
 			.json(&json!({
-				"jsonrpc": "2.0", "id": 1, "method": "create_agent",
-				"params": { "data": { "name": fx_agent_name } }
+				"jsonrpc": "2.0", "id": 1, "method": "create_post",
+				"params": { "data": {
+					"title": fx_title,
+					"image_src": "https://example.com/a.jpg",
+					"image_alt": "alt",
+					"photographer": "Photographer",
+					"photographer_url": "https://www.flickr.com/photos/p/",
+					"source_url": "https://www.flickr.com/photos/p/2/",
+					"category_ids": [3]
+				} }
 			}))
 			.await
 			.json();
-		let agent_id = body
+		let post_id = body
 			.pointer("/result/data/id")
 			.and_then(Value::as_i64)
-			.ok_or("create_agent: missing /result/data/id")?;
-		assert!(agent_id > 0, "expected a positive agent id");
-
-		// -- Exec & Check: get_agent round-trips the name
-		let body: Value = server
-			.post("/api/rpc")
-			.json(&json!({
-				"jsonrpc": "2.0", "id": 1, "method": "get_agent",
-				"params": { "id": agent_id }
-			}))
-			.await
-			.json();
+			.ok_or("create_post: missing /result/data/id")?;
+		assert!(post_id > 0, "expected a positive post id");
 		assert_eq!(
-			body.pointer("/result/data/name").and_then(Value::as_str),
-			Some(fx_agent_name)
-		);
-
-		// -- Exec & Check: create_conv
-		let body: Value = server
-			.post("/api/rpc")
-			.json(&json!({
-				"jsonrpc": "2.0", "id": 1, "method": "create_conv",
-				"params": { "data": { "agent_id": agent_id, "title": fx_conv_title } }
-			}))
-			.await
-			.json();
-		let conv_id = body
-			.pointer("/result/data/id")
-			.and_then(Value::as_i64)
-			.ok_or("create_conv: missing /result/data/id")?;
-
-		// -- Exec & Check: add_conv_msg
-		let body: Value = server
-			.post("/api/rpc")
-			.json(&json!({
-				"jsonrpc": "2.0", "id": 1, "method": "add_conv_msg",
-				"params": { "data": { "conv_id": conv_id, "content": "first comment" } }
-			}))
-			.await
-			.json();
-		assert!(
-			body.pointer("/result/data/id")
-				.and_then(Value::as_i64)
-				.is_some(),
-			"add_conv_msg: missing /result/data/id"
+			body.pointer("/result/data/author/name")
+				.and_then(Value::as_str),
+			Some("demo1")
 		);
 
 		// -- Exec & Check: logoff
@@ -176,10 +143,8 @@ mod tests {
 			.await
 			.assert_status_ok();
 
-		// -- Clean (convs before agents; message rows cascade with the conv)
-		let ctx = Ctx::root_ctx();
-		clean_convs(&ctx, &mm, "test_web_login_rpc_logoff_ok").await?;
-		clean_agents(&ctx, &mm, "test_web_login_rpc_logoff_ok").await?;
+		// -- Clean
+		clean_posts(&mm, fx_title).await?;
 
 		Ok(())
 	}
@@ -400,136 +365,6 @@ mod tests {
 				"Post {post_id} Captions"
 			);
 		}
-
-		Ok(())
-	}
-
-	/// C01 cross-user scope over HTTP (Q10): a private (`OwnerOnly`) conv created
-	/// by `demo1` is invisible to a second logged-in user — `get_conv` errors
-	/// for them and they cannot `add_conv_msg` into it (#89), while its owner
-	/// still reads it.
-	#[serial]
-	#[tokio::test]
-	async fn test_web_cross_user_conv_scope() -> Result<()> {
-		// -- Setup & Fixtures
-		let mm = _dev_utils::init_test().await;
-		let root = Ctx::root_ctx();
-		let fx_prefix = "test_web_cross_user_conv_scope";
-
-		// A second authenticatable user (demo1 is seeded by dev_db).
-		let demo2_username = format!("{fx_prefix}-demo2");
-		let demo2_id = UserBmc::create(
-			&root,
-			&mm,
-			UserForCreate {
-				username: demo2_username.clone(),
-				pwd_clear: "welcome".to_string(),
-			},
-		)
-		.await?;
-
-		let fx_agent_name = format!("{fx_prefix} agent 01");
-		let fx_conv_title = format!("{fx_prefix} conv 01");
-
-		// -- demo1 session: create an agent + a private (default OwnerOnly) conv.
-		let mut server_a =
-			TestServer::new(app(mm.clone(), Arc::new(WsState::new())));
-		server_a.save_cookies();
-		server_a
-			.post("/api/login")
-			.json(&json!({ "username": "demo1", "pwd": "welcome" }))
-			.await
-			.assert_status_ok();
-
-		let body: Value = server_a
-			.post("/api/rpc")
-			.json(&json!({
-				"jsonrpc": "2.0", "id": 1, "method": "create_agent",
-				"params": { "data": { "name": fx_agent_name } }
-			}))
-			.await
-			.json();
-		let agent_id = body
-			.pointer("/result/data/id")
-			.and_then(Value::as_i64)
-			.ok_or("create_agent: missing /result/data/id")?;
-
-		let body: Value = server_a
-			.post("/api/rpc")
-			.json(&json!({
-				"jsonrpc": "2.0", "id": 1, "method": "create_conv",
-				"params": { "data": { "agent_id": agent_id, "title": fx_conv_title } }
-			}))
-			.await
-			.json();
-		let conv_id = body
-			.pointer("/result/data/id")
-			.and_then(Value::as_i64)
-			.ok_or("create_conv: missing /result/data/id")?;
-
-		// -- demo2 session: cannot read demo1's private conv.
-		let mut server_b =
-			TestServer::new(app(mm.clone(), Arc::new(WsState::new())));
-		server_b.save_cookies();
-		server_b
-			.post("/api/login")
-			.json(&json!({ "username": demo2_username, "pwd": "welcome" }))
-			.await
-			.assert_status_ok();
-
-		let body: Value = server_b
-			.post("/api/rpc")
-			.json(&json!({
-				"jsonrpc": "2.0", "id": 1, "method": "get_conv",
-				"params": { "id": conv_id }
-			}))
-			.await
-			.json();
-		assert!(
-			body.get("error").is_some(),
-			"cross-user get_conv should error, got: {body}"
-		);
-		assert!(
-			body.pointer("/result/data").is_none(),
-			"cross-user get_conv should not return conv data"
-		);
-
-		// -- demo2 also cannot post into demo1's private conv (#89 post-permission).
-		let body: Value = server_b
-			.post("/api/rpc")
-			.json(&json!({
-				"jsonrpc": "2.0", "id": 1, "method": "add_conv_msg",
-				"params": { "data": { "conv_id": conv_id, "content": "b illicit post" } }
-			}))
-			.await
-			.json();
-		assert!(
-			body.get("error").is_some(),
-			"cross-user add_conv_msg should error, got: {body}"
-		);
-		assert!(
-			body.pointer("/result/data").is_none(),
-			"cross-user add_conv_msg should not return data"
-		);
-
-		// -- The owner still reads its own conv (scope is not over-broad).
-		let body: Value = server_a
-			.post("/api/rpc")
-			.json(&json!({
-				"jsonrpc": "2.0", "id": 1, "method": "get_conv",
-				"params": { "id": conv_id }
-			}))
-			.await
-			.json();
-		assert_eq!(
-			body.pointer("/result/data/id").and_then(Value::as_i64),
-			Some(conv_id)
-		);
-
-		// -- Clean (convs before agents; message rows cascade with the conv)
-		clean_convs(&root, &mm, fx_prefix).await?;
-		clean_agents(&root, &mm, fx_prefix).await?;
-		UserBmc::delete(&root, &mm, demo2_id).await?;
 
 		Ok(())
 	}
@@ -815,6 +650,317 @@ mod tests {
 		Ok(())
 	}
 
+	/// Post one JSON-RPC call on `/api/rpc` and assert a 400 whose body names
+	/// `error_kind`. The caller then checks that nothing was poked.
+	async fn assert_rpc_rejected(
+		server: &TestServer,
+		method: &str,
+		params: Value,
+		error_kind: &str,
+	) {
+		let res = server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": method, "params": params
+			}))
+			.await;
+		res.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		assert!(
+			res.text().contains(error_kind),
+			"{method}: expected {error_kind}, got: {}",
+			res.text()
+		);
+	}
+
+	/// The Owner edits and deletes a Post (#187). `update_post` returns the
+	/// edited `PostView`, and `delete_post` returns the deleted id; each pokes
+	/// `posts` exactly once. A rejected write pokes nothing: an unknown key
+	/// (`image_src` too), an empty update, and a non-Owner write.
+	#[serial]
+	#[tokio::test]
+	async fn test_web_update_delete_post_ok() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let fx_title = "test_web_update_delete_post_ok";
+		let others_post =
+			seed_post(&Ctx::root_ctx(), &mm, "test_web_upd_post other", &[1])
+				.await?;
+		let ws_state = Arc::new(WsState::new());
+		let mut server = TestServer::new(app(mm.clone(), ws_state.clone()));
+		server.save_cookies();
+		server
+			.post("/api/login")
+			.json(&json!({ "username": "demo1", "pwd": "welcome" }))
+			.await
+			.assert_status_ok();
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "create_post",
+				"params": { "data": {
+					"title": fx_title,
+					"image_src": "https://example.com/a.jpg",
+					"image_alt": "alt",
+					"photographer": "Photographer",
+					"photographer_url": "https://www.flickr.com/photos/p/",
+					"source_url": "https://www.flickr.com/photos/p/2/",
+					"category_ids": [1, 3]
+				} }
+			}))
+			.await
+			.json();
+		let post_id = body
+			.pointer("/result/data/id")
+			.and_then(Value::as_i64)
+			.ok_or("create_post returns the new id")?;
+		// Subscribe after the create, so only this test's writes are seen.
+		let mut rx = ws_state.tx.subscribe();
+
+		// -- Exec & Check: each rejected write pokes nothing.
+		for (data, error_kind) in [
+			(
+				json!({ "image_src": "https://example.com/b.jpg" }),
+				"RPC_PARAMS_INVALID",
+			),
+			(json!({ "titel": "typo" }), "RPC_PARAMS_INVALID"),
+			(json!({}), "no field to change"),
+			(json!({ "category_ids": [] }), "VALIDATION_FAIL"),
+		] {
+			assert_rpc_rejected(
+				&server,
+				"update_post",
+				json!({ "id": post_id, "data": data }),
+				error_kind,
+			)
+			.await;
+		}
+		assert_rpc_rejected(
+			&server,
+			"update_post",
+			json!({ "id": others_post, "data": { "title": "hijack" } }),
+			"ENTITY_NOT_FOUND",
+		)
+		.await;
+		assert_rpc_rejected(
+			&server,
+			"delete_post",
+			json!({ "id": others_post }),
+			"ENTITY_NOT_FOUND",
+		)
+		.await;
+		assert!(rx.try_recv().is_err(), "a rejected write must not poke");
+
+		// -- Exec: the Owner's edit.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "update_post",
+				"params": { "id": post_id, "data": {
+					"title": "test_web_upd_post edited",
+					"category_ids": [2]
+				} }
+			}))
+			.await
+			.json();
+
+		// -- Check: the edited view; the photo stays; one `posts` poke.
+		assert_eq!(
+			body.pointer("/result/data/title").and_then(Value::as_str),
+			Some("test_web_upd_post edited"),
+			"got {body}"
+		);
+		assert_eq!(
+			body.pointer("/result/data/image_src")
+				.and_then(Value::as_str),
+			Some("https://example.com/a.jpg")
+		);
+		assert_eq!(
+			body.pointer("/result/data/categories/0/id")
+				.and_then(Value::as_i64),
+			Some(2)
+		);
+		let event = rx.try_recv().expect("update_post pokes the posts feed");
+		assert_eq!(event.channel().key(), "posts");
+		assert!(rx.try_recv().is_err(), "exactly one poke");
+
+		// -- Exec: the Owner's delete.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "delete_post",
+				"params": { "id": post_id }
+			}))
+			.await
+			.json();
+
+		// -- Check: the deleted id; one `posts` poke; the Post is gone.
+		assert_eq!(
+			body.pointer("/result/data").and_then(Value::as_i64),
+			Some(post_id),
+			"got {body}"
+		);
+		let event = rx.try_recv().expect("delete_post pokes the posts feed");
+		assert_eq!(event.channel().key(), "posts");
+		assert!(rx.try_recv().is_err(), "exactly one poke");
+		server
+			.post("/api/rpc-public")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "get_post",
+				"params": { "id": post_id }
+			}))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+
+		// -- Clean
+		clean_posts(&mm, "test_web_upd_post").await?;
+
+		Ok(())
+	}
+
+	/// The Owner edits and deletes a Caption (#187). `update_caption` returns
+	/// the edited `CaptionView`, and `delete_caption` returns the deleted id;
+	/// each pokes `post_caption:{post_id}` exactly once, and never `posts`. A
+	/// rejected write pokes nothing: an unknown key, an empty update, a locked
+	/// Caption, and a non-Owner write.
+	#[serial]
+	#[tokio::test]
+	async fn test_web_update_delete_caption_ok() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let fx_title = "test_web_update_delete_caption_ok";
+		let root = Ctx::root_ctx();
+		let post_id = seed_post(&root, &mm, fx_title, &[1]).await?;
+		let others_caption = seed_caption(&root, &mm, post_id, "not yours").await?;
+		let ws_state = Arc::new(WsState::new());
+		let mut server = TestServer::new(app(mm.clone(), ws_state.clone()));
+		server.save_cookies();
+		server
+			.post("/api/login")
+			.json(&json!({ "username": "demo1", "pwd": "welcome" }))
+			.await
+			.assert_status_ok();
+		let rpc = |method: &str, params: Value| json!({ "jsonrpc": "2.0", "id": 1, "method": method, "params": params });
+		let mut caption_ids = Vec::new();
+		for text in ["editable", "liked"] {
+			let body: Value = server
+				.post("/api/rpc")
+				.json(&rpc(
+					"add_caption",
+					json!({ "data": { "post_id": post_id, "text": text } }),
+				))
+				.await
+				.json();
+			caption_ids.push(
+				body.pointer("/result/data/id")
+					.and_then(Value::as_i64)
+					.ok_or("add_caption returns the new id")?,
+			);
+		}
+		let (editable, liked) = (caption_ids[0], caption_ids[1]);
+		server
+			.post("/api/rpc")
+			.json(&rpc(
+				"toggle_caption_like",
+				json!({ "data": { "id": liked, "liked": true } }),
+			))
+			.await
+			.assert_status_ok();
+		// Subscribe after the setup, so only this test's writes are seen.
+		let mut rx = ws_state.tx.subscribe();
+
+		// -- Exec & Check: each rejected write pokes nothing.
+		for (id, data, error_kind) in [
+			(
+				editable,
+				json!({ "post_id": post_id }),
+				"RPC_PARAMS_INVALID",
+			),
+			(editable, json!({}), "no field to change"),
+			(
+				liked,
+				json!({ "text": "too late" }),
+				"a Caption with Likes or Comments cannot be edited",
+			),
+			(
+				others_caption,
+				json!({ "text": "hijack" }),
+				"ENTITY_NOT_FOUND",
+			),
+		] {
+			assert_rpc_rejected(
+				&server,
+				"update_caption",
+				json!({ "id": id, "data": data }),
+				error_kind,
+			)
+			.await;
+		}
+		assert_rpc_rejected(
+			&server,
+			"delete_caption",
+			json!({ "id": others_caption }),
+			"ENTITY_NOT_FOUND",
+		)
+		.await;
+		assert!(rx.try_recv().is_err(), "a rejected write must not poke");
+
+		// -- Exec & Check: the Owner's edit; one `post_caption` poke.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&rpc(
+				"update_caption",
+				json!({ "id": editable, "data": { "text": "edited" } }),
+			))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data/text").and_then(Value::as_str),
+			Some("edited"),
+			"got {body}"
+		);
+		let event = rx.try_recv().expect("update_caption pokes post_caption");
+		assert_eq!(event.channel().key(), format!("post_caption:{post_id}"));
+		assert!(rx.try_recv().is_err(), "exactly one poke");
+
+		// -- Exec & Check: the Owner's delete, of a liked Caption too.
+		for id in [editable, liked] {
+			let body: Value = server
+				.post("/api/rpc")
+				.json(&rpc("delete_caption", json!({ "id": id })))
+				.await
+				.json();
+			assert_eq!(
+				body.pointer("/result/data").and_then(Value::as_i64),
+				Some(id),
+				"got {body}"
+			);
+			let event = rx.try_recv().expect("delete_caption pokes post_caption");
+			assert_eq!(event.channel().key(), format!("post_caption:{post_id}"));
+			assert!(rx.try_recv().is_err(), "exactly one poke");
+		}
+		let body: Value = server
+			.post("/api/rpc-public")
+			.json(&rpc("list_captions_for_post", json!({ "id": post_id })))
+			.await
+			.json();
+		let ids: Vec<i64> = body
+			.pointer("/result/data")
+			.and_then(Value::as_array)
+			.map(|items| {
+				items
+					.iter()
+					.filter_map(|c| c.pointer("/id").and_then(Value::as_i64))
+					.collect()
+			})
+			.unwrap_or_default();
+		assert_eq!(ids, vec![others_caption], "only the other Caption stays");
+
+		// -- Clean (the Post delete cascades its Captions)
+		clean_posts(&mm, fx_title).await?;
+
+		Ok(())
+	}
+
 	/// A logged-in User adds a Caption (#121): `add_caption` returns the
 	/// `CaptionView` with the caller as author, and pokes `post_caption:{post_id}`
 	/// once. An over-cap text or an unknown Post is rejected (400) with no poke,
@@ -898,7 +1044,7 @@ mod tests {
 	}
 
 	/// A logged-in User likes and unlikes a Post (#122): `toggle_post_like`
-	/// returns the caller's `PostLikeView`, and a toggle that changes the Like
+	/// returns the caller's `LikeView`, and a toggle that changes the Like
 	/// pokes `post_like:{post_id}` (the count) and `posts` (the ranking). A
 	/// second like is a no-op that pokes nothing. `get_post_like` reads the same
 	/// view. An unknown Post is rejected (400) by both RPCs with no poke, and an
@@ -913,7 +1059,7 @@ mod tests {
 		let toggle = |post_id: i64, liked: bool| {
 			json!({
 				"jsonrpc": "2.0", "id": 1, "method": "toggle_post_like",
-				"params": { "data": { "post_id": post_id, "liked": liked } }
+				"params": { "data": { "id": post_id, "liked": liked } }
 			})
 		};
 		let ws_state = Arc::new(WsState::new());
@@ -961,7 +1107,7 @@ mod tests {
 		// -- Check: one Like, liked by the caller.
 		assert_eq!(
 			body.pointer("/result/data"),
-			Some(&json!({ "post_id": post_id, "like_count": 1, "liked": true })),
+			Some(&json!({ "id": post_id, "like_count": 1, "liked": true })),
 			"got {body}"
 		);
 
@@ -985,11 +1131,477 @@ mod tests {
 			.json();
 		assert_eq!(
 			body.pointer("/result/data"),
-			Some(&json!({ "post_id": post_id, "like_count": 0, "liked": false })),
+			Some(&json!({ "id": post_id, "like_count": 0, "liked": false })),
 			"got {body}"
 		);
 
 		// -- Clean (the Post delete cascades its Likes)
+		clean_posts(&mm, fx_title).await?;
+
+		Ok(())
+	}
+
+	/// A Post's Comment thread over HTTP (#124). An anonymous visitor reads the
+	/// thread on `/api/rpc-public` but cannot write (401). A logged-in User adds,
+	/// edits and deletes their own Comment: an add or edit returns the
+	/// `CommentView` and pushes the same view on `post_comment:{post_id}`, and a
+	/// delete returns and pushes the removal (`id`, `parent_id`) (#125). An add
+	/// or delete then pokes `posts` (the count); an edit does not. A non-owner
+	/// edit or delete is rejected (400) with no push. The public read lists
+	/// `CommentView`s newest first, with no actor ids.
+	#[serial]
+	#[tokio::test]
+	async fn test_web_post_comment_thread_ok() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let fx_title = "test_web_post_comment_thread_ok";
+		let post_id = seed_post(&root, &mm, fx_title, &[1]).await?;
+		let other_id = seed_user(&root, &mm, "test_web_pc_thread-other").await?;
+		let other_comment =
+			seed_post_comment(&Ctx::new(other_id)?, &mm, post_id, "other's").await?;
+		let rpc = |method: &str, params: Value| json!({ "jsonrpc": "2.0", "id": 1, "method": method, "params": params });
+		let ws_state = Arc::new(WsState::new());
+		let mut rx = ws_state.tx.subscribe();
+		let anon = TestServer::new(app(mm.clone(), ws_state.clone()));
+		let mut server = TestServer::new(app(mm.clone(), ws_state.clone()));
+		server.save_cookies();
+		server
+			.post("/api/login")
+			.json(&json!({ "username": "demo1", "pwd": "welcome" }))
+			.await
+			.assert_status_ok();
+		let add = rpc(
+			"add_post_comment",
+			json!({ "data": { "post_id": post_id, "content": "  hello  " } }),
+		);
+
+		// -- Exec & Check: an anonymous caller cannot add.
+		anon.post("/api/rpc")
+			.json(&add)
+			.await
+			.assert_status(axum::http::StatusCode::UNAUTHORIZED);
+
+		// -- Exec & Check: add. The view comes back after hygiene, with demo1 as
+		//    its author, and the same view is pushed on the thread. Then `posts`
+		//    is poked.
+		let body: Value = server.post("/api/rpc").json(&add).await.json();
+		let id = body
+			.pointer("/result/data/id")
+			.and_then(Value::as_i64)
+			.ok_or(format!("add_post_comment: missing id in {body}"))?;
+		assert_eq!(
+			body.pointer("/result/data/content_html")
+				.and_then(Value::as_str),
+			Some("<p>hello</p>")
+		);
+		assert_eq!(
+			body.pointer("/result/data/author/name")
+				.and_then(Value::as_str),
+			Some("demo1")
+		);
+		assert_eq!(
+			body.pointer("/result/data/parent_id")
+				.and_then(Value::as_i64),
+			Some(post_id)
+		);
+		let event = rx.try_recv().expect("add pushes the view");
+		assert_eq!(event.channel().key(), format!("post_comment:{post_id}"));
+		let event = serde_json::to_value(event)?;
+		assert_eq!(event["event_type"], "post_comment");
+		assert_eq!(
+			Some(&event["payload"]),
+			body.pointer("/result/data"),
+			"the add result equals the pushed payload"
+		);
+		let posts = rx.try_recv().expect("add pokes posts");
+		assert_eq!(posts.channel().key(), "posts");
+
+		// -- Exec & Check: edit pushes the new row, and does not poke `posts`.
+		//    The view carries the rendered markdown (#126).
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&rpc(
+				"update_post_comment",
+				json!({ "id": id, "data": { "content": "**edited**" } }),
+			))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data/content_html")
+				.and_then(Value::as_str),
+			Some("<p><strong>edited</strong></p>"),
+			"got {body}"
+		);
+		let event = serde_json::to_value(rx.try_recv().expect("edit pushes"))?;
+		assert_eq!(event["event_type"], "post_comment");
+		assert_eq!(
+			Some(&event["payload"]),
+			body.pointer("/result/data"),
+			"the edit result equals the pushed payload"
+		);
+		assert!(rx.try_recv().is_err(), "an edit must not poke posts");
+
+		// -- Exec & Check: a non-owner edit or delete is rejected, with no push.
+		server
+			.post("/api/rpc")
+			.json(&rpc(
+				"update_post_comment",
+				json!({ "id": other_comment, "data": { "content": "hijack" } }),
+			))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		server
+			.post("/api/rpc")
+			.json(&rpc("delete_post_comment", json!({ "id": other_comment })))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		assert!(rx.try_recv().is_err(), "a rejected write must not push");
+
+		// -- Exec & Check: the Owner reads the stored markdown of their Comment
+		//    (#126). A non-owner read is rejected (400).
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&rpc("get_post_comment", json!({ "id": id })))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data"),
+			Some(&json!({ "id": id, "content": "**edited**" })),
+			"got {body}"
+		);
+		server
+			.post("/api/rpc")
+			.json(&rpc("get_post_comment", json!({ "id": other_comment })))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+
+		// -- Exec & Check: the public thread lists both, newest first. Each row
+		//    has exactly the `CommentView` keys: no `cid`, `mid` or `owner_id`,
+		//    and no stored text (#126).
+		let list = rpc("list_post_comments", json!({ "id": post_id }));
+		let body: Value = anon.post("/api/rpc-public").json(&list).await.json();
+		let rows = body
+			.pointer("/result/data")
+			.and_then(Value::as_array)
+			.ok_or(format!("list_post_comments: missing data in {body}"))?;
+		let ids: Vec<i64> = rows
+			.iter()
+			.filter_map(|c| c.pointer("/id").and_then(Value::as_i64))
+			.collect();
+		assert_eq!(ids, vec![id, other_comment]);
+		for row in rows {
+			let mut keys: Vec<&str> = row
+				.as_object()
+				.ok_or(format!("list_post_comments: row is not an object: {row}"))?
+				.keys()
+				.map(String::as_str)
+				.collect();
+			keys.sort_unstable();
+			assert_eq!(
+				keys,
+				vec![
+					"author",
+					"content_html",
+					"ctime",
+					"id",
+					"mtime",
+					"parent_id"
+				]
+			);
+		}
+
+		// -- Exec & Check: delete returns and pushes the removal, then pokes
+		//    `posts`.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&rpc("delete_post_comment", json!({ "id": id })))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data"),
+			Some(&json!({ "id": id, "parent_id": post_id })),
+			"got {body}"
+		);
+		let event = rx.try_recv().expect("delete pushes the removal");
+		assert_eq!(event.channel().key(), format!("post_comment:{post_id}"));
+		assert_eq!(
+			serde_json::to_value(event)?,
+			json!({
+				"event_type": "post_comment_removal",
+				"payload": { "id": id, "parent_id": post_id },
+			})
+		);
+		let posts = rx.try_recv().expect("delete pokes posts");
+		assert_eq!(posts.channel().key(), "posts");
+
+		// -- Check: the thread now holds only the other User's Comment.
+		let body: Value = anon.post("/api/rpc-public").json(&list).await.json();
+		assert_eq!(
+			body.pointer("/result/data/0/id").and_then(Value::as_i64),
+			Some(other_comment)
+		);
+		assert_eq!(
+			body.pointer("/result/data")
+				.and_then(Value::as_array)
+				.map(Vec::len),
+			Some(1)
+		);
+
+		// -- Clean (the Post delete cascades its Comments)
+		clean_posts(&mm, fx_title).await?;
+		clean_users(&root, &mm, "test_web_pc_thread").await?;
+
+		Ok(())
+	}
+
+	/// A Caption's Comment thread over HTTP (#127). A logged-in User adds,
+	/// edits and deletes their own Comment: each write pushes on
+	/// `caption_comment:{caption_id}`. An add or a delete then pokes
+	/// `post_caption:{post_id}`, so the Caption list refetches its comment
+	/// count; an edit does not. An anonymous visitor reads the thread on
+	/// `/api/rpc-public`.
+	#[serial]
+	#[tokio::test]
+	async fn test_web_caption_comment_thread_ok() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let fx_title = "test_web_caption_comment_thread_ok";
+		let post_id = seed_post(&root, &mm, fx_title, &[1]).await?;
+		let caption_id = seed_caption(&root, &mm, post_id, "a caption").await?;
+		let other_id = seed_user(&root, &mm, "test_web_cc_thread-other").await?;
+		let other_comment =
+			seed_caption_comment(&Ctx::new(other_id)?, &mm, caption_id, "other's")
+				.await?;
+		let rpc = |method: &str, params: Value| json!({ "jsonrpc": "2.0", "id": 1, "method": method, "params": params });
+		let ws_state = Arc::new(WsState::new());
+		let mut rx = ws_state.tx.subscribe();
+		let anon = TestServer::new(app(mm.clone(), ws_state.clone()));
+		let mut server = TestServer::new(app(mm.clone(), ws_state.clone()));
+		server.save_cookies();
+		server
+			.post("/api/login")
+			.json(&json!({ "username": "demo1", "pwd": "welcome" }))
+			.await
+			.assert_status_ok();
+
+		// -- Exec & Check: add pushes the view on the Caption's thread, then
+		//    pokes `post_caption`.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&rpc(
+				"add_caption_comment",
+				json!({ "data": { "caption_id": caption_id, "content": "hello" } }),
+			))
+			.await
+			.json();
+		let id = body
+			.pointer("/result/data/id")
+			.and_then(Value::as_i64)
+			.ok_or(format!("add_caption_comment: missing id in {body}"))?;
+		assert_eq!(
+			body.pointer("/result/data/parent_id")
+				.and_then(Value::as_i64),
+			Some(caption_id)
+		);
+		let event = rx.try_recv().expect("add pushes the view");
+		assert_eq!(
+			event.channel().key(),
+			format!("caption_comment:{caption_id}")
+		);
+		let event = serde_json::to_value(event)?;
+		assert_eq!(event["event_type"], "caption_comment");
+		assert_eq!(Some(&event["payload"]), body.pointer("/result/data"));
+		let poke = rx.try_recv().expect("add pokes post_caption");
+		assert_eq!(poke.channel().key(), format!("post_caption:{post_id}"));
+
+		// -- Exec & Check: edit pushes the new view, and does not poke.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&rpc(
+				"update_caption_comment",
+				json!({ "id": id, "data": { "content": "**edited**" } }),
+			))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data/content_html")
+				.and_then(Value::as_str),
+			Some("<p><strong>edited</strong></p>"),
+			"got {body}"
+		);
+		let event = rx.try_recv().expect("edit pushes");
+		assert_eq!(
+			event.channel().key(),
+			format!("caption_comment:{caption_id}")
+		);
+		assert!(rx.try_recv().is_err(), "an edit must not poke post_caption");
+
+		// -- Exec & Check: the Owner reads the stored text; a non-owner write is
+		//    rejected (400) with no push.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&rpc("get_caption_comment", json!({ "id": id })))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data"),
+			Some(&json!({ "id": id, "content": "**edited**" })),
+			"got {body}"
+		);
+		server
+			.post("/api/rpc")
+			.json(&rpc(
+				"delete_caption_comment",
+				json!({ "id": other_comment }),
+			))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		assert!(rx.try_recv().is_err(), "a rejected write must not push");
+
+		// -- Exec & Check: an anonymous visitor reads the thread, newest first.
+		let list = rpc("list_caption_comments", json!({ "id": caption_id }));
+		let body: Value = anon.post("/api/rpc-public").json(&list).await.json();
+		let ids: Vec<i64> = body
+			.pointer("/result/data")
+			.and_then(Value::as_array)
+			.ok_or(format!("list_caption_comments: missing data in {body}"))?
+			.iter()
+			.filter_map(|c| c.pointer("/id").and_then(Value::as_i64))
+			.collect();
+		assert_eq!(ids, vec![id, other_comment]);
+
+		// -- Exec & Check: delete returns and pushes the removal, then pokes
+		//    `post_caption`.
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&rpc("delete_caption_comment", json!({ "id": id })))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data"),
+			Some(&json!({ "id": id, "parent_id": caption_id })),
+			"got {body}"
+		);
+		assert_eq!(
+			serde_json::to_value(rx.try_recv().expect("delete pushes"))?,
+			json!({
+				"event_type": "caption_comment_removal",
+				"payload": { "id": id, "parent_id": caption_id },
+			})
+		);
+		let poke = rx.try_recv().expect("delete pokes post_caption");
+		assert_eq!(poke.channel().key(), format!("post_caption:{post_id}"));
+
+		// -- Clean (the Post delete cascades its Captions and their Comments)
+		clean_posts(&mm, fx_title).await?;
+		clean_users(&root, &mm, "test_web_cc_thread").await?;
+
+		Ok(())
+	}
+
+	/// A logged-in User likes and unlikes a Caption (#123): `toggle_caption_like`
+	/// returns the caller's `LikeView`, and a toggle that changes the Like pokes
+	/// `caption_like:{caption_id}` (the count) and `post_caption:{post_id}` (the
+	/// Top Captions ranking). A second like is a no-op that pokes nothing.
+	/// `get_caption_like` reads the same view. An unknown Caption is rejected
+	/// (400) by both RPCs with no poke, and an anonymous caller is rejected (401).
+	#[serial]
+	#[tokio::test]
+	async fn test_web_toggle_caption_like_ok() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let fx_title = "test_web_toggle_caption_like_ok";
+		let root = Ctx::root_ctx();
+		let post_id = seed_post(&root, &mm, fx_title, &[1]).await?;
+		let caption_id = seed_caption(&root, &mm, post_id, "liked caption").await?;
+		let toggle = |caption_id: i64, liked: bool| {
+			json!({
+				"jsonrpc": "2.0", "id": 1, "method": "toggle_caption_like",
+				"params": { "data": { "id": caption_id, "liked": liked } }
+			})
+		};
+		let get_like = |caption_id: i64| {
+			json!({
+				"jsonrpc": "2.0", "id": 1, "method": "get_caption_like",
+				"params": { "id": caption_id }
+			})
+		};
+		let ws_state = Arc::new(WsState::new());
+		let mut rx = ws_state.tx.subscribe();
+		let anon = TestServer::new(app(mm.clone(), ws_state.clone()));
+		let mut server = TestServer::new(app(mm.clone(), ws_state.clone()));
+		server.save_cookies();
+		server
+			.post("/api/login")
+			.json(&json!({ "username": "demo1", "pwd": "welcome" }))
+			.await
+			.assert_status_ok();
+
+		// -- Exec & Check: an anonymous caller is rejected.
+		anon.post("/api/rpc")
+			.json(&toggle(caption_id, true))
+			.await
+			.assert_status(axum::http::StatusCode::UNAUTHORIZED);
+
+		// -- Exec & Check: an unknown Caption is rejected by both RPCs, and
+		//    nothing is poked.
+		server
+			.post("/api/rpc")
+			.json(&toggle(999_999, true))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		server
+			.post("/api/rpc")
+			.json(&get_like(999_999))
+			.await
+			.assert_status(axum::http::StatusCode::BAD_REQUEST);
+		assert!(rx.try_recv().is_err(), "a rejected toggle must not poke");
+
+		// -- Exec: like twice.
+		server
+			.post("/api/rpc")
+			.json(&toggle(caption_id, true))
+			.await;
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&toggle(caption_id, true))
+			.await
+			.json();
+
+		// -- Check: one Like, liked by the caller.
+		assert_eq!(
+			body.pointer("/result/data"),
+			Some(&json!({ "id": caption_id, "like_count": 1, "liked": true })),
+			"got {body}"
+		);
+
+		// -- Check: the first like poked the count, then the ranking; the second
+		//    like changed nothing, so it poked nothing.
+		let like = rx.try_recv().expect("toggle pokes caption_like");
+		assert_eq!(like.channel().key(), format!("caption_like:{caption_id}"));
+		let ranking = rx.try_recv().expect("toggle pokes post_caption");
+		assert_eq!(ranking.channel().key(), format!("post_caption:{post_id}"));
+		assert!(rx.try_recv().is_err(), "a no-op toggle must not poke");
+
+		// -- Exec & Check: unlike; `get_caption_like` reads the same view.
+		server
+			.post("/api/rpc")
+			.json(&toggle(caption_id, false))
+			.await;
+		let body: Value = server
+			.post("/api/rpc")
+			.json(&get_like(caption_id))
+			.await
+			.json();
+		assert_eq!(
+			body.pointer("/result/data"),
+			Some(&json!({ "id": caption_id, "like_count": 0, "liked": false })),
+			"got {body}"
+		);
+
+		// -- Clean (the Post delete cascades its Captions and their Likes)
 		clean_posts(&mm, fx_title).await?;
 
 		Ok(())
@@ -1005,8 +1617,8 @@ mod tests {
 		let res = server
 			.post("/api/rpc")
 			.json(&json!({
-				"jsonrpc": "2.0", "id": 1, "method": "get_agent",
-				"params": { "id": 1 }
+				"jsonrpc": "2.0", "id": 1, "method": "create_post",
+				"params": { "data": {} }
 			}))
 			.await;
 

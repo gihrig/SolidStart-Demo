@@ -7,4 +7,4 @@ import type { AuthorRef } from "./AuthorRef.d";
  * so the front-end renders without joining. It carries no audit columns
  * (`cid` / `mid` / `ctime` / `mtime`).
  */
-export type CaptionView = { id: bigint, post_id: bigint, author: AuthorRef, text: string, like_count: bigint, comment_count: bigint, };
+export type CaptionView = { id: number, post_id: number, author: AuthorRef, text: string, like_count: number, comment_count: number, };

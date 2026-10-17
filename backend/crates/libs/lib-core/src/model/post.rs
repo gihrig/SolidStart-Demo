@@ -4,7 +4,9 @@ use crate::model::base::{
 	self, Access, CommonIden, DbBmc, FieldHygiene, PublicProjection,
 };
 use crate::model::category::{CategoryBmc, CategoryFilter, CategoryPublic};
+use crate::model::like::LikeTarget;
 use crate::model::modql_utils::time_to_sea_value;
+use crate::model::post_comment::PostCommentBmc;
 use crate::model::user::{AuthorRef, UserBmc};
 use crate::model::ModelManager;
 use crate::model::{Error, Result};
@@ -12,10 +14,7 @@ use modql::field::{Fields, HasSeaFields};
 use modql::filter::{
 	FilterNodes, ListOptions, OpValInt64, OpValsInt64, OpValsString, OpValsValue,
 };
-use sea_query::{
-	Alias, Asterisk, Condition, Expr, Func, OnConflict, Order, PostgresQueryBuilder,
-	Query,
-};
+use sea_query::{Alias, Condition, Expr, Order, PostgresQueryBuilder, Query};
 use sea_query_binder::SqlxBinder;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
@@ -25,9 +24,9 @@ use ts_rs::TS;
 // region:    --- Post Types
 
 /// The `post` base row (#117). Every Post is public — read is unscoped, write is
-/// owner-only (`ConvBmc`'s `kind`/`state` scope is dropped, #106). The audit
-/// columns exist in the table but are intentionally absent from this struct: the
-/// model never reads them, and `PostView` (the public projection) is audit-free.
+/// owner-only (#106). The audit columns exist in the table but are intentionally
+/// absent from this struct: the model never reads them, and `PostView` (the
+/// public projection) is audit-free.
 /// `like` / `comment` counts are derived by COUNT, never stored here.
 #[derive(Debug, Clone, Fields, FromRow)]
 pub struct Post {
@@ -93,17 +92,26 @@ pub struct PostForCreate {
 	pub category_ids: Vec<i64>,
 }
 
-#[derive(Fields, Deserialize, Default)]
+/// The `update_post` input (#187). Each field is optional: a missing or `null`
+/// field is left unchanged. `image_src` is not here: the Post _is_ the photo, so
+/// the photo never changes. `category_ids`, when given, replaces the Category
+/// links (`#[field(skip)]` keeps it out of the row update). An unknown key is a
+/// parse error, so a typo never passes as an empty update.
+#[derive(Clone, Fields, Deserialize, Default, TS)]
+#[serde(deny_unknown_fields)]
+#[ts(export, export_to = "PostForUpdate.d.ts", optional_fields = nullable)]
 pub struct PostForUpdate {
 	// Note: `owner_id` is intentionally not updatable — the owner-only Write scope
-	//       keys on it (see `ConvForUpdate`). Ownership transfer belongs to a
-	//       future privilege ACS.
+	//       keys on it. Ownership transfer belongs to a future privilege ACS.
 	pub title: Option<String>,
-	pub image_src: Option<String>,
 	pub image_alt: Option<String>,
 	pub photographer: Option<String>,
 	pub photographer_url: Option<String>,
 	pub source_url: Option<String>,
+
+	// -- The Categories to link instead, at least one (#107)
+	#[field(skip)]
+	pub category_ids: Option<Vec<i64>>,
 }
 
 #[derive(FilterNodes, Deserialize, Default, Debug)]
@@ -118,26 +126,6 @@ pub struct PostFilter {
 	pub mid: Option<OpValsInt64>,
 	#[modql(to_sea_value_fn = "time_to_sea_value")]
 	pub mtime: Option<OpValsValue>,
-}
-
-/// One User's view of one Post's Likes (#122): the derived like count and
-/// whether the caller likes the Post. Per-caller, so it is served only on the
-/// authenticated surface — the anonymous `PostView` cannot carry `liked`.
-#[derive(Debug, Clone, Serialize, TS)]
-#[ts(export, export_to = "PostLikeView.d.ts")]
-pub struct PostLikeView {
-	pub post_id: i64,
-	pub like_count: i64,
-	pub liked: bool,
-}
-
-/// The `toggle_post_like` input (#122). `liked` is the wanted state, not a flip,
-/// so the toggle is idempotent: a second like and a second unlike are no-ops.
-#[derive(Deserialize, TS)]
-#[ts(export, export_to = "PostLikeForToggle.d.ts")]
-pub struct PostLikeForToggle {
-	pub post_id: i64,
-	pub liked: bool,
 }
 
 // endregion: --- Post Types
@@ -160,25 +148,19 @@ impl DbBmc for PostCategoryBmc {
 
 // A marker BMC owns its child table's identity — the `TABLE` name — so every read
 // routes its `FROM` through `DbBmc::table_ref()`, keeping one table name in one
-// place. `PostLikeBmc` is also the Like write path (#122, see its impl below);
-// `PostCommentBmc` stays a marker until the comment writes land.
+// place. `PostLikeBmc` is also a Like target (#123): the shared Like module
+// (`model::like`) is its write path and its read. `post_comment` has its own
+// module (`model::post_comment`, #124); its `PostCommentBmc` feeds the count.
 pub struct PostLikeBmc;
 
 impl DbBmc for PostLikeBmc {
 	const TABLE: &'static str = "post_like";
 }
 
-/// The `post_like` insert row: the caller's Like on one Post.
-#[derive(Fields)]
-struct PostLikeForInsert {
-	post_id: i64,
-	user_id: i64,
-}
-
-struct PostCommentBmc;
-
-impl DbBmc for PostCommentBmc {
-	const TABLE: &'static str = "post_comment";
+impl LikeTarget for PostLikeBmc {
+	const PARENT_COL: &'static str = POST_ID;
+	const UNKNOWN_PARENT: &'static str = "unknown Post";
+	type Parent = PostBmc;
 }
 
 /// The parent key column of `post_like` / `post_comment`.
@@ -227,26 +209,32 @@ impl DbBmc for PostBmc {
 			FieldHygiene {
 				field: "title",
 				max_len: Some(36),
+				required: true,
 			},
 			FieldHygiene {
 				field: "image_alt",
 				max_len: Some(200),
+				required: false,
 			},
 			FieldHygiene {
 				field: "photographer",
 				max_len: Some(120),
+				required: false,
 			},
 			FieldHygiene {
 				field: "image_src",
 				max_len: Some(1024),
+				required: false,
 			},
 			FieldHygiene {
 				field: "photographer_url",
 				max_len: Some(1024),
+				required: false,
 			},
 			FieldHygiene {
 				field: "source_url",
 				max_len: Some(1024),
+				required: false,
 			},
 		];
 		RULES
@@ -260,12 +248,12 @@ impl DbBmc for PostBmc {
 	}
 }
 
-// `create` is hand-written (below) so it can insert the `post_category` links in
-// the same transaction; the macro therefore gets no `ForCreate`.
+// `create` and `update` are hand-written (below) so they can write the
+// `post_category` links in the same transaction; the macro therefore gets no
+// `ForCreate` and no `ForUpdate`.
 generate_common_bmc_fns!(
 	Bmc: PostBmc,
 	Entity: Post,
-	ForUpdate: PostForUpdate,
 	Filter: PostFilter,
 );
 
@@ -281,49 +269,58 @@ impl PostBmc {
 		mut post_c: PostForCreate,
 	) -> Result<i64> {
 		let category_ids =
-			base::dedup(std::mem::take(&mut post_c.category_ids).into_iter());
-		if category_ids.is_empty() {
-			return Err(Error::Validation {
-				field: "category_ids".to_string(),
-				reason: "a Post requires at least one Category".to_string(),
-			});
-		}
-
-		// -- An unknown Category id is a client error, not a foreign-key failure.
-		let known = CategoryBmc::list_public(
-			ctx,
-			mm,
-			Some(vec![CategoryFilter {
-				id: Some(OpValInt64::In(category_ids.clone()).into()),
-				..Default::default()
-			}]),
-			None,
-		)
-		.await?;
-		if known.len() != category_ids.len() {
-			return Err(Error::Validation {
-				field: "category_ids".to_string(),
-				reason: "unknown Category".to_string(),
-			});
-		}
+			check_category_ids(ctx, mm, std::mem::take(&mut post_c.category_ids))
+				.await?;
 
 		let mm = mm.new_with_txn()?;
 		mm.dbx().begin_txn().await?;
 
 		let post_id = base::create::<Self, _>(ctx, &mm, post_c).await?;
-
-		let links: Vec<PostCategoryForInsert> = category_ids
-			.iter()
-			.map(|&category_id| PostCategoryForInsert {
-				post_id,
-				category_id,
-			})
-			.collect();
-		base::create_many::<PostCategoryBmc, _>(ctx, &mm, links).await?;
+		insert_category_links(ctx, &mm, post_id, &category_ids).await?;
 
 		mm.dbx().commit_txn().await?;
 
 		Ok(post_id)
+	}
+
+	/// Edit a Post (#187), owner-only. `category_ids`, when given, replaces the
+	/// Category links in the same transaction as the row update. A non-Owner
+	/// gets `EntityNotFound` and nothing changes, even with bad `category_ids`:
+	/// an owner-scoped read runs before the Category check. For the Owner, an
+	/// empty list or an unknown id is a `Validation` error, as on create, and so
+	/// is an update with no field. The row update runs first in the transaction,
+	/// so its owner scope still guards the link change.
+	pub async fn update(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		id: i64,
+		mut post_u: PostForUpdate,
+	) -> Result<()> {
+		let category_ids = match post_u.category_ids.take() {
+			Some(ids) => {
+				base::get_writable::<Self, Post>(ctx, mm, id).await?;
+				Some(check_category_ids(ctx, mm, ids).await?)
+			}
+			None => None,
+		};
+		let no_row_field =
+			post_u.clone().not_none_sea_fields().into_vec().is_empty();
+		if category_ids.is_none() && no_row_field {
+			return Err(base::no_field_to_change());
+		}
+
+		let mm = mm.new_with_txn()?;
+		mm.dbx().begin_txn().await?;
+
+		base::update::<Self, _>(ctx, &mm, id, post_u).await?;
+		if let Some(category_ids) = category_ids {
+			delete_category_links(&mm, id).await?;
+			insert_category_links(ctx, &mm, id, &category_ids).await?;
+		}
+
+		mm.dbx().commit_txn().await?;
+
+		Ok(())
 	}
 
 	/// Read a single Post as its enriched `PostView` (public read, unscoped).
@@ -486,13 +483,10 @@ impl PostBmc {
 			.into_iter()
 			.map(|p| PostView {
 				id: p.id,
-				author: author_by_id.get(&p.owner_id).cloned().unwrap_or(
-					AuthorRef {
-						id: p.owner_id,
-						name: String::new(),
-						avatar_url: None,
-					},
-				),
+				author: author_by_id
+					.get(&p.owner_id)
+					.cloned()
+					.unwrap_or_else(|| AuthorRef::unknown(p.owner_id)),
 				title: p.title,
 				image_src: p.image_src,
 				image_alt: p.image_alt,
@@ -511,121 +505,77 @@ impl PostBmc {
 
 // endregion: --- PostBmc
 
-// region:    --- PostLikeBmc
+// region:    --- Category link helpers
 
-/// The column that names the liking User in `post_like`.
-const USER_ID: &str = "user_id";
-
-impl PostLikeBmc {
-	/// Set the caller's Like on a Post to `liked` (#122). Idempotent: a like
-	/// inserts with `ON CONFLICT DO NOTHING` on the `(post_id, user_id)` unique
-	/// key, so a second like is a no-op; an unlike deletes the caller's row, so a
-	/// second unlike is a no-op. Returns whether a Like row changed, so the
-	/// caller pokes only on a real change. The count is never stored — it is
-	/// derived. An unknown `post_id` is a `Validation` error, rejected before the
-	/// write.
-	pub async fn toggle(
-		ctx: &Ctx,
-		mm: &ModelManager,
-		like_t: PostLikeForToggle,
-	) -> Result<bool> {
-		let PostLikeForToggle { post_id, liked } = like_t;
-		let user_id = ctx.user_id();
-
-		require_post(ctx, mm, post_id).await?;
-
-		let (sql, values) = if liked {
-			let mut fields =
-				PostLikeForInsert { post_id, user_id }.not_none_sea_fields();
-			base::prep_fields_for_create::<Self>(&mut fields, user_id);
-			let (columns, sea_values) = fields.for_sea_insert();
-
-			let mut query = Query::insert();
-			query
-				.into_table(Self::table_ref())
-				.columns(columns)
-				.values(sea_values)?
-				.on_conflict(
-					OnConflict::columns([Alias::new(POST_ID), Alias::new(USER_ID)])
-						.do_nothing()
-						.to_owned(),
-				);
-			query.build_sqlx(PostgresQueryBuilder)
-		} else {
-			let mut query = Query::delete();
-			query
-				.from_table(Self::table_ref())
-				.and_where(Expr::col(Alias::new(POST_ID)).eq(post_id))
-				.and_where(Expr::col(Alias::new(USER_ID)).eq(user_id));
-			query.build_sqlx(PostgresQueryBuilder)
-		};
-		// One row at most: the `(post_id, user_id)` key is unique.
-		let changed = mm.dbx().execute(sqlx::query_with(&sql, values)).await?;
-
-		Ok(changed > 0)
+/// Check the Category ids of a create or an edit (#107, #187): repeated ids
+/// count once; an empty list or an unknown id is a `Validation` error on
+/// `category_ids`, not a foreign-key failure. Returns the ids, deduplicated.
+async fn check_category_ids(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	category_ids: Vec<i64>,
+) -> Result<Vec<i64>> {
+	let category_ids = base::dedup(category_ids.into_iter());
+	if category_ids.is_empty() {
+		return Err(Error::Validation {
+			field: "category_ids".to_string(),
+			reason: "a Post requires at least one Category".to_string(),
+		});
 	}
 
-	/// Read the caller's `PostLikeView` of one Post: the derived like count and
-	/// whether the caller likes it. An unknown `post_id` is the same
-	/// `Validation` error as `toggle`, not a silent zero view.
-	pub async fn get_post_like(
-		ctx: &Ctx,
-		mm: &ModelManager,
-		post_id: i64,
-	) -> Result<PostLikeView> {
-		// One statement reads the count and the caller's Like, so both come from
-		// one snapshot: a Like that changes mid-read cannot pair a count of 0
-		// with `liked: true` (#122 review).
-		let mut query = Query::select();
-		query
-			.from(Self::table_ref())
-			.expr(Expr::col(Asterisk).count())
-			.expr(Func::coalesce([
-				Func::cust(Alias::new("BOOL_OR"))
-					.arg(Expr::col(Alias::new(USER_ID)).eq(ctx.user_id()))
-					.into(),
-				Expr::val(false).into(),
-			]))
-			.and_where(Expr::col(Alias::new(POST_ID)).eq(post_id));
-		let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-		let sqlx_query = sqlx::query_as_with::<_, (i64, bool), _>(&sql, values);
-
-		let ((), (like_count, liked)) =
-			tokio::try_join!(require_post(ctx, mm, post_id), async {
-				mm.dbx().fetch_one(sqlx_query).await.map_err(Error::from)
-			},)?;
-
-		Ok(PostLikeView {
-			post_id,
-			like_count,
-			liked,
-		})
-	}
-}
-
-/// Reject an unknown Post as a `Validation` error on `post_id` (400), the shape
-/// `CaptionBmc::create` uses, so a Like never reaches a foreign-key failure.
-async fn require_post(ctx: &Ctx, mm: &ModelManager, post_id: i64) -> Result<()> {
-	let known = PostBmc::list(
+	let known = CategoryBmc::list_public(
 		ctx,
 		mm,
-		Some(vec![PostFilter {
-			id: Some(post_id.into()),
+		Some(vec![CategoryFilter {
+			id: Some(OpValInt64::In(category_ids.clone()).into()),
 			..Default::default()
 		}]),
 		None,
 	)
 	.await?;
-	if known.is_empty() {
+	if known.len() != category_ids.len() {
 		return Err(Error::Validation {
-			field: POST_ID.to_string(),
-			reason: "unknown Post".to_string(),
+			field: "category_ids".to_string(),
+			reason: "unknown Category".to_string(),
 		});
 	}
+
+	Ok(category_ids)
+}
+
+/// Link one Post to each Category in `category_ids`.
+async fn insert_category_links(
+	ctx: &Ctx,
+	mm: &ModelManager,
+	post_id: i64,
+	category_ids: &[i64],
+) -> Result<()> {
+	let links: Vec<PostCategoryForInsert> = category_ids
+		.iter()
+		.map(|&category_id| PostCategoryForInsert {
+			post_id,
+			category_id,
+		})
+		.collect();
+	base::create_many::<PostCategoryBmc, _>(ctx, mm, links).await?;
 	Ok(())
 }
 
-// endregion: --- PostLikeBmc
+/// Delete every Category link of one Post. Only `PostBmc::update` calls it,
+/// after the owner-scoped row update.
+async fn delete_category_links(mm: &ModelManager, post_id: i64) -> Result<()> {
+	let mut query = Query::delete();
+	query
+		.from_table(PostCategoryBmc::table_ref())
+		.and_where(Expr::col(Alias::new(POST_ID)).eq(post_id));
+
+	let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+	mm.dbx().execute(sqlx::query_with(&sql, values)).await?;
+
+	Ok(())
+}
+
+// endregion: --- Category link helpers
 
 // region:    --- Batched read helpers
 
@@ -671,7 +621,7 @@ mod tests {
 	use serial_test::serial;
 
 	/// Insert one `post_like` row directly (test-only). The ranking tests seed
-	/// likes at the SQL layer, so they do not depend on the `PostLikeBmc::toggle`
+	/// likes at the SQL layer, so they do not depend on the `LikeBmc::toggle`
 	/// write path (#122); the unique-constraint test needs a raw double insert.
 	async fn seed_post_like(
 		mm: &ModelManager,
@@ -829,7 +779,8 @@ mod tests {
 
 	/// Every Post is public: Read is unscoped, so a non-owner reads any Post.
 	/// Write is owner-only: a non-owner update / delete is `EntityNotFound`, while
-	/// the Owner may update. (#106)
+	/// the Owner may update. (#106) A non-owner's bad `category_ids` is
+	/// `EntityNotFound` too, not `Validation` (#187).
 	#[serial]
 	#[tokio::test]
 	async fn test_post_write_is_owner_only() -> Result<()> {
@@ -856,6 +807,7 @@ mod tests {
 					post_id,
 					PostForUpdate {
 						title: Some("hijack".to_string()),
+						category_ids: Some(vec![2]),
 						..Default::default()
 					},
 				)
@@ -864,6 +816,25 @@ mod tests {
 			),
 			"B update A's Post should be EntityNotFound"
 		);
+		let view = PostBmc::get_post(&ctx_b, &mm, post_id).await?;
+		let cat_ids: Vec<i64> = view.categories.iter().map(|c| c.id).collect();
+		assert_eq!(cat_ids, vec![1], "B's update changes no Category link");
+		for category_ids in [vec![], vec![999_999]] {
+			let res = PostBmc::update(
+				&ctx_b,
+				&mm,
+				post_id,
+				PostForUpdate {
+					category_ids: Some(category_ids),
+					..Default::default()
+				},
+			)
+			.await;
+			assert!(
+				matches!(&res, Err(model::Error::EntityNotFound { .. })),
+				"B's bad category_ids should be EntityNotFound, got {res:?}"
+			);
+		}
 		assert!(
 			matches!(
 				PostBmc::delete(&ctx_b, &mm, post_id).await,
@@ -886,6 +857,286 @@ mod tests {
 
 		// -- Clean
 		_dev_utils::clean_users(&root, &mm, "test_owner_only").await?;
+
+		Ok(())
+	}
+
+	/// The Category ids of one Post, read through its view.
+	async fn category_ids_of(
+		ctx: &Ctx,
+		mm: &ModelManager,
+		post_id: i64,
+	) -> Result<Vec<i64>> {
+		let view = PostBmc::get_post(ctx, mm, post_id).await?;
+		Ok(view.categories.iter().map(|c| c.id).collect())
+	}
+
+	/// An edit with `category_ids` replaces the Post's Category links, in the
+	/// same write as the row fields (#187). `None` keeps the links.
+	#[serial]
+	#[tokio::test]
+	async fn test_update_replaces_category_links() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_update_cats-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+		let post_id = seed_post(&ctx, &mm, "test_update_cats post", &[1, 3]).await?;
+
+		// -- Exec: a title edit keeps the links.
+		PostBmc::update(
+			&ctx,
+			&mm,
+			post_id,
+			PostForUpdate {
+				title: Some("test_update_cats edited".to_string()),
+				..Default::default()
+			},
+		)
+		.await?;
+		assert_eq!(category_ids_of(&ctx, &mm, post_id).await?, vec![1, 3]);
+
+		// -- Exec: a Category edit replaces the links; a repeated id links once.
+		PostBmc::update(
+			&ctx,
+			&mm,
+			post_id,
+			PostForUpdate {
+				title: Some("test_update_cats again".to_string()),
+				category_ids: Some(vec![6, 2, 6]),
+				..Default::default()
+			},
+		)
+		.await?;
+
+		// -- Check
+		let view = PostBmc::get_post(&ctx, &mm, post_id).await?;
+		assert_eq!(view.title, "test_update_cats again");
+		assert_eq!(category_ids_of(&ctx, &mm, post_id).await?, vec![2, 6]);
+
+		// -- Exec & Check: a Category edit alone is a change.
+		PostBmc::update(
+			&ctx,
+			&mm,
+			post_id,
+			PostForUpdate {
+				category_ids: Some(vec![4]),
+				..Default::default()
+			},
+		)
+		.await?;
+		assert_eq!(category_ids_of(&ctx, &mm, post_id).await?, vec![4]);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_update_cats").await?;
+
+		Ok(())
+	}
+
+	/// An empty `category_ids` or an unknown id is a `Validation` error, and
+	/// neither the row nor the links change (#187).
+	#[serial]
+	#[tokio::test]
+	async fn test_update_rejects_bad_category_ids() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_update_bad_cats-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+		let post_id =
+			seed_post(&ctx, &mm, "test_update_bad_cats post", &[1, 3]).await?;
+
+		for (category_ids, reason) in [
+			(vec![], "a Post requires at least one Category"),
+			(vec![2, 999_999], "unknown Category"),
+		] {
+			// -- Exec
+			let res = PostBmc::update(
+				&ctx,
+				&mm,
+				post_id,
+				PostForUpdate {
+					title: Some("test_update_bad_cats changed".to_string()),
+					category_ids: Some(category_ids),
+					..Default::default()
+				},
+			)
+			.await;
+
+			// -- Check
+			assert!(
+				matches!(&res, Err(model::Error::Validation { field, reason: r })
+					if field == "category_ids" && r == reason),
+				"got {res:?}"
+			);
+			let view = PostBmc::get_post(&ctx, &mm, post_id).await?;
+			assert_eq!(view.title, "test_update_bad_cats post", "the row stays");
+			assert_eq!(
+				category_ids_of(&ctx, &mm, post_id).await?,
+				vec![1, 3],
+				"the links stay"
+			);
+		}
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_update_bad_cats").await?;
+
+		Ok(())
+	}
+
+	/// An update that names no field to change is a `Validation` error on
+	/// `data` (#187), not a success that moves `mtime`.
+	#[serial]
+	#[tokio::test]
+	async fn test_update_with_no_field_is_rejected() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let owner_id = seed_user(&root, &mm, "test_update_empty-owner").await?;
+		let ctx = Ctx::new(owner_id)?;
+		let post_id = seed_post(&ctx, &mm, "test_update_empty post", &[1]).await?;
+
+		// -- Exec
+		let res =
+			PostBmc::update(&ctx, &mm, post_id, PostForUpdate::default()).await;
+
+		// -- Check
+		assert!(
+			matches!(&res, Err(model::Error::Validation { field, reason })
+				if field == "data" && reason == "no field to change"),
+			"got {res:?}"
+		);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_update_empty").await?;
+
+		Ok(())
+	}
+
+	/// The update params are strict (#187): an unknown key, `image_src` too, is
+	/// a parse error, so the photo of a Post never changes.
+	#[test]
+	fn test_post_for_update_denies_unknown_fields() {
+		for data in [
+			serde_json::json!({ "image_src": "https://example.test/b.jpg" }),
+			serde_json::json!({ "titel": "typo" }),
+		] {
+			assert!(
+				serde_json::from_value::<PostForUpdate>(data.clone()).is_err(),
+				"{data} must not parse"
+			);
+		}
+		let ok: PostForUpdate = serde_json::from_value(
+			serde_json::json!({ "title": "t", "category_ids": [1] }),
+		)
+		.unwrap();
+		assert_eq!(ok.title.as_deref(), Some("t"));
+		assert_eq!(ok.category_ids, Some(vec![1]));
+	}
+
+	/// The number of rows `sql` counts for `id` (test-only). The cascade test
+	/// reads the child tables directly: no model read reaches the rows of a
+	/// deleted parent.
+	async fn count_rows(mm: &ModelManager, sql: &str, id: i64) -> Result<i64> {
+		let (count,): (i64,) = sqlx::query_as(sql)
+			.bind(id)
+			.fetch_one(mm.dbx().db())
+			.await?;
+		Ok(count)
+	}
+
+	/// A Post delete cascades to every row under it, rows that other Users own
+	/// too (#187, ADR-0032): its Category links, Likes, Comments and Captions,
+	/// and each Caption's Likes and Comments. Another Post's rows stay.
+	#[serial]
+	#[tokio::test]
+	async fn test_delete_cascades_to_every_row_under_the_post() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let root = Ctx::root_ctx();
+		let a_id = seed_user(&root, &mm, "test_post_cascade-A").await?;
+		let b_id = seed_user(&root, &mm, "test_post_cascade-B").await?;
+		let ctx_a = Ctx::new(a_id)?;
+		let ctx_b = Ctx::new(b_id)?;
+		let post_id =
+			seed_post(&ctx_a, &mm, "test_post_cascade post", &[1, 3]).await?;
+		let other_post =
+			seed_post(&ctx_a, &mm, "test_post_cascade other", &[1]).await?;
+
+		// A's and B's rows under the Post; B's rows under the other Post.
+		seed_post_like(&mm, post_id, b_id).await?;
+		_dev_utils::seed_post_comment(&ctx_b, &mm, post_id, "B's comment").await?;
+		let caption_a =
+			_dev_utils::seed_caption(&ctx_a, &mm, post_id, "A's caption").await?;
+		let caption_b =
+			_dev_utils::seed_caption(&ctx_b, &mm, post_id, "B's caption").await?;
+		for caption_id in [caption_a, caption_b] {
+			sqlx::query(
+				"INSERT INTO caption_like (caption_id, user_id, cid, ctime, mid, mtime) \
+				 VALUES ($1, $2, 0, now(), 0, now())",
+			)
+			.bind(caption_id)
+			.bind(b_id)
+			.execute(mm.dbx().db())
+			.await?;
+			_dev_utils::seed_caption_comment(&ctx_b, &mm, caption_id, "B's reply")
+				.await?;
+		}
+		seed_post_like(&mm, other_post, b_id).await?;
+		let other_caption =
+			_dev_utils::seed_caption(&ctx_b, &mm, other_post, "stays").await?;
+
+		// -- Exec
+		PostBmc::delete(&ctx_a, &mm, post_id).await?;
+
+		// -- Check: no row under the Post remains.
+		for (table, sql) in [
+			("post", "SELECT count(*) FROM post WHERE id = $1"),
+			(
+				"post_category",
+				"SELECT count(*) FROM post_category WHERE post_id = $1",
+			),
+			(
+				"post_like",
+				"SELECT count(*) FROM post_like WHERE post_id = $1",
+			),
+			(
+				"post_comment",
+				"SELECT count(*) FROM post_comment WHERE post_id = $1",
+			),
+			("caption", "SELECT count(*) FROM caption WHERE post_id = $1"),
+		] {
+			assert_eq!(count_rows(&mm, sql, post_id).await?, 0, "{table}");
+		}
+		for caption_id in [caption_a, caption_b] {
+			for (table, sql) in [
+				(
+					"caption_like",
+					"SELECT count(*) FROM caption_like WHERE caption_id = $1",
+				),
+				(
+					"caption_comment",
+					"SELECT count(*) FROM caption_comment WHERE caption_id = $1",
+				),
+			] {
+				assert_eq!(count_rows(&mm, sql, caption_id).await?, 0, "{table}");
+			}
+		}
+
+		// -- Check: the other Post's rows stay.
+		let other = PostBmc::get_post(&ctx_a, &mm, other_post).await?;
+		assert_eq!(other.like_count, 1);
+		let captions = crate::model::caption::CaptionBmc::list_captions_for_post(
+			&ctx_a, &mm, other_post, None,
+		)
+		.await?;
+		assert_eq!(
+			captions.iter().map(|c| c.id).collect::<Vec<_>>(),
+			vec![other_caption]
+		);
+
+		// -- Clean
+		_dev_utils::clean_users(&root, &mm, "test_post_cascade").await?;
 
 		Ok(())
 	}
@@ -1092,7 +1343,7 @@ mod tests {
 	/// At most one Like per (Post, User): the DB unique constraint rejects a
 	/// second Like by the same User, so the one-endorsement invariant holds even
 	/// under a double insert (#106, #122). This guards the schema that the
-	/// `PostLikeBmc::toggle` write path relies on.
+	/// `LikeBmc::toggle` write path relies on.
 	#[serial]
 	#[tokio::test]
 	async fn test_post_like_unique_per_user() -> Result<()> {
@@ -1115,117 +1366,6 @@ mod tests {
 
 		// -- Clean
 		_dev_utils::clean_users(&root, &mm, "test_like_unique-owner").await?;
-
-		Ok(())
-	}
-
-	/// The like toggle is idempotent (#122): a second like is a no-op (one
-	/// Like), an unlike removes it, and a second unlike is a no-op. `toggle`
-	/// reports whether a Like row changed, so a no-op pokes nothing. The count is
-	/// derived from the rows each time.
-	#[serial]
-	#[tokio::test]
-	async fn test_toggle_post_like_idempotent() -> Result<()> {
-		// -- Setup & Fixtures
-		let mm = _dev_utils::init_test().await;
-		let root = Ctx::root_ctx();
-		let owner_id = seed_user(&root, &mm, "test_toggle_like-owner").await?;
-		let ctx = Ctx::new(owner_id)?;
-		let post_id = seed_post(&ctx, &mm, "test_toggle_like post", &[1]).await?;
-		let like = |liked| PostLikeForToggle { post_id, liked };
-
-		// -- Exec & Check: like twice -> one Like; only the first changed a row.
-		assert!(PostLikeBmc::toggle(&ctx, &mm, like(true)).await?, "like");
-		assert!(!PostLikeBmc::toggle(&ctx, &mm, like(true)).await?, "no-op");
-		let view = PostLikeBmc::get_post_like(&ctx, &mm, post_id).await?;
-		assert_eq!(
-			(view.post_id, view.like_count, view.liked),
-			(post_id, 1, true)
-		);
-
-		// -- Exec & Check: unlike twice -> no Like; only the first changed a row.
-		assert!(PostLikeBmc::toggle(&ctx, &mm, like(false)).await?, "unlike");
-		assert!(!PostLikeBmc::toggle(&ctx, &mm, like(false)).await?, "no-op");
-		let view = PostLikeBmc::get_post_like(&ctx, &mm, post_id).await?;
-		assert_eq!((view.like_count, view.liked), (0, false));
-
-		// -- Clean
-		_dev_utils::clean_users(&root, &mm, "test_toggle_like-owner").await?;
-
-		Ok(())
-	}
-
-	/// The like count counts every User's Like, while `liked` is the caller's own
-	/// (#122): an unlike removes only the caller's Like.
-	#[serial]
-	#[tokio::test]
-	async fn test_post_like_view_count_all_users_liked_per_caller() -> Result<()> {
-		// -- Setup & Fixtures
-		let mm = _dev_utils::init_test().await;
-		let root = Ctx::root_ctx();
-		let ctx_a = Ctx::new(seed_user(&root, &mm, "test_like_view-a").await?)?;
-		let ctx_b = Ctx::new(seed_user(&root, &mm, "test_like_view-b").await?)?;
-		let ctx_c = Ctx::new(seed_user(&root, &mm, "test_like_view-c").await?)?;
-		let post_id = seed_post(&ctx_a, &mm, "test_like_view post", &[1]).await?;
-		let like = |liked| PostLikeForToggle { post_id, liked };
-
-		// -- Exec: A and B like; then A unlikes.
-		PostLikeBmc::toggle(&ctx_a, &mm, like(true)).await?;
-		PostLikeBmc::toggle(&ctx_b, &mm, like(true)).await?;
-		let c_two = PostLikeBmc::get_post_like(&ctx_c, &mm, post_id).await?;
-		PostLikeBmc::toggle(&ctx_a, &mm, like(false)).await?;
-		let a_one = PostLikeBmc::get_post_like(&ctx_a, &mm, post_id).await?;
-		let b_one = PostLikeBmc::get_post_like(&ctx_b, &mm, post_id).await?;
-
-		// -- Check
-		assert_eq!((c_two.like_count, c_two.liked), (2, false), "C never liked");
-		assert_eq!((a_one.like_count, a_one.liked), (1, false), "A unliked");
-		assert_eq!((b_one.like_count, b_one.liked), (1, true), "B's Like stays");
-		let view = PostBmc::get_post(&ctx_c, &mm, post_id).await?;
-		assert_eq!(view.like_count, 1, "PostView derives the same count");
-
-		// -- Clean
-		_dev_utils::clean_users(&root, &mm, "test_like_view").await?;
-
-		Ok(())
-	}
-
-	/// A like, an unlike, or a like-state read on an unknown Post is the same
-	/// `Validation` error (400), not a foreign-key failure or a silent zero view
-	/// (#122), matching `CaptionBmc::create`.
-	#[serial]
-	#[tokio::test]
-	async fn test_toggle_post_like_unknown_post_is_validation() -> Result<()> {
-		// -- Setup & Fixtures
-		let mm = _dev_utils::init_test().await;
-		let root = Ctx::root_ctx();
-		let user_id = seed_user(&root, &mm, "test_like_unknown-user").await?;
-		let ctx = Ctx::new(user_id)?;
-
-		// -- Exec & Check
-		for liked in [true, false] {
-			let res = PostLikeBmc::toggle(
-				&ctx,
-				&mm,
-				PostLikeForToggle {
-					post_id: i64::MAX,
-					liked,
-				},
-			)
-			.await;
-			assert!(
-				matches!(&res, Err(model::Error::Validation { field, .. }) if field == "post_id"),
-				"liked={liked}: expected Validation on post_id, got {res:?}"
-			);
-		}
-		let res = PostLikeBmc::get_post_like(&ctx, &mm, i64::MAX).await;
-		assert!(
-			matches!(&res, Err(model::Error::Validation { field, .. }) if field == "post_id"),
-			"get_post_like: expected Validation on post_id, got {res:?}"
-		);
-
-		// -- Clean
-		_dev_utils::clean_users(&root, &mm, "test_like_unknown-user").await?;
 
 		Ok(())
 	}

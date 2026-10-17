@@ -83,8 +83,14 @@ Workspace crates: `lib-utils`, `lib-rpc-core`, `lib-auth`, `lib-core`, `lib-web`
 - **ts-rs bindings are the front-end's source of truth**: the front-end imports
   them via a tsconfig `paths` alias into `crates/services/web-server/bindings/`
   (ADR-0010). After changing a `#[derive(TS)]` type, run `cgs bindings` to keep
-  them in step; CI enforces a bindings-drift guard (`cargo test export_bindings`
-  - `git diff --exit-code`) in `.github/workflows/ci.yml`.
+  them in step; CI enforces a bindings-drift guard (`cargo test export_bindings`,
+  then `git diff --exit-code`) in `.github/workflows/ci.yml`.
+  - **`.cargo/config.toml` `[env]` shapes the output**: `TS_RS_EXPORT_DIR` sets
+    where the files go; `TS_RS_LARGE_INT = "number"` makes every `i64`/`u64`/
+    `i128`/`u128` a `number`, not `bigint` (ADR-0027). Every `cargo` command reads
+    them, so a plain `cargo test` writes the same bindings as `cgs bindings`. Do
+    not add `#[ts(type = "number")]` to a field, and do not re-type a binding in
+    the front-end barrel. If a binding shows `bigint`, check this setting first.
 - **CORS is configured for the front-end** at `http://localhost:3000` with
   credentials enabled (`crates/services/web-server/src/app.rs`).
 - **`cargo watch` needs installing**: `cargo install cargo-watch` before

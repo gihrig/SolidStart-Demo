@@ -1,29 +1,18 @@
 import type {
-  Agent,
-  AgentForCreate,
-  AgentForUpdate,
-  AuthorRef,
-  CaptionForCreate,
-  CaptionView,
-  CategoryPublic,
-  Conv,
-  ConvForCreate,
-  ConvForUpdate,
-  ConvMsg,
-  ConvMsgForCreate,
-  HeroView,
+  AuthenticatedRpc,
   JsonRpcRequest,
   JsonRpcResponse,
   LoginPayload,
   LogoffPayload,
-  PostForCreate,
-  PostLikeForToggle,
-  PostLikeView,
-  PostView,
+  PublicRpc,
 } from "~/types/backend";
 import { isRpcError } from "~/types/backend";
 
 const BACKEND_URL = "http://localhost:8080";
+
+// The params argument of a typed call: none when the method's params export no
+// field (`undefined` in the RPC contract), so a list takes no argument.
+type ParamsArg<P> = [P] extends [undefined] ? [] : [params: P];
 
 // Auth functions (not RPC, direct REST)
 export const auth = {
@@ -52,35 +41,6 @@ export const auth = {
     });
   },
 };
-
-/**
- * The convMsg slice a message view consumes (see createConvMessages). The RPC
- * client's `convMsg` object satisfies it structurally, so the app injects the
- * real client by default while tests pass an in-memory adapter — the RPC-side
- * mirror of the socket seam (MessageFeed in websocket.ts).
- */
-export interface ConvMsgClient {
-  list: (convId: number) => Promise<ConvMsg[]>;
-  add: (data: ConvMsgForCreate) => Promise<ConvMsg>;
-}
-
-/**
- * The agent + conv slice the Conversations workspace consumes (see
- * createConversationWorkspace). The RPC client's `agent`/`conv` objects satisfy
- * it structurally, so the app injects the real client by default while tests
- * pass an in-memory adapter — the same inject-or-default idiom as ConvMsgClient.
- */
-export interface WorkspaceRpcClient {
-  agent: {
-    list: () => Promise<Agent[]>;
-    create: (data: AgentForCreate) => Promise<Agent>;
-  };
-  conv: {
-    list: (agentId: number, opts?: { includeArchived?: boolean }) => Promise<Conv[]>;
-    create: (data: ConvForCreate) => Promise<Conv>;
-    update: (id: number, data: ConvForUpdate) => Promise<Conv>;
-  };
-}
 
 // An RPC client owns its own request-id counter, so tests can spin up a fresh
 // one instead of depending on module-global state that leaks between them.
@@ -123,118 +83,34 @@ export function createRpcClient() {
     return json.result.data;
   }
 
-  // create/get/update/delete share one JSON-RPC envelope, keyed by entity name
-  // (`create_agent`, `get_conv`, …). `list` is deliberately NOT generated here:
-  // its arg shape and filter dialect differ per entity, and the method name is
-  // plural (`list_agents`), so each entity spells its own `list` below. C1 lived
-  // in conv.list — keeping it hand-written keeps that domain logic visible.
-  function crud<Entity, CreateInput, UpdateInput>(name: string) {
-    return {
-      create: (data: CreateInput) => rpcCall<Entity>(`create_${name}`, { data }),
-      get: (id: number) => rpcCall<Entity>(`get_${name}`, { id }),
-      update: (id: number, data: UpdateInput) => rpcCall<Entity>(`update_${name}`, { id, data }),
-      delete: (id: number) => rpcCall<Entity>(`delete_${name}`, { id }),
-    };
+  // The typed calls (ADR-0029). Each surface's methods, params and results come
+  // from the back-end RPC contract (`RpcContract.ts`), so `tsc` rejects a wrong
+  // method name, params shape or result use, and a method on the wrong surface.
+  // `authenticatedRpc` posts to the authenticated surface: the mutations, and
+  // the reads that need a login (e.g. the caller's like state, the profile).
+  // `publicRpc` posts to the public surface: the reads an anonymous visitor
+  // may run (the Jedi feed, its taxonomy, the Hero).
+  function authenticatedRpc<M extends keyof AuthenticatedRpc>(
+    method: M,
+    ...params: ParamsArg<AuthenticatedRpc[M]["params"]>
+  ): Promise<AuthenticatedRpc[M]["result"]> {
+    return rpcCall(method, params[0], "/api/rpc");
   }
 
-  // Agent RPC methods
-  const agent = {
-    ...crud<Agent, AgentForCreate, AgentForUpdate>("agent"),
-    list: () => rpcCall<Agent[]>("list_agents"),
-  };
+  function publicRpc<M extends keyof PublicRpc>(
+    method: M,
+    ...params: ParamsArg<PublicRpc[M]["params"]>
+  ): Promise<PublicRpc[M]["result"]> {
+    return rpcCall(method, params[0], "/api/rpc-public");
+  }
 
-  // Conversation RPC methods
-  const conv = {
-    ...crud<Conv, ConvForCreate, ConvForUpdate>("conv"),
-    // List a single Agent's Conversations. The ModQL filter shape
-    // ([{ field: { $eq } }], matching the back-end's OneOrMany<Vec<ConvFilter>>) is
-    // built here so callers pass a domain id, never the query dialect — a raw
-    // `{ filters }` passthrough double-wrapped it into an empty filter, leaking
-    // every Agent's Convs (arch-review C1).
-    //
-    // Archived filtering is the back-end's (#25): a node with no `state` is
-    // returned as the working set (`list_convs` injects `state != Archived`).
-    // To include Archived, constrain `state` to both values, which the back-end
-    // honors verbatim — so the front-end never filters Conversations itself.
-    list: (agentId: number, opts: { includeArchived?: boolean } = {}) => {
-      const node: Record<string, unknown> = { agent_id: { $eq: agentId } };
-      if (opts.includeArchived) node.state = { $in: ["Active", "Archived"] };
-      return rpcCall<Conv[]>("list_convs", { filters: [node] });
-    },
-  };
-
-  // Category RPC methods. Categories are a static, back-end-owned taxonomy
-  // (ADR-0011): read-only, no create/update/delete and no realtime feed. The
-  // list is public — the anonymous Jedi landing page reads it — so it posts to
-  // the public surface (#116).
-  const category = {
-    list: () => rpcCall<CategoryPublic[]>("list_categories", undefined, "/api/rpc-public"),
-  };
-
-  // Post RPC methods. Every Post is public (#106), so the reads post to the
-  // public surface — the anonymous Jedi landing page reads them (#117). Each
-  // returns the enriched `PostView` (author, resolved Categories, derived counts).
-  // `list_posts` is ranked by like count by the back-end; the front-end never
-  // re-ranks. `create_post` is a mutation, so it posts to the authenticated
-  // surface; the back-end sets the caller as the Owner (#120). The caller's like
-  // state is per-User, so `get_post_like` and `toggle_post_like` post to the
-  // authenticated surface too (#122).
-  const post = {
-    list: () => rpcCall<PostView[]>("list_posts", undefined, "/api/rpc-public"),
-    featured: () => rpcCall<PostView>("featured_post", undefined, "/api/rpc-public"),
-    get: (id: number) => rpcCall<PostView>("get_post", { id }, "/api/rpc-public"),
-    create: (data: PostForCreate) => rpcCall<PostView>("create_post", { data }),
-    getLike: (id: number) => rpcCall<PostLikeView>("get_post_like", { id }),
-    toggleLike: (data: PostLikeForToggle) => rpcCall<PostLikeView>("toggle_post_like", { data }),
-  };
-
-  // Caption RPC methods. Every Caption is public (#106), so the read posts to the
-  // public surface (#118). `list_captions_for_post` takes the Post id as `id` and
-  // returns that Post's enriched `CaptionView`s, ranked by like count by the
-  // back-end; the front-end never re-ranks. `add_caption` is a mutation, so it
-  // posts to the authenticated surface; the back-end sets the caller as the
-  // Owner (#121).
-  const caption = {
-    listForPost: (postId: number) =>
-      rpcCall<CaptionView[]>("list_captions_for_post", { id: postId }, "/api/rpc-public"),
-    add: (data: CaptionForCreate) => rpcCall<CaptionView>("add_caption", { data }),
-  };
-
-  // Hero RPC methods. The Hero is the home page banner singleton (#119). The
-  // anonymous landing page reads it, so `get_hero` posts to the public surface.
-  // `update_hero` is an Admin edit that no front-end surface offers yet.
-  const hero = {
-    get: () => rpcCall<HeroView>("get_hero", undefined, "/api/rpc-public"),
-  };
-
-  // Profile RPC methods. `get_profile` returns the logged-in User as an
-  // `AuthorRef` (#119), so it posts to the authenticated surface.
-  const profile = {
-    get: () => rpcCall<AuthorRef>("get_profile"),
-  };
-
-  // Conversation Message RPC methods
-  const convMsg = {
-    add: (data: ConvMsgForCreate) => rpcCall<ConvMsg>("add_conv_msg", { data }),
-    list: (convId: number) =>
-      rpcCall<ConvMsg[]>("list_conv_msgs", {
-        filters: [{ conv_id: { $eq: convId } }],
-      }),
-  };
-
-  return { agent, caption, category, conv, convMsg, hero, post, profile };
+  return { authenticatedRpc, publicRpc };
 }
 
 // Default singleton used across the app.
 const client = createRpcClient();
-export const agent = client.agent;
-export const caption = client.caption;
-export const category = client.category;
-export const conv = client.conv;
-export const convMsg = client.convMsg;
-export const hero = client.hero;
-export const post = client.post;
-export const profile = client.profile;
+export const authenticatedRpc = client.authenticatedRpc;
+export const publicRpc = client.publicRpc;
 
 // Unified export
 export const backendRpc = { auth, ...client };

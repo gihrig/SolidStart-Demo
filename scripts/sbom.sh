@@ -47,7 +47,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SBOM="$ROOT/sbom.cdx.json"
 
-SYFT_VERSION="1.54.0"
+SYFT_VERSION="1.54.1"
 
 # Printed on any syft install failure: how to move the pin to another release.
 syft_help() {
@@ -66,10 +66,10 @@ EOF
 # sha256 of syft_<SYFT_VERSION>_<platform>.tar.gz. Bump with SYFT_VERSION.
 syft_sha256() {
   case "$1" in
-    darwin_amd64) echo 22b71725e388a4c0de385249c4bc1044f78a870f2894f34b43ba957e792145d7 ;;
-    darwin_arm64) echo 7e0bdad94c569fc6d5785c9a657bbae3d4c4e140ccb5eace3d0b5b6bc2b6dbcf ;;
-    linux_amd64)  echo 54a87372498168b2d033e876fd41fa4e8035b872699e525a57046e1f2f09c860 ;;
-    linux_arm64)  echo ee6d4566373a05b344bc6b5f1706f14419bf9338ba39ff686e247deefe9b8818 ;;
+    darwin_amd64) echo 2956322838b2f64e470eea474495f0cd96be4f222b1ac037258cdc47d965064e ;;
+    darwin_arm64) echo b4319c3abaa87a0170ab76ee83ea2260ca34b53aecfa3ab0dd5428d2319d744f ;;
+    linux_amd64)  echo c069905b391cc4c20a5ba65ad5c10be2a7ba074f8ea6ad203e24d14e303dad47 ;;
+    linux_arm64)  echo dfdf0537610113edbefe1f1fc6548bc957b2d77439636ec824fcf0e10d46d054 ;;
     *) echo "sbom.sh: no pinned syft checksum for platform '$1'." >&2; return 1 ;;
   esac
 }
