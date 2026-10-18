@@ -235,6 +235,21 @@ describe("<NewPostProvider /> (#214)", () => {
     expect(dialog()).toBeInTheDocument();
   });
 
+  it("a route move without a Draft closes the dialog when it starts, not when the page loads (#221 review)", async () => {
+    const { user } = renderOpeners();
+    await user.click(screen.getByRole("button", { name: "New Post" }));
+    await user.click(screen.getByRole("link", { name: "Slow" }));
+    expect(
+      screen.getByRole("heading", { name: "Home page" }),
+      "the move loads",
+    ).toBeInTheDocument();
+    expect(dialog(), "no typing while the page loads").toBeNull();
+
+    slowLoaded();
+    expect(await screen.findByRole("heading", { name: "Slow page" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: /discarded/ }), "no notice").toBeNull();
+  });
+
   it("a route move during the create does nothing; then the result of the create shows", async () => {
     let land!: (post: PostView) => void;
     postCreateMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
