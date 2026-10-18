@@ -1,4 +1,5 @@
 import { createEffect, createUniqueId } from "solid-js";
+import { stopDialogEscape } from "~/lib/stopDialogEscape";
 import { useAuth } from "./AuthContext";
 import LoginForm from "./LoginForm";
 
@@ -36,9 +37,7 @@ export default function LoginDialog(props: LoginDialogProps) {
       // result (the close, or the error) stays visible.
       onCancel={(e) => pending() && e.preventDefault()}
       onClose={() => props.onClose()}
-      // Escape stops here, so a document listener (`useDismiss`) does not close
-      // a menu or the sidebar behind the dialog (#214).
-      on:keydown={(e) => e.key === "Escape" && e.stopPropagation()}
+      on:keydown={stopDialogEscape}
       aria-labelledby={headingId}
       class="theme-dialog max-w-md"
     >

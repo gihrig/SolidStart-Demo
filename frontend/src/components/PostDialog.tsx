@@ -14,6 +14,7 @@ import { createStore } from "solid-js/store";
 import type { DraftScope } from "~/lib/createDraftGuard";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
+import { stopDialogEscape } from "~/lib/stopDialogEscape";
 import type { HygieneCaps } from "~/types/backend";
 import type { PostChanges, PostDraft, PostView } from "~/types/jedi";
 import { useDraft } from "~/components/DraftGuardContext";
@@ -280,9 +281,7 @@ export default function PostDialog(props: PostDialogProps) {
         if (dirty()) dialogRef?.showModal();
         cancel();
       }}
-      // Escape stops here, so a document listener (`useDismiss`) does not close
-      // a menu or the sidebar behind the dialog (#214).
-      on:keydown={(e) => e.key === "Escape" && e.stopPropagation()}
+      on:keydown={stopDialogEscape}
       aria-labelledby={headingId}
       class="theme-dialog max-w-md"
     >

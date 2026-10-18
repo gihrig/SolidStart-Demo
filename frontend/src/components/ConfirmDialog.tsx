@@ -1,4 +1,5 @@
 import { createUniqueId, onCleanup, onMount, Show } from "solid-js";
+import { stopDialogEscape } from "~/lib/stopDialogEscape";
 
 export interface ConfirmDialogProps {
   /** The owner holds the open state; the dialog never closes itself. */
@@ -59,9 +60,7 @@ function OpenConfirmDialog(props: ConfirmDialogProps) {
       // A browser can still close it (Chrome closes on a second Escape). Then
       // the owner must hear a cancel, or its state stays open with no dialog.
       onClose={() => !closing && cancel()}
-      // Escape stops here, so a document listener (`useDismiss`) does not close
-      // a menu or the sidebar behind the dialog (#214).
-      on:keydown={(e) => e.key === "Escape" && e.stopPropagation()}
+      on:keydown={stopDialogEscape}
       aria-labelledby={messageId}
       class="theme-dialog max-w-sm"
     >
