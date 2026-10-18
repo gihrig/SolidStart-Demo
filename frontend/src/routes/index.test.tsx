@@ -10,6 +10,14 @@ import { DraftGuardProvider } from "~/components/DraftGuardContext";
 import { NewPostProvider } from "~/components/NewPostContext";
 import Nav from "~/components/Nav";
 
+// The Posts the back-end lists, which a test can change, and the live Feed a
+// login connects, which a test can drive: another User's change (#214).
+const live = vi.hoisted(() => ({
+  seed: [] as { id: number; categories: unknown[] }[],
+  posts: undefined as { id: number; categories: unknown[] }[] | undefined,
+  feed: undefined as import("~/lib/feed.memory").MemoryFeed | undefined,
+}));
+
 // The sidebar Categories, the Post feed, Top Captions, and the Hero now load from
 // the RPCs (ADR-0011, #117, #118, #119); the back-end client is mocked so this route test stays offline. The rows
 // mirror the seeded fixture (frontend/src/lib/jedi/data.json ↔ 02-dev-seed.sql).
@@ -52,6 +60,7 @@ vi.mock("~/lib/backend-rpc", async () => {
     post(2, "Brilliant tree", homer, [LANDSCAPE], 4),
     post(4, "Serene Beach", homer, [LANDSCAPE], 3),
   ];
+  live.seed = posts;
   // Captions arrive as the wire `CaptionView`, built from the fixture and
   // pre-ranked as the back-end ranks them: like count desc, then id asc (#118).
   const users = new Map(data.users.map((u) => [u.id, u]));
@@ -90,7 +99,7 @@ vi.mock("~/lib/backend-rpc", async () => {
       cat(5, "Black & White", "180-degrees"),
       cat(6, "Cute", "fire-heart"),
     ],
-    list_posts: () => posts,
+    list_posts: () => live.posts ?? posts,
     // Every Post's Comment thread starts empty (#124).
     list_post_comments: () => [],
   };
@@ -108,7 +117,12 @@ vi.mock("~/lib/backend-rpc", async () => {
 // A login connects the live Feed: an in-memory one, so this test stays offline.
 vi.mock("~/lib/feed.websocket", async () => {
   const { createMemoryFeed } = await import("~/lib/feed.memory");
-  return { createWebSocketFeed: () => createMemoryFeed().feed };
+  return {
+    createWebSocketFeed: () => {
+      live.feed = createMemoryFeed();
+      return live.feed.feed;
+    },
+  };
 });
 
 import Home from "./index";
@@ -476,10 +490,112 @@ describe("Home route — the Draft guard (ADR-0030)", () => {
     expect(newPostDialog()).toHaveLength(1);
     await user.type(screen.getByLabelText("Title"), "typed");
     await user.click(within(newPostDialog()[0]).getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Discard" }));
     expect(newPostDialog()).toHaveLength(0);
 
     await user.click(await screen.findByRole("button", { name: "Add Post" }));
     expect(newPostDialog()).toHaveLength(1);
     expect(screen.getByLabelText("Title"), "each close empties the form").toHaveValue("");
+  });
+
+  describe("the New Post Draft (#214)", () => {
+    afterEach(() => (live.posts = undefined));
+
+    const newPostTitle = () =>
+      within(screen.getByRole("dialog", { name: "New Post" })).getByLabelText("Title");
+    // Another User's change: the back-end lists `posts`, and pokes the list.
+    const othersChange = (posts: typeof live.seed) => {
+      live.posts = posts;
+      live.feed!.emit({ event_type: "poke", kind: "posts" });
+    };
+    // Whether a Draft still asks the browser to confirm a page unload.
+    const unloadBlocked = () => {
+      const e = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(e);
+      return e.defaultPrevented;
+    };
+    const notice = () => screen.queryByRole("dialog", { name: /were discarded/ });
+
+    async function login() {
+      const user = userEvent.setup();
+      renderApp();
+      await user.click(screen.getByRole("button", { name: /do-login/i }));
+      await screen.findByRole("heading", { name: /little jedi/i });
+      return user;
+    }
+    async function pickCategory(user: ReturnType<typeof userEvent.setup>, name: RegExp) {
+      const categories = screen.getByRole("listbox", { name: "Categories" });
+      await user.click(within(categories).getByRole("option", { name }));
+    }
+    async function typeComment(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(screen.getByRole("button", { name: /^Comments, 0 comments/i }));
+      await user.type(await screen.findByRole("textbox", { name: "Your comment" }), "draft");
+    }
+    async function typeNewPost(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(screen.getByRole("button", { name: "New Post" }));
+      await user.type(newPostTitle(), "new post");
+    }
+
+    it("an Event that empties the Category leaves the open New Post dialog and its text", async () => {
+      const user = await login();
+      await pickCategory(user, /landscape/i);
+      await screen.findByRole("heading", { name: /brilliant tree/i });
+      await typeNewPost(user);
+
+      othersChange(live.seed.filter((p) => p.id === 1 || p.id === 3));
+
+      const main = screen.getByRole("main");
+      expect(await within(main).findByText(/no posts in landscape/i)).toBeInTheDocument();
+      expect(newPostTitle()).toHaveValue("new post");
+      expect(unloadBlocked()).toBe(true);
+    });
+
+    it("with only a New Post Draft, another User's Post delete speaks and shows no notice", async () => {
+      const user = await login();
+      await typeNewPost(user);
+
+      othersChange(live.seed.filter((p) => p.id !== 1));
+
+      await waitFor(() =>
+        expect(screen.getByRole("status")).toHaveTextContent("This Post was deleted."),
+      );
+      expect(notice()).toBeNull();
+      expect(newPostTitle()).toHaveValue("new post");
+    });
+
+    it("with a Comment Draft too, a Post delete closes the Comment form with the notice; the New Post Draft stays", async () => {
+      const user = await login();
+      await typeComment(user);
+      await typeNewPost(user);
+
+      othersChange(live.seed.filter((p) => p.id !== 1));
+
+      expect(
+        await screen.findByRole("dialog", { name: /This Post was deleted/ }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("textbox", { name: "Your comment" })).toBeNull();
+      expect(newPostTitle()).toHaveValue("new post");
+      expect(unloadBlocked(), "the guard still holds the New Post Draft").toBe(true);
+    });
+
+    it("with both Drafts, a Category leave asks; Discard closes the Comment form and moves; the New Post Draft stays", async () => {
+      const user = await login();
+      await pickCategory(user, /animals/i);
+      await typeComment(user);
+      await typeNewPost(user);
+
+      const landscape = live.seed[2].categories;
+      othersChange(live.seed.map((p) => (p.id === 1 ? { ...p, categories: landscape } : p)));
+
+      expect(
+        await screen.findByRole("dialog", { name: /This Post is no longer in Animals/ }),
+      ).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Discard" }));
+
+      expect(await screen.findByRole("heading", { name: /camouflage/i })).toBeInTheDocument();
+      expect(screen.queryByRole("textbox", { name: "Your comment" })).toBeNull();
+      expect(newPostTitle()).toHaveValue("new post");
+      expect(unloadBlocked()).toBe(true);
+    });
   });
 });

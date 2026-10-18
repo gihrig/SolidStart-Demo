@@ -7,7 +7,8 @@ import ConfirmDialog from "./ConfirmDialog";
 
 beforeAll(stubDialogModal);
 
-const dialog = () => screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
+const dialog = () => screen.getByRole("dialog") as HTMLDialogElement;
+const shown = () => screen.queryByRole("dialog", { hidden: true });
 
 function renderConfirm() {
   const [open, setOpen] = createSignal(false);
@@ -29,12 +30,31 @@ function renderConfirm() {
 describe("<ConfirmDialog />", () => {
   it("opens as a modal while `open`, named by its message", () => {
     const { setOpen } = renderConfirm();
-    expect(dialog().open).toBe(false);
+    expect(shown()).toBeNull();
     setOpen(true);
     expect(dialog().open).toBe(true);
     expect(dialog()).toHaveAccessibleName("You have unsaved changes. Discard them?");
     setOpen(false);
-    expect(dialog().open).toBe(false);
+    expect(shown()).toBeNull();
+  });
+
+  it("each open shows a fresh dialog, and the owner's close closes it in the browser (#214)", () => {
+    // Chromium closes a reused modal dialog that opens with no user gesture
+    // over another one, such as the route-move question after the browser's
+    // Back over the New Post dialog. The browser's close returns focus.
+    const close = vi.spyOn(HTMLDialogElement.prototype, "close");
+    try {
+      const { setOpen } = renderConfirm();
+      setOpen(true);
+      const first = dialog();
+      setOpen(false);
+      expect(close).toHaveBeenCalledOnce();
+      expect(close.mock.contexts[0]).toBe(first);
+      setOpen(true);
+      expect(dialog()).not.toBe(first);
+    } finally {
+      close.mockRestore();
+    }
   });
 
   it("focuses the cancel button, the default", () => {
@@ -53,7 +73,7 @@ describe("<ConfirmDialog />", () => {
     setOpen(true);
     await user.click(screen.getByRole("button", { name: "Discard" }));
     expect(onConfirm).toHaveBeenCalledOnce();
-    expect(dialog().open).toBe(false);
+    expect(shown()).toBeNull();
   });
 
   it("treats Escape as cancel, and the owner closes it", () => {
@@ -64,7 +84,7 @@ describe("<ConfirmDialog />", () => {
     expect(notClosed, "the dialog does not close itself").toBe(false);
     expect(onCancel).toHaveBeenCalledOnce();
     expect(onConfirm).not.toHaveBeenCalled();
-    expect(dialog().open).toBe(false);
+    expect(shown()).toBeNull();
   });
 
   it("a close by the browser itself reports a cancel", () => {

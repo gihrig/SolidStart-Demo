@@ -134,14 +134,20 @@ export interface PostDialogProps {
  * The create mode is the New Post dialog, which `NewPostProvider` owns. The
  * submit never reloads the page; the dialog stays open until the back-end has
  * committed the Post, then closes. The new Post reaches the feed through the
- * `posts` poke the back-end fires on commit, not through this form. It reports
- * no Draft yet (#214).
+ * `posts` poke the back-end fires on commit, not through this form. It holds a
+ * Draft while a text field is not blank after a trim, or a Category is
+ * checked. The Draft has no scope, so only the logoff and a route move ask
+ * about it (#214).
  *
  * The edit mode fills every field from the Post, with its Categories checked.
  * The photo URL shows, disabled: Save never sends it. The edit holds a Draft
  * while a field differs from the saved Post, and Save stays disabled until
  * then. Save sends only the changed fields; the Categories count as one field.
  * A remote edit of the Post shows in each field that the User did not change.
+ *
+ * In both modes, Cancel, Escape and a browser close are one Cancel: with a
+ * Draft, it asks first, and a browser close opens the dialog again to ask.
+ * While the write is in flight, none of them closes the dialog (#214).
  */
 export default function PostDialog(props: PostDialogProps) {
   const api = props.api ?? jediApi;
@@ -185,8 +191,13 @@ export default function PostDialog(props: PostDialogProps) {
       changed.categoryIds = [...values.categoryIds];
     return changed;
   };
-  const dirty = () => Object.keys(changes()).length > 0;
-  const draft = editing ? useDraft({ dirty, scope: props.draftScope }) : undefined;
+  // The edit holds a Draft while a field differs from the saved Post; the
+  // create, while a text field is not blank after a trim, or a Category is
+  // checked (#214).
+  const dirty = () =>
+    editing
+      ? Object.keys(changes()).length > 0
+      : TEXT_FIELDS.some((f) => values[f.name].trim() !== "") || values.categoryIds.length > 0;
 
   // Each open loads the taxonomy: the dialog mounts to open.
   const [categories, { refetch: refetchCategories }] = createResource(() => api.categories.list());
@@ -202,6 +213,7 @@ export default function PostDialog(props: PostDialogProps) {
     { fallbackError: MODE_TEXT.edit.error },
   );
   const pending = () => create.pending() || save.pending();
+  const draft = useDraft({ dirty, scope: props.draftScope, busy: pending });
 
   onMount(() => dialogRef?.showModal());
 
@@ -211,11 +223,13 @@ export default function PostDialog(props: PostDialogProps) {
   let unmounted = false;
   onCleanup(() => (unmounted = true));
 
-  // The Cancel drops the edit's Draft: the close then shows no notice.
+  // A saved write drops the Draft: the close then shows no notice.
   const close = () => {
-    draft?.clear();
+    draft.clear();
     props.onClose?.();
   };
+  // The Cancel asks first while the dialog holds a Draft (#214).
+  const cancel = () => draft.cancel(() => props.onClose?.());
 
   const toggleCategory = (id: number, checked: boolean) =>
     setValues("categoryIds", (ids) => (checked ? [...ids, id] : ids.filter((c) => c !== id)));
@@ -254,16 +268,21 @@ export default function PostDialog(props: PostDialogProps) {
       // the dialog, so an Esc is its Cancel.
       onCancel={(e) => {
         e.preventDefault();
-        if (!pending()) close();
+        if (!pending()) cancel();
       }}
       // A browser can still close it (Chrome closes on a second Escape). The
       // owner must hear it, or its state stays open with no dialog. While the
       // write is in flight, it opens again, as Esc is refused, so a failed
-      // write keeps the text and shows its error (PR #216 review).
+      // write keeps the text and shows its error (PR #216 review). Otherwise
+      // it is the Cancel: with a Draft, it opens again to ask (#214).
       onClose={() => {
         if (pending()) return dialogRef?.showModal();
-        close();
+        if (dirty()) dialogRef?.showModal();
+        cancel();
       }}
+      // Escape stops here, so a document listener (`useDismiss`) does not close
+      // a menu or the sidebar behind the dialog (#214).
+      on:keydown={(e) => e.key === "Escape" && e.stopPropagation()}
       aria-labelledby={headingId}
       class="theme-dialog max-w-md"
     >
@@ -350,7 +369,7 @@ export default function PostDialog(props: PostDialogProps) {
           <button
             type="button"
             disabled={pending()}
-            onClick={close}
+            onClick={cancel}
             class="theme-button disabled:opacity-50"
           >
             Cancel

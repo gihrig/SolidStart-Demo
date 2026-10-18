@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vite-plus/test";
 import { render, screen, within, waitFor } from "@solidjs/testing-library";
+import { A, MemoryRouter, Route } from "@solidjs/router";
 import userEvent from "@testing-library/user-event";
-import { createSignal, Show } from "solid-js";
+import { createSignal, Show, type ParentProps } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import { stubDialogModal } from "~/lib/test-utils";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { JediCategory, PostView } from "~/types/jedi";
+import { DraftGuardProvider } from "./DraftGuardContext";
 import { NewPostProvider, useNewPost } from "./NewPostContext";
 
 beforeAll(stubDialogModal);
@@ -58,12 +60,42 @@ function renderOpeners() {
       </>
     );
   }
+  // The app shell, as in app.tsx: the provider sits inside the Router and the
+  // guard.
   render(() => (
-    <NewPostProvider api={api}>
-      <Openers />
-    </NewPostProvider>
+    <MemoryRouter
+      root={(props: ParentProps) => (
+        <DraftGuardProvider>
+          <NewPostProvider api={api}>
+            <Openers />
+            <A href="/about">About</A>
+            {props.children}
+          </NewPostProvider>
+        </DraftGuardProvider>
+      )}
+    >
+      <Route path="/" component={() => <h1>Home page</h1>} />
+      <Route path="/about" component={() => <h1>About page</h1>} />
+    </MemoryRouter>
   ));
   return { user: userEvent.setup(), setAddShown };
+}
+const confirmDialog = () =>
+  screen.queryByRole("dialog", { name: "You have unsaved changes. Discard them?" });
+// Fill every field and check the Category, so a submit sends the create.
+async function fill(user: ReturnType<typeof userEvent.setup>) {
+  const form = within(dialog()!);
+  for (const label of [
+    "Title",
+    "Image URL",
+    "Image description",
+    "Photographer",
+    "Photographer URL",
+    "Photo page URL",
+  ]) {
+    await user.type(form.getByLabelText(label), "https://example.test/x");
+  }
+  await user.click(await form.findByRole("checkbox", { name: "Animals" }));
 }
 const dialog = () => screen.queryByRole("dialog", { name: "New Post" });
 
@@ -103,6 +135,7 @@ describe("<NewPostProvider /> (#214)", () => {
     await user.click(form.getByRole("button", { name: "Post" }));
     expect(await form.findByRole("alert")).toHaveTextContent("unsafe URL");
     await user.click(form.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Discard" }));
 
     await user.click(screen.getByRole("button", { name: "New Post" }));
     const again = within(dialog()!);
@@ -144,5 +177,50 @@ describe("<NewPostProvider /> (#214)", () => {
     setAddShown(false);
     await user.click(within(dialog()!).getByRole("button", { name: "Cancel" }));
     expect(document.body).toHaveFocus();
+  });
+
+  it("a route move without a Draft closes the dialog at once", async () => {
+    const { user } = renderOpeners();
+    await user.click(screen.getByRole("button", { name: "New Post" }));
+    await user.click(screen.getByRole("link", { name: "About" }));
+    expect(await screen.findByRole("heading", { name: "About page" })).toBeInTheDocument();
+    expect(confirmDialog()).toBeNull();
+    expect(dialog()).toBeNull();
+  });
+
+  it("a route move with a Draft asks; Keep editing keeps the dialog, Discard moves and closes it", async () => {
+    const { user } = renderOpeners();
+    await user.click(screen.getByRole("button", { name: "New Post" }));
+    await user.type(within(dialog()!).getByLabelText("Title"), "typed");
+
+    await user.click(screen.getByRole("link", { name: "About" }));
+    expect(confirmDialog()).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(screen.getByRole("heading", { name: "Home page" })).toBeInTheDocument();
+    expect(within(dialog()!).getByLabelText("Title")).toHaveValue("typed");
+
+    await user.click(screen.getByRole("link", { name: "About" }));
+    await user.click(screen.getByRole("button", { name: "Discard" }));
+    expect(await screen.findByRole("heading", { name: "About page" })).toBeInTheDocument();
+    expect(dialog()).toBeNull();
+    expect(screen.queryByRole("dialog", { name: /discarded/ }), "no notice").toBeNull();
+  });
+
+  it("a route move during the create does nothing; then the result of the create shows", async () => {
+    let land!: (post: PostView) => void;
+    postCreateMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
+    const { user } = renderOpeners();
+    await user.click(screen.getByRole("button", { name: "New Post" }));
+    await fill(user);
+    await user.click(within(dialog()!).getByRole("button", { name: "Post" }));
+
+    await user.click(screen.getByRole("link", { name: "About" }));
+    expect(confirmDialog()).toBeNull();
+    expect(screen.getByRole("heading", { name: "Home page" })).toBeInTheDocument();
+    expect(dialog()).toBeInTheDocument();
+
+    land(CREATED);
+    await waitFor(() => expect(dialog()).toBeNull());
+    expect(screen.getByRole("heading", { name: "Home page" })).toBeInTheDocument();
   });
 });

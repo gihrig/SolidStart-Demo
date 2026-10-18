@@ -248,12 +248,31 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
   });
 
   it("a close by the browser is the edit's Cancel (PR #216 review)", async () => {
-    const { user, dialog, form, guard, onClose } = renderEdit();
-    await user.type(input(form, "Photographer"), "!");
-    expect(guard.hasDraft()).toBe(true);
-
+    const { dialog, onClose } = renderEdit();
     // Chrome closes a modal dialog on a second Escape, with no `cancel` event.
     dialog.close();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("Cancel, Escape and a browser close with a Draft ask; Discard closes (#214)", async () => {
+    const { user, dialog, form, guard, onClose } = renderEdit();
+    await user.type(input(form, "Photographer"), "!");
+
+    await user.click(form.getByRole("button", { name: "Cancel" }));
+    expect(guard.pending()).toBe(true);
+    guard.cancelMove();
+
+    const esc = new Event("cancel", { cancelable: true });
+    dialog.dispatchEvent(esc);
+    expect(esc.defaultPrevented).toBe(true);
+    expect(guard.pending()).toBe(true);
+    guard.cancelMove();
+
+    dialog.close();
+    expect(dialog.open, "the dialog opens again").toBe(true);
+    expect(guard.pending()).toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
+    guard.confirmMove();
     expect(onClose).toHaveBeenCalledOnce();
     expect(guard.hasDraft()).toBe(false);
   });
@@ -326,7 +345,7 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
 
-  it("holds a Draft while a field differs from the saved Post; Cancel drops it", async () => {
+  it("holds a Draft while a field differs from the saved Post; Discard drops it", async () => {
     const { user, form, guard, onClose } = renderEdit();
     expect(guard.hasDraft()).toBe(false);
     await user.type(input(form, "Photographer"), "!");
@@ -336,6 +355,7 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
 
     await user.type(input(form, "Photographer"), "!");
     await user.click(form.getByRole("button", { name: "Cancel" }));
+    guard.confirmMove();
     expect(guard.hasDraft()).toBe(false);
     expect(onClose).toHaveBeenCalledOnce();
   });
@@ -368,16 +388,120 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
     expect(await form.findByRole("alert")).toHaveTextContent("Could not edit the Post");
     expect(onClose).not.toHaveBeenCalled();
   });
+});
 
-  it("the create mode reports no Draft (#214)", async () => {
+describe("<PostDialog /> — the New Post Draft (#214)", () => {
+  function renderCreate() {
     const guard = createDraftGuard();
-    const user = userEvent.setup();
+    const onClose = vi.fn();
     render(() => (
       <DraftGuardContext.Provider value={guard}>
-        <PostDialog api={api} />
+        <PostDialog api={api} onClose={onClose} />
       </DraftGuardContext.Provider>
     ));
-    await user.type(screen.getByLabelText("Title"), "typed");
+    const dialog = screen.getByRole("dialog") as HTMLDialogElement;
+    return { user: userEvent.setup(), dialog, form: within(dialog), guard, onClose };
+  }
+
+  it("holds a Draft while a text field is not blank after a trim; spaces alone are not one", async () => {
+    const { user, form, guard } = renderCreate();
     expect(guard.hasDraft()).toBe(false);
+    await user.type(form.getByLabelText("Photographer"), "   ");
+    expect(guard.hasDraft(), "spaces alone").toBe(false);
+    await user.type(form.getByLabelText("Photographer"), "x");
+    expect(guard.hasDraft()).toBe(true);
+    await user.clear(form.getByLabelText("Photographer"));
+    expect(guard.hasDraft()).toBe(false);
+  });
+
+  it("holds a Draft while a Category is checked", async () => {
+    const { user, form, guard } = renderCreate();
+    await user.click(await form.findByRole("checkbox", { name: "Animals" }));
+    expect(guard.hasDraft()).toBe(true);
+    await user.click(form.getByRole("checkbox", { name: "Animals" }));
+    expect(guard.hasDraft()).toBe(false);
+  });
+
+  it("the Draft has no scope: a move that names scopes does not ask", async () => {
+    const { user, form, guard } = renderCreate();
+    await user.type(form.getByLabelText("Title"), "typed");
+    expect(guard.hasDraftIn([Symbol("post-edit")])).toBe(false);
+    expect(guard.hasDraftIn()).toBe(true);
+  });
+
+  it("Cancel and Escape with a Draft ask; Keep editing keeps the text, and Discard closes", async () => {
+    const { user, dialog, form, guard, onClose } = renderCreate();
+    await user.type(form.getByLabelText("Title"), "typed");
+
+    await user.click(form.getByRole("button", { name: "Cancel" }));
+    expect(guard.pending()).toBe(true);
+    guard.cancelMove();
+    expect(form.getByLabelText("Title")).toHaveValue("typed");
+
+    dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
+    expect(guard.pending()).toBe(true);
+    guard.confirmMove();
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(guard.hasDraft()).toBe(false);
+  });
+
+  it("without a Draft, Cancel and Escape close at once", async () => {
+    const { user, dialog, form, guard, onClose } = renderCreate();
+    await user.click(form.getByRole("button", { name: "Cancel" }));
+    dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
+    expect(guard.pending()).toBe(false);
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it("a browser close with a Draft opens the dialog again and asks", async () => {
+    const { user, dialog, form, guard, onClose } = renderCreate();
+    await user.type(form.getByLabelText("Title"), "typed");
+    dialog.close();
+    expect(dialog.open).toBe(true);
+    expect(guard.pending()).toBe(true);
+    guard.cancelMove();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(form.getByLabelText("Title")).toHaveValue("typed");
+  });
+
+  it("during the create, a browser close opens the dialog again with no question, and the write is busy", async () => {
+    let land!: (post: PostView) => void;
+    postCreateMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
+    const { user, dialog, form, guard, onClose } = renderCreate();
+    for (const [label, value] of [
+      ["Title", DRAFT.title],
+      ["Image URL", DRAFT.imageSrc],
+      ["Image description", DRAFT.imageAlt],
+      ["Photographer", DRAFT.photographer],
+      ["Photographer URL", DRAFT.photographerUrl],
+      ["Photo page URL", DRAFT.sourceUrl],
+    ] as const) {
+      await user.type(form.getByLabelText(label), value);
+    }
+    await user.click(await form.findByRole("checkbox", { name: "Animals" }));
+    await user.click(form.getByRole("button", { name: "Post" }));
+    expect(guard.busyIn()).toBe(true);
+
+    dialog.close();
+    expect(dialog.open).toBe(true);
+    expect(guard.pending()).toBe(false);
+
+    land(CREATED);
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    expect(guard.hasDraft(), "a created Post is no Draft").toBe(false);
+    expect(guard.notice()).toBeUndefined();
+  });
+
+  it("stops its Escape, so a document Escape listener does not get it", async () => {
+    const onDocumentKey = vi.fn();
+    document.addEventListener("keydown", onDocumentKey);
+    try {
+      const { user, form } = renderCreate();
+      await user.click(form.getByLabelText("Title"));
+      await user.keyboard("{Escape}");
+      expect(onDocumentKey).not.toHaveBeenCalledWith(expect.objectContaining({ key: "Escape" }));
+    } finally {
+      document.removeEventListener("keydown", onDocumentKey);
+    }
   });
 });
