@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vite-plus/test";
-import { createRoot } from "solid-js";
+import { createMemo, createRoot } from "solid-js";
 import { createDraftGuard, type DraftGuard } from "./createDraftGuard";
 
 // The app-level Draft guard (ADR-0030): forms report yes or no, and every
@@ -202,6 +202,18 @@ describe("createDraftGuard — scopes", () => {
       expect(guard.hasDraftIn()).toBe(false);
       guard.report(caption, true);
       expect(guard.hasDraftIn()).toBe(true);
+    }));
+
+  it("hasDraftIn is reactive, so a memo can read it (#214)", () =>
+    withGuard((guard) => {
+      const inPanel = createMemo(() => guard.hasDraftIn([panel]));
+      expect(inPanel()).toBe(false);
+      guard.report(caption, true);
+      expect(inPanel(), "a Draft outside the scope").toBe(false);
+      guard.report(compose, true, panel);
+      expect(inPanel()).toBe(true);
+      guard.report(compose, false, panel);
+      expect(inPanel()).toBe(false);
     }));
 });
 

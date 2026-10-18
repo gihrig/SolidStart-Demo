@@ -23,7 +23,7 @@ export interface DraftGuard {
    *  move with no `scopes` asks about every Draft. */
   attempt: (move: () => void, scopes?: readonly DraftScope[]) => void;
   /** Whether a form in any of `scopes` holds a Draft; with no `scopes`, any
-   *  form. */
+   *  form. It is reactive. */
   hasDraftIn: (scopes?: readonly DraftScope[]) => boolean;
   /** Whether a move waits for the confirm dialog. */
   pending: Accessor<boolean>;
@@ -101,6 +101,9 @@ export function createDraftGuard(): DraftGuard {
   // form ends its Draft.
   const released = new Map<symbol, DraftScope | undefined>();
   const [hasDraft, setHasDraft] = createSignal(false);
+  // Each change of `drafts`, so a read of the Drafts in some scopes is
+  // reactive (#214).
+  const [draftsChanged, setDraftsChanged] = createSignal(undefined, { equals: false });
   // The move sits in an object: a bare function given to a setter runs as an
   // updater.
   const [pendingMove, setPendingMove] = createSignal<{
@@ -114,6 +117,7 @@ export function createDraftGuard(): DraftGuard {
   const sync = () => {
     const dirty = drafts.size > 0;
     setHasDraft(dirty);
+    setDraftsChanged();
     if (isServer || dirty === listening) return;
     listening = dirty;
     if (dirty) window.addEventListener("beforeunload", blockUnload);
@@ -201,7 +205,10 @@ export function createDraftGuard(): DraftGuard {
     holds: (key) => drafts.has(key),
     report,
     attempt,
-    hasDraftIn: (scopes) => draftsIn(scopes).length > 0,
+    hasDraftIn: (scopes) => {
+      draftsChanged();
+      return draftsIn(scopes).length > 0;
+    },
     pending: () => pendingMove() !== undefined,
     question: () => pendingMove()?.message ?? MOVE_QUESTION,
     ask: (message, scopes, onDiscard) => {

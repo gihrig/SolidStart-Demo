@@ -1,4 +1,5 @@
 import { createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
+import type { DraftScope } from "~/lib/createDraftGuard";
 import { createRpcAction } from "~/lib/createRpcAction";
 import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
 import type { OwnerWrites } from "~/lib/jedi/createJediFeed";
@@ -51,6 +52,8 @@ export interface FeaturedPostProps {
   /** The Owner's writes on the Caption shown (#187): the edit form in the
    *  Caption line, its save and the delete. */
   captionOwner?: OwnerWrites<string>;
+  /** The scope of the Add Caption form's Draft (#214). */
+  addCaptionScope?: DraftScope;
 }
 
 /** The notice of a locked Caption's Edit (#187, T7). */
@@ -212,6 +215,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           ref={(el) => (captionLineRef = el)}
           editing={captionEditOpen()}
           editScope={props.captionOwner?.edit.draftScope}
+          addScope={props.addCaptionScope}
           onSaveEdit={(id, text) => props.captionOwner?.save(id, text) ?? Promise.resolve()}
           onEditClose={closeCaptionEdit}
         />

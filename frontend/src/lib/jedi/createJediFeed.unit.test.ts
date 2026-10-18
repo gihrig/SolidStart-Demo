@@ -862,7 +862,7 @@ describe("createJediFeed — the Draft guard (ADR-0030)", () => {
     try {
       await tick();
       await tick();
-      guard.report(Symbol("compose"), true);
+      guard.report(Symbol("add caption"), true, jedi.addCaptionScope);
       await run(jedi, guard);
     } finally {
       dispose();
@@ -955,8 +955,8 @@ describe("createJediFeed — the Draft guard (ADR-0030)", () => {
       await tick();
       await tick();
       expect(jedi.selectedPost()?.id).toBe(1);
-      const draft = Symbol("compose");
-      guard.report(draft, true);
+      const draft = Symbol("add caption");
+      guard.report(draft, true, jedi.addCaptionScope);
 
       // A Like re-ranks the Posts: post 3 is now first.
       const [first, second, ...rest] = RANKED_POSTS;
@@ -1011,7 +1011,7 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
 
   it("the Owner's Post delete releases every Draft, shows no notice, refetches and speaks", () =>
     withLive(async (jedi, guard, mem) => {
-      guard.report(Symbol("add caption"), true);
+      guard.report(Symbol("add caption"), true, jedi.addCaptionScope);
       guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
       expect(jedi.postOwner.removeDiscardsDraft()).toBe(true);
       let answer!: () => void;
@@ -1063,7 +1063,7 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
     withLive(async (jedi, guard) => {
       const shown = jedi.selectedCaption()!.id;
       const outside = Symbol("add caption");
-      guard.report(outside, true);
+      guard.report(outside, true, jedi.addCaptionScope);
       expect(jedi.captionOwner.removeDiscardsDraft()).toBe(false);
       guard.report(Symbol("caption comment"), true, jedi.captionComments.draftScope);
       expect(jedi.captionOwner.removeDiscardsDraft()).toBe(true);
@@ -1081,7 +1081,7 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
 
   it("another User's Post delete discards every Draft on the Post with the Post notice", () =>
     withLive(async (jedi, guard, mem) => {
-      guard.report(Symbol("add caption"), true);
+      guard.report(Symbol("add caption"), true, jedi.addCaptionScope);
       guard.report(Symbol("caption comment"), true, jedi.captionComments.draftScope);
       withoutPost1();
       mem.emit(pokeOn(Channel.posts));
@@ -1106,7 +1106,7 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
     withLive(async (jedi, guard, mem) => {
       const shown = jedi.selectedCaption()!.id;
       const outside = Symbol("add caption");
-      guard.report(outside, true);
+      guard.report(outside, true, jedi.addCaptionScope);
       guard.report(Symbol("caption comment"), true, jedi.captionComments.draftScope);
       withoutCaption(shown);
       mem.emit(pokeOn(Channel.postCaption(1)));
@@ -1205,7 +1205,7 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
   it("a Caption pick names the Caption edit and Caption thread scopes", () =>
     withLive(async (jedi, guard) => {
       const other = captionsFor(1)[1].id;
-      guard.report(Symbol("add caption"), true);
+      guard.report(Symbol("add caption"), true, jedi.addCaptionScope);
       jedi.selectCaption(other);
       expect(guard.pending(), "a Draft outside both scopes").toBe(false);
       jedi.selectCaption(captionsFor(1)[0].id);

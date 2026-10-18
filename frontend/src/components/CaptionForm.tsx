@@ -51,7 +51,7 @@ export interface CaptionFormProps {
   onSave?: (text: string) => Promise<void>;
   /** Edit mode: called once the save has committed. */
   onSaved?: () => void;
-  /** Edit mode: the scope of the edit's Draft (ADR-0030). */
+  /** The scope of the form's Draft (ADR-0030): the add form's or the edit's. */
   draftScope?: DraftScope;
 }
 

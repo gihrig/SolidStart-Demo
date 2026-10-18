@@ -2,9 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
+import { createDraftGuard } from "~/lib/createDraftGuard";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { CaptionView } from "~/types/jedi";
+import { DraftGuardContext } from "./DraftGuardContext";
 import PostCaption, { type PostCaptionProps } from "./PostCaption";
 
 const CAPTION: CaptionView = {
@@ -100,6 +102,20 @@ describe("<PostCaption />", () => {
     expect(input()).toBeInTheDocument();
     expect(input()).not.toHaveFocus();
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+  });
+
+  it("the add form reports its Draft in the add scope (#214)", async () => {
+    const guard = createDraftGuard();
+    const addScope = Symbol("add-caption");
+    const user = userEvent.setup();
+    render(() => (
+      <DraftGuardContext.Provider value={guard}>
+        <PostCaption {...defaults} adding addScope={addScope} />
+      </DraftGuardContext.Provider>
+    ));
+
+    await user.type(input()!, "draft");
+    expect(guard.hasDraftIn([addScope])).toBe(true);
   });
 
   it("shows no form while the Post's captions are loading", () => {
