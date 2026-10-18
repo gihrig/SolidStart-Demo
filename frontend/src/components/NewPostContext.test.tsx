@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach } from "vite-plus/test"
 import { render, screen, within, waitFor } from "@solidjs/testing-library";
 import { A, MemoryRouter, Route } from "@solidjs/router";
 import userEvent from "@testing-library/user-event";
-import { createSignal, Show, type ParentProps } from "solid-js";
+import { createResource, createSignal, Show, Suspense, type ParentProps } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import { stubDialogModal } from "~/lib/test-utils";
 import type { JediApi } from "~/lib/jedi/jedi-api";
@@ -37,6 +37,15 @@ beforeEach(() => {
   postCreateMock.mockReset();
 });
 
+// The Slow page loads until a test calls `slowLoaded`.
+let slowLoaded!: () => void;
+function SlowPage() {
+  const [data] = createResource(
+    () => new Promise<string>((r) => (slowLoaded = () => r("Slow page"))),
+  );
+  return <h1>{data()}</h1>;
+}
+
 // Two openers, as the Nav's New Post and the Post line's Add. The Add can
 // leave the page, as the Post line does.
 function renderOpeners() {
@@ -61,7 +70,7 @@ function renderOpeners() {
     );
   }
   // The app shell, as in app.tsx: the provider sits inside the Router and the
-  // guard.
+  // guard, and the routes sit in a <Suspense>.
   render(() => (
     <MemoryRouter
       root={(props: ParentProps) => (
@@ -69,13 +78,15 @@ function renderOpeners() {
           <NewPostProvider api={api}>
             <Openers />
             <A href="/about">About</A>
-            {props.children}
+            <A href="/slow">Slow</A>
+            <Suspense>{props.children}</Suspense>
           </NewPostProvider>
         </DraftGuardProvider>
       )}
     >
       <Route path="/" component={() => <h1>Home page</h1>} />
       <Route path="/about" component={() => <h1>About page</h1>} />
+      <Route path="/slow" component={SlowPage} />
     </MemoryRouter>
   ));
   return { user: userEvent.setup(), setAddShown };
@@ -204,6 +215,24 @@ describe("<NewPostProvider /> (#214)", () => {
     expect(await screen.findByRole("heading", { name: "About page" })).toBeInTheDocument();
     expect(dialog()).toBeNull();
     expect(screen.queryByRole("dialog", { name: /discarded/ }), "no notice").toBeNull();
+  });
+
+  it("an open while a route move loads does nothing; after the move, an open works (#214)", async () => {
+    const { user } = renderOpeners();
+    await user.click(screen.getByRole("link", { name: "Slow" }));
+    expect(
+      screen.getByRole("heading", { name: "Home page" }),
+      "the move loads",
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "New Post" }));
+    expect(dialog()).toBeNull();
+
+    slowLoaded();
+    expect(await screen.findByRole("heading", { name: "Slow page" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: /discarded/ }), "no notice").toBeNull();
+    await user.click(screen.getByRole("button", { name: "New Post" }));
+    expect(dialog()).toBeInTheDocument();
   });
 
   it("a route move during the create does nothing; then the result of the create shows", async () => {

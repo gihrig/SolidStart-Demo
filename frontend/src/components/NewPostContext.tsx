@@ -7,7 +7,7 @@ import {
   useContext,
   type ParentComponent,
 } from "solid-js";
-import { useLocation } from "@solidjs/router";
+import { useIsRouting, useLocation } from "@solidjs/router";
 import PostDialog, { type PostDialogProps } from "~/components/PostDialog";
 
 /** The app's one New Post dialog (#214). */
@@ -36,7 +36,8 @@ export interface NewPostProviderProps {
  * A route move closes the dialog. With a Draft, the guard's route-move
  * question asks first. The close follows the location, not a `useBeforeLeave`
  * listener: after "Discard", the router runs the move again past every
- * listener.
+ * listener. While a route move loads, an open does nothing: the move would
+ * close the dialog when it ends, and drop the new Draft.
  */
 export const NewPostProvider: ParentComponent<NewPostProviderProps> = (props) => {
   const [opener, setOpener] = createSignal<HTMLElement>();
@@ -46,6 +47,7 @@ export const NewPostProvider: ParentComponent<NewPostProviderProps> = (props) =>
     if (el?.isConnected) el.focus();
   };
   const location = useLocation();
+  const isRouting = useIsRouting();
   createEffect(
     on(
       () => [location.pathname, location.search, location.hash],
@@ -57,7 +59,7 @@ export const NewPostProvider: ParentComponent<NewPostProviderProps> = (props) =>
   );
 
   return (
-    <NewPostContext.Provider value={{ open: (el) => setOpener(el) }}>
+    <NewPostContext.Provider value={{ open: (el) => !isRouting() && setOpener(el) }}>
       {props.children}
       <Show when={opener()}>
         <PostDialog api={props.api} onClose={close} />
