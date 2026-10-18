@@ -335,3 +335,111 @@ describe("createDraftGuard — the question after an Event (#187)", () => {
       expect(guard.notice()).toContain("This Post was deleted.");
     }));
 });
+
+describe("createDraftGuard — a form's Cancel (#214)", () => {
+  it("without a Draft, the close runs at once", () =>
+    withGuard((guard) => {
+      const close = vi.fn();
+      guard.report(compose, true, panel);
+      guard.cancel(edit1, close);
+      expect(close).toHaveBeenCalledOnce();
+      expect(guard.pending()).toBe(false);
+    }));
+
+  it("asks only about its own form; Discard drops that Draft and closes, and another Draft in the scope stays", () =>
+    withGuard((guard) => {
+      const close = vi.fn();
+      guard.report(edit1, true, panel);
+      guard.report(compose, true, panel);
+      guard.cancel(edit1, close);
+      expect(guard.pending()).toBe(true);
+      expect(guard.question()).toBe("You have unsaved changes. Discard them?");
+      expect(close).not.toHaveBeenCalled();
+
+      guard.confirmMove();
+      expect(close).toHaveBeenCalledOnce();
+      expect(guard.holds(edit1)).toBe(false);
+      expect(guard.holds(compose), "the other Draft in the scope stays").toBe(true);
+    }));
+
+  it("Keep editing keeps the Draft and the form", () =>
+    withGuard((guard) => {
+      const close = vi.fn();
+      guard.report(edit1, true, panel);
+      guard.cancel(edit1, close);
+      guard.cancelMove();
+      expect(close).not.toHaveBeenCalled();
+      expect(guard.holds(edit1)).toBe(true);
+    }));
+
+  it("the close runs after the Drafts update, so it sees the guard settled", () =>
+    withGuard((guard) => {
+      let pendingAtClose: boolean | undefined;
+      let heldAtClose: boolean | undefined;
+      guard.report(edit1, true);
+      guard.cancel(edit1, () => {
+        pendingAtClose = guard.pending();
+        heldAtClose = guard.hasDraft();
+      });
+      guard.confirmMove();
+      expect(pendingAtClose).toBe(false);
+      expect(heldAtClose).toBe(false);
+    }));
+
+  it("a forced discard cancels a waiting Cancel", () =>
+    withGuard((guard) => {
+      const close = vi.fn();
+      guard.report(edit1, true, panel);
+      guard.cancel(edit1, close);
+      guard.discardIn([panel], "This Post was deleted.");
+      expect(guard.pending()).toBe(false);
+      guard.confirmMove();
+      expect(close).not.toHaveBeenCalled();
+    }));
+
+  it("a Category question replaces a waiting Cancel", () =>
+    withGuard((guard) => {
+      const close = vi.fn();
+      guard.report(edit1, true, panel);
+      guard.cancel(edit1, close);
+      guard.ask("This Post is no longer in Animals.", [panel]);
+      expect(guard.question()).toBe("This Post is no longer in Animals.");
+      guard.confirmMove();
+      expect(close).not.toHaveBeenCalled();
+    }));
+});
+
+describe("createDraftGuard — a write in flight (#214)", () => {
+  it("attempt refuses a move while a form in its scopes is busy, and asks nothing", () =>
+    withGuard((guard) => {
+      const move = vi.fn();
+      guard.report(compose, true, panel);
+      guard.reportBusy(compose, true, panel);
+      guard.attempt(move, [panel]);
+      expect(move).not.toHaveBeenCalled();
+      expect(guard.pending()).toBe(false);
+
+      guard.reportBusy(compose, false, panel);
+      guard.attempt(move, [panel]);
+      expect(guard.pending(), "after the write, the move asks").toBe(true);
+    }));
+
+  it("a busy form outside the scopes does not stop the move", () =>
+    withGuard((guard) => {
+      const move = vi.fn();
+      guard.reportBusy(caption, true);
+      guard.attempt(move, [panel]);
+      expect(move).toHaveBeenCalledOnce();
+    }));
+
+  it("a move with no scopes is refused while any form is busy", () =>
+    withGuard((guard) => {
+      const move = vi.fn();
+      guard.reportBusy(edit1, true, captionEdit);
+      expect(guard.busyIn()).toBe(true);
+      expect(guard.busyIn([panel])).toBe(false);
+      guard.attempt(move);
+      expect(move).not.toHaveBeenCalled();
+      expect(guard.pending()).toBe(false);
+    }));
+});

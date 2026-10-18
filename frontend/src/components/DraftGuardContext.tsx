@@ -29,9 +29,10 @@ export const DraftGuardContext = createContext<DraftGuard>(passThroughGuard);
 export const DraftGuardProvider: ParentComponent = (props) => {
   const guard = createDraftGuard();
   // A route move with a Draft waits for the dialog; "Discard" retries it past
-  // this check.
+  // this check. While any form writes, `attempt` refuses it with no question
+  // (#214).
   useBeforeLeave((e) => {
-    if (e.defaultPrevented || !guard.hasDraft()) return;
+    if (e.defaultPrevented || !(guard.hasDraft() || guard.busyIn())) return;
     e.preventDefault();
     guard.attempt(() => e.retry(true));
   });
@@ -68,6 +69,9 @@ export interface DraftOptions {
   dirty: Accessor<boolean>;
   /** The form's scope, when a move can unmount its group of forms alone. */
   scope?: DraftScope;
+  /** Whether the form's write is in flight (#214). While it is, no move that
+   *  would unmount the form runs. */
+  busy?: Accessor<boolean>;
   /** The notice of a forced discard, read when the form unmounts. Defaults to
    *  `DRAFT_DISCARDED_NOTICE`. */
   notice?: () => string;
@@ -79,6 +83,10 @@ export interface Draft {
    *  until the form is clean: a report that re-runs before the saved text
    *  reloads does not hold it again (#187). */
   clear: () => void;
+  /** The form's Cancel (#214). Without a Draft, it runs `close` at once. With
+   *  one, the guard asks about this form only: "Discard" drops the Draft, then
+   *  runs `close`; "Keep editing" keeps both. */
+  cancel: (close: () => void) => void;
 }
 
 /**
@@ -96,16 +104,24 @@ export function useDraft(options: DraftOptions): Draft {
     if (!dirty) cleared = false;
     guard.report(key, dirty && !cleared, options.scope);
   });
+  createEffect(() => guard.reportBusy(key, options.busy?.() ?? false, options.scope));
   // A Draft that an own delete released (`guard.release`) ends here too, with no
   // notice.
   onCleanup(() => {
+    guard.reportBusy(key, false);
     if (guard.holds(key)) guard.discard(key, options.notice?.() ?? DRAFT_DISCARDED_NOTICE);
     else guard.report(key, false);
   });
+  const clear = () => {
+    cleared = true;
+    guard.report(key, false);
+  };
   return {
-    clear: () => {
-      cleared = true;
-      guard.report(key, false);
-    },
+    clear,
+    cancel: (close) =>
+      guard.cancel(key, () => {
+        clear();
+        close();
+      }),
   };
 }
