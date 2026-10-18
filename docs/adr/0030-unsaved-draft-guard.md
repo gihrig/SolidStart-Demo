@@ -175,6 +175,7 @@ Nav's New Post and the Post line's Add open the same dialog. `NewPostProvider` i
 empties the form. A route move closes the dialog. With a Draft, the route-move
 question asks first. While a route move loads, New Post and Add do nothing.
 Otherwise the move would close the dialog when it ends, and drop the new Draft.
+A logoff closes the dialog too.
 
 **The New Post Draft.** The dialog holds a Draft while a text field is not blank
 after a trim, or a Category is checked. The Draft has no scope. So only the logoff
