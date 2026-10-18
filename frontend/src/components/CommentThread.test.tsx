@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vite-plus/test";
-import { render, screen, waitFor, within } from "@solidjs/testing-library";
+import { render, screen, waitFor, within, fireEvent } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
@@ -428,7 +428,9 @@ describe("<CommentThread /> — Drafts (ADR-0030)", () => {
 
     await user.type(editBox, "!");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(guard.hasDraft(), "Cancel discards it").toBe(false);
+    expect(guard.pending(), "Cancel asks first (#214)").toBe(true);
+    guard.confirmMove();
+    expect(guard.hasDraft(), "Discard discards it").toBe(false);
     expect(guard.notice()).toBeUndefined();
   });
 
@@ -505,5 +507,131 @@ describe("<CommentThread /> — Drafts (ADR-0030)", () => {
     setComments([]);
     unmount();
     expect(guard.notice()).toBeUndefined();
+  });
+});
+
+describe("<CommentThread /> — Cancel, Escape and focus (#214)", () => {
+  function renderGuarded(thread: CommentThreadState) {
+    const guard = createDraftGuard();
+    render(() => (
+      <DraftGuardContext.Provider value={guard}>
+        <CommentThread id="t" thread={thread} loggedIn userId={2} />
+      </DraftGuardContext.Provider>
+    ));
+    return { guard, user: userEvent.setup() };
+  }
+  const editBox = () => screen.queryByRole("textbox", { name: "Edit your comment" });
+  const editButton = () => screen.getByRole("button", { name: "Edit comment" });
+
+  it("the edit's Cancel and Escape with a Draft ask; Keep editing keeps the text", async () => {
+    const { thread } = fakeThread([comment(1, 2, "mine")]);
+    const { guard, user } = renderGuarded(thread);
+    await user.type(await openEdit(user), "!");
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(guard.pending()).toBe(true);
+    guard.cancelMove();
+    expect(editBox()).toHaveValue("mine!");
+
+    await user.click(editBox()!);
+    await user.keyboard("{Escape}");
+    expect(guard.pending()).toBe(true);
+    guard.confirmMove();
+    expect(editBox()).toBeNull();
+  });
+
+  it("the edit's Cancel asks only about itself: a compose Draft in the thread stays", async () => {
+    const { thread } = fakeThread([comment(1, 2, "mine")]);
+    const { guard, user } = renderGuarded(thread);
+    await user.type(composeBox(), "compose");
+    await user.type(await openEdit(user), "!");
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    guard.confirmMove();
+    expect(editBox()).toBeNull();
+    expect(composeBox()).toHaveValue("compose");
+    expect(guard.hasDraftIn([thread.draftScope]), "the compose Draft stays").toBe(true);
+  });
+
+  it("the compose box, which has no Cancel, ignores Escape", async () => {
+    const { thread } = fakeThread([]);
+    const { guard, user } = renderGuarded(thread);
+    await user.type(composeBox(), "compose");
+    await user.keyboard("{Escape}");
+    expect(guard.pending()).toBe(false);
+    expect(composeBox()).toHaveValue("compose");
+  });
+
+  it("an Escape that ends an IME composition is no Cancel", async () => {
+    const { thread } = fakeThread([comment(1, 2, "mine")]);
+    const { guard, user } = renderGuarded(thread);
+    await user.type(await openEdit(user), "!");
+    fireEvent.keyDown(editBox()!, { key: "Escape", isComposing: true });
+    expect(guard.pending()).toBe(false);
+    expect(editBox()).toBeInTheDocument();
+  });
+
+  it("a document Escape listener does not get a form's Escape", async () => {
+    const onDocumentKey = vi.fn();
+    document.addEventListener("keydown", onDocumentKey);
+    try {
+      const { thread } = fakeThread([comment(1, 2, "mine")]);
+      const { user } = renderGuarded(thread);
+      await user.click(composeBox());
+      await user.keyboard("{Escape}");
+      await user.click(await openEdit(user));
+      await user.keyboard("{Escape}");
+      expect(onDocumentKey).not.toHaveBeenCalledWith(expect.objectContaining({ key: "Escape" }));
+    } finally {
+      document.removeEventListener("keydown", onDocumentKey);
+    }
+  });
+
+  it("focus returns to the Comment's Edit button after a Cancel, an Escape and a Save", async () => {
+    const { thread } = fakeThread([comment(1, 2, "mine")]);
+    const { user } = renderGuarded(thread);
+
+    await openEdit(user);
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(editButton()).toHaveFocus();
+
+    await user.click(await openEdit(user));
+    await user.keyboard("{Escape}");
+    expect(editButton()).toHaveFocus();
+
+    await user.type(await openEdit(user), "!");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(editBox()).toBeNull());
+    expect(editButton()).toHaveFocus();
+  });
+
+  it("focus returns to the Edit button after Discard", async () => {
+    const { thread } = fakeThread([comment(1, 2, "mine")]);
+    const { guard, user } = renderGuarded(thread);
+    await user.type(await openEdit(user), "!");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    guard.confirmMove();
+    expect(editButton()).toHaveFocus();
+  });
+
+  it("a move during a write does nothing, and Escape does nothing", async () => {
+    const { thread } = fakeThread([comment(1, 2, "mine")]);
+    let finish!: () => void;
+    vi.mocked(thread.update).mockReturnValueOnce(new Promise<void>((r) => (finish = r)));
+    const { guard, user } = renderGuarded(thread);
+    await user.type(await openEdit(user), "!");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    const move = vi.fn();
+    guard.attempt(move, [thread.draftScope]);
+    expect(move).not.toHaveBeenCalled();
+    expect(guard.pending()).toBe(false);
+    await user.click(editBox()!);
+    await user.keyboard("{Escape}");
+    expect(guard.pending()).toBe(false);
+    expect(editBox()).toBeInTheDocument();
+
+    finish();
+    await waitFor(() => expect(editBox()).toBeNull());
   });
 });

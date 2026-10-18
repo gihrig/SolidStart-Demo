@@ -67,6 +67,9 @@ export interface CaptionFormProps {
  * The edit mode fills the input from the Caption text. It holds a Draft while
  * the text differs from the saved Caption, and Save stays disabled until then.
  * A remote edit shows while the User has not changed the text.
+ *
+ * In both modes, a Cancel with a Draft asks first, and Escape is the Cancel of
+ * a form with one. The form reports its write to the guard (#214).
  */
 export default function CaptionForm(props: CaptionFormProps) {
   const api = props.api ?? jediApi;
@@ -88,7 +91,6 @@ export default function CaptionForm(props: CaptionFormProps) {
   const length = createMemo(() => hygieneLength(value()));
   const overLimit = () => length() > CAPTION_MAX_LENGTH;
   const dirty = () => (editing ? value() !== saved() : value().trim() !== "");
-  const draft = useDraft({ dirty, scope: props.draftScope });
   const add = createRpcAction((caption: string) => api.captions.add(props.postId, caption), {
     fallbackError: MODE_TEXT.add.error,
   });
@@ -101,6 +103,7 @@ export default function CaptionForm(props: CaptionFormProps) {
   );
   const pending = () => add.pending() || save.pending();
   const error = () => add.error() ?? save.error();
+  const draft = useDraft({ dirty, scope: props.draftScope, busy: pending });
 
   onMount(() => {
     if (props.autofocus) inputRef?.focus();
@@ -110,6 +113,16 @@ export default function CaptionForm(props: CaptionFormProps) {
   // move focus (#185 review). The Caption itself is still saved.
   let unmounted = false;
   onCleanup(() => (unmounted = true));
+
+  // The Cancel asks first while the form holds a Draft (#214).
+  const cancel = () => draft.cancel(() => props.onCancel?.());
+  // Escape is the Cancel of a form that has one (#214). The form stops it, so
+  // a document listener (`useDismiss`) does not close a menu or the sidebar.
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== "Escape") return;
+    e.stopPropagation();
+    if (!e.isComposing && props.onCancel && !pending()) cancel();
+  };
 
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
@@ -129,7 +142,7 @@ export default function CaptionForm(props: CaptionFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} class="space-y-2">
+    <form onSubmit={handleSubmit} on:keydown={handleKeyDown} class="space-y-2">
       <Show when={error()}>
         <div role="alert" class="rounded bg-red-100 p-2 text-red-700">
           {error()}
@@ -155,10 +168,7 @@ export default function CaptionForm(props: CaptionFormProps) {
           <button
             type="button"
             disabled={pending()}
-            onClick={() => {
-              draft.clear();
-              props.onCancel?.();
-            }}
+            onClick={cancel}
             class="theme-button shrink-0 disabled:opacity-50"
           >
             Cancel

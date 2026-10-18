@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
-import { render, screen, waitFor } from "@solidjs/testing-library";
+import { render, screen, waitFor, fireEvent } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal, Show } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
@@ -217,13 +217,16 @@ describe("<CaptionForm /> — the edit mode (#187)", () => {
     expect(captionAddMock).not.toHaveBeenCalled();
   });
 
-  it("holds a Draft in its scope while the text differs; Cancel drops it", async () => {
+  it("holds a Draft in its scope while the text differs; Cancel asks, and Discard drops it", async () => {
     const { user, input, guard, onCancel } = renderEdit();
     expect(guard.hasDraftIn([scope])).toBe(false);
     await user.type(input, "!");
     expect(guard.hasDraftIn([scope])).toBe(true);
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(guard.pending()).toBe(true);
+    expect(onCancel).not.toHaveBeenCalled();
+    guard.confirmMove();
     expect(guard.hasDraft()).toBe(false);
     expect(onCancel).toHaveBeenCalledOnce();
   });
@@ -246,5 +249,96 @@ describe("<CaptionForm /> — the edit mode (#187)", () => {
     await user.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not edit the Caption");
     expect(onSaved).not.toHaveBeenCalled();
+  });
+});
+
+describe("<CaptionForm /> — Cancel and Escape (#214)", () => {
+  const scope = Symbol("add-caption");
+
+  function renderGuarded(props: Partial<CaptionFormProps> = {}) {
+    const guard = createDraftGuard();
+    render(() => (
+      <DraftGuardContext.Provider value={guard}>
+        <CaptionForm postId={1} api={api} draftScope={scope} {...props} />
+      </DraftGuardContext.Provider>
+    ));
+    const input = screen.getByLabelText("Your caption") as HTMLInputElement;
+    return { user: userEvent.setup(), input, guard };
+  }
+
+  it("Cancel and Escape with a Draft ask; Keep editing keeps the text", async () => {
+    const onCancel = vi.fn();
+    const { user, input, guard } = renderGuarded({ onCancel });
+    await user.type(input, "draft");
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(guard.pending()).toBe(true);
+    guard.cancelMove();
+    expect(input.value).toBe("draft");
+
+    await user.click(input);
+    await user.keyboard("{Escape}");
+    expect(guard.pending()).toBe(true);
+    guard.confirmMove();
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(guard.hasDraft()).toBe(false);
+  });
+
+  it("Escape without a Draft closes at once", async () => {
+    const onCancel = vi.fn();
+    const { user, input, guard } = renderGuarded({ onCancel });
+    await user.click(input);
+    await user.keyboard("{Escape}");
+    expect(guard.pending()).toBe(false);
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it("a form without a Cancel ignores Escape", async () => {
+    const { user, input, guard } = renderGuarded();
+    await user.type(input, "draft");
+    await user.keyboard("{Escape}");
+    expect(guard.pending()).toBe(false);
+    expect(input.value).toBe("draft");
+  });
+
+  it("an Escape that ends an IME composition is no Cancel", async () => {
+    const onCancel = vi.fn();
+    const { input, guard } = renderGuarded({ onCancel });
+    fireEvent.keyDown(input, { key: "Escape", isComposing: true });
+    expect(guard.pending()).toBe(false);
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it("a document Escape listener does not get the form's Escape", async () => {
+    const onDocumentKey = vi.fn();
+    document.addEventListener("keydown", onDocumentKey);
+    try {
+      const { user, input } = renderGuarded({ onCancel: vi.fn() });
+      await user.click(input);
+      await user.keyboard("{Escape}");
+      expect(onDocumentKey).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener("keydown", onDocumentKey);
+    }
+  });
+
+  it("during the write, Escape does nothing and a move in its scope does nothing", async () => {
+    let resolve!: (c: CaptionView) => void;
+    captionAddMock.mockReturnValue(new Promise((r) => (resolve = r)));
+    const onCancel = vi.fn();
+    const { user, input, guard } = renderGuarded({ onCancel });
+    await user.type(input, ADDED.text);
+    await user.click(screen.getByRole("button", { name: "Add Caption" }));
+
+    await user.click(input);
+    await user.keyboard("{Escape}");
+    expect(onCancel).not.toHaveBeenCalled();
+    const move = vi.fn();
+    guard.attempt(move, [scope]);
+    expect(move).not.toHaveBeenCalled();
+    expect(guard.pending()).toBe(false);
+
+    resolve(ADDED);
+    await waitFor(() => expect(guard.busyIn([scope])).toBe(false));
   });
 });

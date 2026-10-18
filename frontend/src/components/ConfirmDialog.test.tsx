@@ -96,4 +96,17 @@ describe("<ConfirmDialog />", () => {
     fireEvent(dialog(), new Event("cancel", { cancelable: true }));
     expect(onConfirm, "Escape means OK").toHaveBeenCalledOnce();
   });
+
+  it("stops its Escape, so a document Escape listener does not get it (#214)", () => {
+    const onDocumentKey = vi.fn();
+    document.addEventListener("keydown", onDocumentKey);
+    try {
+      const { setOpen } = renderConfirm();
+      setOpen(true);
+      fireEvent.keyDown(screen.getByRole("button", { name: "Keep editing" }), { key: "Escape" });
+      expect(onDocumentKey).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener("keydown", onDocumentKey);
+    }
+  });
 });

@@ -153,7 +153,7 @@ describe("<FeaturedPost /> — Add Caption (#121)", () => {
     expect(screen.getByText(caption.text)).toBeInTheDocument();
   });
 
-  it("reports a Draft while the caption is not blank, and none after Cancel", async () => {
+  it("reports a Draft while the caption is not blank; Cancel asks, and focus returns after Discard (#214)", async () => {
     const user = userEvent.setup();
     let guard!: DraftGuard;
     render(() => {
@@ -171,8 +171,13 @@ describe("<FeaturedPost /> — Add Caption (#121)", () => {
     expect(guard.hasDraft()).toBe(true);
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(guard.pending()).toBe(true);
+    expect(input()).toHaveValue("  draft");
+    guard.confirmMove();
+    expect(input()).toBeNull();
     expect(guard.hasDraft()).toBe(false);
     expect(guard.notice()).toBeUndefined();
+    expect(addButton(), "focus returns to Add").toHaveFocus();
   });
 
   it("keeps the form open and its text when the same Post is refetched", async () => {
@@ -789,19 +794,23 @@ describe("<FeaturedPost /> — the Owner's edits (#187)", () => {
     const onUpdateCaption = vi.fn(() => Promise.resolve());
     const postOwner = fakeOwner<PostChanges>({ save: onUpdatePost });
     const captionOwner = fakeOwner<string>({ save: onUpdateCaption });
+    const guard = createDraftGuard();
     render(() => (
-      <FeaturedPost
-        loggedIn
-        userId={1}
-        post={post}
-        caption={shown}
-        captionsLoaded
-        postOwner={postOwner}
-        captionOwner={captionOwner}
-      />
+      <DraftGuardContext.Provider value={guard}>
+        <FeaturedPost
+          loggedIn
+          userId={1}
+          post={post}
+          caption={shown}
+          captionsLoaded
+          postOwner={postOwner}
+          captionOwner={captionOwner}
+        />
+      </DraftGuardContext.Provider>
     ));
     return {
       user: userEvent.setup(),
+      guard,
       postEdit: postOwner.edit,
       captionEdit: captionOwner.edit,
       onUpdatePost,
@@ -844,6 +853,19 @@ describe("<FeaturedPost /> — the Owner's edits (#187)", () => {
     expect(onUpdateCaption).toHaveBeenCalledWith(caption.id, `${caption.text}!`);
     await waitFor(() => expect(captionEdit.open()).toBe(false));
     expect(button("Edit caption by Lisa"), "focus returns to Edit").toHaveFocus();
+  });
+
+  it("the Caption edit's Cancel with a Draft asks; focus returns to Edit after Discard (#214)", async () => {
+    const { user, guard, captionEdit } = renderOwner();
+    await user.click(button("Edit caption by Lisa"));
+    await user.type(screen.getByLabelText("Edit your caption"), "!");
+
+    await user.click(button("Cancel"));
+    expect(guard.pending()).toBe(true);
+    expect(captionEdit.open()).toBe(true);
+    guard.confirmMove();
+    expect(captionEdit.open()).toBe(false);
+    expect(button("Edit caption by Lisa")).toHaveFocus();
   });
 
   it("disables the Caption's Edit while the Add form is open", async () => {

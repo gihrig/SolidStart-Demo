@@ -36,6 +36,9 @@ export default function LoginDialog(props: LoginDialogProps) {
       // result (the close, or the error) stays visible.
       onCancel={(e) => pending() && e.preventDefault()}
       onClose={() => props.onClose()}
+      // Escape stops here, so a document listener (`useDismiss`) does not close
+      // a menu or the sidebar behind the dialog (#214).
+      on:keydown={(e) => e.key === "Escape" && e.stopPropagation()}
       aria-labelledby={headingId}
       class="theme-dialog max-w-md"
     >
