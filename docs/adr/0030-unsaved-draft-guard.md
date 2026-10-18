@@ -162,3 +162,59 @@ that the Post was deleted. The labels "Save" and "Delete" for the question: in t
 app, "Save" submits and "Delete" removes a saved row. Two dialogs for the Owner's
 delete: one decision gets one question. A form that reports two scopes: each thread
 form would need to know its parent.
+
+## Addendum (2026-10-17) — form closure (#214)
+
+#214 gives the New Post dialog a Draft. It also sets one rule for each way that a
+form closes. The ways are a Cancel, Escape, a browser close of a dialog, and a move
+that unmounts the form.
+
+**One New Post dialog.** This replaces "The New Post dialog reports no Draft." The
+Nav's New Post and the Post line's Add open the same dialog. `NewPostProvider` in
+`app.tsx` mounts the dialog to open it, and unmounts it to close it. So each close
+empties the form. A route move closes the dialog. With a Draft, the route-move
+question asks first.
+
+**The New Post Draft.** The dialog holds a Draft while a text field is not blank
+after a trim, or a Category is checked. The Draft has no scope. So only the logoff
+and a route move ask about it.
+
+**The Post's scopes.** Each form on the Post has a scope. The scopes are the Post
+edit, the Caption edit, the Add Caption form and the two Comment threads. The Post
+hold reads only these scopes. The view-model names them for each Post move and
+Event, and for the Owner's own Post delete. So no Post move or Event touches the
+New Post Draft. Each one still closes the Post's own forms. So no form stays open
+with a Draft that the guard no longer holds.
+
+**A Cancel with a Draft asks.** Before #214, "Cancel" called `clear()` at once. Now
+a form's Cancel calls `draft.cancel(close)`. Without a Draft, the form closes at
+once. With a Draft, the guard asks "You have unsaved changes. Discard them?" about
+that form only. "Discard" drops that Draft and closes the form. "Keep editing"
+keeps the form open with its Draft.
+
+**Escape is a Cancel.** In a form with a Cancel, Escape runs the Cancel. A form
+without a Cancel ignores Escape. An Escape that ends an IME composition is not a
+Cancel. A form or a dialog stops its Escape, so an open menu or sidebar stays open.
+A browser close of a Post dialog is also a Cancel: with a Draft, the dialog opens
+again and asks.
+
+**A write in flight blocks a move.** A form tells `useDraft` when its write is in
+flight (`busy`). While a form writes, `attempt` refuses each move that would
+unmount it. The route-move listener refuses every route move while any form
+writes. Neither one asks a question. The User makes the move again after the write
+ends. So the User always sees the result of a write.
+
+**Focus returns to the opener.** After a close, focus returns to the button that
+opened the form. The Comment edit now does this too.
+
+**Rejected.** A New Post dialog that stays open across a route move: the
+route-move question would have to skip its Draft. A closed dialog that keeps its
+text as a Draft: the logoff would ask about text that the User cannot see. A
+Cancel that drops a Draft with no question: one accidental Escape loses the text.
+A scoped `attempt` for the Comment edit's Cancel: the thread scope also holds the
+compose box and the other Comment edits. A route move that asks during a write:
+"Discard" cannot stop the write, and a failed write shows no error.
+
+**Consequences.** A new form on the Post needs a scope in the Post's list. A new
+Cancel calls `draft.cancel`, and a new write reports `busy`. #210 adds a Cancel to
+the compose box, so the compose box follows these rules.

@@ -123,7 +123,8 @@ _Built_ (#120): the authenticated `create_post` takes a `PostForCreate` (with it
 `category_ids`), sets the caller as Owner, and returns the `PostView`. An empty or
 unknown `category_ids`, a title over 36 characters, or an unsafe URL is a
 `Validation` error. A create pokes `posts`; the Jedi route subscribes while a User
-is logged in, so every client refetches. The Nav's **New Post** dialog submits it.
+is logged in, so every client refetches. The **New Post** dialog submits it. The
+Nav's **New Post** opens the dialog.
 _Built_ (#187): the Owner edits a Post with `update_post` and deletes it with
 `delete_post`. An edit changes the title, the image description, the attribution
 and the Categories, never the photo. A delete also removes the Post's Captions,
@@ -578,11 +579,13 @@ _Avoid_: always-on focus outlines; showing the ring on pointer interaction.
 ### Unsaved Drafts
 
 **Draft** (unsaved form text):
-Text a User typed in a form and has not saved: a non-blank Comment compose box or Add
-Caption form, or an open Comment, Caption or Post edit that differs from the saved
-entity. A user-started move that would unmount the form asks first. An Event that
-removes the form's subject discards the Draft, and a notice says so. An Event that
-moves the Post out of the selected Category keeps the Post shown, and the User
-chooses to keep or discard the Draft
+Text a User typed in a form and has not saved. A Comment compose box or an Add
+Caption form holds one when it is not blank. A New Post dialog holds one when a
+field is not blank or a Category is checked. An open Comment, Caption or Post edit
+holds one when it differs from the saved entity. A Cancel, an Escape or a
+user-started move that would close the form asks first. While the form is saving,
+no user-started move closes it. An Event that removes the form's subject discards
+the Draft, and a notice says so. An Event that moves the Post out of the selected
+Category keeps the Post shown. The User then chooses to keep or discard the Draft
 ([ADR-0030](docs/adr/0030-unsaved-draft-guard.md)).
 _Avoid_: unsaved comment, pending edit; "lost" or "rejected" for a forced discard.
