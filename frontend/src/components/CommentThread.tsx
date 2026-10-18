@@ -116,7 +116,9 @@ interface CommentFormProps {
  * while its text is not blank, and an edit while its text differs from the
  * saved Comment. An edit holds none until its text loads. A remote edit moves
  * the row's `mtime`, so the edit loads the text again: an unchanged edit shows
- * the new text, and a changed one keeps the user's text.
+ * the new text, and a changed one keeps the user's text. An edit's Cancel with
+ * a Draft asks first, and Escape is its Cancel; the form reports its write to
+ * the guard (#214).
  */
 function CommentForm(props: CommentFormProps) {
   const text = () => FORM_TEXT[props.comment ? "edit" : "compose"];
@@ -157,14 +159,6 @@ function CommentForm(props: CommentFormProps) {
   // An edit holds a Draft while its loaded text differs from the saved
   // Comment; the compose box while its text is not blank.
   const dirty = () => (props.comment ? loaded() && value() !== saved() : value().trim() !== "");
-  const draft = useDraft({
-    dirty,
-    scope: props.thread.draftScope,
-    notice: () =>
-      props.comment && props.thread.deleted(props.comment.id)
-        ? COMMENT_DELETED_NOTICE
-        : DRAFT_DISCARDED_NOTICE,
-  });
   const write = createRpcAction(
     async (content: string) => {
       if (props.comment) await props.thread.update(props.comment.id, content);
@@ -173,6 +167,15 @@ function CommentForm(props: CommentFormProps) {
     },
     { fallbackError: text().error },
   );
+  const draft = useDraft({
+    dirty,
+    scope: props.thread.draftScope,
+    busy: write.pending,
+    notice: () =>
+      props.comment && props.thread.deleted(props.comment.id)
+        ? COMMENT_DELETED_NOTICE
+        : DRAFT_DISCARDED_NOTICE,
+  });
   const countId = () => `${props.id}-count`;
 
   const handleSubmit = async (e: SubmitEvent) => {
@@ -183,13 +186,20 @@ function CommentForm(props: CommentFormProps) {
       props.onClose?.();
     }
   };
-  const handleCancel = () => {
-    draft.clear();
-    props.onClose?.();
+  // The edit's Cancel asks first while it holds a Draft, about this form only
+  // (#214): the compose box and the other edits share its scope.
+  const handleCancel = () => draft.cancel(() => props.onClose?.());
+  // Escape is the edit's Cancel; the compose box has no Cancel, so it ignores
+  // Escape (#214). The form stops it, so a document listener (`useDismiss`)
+  // does not close a menu or the sidebar.
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== "Escape") return;
+    e.stopPropagation();
+    if (!e.isComposing && props.comment && !write.pending()) handleCancel();
   };
 
   return (
-    <form onSubmit={handleSubmit} class="space-y-2">
+    <form onSubmit={handleSubmit} on:keydown={handleKeyDown} class="space-y-2">
       <ErrorAlert error={write.error() ?? loadError()} />
       <label for={props.id} class={props.comment ? "sr-only" : "block font-medium"}>
         {text().label}
@@ -251,6 +261,12 @@ interface CommentItemProps {
  */
 function CommentItem(props: CommentItemProps) {
   const [editing, setEditing] = createSignal(false);
+  // After the edit closes, focus returns to its Edit button (#214).
+  let editRef: HTMLButtonElement | undefined;
+  const closeEdit = () => {
+    setEditing(false);
+    editRef?.focus();
+  };
   // Only the Owner edits: a logoff closes an open edit.
   const editOpen = () => editing() && props.isOwner;
   // A create writes one time to both; an edit moves `mtime`.
@@ -290,6 +306,7 @@ function CommentItem(props: CommentItemProps) {
           <Show when={props.isOwner && !editOpen()}>
             <div class="ml-auto flex gap-2">
               <button
+                ref={(el) => (editRef = el)}
                 type="button"
                 onClick={() => setEditing(true)}
                 class="theme-button"
@@ -322,7 +339,7 @@ function CommentItem(props: CommentItemProps) {
             id={`${props.threadId}-comment-${props.comment.id}-edit`}
             thread={props.thread}
             comment={props.comment}
-            onClose={() => setEditing(false)}
+            onClose={closeEdit}
           />
         </Show>
         <ErrorAlert error={remove.error()} />

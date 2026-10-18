@@ -54,13 +54,14 @@ beforeEach(() => {
   postCreateMock.mockReset();
 });
 
-// Open the dialog and fill every text field from the draft; Categories stay
-// unchecked so each test chooses its own.
+// The create mode opens on mount: its owner mounts it to open it (#214). Fill
+// every text field from the draft; Categories stay unchecked so each test
+// chooses its own.
 async function openAndFill() {
   const user = userEvent.setup();
-  render(() => <PostDialog api={api} />);
-  await user.click(screen.getByRole("button", { name: "New Post" }));
-  const dialog = screen.getByRole("dialog", { hidden: true });
+  const onClose = vi.fn();
+  render(() => <PostDialog api={api} onClose={onClose} />);
+  const dialog = screen.getByRole("dialog") as HTMLDialogElement;
   const form = within(dialog);
   await user.type(form.getByLabelText("Title"), DRAFT.title);
   await user.type(form.getByLabelText("Image URL"), DRAFT.imageSrc);
@@ -68,54 +69,34 @@ async function openAndFill() {
   await user.type(form.getByLabelText("Photographer"), DRAFT.photographer);
   await user.type(form.getByLabelText("Photographer URL"), DRAFT.photographerUrl);
   await user.type(form.getByLabelText("Photo page URL"), DRAFT.sourceUrl);
-  return { user, dialog, form };
+  return { user, dialog, form, onClose };
 }
 
 describe("<PostDialog />", () => {
-  it("opens as a modal and loads the Categories to choose from", async () => {
-    const user = userEvent.setup();
+  it("opens as a modal on mount and loads the Categories to choose from", async () => {
     render(() => <PostDialog api={api} />);
-    const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
-    expect(dialog.open).toBe(false);
-    expect(categoryListMock).not.toHaveBeenCalled();
-
-    await user.click(screen.getByRole("button", { name: "New Post" }));
-
+    const dialog = screen.getByRole("dialog") as HTMLDialogElement;
     expect(dialog.open).toBe(true);
+    expect(dialog).toHaveAccessibleName("New Post");
     const form = within(dialog);
     expect(await form.findByRole("checkbox", { name: "Landscape" })).toBeTruthy();
     expect(form.getByRole("checkbox", { name: "Animals" })).toBeTruthy();
   });
 
-  it("opens from a custom trigger: 'Add', named 'Add Post' (the Post line, #123)", async () => {
-    const user = userEvent.setup();
-    render(() => <PostDialog api={api} triggerLabel="Add" triggerAriaLabel="Add Post" />);
-    const trigger = screen.getByRole("button", { name: "Add Post" });
-    expect(trigger).toHaveTextContent(/^Add$/);
-
-    await user.click(trigger);
-
-    const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
-    expect(dialog.open).toBe(true);
-  });
-
-  it("opens on the first click under a <Suspense>, while the Categories load (#123)", async () => {
-    // The Post line renders this dialog inside the route's <Suspense>. The first
-    // open loads the Categories; a suspending read would swap the route for the
-    // fallback, which jumps the page to the top and drops the open dialog.
+  it("opens under a <Suspense> while the Categories load (#123)", async () => {
+    // The Post edit renders inside the route's <Suspense>. A suspending read
+    // would swap the route for the fallback, which jumps the page to the top
+    // and drops the open dialog.
     let answer!: (categories: JediCategory[]) => void;
     categoryListMock.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
-    const user = userEvent.setup();
     render(() => (
       <Suspense fallback="Loading">
-        <PostDialog api={api} triggerLabel="Add" triggerAriaLabel="Add Post" />
+        <PostDialog api={api} />
       </Suspense>
     ));
 
-    await user.click(screen.getByRole("button", { name: "Add Post" }));
-
     expect(screen.queryByText("Loading")).toBeNull();
-    const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
+    const dialog = screen.getByRole("dialog") as HTMLDialogElement;
     expect(dialog.open).toBe(true);
 
     answer(CATEGORIES);
@@ -127,12 +108,10 @@ describe("<PostDialog />", () => {
     render(() => (
       <>
         <PostDialog api={api} />
-        <PostDialog api={api} triggerLabel="Add" triggerAriaLabel="Add Post" />
+        <PostDialog api={api} />
       </>
     ));
-    const ids = screen
-      .getAllByRole("dialog", { hidden: true })
-      .map((d) => d.getAttribute("aria-labelledby"));
+    const ids = screen.getAllByRole("dialog").map((d) => d.getAttribute("aria-labelledby"));
     expect(new Set(ids).size).toBe(2);
     for (const id of ids) expect(document.getElementById(id!)).toHaveTextContent("New Post");
   });
@@ -141,8 +120,7 @@ describe("<PostDialog />", () => {
     categoryListMock.mockRejectedValueOnce(new Error("RPC Error: down"));
     const user = userEvent.setup();
     render(() => <PostDialog api={api} />);
-    await user.click(screen.getByRole("button", { name: "New Post" }));
-    const form = within(screen.getByRole("dialog", { hidden: true }));
+    const form = within(screen.getByRole("dialog"));
 
     expect((await form.findByRole("alert")).textContent).toContain("Could not load the Categories");
 
@@ -163,65 +141,70 @@ describe("<PostDialog />", () => {
     expect(postCreateMock).not.toHaveBeenCalled();
   });
 
-  it("submits the draft, then closes and clears the form once the Post has landed", async () => {
+  it("submits the draft, then closes once the Post has landed", async () => {
     let land!: (post: PostView) => void;
     postCreateMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
-    const { user, dialog, form } = await openAndFill();
+    const { user, dialog, form, onClose } = await openAndFill();
     await user.click(await form.findByRole("checkbox", { name: "Animals" }));
 
     await user.click(form.getByRole("button", { name: "Post" }));
 
     expect(postCreateMock).toHaveBeenCalledWith(DRAFT);
     // Until the back-end answers, the dialog stays open and the submit is busy.
-    expect((dialog as HTMLDialogElement).open).toBe(true);
+    expect(dialog.open).toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
     expect(form.getByRole("button", { name: "Posting…" })).toHaveProperty("disabled", true);
 
     land(CREATED);
 
-    await waitFor(() => expect((dialog as HTMLDialogElement).open).toBe(false));
-    expect((form.getByLabelText("Title") as HTMLInputElement).value).toBe("");
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
 
   it("cannot be dismissed while the Post is in flight", async () => {
     let land!: (post: PostView) => void;
     postCreateMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
-    const { user, dialog, form } = await openAndFill();
+    const { user, dialog, form, onClose } = await openAndFill();
     await user.click(await form.findByRole("checkbox", { name: "Animals" }));
     await user.click(form.getByRole("button", { name: "Post" }));
 
-    // Cancel is disabled, and Esc (the dialog's `cancel` event) is refused.
+    // Cancel is disabled, Esc (the dialog's `cancel` event) is refused, and a
+    // browser close opens the dialog again.
     expect(form.getByRole("button", { name: "Cancel" })).toHaveProperty("disabled", true);
     const esc = new Event("cancel", { cancelable: true });
     dialog.dispatchEvent(esc);
     expect(esc.defaultPrevented).toBe(true);
+    dialog.close();
+    expect(dialog.open).toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
 
     land(CREATED);
-    await waitFor(() => expect((dialog as HTMLDialogElement).open).toBe(false));
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
 
   it("shows the back-end rejection and keeps the dialog open", async () => {
     postCreateMock.mockRejectedValue(new Error("RPC Error: unsafe URL"));
-    const { user, dialog, form } = await openAndFill();
+    const { user, dialog, form, onClose } = await openAndFill();
     await user.click(await form.findByRole("checkbox", { name: "Landscape" }));
 
     await user.click(form.getByRole("button", { name: "Post" }));
 
     expect((await form.findByRole("alert")).textContent).toContain("unsafe URL");
-    expect((dialog as HTMLDialogElement).open).toBe(true);
+    expect(dialog.open).toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("shows no old rejection when it opens again (#128)", async () => {
-    postCreateMock.mockRejectedValue(new Error("RPC Error: unsafe URL"));
-    const { user, dialog, form } = await openAndFill();
-    await user.click(await form.findByRole("checkbox", { name: "Landscape" }));
-    await user.click(form.getByRole("button", { name: "Post" }));
-    expect((await form.findByRole("alert")).textContent).toContain("unsafe URL");
-
+  it("Cancel, Esc and a browser close each close it", async () => {
+    const { user, dialog, form, onClose } = await openAndFill();
     await user.click(form.getByRole("button", { name: "Cancel" }));
-    await user.click(screen.getByRole("button", { name: "New Post" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
 
-    expect((dialog as HTMLDialogElement).open).toBe(true);
-    expect(form.queryByRole("alert")).toBeNull();
+    const esc = new Event("cancel", { cancelable: true });
+    dialog.dispatchEvent(esc);
+    expect(esc.defaultPrevented, "the owner closes it, not the browser").toBe(true);
+    expect(onClose).toHaveBeenCalledTimes(2);
+
+    dialog.close();
+    expect(onClose).toHaveBeenCalledTimes(3);
   });
 });
 
@@ -265,12 +248,31 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
   });
 
   it("a close by the browser is the edit's Cancel (PR #216 review)", async () => {
-    const { user, dialog, form, guard, onClose } = renderEdit();
-    await user.type(input(form, "Photographer"), "!");
-    expect(guard.hasDraft()).toBe(true);
-
+    const { dialog, onClose } = renderEdit();
     // Chrome closes a modal dialog on a second Escape, with no `cancel` event.
     dialog.close();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("Cancel, Escape and a browser close with a Draft ask; Discard closes (#214)", async () => {
+    const { user, dialog, form, guard, onClose } = renderEdit();
+    await user.type(input(form, "Photographer"), "!");
+
+    await user.click(form.getByRole("button", { name: "Cancel" }));
+    expect(guard.pending()).toBe(true);
+    guard.cancelMove();
+
+    const esc = new Event("cancel", { cancelable: true });
+    dialog.dispatchEvent(esc);
+    expect(esc.defaultPrevented).toBe(true);
+    expect(guard.pending()).toBe(true);
+    guard.cancelMove();
+
+    dialog.close();
+    expect(dialog.open, "the dialog opens again").toBe(true);
+    expect(guard.pending()).toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
+    guard.confirmMove();
     expect(onClose).toHaveBeenCalledOnce();
     expect(guard.hasDraft()).toBe(false);
   });
@@ -343,7 +345,7 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
 
-  it("holds a Draft while a field differs from the saved Post; Cancel drops it", async () => {
+  it("holds a Draft while a field differs from the saved Post; Discard drops it", async () => {
     const { user, form, guard, onClose } = renderEdit();
     expect(guard.hasDraft()).toBe(false);
     await user.type(input(form, "Photographer"), "!");
@@ -353,6 +355,7 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
 
     await user.type(input(form, "Photographer"), "!");
     await user.click(form.getByRole("button", { name: "Cancel" }));
+    guard.confirmMove();
     expect(guard.hasDraft()).toBe(false);
     expect(onClose).toHaveBeenCalledOnce();
   });
@@ -385,17 +388,120 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
     expect(await form.findByRole("alert")).toHaveTextContent("Could not edit the Post");
     expect(onClose).not.toHaveBeenCalled();
   });
+});
 
-  it("the create mode reports no Draft (#214)", async () => {
+describe("<PostDialog /> — the New Post Draft (#214)", () => {
+  function renderCreate() {
     const guard = createDraftGuard();
-    const user = userEvent.setup();
+    const onClose = vi.fn();
     render(() => (
       <DraftGuardContext.Provider value={guard}>
-        <PostDialog api={api} />
+        <PostDialog api={api} onClose={onClose} />
       </DraftGuardContext.Provider>
     ));
-    await user.click(screen.getByRole("button", { name: "New Post" }));
-    await user.type(screen.getByLabelText("Title"), "typed");
+    const dialog = screen.getByRole("dialog") as HTMLDialogElement;
+    return { user: userEvent.setup(), dialog, form: within(dialog), guard, onClose };
+  }
+
+  it("holds a Draft while a text field is not blank after a trim; spaces alone are not one", async () => {
+    const { user, form, guard } = renderCreate();
     expect(guard.hasDraft()).toBe(false);
+    await user.type(form.getByLabelText("Photographer"), "   ");
+    expect(guard.hasDraft(), "spaces alone").toBe(false);
+    await user.type(form.getByLabelText("Photographer"), "x");
+    expect(guard.hasDraft()).toBe(true);
+    await user.clear(form.getByLabelText("Photographer"));
+    expect(guard.hasDraft()).toBe(false);
+  });
+
+  it("holds a Draft while a Category is checked", async () => {
+    const { user, form, guard } = renderCreate();
+    await user.click(await form.findByRole("checkbox", { name: "Animals" }));
+    expect(guard.hasDraft()).toBe(true);
+    await user.click(form.getByRole("checkbox", { name: "Animals" }));
+    expect(guard.hasDraft()).toBe(false);
+  });
+
+  it("the Draft has no scope: a move that names scopes does not ask", async () => {
+    const { user, form, guard } = renderCreate();
+    await user.type(form.getByLabelText("Title"), "typed");
+    expect(guard.hasDraftIn([Symbol("post-edit")])).toBe(false);
+    expect(guard.hasDraftIn()).toBe(true);
+  });
+
+  it("Cancel and Escape with a Draft ask; Keep editing keeps the text, and Discard closes", async () => {
+    const { user, dialog, form, guard, onClose } = renderCreate();
+    await user.type(form.getByLabelText("Title"), "typed");
+
+    await user.click(form.getByRole("button", { name: "Cancel" }));
+    expect(guard.pending()).toBe(true);
+    guard.cancelMove();
+    expect(form.getByLabelText("Title")).toHaveValue("typed");
+
+    dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
+    expect(guard.pending()).toBe(true);
+    guard.confirmMove();
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(guard.hasDraft()).toBe(false);
+  });
+
+  it("without a Draft, Cancel and Escape close at once", async () => {
+    const { user, dialog, form, guard, onClose } = renderCreate();
+    await user.click(form.getByRole("button", { name: "Cancel" }));
+    dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
+    expect(guard.pending()).toBe(false);
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it("a browser close with a Draft opens the dialog again and asks", async () => {
+    const { user, dialog, form, guard, onClose } = renderCreate();
+    await user.type(form.getByLabelText("Title"), "typed");
+    dialog.close();
+    expect(dialog.open).toBe(true);
+    expect(guard.pending()).toBe(true);
+    guard.cancelMove();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(form.getByLabelText("Title")).toHaveValue("typed");
+  });
+
+  it("during the create, a browser close opens the dialog again with no question, and the write is busy", async () => {
+    let land!: (post: PostView) => void;
+    postCreateMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
+    const { user, dialog, form, guard, onClose } = renderCreate();
+    for (const [label, value] of [
+      ["Title", DRAFT.title],
+      ["Image URL", DRAFT.imageSrc],
+      ["Image description", DRAFT.imageAlt],
+      ["Photographer", DRAFT.photographer],
+      ["Photographer URL", DRAFT.photographerUrl],
+      ["Photo page URL", DRAFT.sourceUrl],
+    ] as const) {
+      await user.type(form.getByLabelText(label), value);
+    }
+    await user.click(await form.findByRole("checkbox", { name: "Animals" }));
+    await user.click(form.getByRole("button", { name: "Post" }));
+    expect(guard.busyIn()).toBe(true);
+
+    dialog.close();
+    expect(dialog.open).toBe(true);
+    expect(guard.pending()).toBe(false);
+
+    land(CREATED);
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    expect(guard.hasDraft(), "a created Post is no Draft").toBe(false);
+    expect(guard.notice()).toBeUndefined();
+  });
+
+  it("stops its Escape, so a document Escape listener does not get it", async () => {
+    const onDocumentKey = vi.fn();
+    document.addEventListener("keydown", onDocumentKey);
+    try {
+      const { user, form } = renderCreate();
+      await user.click(form.getByLabelText("Title"));
+      await user.keyboard("{Escape}");
+      expect(onDocumentKey).not.toHaveBeenCalledWith(expect.objectContaining({ key: "Escape" }));
+    } finally {
+      document.removeEventListener("keydown", onDocumentKey);
+    }
   });
 });

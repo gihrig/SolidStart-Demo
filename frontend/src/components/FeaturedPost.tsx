@@ -1,4 +1,5 @@
 import { createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
+import type { DraftScope } from "~/lib/createDraftGuard";
 import { createRpcAction } from "~/lib/createRpcAction";
 import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
 import type { OwnerWrites } from "~/lib/jedi/createJediFeed";
@@ -51,6 +52,11 @@ export interface FeaturedPostProps {
   /** The Owner's writes on the Caption shown (#187): the edit form in the
    *  Caption line, its save and the delete. */
   captionOwner?: OwnerWrites<string>;
+  /** The scope of the Add Caption form's Draft (#214). */
+  addCaptionScope?: DraftScope;
+  /** Open the New Post dialog (#214). `opener` is the Add button, which takes
+   *  focus after the close. */
+  onAddPost?: (opener: HTMLElement) => void;
 }
 
 /** The notice of a locked Caption's Edit (#187, T7). */
@@ -212,6 +218,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           ref={(el) => (captionLineRef = el)}
           editing={captionEditOpen()}
           editScope={props.captionOwner?.edit.draftScope}
+          addScope={props.addCaptionScope}
           onSaveEdit={(id, text) => props.captionOwner?.save(id, text) ?? Promise.resolve()}
           onEditClose={closeCaptionEdit}
         />
@@ -364,7 +371,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           <div class="flex items-center gap-4">
             {/* The visibility rule (#123): a visitor sees the fire-heart and the
                 count. A logged-in User sees every button; Edit / Delete act for
-                the Owner only. Add opens the Nav's New Post dialog. */}
+                the Owner only. Add opens the one New Post dialog (#214). */}
             <LikeControl
               like={props.like}
               fallbackCount={props.post.likeCount}
@@ -374,7 +381,14 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               onToggle={() => void toggleLike.run(undefined)}
             />
             <Show when={props.loggedIn}>
-              <PostDialog triggerLabel="Add" triggerAriaLabel="Add Post" />
+              <button
+                type="button"
+                onClick={(e) => props.onAddPost?.(e.currentTarget)}
+                class="theme-button"
+                aria-label="Add Post"
+              >
+                Add
+              </button>
             </Show>
             <OwnerActions
               noun="Post"

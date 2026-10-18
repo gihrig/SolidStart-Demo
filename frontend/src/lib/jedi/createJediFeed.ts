@@ -72,8 +72,8 @@ export interface OwnerWrites<Changes> {
  * `selectedPost` is the post shown in the main article (#29): it defaults to the
  * top-ranked *visible* post and follows `selectPost(id)` when a Top Photo is
  * clicked, so a category filter that hides the selection moves the article to a
- * post the sidebar actually lists. While a Draft exists, a re-rank does not
- * move it (ADR-0030). `topCaptions` re-keys off it, so the
+ * post the sidebar actually lists. While a Draft on the Post exists, a re-rank
+ * does not move it (ADR-0030). `topCaptions` re-keys off it, so the
  * captions and the rest of the article's metadata track the selection.
  *
  * `selectedCaption` is the caption shown under the post (#33): it defaults to
@@ -170,6 +170,8 @@ export interface JediFeed {
    *  the Caption line. A save rejects for a Caption that got a Like. A delete
    *  releases the Drafts in the Caption's Comments panel. */
   captionOwner: OwnerWrites<string>;
+  /** The scope of the Add Caption form's Draft (#214). */
+  addCaptionScope: DraftScope;
   /** The message of the route's polite live region (#187): the result of the
    *  Owner's own delete, or a delete by another User that discarded no Draft.
    *  Empty until the first message. */
@@ -310,23 +312,30 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
       visible.find((p) => p.id === id) ?? visible.find((p) => p.id === heldId) ?? kept ?? visible[0]
     );
   };
-  // The Post shown when the first Draft started, held while a Draft exists or
-  // the Post edit is open (#187): a re-rank (a Like) must not move the article
-  // and discard the Draft or close the edit. With no hold, the article follows
-  // the ranking again. A held Post that leaves the list is no longer shown,
-  // which is a forced discard.
+  // The Post shown when the first Draft on it started, held while a Draft on
+  // it exists or the Post edit is open (#187): a re-rank (a Like) must not move
+  // the article and discard the Draft or close the edit. With no hold, the
+  // article follows the ranking again. A held Post that leaves the list is no
+  // longer shown, which is a forced discard. A Draft outside the Post's scopes,
+  // such as the New Post Draft, does not hold it (#214).
+  //
+  // The scopes of every form on the Post (#214): each Post move and Event, and
+  // the Owner's own Post delete, names them, so none touches a Draft outside
+  // the Post. They are set below, once the forms' scopes exist; the hold's
+  // first run comes before any form, so it reads none.
+  let postScopes: readonly DraftScope[] = [];
   const heldPostId = createMemo<number | undefined>((held) =>
-    guard.hasDraft() || postEditOn() !== undefined
+    guard.hasDraftIn(postScopes) || postEditOn() !== undefined
       ? (held ?? untrack(() => selectedPostIn(selectedCategory(), undefined, false))?.id)
       : undefined,
   );
   const selectedPost = () => selectedPostIn(selectedCategory(), heldPostId(), true);
 
   // A move that keeps the selected Post unmounts no form, so it is no guarded
-  // move.
+  // move. A move to another Post unmounts the Post's forms only (#214).
   const guardPostChange = (nextPostId: number | undefined, move: () => void): void => {
     if (nextPostId === selectedPost()?.id) move();
-    else guard.attempt(move);
+    else guard.attempt(move, postScopes);
   };
 
   // Truthy only when a real (non-"All") category filters every post away. A
@@ -430,6 +439,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     () => selectedCaption()?.id,
     "caption-edit",
   );
+  const addCaptionScope: DraftScope = Symbol("add-caption");
 
   // The viewer's like state of the selected Post (#122) and of the selected
   // Caption (#123). The read needs a login, so each loads only while a live
@@ -466,6 +476,14 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     guard,
   });
 
+  postScopes = [
+    postEdit.draftScope,
+    captionEdit.draftScope,
+    addCaptionScope,
+    postComments.draftScope,
+    captionComments.draftScope,
+  ];
+
   // A held Post that is not in the full list was deleted (#187): a forced
   // discard of every Draft on it. A viewer without a Draft hears it. A held
   // Post that the list moves out of the selected Category stays shown, and the
@@ -475,7 +493,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     if (!shown || ownDeletedPosts.has(shown.id)) return;
     const next = list.find((p) => p.id === shown.id);
     if (!next) {
-      if (!guard.discardIn(undefined, POST_DELETED_NOTICE)) {
+      if (!guard.discardIn(postScopes, POST_DELETED_NOTICE)) {
         announce(POST_WAS_DELETED_ANNOUNCEMENT);
       }
       return;
@@ -486,7 +504,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     setKeptPostId(shown.id);
     // "Discard" also closes the Post edit, so the hold ends and the article
     // moves: no form stays open with text that the guard no longer holds.
-    guard.ask(leftCategoryNotice(category.name), undefined, () => setPostEditOn(undefined));
+    guard.ask(leftCategoryNotice(category.name), postScopes, () => setPostEditOn(undefined));
   };
   // When the article moves off a Post that is no longer in the selected
   // Category, and the User did not change the Category, the live region says
@@ -539,7 +557,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   };
   const deletePost = async (id: number): Promise<void> => {
     if (selectedPost()?.id !== id) throw new Error(POST_CHANGED_ERROR);
-    await deleteSubject(id, ownDeletedPosts, api.posts.remove, () => guard.release());
+    await deleteSubject(id, ownDeletedPosts, api.posts.remove, () => guard.release(postScopes));
     announce(POST_DELETED_ANNOUNCEMENT);
     void refetchPosts();
   };
@@ -648,7 +666,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
       edit: postEdit,
       save: updatePost,
       remove: deletePost,
-      removeDiscardsDraft: () => guard.hasDraftIn(),
+      removeDiscardsDraft: () => guard.hasDraftIn(postScopes),
     },
     captionOwner: {
       edit: captionEdit,
@@ -656,6 +674,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
       remove: deleteCaption,
       removeDiscardsDraft: () => guard.hasDraftIn([captionComments.draftScope]),
     },
+    addCaptionScope,
     announcement,
     connectFeed,
   };

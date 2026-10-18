@@ -565,12 +565,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/ammonia@4.2.3?package-id=bc49eb49a0a3eb30",
+      "bom-ref": "pkg:cargo/ammonia@4.2.4?package-id=dec16909e7a46164",
       "type": "library",
       "name": "ammonia",
-      "version": "4.2.3",
-      "cpe": "cpe:2.3:a:ammonia_project:ammonia:4.2.3:*:*:*:*:rust:*:*",
-      "purl": "pkg:cargo/ammonia@4.2.3",
+      "version": "4.2.4",
+      "cpe": "cpe:2.3:a:ammonia_project:ammonia:4.2.4:*:*:*:*:rust:*:*",
+      "purl": "pkg:cargo/ammonia@4.2.4",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -75339,7 +75339,7 @@
       "dependsOn": [
         "7365743c3c52beea",
         "8ab007ff31f3bb1c",
-        "pkg:cargo/ammonia@4.2.3?package-id=bc49eb49a0a3eb30",
+        "pkg:cargo/ammonia@4.2.4?package-id=dec16909e7a46164",
         "pkg:cargo/derive_more@2.1.1?package-id=ef571d363c5852ab",
         "pkg:cargo/markdown@1.0.0?package-id=8e230974f8a3984a",
         "pkg:cargo/modql@0.4.1?package-id=eb66ebac3b0278b2",
@@ -75464,7 +75464,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/ammonia@4.2.3?package-id=bc49eb49a0a3eb30",
+      "ref": "pkg:cargo/ammonia@4.2.4?package-id=dec16909e7a46164",
       "dependsOn": [
         "pkg:cargo/cssparser@0.38.0?package-id=8837c271b5d63799",
         "pkg:cargo/html5ever@0.40.1?package-id=0c2e806b6e31f69d",

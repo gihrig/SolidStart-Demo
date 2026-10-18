@@ -319,6 +319,37 @@ test.describe("Jedi Page - Draft guard (#124)", () => {
     await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
     await expect(compose).toHaveValue("A draft I have not posted");
   });
+
+  test("a New Post Draft: Escape asks, and the browser's Back asks, then Discard goes back (#214)", async ({
+    page,
+  }) => {
+    await page.goto("/about");
+    await loginAs(page, "demo1", "welcome");
+    await page
+      .getByRole("banner")
+      .getByRole("link", { name: /awesome/i })
+      .click();
+    await expect(page).toHaveURL("http://localhost:3000/");
+
+    await page.getByRole("banner").getByRole("button", { name: "New Post" }).click();
+    const newPost = page.getByRole("dialog", { name: "New Post" });
+    const title = newPost.getByLabel("Title");
+    await title.fill("A Post I have not sent");
+    const question = page.getByRole("dialog", { name: "You have unsaved changes. Discard them?" });
+
+    await title.press("Escape");
+    await expect(question).toBeVisible();
+    await question.getByRole("button", { name: "Keep editing" }).click();
+    await expect(question).toBeHidden();
+    await expect(title).toHaveValue("A Post I have not sent");
+
+    await page.goBack();
+    await expect(question).toBeVisible();
+    await question.getByRole("button", { name: "Discard" }).click();
+    await expect(page).toHaveURL("http://localhost:3000/about");
+    await expect(newPost).toBeHidden();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
 });
 
 // Each Comment row shows its author, its time and its text (#125).

@@ -30,6 +30,8 @@ export interface PostCaptionProps {
   onEditClose?: () => void;
   /** The scope of the edit's Draft (ADR-0030). */
   editScope?: DraftScope;
+  /** The scope of the add form's Draft (#214). */
+  addScope?: DraftScope;
 }
 
 /**
@@ -72,6 +74,7 @@ export default function PostCaption(props: PostCaptionProps) {
                 postId={postId}
                 api={props.api}
                 autofocus={props.adding}
+                draftScope={props.addScope}
                 onAdded={props.onClose}
                 onCancel={onCancel()}
               />

@@ -139,4 +139,18 @@ describe("<LoginDialog />", () => {
     expect(dialog.open).toBe(true);
     expect(form.queryByText("Invalid credentials")).toBeNull();
   });
+
+  it("stops its Escape, so a document Escape listener does not get it (#214)", async () => {
+    const onDocumentKey = vi.fn();
+    document.addEventListener("keydown", onDocumentKey);
+    try {
+      const { user, form } = renderDialog();
+      await user.click(screen.getByRole("button", { name: "open-login" }));
+      await user.click(form.getByLabelText(/username/i));
+      await user.keyboard("{Escape}");
+      expect(onDocumentKey).not.toHaveBeenCalledWith(expect.objectContaining({ key: "Escape" }));
+    } finally {
+      document.removeEventListener("keydown", onDocumentKey);
+    }
+  });
 });

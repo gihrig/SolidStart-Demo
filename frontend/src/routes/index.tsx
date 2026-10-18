@@ -7,6 +7,7 @@ import type { Feed } from "~/lib/feed";
 import { createWebSocketFeed } from "~/lib/feed.websocket";
 import { useAuth } from "~/components/AuthContext";
 import { useDraftGuard } from "~/components/DraftGuardContext";
+import { useNewPost } from "~/components/NewPostContext";
 import Hero from "~/components/Hero";
 import FeaturedPost from "~/components/FeaturedPost";
 import CategoriesCard from "~/components/CategoriesCard";
@@ -48,11 +49,13 @@ export default function Home() {
     captionComments,
     postOwner,
     captionOwner,
+    addCaptionScope,
     announcement,
     connectFeed,
   } = createJediFeed({ guard: useDraftGuard() });
 
   const sidebar = useDisclosure({ id: "jedi-sidebar" });
+  const newPost = useNewPost();
 
   return (
     <>
@@ -113,6 +116,8 @@ export default function Home() {
                   captionComments={captionComments}
                   postOwner={postOwner}
                   captionOwner={captionOwner}
+                  addCaptionScope={addCaptionScope}
+                  onAddPost={newPost.open}
                 />
               )}
             </Match>

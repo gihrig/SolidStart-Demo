@@ -862,7 +862,7 @@ describe("createJediFeed — the Draft guard (ADR-0030)", () => {
     try {
       await tick();
       await tick();
-      guard.report(Symbol("compose"), true);
+      guard.report(Symbol("add caption"), true, jedi.addCaptionScope);
       await run(jedi, guard);
     } finally {
       dispose();
@@ -955,8 +955,8 @@ describe("createJediFeed — the Draft guard (ADR-0030)", () => {
       await tick();
       await tick();
       expect(jedi.selectedPost()?.id).toBe(1);
-      const draft = Symbol("compose");
-      guard.report(draft, true);
+      const draft = Symbol("add caption");
+      guard.report(draft, true, jedi.addCaptionScope);
 
       // A Like re-ranks the Posts: post 3 is now first.
       const [first, second, ...rest] = RANKED_POSTS;
@@ -1011,7 +1011,7 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
 
   it("the Owner's Post delete releases every Draft, shows no notice, refetches and speaks", () =>
     withLive(async (jedi, guard, mem) => {
-      guard.report(Symbol("add caption"), true);
+      guard.report(Symbol("add caption"), true, jedi.addCaptionScope);
       guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
       expect(jedi.postOwner.removeDiscardsDraft()).toBe(true);
       let answer!: () => void;
@@ -1063,7 +1063,7 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
     withLive(async (jedi, guard) => {
       const shown = jedi.selectedCaption()!.id;
       const outside = Symbol("add caption");
-      guard.report(outside, true);
+      guard.report(outside, true, jedi.addCaptionScope);
       expect(jedi.captionOwner.removeDiscardsDraft()).toBe(false);
       guard.report(Symbol("caption comment"), true, jedi.captionComments.draftScope);
       expect(jedi.captionOwner.removeDiscardsDraft()).toBe(true);
@@ -1081,7 +1081,7 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
 
   it("another User's Post delete discards every Draft on the Post with the Post notice", () =>
     withLive(async (jedi, guard, mem) => {
-      guard.report(Symbol("add caption"), true);
+      guard.report(Symbol("add caption"), true, jedi.addCaptionScope);
       guard.report(Symbol("caption comment"), true, jedi.captionComments.draftScope);
       withoutPost1();
       mem.emit(pokeOn(Channel.posts));
@@ -1106,7 +1106,7 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
     withLive(async (jedi, guard, mem) => {
       const shown = jedi.selectedCaption()!.id;
       const outside = Symbol("add caption");
-      guard.report(outside, true);
+      guard.report(outside, true, jedi.addCaptionScope);
       guard.report(Symbol("caption comment"), true, jedi.captionComments.draftScope);
       withoutCaption(shown);
       mem.emit(pokeOn(Channel.postCaption(1)));
@@ -1205,7 +1205,7 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
   it("a Caption pick names the Caption edit and Caption thread scopes", () =>
     withLive(async (jedi, guard) => {
       const other = captionsFor(1)[1].id;
-      guard.report(Symbol("add caption"), true);
+      guard.report(Symbol("add caption"), true, jedi.addCaptionScope);
       jedi.selectCaption(other);
       expect(guard.pending(), "a Draft outside both scopes").toBe(false);
       jedi.selectCaption(captionsFor(1)[0].id);
@@ -1417,6 +1417,150 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
       await settle();
       expect(guard.notice()).toBe("This Caption was deleted. Your unsaved changes were discarded.");
       expect(guard.hasDraft()).toBe(false);
+    }));
+});
+
+describe("createJediFeed — a Draft outside the Post, such as the New Post Draft (#214)", () => {
+  // Category index 3 is Animals: Posts 1 and 3, in that rank.
+  const ANIMALS = 3;
+  const POST_DELETED = "This Post was deleted. Your unsaved changes were discarded.";
+  // The New Post Draft has no scope.
+  const newPost = Symbol("new post");
+  const postScopes = (jedi: JediFeed) => [
+    jedi.postOwner.edit.draftScope,
+    jedi.captionOwner.edit.draftScope,
+    jedi.addCaptionScope,
+    jedi.postComments.draftScope,
+    jedi.captionComments.draftScope,
+  ];
+  // Open the Post edit and both Comments panels, as the Post's own forms.
+  const openPostForms = (jedi: JediFeed) => {
+    jedi.postOwner.edit.setOpen(true);
+    jedi.postComments.setOpen(true);
+    jedi.captionComments.setOpen(true);
+  };
+  const expectPostFormsClosed = (jedi: JediFeed, guard: DraftGuard) => {
+    expect(jedi.postOwner.edit.open(), "the Post edit closes").toBe(false);
+    expect(jedi.postComments.open(), "the Comments panel closes").toBe(false);
+    expect(jedi.captionComments.open(), "the Caption Comments panel closes").toBe(false);
+    expect(guard.hasDraftIn(postScopes(jedi)), "no Draft in the Post's scopes").toBe(false);
+  };
+  const withoutPost1 = () => postListMock.mockResolvedValue(RANKED_POSTS.slice(1));
+
+  it("does not hold the Post: a re-rank moves the article", () =>
+    withLive(async (jedi, guard, mem) => {
+      guard.report(newPost, true);
+      const [first, second, ...rest] = RANKED_POSTS;
+      postListMock.mockResolvedValue([second, first, ...rest]);
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(jedi.selectedPost()?.id).toBe(3);
+      expect(guard.holds(newPost)).toBe(true);
+    }));
+
+  it("a Post change does not ask about it, and still closes the Post's forms", () =>
+    withLive(async (jedi, guard) => {
+      guard.report(newPost, true);
+      openPostForms(jedi);
+      jedi.selectPost(2);
+      expect(guard.pending()).toBe(false);
+      expect(jedi.selectedPost()?.id).toBe(2);
+      expect(guard.holds(newPost)).toBe(true);
+      expectPostFormsClosed(jedi, guard);
+    }));
+
+  it("another User's Post delete does not drop it, shows no notice, and closes the Post's forms", () =>
+    withLive(async (jedi, guard, mem) => {
+      guard.report(newPost, true);
+      jedi.postComments.setOpen(true);
+      jedi.captionComments.setOpen(true);
+      withoutPost1();
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(guard.notice()).toBeUndefined();
+      expect(jedi.announcement()).toBe("This Post was deleted.");
+      expect(guard.holds(newPost)).toBe(true);
+      expectPostFormsClosed(jedi, guard);
+    }));
+
+  it("with a Draft on the Post too, a Post delete discards only the Post's Draft", () =>
+    withLive(async (jedi, guard, mem) => {
+      guard.report(newPost, true);
+      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
+      withoutPost1();
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(guard.notice()).toBe(POST_DELETED);
+      expect(guard.holds(newPost)).toBe(true);
+      expectPostFormsClosed(jedi, guard);
+    }));
+
+  it("a Category leave does not ask about it; Discard of the Post's Draft keeps it", () =>
+    withLive(async (jedi, guard, mem) => {
+      jedi.setSelectedCategory(ANIMALS);
+      guard.report(newPost, true);
+      jedi.postOwner.edit.setOpen(true);
+      guard.report(Symbol("post edit"), true, jedi.postOwner.edit.draftScope);
+      jedi.postComments.setOpen(true);
+      postListMock.mockResolvedValue(
+        RANKED_POSTS.map((p) => (p.id === 1 ? { ...p, categories: [CAT[1]] } : p)),
+      );
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(guard.pending()).toBe(true);
+
+      guard.confirmMove();
+      await settle();
+      expect(jedi.selectedPost()?.id, "the article moves").toBe(3);
+      expect(guard.holds(newPost)).toBe(true);
+      expectPostFormsClosed(jedi, guard);
+    }));
+
+  it("with only this Draft, a Category leave moves the article with no question", () =>
+    withLive(async (jedi, guard, mem) => {
+      jedi.setSelectedCategory(ANIMALS);
+      guard.report(newPost, true);
+      jedi.postComments.setOpen(true);
+      postListMock.mockResolvedValue(
+        RANKED_POSTS.map((p) => (p.id === 1 ? { ...p, categories: [CAT[1]] } : p)),
+      );
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(guard.pending()).toBe(false);
+      expect(jedi.selectedPost()?.id).toBe(3);
+      expect(guard.holds(newPost)).toBe(true);
+      expectPostFormsClosed(jedi, guard);
+    }));
+
+  it("the Owner's own Post delete keeps it, and the delete question shows no Draft line for it", () =>
+    withLive(async (jedi, guard) => {
+      guard.report(newPost, true);
+      expect(jedi.postOwner.removeDiscardsDraft()).toBe(false);
+      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
+      expect(jedi.postOwner.removeDiscardsDraft()).toBe(true);
+      withoutPost1();
+
+      await jedi.postOwner.remove(1);
+      await settle();
+      expect(guard.holds(newPost)).toBe(true);
+      expect(guard.notice()).toBeUndefined();
+      expectPostFormsClosed(jedi, guard);
+    }));
+
+  it("the Add Caption Draft is in its own scope: a Post change asks, and a Post delete discards it", () =>
+    withLive(async (jedi, guard, mem) => {
+      const addCaption = Symbol("add caption");
+      guard.report(addCaption, true, jedi.addCaptionScope);
+      expect(guard.hasDraftIn([jedi.addCaptionScope])).toBe(true);
+      jedi.selectPost(2);
+      expect(guard.pending()).toBe(true);
+      guard.cancelMove();
+
+      withoutPost1();
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(guard.notice()).toBe(POST_DELETED);
+      expect(guard.holds(addCaption)).toBe(false);
     }));
 });
 

@@ -1,4 +1,5 @@
 import { createEffect, createUniqueId } from "solid-js";
+import { stopDialogEscape } from "~/lib/stopDialogEscape";
 import { useAuth } from "./AuthContext";
 import LoginForm from "./LoginForm";
 
@@ -36,6 +37,7 @@ export default function LoginDialog(props: LoginDialogProps) {
       // result (the close, or the error) stays visible.
       onCancel={(e) => pending() && e.preventDefault()}
       onClose={() => props.onClose()}
+      on:keydown={stopDialogEscape}
       aria-labelledby={headingId}
       class="theme-dialog max-w-md"
     >
