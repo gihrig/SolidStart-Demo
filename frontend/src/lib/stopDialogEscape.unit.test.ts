@@ -31,6 +31,14 @@ describe("stopDialogEscape", () => {
     teardown();
   });
 
+  it("an Escape that ends an IME composition is not a Cancel: the browser fires no `cancel`", () => {
+    const { press, onDocumentKey, teardown } = setup();
+    const e = press({ key: "Escape", isComposing: true });
+    expect(onDocumentKey).not.toHaveBeenCalled();
+    expect(e.defaultPrevented).toBe(true);
+    teardown();
+  });
+
   it("lets another key through", () => {
     const { press, onDocumentKey, teardown } = setup();
     const e = press({ key: "a" });
