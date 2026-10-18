@@ -1420,6 +1420,150 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
     }));
 });
 
+describe("createJediFeed — a Draft outside the Post, such as the New Post Draft (#214)", () => {
+  // Category index 3 is Animals: Posts 1 and 3, in that rank.
+  const ANIMALS = 3;
+  const POST_DELETED = "This Post was deleted. Your unsaved changes were discarded.";
+  // The New Post Draft has no scope.
+  const newPost = Symbol("new post");
+  const postScopes = (jedi: JediFeed) => [
+    jedi.postOwner.edit.draftScope,
+    jedi.captionOwner.edit.draftScope,
+    jedi.addCaptionScope,
+    jedi.postComments.draftScope,
+    jedi.captionComments.draftScope,
+  ];
+  // Open the Post edit and both Comments panels, as the Post's own forms.
+  const openPostForms = (jedi: JediFeed) => {
+    jedi.postOwner.edit.setOpen(true);
+    jedi.postComments.setOpen(true);
+    jedi.captionComments.setOpen(true);
+  };
+  const expectPostFormsClosed = (jedi: JediFeed, guard: DraftGuard) => {
+    expect(jedi.postOwner.edit.open(), "the Post edit closes").toBe(false);
+    expect(jedi.postComments.open(), "the Comments panel closes").toBe(false);
+    expect(jedi.captionComments.open(), "the Caption Comments panel closes").toBe(false);
+    expect(guard.hasDraftIn(postScopes(jedi)), "no Draft in the Post's scopes").toBe(false);
+  };
+  const withoutPost1 = () => postListMock.mockResolvedValue(RANKED_POSTS.slice(1));
+
+  it("does not hold the Post: a re-rank moves the article", () =>
+    withLive(async (jedi, guard, mem) => {
+      guard.report(newPost, true);
+      const [first, second, ...rest] = RANKED_POSTS;
+      postListMock.mockResolvedValue([second, first, ...rest]);
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(jedi.selectedPost()?.id).toBe(3);
+      expect(guard.holds(newPost)).toBe(true);
+    }));
+
+  it("a Post change does not ask about it, and still closes the Post's forms", () =>
+    withLive(async (jedi, guard) => {
+      guard.report(newPost, true);
+      openPostForms(jedi);
+      jedi.selectPost(2);
+      expect(guard.pending()).toBe(false);
+      expect(jedi.selectedPost()?.id).toBe(2);
+      expect(guard.holds(newPost)).toBe(true);
+      expectPostFormsClosed(jedi, guard);
+    }));
+
+  it("another User's Post delete does not drop it, shows no notice, and closes the Post's forms", () =>
+    withLive(async (jedi, guard, mem) => {
+      guard.report(newPost, true);
+      jedi.postComments.setOpen(true);
+      jedi.captionComments.setOpen(true);
+      withoutPost1();
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(guard.notice()).toBeUndefined();
+      expect(jedi.announcement()).toBe("This Post was deleted.");
+      expect(guard.holds(newPost)).toBe(true);
+      expectPostFormsClosed(jedi, guard);
+    }));
+
+  it("with a Draft on the Post too, a Post delete discards only the Post's Draft", () =>
+    withLive(async (jedi, guard, mem) => {
+      guard.report(newPost, true);
+      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
+      withoutPost1();
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(guard.notice()).toBe(POST_DELETED);
+      expect(guard.holds(newPost)).toBe(true);
+      expectPostFormsClosed(jedi, guard);
+    }));
+
+  it("a Category leave does not ask about it; Discard of the Post's Draft keeps it", () =>
+    withLive(async (jedi, guard, mem) => {
+      jedi.setSelectedCategory(ANIMALS);
+      guard.report(newPost, true);
+      jedi.postOwner.edit.setOpen(true);
+      guard.report(Symbol("post edit"), true, jedi.postOwner.edit.draftScope);
+      jedi.postComments.setOpen(true);
+      postListMock.mockResolvedValue(
+        RANKED_POSTS.map((p) => (p.id === 1 ? { ...p, categories: [CAT[1]] } : p)),
+      );
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(guard.pending()).toBe(true);
+
+      guard.confirmMove();
+      await settle();
+      expect(jedi.selectedPost()?.id, "the article moves").toBe(3);
+      expect(guard.holds(newPost)).toBe(true);
+      expectPostFormsClosed(jedi, guard);
+    }));
+
+  it("with only this Draft, a Category leave moves the article with no question", () =>
+    withLive(async (jedi, guard, mem) => {
+      jedi.setSelectedCategory(ANIMALS);
+      guard.report(newPost, true);
+      jedi.postComments.setOpen(true);
+      postListMock.mockResolvedValue(
+        RANKED_POSTS.map((p) => (p.id === 1 ? { ...p, categories: [CAT[1]] } : p)),
+      );
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(guard.pending()).toBe(false);
+      expect(jedi.selectedPost()?.id).toBe(3);
+      expect(guard.holds(newPost)).toBe(true);
+      expectPostFormsClosed(jedi, guard);
+    }));
+
+  it("the Owner's own Post delete keeps it, and the delete question shows no Draft line for it", () =>
+    withLive(async (jedi, guard) => {
+      guard.report(newPost, true);
+      expect(jedi.postOwner.removeDiscardsDraft()).toBe(false);
+      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
+      expect(jedi.postOwner.removeDiscardsDraft()).toBe(true);
+      withoutPost1();
+
+      await jedi.postOwner.remove(1);
+      await settle();
+      expect(guard.holds(newPost)).toBe(true);
+      expect(guard.notice()).toBeUndefined();
+      expectPostFormsClosed(jedi, guard);
+    }));
+
+  it("the Add Caption Draft is in its own scope: a Post change asks, and a Post delete discards it", () =>
+    withLive(async (jedi, guard, mem) => {
+      const addCaption = Symbol("add caption");
+      guard.report(addCaption, true, jedi.addCaptionScope);
+      expect(guard.hasDraftIn([jedi.addCaptionScope])).toBe(true);
+      jedi.selectPost(2);
+      expect(guard.pending()).toBe(true);
+      guard.cancelMove();
+
+      withoutPost1();
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(guard.notice()).toBe(POST_DELETED);
+      expect(guard.holds(addCaption)).toBe(false);
+    }));
+});
+
 describe("createJediFeed — the selected Post's like state (#122)", () => {
   const like = (postId: number, likeCount: number, liked: boolean): Like => ({
     id: postId,
