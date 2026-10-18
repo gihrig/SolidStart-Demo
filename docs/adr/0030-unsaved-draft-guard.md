@@ -173,7 +173,8 @@ that unmounts the form.
 Nav's New Post and the Post line's Add open the same dialog. `NewPostProvider` in
 `app.tsx` mounts the dialog to open it, and unmounts it to close it. So each close
 empties the form. A route move closes the dialog. With a Draft, the route-move
-question asks first.
+question asks first. While a route move loads, New Post and Add do nothing.
+Otherwise the move would close the dialog when it ends, and drop the new Draft.
 
 **The New Post Draft.** The dialog holds a Draft while a text field is not blank
 after a trim, or a Category is checked. The Draft has no scope. So only the logoff
@@ -213,7 +214,9 @@ text as a Draft: the logoff would ask about text that the User cannot see. A
 Cancel that drops a Draft with no question: one accidental Escape loses the text.
 A scoped `attempt` for the Comment edit's Cancel: the thread scope also holds the
 compose box and the other Comment edits. A route move that asks during a write:
-"Discard" cannot stop the write, and a failed write shows no error.
+"Discard" cannot stop the write, and a failed write shows no error. A New Post
+dialog that stays open across a move that started before it opened: the provider
+would have to know which move to skip.
 
 **Consequences.** A new form on the Post needs a scope in the Post's list. A new
 Cancel calls `draft.cancel`, and a new write reports `busy`. #210 adds a Cancel to
