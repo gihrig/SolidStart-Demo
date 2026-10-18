@@ -8,6 +8,7 @@ import {
   type ParentComponent,
 } from "solid-js";
 import { useIsRouting } from "@solidjs/router";
+import { useAuth } from "~/components/AuthContext";
 import PostDialog, { type PostDialogProps } from "~/components/PostDialog";
 
 /** The app's one New Post dialog (#214). */
@@ -27,7 +28,8 @@ export interface NewPostProviderProps {
 }
 
 /**
- * The one New Post dialog (#214), in `app.tsx` inside `DraftGuardProvider`.
+ * The one New Post dialog (#214), in `app.tsx` inside `AuthProvider` and
+ * `DraftGuardProvider`.
  * The Nav's New Post and the Post line's Add open it. It mounts the dialog to
  * open it, and unmounts it to close it, so each close empties the form. After
  * a close, focus returns to the opener; if the opener is gone, focus stays on
@@ -39,6 +41,10 @@ export interface NewPostProviderProps {
  * `useBeforeLeave` listener: after "Discard", the router runs the move again
  * past every listener. A refused move never starts. While a route move loads,
  * an open does nothing.
+ *
+ * A logoff closes the dialog too (#221 review). The logoff asks about the
+ * Draft first. A dialog opened while the logoff waits for the back-end closes
+ * when the logoff ends.
  */
 export const NewPostProvider: ParentComponent<NewPostProviderProps> = (props) => {
   const [opener, setOpener] = createSignal<HTMLElement>();
@@ -51,6 +57,12 @@ export const NewPostProvider: ParentComponent<NewPostProviderProps> = (props) =>
   createEffect(
     on(isRouting, (routing) => {
       if (routing && opener()) close();
+    }),
+  );
+  const { isAuthenticated } = useAuth();
+  createEffect(
+    on(isAuthenticated, (loggedIn) => {
+      if (!loggedIn && opener()) close();
     }),
   );
 

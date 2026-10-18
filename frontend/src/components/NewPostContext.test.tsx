@@ -7,8 +7,21 @@ import { trustedUrl } from "~/lib/sanitizeUrl";
 import { stubDialogModal } from "~/lib/test-utils";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { JediCategory, PostView } from "~/types/jedi";
+import { AuthProvider, useAuth } from "./AuthContext";
 import { DraftGuardProvider } from "./DraftGuardContext";
 import { NewPostProvider, useNewPost } from "./NewPostContext";
+
+// AuthProvider's login and logoff go through backend-rpc, mocked so a test can
+// log in and hold a logoff open (as in Nav.test).
+const { logoffMock } = vi.hoisted(() => ({ logoffMock: vi.fn() }));
+vi.mock("~/lib/backend-rpc", () => ({
+  backendRpc: {
+    auth: { login: vi.fn().mockResolvedValue({ result: "ok" }), logoff: logoffMock },
+  },
+}));
+vi.mock("~/lib/jedi/jedi-api", () => ({
+  jediApi: { profile: { get: vi.fn().mockResolvedValue(undefined) } },
+}));
 
 beforeAll(stubDialogModal);
 
@@ -35,6 +48,8 @@ beforeEach(() => {
   categoryListMock.mockReset();
   categoryListMock.mockResolvedValue(CATEGORIES);
   postCreateMock.mockReset();
+  logoffMock.mockReset();
+  logoffMock.mockResolvedValue({ result: "ok" });
 });
 
 // The Slow page loads until a test calls `slowLoaded`.
@@ -69,19 +84,37 @@ function renderOpeners() {
       </>
     );
   }
-  // The app shell, as in app.tsx: the provider sits inside the Router and the
-  // guard, and the routes sit in a <Suspense>.
+  // The login state, and buttons to log in and to log off.
+  function Session() {
+    const { isAuthenticated, login, logoff } = useAuth();
+    return (
+      <>
+        <p>{isAuthenticated() ? "logged in" : "logged out"}</p>
+        <button type="button" onClick={() => void login("Homer", "pw")}>
+          do-login
+        </button>
+        <button type="button" onClick={() => void logoff()}>
+          do-logoff
+        </button>
+      </>
+    );
+  }
+  // The app shell, as in app.tsx: the provider sits inside the Router, the auth
+  // and the guard, and the routes sit in a <Suspense>.
   render(() => (
     <MemoryRouter
       root={(props: ParentProps) => (
-        <DraftGuardProvider>
-          <NewPostProvider api={api}>
-            <Openers />
-            <A href="/about">About</A>
-            <A href="/slow">Slow</A>
-            <Suspense>{props.children}</Suspense>
-          </NewPostProvider>
-        </DraftGuardProvider>
+        <AuthProvider>
+          <DraftGuardProvider>
+            <NewPostProvider api={api}>
+              <Session />
+              <Openers />
+              <A href="/about">About</A>
+              <A href="/slow">Slow</A>
+              <Suspense>{props.children}</Suspense>
+            </NewPostProvider>
+          </DraftGuardProvider>
+        </AuthProvider>
       )}
     >
       <Route path="/" component={() => <h1>Home page</h1>} />
@@ -248,6 +281,22 @@ describe("<NewPostProvider /> (#214)", () => {
     slowLoaded();
     expect(await screen.findByRole("heading", { name: "Slow page" })).toBeInTheDocument();
     expect(screen.queryByRole("dialog", { name: /discarded/ }), "no notice").toBeNull();
+  });
+
+  it("a logoff closes the dialog, also one opened while the logoff waits (#221 review)", async () => {
+    let loggedOff!: () => void;
+    logoffMock.mockReturnValue(new Promise((r) => (loggedOff = () => r({ result: "ok" }))));
+    const { user } = renderOpeners();
+    await user.click(screen.getByRole("button", { name: "do-login" }));
+    expect(await screen.findByText("logged in")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "do-logoff" }));
+    await user.click(screen.getByRole("button", { name: "New Post" }));
+    expect(dialog(), "the logoff waits for the back-end").toBeInTheDocument();
+
+    loggedOff();
+    expect(await screen.findByText("logged out")).toBeInTheDocument();
+    expect(dialog()).toBeNull();
   });
 
   it("a route move during the create does nothing; then the result of the create shows", async () => {
