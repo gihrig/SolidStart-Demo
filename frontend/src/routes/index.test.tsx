@@ -7,6 +7,7 @@ import userEvent from "@testing-library/user-event";
 import { stubDialogModal } from "~/lib/test-utils";
 import { AuthProvider, useAuth } from "~/components/AuthContext";
 import { DraftGuardProvider } from "~/components/DraftGuardContext";
+import { NewPostProvider } from "~/components/NewPostContext";
 import Nav from "~/components/Nav";
 
 // The sidebar Categories, the Post feed, Top Captions, and the Hero now load from
@@ -396,7 +397,7 @@ describe("Home route — the Draft guard (ADR-0030)", () => {
   }
 
   // The app shell, as in app.tsx: the guard sits inside the Router, around the
-  // Nav and the routes.
+  // New Post dialog, the Nav and the routes.
   const renderApp = () =>
     render(() => (
       <MemoryRouter
@@ -404,9 +405,11 @@ describe("Home route — the Draft guard (ADR-0030)", () => {
           <MetaProvider>
             <AuthProvider>
               <DraftGuardProvider>
-                <Nav />
-                <LoginTrigger />
-                {props.children}
+                <NewPostProvider>
+                  <Nav />
+                  <LoginTrigger />
+                  {props.children}
+                </NewPostProvider>
               </DraftGuardProvider>
             </AuthProvider>
           </MetaProvider>
@@ -460,5 +463,23 @@ describe("Home route — the Draft guard (ADR-0030)", () => {
 
     await user.click(screen.getByRole("button", { name: "Discard" }));
     expect(await screen.findByRole("heading", { name: "About page" })).toBeInTheDocument();
+  });
+
+  it("the Nav's New Post and the Post line's Add open the same one dialog (#214)", async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await user.click(screen.getByRole("button", { name: /do-login/i }));
+    await screen.findByRole("heading", { name: /little jedi/i });
+    const newPostDialog = () => screen.queryAllByRole("dialog", { name: "New Post" });
+
+    await user.click(screen.getByRole("button", { name: "New Post" }));
+    expect(newPostDialog()).toHaveLength(1);
+    await user.type(screen.getByLabelText("Title"), "typed");
+    await user.click(within(newPostDialog()[0]).getByRole("button", { name: "Cancel" }));
+    expect(newPostDialog()).toHaveLength(0);
+
+    await user.click(await screen.findByRole("button", { name: "Add Post" }));
+    expect(newPostDialog()).toHaveLength(1);
+    expect(screen.getByLabelText("Title"), "each close empties the form").toHaveValue("");
   });
 });

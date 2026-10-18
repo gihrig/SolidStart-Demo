@@ -413,11 +413,8 @@ describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123
     ));
     const categoriesLine = screen.getByRole("button", { name: /^Animals$/ }).parentElement!;
     const postLine = screen.getByText("Likes:").closest("div.justify-between")!;
-    // The buttons on the line itself, not the ones inside the closed New Post dialog.
     const names = (el: Element) =>
-      [...el.querySelectorAll("button")]
-        .filter((b) => !b.closest("dialog"))
-        .map((b) => b.getAttribute("aria-label") ?? b.textContent);
+      [...el.querySelectorAll("button")].map((b) => b.getAttribute("aria-label") ?? b.textContent);
     expect(names(categoriesLine)).toEqual([
       "Animals",
       "Cute",
@@ -481,17 +478,17 @@ describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123
     expect(postLine).toHaveClass("px-2");
   });
 
-  it("opens the New Post dialog from the Post line's Add button", async () => {
-    stubDialogModal();
+  it("the Post line's Add calls onAddPost with itself, the opener (#214)", async () => {
+    const onAddPost = vi.fn();
     const user = userEvent.setup();
-    render(() => <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn />);
+    render(() => (
+      <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn onAddPost={onAddPost} />
+    ));
     expect(button("Add Post")).toHaveTextContent(/^Add$/);
 
     await user.click(button("Add Post")!);
 
-    const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
-    expect(dialog.open).toBe(true);
-    expect(dialog).toHaveAccessibleName("New Post");
+    expect(onAddPost).toHaveBeenCalledWith(button("Add Post"));
   });
 });
 

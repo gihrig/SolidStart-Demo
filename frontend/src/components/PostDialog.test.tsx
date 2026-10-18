@@ -54,13 +54,14 @@ beforeEach(() => {
   postCreateMock.mockReset();
 });
 
-// Open the dialog and fill every text field from the draft; Categories stay
-// unchecked so each test chooses its own.
+// The create mode opens on mount: its owner mounts it to open it (#214). Fill
+// every text field from the draft; Categories stay unchecked so each test
+// chooses its own.
 async function openAndFill() {
   const user = userEvent.setup();
-  render(() => <PostDialog api={api} />);
-  await user.click(screen.getByRole("button", { name: "New Post" }));
-  const dialog = screen.getByRole("dialog", { hidden: true });
+  const onClose = vi.fn();
+  render(() => <PostDialog api={api} onClose={onClose} />);
+  const dialog = screen.getByRole("dialog") as HTMLDialogElement;
   const form = within(dialog);
   await user.type(form.getByLabelText("Title"), DRAFT.title);
   await user.type(form.getByLabelText("Image URL"), DRAFT.imageSrc);
@@ -68,54 +69,34 @@ async function openAndFill() {
   await user.type(form.getByLabelText("Photographer"), DRAFT.photographer);
   await user.type(form.getByLabelText("Photographer URL"), DRAFT.photographerUrl);
   await user.type(form.getByLabelText("Photo page URL"), DRAFT.sourceUrl);
-  return { user, dialog, form };
+  return { user, dialog, form, onClose };
 }
 
 describe("<PostDialog />", () => {
-  it("opens as a modal and loads the Categories to choose from", async () => {
-    const user = userEvent.setup();
+  it("opens as a modal on mount and loads the Categories to choose from", async () => {
     render(() => <PostDialog api={api} />);
-    const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
-    expect(dialog.open).toBe(false);
-    expect(categoryListMock).not.toHaveBeenCalled();
-
-    await user.click(screen.getByRole("button", { name: "New Post" }));
-
+    const dialog = screen.getByRole("dialog") as HTMLDialogElement;
     expect(dialog.open).toBe(true);
+    expect(dialog).toHaveAccessibleName("New Post");
     const form = within(dialog);
     expect(await form.findByRole("checkbox", { name: "Landscape" })).toBeTruthy();
     expect(form.getByRole("checkbox", { name: "Animals" })).toBeTruthy();
   });
 
-  it("opens from a custom trigger: 'Add', named 'Add Post' (the Post line, #123)", async () => {
-    const user = userEvent.setup();
-    render(() => <PostDialog api={api} triggerLabel="Add" triggerAriaLabel="Add Post" />);
-    const trigger = screen.getByRole("button", { name: "Add Post" });
-    expect(trigger).toHaveTextContent(/^Add$/);
-
-    await user.click(trigger);
-
-    const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
-    expect(dialog.open).toBe(true);
-  });
-
-  it("opens on the first click under a <Suspense>, while the Categories load (#123)", async () => {
-    // The Post line renders this dialog inside the route's <Suspense>. The first
-    // open loads the Categories; a suspending read would swap the route for the
-    // fallback, which jumps the page to the top and drops the open dialog.
+  it("opens under a <Suspense> while the Categories load (#123)", async () => {
+    // The Post edit renders inside the route's <Suspense>. A suspending read
+    // would swap the route for the fallback, which jumps the page to the top
+    // and drops the open dialog.
     let answer!: (categories: JediCategory[]) => void;
     categoryListMock.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
-    const user = userEvent.setup();
     render(() => (
       <Suspense fallback="Loading">
-        <PostDialog api={api} triggerLabel="Add" triggerAriaLabel="Add Post" />
+        <PostDialog api={api} />
       </Suspense>
     ));
 
-    await user.click(screen.getByRole("button", { name: "Add Post" }));
-
     expect(screen.queryByText("Loading")).toBeNull();
-    const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
+    const dialog = screen.getByRole("dialog") as HTMLDialogElement;
     expect(dialog.open).toBe(true);
 
     answer(CATEGORIES);
@@ -127,12 +108,10 @@ describe("<PostDialog />", () => {
     render(() => (
       <>
         <PostDialog api={api} />
-        <PostDialog api={api} triggerLabel="Add" triggerAriaLabel="Add Post" />
+        <PostDialog api={api} />
       </>
     ));
-    const ids = screen
-      .getAllByRole("dialog", { hidden: true })
-      .map((d) => d.getAttribute("aria-labelledby"));
+    const ids = screen.getAllByRole("dialog").map((d) => d.getAttribute("aria-labelledby"));
     expect(new Set(ids).size).toBe(2);
     for (const id of ids) expect(document.getElementById(id!)).toHaveTextContent("New Post");
   });
@@ -141,8 +120,7 @@ describe("<PostDialog />", () => {
     categoryListMock.mockRejectedValueOnce(new Error("RPC Error: down"));
     const user = userEvent.setup();
     render(() => <PostDialog api={api} />);
-    await user.click(screen.getByRole("button", { name: "New Post" }));
-    const form = within(screen.getByRole("dialog", { hidden: true }));
+    const form = within(screen.getByRole("dialog"));
 
     expect((await form.findByRole("alert")).textContent).toContain("Could not load the Categories");
 
@@ -163,65 +141,70 @@ describe("<PostDialog />", () => {
     expect(postCreateMock).not.toHaveBeenCalled();
   });
 
-  it("submits the draft, then closes and clears the form once the Post has landed", async () => {
+  it("submits the draft, then closes once the Post has landed", async () => {
     let land!: (post: PostView) => void;
     postCreateMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
-    const { user, dialog, form } = await openAndFill();
+    const { user, dialog, form, onClose } = await openAndFill();
     await user.click(await form.findByRole("checkbox", { name: "Animals" }));
 
     await user.click(form.getByRole("button", { name: "Post" }));
 
     expect(postCreateMock).toHaveBeenCalledWith(DRAFT);
     // Until the back-end answers, the dialog stays open and the submit is busy.
-    expect((dialog as HTMLDialogElement).open).toBe(true);
+    expect(dialog.open).toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
     expect(form.getByRole("button", { name: "Posting…" })).toHaveProperty("disabled", true);
 
     land(CREATED);
 
-    await waitFor(() => expect((dialog as HTMLDialogElement).open).toBe(false));
-    expect((form.getByLabelText("Title") as HTMLInputElement).value).toBe("");
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
 
   it("cannot be dismissed while the Post is in flight", async () => {
     let land!: (post: PostView) => void;
     postCreateMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
-    const { user, dialog, form } = await openAndFill();
+    const { user, dialog, form, onClose } = await openAndFill();
     await user.click(await form.findByRole("checkbox", { name: "Animals" }));
     await user.click(form.getByRole("button", { name: "Post" }));
 
-    // Cancel is disabled, and Esc (the dialog's `cancel` event) is refused.
+    // Cancel is disabled, Esc (the dialog's `cancel` event) is refused, and a
+    // browser close opens the dialog again.
     expect(form.getByRole("button", { name: "Cancel" })).toHaveProperty("disabled", true);
     const esc = new Event("cancel", { cancelable: true });
     dialog.dispatchEvent(esc);
     expect(esc.defaultPrevented).toBe(true);
+    dialog.close();
+    expect(dialog.open).toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
 
     land(CREATED);
-    await waitFor(() => expect((dialog as HTMLDialogElement).open).toBe(false));
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
 
   it("shows the back-end rejection and keeps the dialog open", async () => {
     postCreateMock.mockRejectedValue(new Error("RPC Error: unsafe URL"));
-    const { user, dialog, form } = await openAndFill();
+    const { user, dialog, form, onClose } = await openAndFill();
     await user.click(await form.findByRole("checkbox", { name: "Landscape" }));
 
     await user.click(form.getByRole("button", { name: "Post" }));
 
     expect((await form.findByRole("alert")).textContent).toContain("unsafe URL");
-    expect((dialog as HTMLDialogElement).open).toBe(true);
+    expect(dialog.open).toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("shows no old rejection when it opens again (#128)", async () => {
-    postCreateMock.mockRejectedValue(new Error("RPC Error: unsafe URL"));
-    const { user, dialog, form } = await openAndFill();
-    await user.click(await form.findByRole("checkbox", { name: "Landscape" }));
-    await user.click(form.getByRole("button", { name: "Post" }));
-    expect((await form.findByRole("alert")).textContent).toContain("unsafe URL");
-
+  it("Cancel, Esc and a browser close each close it", async () => {
+    const { user, dialog, form, onClose } = await openAndFill();
     await user.click(form.getByRole("button", { name: "Cancel" }));
-    await user.click(screen.getByRole("button", { name: "New Post" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
 
-    expect((dialog as HTMLDialogElement).open).toBe(true);
-    expect(form.queryByRole("alert")).toBeNull();
+    const esc = new Event("cancel", { cancelable: true });
+    dialog.dispatchEvent(esc);
+    expect(esc.defaultPrevented, "the owner closes it, not the browser").toBe(true);
+    expect(onClose).toHaveBeenCalledTimes(2);
+
+    dialog.close();
+    expect(onClose).toHaveBeenCalledTimes(3);
   });
 });
 
@@ -394,7 +377,6 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
         <PostDialog api={api} />
       </DraftGuardContext.Provider>
     ));
-    await user.click(screen.getByRole("button", { name: "New Post" }));
     await user.type(screen.getByLabelText("Title"), "typed");
     expect(guard.hasDraft()).toBe(false);
   });

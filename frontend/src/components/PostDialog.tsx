@@ -113,32 +113,29 @@ export interface PostDialogProps {
     categories: Pick<JediApi["categories"], "list">;
     posts: Pick<JediApi["posts"], "create">;
   };
-  /** The trigger button's text. Default "New Post" (the Nav); the Post line on
-   *  the Jedi page uses "Add" (#123). Create mode only. */
-  triggerLabel?: string;
-  /** The trigger's accessible name, when it differs from its text ("Add Post"). */
-  triggerAriaLabel?: string;
-  /** The Post to edit (#187). With it, the dialog is the edit mode: it has no
-   *  trigger and opens on mount, so its owner mounts it to open it, keyed on
-   *  the Post id. The mode is fixed for the dialog's life. */
+  /** The Post to edit (#187). With it, the dialog is the edit mode, and its
+   *  owner keys it on the Post id. The mode is fixed for the dialog's life. */
   post?: PostView;
   /** Edit mode: save the changed fields (the view-model's `postOwner.save`).
    *  Rejects on failure. */
   onSave?: (changes: PostChanges) => Promise<void>;
-  /** Edit mode: called on Cancel and after a save. */
+  /** Called on Cancel, and after a create or a save: the owner unmounts the
+   *  dialog. */
   onClose?: () => void;
   /** Edit mode: the scope of the edit's Draft (ADR-0030). */
   draftScope?: DraftScope;
 }
 
 /**
- * The one Post dialog: the create overlay (#120) and the Post edit (#187).
+ * The one Post dialog: the create overlay (#120) and the Post edit (#187). It
+ * is a modal `<dialog>` form that opens on mount: its owner mounts it to open
+ * it, and unmounts it to close it (#214).
  *
- * The create mode is a "New Post" button that opens a modal `<dialog>` form.
- * The submit never reloads the page; the dialog stays open until the back-end
- * has committed the Post, then closes. The new Post reaches the feed through
- * the `posts` poke the back-end fires on commit, not through this form. It
- * reports no Draft: the Nav keeps it mounted across a route move (#214).
+ * The create mode is the New Post dialog, which `NewPostProvider` owns. The
+ * submit never reloads the page; the dialog stays open until the back-end has
+ * committed the Post, then closes. The new Post reaches the feed through the
+ * `posts` poke the back-end fires on commit, not through this form. It reports
+ * no Draft yet (#214).
  *
  * The edit mode fills every field from the Post, with its Categories checked.
  * The photo URL shows, disabled: Save never sends it. The edit holds a Draft
@@ -151,7 +148,7 @@ export default function PostDialog(props: PostDialogProps) {
   // The mode is fixed: the owner keys an edit on its Post id.
   const editing = props.post !== undefined;
   const text = MODE_TEXT[editing ? "edit" : "create"];
-  // One id per instance: the Nav and the Post line can both render this dialog.
+  // One id per instance: the New Post dialog and the Post edit each render one.
   const uid = createUniqueId();
   const headingId = `${uid}-heading`;
   const photoHintId = `${uid}-photo-hint`;
@@ -191,12 +188,8 @@ export default function PostDialog(props: PostDialogProps) {
   const dirty = () => Object.keys(changes()).length > 0;
   const draft = editing ? useDraft({ dirty, scope: props.draftScope }) : undefined;
 
-  // The taxonomy loads on the first open, not on mount: the Nav renders this on
-  // every page, and most visits never open it. An edit opens on mount.
-  const [categoriesWanted, setCategoriesWanted] = createSignal(editing);
-  const [categories, { refetch: refetchCategories }] = createResource(categoriesWanted, () =>
-    api.categories.list(),
-  );
+  // Each open loads the taxonomy: the dialog mounts to open.
+  const [categories, { refetch: refetchCategories }] = createResource(() => api.categories.list());
   const [categoryError, setCategoryError] = createSignal<string | null>(null);
   const create = createRpcAction((post: PostDraft) => api.posts.create(post), {
     fallbackError: MODE_TEXT.create.error,
@@ -210,24 +203,16 @@ export default function PostDialog(props: PostDialogProps) {
   );
   const pending = () => create.pending() || save.pending();
 
-  const openDialog = () => {
-    setCategoriesWanted(true);
-    setCategoryError(null);
-    create.reset();
-    dialogRef?.showModal();
-  };
-  onMount(() => {
-    if (editing) dialogRef?.showModal();
-  });
+  onMount(() => dialogRef?.showModal());
 
-  // A Save can outlive its edit: a browser close unmounts the edit while the
-  // Save waits. A stale result must not close the next edit (PR #216 review).
-  // The Post itself is still saved.
+  // A write can outlive its dialog: a browser close unmounts the edit while the
+  // Save waits. A stale result must not close the next dialog (PR #216
+  // review). The Post itself is still saved.
   let unmounted = false;
   onCleanup(() => (unmounted = true));
 
-  // The edit's Cancel drops its Draft: the close then shows no notice.
-  const closeEdit = () => {
+  // The Cancel drops the edit's Draft: the close then shows no notice.
+  const close = () => {
     draft?.clear();
     props.onClose?.();
   };
@@ -244,7 +229,7 @@ export default function PostDialog(props: PostDialogProps) {
     }
     setCategoryError(null);
     if (editing) {
-      if ((await save.run(changes())) && !unmounted) closeEdit();
+      if ((await save.run(changes())) && !unmounted) close();
       return;
     }
     const created = await create.run({
@@ -256,148 +241,129 @@ export default function PostDialog(props: PostDialogProps) {
       sourceUrl: values.sourceUrl,
       categoryIds: [...values.categoryIds],
     });
-    if (created) {
-      setValues(emptyDraft());
-      dialogRef?.close();
-    }
+    if (created && !unmounted) close();
   };
 
   const error = () => categoryError() ?? create.error() ?? save.error();
 
   return (
-    <>
-      <Show when={!editing}>
-        <button
-          type="button"
-          onClick={openDialog}
-          class="theme-button"
-          aria-label={props.triggerAriaLabel}
-        >
-          {props.triggerLabel ?? "New Post"}
-        </button>
-      </Show>
+    <dialog
+      ref={(el) => (dialogRef = el)}
+      // Esc fires `cancel`: refuse it while the write is in flight, so the
+      // result (the close, or the rejection) stays visible. The owner closes
+      // the dialog, so an Esc is its Cancel.
+      onCancel={(e) => {
+        e.preventDefault();
+        if (!pending()) close();
+      }}
+      // A browser can still close it (Chrome closes on a second Escape). The
+      // owner must hear it, or its state stays open with no dialog. While the
+      // write is in flight, it opens again, as Esc is refused, so a failed
+      // write keeps the text and shows its error (PR #216 review).
+      onClose={() => {
+        if (pending()) return dialogRef?.showModal();
+        close();
+      }}
+      aria-labelledby={headingId}
+      class="theme-dialog max-w-md"
+    >
+      <form onSubmit={handleSubmit} class="space-y-4">
+        <h2 id={headingId} class="text-xl font-bold">
+          {text.heading}
+        </h2>
 
-      <dialog
-        ref={(el) => (dialogRef = el)}
-        // Esc fires `cancel`: refuse it while the write is in flight, so the
-        // result (the close, or the rejection) stays visible. The edit's owner
-        // closes it, so an Esc there is its Cancel.
-        onCancel={(e) => {
-          if (pending()) return e.preventDefault();
-          if (editing) {
-            e.preventDefault();
-            closeEdit();
-          }
-        }}
-        // A browser can still close it (Chrome closes on a second Escape). The
-        // edit's owner must hear it, or the edit stays open with no dialog.
-        // While the write is in flight, it opens again, as Esc is refused, so
-        // a failed Save keeps the text and shows its error (PR #216 review).
-        onClose={() => {
-          if (!editing) return;
-          if (pending()) return dialogRef?.showModal();
-          closeEdit();
-        }}
-        aria-labelledby={headingId}
-        class="theme-dialog max-w-md"
-      >
-        <form onSubmit={handleSubmit} class="space-y-4">
-          <h2 id={headingId} class="text-xl font-bold">
-            {text.heading}
-          </h2>
+        <Show when={error()}>
+          <div role="alert" class="rounded bg-red-100 p-2 text-red-700">
+            {error()}
+          </div>
+        </Show>
 
-          <Show when={error()}>
-            <div role="alert" class="rounded bg-red-100 p-2 text-red-700">
-              {error()}
+        <For each={TEXT_FIELDS}>
+          {(field) => {
+            // The photo cannot change (#187): an edit shows it, disabled.
+            const photo = editing && field.name === "imageSrc";
+            return (
+              <div>
+                <label for={`${uid}-${field.name}`} class="block text-sm font-medium">
+                  {field.label}
+                </label>
+                <input
+                  id={`${uid}-${field.name}`}
+                  name={field.name}
+                  type={field.type}
+                  maxLength={field.maxLength}
+                  required
+                  disabled={photo}
+                  aria-describedby={photo ? photoHintId : undefined}
+                  value={values[field.name]}
+                  onInput={(e) => setValues({ [field.name]: e.currentTarget.value })}
+                  class="theme-input mt-1 disabled:opacity-50"
+                />
+                <Show when={photo}>
+                  <p id={photoHintId} class="mt-1 text-sm text-(--theme-muted)">
+                    The photo cannot change.
+                  </p>
+                </Show>
+              </div>
+            );
+          }}
+        </For>
+
+        <fieldset>
+          <legend class="text-sm font-medium">Categories</legend>
+          {/* A failed load must not be read: reading an errored resource throws,
+                and the New Post dialog sits above every error boundary. Show it
+                with a retry. */}
+          <Show when={categories.error}>
+            <div
+              role="alert"
+              class="mt-1 flex items-center gap-2 rounded bg-red-100 p-2 text-red-700"
+            >
+              Could not load the Categories.
+              <button type="button" onClick={() => void refetchCategories()} class="underline">
+                Retry
+              </button>
             </div>
           </Show>
-
-          <For each={TEXT_FIELDS}>
-            {(field) => {
-              // The photo cannot change (#187): an edit shows it, disabled.
-              const photo = editing && field.name === "imageSrc";
-              return (
-                <div>
-                  <label for={`${uid}-${field.name}`} class="block text-sm font-medium">
-                    {field.label}
-                  </label>
+          {/* Read the list only once it is ready. A read while it loads suspends:
+                inside the route's <Suspense> (the Post edit) that swaps the
+                route for the fallback and drops the open dialog (#123). */}
+          <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+            <For each={categories.state === "ready" ? categories() : undefined}>
+              {(category) => (
+                <label class="flex items-center gap-1">
                   <input
-                    id={`${uid}-${field.name}`}
-                    name={field.name}
-                    type={field.type}
-                    maxLength={field.maxLength}
-                    required
-                    disabled={photo}
-                    aria-describedby={photo ? photoHintId : undefined}
-                    value={values[field.name]}
-                    onInput={(e) => setValues({ [field.name]: e.currentTarget.value })}
-                    class="theme-input mt-1 disabled:opacity-50"
+                    type="checkbox"
+                    name="categoryIds"
+                    value={category.id}
+                    checked={values.categoryIds.includes(category.id)}
+                    onChange={(e) => toggleCategory(category.id, e.currentTarget.checked)}
                   />
-                  <Show when={photo}>
-                    <p id={photoHintId} class="mt-1 text-sm text-(--theme-muted)">
-                      The photo cannot change.
-                    </p>
-                  </Show>
-                </div>
-              );
-            }}
-          </For>
-
-          <fieldset>
-            <legend class="text-sm font-medium">Categories</legend>
-            {/* A failed load must not be read: reading an errored resource throws,
-                and the Nav sits above every error boundary. Show it with a retry. */}
-            <Show when={categories.error}>
-              <div
-                role="alert"
-                class="mt-1 flex items-center gap-2 rounded bg-red-100 p-2 text-red-700"
-              >
-                Could not load the Categories.
-                <button type="button" onClick={() => void refetchCategories()} class="underline">
-                  Retry
-                </button>
-              </div>
-            </Show>
-            {/* Read the list only once it is ready. A read while it loads suspends:
-                inside the route's <Suspense> (the Post line's Add, #123) that
-                swaps the route for the fallback and drops the open dialog. */}
-            <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1">
-              <For each={categories.state === "ready" ? categories() : undefined}>
-                {(category) => (
-                  <label class="flex items-center gap-1">
-                    <input
-                      type="checkbox"
-                      name="categoryIds"
-                      value={category.id}
-                      checked={values.categoryIds.includes(category.id)}
-                      onChange={(e) => toggleCategory(category.id, e.currentTarget.checked)}
-                    />
-                    {category.name}
-                  </label>
-                )}
-              </For>
-            </div>
-          </fieldset>
-
-          <div class="flex justify-end gap-2">
-            <button
-              type="button"
-              disabled={pending()}
-              onClick={() => (editing ? closeEdit() : dialogRef?.close())}
-              class="theme-button disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={pending() || (editing && !dirty())}
-              class="theme-button-primary disabled:opacity-50"
-            >
-              {pending() ? text.pending : text.submit}
-            </button>
+                  {category.name}
+                </label>
+              )}
+            </For>
           </div>
-        </form>
-      </dialog>
-    </>
+        </fieldset>
+
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            disabled={pending()}
+            onClick={close}
+            class="theme-button disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={pending() || (editing && !dirty())}
+            class="theme-button-primary disabled:opacity-50"
+          >
+            {pending() ? text.pending : text.submit}
+          </button>
+        </div>
+      </form>
+    </dialog>
   );
 }

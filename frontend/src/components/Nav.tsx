@@ -2,7 +2,7 @@ import { createSignal, For, Show } from "solid-js";
 import { useDisclosure } from "~/lib/useDisclosure";
 import { useAuth } from "~/components/AuthContext";
 import { useDraftGuard } from "~/components/DraftGuardContext";
-import PostDialog from "~/components/PostDialog";
+import { useNewPost } from "~/components/NewPostContext";
 import Icon from "~/components/Icon";
 import InitialsAvatar from "~/components/InitialsAvatar";
 import LoginDialog from "~/components/LoginDialog";
@@ -22,6 +22,7 @@ export default function Nav() {
   const { isAuthenticated, logoff, displayName, avatarUrl } = useAuth();
   // A logoff unmounts every form, so it goes through the Draft guard (ADR-0030).
   const guard = useDraftGuard();
+  const newPost = useNewPost();
 
   // The profile dropdown is a popup — hidden (and inert) whenever closed, on
   // every viewport — dismissed by Escape or a click outside its wrapping <div>.
@@ -127,9 +128,16 @@ export default function Nav() {
 
           <LoginDialog open={loginOpen()} onClose={closeLogin} />
 
-          {/* Create a Post (#120) — a logged-in User only */}
+          {/* Create a Post (#120) — a logged-in User only. It opens the one New
+              Post dialog (#214). */}
           <Show when={isAuthenticated()}>
-            <PostDialog />
+            <button
+              type="button"
+              onClick={(e) => newPost.open(e.currentTarget)}
+              class="theme-button"
+            >
+              New Post
+            </button>
           </Show>
 
           <ThemeToggle />
