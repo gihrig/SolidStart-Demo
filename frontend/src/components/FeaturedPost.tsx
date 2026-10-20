@@ -94,7 +94,7 @@ const createDeleteAction = (
 
 /** A comment count in words, for a Comments toggle's name (#210): "1 comment",
  *  "3 comments". */
-const commentCount = (count: number) => `${count} ${count === 1 ? "comment" : "comments"}`;
+const commentCountText = (count: number) => `${count} ${count === 1 ? "comment" : "comments"}`;
 
 interface ActionsLineProps {
   /** The Comments toggle's label: "Post Comments" or "Caption Comments". */
@@ -132,7 +132,7 @@ function ActionsLine(props: ActionsLineProps) {
         <button
           type="button"
           class="font-bold hover:underline rounded disabled:opacity-50 disabled:no-underline"
-          aria-label={`${props.label}, ${commentCount(props.count)}`}
+          aria-label={`${props.label}, ${commentCountText(props.count)}`}
           aria-expanded={props.open}
           aria-controls={props.panelId}
           disabled={props.toggleDisabled}
