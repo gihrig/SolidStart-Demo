@@ -61,8 +61,8 @@ function SlowPage() {
   return <h1>{data()}</h1>;
 }
 
-// Two openers, as the Nav's New Post and the Post line's Add. The Add can
-// leave the page, as the Post line does.
+// Two openers, as the Nav's New Post and the Add in the Post actions. The Add
+// can leave the page, as the Post actions do.
 function renderOpeners() {
   const [addShown, setAddShown] = createSignal(true);
   function Openers() {

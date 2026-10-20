@@ -790,18 +790,6 @@ describe("createJediFeed — the shown Caption's Comment thread (#127)", () => {
       expect(jedi.captionComments.open()).toBe(false);
     }));
 
-  it("the Post and Caption panels open independently", () =>
-    withAnonymousJedi(async (jedi) => {
-      jedi.captionComments.setOpen(true);
-      jedi.postComments.setOpen(true);
-      await tick();
-      expect(ids(jedi)).toEqual([100]);
-      expect(jedi.postComments.comments()?.map((c) => c.id)).toEqual([1000]);
-
-      jedi.postComments.setOpen(false);
-      expect(jedi.captionComments.open()).toBe(true);
-    }));
-
   it("holds the caption_comment Subscription only while the panel is open", async () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
@@ -848,6 +836,97 @@ describe("createJediFeed — the shown Caption's Comment thread (#127)", () => {
       dispose();
     });
   });
+});
+
+describe("createJediFeed — one Comments panel at a time (#210)", () => {
+  it("an open of the Post thread closes an open Caption thread, and the reverse", () =>
+    withAnonymousJedi(async (jedi) => {
+      jedi.captionComments.setOpen(true);
+      jedi.postComments.setOpen(true);
+      expect(jedi.postComments.open()).toBe(true);
+      expect(jedi.captionComments.open()).toBe(false);
+      await tick();
+      expect(jedi.postComments.comments()?.map((c) => c.id)).toEqual([1000]);
+
+      jedi.captionComments.setOpen(true);
+      expect(jedi.captionComments.open()).toBe(true);
+      expect(jedi.postComments.open()).toBe(false);
+    }));
+
+  it("with a Draft in the open thread, an open of the other asks; Discard switches the panels", () =>
+    withLive(async (jedi, guard) => {
+      jedi.postComments.setOpen(true);
+      guard.report(Symbol("post comment"), true, jedi.postComments.draftScope);
+
+      jedi.captionComments.setOpen(true);
+      expect(guard.pending()).toBe(true);
+      guard.cancelMove();
+      expect(jedi.postComments.open(), "Keep editing keeps the open thread").toBe(true);
+      expect(jedi.captionComments.open()).toBe(false);
+      expect(guard.hasDraftIn([jedi.postComments.draftScope]), "and its Draft").toBe(true);
+
+      jedi.captionComments.setOpen(true);
+      guard.confirmMove();
+      expect(jedi.postComments.open()).toBe(false);
+      expect(jedi.captionComments.open()).toBe(true);
+      expect(guard.hasDraft(), "Discard drops the thread's Drafts").toBe(false);
+    }));
+
+  it("an Add Caption Draft does not stop a switch: it is outside both thread scopes", () =>
+    withLive(async (jedi, guard) => {
+      guard.report(Symbol("add caption"), true, jedi.addCaptionScope);
+      jedi.captionComments.setOpen(true);
+
+      jedi.postComments.setOpen(true);
+      expect(guard.pending()).toBe(false);
+      expect(jedi.postComments.open()).toBe(true);
+      expect(jedi.captionComments.open()).toBe(false);
+      expect(guard.hasDraft(), "the Add Caption Draft stays").toBe(true);
+    }));
+
+  it("while a form in the open thread writes, an open of the other does nothing and asks nothing", () =>
+    withLive(async (jedi, guard) => {
+      jedi.captionComments.setOpen(true);
+      const form = Symbol("caption comment");
+      guard.report(form, true, jedi.captionComments.draftScope);
+      guard.reportBusy(form, true, jedi.captionComments.draftScope);
+
+      jedi.postComments.setOpen(true);
+      expect(guard.pending()).toBe(false);
+      expect(jedi.captionComments.open()).toBe(true);
+      expect(jedi.postComments.open()).toBe(false);
+    }));
+
+  it("after a switch away from the Caption thread, the Caption shown follows the ranking", () =>
+    withLive(async (jedi, _guard, mem) => {
+      const [winner, next] = captionsFor(1);
+      jedi.captionComments.setOpen(true);
+      captionListForPostMock.mockImplementation((postId: number) =>
+        Promise.resolve(postId === 1 ? [next, winner] : captionsFor(postId)),
+      );
+      mem.emit(pokeOn(Channel.postCaption(1)));
+      await settle();
+      expect(jedi.selectedCaption()?.id, "the open thread holds the Caption").toBe(winner.id);
+
+      jedi.postComments.setOpen(true);
+      expect(jedi.selectedCaption()?.id, "the switch ends the hold").toBe(next.id);
+
+      // A re-rank back to the seeded order.
+      captionListForPostMock.mockImplementation((postId: number) =>
+        Promise.resolve(captionsFor(postId)),
+      );
+      mem.emit(pokeOn(Channel.postCaption(1)));
+      await settle();
+      expect(jedi.selectedCaption()?.id, "a re-rank after the switch").toBe(winner.id);
+    }));
+
+  it("a Caption pick leaves an open Post panel open", () =>
+    withLive(async (jedi) => {
+      jedi.postComments.setOpen(true);
+      jedi.selectCaption(captionsFor(1)[1].id);
+      expect(jedi.selectedCaption()?.id).toBe(captionsFor(1)[1].id);
+      expect(jedi.postComments.open()).toBe(true);
+    }));
 });
 
 describe("createJediFeed — the Draft guard (ADR-0030)", () => {
@@ -1433,11 +1512,13 @@ describe("createJediFeed — a Draft outside the Post, such as the New Post Draf
     jedi.postComments.draftScope,
     jedi.captionComments.draftScope,
   ];
-  // Open the Post edit and both Comments panels, as the Post's own forms.
-  const openPostForms = (jedi: JediFeed) => {
+  // The Post's two Comments panels: one opens at a time (#210).
+  const PANELS = ["postComments", "captionComments"] as const;
+  // Open the Post edit and one Comments panel, as the Post's own forms.
+  const openPostForms = (jedi: JediFeed, panel: (typeof PANELS)[number]) => {
     jedi.postOwner.edit.setOpen(true);
-    jedi.postComments.setOpen(true);
-    jedi.captionComments.setOpen(true);
+    jedi[panel].setOpen(true);
+    expect(jedi[panel].open(), "the panel opens").toBe(true);
   };
   const expectPostFormsClosed = (jedi: JediFeed, guard: DraftGuard) => {
     expect(jedi.postOwner.edit.open(), "the Post edit closes").toBe(false);
@@ -1458,30 +1539,36 @@ describe("createJediFeed — a Draft outside the Post, such as the New Post Draf
       expect(guard.holds(newPost)).toBe(true);
     }));
 
-  it("a Post change does not ask about it, and still closes the Post's forms", () =>
-    withLive(async (jedi, guard) => {
-      guard.report(newPost, true);
-      openPostForms(jedi);
-      jedi.selectPost(2);
-      expect(guard.pending()).toBe(false);
-      expect(jedi.selectedPost()?.id).toBe(2);
-      expect(guard.holds(newPost)).toBe(true);
-      expectPostFormsClosed(jedi, guard);
-    }));
+  it.each(PANELS)(
+    "a Post change does not ask about it, and still closes the Post's forms (%s)",
+    (panel) =>
+      withLive(async (jedi, guard) => {
+        guard.report(newPost, true);
+        openPostForms(jedi, panel);
+        jedi.selectPost(2);
+        expect(guard.pending()).toBe(false);
+        expect(jedi.selectedPost()?.id).toBe(2);
+        expect(guard.holds(newPost)).toBe(true);
+        expectPostFormsClosed(jedi, guard);
+      }),
+  );
 
-  it("another User's Post delete does not drop it, shows no notice, and closes the Post's forms", () =>
-    withLive(async (jedi, guard, mem) => {
-      guard.report(newPost, true);
-      jedi.postComments.setOpen(true);
-      jedi.captionComments.setOpen(true);
-      withoutPost1();
-      mem.emit(pokeOn(Channel.posts));
-      await settle();
-      expect(guard.notice()).toBeUndefined();
-      expect(jedi.announcement()).toBe("This Post was deleted.");
-      expect(guard.holds(newPost)).toBe(true);
-      expectPostFormsClosed(jedi, guard);
-    }));
+  it.each(PANELS)(
+    "another User's Post delete does not drop it, shows no notice, and closes the Post's forms (%s)",
+    (panel) =>
+      withLive(async (jedi, guard, mem) => {
+        guard.report(newPost, true);
+        jedi[panel].setOpen(true);
+        expect(jedi[panel].open(), "the panel opens").toBe(true);
+        withoutPost1();
+        mem.emit(pokeOn(Channel.posts));
+        await settle();
+        expect(guard.notice()).toBeUndefined();
+        expect(jedi.announcement()).toBe("This Post was deleted.");
+        expect(guard.holds(newPost)).toBe(true);
+        expectPostFormsClosed(jedi, guard);
+      }),
+  );
 
   it("with a Draft on the Post too, a Post delete discards only the Post's Draft", () =>
     withLive(async (jedi, guard, mem) => {

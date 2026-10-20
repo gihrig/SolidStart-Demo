@@ -117,11 +117,15 @@ export default function CaptionForm(props: CaptionFormProps) {
   // The Cancel asks first while the form holds a Draft (#214).
   const cancel = () => draft.cancel(() => props.onCancel?.());
   // Escape is the Cancel of a form that has one (#214). The form stops it, so
-  // a document listener (`useDismiss`) does not close a menu or the sidebar.
+  // a document listener (`useDismiss`) does not close a menu or the sidebar. An
+  // Escape that runs the Cancel also cancels the browser's own Escape action,
+  // which would close the question that the Cancel opens (#210).
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key !== "Escape") return;
     e.stopPropagation();
-    if (!e.isComposing && props.onCancel && !pending()) cancel();
+    if (e.isComposing || !props.onCancel || pending()) return;
+    e.preventDefault();
+    cancel();
   };
 
   const handleSubmit = async (e: SubmitEvent) => {

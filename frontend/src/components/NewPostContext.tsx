@@ -30,10 +30,10 @@ export interface NewPostProviderProps {
 /**
  * The one New Post dialog (#214), in `app.tsx` inside `AuthProvider` and
  * `DraftGuardProvider`.
- * The Nav's New Post and the Post line's Add open it. It mounts the dialog to
- * open it, and unmounts it to close it, so each close empties the form. After
- * a close, focus returns to the opener; if the opener is gone, focus stays on
- * the page body.
+ * The Nav's New Post and the Add in the Post actions open it. It mounts the
+ * dialog to open it, and unmounts it to close it, so each close empties the
+ * form. After a close, focus returns to the opener; if the opener is gone,
+ * focus stays on the page body.
  *
  * A route move closes the dialog when the move starts, so no text can be
  * typed while the next page loads (#221 review). With a Draft, the guard's

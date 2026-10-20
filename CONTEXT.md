@@ -146,21 +146,20 @@ _Built_ (#121): the authenticated `add_caption` takes a `CaptionForCreate`
 (`post_id`, `text`), sets the caller as Owner, and returns the `CaptionView`. Text
 over 36 characters or an unknown Post is a `Validation` error. An add pokes
 `post_caption:{post_id}`; the Jedi route holds the selected Post's channel while a
-User is logged in, so Top Captions refetches and re-ranks. On the Post, the
-full-width caption line swaps to the caption form: a logged-in User clicks **Add**
-on the categories line, or sees the form directly when the Post has no
-caption.
+User is logged in, so Top Captions refetches and re-ranks. On the Post card, the
+Caption line swaps to the Caption form. A logged-in User clicks **Add** in the
+Caption actions to open it. On a Post with no Caption, the form shows directly.
 _Built_ (#123): a logged-in User likes the Caption shown on the Post, from the
-Caption actions on the categories line: fire-heart, count, **Like**, **Add**,
-**Edit**, **Delete**. To like another Caption, the User selects it in Top
-Captions first; Top Captions shows counts only. A toggle that changed a Like pokes
-`caption_like:{caption_id}` and `post_caption:{post_id}`. On the Post line and the
-Caption line, a visitor who is not logged in sees only the fire-heart and the
-count. A logged-in User sees every button, and a button that cannot act now is
-disabled: only the Owner can use **Edit** and **Delete**. The Post line's **Add**
+Caption actions: fire-heart, count, **Like**, **Add**, **Edit**, **Delete**. To
+like another Caption, the User selects it in Top Captions first; Top Captions
+shows counts only. A toggle that changed a Like pokes `caption_like:{caption_id}`
+and `post_caption:{post_id}`. In the Post actions and the Caption actions, a
+logged-out visitor sees the Comments toggle, the fire-heart and the count. A
+logged-in User sees every button, and a button that cannot act now is disabled:
+only the Owner can use **Edit** and **Delete**. The **Add** in the Post actions
 opens the same New Post dialog as the Nav.
-_Built_ (#127): the Caption actions start with a **Comments** toggle and the
-Caption's comment count. It opens the Caption's thread below the categories line,
+_Built_ (#127): the Caption actions start with a **Caption Comments** toggle and
+the Caption's comment count. It opens the Caption's thread in the Comments panel,
 for the Caption shown. While the thread is open, a re-rank does not change the
 Caption shown ([ADR-0030](docs/adr/0030-unsaved-draft-guard.md) addendum).
 _Built_ (#187): the Owner edits the text with `update_caption` and deletes the
@@ -575,6 +574,21 @@ clicks. The app's global rule styles focus via `:focus-visible` (keyboard-only, 
 rule. A focus ring appearing on mouse click is a defect, not desired behavior; the
 `<main>` action buttons showing no ring on click are correct.
 _Avoid_: always-on focus outlines; showing the ring on pointer interaction.
+
+### Post card
+
+**Post card**:
+The main article, which shows the selected Post. From the top, it holds the title
+bar, the photo and the **Author line**. Under them come the **Post actions**, the
+**Caption line**, the **Caption actions** and the **Comments panel**. The Author
+line holds the Author's avatar and name, the Post title and the Categories. The
+Caption line holds the Caption shown, or a Caption form in its place. Each actions
+line starts with its Comments toggle: **Post Comments** or **Caption Comments**.
+The Comments panel shows one thread at a time, the Post's or the Caption's
+([ADR-0030](docs/adr/0030-unsaved-draft-guard.md) addendum, #210).
+_FE_: `FeaturedPost` (`components/FeaturedPost.tsx`).
+_Avoid_: Featured Post (`featured` is the top-ranked Post, only the default); Post
+line; categories line.
 
 ### Unsaved Drafts
 

@@ -53,12 +53,25 @@ const caption: CaptionView = {
   commentCount: 2,
 };
 
-// The categories line's Add button. The caption form's submit has the same name,
+// The Caption actions' Add button. The caption form's submit has the same name,
 // "Add Caption", so pick the one that is not a submit.
 const addCaptionTrigger = () =>
   screen
     .getAllByRole("button", { name: "Add Caption" })
     .find((b) => b.getAttribute("type") === "button");
+
+// The parts of the Post card (#210). Each Comments toggle starts its actions
+// line, and a Category button sits in the Author line.
+const postToggle = () => screen.getByRole("button", { name: /^Post Comments, / });
+const captionToggle = () => screen.getByRole("button", { name: /^Caption Comments, / });
+const postActions = () => postToggle().parentElement!;
+const captionActions = () => captionToggle().parentElement!;
+const authorLine = () => screen.getByRole("button", { name: /^Animals$/ }).parentElement!;
+const panelOf = (toggle: HTMLElement) =>
+  document.getElementById(toggle.getAttribute("aria-controls")!)!;
+// Whether `b` comes after `a` in the page, and is not inside it.
+const follows = (a: Node, b: Node) =>
+  !a.contains(b) && Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
 describe("<FeaturedPost />", () => {
   it("renders the post title and winning caption", () => {
@@ -108,6 +121,31 @@ describe("<FeaturedPost />", () => {
     expect(screen.getByRole("button", { name: /edit post by lisa/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /delete post by lisa/i })).toBeInTheDocument();
   });
+
+  it("shows the parts in order: the Author line, the Post actions, the Caption line, the Caption actions and the panels (#210)", () => {
+    render(() => <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn />);
+    const parts = [
+      authorLine(),
+      postActions(),
+      screen.getByText(caption.text),
+      captionActions(),
+      panelOf(postToggle()),
+    ];
+    for (const [i, part] of parts.slice(1).entries()) {
+      expect(follows(parts[i], part), `part ${i + 1}`).toBe(true);
+    }
+    expect(follows(captionActions(), panelOf(captionToggle()))).toBe(true);
+  });
+
+  it("the Author line shows the avatar, the name, the title and the Categories (#210)", () => {
+    render(() => <FeaturedPost post={post} caption={caption} />);
+    const line = authorLine();
+    expect(within(line).getByRole("img", { name: "Lisa" })).toBeInTheDocument();
+    expect(line).toHaveTextContent(/^Lisa\s*-\s*Little Jedi\s*-\s*Animals\s*Cute$/);
+    expect(within(line).queryByRole("heading"), "the title is plain text").toBeNull();
+    const separators = [...line.querySelectorAll("[aria-hidden='true']")];
+    expect(separators.map((s) => s.textContent)).toEqual(["-", "-"]);
+  });
 });
 
 describe("<FeaturedPost /> — Add Caption (#121)", () => {
@@ -119,10 +157,9 @@ describe("<FeaturedPost /> — Add Caption (#121)", () => {
     return { user };
   };
 
-  it("puts the Add Caption button on the categories line, not the caption line", () => {
+  it("puts the Add Caption button in the Caption actions, not the Caption line", () => {
     renderLoggedIn();
-    const categoriesLine = screen.getByRole("button", { name: /^Animals$/ }).parentElement!;
-    expect(categoriesLine).toContainElement(addButton());
+    expect(captionActions()).toContainElement(addButton());
     expect(screen.getByText(caption.text)).not.toContainElement(addButton());
   });
 
@@ -268,7 +305,7 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
   const captionCount = () => screen.getByText("Caption likes:").parentElement;
   const captionLike: Like = { id: 1, likeCount: 9, liked: true };
 
-  it("puts the Caption actions on the categories line, right of the categories, in order", () => {
+  it("puts the Caption actions in order: the toggle, the fire-heart and count, Like, Add, Edit and Delete", () => {
     render(() => (
       <FeaturedPost
         loggedIn
@@ -279,20 +316,17 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
         captionLike={captionLike}
       />
     ));
-    const categoriesLine = screen.getByRole("button", { name: /^Animals$/ }).parentElement!;
-    const names = [...categoriesLine.querySelectorAll("button")].map(
+    const names = [...captionActions().querySelectorAll("button")].map(
       (b) => b.getAttribute("aria-label") ?? b.textContent,
     );
     expect(names).toEqual([
-      "Animals",
-      "Cute",
-      "Caption comments, 2 comments",
+      "Caption Comments, 2 comments",
       "Like caption by Lisa",
       "Add Caption",
       "Edit caption by Lisa",
       "Delete caption by Lisa",
     ]);
-    expect(categoriesLine).toContainElement(captionCount());
+    expect(captionActions()).toContainElement(captionCount());
   });
 
   it("labels the Add button 'Add', with the accessible name 'Add Caption'", () => {
@@ -357,7 +391,7 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Network down");
   });
 
-  it("shows both errors when the Caption toggle and the Post toggle fail", async () => {
+  it("shows both errors, each under the actions line whose button failed (#210)", async () => {
     const user = userEvent.setup();
     render(() => (
       <FeaturedPost
@@ -373,8 +407,13 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
     await user.click(likeButton());
     await user.click(screen.getByRole("button", { name: /like post by lisa/i }));
     await waitFor(() => expect(screen.getAllByRole("alert")).toHaveLength(2));
-    const alerts = screen.getAllByRole("alert").map((a) => a.textContent);
-    expect(alerts).toEqual(["Caption Like failed", "Post Like failed"]);
+    const [postAlert, captionAlert] = screen.getAllByRole("alert");
+    expect(postAlert).toHaveTextContent("Post Like failed");
+    expect(captionAlert).toHaveTextContent("Caption Like failed");
+    expect(follows(postActions(), postAlert)).toBe(true);
+    expect(follows(postAlert, screen.getByText(caption.text))).toBe(true);
+    expect(follows(captionActions(), captionAlert)).toBe(true);
+    expect(follows(captionAlert, panelOf(captionToggle()))).toBe(true);
   });
 
   it("shows no Caption actions when the Post has no Caption", () => {
@@ -384,7 +423,7 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
   });
 });
 
-describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123)", () => {
+describe("<FeaturedPost /> — visibility rule, Post actions and Caption actions (#123)", () => {
   // Caption 2 is by Bart (id 3), so Lisa (id 1) owns the Post but not the Caption.
   const bartsCaption: CaptionView = {
     ...caption,
@@ -393,8 +432,10 @@ describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123
   };
   const button = (name: RegExp | string) => screen.queryByRole("button", { name });
 
-  it("shows a visitor who is not logged in only the fire-heart and the count", () => {
+  it("shows a visitor who is not logged in the Comments toggles, the fire-heart and the count", () => {
     render(() => <FeaturedPost post={post} caption={bartsCaption} captionsLoaded />);
+    expect(postToggle()).toBeEnabled();
+    expect(captionToggle()).toBeEnabled();
     expect(screen.getByText("Likes:").parentElement).toHaveTextContent("Likes: 5");
     expect(screen.getByText("Caption likes:").parentElement).toHaveTextContent("Caption likes: 8");
     for (const name of [
@@ -412,25 +453,21 @@ describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123
 
   const enabled = (name: RegExp | string) => !button(name)!.hasAttribute("disabled");
 
-  it("shows a logged-in User every button on both lines, in order", () => {
+  it("shows a logged-in User every button in both actions lines, in order", () => {
     render(() => (
       <FeaturedPost post={post} caption={bartsCaption} captionsLoaded loggedIn userId={2} />
     ));
-    const categoriesLine = screen.getByRole("button", { name: /^Animals$/ }).parentElement!;
-    const postLine = screen.getByText("Likes:").closest("div.justify-between")!;
     const names = (el: Element) =>
       [...el.querySelectorAll("button")].map((b) => b.getAttribute("aria-label") ?? b.textContent);
-    expect(names(categoriesLine)).toEqual([
-      "Animals",
-      "Cute",
-      "Caption comments, 2 comments",
+    expect(names(captionActions())).toEqual([
+      "Caption Comments, 2 comments",
       "Like caption by Bart",
       "Add Caption",
       "Edit caption by Bart",
       "Delete caption by Bart",
     ]);
-    expect(names(postLine)).toEqual([
-      "Comments, 3 comments",
+    expect(names(postActions())).toEqual([
+      "Post Comments, 3 comments",
       "Like post by Lisa",
       "Add Post",
       "Edit Post by Lisa",
@@ -475,15 +512,14 @@ describe("<FeaturedPost /> — visibility rule, Post line and Caption line (#123
     }
   });
 
-  it("puts the Caption buttons at the same right margin as the Post buttons", () => {
+  it("lays out the Caption actions as the Post actions (#210)", () => {
     render(() => <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn />);
-    const captionGroup = button(/like caption/i)!.parentElement!;
-    const postLine = screen.getByText("Likes:").closest("div.justify-between")!;
-    expect(captionGroup).toHaveClass("pr-2");
-    expect(postLine).toHaveClass("px-2");
+    expect(captionActions().className).toBe(postActions().className);
+    const group = (toggle: HTMLElement) => toggle.nextElementSibling!.className;
+    expect(group(captionToggle())).toBe(group(postToggle()));
   });
 
-  it("the Post line's Add calls onAddPost with itself, the opener (#214)", async () => {
+  it("the Add in the Post actions calls onAddPost with itself, the opener (#214)", async () => {
     const onAddPost = vi.fn();
     const user = userEvent.setup();
     render(() => (
@@ -545,23 +581,51 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
     await user.click(toggle());
     expect(postComments.open()).toBe(true);
     expect(toggle()).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("region", { name: "Comments" })).toBe(panel());
+    expect(screen.getByRole("region", { name: "Post Comments" })).toBe(panel());
     expect(panel()).toHaveTextContent("Nice cat");
 
     await user.click(toggle());
     expect(postComments.open()).toBe(false);
-    expect(screen.queryByRole("region", { name: "Comments" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Post Comments" })).toBeNull();
     expect(panel()).toBeEmptyDOMElement();
   });
 
-  it("sits between the categories line and the Comments line", () => {
+  it("the toggle reads 'Post Comments + 3', with − while open; the glyph is aria-hidden (#210)", async () => {
+    const user = userEvent.setup();
     const postComments = fakePostComments();
     render(() => <FeaturedPost post={post} caption={caption} postComments={postComments} />);
-    const category = screen.getByRole("button", { name: /^Cute$/ });
-    const follows = (a: Node, b: Node) =>
-      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(follows(category, panel()!)).toBe(true);
-    expect(follows(panel()!, toggle())).toBe(true);
+    const glyph = () => toggle().querySelector("[aria-hidden='true']");
+    expect(toggle()).toHaveTextContent(/^Post Comments\s*\+\s*3$/);
+    expect(glyph()).toHaveTextContent(/^\+$/);
+
+    await user.click(toggle());
+    expect(toggle()).toHaveTextContent(/^Post Comments\s*−\s*3$/);
+    expect(glyph()).toHaveTextContent(/^−$/);
+  });
+
+  it("Escape in the empty compose box closes the panel; focus moves to the toggle (#210)", async () => {
+    const user = userEvent.setup();
+    const postComments = fakePostComments();
+    render(() => (
+      <FeaturedPost post={post} caption={caption} postComments={postComments} loggedIn userId={2} />
+    ));
+    await user.click(toggle());
+    await user.click(screen.getByRole("textbox", { name: "Post Comment" }));
+    await user.keyboard("{Escape}");
+    expect(postComments.open()).toBe(false);
+    expect(panel()).toBeEmptyDOMElement();
+    expect(toggle()).toHaveFocus();
+  });
+
+  it("sits under the Caption actions; its top border is the rule, with no separator (#210)", async () => {
+    const user = userEvent.setup();
+    const postComments = fakePostComments();
+    render(() => <FeaturedPost post={post} caption={caption} postComments={postComments} />);
+    expect(follows(captionActions(), panel()!)).toBe(true);
+
+    await user.click(toggle());
+    expect(panel()).toHaveClass("border-t");
+    expect(screen.queryByRole("separator")).toBeNull();
   });
 
   it("a refetched Post keeps the panel open and the draft", async () => {
@@ -578,11 +642,11 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
       />
     ));
     await user.click(toggle());
-    await user.type(screen.getByRole("textbox", { name: "Your comment" }), "draft");
+    await user.type(screen.getByRole("textbox", { name: "Post Comment" }), "draft");
 
     // A `posts` poke refetches the list: a new object for the same Post.
     setShown({ ...post, commentCount: 3 });
-    expect(screen.getByRole("textbox", { name: "Your comment" })).toHaveValue("draft");
+    expect(screen.getByRole("textbox", { name: "Post Comment" })).toHaveValue("draft");
   });
 });
 
@@ -614,14 +678,22 @@ describe("<FeaturedPost /> — the Caption Comments panel (#127)", () => {
       source: () => Promise.resolve(""),
     };
   };
-  const toggle = () => screen.getByRole("button", { name: "Caption comments, 2 comments" });
+  const toggle = () => screen.getByRole("button", { name: "Caption Comments, 2 comments" });
   const panel = () => document.getElementById(toggle().getAttribute("aria-controls")!);
 
   it("shows the toggle first in the Caption actions, with the Caption's comment count", () => {
     render(() => <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn />);
-    expect(toggle()).toHaveTextContent(/^Comments\s*2$/);
+    expect(toggle()).toHaveTextContent(/^Caption Comments\s*\+\s*2$/);
     expect(toggle().parentElement!.firstElementChild).toBe(toggle());
     expect(toggle()).toBeEnabled();
+  });
+
+  it("names each toggle by its label and its count in words; a count of one says 1 comment (#210)", () => {
+    render(() => (
+      <FeaturedPost post={post} caption={{ ...caption, commentCount: 1 }} captionsLoaded />
+    ));
+    expect(screen.getByRole("button", { name: "Post Comments, 3 comments" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Caption Comments, 1 comment" })).toBeInTheDocument();
   });
 
   it("shows a visitor the toggle only when a Caption exists", () => {
@@ -630,12 +702,12 @@ describe("<FeaturedPost /> — the Caption Comments panel (#127)", () => {
     unmount();
 
     render(() => <FeaturedPost post={post} caption={undefined} />);
-    expect(screen.queryByRole("button", { name: /^Caption comments/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Caption Comments/ })).toBeNull();
   });
 
   it("shows a logged-in User the toggle, disabled, on a Post with no Caption", () => {
     render(() => <FeaturedPost post={post} captionsLoaded loggedIn userId={1} />);
-    expect(screen.getByRole("button", { name: "Caption comments, 0 comments" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Caption Comments, 0 comments" })).toBeDisabled();
   });
 
   it("the toggle opens and closes the Caption thread panel", async () => {
@@ -648,15 +720,35 @@ describe("<FeaturedPost /> — the Caption Comments panel (#127)", () => {
     await user.click(toggle());
     expect(captionComments.open()).toBe(true);
     expect(toggle()).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("region", { name: "Caption comments" })).toBe(panel());
+    expect(screen.getByRole("region", { name: "Caption Comments" })).toBe(panel());
     expect(panel()).toHaveTextContent("Nice caption");
+    expect(toggle()).toHaveTextContent(/^Caption Comments\s*−\s*2$/);
 
     await user.click(toggle());
     expect(captionComments.open()).toBe(false);
     expect(panel()).toBeEmptyDOMElement();
   });
 
-  it("opens beside the Post panel: under the categories line, above the Post panel", async () => {
+  it("Escape in the empty compose box closes the panel; focus moves to the toggle (#210)", async () => {
+    const user = userEvent.setup();
+    const captionComments = fakeThread("<p>Nice caption</p>");
+    render(() => (
+      <FeaturedPost
+        post={post}
+        caption={caption}
+        captionComments={captionComments}
+        loggedIn
+        userId={2}
+      />
+    ));
+    await user.click(toggle());
+    await user.click(screen.getByRole("textbox", { name: "Caption Comment" }));
+    await user.keyboard("{Escape}");
+    expect(captionComments.open()).toBe(false);
+    expect(toggle()).toHaveFocus();
+  });
+
+  it("opens in the Post panel's place, under the Caption actions (#210)", async () => {
     const user = userEvent.setup();
     const postComments = fakeThread("<p>On the Post</p>");
     const captionComments = fakeThread("<p>On the Caption</p>");
@@ -670,15 +762,16 @@ describe("<FeaturedPost /> — the Caption Comments panel (#127)", () => {
         userId={2}
       />
     ));
+    // The view-model opens one thread at a time; these fakes let both open, so
+    // the ids can be checked below.
     await user.click(toggle());
-    await user.click(screen.getByRole("button", { name: "Comments, 3 comments" }));
+    await user.click(screen.getByRole("button", { name: "Post Comments, 3 comments" }));
 
-    const captionPanel = screen.getByRole("region", { name: "Caption comments" });
-    const postPanel = screen.getByRole("region", { name: "Comments" });
-    const follows = (a: Node, b: Node) =>
-      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(follows(screen.getByRole("button", { name: /^Cute$/ }), captionPanel)).toBe(true);
-    expect(follows(captionPanel, postPanel)).toBe(true);
+    const captionPanel = screen.getByRole("region", { name: "Caption Comments" });
+    const postPanel = screen.getByRole("region", { name: "Post Comments" });
+    expect(captionPanel.parentElement).toBe(postPanel.parentElement);
+    expect(follows(captionActions(), captionPanel)).toBe(true);
+    expect(follows(captionActions(), postPanel)).toBe(true);
     expect(captionPanel).toHaveTextContent("On the Caption");
     expect(postPanel).toHaveTextContent("On the Post");
 
@@ -819,7 +912,7 @@ describe("<FeaturedPost /> — the Owner's edits (#187)", () => {
   }
   const button = (name: string) => screen.getByRole("button", { name });
 
-  it("the Post line's Edit opens the Edit Post dialog; Save sends this Post's changes", async () => {
+  it("the Edit in the Post actions opens the Edit Post dialog; Save sends this Post's changes", async () => {
     const { user, postEdit, onUpdatePost } = renderOwner();
     await user.click(button("Edit Post by Lisa"));
     expect(postEdit.open()).toBe(true);

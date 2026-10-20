@@ -1,4 +1,5 @@
 import { createUniqueId, onCleanup, onMount, Show } from "solid-js";
+import { keepDialogFocus } from "~/lib/keepDialogFocus";
 import { stopDialogEscape } from "~/lib/stopDialogEscape";
 
 export interface ConfirmDialogProps {
@@ -18,6 +19,7 @@ export interface ConfirmDialogProps {
  * A modal confirm (ADR-0030): a native `<dialog>` opened with `showModal()`, as
  * `PostDialog` is. The cancel button is the default, and Escape cancels.
  * Without a `cancelLabel`, it is a notice: one button, and Escape confirms.
+ * Tab and Shift+Tab move between the buttons (#210).
  *
  * Each open mounts a fresh `<dialog>` (#214): Chromium closes a reused modal
  * dialog that opens with no user gesture over another one, such as the
@@ -60,7 +62,10 @@ function OpenConfirmDialog(props: ConfirmDialogProps) {
       // A browser can still close it (Chrome closes on a second Escape). Then
       // the owner must hear a cancel, or its state stays open with no dialog.
       onClose={() => !closing && cancel()}
-      on:keydown={stopDialogEscape}
+      on:keydown={(e) => {
+        stopDialogEscape(e);
+        keepDialogFocus(e);
+      }}
       aria-labelledby={messageId}
       class="theme-dialog max-w-sm"
     >

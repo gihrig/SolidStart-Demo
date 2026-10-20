@@ -23,18 +23,14 @@ export default function Author(props: AuthorProps) {
     <Show
       when={props.href}
       fallback={
-        <div class="flex items-center gap-1 mb-4">
+        <div class="flex items-center gap-1">
           {avatar()}
           <span class="font-bold">{props.name}</span>
         </div>
       }
     >
       {(href) => (
-        <a
-          class="flex items-center gap-1 mb-4 hover:underline"
-          href={href()}
-          onClick={props.onClick}
-        >
+        <a class="flex items-center gap-1 hover:underline" href={href()} onClick={props.onClick}>
           {avatar()}
           <span class="font-bold">{props.name}</span>
         </a>

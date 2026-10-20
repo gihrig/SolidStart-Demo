@@ -90,11 +90,12 @@ export interface OwnerWrites<Changes> {
  * `captionComments` the shown Caption's (#127). Each is one
  * `createCommentThread`, exposed as one nested member, with its own open state,
  * Draft scope and Subscription; this view-model keeps the Feed wiring around
- * them.
+ * them. One of the two is open at a time (#210).
  *
  * Each user-started move that changes the selected Post, a Caption pick that
- * changes the Caption shown, and a close of a Comments panel, goes through the
- * app's Draft guard (ADR-0030): with a Draft, it waits for the confirm dialog.
+ * changes the Caption shown, and a close of a Comments panel, by its toggle or
+ * by an open of the other panel (#210), goes through the app's Draft guard
+ * (ADR-0030): with a Draft, it waits for the confirm dialog.
  *
  * `postOwner` / `captionOwner` are the Owner's writes (#187): the edit, the
  * save and the delete. A refetch finds the cause of a change that it did not
@@ -150,13 +151,14 @@ export interface JediFeed {
    *  `selectedPostLike` is for the Post. */
   selectedCaptionLike: Accessor<Like | undefined>;
   /** Like or unlike the selected Caption (#123), as `togglePostLike`. The
-   *  Caption line shows the new count at once; Top Captions re-ranks after the
-   *  back-end's `post_caption` poke. */
+   *  Caption actions show the new count at once; Top Captions re-ranks after
+   *  the back-end's `post_caption` poke. */
   toggleCaptionLike: () => Promise<void>;
   /** The selected Post's Comment thread (#124): the panel's open state, its
    *  rows and its writes. It loads only while the panel is open. The read is
    *  public, so it loads on the anonymous landing too; the writes need a login.
-   *  A close goes through the Draft guard. */
+   *  A close goes through the Draft guard. An open first closes the other
+   *  thread, in that thread's scope (#210). */
   postComments: CommentThreadState;
   /** The shown Caption's Comment thread (#127), as `postComments` is for the
    *  Post. While its panel is open, it holds the Caption shown. */
@@ -461,20 +463,39 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // The selected Post's Comment thread (#124). It loads while its panel is
   // open; the read is public, so it does not wait for a live session. Its
   // close goes through the guard.
-  const { thread: postComments, onEvent: onPostCommentEvent } = createCommentThread({
+  const { thread: postThread, onEvent: onPostCommentEvent } = createCommentThread({
     parentId: () => selectedPost()?.id,
     api: api.comments,
     events: POST_COMMENT_EVENTS,
     guard,
   });
   // The shown Caption's Comment thread (#127), the same way.
-  const { thread: captionComments, onEvent: onCaptionCommentEvent } = createCommentThread({
+  const { thread: captionThread, onEvent: onCaptionCommentEvent } = createCommentThread({
     parentId: () => selectedCaption()?.id,
     api: api.captionComments,
     events: CAPTION_COMMENT_EVENTS,
     openOn: captionThreadOpenOn,
     guard,
   });
+  // One Comments panel at a time (#210). An open of one thread first closes
+  // the other, a guarded move in the other thread's scope. In the move, that
+  // close runs at once: the attempt checked the same scope.
+  const openAlone = (
+    thread: CommentThreadState,
+    other: CommentThreadState,
+  ): CommentThreadState => ({
+    ...thread,
+    setOpen: (open) => {
+      if (!open || !other.open()) thread.setOpen(open);
+      else
+        guard.attempt(() => {
+          other.setOpen(false);
+          thread.setOpen(true);
+        }, [other.draftScope]);
+    },
+  });
+  const postComments = openAlone(postThread, captionThread);
+  const captionComments = openAlone(captionThread, postThread);
 
   postScopes = [
     postEdit.draftScope,
