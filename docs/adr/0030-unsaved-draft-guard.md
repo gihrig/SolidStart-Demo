@@ -241,7 +241,14 @@ switch.
 the #214 rules. The box shows for as long as its panel is open. So the Cancel
 empties the box, and the panel stays open. With a Draft, the guard asks about the
 compose box only. Escape runs the Cancel. After the Cancel, focus moves to the
-text field.
+text field. In the empty box, Escape closes the Comments panel, as a click on its
+toggle does. Focus moves to the toggle, and the close goes through the guard.
+
+**An inline form's Escape cancels the browser's Escape.** The Comment forms and
+the Caption forms run their Cancel in the Escape keydown. With a Draft, the
+Cancel opens the question at once. The browser then takes the same Escape as a
+close of that new dialog. So each Escape that a form acts on calls
+`preventDefault`, and the question stays open.
 
 **Rejected.** Two open panels: both open in one place. A compose Cancel that
 closes the panel: the close also unmounts the Comment edits in the thread's scope.
