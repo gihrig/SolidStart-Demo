@@ -112,6 +112,9 @@ interface ActionsLineProps {
   toggleRef?: (el: HTMLButtonElement) => void;
   /** The errors of the line's actions. */
   errors: (string | null)[];
+  /** Whether the viewer is a logged-in User: then the other actions sit at the
+   *  right of the line (#210). */
+  loggedIn?: boolean;
   /** The block's classes, such as its margin. */
   class?: string;
   /** The other actions: the fire-heart and count, Like, Add, Edit and Delete. */
@@ -123,14 +126,17 @@ interface ActionsLineProps {
  * layout. The Comments toggle sits at the left: its label, `+` while its thread
  * is closed and `−` (a minus sign) while it is open, and the count. The glyph
  * is visual only; the toggle's name says the count in words, and neither
- * toggle's name starts the other's. The other actions sit at the right, and on
- * a narrow screen they wrap under the toggle. One alert per failed action goes
- * under the line, so one error never hides another.
+ * toggle's name starts the other's. For a logged-in User, the other actions sit
+ * at the right, and on a narrow screen they wrap under the toggle. A visitor's
+ * fire-heart and count sit right after the toggle. One alert per failed action
+ * goes under the line, so one error never hides another.
  */
 function ActionsLine(props: ActionsLineProps) {
   return (
     <div class={props.class}>
-      <div class="flex flex-wrap items-center justify-between gap-y-2 text-sm px-2">
+      <div
+        class={`flex flex-wrap items-center gap-y-2 text-sm px-2 ${props.loggedIn ? "justify-between" : "gap-x-4"}`}
+      >
         <button
           ref={(el) => props.toggleRef?.(el)}
           type="button"
@@ -311,6 +317,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
         <ActionsLine
           class="mb-10"
           label="Post Comments"
+          loggedIn={props.loggedIn}
           count={props.post.commentCount}
           open={commentsOpen()}
           panelId={commentsPanelId()}
@@ -384,6 +391,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
         <Show when={props.loggedIn || props.caption}>
           <ActionsLine
             label="Caption Comments"
+            loggedIn={props.loggedIn}
             count={captionCommentCount()}
             open={captionCommentsOpen()}
             panelId={captionCommentsPanelId()}

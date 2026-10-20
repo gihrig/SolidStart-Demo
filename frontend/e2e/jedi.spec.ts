@@ -85,6 +85,23 @@ test.describe("Jedi Page", () => {
     }
   });
 
+  // A visitor's fire-heart and count sit right after each Comments toggle, not
+  // at the far end of the line (#210).
+  test("a visitor's fire-heart and count sit right after each Comments toggle", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const article = page.locator("article").first();
+    for (const [toggleName, count] of [
+      [/^Post Comments, /i, "Likes: 5"],
+      [/^Caption Comments, /i, "Caption likes: 8"],
+    ] as const) {
+      const toggle = (await article.getByRole("button", { name: toggleName }).boundingBox())!;
+      const likes = (await article.getByText(count).boundingBox())!;
+      expect(likes.x - (toggle.x + toggle.width), count).toBeLessThan(64);
+    }
+  });
+
   // The seeded back-end Likes match the fixture likeCount (#177), so Top Photos
   // ranks Posts [1, 3, 2, 4] and Post 1's Top Captions rank [1, 2].
   test("should rank Top Photos and Top Captions by the seeded like counts", async ({ page }) => {
