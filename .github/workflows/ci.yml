@@ -229,7 +229,8 @@ jobs:
   #    cannot hide a finding here. Runs on every PR, on push to main, AND on the
   #    daily schedule: grype auto-updates its vulnerability DB each run, so the
   #    scheduled run surfaces a newly disclosed CVE in an unchanged dependency.
-  #    Like cargo-audit, this job carries no `if:` guard. Mirrors `cgs scan`.
+  #    Its only guard skips the deps/weekly-update PR; deps.yml runs this gate
+  #    itself (#225). Mirrors `cgs scan`.
   #    grype is PINNED so its behaviour is reproducible; the DB it downloads is
   #    always current regardless of the pinned binary.
   grype-scan:
@@ -280,8 +281,9 @@ jobs:
   #    advisory, including the RustSec-only signals grype does not carry
   #    (unmaintained / unsound / notice / yanked). Accepted risks live in
   #    backend/.cargo/audit.toml. Runs on every PR, on push to main, and on the
-  #    daily schedule (a fresh advisory can trip an unchanged Cargo.lock): this
-  #    job carries no `if:` guard. Mirrors `cgs audit`.
+  #    daily schedule (a fresh advisory can trip an unchanged Cargo.lock). Its
+  #    only guard skips the deps/weekly-update PR; deps.yml runs this gate
+  #    itself (#225). Mirrors `cgs audit`.
   cargo-audit:
     name: cargo-audit (back-end RustSec)
     if: github.head_ref != 'deps/weekly-update'

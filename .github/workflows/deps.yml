@@ -58,7 +58,7 @@ jobs:
 
       - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
         with:
-          tool: nextest
+          tool: nextest,cargo-audit,cargo-deny@0.20.2
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
@@ -91,6 +91,26 @@ jobs:
       - name: Regenerate SBOM
         run: ./scripts/sbom.sh write
 
+      # -- Security gate (mirrors ci.yml's cargo-audit, cargo-deny and grype-scan
+      #    jobs, which skip this PR; #225). Runs first: it needs only the
+      #    lockfiles and the regenerated SBOM, so a vulnerable bump fails fast.
+      - name: Back-end audit (fails on any advisory)
+        working-directory: backend
+        run: cargo audit --deny warnings
+
+      - name: Back-end deny (licenses / bans / sources)
+        working-directory: backend
+        run: cargo deny check licenses bans sources
+
+      - name: Install grype (pinned release, checksum-verified)
+        run: ./scripts/grype-install.sh
+
+      - name: Scan the regenerated SBOM (fails on high/critical)
+        run: ./scripts/grype-scan.sh
+
+      - name: Verify VEX statements are not stale
+        run: ./scripts/vex-check.sh
+
       # -- Gate (mirrors ci.yml). A failure here fails the job -> no PR opens.
       - name: Back-end format check
         working-directory: backend
@@ -120,12 +140,11 @@ jobs:
         working-directory: frontend
         run: vinxi build
 
-      # `bun update` above runs frontend/package.json's `prepare`
-      # (`vp config`), which points core.hooksPath at the Vite+ hooks — including
-      # the pre-push grype gate. grype is not installed on this runner, so that
-      # hook would block the create-pull-request push (exit 127 -> gate fails).
-      # The hook is a local developer convenience; ci.yml's `grype-scan` job
-      # enforces the gate on the resulting PR. Disable local hooks for the push.
+      # `bun update` above runs frontend/package.json's `prepare` (`vp config`),
+      # which points core.hooksPath at the Vite+ hooks (pre-commit, pre-push).
+      # The hooks are a local developer convenience; the security gate steps
+      # above already scanned this SBOM. Disable local hooks so they cannot
+      # block the create-pull-request commit or push.
       - name: Disable local git hooks for the automated push
         run: |
           mkdir -p "$RUNNER_TEMP/no-hooks"
@@ -144,6 +163,10 @@ jobs:
 
             - `cargo update` (back-end) + `bun update` (front-end)
             - `/sbom.cdx.json` regenerated for the lockfile bumps
-            - Full gate passed in the workflow: back-end fmt/clippy/build/nextest
-              and front-end check/test/build. This PR was opened only because the
-              gate was green.
+            - Full gate passed in the workflow: security (cargo audit
+              --deny warnings, cargo deny check licenses bans sources,
+              grype --fail-on high, VEX check), back-end
+              fmt/clippy/build/nextest and front-end check/test/build. This PR
+              was opened only because the gate was green.
+            - Advisories published after this run are not covered. Before
+              merging, run `cgs audit` and `cgs scan` locally.
