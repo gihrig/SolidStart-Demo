@@ -193,6 +193,26 @@ describe("<PostDialog />", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it("Tab and Shift+Tab keep focus in the dialog, and wrap (#210)", async () => {
+    const user = userEvent.setup();
+    render(() => (
+      <>
+        <button type="button">outside</button>
+        <PostDialog api={api} onClose={vi.fn()} />
+      </>
+    ));
+    const form = within(screen.getByRole("dialog"));
+    await form.findByRole("checkbox", { name: "Animals" });
+    const title = form.getByLabelText("Title");
+    const submit = form.getByRole("button", { name: "Post" });
+
+    title.focus();
+    await user.tab({ shift: true });
+    expect(submit).toHaveFocus();
+    await user.tab();
+    expect(title).toHaveFocus();
+  });
+
   it('says "Could not add the Post" when the add fails with no message (#210)', async () => {
     postCreateMock.mockRejectedValue({ status: 500 });
     const { user, form } = await openAndFill();

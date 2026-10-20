@@ -474,6 +474,42 @@ test.describe("Jedi Page - the keyboard in the inline forms and the question (#2
   });
 });
 
+// A modal dialog keeps Tab inside: Tab and Shift+Tab wrap (#210).
+test.describe("Jedi Page - Tab stays in the dialogs (#210)", () => {
+  test("the Login dialog", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    const header = page.getByRole("banner");
+    await header.getByRole("button", { name: "Profile menu" }).click();
+    await header.getByRole("button", { name: "Log In" }).click();
+    const dialog = page.getByRole("dialog", { name: "Login" });
+    const username = dialog.getByLabel("Username");
+    const login = dialog.getByRole("button", { name: /^login$/i });
+
+    await username.focus();
+    await page.keyboard.press("Shift+Tab");
+    await expect(login).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(username).toBeFocused();
+  });
+
+  test("the New Post dialog", async ({ page }) => {
+    await page.goto("/");
+    await loginAs(page, "demo1", "welcome");
+    await page.getByRole("banner").getByRole("button", { name: "New Post" }).click();
+    const dialog = page.getByRole("dialog", { name: "New Post" });
+    await expect(dialog.getByRole("checkbox").first()).toBeVisible();
+    const title = dialog.getByLabel("Title");
+    const post = dialog.getByRole("button", { name: "Post", exact: true });
+
+    await title.focus();
+    await page.keyboard.press("Shift+Tab");
+    await expect(post).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(title).toBeFocused();
+  });
+});
+
 // Each Comment row shows its author, its time and its text (#125).
 test.describe("Jedi Page - Comment row (#125)", () => {
   test("demo1 posts a Comment, sees the author row, then deletes it", async ({ page }) => {

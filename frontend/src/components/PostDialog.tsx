@@ -14,6 +14,7 @@ import { createStore } from "solid-js/store";
 import type { DraftScope } from "~/lib/createDraftGuard";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
+import { keepDialogFocus } from "~/lib/keepDialogFocus";
 import { stopDialogEscape } from "~/lib/stopDialogEscape";
 import type { HygieneCaps } from "~/types/backend";
 import type { PostChanges, PostDraft, PostView } from "~/types/jedi";
@@ -148,7 +149,8 @@ export interface PostDialogProps {
  *
  * In both modes, Cancel, Escape and a browser close are one Cancel: with a
  * Draft, it asks first, and a browser close opens the dialog again to ask.
- * While the write is in flight, none of them closes the dialog (#214).
+ * While the write is in flight, none of them closes the dialog (#214). Tab and
+ * Shift+Tab keep focus in the dialog (#210).
  */
 export default function PostDialog(props: PostDialogProps) {
   const api = props.api ?? jediApi;
@@ -281,7 +283,10 @@ export default function PostDialog(props: PostDialogProps) {
         if (dirty()) dialogRef?.showModal();
         cancel();
       }}
-      on:keydown={stopDialogEscape}
+      on:keydown={(e) => {
+        stopDialogEscape(e);
+        keepDialogFocus(e);
+      }}
       aria-labelledby={headingId}
       class="theme-dialog max-w-md"
     >

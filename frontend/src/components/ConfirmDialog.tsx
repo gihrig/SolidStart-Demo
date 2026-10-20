@@ -1,4 +1,5 @@
 import { createUniqueId, onCleanup, onMount, Show } from "solid-js";
+import { keepDialogFocus } from "~/lib/keepDialogFocus";
 import { stopDialogEscape } from "~/lib/stopDialogEscape";
 
 export interface ConfirmDialogProps {
@@ -49,18 +50,6 @@ function OpenConfirmDialog(props: ConfirmDialogProps) {
     closing = true;
     if (dialogRef?.open) dialogRef.close();
   });
-  // Tab and Shift+Tab move focus between the buttons, and wrap (#210). On its
-  // own, a browser moves focus out of the dialog after its last button, or does
-  // not stop on a button at all.
-  const moveFocus = (e: KeyboardEvent) => {
-    if (e.key !== "Tab" || !dialogRef) return;
-    e.preventDefault();
-    const buttons = [...dialogRef.querySelectorAll("button")];
-    const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
-    let next = e.shiftKey ? buttons.length - 1 : 0;
-    if (at !== -1) next = (at + (e.shiftKey ? buttons.length - 1 : 1)) % buttons.length;
-    buttons[next]?.focus();
-  };
 
   return (
     <dialog
@@ -75,7 +64,7 @@ function OpenConfirmDialog(props: ConfirmDialogProps) {
       onClose={() => !closing && cancel()}
       on:keydown={(e) => {
         stopDialogEscape(e);
-        moveFocus(e);
+        keepDialogFocus(e);
       }}
       aria-labelledby={messageId}
       class="theme-dialog max-w-sm"

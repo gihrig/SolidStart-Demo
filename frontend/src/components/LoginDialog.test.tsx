@@ -65,6 +65,19 @@ describe("<LoginDialog />", () => {
     expect(screen.getByRole("dialog", { name: "Login" })).toBe(dialog);
   });
 
+  it("Tab and Shift+Tab keep focus in the dialog, and wrap (#210)", async () => {
+    const { user, form } = renderDialog();
+    await user.click(screen.getByRole("button", { name: "open-login" }));
+    const username = form.getByLabelText(/username/i);
+    const login = form.getByRole("button", { name: /^login$/i });
+
+    username.focus();
+    await user.tab({ shift: true });
+    expect(login).toHaveFocus();
+    await user.tab();
+    expect(username).toHaveFocus();
+  });
+
   it("closes after a successful login and reports the close", async () => {
     const { backendRpc } = await import("~/lib/backend-rpc");
     // eslint-disable-next-line @typescript-eslint/unbound-method

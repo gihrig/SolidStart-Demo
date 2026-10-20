@@ -1,4 +1,5 @@
 import { createEffect, createUniqueId } from "solid-js";
+import { keepDialogFocus } from "~/lib/keepDialogFocus";
 import { stopDialogEscape } from "~/lib/stopDialogEscape";
 import { useAuth } from "./AuthContext";
 import LoginForm from "./LoginForm";
@@ -14,7 +15,8 @@ export interface LoginDialogProps {
  * The login overlay (#128): the LoginForm in a modal `<dialog>`. The Nav owns
  * the open state. A successful login closes the dialog; a failed one keeps it
  * open with the error. Cancel and Escape close it, except while the login is in
- * flight. Each open clears the last error.
+ * flight. Each open clears the last error. Tab and Shift+Tab keep focus in the
+ * dialog (#210).
  */
 export default function LoginDialog(props: LoginDialogProps) {
   const { pending, resetError } = useAuth();
@@ -37,7 +39,10 @@ export default function LoginDialog(props: LoginDialogProps) {
       // result (the close, or the error) stays visible.
       onCancel={(e) => pending() && e.preventDefault()}
       onClose={() => props.onClose()}
-      on:keydown={stopDialogEscape}
+      on:keydown={(e) => {
+        stopDialogEscape(e);
+        keepDialogFocus(e);
+      }}
       aria-labelledby={headingId}
       class="theme-dialog max-w-md"
     >
