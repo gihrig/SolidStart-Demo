@@ -171,13 +171,13 @@ test.describe("Live updates across Users (#129)", () => {
       const articleB = await featuredArticle(b);
       // B opens the thread first, so B holds its Channel before A posts.
       await articleB.getByRole("button", { name: /^Comments, /i }).click();
-      await expect(articleB.getByRole("textbox", { name: "Your comment" })).toBeVisible();
+      await expect(articleB.getByRole("textbox", { name: "Post Comment" })).toBeVisible();
       await articleA.getByRole("button", { name: /^Comments, /i }).click();
 
       // A unique text, so a row left by an earlier failed run cannot match.
       const text = `e2e live comment ${Date.now()}`;
-      await articleA.getByRole("textbox", { name: "Your comment" }).fill(text);
-      await articleA.getByRole("button", { name: "Post Comment" }).click();
+      await articleA.getByRole("textbox", { name: "Post Comment" }).fill(text);
+      await articleA.getByRole("button", { name: "Add Comment" }).click();
 
       const rowA = articleA.getByRole("listitem").filter({ hasText: text });
       const rowB = articleB.getByRole("listitem").filter({ hasText: text });
@@ -219,7 +219,7 @@ test.describe("Live updates across Users (#129)", () => {
 
       // B holds a Draft on the Post: an unsaved Comment.
       await articleB.getByRole("button", { name: /^Comments, /i }).click();
-      await articleB.getByRole("textbox", { name: "Your comment" }).fill("an unsaved Comment");
+      await articleB.getByRole("textbox", { name: "Post Comment" }).fill("an unsaved Comment");
 
       await confirmDelete(a, articleA, "Delete Post by demo1");
       await expect(a.getByRole("status")).toHaveText("Post deleted.");

@@ -578,11 +578,11 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
       />
     ));
     await user.click(toggle());
-    await user.type(screen.getByRole("textbox", { name: "Your comment" }), "draft");
+    await user.type(screen.getByRole("textbox", { name: "Post Comment" }), "draft");
 
     // A `posts` poke refetches the list: a new object for the same Post.
     setShown({ ...post, commentCount: 3 });
-    expect(screen.getByRole("textbox", { name: "Your comment" })).toHaveValue("draft");
+    expect(screen.getByRole("textbox", { name: "Post Comment" })).toHaveValue("draft");
   });
 });
 

@@ -314,6 +314,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               <CommentThread
                 id={captionCommentsPanelId()}
                 thread={captionComments()}
+                composeLabel="Caption Comment"
                 loggedIn={props.loggedIn}
                 userId={props.userId}
               />
@@ -335,6 +336,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               <CommentThread
                 id={commentsPanelId()}
                 thread={postComments()}
+                composeLabel="Post Comment"
                 loggedIn={props.loggedIn}
                 userId={props.userId}
               />

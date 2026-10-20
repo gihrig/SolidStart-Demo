@@ -436,7 +436,7 @@ describe("Home route — the Draft guard (ADR-0030)", () => {
 
   const confirmDialog = () =>
     screen.queryByRole("dialog", { name: "You have unsaved changes. Discard them?" });
-  const composeBox = () => screen.getByRole("textbox", { name: "Your comment" });
+  const composeBox = () => screen.getByRole("textbox", { name: "Post Comment" });
 
   // Log in, open the featured Post's Comments, and type a Draft.
   async function startDraft() {
@@ -445,7 +445,7 @@ describe("Home route — the Draft guard (ADR-0030)", () => {
     await user.click(screen.getByRole("button", { name: /do-login/i }));
     await screen.findByRole("heading", { name: /little jedi/i });
     await user.click(screen.getByRole("button", { name: /^Comments, 0 comments/i }));
-    await user.type(await screen.findByRole("textbox", { name: "Your comment" }), "draft");
+    await user.type(await screen.findByRole("textbox", { name: "Post Comment" }), "draft");
     return user;
   }
 
@@ -529,7 +529,7 @@ describe("Home route — the Draft guard (ADR-0030)", () => {
     }
     async function typeComment(user: ReturnType<typeof userEvent.setup>) {
       await user.click(screen.getByRole("button", { name: /^Comments, 0 comments/i }));
-      await user.type(await screen.findByRole("textbox", { name: "Your comment" }), "draft");
+      await user.type(await screen.findByRole("textbox", { name: "Post Comment" }), "draft");
     }
     async function typeNewPost(user: ReturnType<typeof userEvent.setup>) {
       await user.click(screen.getByRole("button", { name: "New Post" }));
@@ -573,7 +573,7 @@ describe("Home route — the Draft guard (ADR-0030)", () => {
       expect(
         await screen.findByRole("dialog", { name: /This Post was deleted/ }),
       ).toBeInTheDocument();
-      expect(screen.queryByRole("textbox", { name: "Your comment" })).toBeNull();
+      expect(screen.queryByRole("textbox", { name: "Post Comment" })).toBeNull();
       expect(newPostTitle()).toHaveValue("new post");
       expect(unloadBlocked(), "the guard still holds the New Post Draft").toBe(true);
     });
@@ -593,7 +593,7 @@ describe("Home route — the Draft guard (ADR-0030)", () => {
       await user.click(screen.getByRole("button", { name: "Discard" }));
 
       expect(await screen.findByRole("heading", { name: /camouflage/i })).toBeInTheDocument();
-      expect(screen.queryByRole("textbox", { name: "Your comment" })).toBeNull();
+      expect(screen.queryByRole("textbox", { name: "Post Comment" })).toBeNull();
       expect(newPostTitle()).toHaveValue("new post");
       expect(unloadBlocked()).toBe(true);
     });

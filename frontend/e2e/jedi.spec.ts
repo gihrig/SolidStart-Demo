@@ -305,7 +305,7 @@ test.describe("Jedi Page - Draft guard (#124)", () => {
     const article = page.locator("article").first();
     await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
     await article.getByRole("button", { name: /^Comments, /i }).click();
-    const compose = article.getByRole("textbox", { name: "Your comment" });
+    const compose = article.getByRole("textbox", { name: "Post Comment" });
     await compose.fill("A draft I have not posted");
 
     const photos = page.getByRole("listbox", { name: "Top Photos" });
@@ -363,8 +363,8 @@ test.describe("Jedi Page - Comment row (#125)", () => {
     await article.getByRole("button", { name: /^Comments, /i }).click();
     // A unique text, so a row left by an earlier failed run cannot match.
     const text = `e2e comment ${Date.now()}`;
-    await article.getByRole("textbox", { name: "Your comment" }).fill(text);
-    await article.getByRole("button", { name: "Post Comment" }).click();
+    await article.getByRole("textbox", { name: "Post Comment" }).fill(text);
+    await article.getByRole("button", { name: "Add Comment" }).click();
 
     const row = article.getByRole("listitem").filter({ hasText: text });
     await expect(row).toBeVisible();
@@ -389,8 +389,8 @@ test.describe("Jedi Page - Comment markdown (#126)", () => {
     await article.getByRole("button", { name: /^Comments, /i }).click();
     // A unique text, so a row left by an earlier failed run cannot match.
     const text = `e2e bold ${Date.now()}`;
-    await article.getByRole("textbox", { name: "Your comment" }).fill(`**${text}**`);
-    await article.getByRole("button", { name: "Post Comment" }).click();
+    await article.getByRole("textbox", { name: "Post Comment" }).fill(`**${text}**`);
+    await article.getByRole("button", { name: "Add Comment" }).click();
 
     const row = article.getByRole("listitem").filter({ hasText: text });
     await expect(row.locator("strong")).toHaveText(text);
@@ -416,8 +416,8 @@ test.describe("Jedi Page - Caption Comments (#127)", () => {
     const panel = article.getByRole("region", { name: "Caption comments" });
     // A unique text, so a row left by an earlier failed run cannot match.
     const text = `e2e caption comment ${Date.now()}`;
-    await panel.getByRole("textbox", { name: "Your comment" }).fill(text);
-    await panel.getByRole("button", { name: "Post Comment" }).click();
+    await panel.getByRole("textbox", { name: "Caption Comment" }).fill(text);
+    await panel.getByRole("button", { name: "Add Comment" }).click();
 
     const row = panel.getByRole("listitem").filter({ hasText: text });
     await expect(row).toBeVisible();

@@ -23,6 +23,9 @@ export interface CommentThreadProps {
   id: string;
   /** The thread to show (`createCommentThread`). */
   thread: CommentThreadState;
+  /** The compose box's heading, which names its text field (#210): "Post
+   *  Comment" or "Caption Comment". */
+  composeLabel: string;
   /** Only a logged-in User sees the compose box and the Edit / Delete buttons. */
   loggedIn?: boolean;
   /** The logged-in User's id: Edit / Delete show on the User's own Comments
@@ -72,12 +75,12 @@ const formatTime = (time: string) => TIME_FORMAT.format(new Date(time));
 // second, and the wire can carry 6.
 const isoTime = (time: string) => new Date(time).toISOString();
 
-/** The text of each `CommentForm` mode. */
+/** The text of each `CommentForm` mode. The compose box's heading comes from
+ *  the thread's owner (#210). */
 const FORM_TEXT = {
   compose: {
-    label: "Your comment",
-    submit: "Post Comment",
-    pending: "Posting…",
+    submit: "Add Comment",
+    pending: "Adding…",
     error: "Could not post the Comment",
   },
   edit: {
@@ -95,9 +98,12 @@ interface CommentFormProps {
   /** The textarea's element id; the count's id derives from it. */
   id: string;
   thread: CommentThreadState;
+  /** The compose box's heading (#210). An edit has its own hidden label. */
+  label?: string;
   /** The Comment to edit. Without it, the form composes a new Comment. */
   comment?: CommentView;
-  /** Called on Cancel, and after a saved write. An edit closes on it. */
+  /** Called on an edit's Cancel, and after a saved write. An edit closes on
+   *  it. */
   onClose?: () => void;
 }
 
@@ -116,12 +122,14 @@ interface CommentFormProps {
  * while its text is not blank, and an edit while its text differs from the
  * saved Comment. An edit holds none until its text loads. A remote edit moves
  * the row's `mtime`, so the edit loads the text again: an unchanged edit shows
- * the new text, and a changed one keeps the user's text. An edit's Cancel with
- * a Draft asks first, and Escape is its Cancel; the form reports its write to
- * the guard (#214).
+ * the new text, and a changed one keeps the user's text. A Cancel with a Draft
+ * asks first, and Escape is the Cancel; the form reports its write to the
+ * guard (#214). An edit's Cancel closes it. The compose box stays, so its
+ * Cancel empties it (#210).
  */
 function CommentForm(props: CommentFormProps) {
   const text = () => FORM_TEXT[props.comment ? "edit" : "compose"];
+  let textRef: HTMLTextAreaElement | undefined;
   // The saved text: "" for the compose box; for an edit, the stored text, and
   // undefined until it loads.
   const [saved, setSaved] = createSignal<string | undefined>(props.comment ? undefined : "");
@@ -186,25 +194,37 @@ function CommentForm(props: CommentFormProps) {
       props.onClose?.();
     }
   };
-  // The edit's Cancel asks first while it holds a Draft, about this form only
-  // (#214): the compose box and the other edits share its scope.
-  const handleCancel = () => draft.cancel(() => props.onClose?.());
-  // Escape is the edit's Cancel; the compose box has no Cancel, so it ignores
-  // Escape (#214). The form stops it, so a document listener (`useDismiss`)
-  // does not close a menu or the sidebar.
+  // The Cancel asks first while the form holds a Draft, about this form only
+  // (#214): the compose box and the edits share one scope. The compose box's
+  // Cancel empties it, and focus moves to its text field (#210).
+  const handleCancel = () =>
+    draft.cancel(() => {
+      if (props.comment) props.onClose?.();
+      else {
+        setValue("");
+        textRef?.focus();
+      }
+    });
+  // The Cancel is disabled while the form writes, and the compose box's while
+  // it is empty (#210).
+  const cancelDisabled = () => write.pending() || (!props.comment && value() === "");
+  // Escape is the Cancel (#214), and does nothing while the Cancel is disabled
+  // (#210). The form stops it, so a document listener (`useDismiss`) does not
+  // close a menu or the sidebar.
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key !== "Escape") return;
     e.stopPropagation();
-    if (!e.isComposing && props.comment && !write.pending()) handleCancel();
+    if (!e.isComposing && !cancelDisabled()) handleCancel();
   };
 
   return (
     <form onSubmit={handleSubmit} on:keydown={handleKeyDown} class="space-y-2">
       <ErrorAlert error={write.error() ?? loadError()} />
       <label for={props.id} class={props.comment ? "sr-only" : "block font-medium"}>
-        {text().label}
+        {props.comment ? FORM_TEXT.edit.label : props.label}
       </label>
       <textarea
+        ref={(el) => (textRef = el)}
         id={props.id}
         name="content"
         rows={3}
@@ -219,16 +239,14 @@ function CommentForm(props: CommentFormProps) {
       />
       <div class="flex items-center justify-end gap-2">
         <LengthCount id={countId()} length={length()} />
-        <Show when={props.comment}>
-          <button
-            type="button"
-            disabled={write.pending()}
-            onClick={handleCancel}
-            class="theme-button disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        </Show>
+        <button
+          type="button"
+          disabled={cancelDisabled()}
+          onClick={handleCancel}
+          class="theme-button disabled:opacity-50"
+        >
+          Cancel
+        </button>
         <button
           type="submit"
           disabled={write.pending() || !dirty() || !sendable(length()) || !!loadError()}
@@ -361,7 +379,7 @@ export default function CommentThread(props: CommentThreadProps) {
   return (
     <>
       <Show when={props.loggedIn}>
-        <CommentForm id={`${props.id}-compose`} thread={props.thread} />
+        <CommentForm id={`${props.id}-compose`} thread={props.thread} label={props.composeLabel} />
       </Show>
       <ErrorAlert error={props.thread.error()} />
       <Show
