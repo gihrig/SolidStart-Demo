@@ -399,8 +399,9 @@ test.describe("Jedi Page - Draft guard (#124)", () => {
 });
 
 // Escape is the Cancel of an inline form (ADR-0030). The question that it opens
-// stays open: the browser would otherwise close it on the same Escape (#210).
-test.describe("Jedi Page - Escape in the inline forms (#210)", () => {
+// stays open: the browser would otherwise close it on the same Escape. Tab
+// moves between the question's buttons (#210).
+test.describe("Jedi Page - the keyboard in the inline forms and the question (#210)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await loginAs(page, "demo1", "welcome");
@@ -449,6 +450,27 @@ test.describe("Jedi Page - Escape in the inline forms (#210)", () => {
     await expect(article.getByRole("region", { name: "Post Comments" })).toHaveCount(0);
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
     await expect(toggle).toBeFocused();
+  });
+
+  test("Tab and Shift+Tab move between the question's buttons, and wrap", async ({ page }) => {
+    const article = page.locator("article").first();
+    await article.getByRole("button", { name: /^Post Comments, /i }).click();
+    const compose = article.getByRole("textbox", { name: "Post Comment" });
+    await compose.fill("A draft I have not posted");
+    await compose.press("Escape");
+    const keep = question(page).getByRole("button", { name: "Keep editing" });
+    const discard = question(page).getByRole("button", { name: "Discard" });
+    await expect(keep).toBeFocused();
+
+    await page.keyboard.press("Tab");
+    await expect(discard).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(keep).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(discard).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(question(page)).toBeHidden();
+    await expect(compose).toHaveValue("");
   });
 });
 

@@ -18,6 +18,7 @@ export interface ConfirmDialogProps {
  * A modal confirm (ADR-0030): a native `<dialog>` opened with `showModal()`, as
  * `PostDialog` is. The cancel button is the default, and Escape cancels.
  * Without a `cancelLabel`, it is a notice: one button, and Escape confirms.
+ * Tab and Shift+Tab move between the buttons (#210).
  *
  * Each open mounts a fresh `<dialog>` (#214): Chromium closes a reused modal
  * dialog that opens with no user gesture over another one, such as the
@@ -48,6 +49,18 @@ function OpenConfirmDialog(props: ConfirmDialogProps) {
     closing = true;
     if (dialogRef?.open) dialogRef.close();
   });
+  // Tab and Shift+Tab move focus between the buttons, and wrap (#210). On its
+  // own, a browser moves focus out of the dialog after its last button, or does
+  // not stop on a button at all.
+  const moveFocus = (e: KeyboardEvent) => {
+    if (e.key !== "Tab" || !dialogRef) return;
+    e.preventDefault();
+    const buttons = [...dialogRef.querySelectorAll("button")];
+    const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    let next = e.shiftKey ? buttons.length - 1 : 0;
+    if (at !== -1) next = (at + (e.shiftKey ? buttons.length - 1 : 1)) % buttons.length;
+    buttons[next]?.focus();
+  };
 
   return (
     <dialog
@@ -60,7 +73,10 @@ function OpenConfirmDialog(props: ConfirmDialogProps) {
       // A browser can still close it (Chrome closes on a second Escape). Then
       // the owner must hear a cancel, or its state stays open with no dialog.
       onClose={() => !closing && cancel()}
-      on:keydown={stopDialogEscape}
+      on:keydown={(e) => {
+        stopDialogEscape(e);
+        moveFocus(e);
+      }}
       aria-labelledby={messageId}
       class="theme-dialog max-w-sm"
     >
