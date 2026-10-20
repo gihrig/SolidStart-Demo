@@ -193,6 +193,16 @@ describe("<PostDialog />", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it('says "Could not add the Post" when the add fails with no message (#210)', async () => {
+    postCreateMock.mockRejectedValue({ status: 500 });
+    const { user, form } = await openAndFill();
+    await user.click(await form.findByRole("checkbox", { name: "Landscape" }));
+
+    await user.click(form.getByRole("button", { name: "Post" }));
+
+    expect(await form.findByRole("alert")).toHaveTextContent("Could not add the Post");
+  });
+
   it("Cancel, Esc and a browser close each close it", async () => {
     const { user, dialog, form, onClose } = await openAndFill();
     await user.click(form.getByRole("button", { name: "Cancel" }));

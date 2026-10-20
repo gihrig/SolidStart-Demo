@@ -72,7 +72,7 @@ const MODE_TEXT = {
     heading: "New Post",
     submit: "Post",
     pending: "Posting…",
-    error: "Could not create the Post",
+    error: "Could not add the Post",
   },
   edit: {
     heading: "Edit Post",
