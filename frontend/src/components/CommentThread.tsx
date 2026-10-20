@@ -81,7 +81,7 @@ const FORM_TEXT = {
   compose: {
     submit: "Add Comment",
     pending: "Adding…",
-    error: "Could not post the Comment",
+    error: "Could not add the Comment",
   },
   edit: {
     label: "Edit your comment",

@@ -169,6 +169,20 @@ describe("<CommentThread />", () => {
     expect(composeBox()).toHaveValue("hello");
   });
 
+  it('says "Could not add the Comment" when the add fails with no message (#210)', async () => {
+    const user = userEvent.setup();
+    const { thread } = fakeThread([]);
+    vi.mocked(thread.add).mockRejectedValueOnce({ status: 500 });
+    render(() => (
+      <CommentThread id="t" thread={thread} composeLabel="Post Comment" loggedIn userId={2} />
+    ));
+
+    await user.type(composeBox(), "hello");
+    await user.click(screen.getByRole("button", { name: "Add Comment" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not add the Comment");
+  });
+
   it('the submit reads "Adding…" while it writes (#210)', async () => {
     const user = userEvent.setup();
     const { thread } = fakeThread([]);
