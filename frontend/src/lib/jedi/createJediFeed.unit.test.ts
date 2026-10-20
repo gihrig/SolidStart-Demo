@@ -910,6 +910,14 @@ describe("createJediFeed — one Comments panel at a time (#210)", () => {
 
       jedi.postComments.setOpen(true);
       expect(jedi.selectedCaption()?.id, "the switch ends the hold").toBe(next.id);
+
+      // A re-rank back to the seeded order.
+      captionListForPostMock.mockImplementation((postId: number) =>
+        Promise.resolve(captionsFor(postId)),
+      );
+      mem.emit(pokeOn(Channel.postCaption(1)));
+      await settle();
+      expect(jedi.selectedCaption()?.id, "a re-rank after the switch").toBe(winner.id);
     }));
 
   it("a Caption pick leaves an open Post panel open", () =>
@@ -1504,11 +1512,13 @@ describe("createJediFeed — a Draft outside the Post, such as the New Post Draf
     jedi.postComments.draftScope,
     jedi.captionComments.draftScope,
   ];
-  // Open the Post edit and both Comments panels, as the Post's own forms.
-  const openPostForms = (jedi: JediFeed) => {
+  // The Post's two Comments panels: one opens at a time (#210).
+  const PANELS = ["postComments", "captionComments"] as const;
+  // Open the Post edit and one Comments panel, as the Post's own forms.
+  const openPostForms = (jedi: JediFeed, panel: (typeof PANELS)[number]) => {
     jedi.postOwner.edit.setOpen(true);
-    jedi.postComments.setOpen(true);
-    jedi.captionComments.setOpen(true);
+    jedi[panel].setOpen(true);
+    expect(jedi[panel].open(), "the panel opens").toBe(true);
   };
   const expectPostFormsClosed = (jedi: JediFeed, guard: DraftGuard) => {
     expect(jedi.postOwner.edit.open(), "the Post edit closes").toBe(false);
@@ -1529,30 +1539,36 @@ describe("createJediFeed — a Draft outside the Post, such as the New Post Draf
       expect(guard.holds(newPost)).toBe(true);
     }));
 
-  it("a Post change does not ask about it, and still closes the Post's forms", () =>
-    withLive(async (jedi, guard) => {
-      guard.report(newPost, true);
-      openPostForms(jedi);
-      jedi.selectPost(2);
-      expect(guard.pending()).toBe(false);
-      expect(jedi.selectedPost()?.id).toBe(2);
-      expect(guard.holds(newPost)).toBe(true);
-      expectPostFormsClosed(jedi, guard);
-    }));
+  it.each(PANELS)(
+    "a Post change does not ask about it, and still closes the Post's forms (%s)",
+    (panel) =>
+      withLive(async (jedi, guard) => {
+        guard.report(newPost, true);
+        openPostForms(jedi, panel);
+        jedi.selectPost(2);
+        expect(guard.pending()).toBe(false);
+        expect(jedi.selectedPost()?.id).toBe(2);
+        expect(guard.holds(newPost)).toBe(true);
+        expectPostFormsClosed(jedi, guard);
+      }),
+  );
 
-  it("another User's Post delete does not drop it, shows no notice, and closes the Post's forms", () =>
-    withLive(async (jedi, guard, mem) => {
-      guard.report(newPost, true);
-      jedi.postComments.setOpen(true);
-      jedi.captionComments.setOpen(true);
-      withoutPost1();
-      mem.emit(pokeOn(Channel.posts));
-      await settle();
-      expect(guard.notice()).toBeUndefined();
-      expect(jedi.announcement()).toBe("This Post was deleted.");
-      expect(guard.holds(newPost)).toBe(true);
-      expectPostFormsClosed(jedi, guard);
-    }));
+  it.each(PANELS)(
+    "another User's Post delete does not drop it, shows no notice, and closes the Post's forms (%s)",
+    (panel) =>
+      withLive(async (jedi, guard, mem) => {
+        guard.report(newPost, true);
+        jedi[panel].setOpen(true);
+        expect(jedi[panel].open(), "the panel opens").toBe(true);
+        withoutPost1();
+        mem.emit(pokeOn(Channel.posts));
+        await settle();
+        expect(guard.notice()).toBeUndefined();
+        expect(jedi.announcement()).toBe("This Post was deleted.");
+        expect(guard.holds(newPost)).toBe(true);
+        expectPostFormsClosed(jedi, guard);
+      }),
+  );
 
   it("with a Draft on the Post too, a Post delete discards only the Post's Draft", () =>
     withLive(async (jedi, guard, mem) => {
