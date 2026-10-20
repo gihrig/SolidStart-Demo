@@ -48147,12 +48147,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/baseline-browser-mapping@2.11.29?package-id=cbe0120014fb9a87",
+      "bom-ref": "pkg:npm/baseline-browser-mapping@2.11.30?package-id=7909d0c24cece93b",
       "type": "library",
       "name": "baseline-browser-mapping",
-      "version": "2.11.29",
-      "cpe": "cpe:2.3:a:baseline-browser-mapping:baseline-browser-mapping:2.11.29:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/baseline-browser-mapping@2.11.29",
+      "version": "2.11.30",
+      "cpe": "cpe:2.3:a:baseline-browser-mapping:baseline-browser-mapping:2.11.30:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/baseline-browser-mapping@2.11.30",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -48172,39 +48172,39 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:baseline-browser-mapping:baseline_browser_mapping:2.11.29:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:baseline-browser-mapping:baseline_browser_mapping:2.11.30:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:baseline_browser_mapping:baseline-browser-mapping:2.11.29:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:baseline_browser_mapping:baseline-browser-mapping:2.11.30:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:baseline_browser_mapping:baseline_browser_mapping:2.11.29:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:baseline_browser_mapping:baseline_browser_mapping:2.11.30:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:baseline-browser:baseline-browser-mapping:2.11.29:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:baseline-browser:baseline-browser-mapping:2.11.30:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:baseline-browser:baseline_browser_mapping:2.11.29:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:baseline-browser:baseline_browser_mapping:2.11.30:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:baseline_browser:baseline-browser-mapping:2.11.29:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:baseline_browser:baseline-browser-mapping:2.11.30:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:baseline_browser:baseline_browser_mapping:2.11.29:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:baseline_browser:baseline_browser_mapping:2.11.30:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:baseline:baseline-browser-mapping:2.11.29:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:baseline:baseline-browser-mapping:2.11.30:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:baseline:baseline_browser_mapping:2.11.29:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:baseline:baseline_browser_mapping:2.11.30:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -48417,12 +48417,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/browserslist@4.29.3?package-id=3531b8410ba8b105",
+      "bom-ref": "pkg:npm/browserslist@4.29.4?package-id=8d04a6ede7c460d0",
       "type": "library",
       "name": "browserslist",
-      "version": "4.29.3",
-      "cpe": "cpe:2.3:a:browserslist_project:browserslist:4.29.3:*:*:*:*:node.js:*:*",
-      "purl": "pkg:npm/browserslist@4.29.3",
+      "version": "4.29.4",
+      "cpe": "cpe:2.3:a:browserslist_project:browserslist:4.29.4:*:*:*:*:node.js:*:*",
+      "purl": "pkg:npm/browserslist@4.29.4",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -55993,12 +55993,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/ignore@7.0.12?package-id=d8c22cadb6767bda",
+      "bom-ref": "pkg:npm/ignore@7.0.13?package-id=6604e926e9d81ec7",
       "type": "library",
       "name": "ignore",
-      "version": "7.0.12",
-      "cpe": "cpe:2.3:a:ignore:ignore:7.0.12:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/ignore@7.0.12",
+      "version": "7.0.13",
+      "cpe": "cpe:2.3:a:ignore:ignore:7.0.13:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/ignore@7.0.13",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -64109,12 +64109,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/nitropack@2.13.4?package-id=1f60389f742efe1b",
+      "bom-ref": "pkg:npm/nitropack@2.13.5?package-id=b84956ef3f424bcd",
       "type": "library",
       "name": "nitropack",
-      "version": "2.13.4",
-      "cpe": "cpe:2.3:a:nitropack:nitropack:2.13.4:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/nitropack@2.13.4",
+      "version": "2.13.5",
+      "cpe": "cpe:2.3:a:nitropack:nitropack:2.13.5:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/nitropack@2.13.5",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -65957,12 +65957,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/postcss@8.5.30?package-id=00494c64048897f4",
+      "bom-ref": "pkg:npm/postcss@8.5.31?package-id=a149f4283fa4e5b9",
       "type": "library",
       "name": "postcss",
-      "version": "8.5.30",
-      "cpe": "cpe:2.3:a:postcss:postcss:8.5.30:*:*:*:*:node.js:*:*",
-      "purl": "pkg:npm/postcss@8.5.30",
+      "version": "8.5.31",
+      "cpe": "cpe:2.3:a:postcss:postcss:8.5.31:*:*:*:*:node.js:*:*",
+      "purl": "pkg:npm/postcss@8.5.31",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -72093,12 +72093,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/undici@8.12.2?package-id=78d8d444db1a6bd3",
+      "bom-ref": "pkg:npm/undici@8.12.3?package-id=fa8be4567893527f",
       "type": "library",
       "name": "undici",
-      "version": "8.12.2",
-      "cpe": "cpe:2.3:a:nodejs:undici:8.12.2:*:*:*:*:node.js:*:*",
-      "purl": "pkg:npm/undici@8.12.2",
+      "version": "8.12.3",
+      "cpe": "cpe:2.3:a:nodejs:undici:8.12.3:*:*:*:*:node.js:*:*",
+      "purl": "pkg:npm/undici@8.12.3",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -78171,7 +78171,7 @@
       "dependsOn": [
         "pkg:npm/%40babel/compat-data@7.29.7?package-id=f44441165ff00115",
         "pkg:npm/%40babel/helper-validator-option@7.29.7?package-id=0afa355c977c9ef1",
-        "pkg:npm/browserslist@4.29.3?package-id=3531b8410ba8b105",
+        "pkg:npm/browserslist@4.29.4?package-id=8d04a6ede7c460d0",
         "pkg:npm/lru-cache@10.4.3?package-id=502f1c60b15b6fba",
         "pkg:npm/lru-cache@11.5.3?package-id=69db80c1a853f37f",
         "pkg:npm/lru-cache@5.1.1?package-id=f079069ecb4dd1f3",
@@ -78666,7 +78666,7 @@
         "pkg:npm/%40tailwindcss/node@4.3.3?package-id=6825b6d4815aacf5",
         "pkg:npm/%40tailwindcss/oxide@4.3.3?package-id=7d7e483760ca225c",
         "pkg:npm/postcss@8.5.28?package-id=3daa403596587619",
-        "pkg:npm/postcss@8.5.30?package-id=00494c64048897f4",
+        "pkg:npm/postcss@8.5.31?package-id=a149f4283fa4e5b9",
         "pkg:npm/tailwindcss@4.3.3?package-id=b5e3e1c28728a093"
       ]
     },
@@ -79052,7 +79052,7 @@
         "pkg:npm/lightningcss@1.32.0?package-id=0d74deb440c6bf06",
         "pkg:npm/lightningcss@1.33.0?package-id=c8e5f41f3d818039",
         "pkg:npm/postcss@8.5.28?package-id=3daa403596587619",
-        "pkg:npm/postcss@8.5.30?package-id=00494c64048897f4",
+        "pkg:npm/postcss@8.5.31?package-id=a149f4283fa4e5b9",
         "pkg:npm/yuku-codegen@0.9.5?package-id=d7bf730f11420277",
         "pkg:npm/yuku-parser@0.9.5?package-id=95e531189c3f6dba"
       ]
@@ -79245,9 +79245,9 @@
       ]
     },
     {
-      "ref": "pkg:npm/browserslist@4.29.3?package-id=3531b8410ba8b105",
+      "ref": "pkg:npm/browserslist@4.29.4?package-id=8d04a6ede7c460d0",
       "dependsOn": [
-        "pkg:npm/baseline-browser-mapping@2.11.29?package-id=cbe0120014fb9a87",
+        "pkg:npm/baseline-browser-mapping@2.11.30?package-id=7909d0c24cece93b",
         "pkg:npm/caniuse-lite@1.0.30001816?package-id=31c367a5730b9351",
         "pkg:npm/electron-to-chromium@1.5.459?package-id=245500512fa0ab87",
         "pkg:npm/node-releases@2.0.59?package-id=dd51625b9aa7a339",
@@ -79860,7 +79860,7 @@
       "dependsOn": [
         "pkg:npm/%40sindresorhus/merge-streams@4.0.0?package-id=103b296132f31e72",
         "pkg:npm/fast-glob@3.3.3?package-id=f2a98f1bf105175c",
-        "pkg:npm/ignore@7.0.12?package-id=d8c22cadb6767bda",
+        "pkg:npm/ignore@7.0.13?package-id=6604e926e9d81ec7",
         "pkg:npm/is-path-inside@4.0.0?package-id=66aa30114e3076db",
         "pkg:npm/micromatch@4.0.8?package-id=84665792c2c219f7",
         "pkg:npm/slash@5.1.0?package-id=2372c723e99a3db7",
@@ -80094,7 +80094,7 @@
         "pkg:npm/parse5@8.0.1?package-id=85fe8aeb67d85169",
         "pkg:npm/saxes@6.0.0?package-id=515d1a7e4b40579e",
         "pkg:npm/tough-cookie@6.0.2?package-id=69a6d3a120e77f30",
-        "pkg:npm/undici@8.12.2?package-id=78d8d444db1a6bd3",
+        "pkg:npm/undici@8.12.3?package-id=fa8be4567893527f",
         "pkg:npm/w3c-xmlserializer@5.0.0?package-id=d5842def3094fde7",
         "pkg:npm/webidl-conversions@3.0.1?package-id=e3e33d53a67a1ca0",
         "pkg:npm/webidl-conversions@8.0.1?package-id=331adf3a6a9a72c3",
@@ -80682,7 +80682,7 @@
       ]
     },
     {
-      "ref": "pkg:npm/nitropack@2.13.4?package-id=1f60389f742efe1b",
+      "ref": "pkg:npm/nitropack@2.13.5?package-id=b84956ef3f424bcd",
       "dependsOn": [
         "pkg:npm/%40cloudflare/kv-asset-handler@0.4.2?package-id=a3444bc46144bf5b",
         "pkg:npm/%40rollup/plugin-alias@6.0.0?package-id=9f7cd7ffad0d4f57",
@@ -80982,7 +80982,7 @@
       ]
     },
     {
-      "ref": "pkg:npm/postcss@8.5.30?package-id=00494c64048897f4",
+      "ref": "pkg:npm/postcss@8.5.31?package-id=a149f4283fa4e5b9",
       "dependsOn": [
         "pkg:npm/nanoid@3.3.20?package-id=6cd78fedd9b4e7d0",
         "pkg:npm/picocolors@1.1.1?package-id=c4e2de535873e51f",
@@ -81917,7 +81917,7 @@
         "pkg:npm/hookable@5.5.3?package-id=7ac04281d3ca3f26",
         "pkg:npm/http-proxy@1.18.1?package-id=25b8d757baf9d9e9",
         "pkg:npm/micromatch@4.0.8?package-id=84665792c2c219f7",
-        "pkg:npm/nitropack@2.13.4?package-id=1f60389f742efe1b",
+        "pkg:npm/nitropack@2.13.5?package-id=b84956ef3f424bcd",
         "pkg:npm/node-fetch-native@1.6.7?package-id=a71bb89a9053afae",
         "pkg:npm/path-to-regexp@6.3.0?package-id=48982e251a65b756",
         "pkg:npm/pathe@1.1.2?package-id=5ecb0c907a1952c0",
@@ -81986,7 +81986,7 @@
         "pkg:npm/picomatch@2.3.2?package-id=9d6d4a15407d645c",
         "pkg:npm/picomatch@4.0.7?package-id=062014e806916f6b",
         "pkg:npm/postcss@8.5.28?package-id=3daa403596587619",
-        "pkg:npm/postcss@8.5.30?package-id=00494c64048897f4",
+        "pkg:npm/postcss@8.5.31?package-id=a149f4283fa4e5b9",
         "pkg:npm/rollup@4.64.10?package-id=1112d0ed43586de4",
         "pkg:npm/tinyglobby@0.2.17?package-id=dc70bd4c33a6ba35"
       ]
