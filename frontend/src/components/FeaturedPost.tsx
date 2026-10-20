@@ -302,7 +302,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           </Show>
         </div>
         {/* The Caption Comments panel (#127): directly below the categories
-            line, above the Post's panel. Both panels may be open at once. */}
+            line, above the Post's panel. One panel is open at a time (#210). */}
         <section
           id={captionCommentsPanelId()}
           aria-label="Caption comments"
