@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { loginAs } from "./login";
 
 // Jedi is the home page now (#62): it renders at `/` under the global Jedi nav.
@@ -378,6 +378,48 @@ test.describe("Jedi Page - Draft guard (#124)", () => {
     await expect(panel).toBeVisible();
     await expect(panel.getByRole("textbox", { name: "Caption Comment" })).toHaveValue("");
     await expect(article.getByRole("region", { name: "Post Comments" })).toHaveCount(0);
+  });
+});
+
+// Escape is the Cancel of an inline form (ADR-0030). The question that it opens
+// stays open: the browser would otherwise close it on the same Escape (#210).
+test.describe("Jedi Page - Escape in the inline forms (#210)", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await loginAs(page, "demo1", "welcome");
+  });
+  const question = (page: Page) =>
+    page.getByRole("dialog", { name: "You have unsaved changes. Discard them?" });
+
+  test("Escape in the compose box with a Draft asks; Discard empties the box", async ({ page }) => {
+    const article = page.locator("article").first();
+    await article.getByRole("button", { name: /^Post Comments, /i }).click();
+    const compose = article.getByRole("textbox", { name: "Post Comment" });
+    await compose.fill("A draft I have not posted");
+
+    await compose.press("Escape");
+    await expect(question(page)).toBeVisible();
+    await question(page).getByRole("button", { name: "Keep editing" }).click();
+    await expect(compose).toHaveValue("A draft I have not posted");
+
+    await compose.press("Escape");
+    await question(page).getByRole("button", { name: "Discard" }).click();
+    await expect(compose).toHaveValue("");
+    await expect(compose).toBeFocused();
+  });
+
+  test("Escape in the Add Caption form with a Draft asks; Discard closes the form", async ({
+    page,
+  }) => {
+    const article = page.locator("article").first();
+    await article.getByRole("button", { name: "Add Caption" }).click();
+    const input = article.getByLabel("Your caption");
+    await input.fill("A caption I have not sent");
+
+    await input.press("Escape");
+    await expect(question(page)).toBeVisible();
+    await question(page).getByRole("button", { name: "Discard" }).click();
+    await expect(input).toHaveCount(0);
   });
 });
 

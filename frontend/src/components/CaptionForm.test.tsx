@@ -284,6 +284,14 @@ describe("<CaptionForm /> — Cancel and Escape (#214)", () => {
     expect(guard.hasDraft()).toBe(false);
   });
 
+  it("an Escape that runs the Cancel cancels the browser's own Escape action (#210)", async () => {
+    const { user, input, guard } = renderGuarded({ onCancel: vi.fn() });
+    await user.type(input, "draft");
+    // The browser would close the question on the same Escape.
+    expect(fireEvent.keyDown(input, { key: "Escape" })).toBe(false);
+    expect(guard.pending()).toBe(true);
+  });
+
   it("Escape without a Draft closes at once", async () => {
     const onCancel = vi.fn();
     const { user, input, guard } = renderGuarded({ onCancel });

@@ -717,6 +717,20 @@ describe("<CommentThread /> — Cancel, Escape and focus (#214)", () => {
     }
   });
 
+  it("an Escape that runs a Cancel cancels the browser's own Escape action (#210)", async () => {
+    const { thread } = fakeThread([comment(1, 2, "mine")]);
+    const { guard, user } = renderGuarded(thread);
+    await user.type(composeBox(), "compose");
+    // The browser would close the question on the same Escape.
+    expect(fireEvent.keyDown(composeBox(), { key: "Escape" }), "the compose Cancel").toBe(false);
+    expect(guard.pending()).toBe(true);
+    guard.cancelMove();
+
+    await user.type(await openEdit(user), "!");
+    expect(fireEvent.keyDown(editBox()!, { key: "Escape" }), "the edit's Cancel").toBe(false);
+    expect(guard.pending()).toBe(true);
+  });
+
   it("while the compose Cancel is disabled, Escape does nothing (#210)", async () => {
     const { thread } = fakeThread([]);
     let finish!: () => void;

@@ -210,11 +210,15 @@ function CommentForm(props: CommentFormProps) {
   const cancelDisabled = () => write.pending() || (!props.comment && value() === "");
   // Escape is the Cancel (#214), and does nothing while the Cancel is disabled
   // (#210). The form stops it, so a document listener (`useDismiss`) does not
-  // close a menu or the sidebar.
+  // close a menu or the sidebar. An Escape that runs the Cancel also cancels
+  // the browser's own Escape action, which would close the question that the
+  // Cancel opens (#210).
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key !== "Escape") return;
     e.stopPropagation();
-    if (!e.isComposing && !cancelDisabled()) handleCancel();
+    if (e.isComposing || cancelDisabled()) return;
+    e.preventDefault();
+    handleCancel();
   };
 
   return (
