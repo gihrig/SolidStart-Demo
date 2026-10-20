@@ -250,10 +250,12 @@ Cancel opens the question at once. The browser then takes the same Escape as a
 close of that new dialog. So each Escape that a form acts on calls
 `preventDefault`, and the question stays open.
 
-**Tab stays in the question.** Tab and Shift+Tab move focus between the
-buttons of a `ConfirmDialog`, and wrap. "Keep editing" is the default and the last
-button. From it, a browser alone moves focus out of the dialog, or does not move
-it at all.
+**Tab stays in a dialog.** Tab and Shift+Tab move focus between the enabled
+controls of a modal dialog, and wrap (`keepDialogFocus`). This holds for the
+question, the notices, the New Post dialog and the Login dialog. From the last
+control, a browser alone moves focus out of the dialog, or does not move it at
+all. "Keep editing" is the question's default and its last button, so before
+this rule, Tab did not reach "Discard".
 
 **Rejected.** Two open panels: both open in one place. A compose Cancel that
 closes the panel: the close also unmounts the Comment edits in the thread's scope.
