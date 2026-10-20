@@ -222,3 +222,28 @@ would have to know which move to skip.
 **Consequences.** A new form on the Post needs a scope in the Post's list. A new
 Cancel calls `draft.cancel`, and a new write reports `busy`. #210 adds a Cancel to
 the compose box, so the compose box follows these rules.
+
+## Addendum (2026-10-19) — one Comments panel (#210)
+
+#210 moves each actions line under the content that it acts on. The Post's thread
+and the Caption's thread now open in one place, under the Caption actions. So the
+Post card shows one Comments panel at a time.
+
+**An open of one thread closes the other.** This adds a guarded move to the list
+above: a click that opens the other thread. The move names the other thread's
+scope. With a Draft there, the guard asks. "Discard" closes that thread and opens
+this one. "Keep editing" changes nothing. While a form in the other thread writes,
+the click does nothing and asks nothing. A switch away from the Caption thread
+ends the Caption hold, as any close does. So the Caption line can change at the
+switch.
+
+**The compose Cancel empties the box.** #210 gives the compose box a Cancel, under
+the #214 rules. The box shows for as long as its panel is open. So the Cancel
+empties the box, and the panel stays open. With a Draft, the guard asks about the
+compose box only. Escape runs the Cancel. After the Cancel, focus moves to the
+text field.
+
+**Rejected.** Two open panels: both open in one place. A compose Cancel that
+closes the panel: the close also unmounts the Comment edits in the thread's scope.
+One Cancel could then ask two questions. A switch that keeps the Caption hold: the
+hold serves an open Caption thread, and the switch closes it.
