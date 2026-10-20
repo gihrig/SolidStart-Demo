@@ -14741,12 +14741,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/rustls-webpki@0.103.15?package-id=b6c03d45667e5f56",
+      "bom-ref": "pkg:cargo/rustls-webpki@0.103.16?package-id=4b76104155934e13",
       "type": "library",
       "name": "rustls-webpki",
-      "version": "0.103.15",
-      "cpe": "cpe:2.3:a:rustls-webpki_project:rustls-webpki:0.103.15:*:*:*:*:rust:*:*",
-      "purl": "pkg:cargo/rustls-webpki@0.103.15",
+      "version": "0.103.16",
+      "cpe": "cpe:2.3:a:rustls-webpki_project:rustls-webpki:0.103.16:*:*:*:*:rust:*:*",
+      "purl": "pkg:cargo/rustls-webpki@0.103.16",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -14772,31 +14772,31 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:rustls-webpki_project:rustls_webpki:0.103.15:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:rustls-webpki_project:rustls_webpki:0.103.16:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:rustls-webpki:rustls-webpki:0.103.15:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:rustls-webpki:rustls-webpki:0.103.16:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:rustls-webpki:rustls_webpki:0.103.15:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:rustls-webpki:rustls_webpki:0.103.16:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:rustls_webpki:rustls-webpki:0.103.15:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:rustls_webpki:rustls-webpki:0.103.16:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:rustls_webpki:rustls_webpki:0.103.15:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:rustls_webpki:rustls_webpki:0.103.16:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:rustls:rustls-webpki:0.103.15:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:rustls:rustls-webpki:0.103.16:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:rustls:rustls_webpki:0.103.15:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:rustls:rustls_webpki:0.103.16:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -77019,7 +77019,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/rustls-webpki@0.103.15?package-id=b6c03d45667e5f56",
+      "ref": "pkg:cargo/rustls-webpki@0.103.16?package-id=4b76104155934e13",
       "dependsOn": [
         "pkg:cargo/ring@0.17.14?package-id=0131244e8867681b",
         "pkg:cargo/rustls-pki-types@1.15.1?package-id=9560c7d54ba22c82",
@@ -77031,7 +77031,7 @@
       "dependsOn": [
         "pkg:cargo/once_cell@1.21.4?package-id=5d5fd6c2834674ba",
         "pkg:cargo/rustls-pki-types@1.15.1?package-id=9560c7d54ba22c82",
-        "pkg:cargo/rustls-webpki@0.103.15?package-id=b6c03d45667e5f56",
+        "pkg:cargo/rustls-webpki@0.103.16?package-id=4b76104155934e13",
         "pkg:cargo/subtle@2.6.1?package-id=14ab505ea3d24f64",
         "pkg:cargo/zeroize@1.9.1?package-id=55c9ddadff5395ae"
       ]
