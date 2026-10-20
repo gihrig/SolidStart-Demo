@@ -147,8 +147,8 @@ test.describe("Live updates across Users (#129)", () => {
 
       await likeA.click();
       await expect(likeA).toHaveAttribute("aria-pressed", String(!liked));
-      // The Caption line changes at once; the Top Captions row changes after the
-      // `post_caption` refetch (#123 Decision 13).
+      // The Caption actions change at once; the Top Captions row changes after
+      // the `post_caption` refetch (#123 Decision 13).
       await expect(articleB.getByText(`Caption likes: ${after}`, { exact: true })).toBeVisible();
       await expect(rowB).toContainText(`(${after} Likes)`);
 
@@ -170,9 +170,9 @@ test.describe("Live updates across Users (#129)", () => {
       const articleA = await featuredArticle(a);
       const articleB = await featuredArticle(b);
       // B opens the thread first, so B holds its Channel before A posts.
-      await articleB.getByRole("button", { name: /^Comments, /i }).click();
+      await articleB.getByRole("button", { name: /^Post Comments, /i }).click();
       await expect(articleB.getByRole("textbox", { name: "Post Comment" })).toBeVisible();
-      await articleA.getByRole("button", { name: /^Comments, /i }).click();
+      await articleA.getByRole("button", { name: /^Post Comments, /i }).click();
 
       // A unique text, so a row left by an earlier failed run cannot match.
       const text = `e2e live comment ${Date.now()}`;
@@ -218,7 +218,7 @@ test.describe("Live updates across Users (#129)", () => {
       await expect(articleB.getByRole("heading", { name: edited })).toBeVisible();
 
       // B holds a Draft on the Post: an unsaved Comment.
-      await articleB.getByRole("button", { name: /^Comments, /i }).click();
+      await articleB.getByRole("button", { name: /^Post Comments, /i }).click();
       await articleB.getByRole("textbox", { name: "Post Comment" }).fill("an unsaved Comment");
 
       await confirmDelete(a, articleA, "Delete Post by demo1");

@@ -151,8 +151,8 @@ export interface JediFeed {
    *  `selectedPostLike` is for the Post. */
   selectedCaptionLike: Accessor<Like | undefined>;
   /** Like or unlike the selected Caption (#123), as `togglePostLike`. The
-   *  Caption line shows the new count at once; Top Captions re-ranks after the
-   *  back-end's `post_caption` poke. */
+   *  Caption actions show the new count at once; Top Captions re-ranks after
+   *  the back-end's `post_caption` poke. */
   toggleCaptionLike: () => Promise<void>;
   /** The selected Post's Comment thread (#124): the panel's open state, its
    *  rows and its writes. It loads only while the panel is open. The read is

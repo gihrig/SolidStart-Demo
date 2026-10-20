@@ -35,9 +35,9 @@ export interface PostCaptionProps {
 }
 
 /**
- * The caption line on a Post (#121), full width: it shows the caption, or the
- * caption-submit form in the same place. The owner holds `adding` (its Add
- * Caption button sits on the categories line). A Post with no caption shows the
+ * The Caption line on the Post card (#121), full width: it shows the caption, or
+ * the caption-submit form in the same place. The owner holds `adding` (its Add
+ * Caption button sits in the Caption actions). A Post with no caption shows the
  * form directly — but only once its captions have loaded, so the form never
  * flashes during a load. The Owner's Caption edit (#187) takes the place of the
  * Caption text, keyed on the Caption id, so a refetch keeps its text.

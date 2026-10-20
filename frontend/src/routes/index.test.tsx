@@ -100,8 +100,9 @@ vi.mock("~/lib/backend-rpc", async () => {
       cat(6, "Cute", "fire-heart"),
     ],
     list_posts: () => live.posts ?? posts,
-    // Every Post's Comment thread starts empty (#124).
+    // Every Post's and Caption's Comment thread starts empty (#124, #127).
     list_post_comments: () => [],
+    list_caption_comments: () => [],
   };
   return {
     publicRpc: (method: string, params?: { id: number }) => Promise.resolve(reads[method](params)),
@@ -444,7 +445,7 @@ describe("Home route — the Draft guard (ADR-0030)", () => {
     renderApp();
     await user.click(screen.getByRole("button", { name: /do-login/i }));
     await screen.findByRole("heading", { name: /little jedi/i });
-    await user.click(screen.getByRole("button", { name: /^Comments, 0 comments/i }));
+    await user.click(screen.getByRole("button", { name: /^Post Comments, 0 comments/i }));
     await user.type(await screen.findByRole("textbox", { name: "Post Comment" }), "draft");
     return user;
   }
@@ -479,7 +480,24 @@ describe("Home route — the Draft guard (ADR-0030)", () => {
     expect(await screen.findByRole("heading", { name: "About page" })).toBeInTheDocument();
   });
 
-  it("the Nav's New Post and the Post line's Add open the same one dialog (#214)", async () => {
+  it("a Caption Comments click with a Post Comment Draft asks; Discard shows the Caption panel (#210)", async () => {
+    const user = await startDraft();
+    const captionToggle = screen.getByRole("button", { name: /^Caption Comments, / });
+
+    await user.click(captionToggle);
+    expect(confirmDialog()).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(composeBox()).toHaveValue("draft");
+    expect(screen.queryByRole("region", { name: "Caption Comments" })).toBeNull();
+
+    await user.click(captionToggle);
+    await user.click(screen.getByRole("button", { name: "Discard" }));
+    const panel = await screen.findByRole("region", { name: "Caption Comments" });
+    expect(within(panel).getByRole("textbox", { name: "Caption Comment" })).toHaveValue("");
+    expect(screen.queryByRole("region", { name: "Post Comments" })).toBeNull();
+  });
+
+  it("the Nav's New Post and the Add in the Post actions open the same one dialog (#214)", async () => {
     const user = userEvent.setup();
     renderApp();
     await user.click(screen.getByRole("button", { name: /do-login/i }));
@@ -528,7 +546,7 @@ describe("Home route — the Draft guard (ADR-0030)", () => {
       await user.click(within(categories).getByRole("option", { name }));
     }
     async function typeComment(user: ReturnType<typeof userEvent.setup>) {
-      await user.click(screen.getByRole("button", { name: /^Comments, 0 comments/i }));
+      await user.click(screen.getByRole("button", { name: /^Post Comments, 0 comments/i }));
       await user.type(await screen.findByRole("textbox", { name: "Post Comment" }), "draft");
     }
     async function typeNewPost(user: ReturnType<typeof userEvent.setup>) {

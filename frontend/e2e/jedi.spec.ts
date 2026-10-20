@@ -65,8 +65,9 @@ test.describe("Jedi Page", () => {
     await expect(page.getByRole("link", { name: /awesome/i })).toHaveAttribute("href", "/");
   });
 
-  // A visitor who is not logged in sees only the fire-heart and the count on the
-  // Post line and the Caption line: no Like, Add, Edit, or Delete (#123).
+  // A visitor who is not logged in sees the Comments toggle, the fire-heart and
+  // the count in the Post actions and the Caption actions: no Like, Add, Edit,
+  // or Delete (#123).
   test("should display author, tags, and like counts, with no actions for a visitor", async ({
     page,
   }) => {
@@ -75,8 +76,8 @@ test.describe("Jedi Page", () => {
     await expect(article.getByRole("link").filter({ hasText: "Lisa" })).toBeVisible();
     await expect(article.getByRole("button", { name: /animals/i })).toBeVisible();
     await expect(article.getByRole("button", { name: /cute/i })).toBeVisible();
-    await expect(article.getByRole("button", { name: /^Comments, /i })).toBeVisible();
-    await expect(article.getByRole("button", { name: /^Caption comments, /i })).toBeVisible();
+    await expect(article.getByRole("button", { name: /^Post Comments, /i })).toBeVisible();
+    await expect(article.getByRole("button", { name: /^Caption Comments, /i })).toBeVisible();
     await expect(article.getByText("Likes: 5")).toBeVisible();
     await expect(article.getByText("Caption likes: 8")).toBeVisible();
     for (const name of [/^Like /i, /^Edit /i, /^Delete /i, /^Add Caption$/i]) {
@@ -304,7 +305,7 @@ test.describe("Jedi Page - Draft guard (#124)", () => {
 
     const article = page.locator("article").first();
     await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
-    await article.getByRole("button", { name: /^Comments, /i }).click();
+    await article.getByRole("button", { name: /^Post Comments, /i }).click();
     const compose = article.getByRole("textbox", { name: "Post Comment" });
     await compose.fill("A draft I have not posted");
 
@@ -350,6 +351,34 @@ test.describe("Jedi Page - Draft guard (#124)", () => {
     await expect(newPost).toBeHidden();
     await expect(page.getByRole("dialog")).toHaveCount(0);
   });
+
+  test("a Caption Comments click with a Post Comment Draft asks; Discard opens the Caption panel (#210)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await loginAs(page, "demo1", "welcome");
+
+    const article = page.locator("article").first();
+    await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
+    await article.getByRole("button", { name: /^Post Comments, /i }).click();
+    const compose = article.getByRole("textbox", { name: "Post Comment" });
+    await compose.fill("A draft I have not posted");
+
+    const captionToggle = article.getByRole("button", { name: /^Caption Comments, /i });
+    const question = page.getByRole("dialog", { name: "You have unsaved changes. Discard them?" });
+    await captionToggle.click();
+    await expect(question).toBeVisible();
+    await question.getByRole("button", { name: "Keep editing" }).click();
+    await expect(question).toBeHidden();
+    await expect(compose).toHaveValue("A draft I have not posted");
+
+    await captionToggle.click();
+    await question.getByRole("button", { name: "Discard" }).click();
+    const panel = article.getByRole("region", { name: "Caption Comments" });
+    await expect(panel).toBeVisible();
+    await expect(panel.getByRole("textbox", { name: "Caption Comment" })).toHaveValue("");
+    await expect(article.getByRole("region", { name: "Post Comments" })).toHaveCount(0);
+  });
 });
 
 // Each Comment row shows its author, its time and its text (#125).
@@ -360,7 +389,7 @@ test.describe("Jedi Page - Comment row (#125)", () => {
 
     const article = page.locator("article").first();
     await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
-    await article.getByRole("button", { name: /^Comments, /i }).click();
+    await article.getByRole("button", { name: /^Post Comments, /i }).click();
     // A unique text, so a row left by an earlier failed run cannot match.
     const text = `e2e comment ${Date.now()}`;
     await article.getByRole("textbox", { name: "Post Comment" }).fill(text);
@@ -386,7 +415,7 @@ test.describe("Jedi Page - Comment markdown (#126)", () => {
 
     const article = page.locator("article").first();
     await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
-    await article.getByRole("button", { name: /^Comments, /i }).click();
+    await article.getByRole("button", { name: /^Post Comments, /i }).click();
     // A unique text, so a row left by an earlier failed run cannot match.
     const text = `e2e bold ${Date.now()}`;
     await article.getByRole("textbox", { name: "Post Comment" }).fill(`**${text}**`);
@@ -402,7 +431,7 @@ test.describe("Jedi Page - Comment markdown (#126)", () => {
   });
 });
 
-// A Caption has its own Comment thread (#127), opened from the Caption line.
+// A Caption has its own Comment thread (#127), opened from the Caption actions.
 test.describe("Jedi Page - Caption Comments (#127)", () => {
   test("demo1 opens a Caption thread, posts a Comment, sees it, then deletes it", async ({
     page,
@@ -412,8 +441,8 @@ test.describe("Jedi Page - Caption Comments (#127)", () => {
 
     const article = page.locator("article").first();
     await expect(article.getByRole("heading", { name: /little jedi/i })).toBeVisible();
-    await article.getByRole("button", { name: /^Caption comments, /i }).click();
-    const panel = article.getByRole("region", { name: "Caption comments" });
+    await article.getByRole("button", { name: /^Caption Comments, /i }).click();
+    const panel = article.getByRole("region", { name: "Caption Comments" });
     // A unique text, so a row left by an earlier failed run cannot match.
     const text = `e2e caption comment ${Date.now()}`;
     await panel.getByRole("textbox", { name: "Caption Comment" }).fill(text);
