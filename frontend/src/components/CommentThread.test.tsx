@@ -585,11 +585,18 @@ describe("<CommentThread /> — Drafts (ADR-0030)", () => {
 });
 
 describe("<CommentThread /> — Cancel, Escape and focus (#214)", () => {
-  function renderGuarded(thread: CommentThreadState) {
+  function renderGuarded(thread: CommentThreadState, onClosePanel?: () => void) {
     const guard = createDraftGuard();
     render(() => (
       <DraftGuardContext.Provider value={guard}>
-        <CommentThread id="t" thread={thread} composeLabel="Post Comment" loggedIn userId={2} />
+        <CommentThread
+          id="t"
+          thread={thread}
+          composeLabel="Post Comment"
+          onClosePanel={onClosePanel}
+          loggedIn
+          userId={2}
+        />
       </DraftGuardContext.Provider>
     ));
     return { guard, user: userEvent.setup() };
@@ -731,20 +738,32 @@ describe("<CommentThread /> — Cancel, Escape and focus (#214)", () => {
     expect(guard.pending()).toBe(true);
   });
 
-  it("while the compose Cancel is disabled, Escape does nothing (#210)", async () => {
+  it("Escape in the empty compose box closes the panel, as the toggle does (#210)", async () => {
+    const { thread } = fakeThread([]);
+    const onClosePanel = vi.fn();
+    const { user } = renderGuarded(thread, onClosePanel);
+    await user.type(composeBox(), "   ");
+    await user.keyboard("{Escape}");
+    expect(onClosePanel, "a box with text runs its Cancel").not.toHaveBeenCalled();
+    expect(composeBox()).toHaveValue("");
+
+    // The browser's own Escape action stays canceled: the close can ask.
+    expect(fireEvent.keyDown(composeBox(), { key: "Escape" })).toBe(false);
+    expect(onClosePanel).toHaveBeenCalledOnce();
+  });
+
+  it("while the compose box writes, Escape does nothing (#210)", async () => {
     const { thread } = fakeThread([]);
     let finish!: () => void;
     vi.mocked(thread.add).mockReturnValueOnce(new Promise<void>((r) => (finish = r)));
-    const { guard, user } = renderGuarded(thread);
-    await user.click(composeBox());
-    await user.keyboard("{Escape}");
-    expect(guard.pending(), "an empty box").toBe(false);
-
+    const onClosePanel = vi.fn();
+    const { guard, user } = renderGuarded(thread, onClosePanel);
     await user.type(composeBox(), "hello");
     await user.click(screen.getByRole("button", { name: "Add Comment" }));
     await user.click(composeBox());
     await user.keyboard("{Escape}");
-    expect(guard.pending(), "a write in flight").toBe(false);
+    expect(guard.pending(), "no Cancel").toBe(false);
+    expect(onClosePanel, "no close").not.toHaveBeenCalled();
     expect(composeBox()).toHaveValue("hello");
 
     finish();

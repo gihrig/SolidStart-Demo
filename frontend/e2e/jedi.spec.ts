@@ -421,6 +421,18 @@ test.describe("Jedi Page - Escape in the inline forms (#210)", () => {
     await question(page).getByRole("button", { name: "Discard" }).click();
     await expect(input).toHaveCount(0);
   });
+
+  test("Escape in the empty compose box closes the panel; focus moves to its toggle", async ({
+    page,
+  }) => {
+    const article = page.locator("article").first();
+    const toggle = article.getByRole("button", { name: /^Post Comments, /i });
+    await toggle.click();
+    await article.getByRole("textbox", { name: "Post Comment" }).press("Escape");
+    await expect(article.getByRole("region", { name: "Post Comments" })).toHaveCount(0);
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(toggle).toBeFocused();
+  });
 });
 
 // Each Comment row shows its author, its time and its text (#125).

@@ -26,6 +26,9 @@ export interface CommentThreadProps {
   /** The compose box's heading, which names its text field (#210): "Post
    *  Comment" or "Caption Comment". */
   composeLabel: string;
+  /** Close the panel that holds the thread, as its toggle does (#210). Escape
+   *  in the empty compose box calls it. */
+  onClosePanel?: () => void;
   /** Only a logged-in User sees the compose box and the Edit / Delete buttons. */
   loggedIn?: boolean;
   /** The logged-in User's id: Edit / Delete show on the User's own Comments
@@ -105,6 +108,8 @@ interface CommentFormProps {
   /** Called on an edit's Cancel, and after a saved write. An edit closes on
    *  it. */
   onClose?: () => void;
+  /** The compose box's: close the Comments panel (#210). */
+  onClosePanel?: () => void;
 }
 
 /**
@@ -207,18 +212,22 @@ function CommentForm(props: CommentFormProps) {
     });
   // The Cancel is disabled while the form writes, and the compose box's while
   // it is empty (#210).
-  const cancelDisabled = () => write.pending() || (!props.comment && value() === "");
-  // Escape is the Cancel (#214), and does nothing while the Cancel is disabled
-  // (#210). The form stops it, so a document listener (`useDismiss`) does not
-  // close a menu or the sidebar. An Escape that runs the Cancel also cancels
-  // the browser's own Escape action, which would close the question that the
-  // Cancel opens (#210).
+  const composeEmpty = () => !props.comment && value() === "";
+  const cancelDisabled = () => write.pending() || composeEmpty();
+  // Escape is the Cancel (#214). In the empty compose box, it closes the
+  // Comments panel instead, as the toggle does (#210). While the form writes,
+  // it does nothing. The form stops it, so a document listener (`useDismiss`)
+  // does not close a menu or the sidebar. An Escape that acts also cancels the
+  // browser's own Escape action, which would close the question that the
+  // action opens (#210).
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key !== "Escape") return;
     e.stopPropagation();
-    if (e.isComposing || cancelDisabled()) return;
+    if (e.isComposing || write.pending()) return;
+    const act = composeEmpty() ? props.onClosePanel : handleCancel;
+    if (!act) return;
     e.preventDefault();
-    handleCancel();
+    act();
   };
 
   return (
@@ -383,7 +392,12 @@ export default function CommentThread(props: CommentThreadProps) {
   return (
     <>
       <Show when={props.loggedIn}>
-        <CommentForm id={`${props.id}-compose`} thread={props.thread} label={props.composeLabel} />
+        <CommentForm
+          id={`${props.id}-compose`}
+          thread={props.thread}
+          label={props.composeLabel}
+          onClosePanel={props.onClosePanel}
+        />
       </Show>
       <ErrorAlert error={props.thread.error()} />
       <Show

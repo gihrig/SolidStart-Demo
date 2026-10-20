@@ -603,6 +603,20 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
     expect(glyph()).toHaveTextContent(/^−$/);
   });
 
+  it("Escape in the empty compose box closes the panel; focus moves to the toggle (#210)", async () => {
+    const user = userEvent.setup();
+    const postComments = fakePostComments();
+    render(() => (
+      <FeaturedPost post={post} caption={caption} postComments={postComments} loggedIn userId={2} />
+    ));
+    await user.click(toggle());
+    await user.click(screen.getByRole("textbox", { name: "Post Comment" }));
+    await user.keyboard("{Escape}");
+    expect(postComments.open()).toBe(false);
+    expect(panel()).toBeEmptyDOMElement();
+    expect(toggle()).toHaveFocus();
+  });
+
   it("sits under the Caption actions; its top border is the rule, with no separator (#210)", async () => {
     const user = userEvent.setup();
     const postComments = fakePostComments();
@@ -713,6 +727,25 @@ describe("<FeaturedPost /> — the Caption Comments panel (#127)", () => {
     await user.click(toggle());
     expect(captionComments.open()).toBe(false);
     expect(panel()).toBeEmptyDOMElement();
+  });
+
+  it("Escape in the empty compose box closes the panel; focus moves to the toggle (#210)", async () => {
+    const user = userEvent.setup();
+    const captionComments = fakeThread("<p>Nice caption</p>");
+    render(() => (
+      <FeaturedPost
+        post={post}
+        caption={caption}
+        captionComments={captionComments}
+        loggedIn
+        userId={2}
+      />
+    ));
+    await user.click(toggle());
+    await user.click(screen.getByRole("textbox", { name: "Caption Comment" }));
+    await user.keyboard("{Escape}");
+    expect(captionComments.open()).toBe(false);
+    expect(toggle()).toHaveFocus();
   });
 
   it("opens in the Post panel's place, under the Caption actions (#210)", async () => {

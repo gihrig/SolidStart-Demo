@@ -108,6 +108,8 @@ interface ActionsLineProps {
   /** Disables the toggle, such as on a Post with no Caption. */
   toggleDisabled?: boolean;
   onToggle: () => void;
+  /** The toggle, which takes focus when Escape closes its panel (#210). */
+  toggleRef?: (el: HTMLButtonElement) => void;
   /** The errors of the line's actions. */
   errors: (string | null)[];
   /** The block's classes, such as its margin. */
@@ -130,6 +132,7 @@ function ActionsLine(props: ActionsLineProps) {
     <div class={props.class}>
       <div class="flex flex-wrap items-center justify-between gap-y-2 text-sm px-2">
         <button
+          ref={(el) => props.toggleRef?.(el)}
           type="button"
           class="font-bold hover:underline rounded disabled:opacity-50 disabled:no-underline"
           aria-label={`${props.label}, ${commentCountText(props.count)}`}
@@ -228,6 +231,18 @@ export default function FeaturedPost(props: FeaturedPostProps) {
   // the Caption shown changes.
   const captionCommentsOpen = () => props.captionComments?.open() ?? false;
   const captionCommentsPanelId = () => `post-${postId()}-caption-comments`;
+  // Escape in the empty compose box closes the panel as a toggle click does
+  // (#210): focus moves to the toggle, then the guarded close runs.
+  let postToggleRef: HTMLButtonElement | undefined;
+  let captionToggleRef: HTMLButtonElement | undefined;
+  const closePostComments = () => {
+    postToggleRef?.focus();
+    props.postComments?.setOpen(false);
+  };
+  const closeCaptionComments = () => {
+    captionToggleRef?.focus();
+    props.captionComments?.setOpen(false);
+  };
   const captionCommentCount = () => props.caption?.commentCount ?? 0;
   // The author link is a placeholder until it lands on the feed seam.
   const notImplemented = (e: MouseEvent) => {
@@ -300,6 +315,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           open={commentsOpen()}
           panelId={commentsPanelId()}
           onToggle={() => props.postComments?.setOpen(!commentsOpen())}
+          toggleRef={(el) => (postToggleRef = el)}
           errors={[toggleLike.error(), deletePost.error()]}
         >
           <LikeControl
@@ -373,6 +389,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
             panelId={captionCommentsPanelId()}
             toggleDisabled={!props.caption}
             onToggle={() => props.captionComments?.setOpen(!captionCommentsOpen())}
+            toggleRef={(el) => (captionToggleRef = el)}
             errors={[toggleCaptionLike.error(), deleteCaption.error()]}
           >
             <LikeControl
@@ -442,6 +459,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
                 id={commentsPanelId()}
                 thread={postComments()}
                 composeLabel="Post Comment"
+                onClosePanel={closePostComments}
                 loggedIn={props.loggedIn}
                 userId={props.userId}
               />
@@ -460,6 +478,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
                 id={captionCommentsPanelId()}
                 thread={captionComments()}
                 composeLabel="Caption Comment"
+                onClosePanel={closeCaptionComments}
                 loggedIn={props.loggedIn}
                 userId={props.userId}
               />
