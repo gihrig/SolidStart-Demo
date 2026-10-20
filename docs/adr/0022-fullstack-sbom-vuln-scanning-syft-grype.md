@@ -440,3 +440,24 @@ rule stands; the set it produces is now one entry.
   1.54.1 left the SBOM format unchanged: the SBOM diff is the syft version and the
   `shell-quote` component only.
 - **Validation.** `cgs scan` clean (no findings), `cgs sbom:check` and `cgs vex:check` pass.
+
+## Addendum — weekly deps security gate; one grype pin (2026-10-20)
+
+- **The weekly `deps.yml` run now runs the security gates (#225).** Commit `3406dfd`
+  made every `ci.yml` job skip the `deps/weekly-update` PR, because bot-authored PR runs
+  need manual approval (`action_required`). The security jobs skipped too, so the weekly
+  PR reached review unscanned. `deps.yml` now runs `cargo audit --deny warnings`,
+  `cargo deny check licenses bans sources`, `scripts/grype-scan.sh` and
+  `scripts/vex-check.sh` directly after it regenerates the SBOM. A failure stops the job;
+  no PR opens. This corrects "`grype-scan` carries no `if:` guard" above: since `3406dfd`,
+  its only guard skips `deps/weekly-update`.
+- **Rejected: remove the guard from the `ci.yml` security jobs.** Each weekly PR would
+  then need a manual approval to run them.
+- **An unfixed advisory or a stale VEX statement stops the weekly update** until it is
+  triaged (an ignore entry in `backend/.cargo/audit.toml`, or a VEX change). The `ci.yml`
+  runs on `main` fail for the same cause, so the triage is not new work.
+- **One grype pin: `scripts/grype-install.sh`.** It holds the grype version and the
+  `linux_amd64` sha256; both workflows call it. It is CI-only: local runs use the
+  developer's grype on `PATH`, as before.
+- **Known limit.** The gate sees only advisories published before the weekly run. Before
+  merging the weekly PR, run `cgs audit` and `cgs scan` locally.
