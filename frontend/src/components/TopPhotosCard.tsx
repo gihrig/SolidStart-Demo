@@ -1,6 +1,7 @@
 import { For, Show, type Accessor } from "solid-js";
 import { useListbox } from "~/lib/useListbox";
 import type { PostView } from "~/types/jedi";
+import Avatar from "~/components/Avatar";
 import Card from "~/components/Card";
 
 export interface TopPhotosCardProps {
@@ -44,12 +45,15 @@ export default function TopPhotosCard(props: TopPhotosCardProps) {
                   alt={p.imageAlt}
                   loading="lazy"
                 />
-                <img
-                  class="w-6 h-6 rounded-full object-cover mr-0.5"
-                  src={p.author.avatarUrl}
-                  alt=""
-                  loading="lazy"
-                />
+                <div class="shrink-0 mr-0.5">
+                  <Avatar
+                    src={p.author.avatarUrl}
+                    name={p.author.name}
+                    alt=""
+                    size={24}
+                    data-testid="photo-author-initials"
+                  />
+                </div>
                 <span class="font-bold text-sm mr-1">{p.author.name}</span>
                 <span class="text-sm font-light text-(--theme-card-fg)">({p.likeCount} Likes)</span>
               </li>
