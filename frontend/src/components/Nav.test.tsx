@@ -116,6 +116,7 @@ describe("<Nav />", () => {
       await user.click(screen.getByRole("button", { name: /do-login/i }));
 
       const img = await screen.findByAltText("Homer avatar");
+      expect(avatarSlot()).toBe(img);
       expect(img).toHaveAttribute("src", "https://example.test/homer.png");
       expect(screen.getByText("Homer")).toBeInTheDocument();
     });

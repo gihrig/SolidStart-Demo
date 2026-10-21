@@ -13,6 +13,28 @@ describe("<Avatar />", () => {
     expect(screen.queryByTestId("ini")).not.toBeInTheDocument();
   });
 
+  it("puts the image test id on the image, not the initials test id", () => {
+    render(() => (
+      <Avatar
+        src={trustedUrl("/images/avatar.jpg")}
+        name="Lisa"
+        alt="Lisa"
+        data-testid="ini"
+        imageTestId="pic"
+      />
+    ));
+    expect(screen.getByTestId("pic")).toBe(screen.getByRole("img"));
+    expect(screen.queryByTestId("ini")).not.toBeInTheDocument();
+  });
+
+  it("puts no image test id on the initials", () => {
+    render(() => (
+      <Avatar src={trustedUrl("")} name="demo1" alt="" data-testid="ini" imageTestId="pic" />
+    ));
+    expect(screen.getByTestId("ini")).toHaveTextContent(/^DE$/);
+    expect(screen.queryByTestId("pic")).not.toBeInTheDocument();
+  });
+
   it("keeps an empty alt text: a decorative image next to the name", () => {
     const { container } = render(() => (
       <Avatar src={trustedUrl("/images/avatar.jpg")} name="Lisa" alt="" />

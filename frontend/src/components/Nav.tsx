@@ -84,6 +84,7 @@ export default function Nav() {
                 name={displayName() ?? ""}
                 alt={displayName() ? `${displayName()} avatar` : ""}
                 data-testid="avatar"
+                imageTestId="avatar"
               />
               <span class="hidden sm:inline">{displayName()}</span>
               <Icon

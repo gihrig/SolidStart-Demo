@@ -1,6 +1,6 @@
 import { Show } from "solid-js";
 import type { SafeUrl } from "~/lib/sanitizeUrl";
-import InitialsAvatar, { type AvatarSize } from "~/components/InitialsAvatar";
+import InitialsAvatar, { DEFAULT_AVATAR_SIZE, type AvatarSize } from "~/components/InitialsAvatar";
 
 // The image's diameter, per size; it matches the `InitialsAvatar` circle.
 const IMAGE_CLASS: Record<AvatarSize, string> = {
@@ -15,10 +15,12 @@ export interface AvatarProps {
   name: string;
   /** The image's alt text. Pass `""` where the name shows next to it. */
   alt: string;
-  /** The diameter in px; defaults to 32. */
+  /** The diameter in px; defaults to `DEFAULT_AVATAR_SIZE`. */
   size?: AvatarSize;
   /** The test id of the initials stand-in. */
   "data-testid"?: string;
+  /** The test id of the image. */
+  imageTestId?: string;
 }
 
 /**
@@ -36,7 +38,8 @@ export default function Avatar(props: AvatarProps) {
     >
       {(src) => (
         <img
-          class={`${IMAGE_CLASS[props.size ?? 32]} rounded-full object-cover`}
+          data-testid={props.imageTestId}
+          class={`${IMAGE_CLASS[props.size ?? DEFAULT_AVATAR_SIZE]} rounded-full object-cover`}
           src={src()}
           alt={props.alt}
           loading="lazy"

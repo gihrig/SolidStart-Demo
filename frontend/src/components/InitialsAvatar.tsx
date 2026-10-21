@@ -4,6 +4,9 @@ const AVATAR_INITIALS = 2;
 /** An avatar's diameter in px: 32 (the default) or 24 (#202). */
 export type AvatarSize = 24 | 32;
 
+/** The diameter an avatar takes when no size is given. */
+export const DEFAULT_AVATAR_SIZE: AvatarSize = 32;
+
 // The circle and its text, per size: the initials scale with the circle.
 const CIRCLE_CLASS: Record<AvatarSize, string> = {
   24: "h-6 w-6 text-xs",
@@ -13,7 +16,7 @@ const CIRCLE_CLASS: Record<AvatarSize, string> = {
 export interface InitialsAvatarProps {
   /** The name whose first characters fill the circle. */
   name: string;
-  /** The circle's diameter in px; defaults to 32. */
+  /** The circle's diameter in px; defaults to `DEFAULT_AVATAR_SIZE`. */
   size?: AvatarSize;
   "data-testid"?: string;
 }
@@ -31,7 +34,7 @@ export default function InitialsAvatar(props: InitialsAvatarProps) {
     <span
       data-testid={props["data-testid"]}
       aria-hidden="true"
-      class={`flex items-center justify-center ${CIRCLE_CLASS[props.size ?? 32]} rounded-full bg-teal-200 text-gray-900 font-bold overflow-hidden`}
+      class={`flex items-center justify-center ${CIRCLE_CLASS[props.size ?? DEFAULT_AVATAR_SIZE]} rounded-full bg-teal-200 text-gray-900 font-bold overflow-hidden`}
     >
       {initials()}
     </span>
