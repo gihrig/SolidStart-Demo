@@ -24,6 +24,7 @@ holds the front-end-specific rules and loads when Claude works in `frontend/`.
 - Do not use Tailwind `dark` class.
 - Use Tailwind custom property syntax: `text-(--css-variable)`.
 - Do not use Tailwind arbitrary value syntax: `text-[var(--css-variable)]`.
+- Where CSS and JavaScript meet similar requirements: use CSS
 
 ---
 
