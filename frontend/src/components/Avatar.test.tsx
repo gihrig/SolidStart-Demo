@@ -13,6 +13,28 @@ describe("<Avatar />", () => {
     expect(screen.queryByTestId("ini")).not.toBeInTheDocument();
   });
 
+  it("puts the image test id on the image, not the initials test id", () => {
+    render(() => (
+      <Avatar
+        src={trustedUrl("/images/avatar.jpg")}
+        name="Lisa"
+        alt="Lisa"
+        data-testid="ini"
+        imageTestId="pic"
+      />
+    ));
+    expect(screen.getByTestId("pic")).toBe(screen.getByRole("img"));
+    expect(screen.queryByTestId("ini")).not.toBeInTheDocument();
+  });
+
+  it("puts no image test id on the initials", () => {
+    render(() => (
+      <Avatar src={trustedUrl("")} name="demo1" alt="" data-testid="ini" imageTestId="pic" />
+    ));
+    expect(screen.getByTestId("ini")).toHaveTextContent(/^DE$/);
+    expect(screen.queryByTestId("pic")).not.toBeInTheDocument();
+  });
+
   it("keeps an empty alt text: a decorative image next to the name", () => {
     const { container } = render(() => (
       <Avatar src={trustedUrl("/images/avatar.jpg")} name="Lisa" alt="" />
@@ -25,5 +47,27 @@ describe("<Avatar />", () => {
     render(() => <Avatar src={trustedUrl("")} name="demo1" alt="demo1" data-testid="ini" />);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
     expect(screen.getByTestId("ini")).toHaveTextContent(/^DE$/);
+  });
+
+  it("shows the initials when the avatar is undefined", () => {
+    render(() => <Avatar src={undefined} name="demo1" alt="" data-testid="ini" />);
+    expect(screen.getByTestId("ini")).toHaveTextContent(/^DE$/);
+  });
+
+  it("crops the image to a 32 px circle by default", () => {
+    render(() => <Avatar src={trustedUrl("/images/avatar.jpg")} name="Lisa" alt="Lisa" />);
+    expect(screen.getByRole("img")).toHaveClass("w-8", "h-8", "rounded-full", "object-cover");
+  });
+
+  it("is 24 px at size 24, as the image and as the initials", () => {
+    render(() => (
+      <>
+        <Avatar src={trustedUrl("/images/avatar.jpg")} name="Lisa" alt="Lisa" size={24} />
+        <Avatar src={trustedUrl("")} name="demo1" alt="" size={24} data-testid="ini" />
+      </>
+    ));
+    expect(screen.getByRole("img")).toHaveClass("w-6", "h-6");
+    expect(screen.getByRole("img")).not.toHaveClass("w-8");
+    expect(screen.getByTestId("ini")).toHaveClass("w-6", "h-6", "text-xs");
   });
 });

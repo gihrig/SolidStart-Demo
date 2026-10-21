@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vite-plus/test";
-import { render, screen } from "@solidjs/testing-library";
+import { render, screen, within } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { PostView } from "~/types/jedi";
@@ -32,6 +32,29 @@ describe("<TopPhotosCard />", () => {
     expect(options[0]).toHaveTextContent("Lisa");
     expect(options[0]).toHaveTextContent("(5 Likes)");
     expect(screen.getByAltText("Post 1 photo")).toBeInTheDocument();
+  });
+
+  it("shows the initials for an author with no avatar, and the image for another (#202)", () => {
+    const noAvatar = {
+      ...makePost(3, "demo1", 2),
+      author: { id: 3, name: "demo1", avatarUrl: trustedUrl("") },
+    };
+    render(() => (
+      <TopPhotosCard
+        posts={() => [posts[0], noAvatar]}
+        selectedPost={() => posts[0]}
+        onSelect={vi.fn()}
+      />
+    ));
+    const [withImage, withInitials] = screen.getAllByRole("option");
+    expect(within(withInitials).getByTestId("photo-author-initials")).toHaveTextContent(/^DE$/);
+    expect(within(withInitials).queryAllByRole("presentation")).toHaveLength(0);
+    expect(within(withImage).queryByTestId("photo-author-initials")).not.toBeInTheDocument();
+    // The avatar has `alt=""` (the name is next to it), so it is a presentation image.
+    expect(within(withImage).getByRole("presentation")).toHaveAttribute(
+      "src",
+      "https://example.com/Lisa.png",
+    );
   });
 
   it("marks the selected post's row as selected", () => {

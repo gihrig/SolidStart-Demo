@@ -3,8 +3,8 @@ import { useDisclosure } from "~/lib/useDisclosure";
 import { useAuth } from "~/components/AuthContext";
 import { useDraftGuard } from "~/components/DraftGuardContext";
 import { useNewPost } from "~/components/NewPostContext";
+import Avatar from "~/components/Avatar";
 import Icon from "~/components/Icon";
-import InitialsAvatar from "~/components/InitialsAvatar";
 import LoginDialog from "~/components/LoginDialog";
 import ThemeToggle from "~/components/ThemeToggle";
 
@@ -79,19 +79,13 @@ export default function Nav() {
               {...dropdown.triggerProps}
               class="flex items-center gap-2 cursor-pointer select-none"
             >
-              <Show
-                when={avatarUrl()}
-                fallback={<InitialsAvatar name={displayName() ?? ""} data-testid="avatar" />}
-              >
-                {(url) => (
-                  <img
-                    data-testid="avatar"
-                    class="h-8 rounded-full object-cover bg-teal-200"
-                    src={url()}
-                    alt={displayName() ? `${displayName()} avatar` : ""}
-                  />
-                )}
-              </Show>
+              <Avatar
+                src={avatarUrl()}
+                name={displayName() ?? ""}
+                alt={displayName() ? `${displayName()} avatar` : ""}
+                data-testid="avatar"
+                imageTestId="avatar"
+              />
               <span class="hidden sm:inline">{displayName()}</span>
               <Icon
                 name="expand-arrow"
