@@ -1,4 +1,4 @@
-import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { createSignal, onMount } from "solid-js";
 import Icon, { type IconName } from "~/components/Icon";
 
 type ThemeMode = "light" | "dark" | "auto";
@@ -19,15 +19,13 @@ function getInitialMode(): ThemeMode {
   return "auto";
 }
 
+// CSS sets color-scheme from data-theme, and follows the OS in auto mode (#203).
 function applyThemeMode(mode: ThemeMode) {
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const resolved = mode === "auto" ? (prefersDark ? "dark" : "light") : mode;
   if (mode === "auto") {
     document.documentElement.removeAttribute("data-theme");
   } else {
     document.documentElement.setAttribute("data-theme", mode);
   }
-  document.documentElement.style.colorScheme = resolved;
 }
 
 export default function ThemeToggle() {
@@ -37,15 +35,6 @@ export default function ThemeToggle() {
     const initialMode = getInitialMode();
     setMode(initialMode);
     applyThemeMode(initialMode);
-  });
-
-  // Solid calls only cleanups registered in the prior run — early return with no onCleanup is safe
-  createEffect(() => {
-    if (mode() !== "auto") return;
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => applyThemeMode("auto");
-    media.addEventListener("change", onChange);
-    onCleanup(() => media.removeEventListener("change", onChange));
   });
 
   function toggleMode() {

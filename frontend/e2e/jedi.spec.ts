@@ -258,14 +258,14 @@ test.describe("Home Page - Theme Toggle", () => {
     await expect(toggle).toHaveAttribute("aria-label", /^Theme: light\b/);
     const htmlLight = page.locator("html");
     await expect(htmlLight).toHaveAttribute("data-theme", "light");
-    expect(await htmlLight.evaluate((el) => el.style.colorScheme)).toBe("light");
+    expect(await htmlLight.evaluate((el) => getComputedStyle(el).colorScheme)).toBe("light");
 
     // Click to dark
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-label", /^Theme: dark\b/);
     const htmlDark = page.locator("html");
     await expect(htmlDark).toHaveAttribute("data-theme", "dark");
-    expect(await htmlDark.evaluate((el) => el.style.colorScheme)).toBe("dark");
+    expect(await htmlDark.evaluate((el) => getComputedStyle(el).colorScheme)).toBe("dark");
 
     // Click to auto (aria-label shows "system" — user-facing term for auto mode)
     await toggle.click();
@@ -290,27 +290,50 @@ test.describe("Home Page - Theme Toggle", () => {
     await page.reload();
     const htmlAfterReload = page.locator("html");
     await expect(htmlAfterReload).toHaveAttribute("data-theme", "light");
-    expect(await htmlAfterReload.evaluate((el) => el.style.colorScheme)).toBe("light");
+    expect(await htmlAfterReload.evaluate((el) => getComputedStyle(el).colorScheme)).toBe("light");
   });
 
+  // CSS, not a script, follows the OS theme in auto mode (#203).
   test("should respect system dark preference in auto mode", async ({ page }) => {
     // Emulate dark system preference
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto("/");
 
-    // In auto mode (default), system dark preference should resolve to colorScheme dark
+    // In auto mode (default), CSS leaves the choice to the OS: "light dark".
     const html = page.locator("html");
-    expect(await html.evaluate((el) => el.style.colorScheme)).toBe("dark");
+    expect(await html.evaluate((el) => getComputedStyle(el).colorScheme)).toBe("light dark");
     expect(await html.getAttribute("data-theme")).toBeNull();
+    const darkBackground = await bodyBackground(page);
 
     // Switch to light system preference
     await page.emulateMedia({ colorScheme: "light" });
     await page.goto("/");
     const htmlLight = page.locator("html");
-    expect(await htmlLight.evaluate((el) => el.style.colorScheme)).toBe("light");
+    expect(await htmlLight.evaluate((el) => getComputedStyle(el).colorScheme)).toBe("light dark");
     expect(await htmlLight.getAttribute("data-theme")).toBeNull();
+    expect(await bodyBackground(page)).not.toBe(darkBackground);
+  });
+
+  test("a light choice holds when the OS theme changes to dark (#203)", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.goto("/");
+    const toggle = page.getByRole("button", { name: /theme/i });
+
+    // auto -> light
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-label", /^Theme: light\b/);
+    const lightBackground = await bodyBackground(page);
+
+    await page.emulateMedia({ colorScheme: "dark" });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    expect(await bodyBackground(page)).toBe(lightBackground);
   });
 });
+
+// The page background, as the browser computes it.
+function bodyBackground(page: Page) {
+  return page.locator("body").evaluate((el) => getComputedStyle(el).backgroundColor);
+}
 
 // An unsaved Comment is guarded (ADR-0030): a move that would drop it asks first.
 test.describe("Jedi Page - Draft guard (#124)", () => {

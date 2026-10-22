@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event";
 import ThemeToggle from "./ThemeToggle";
 
 describe("<ThemeToggle />", () => {
-  let mockMatchMedia: ReturnType<typeof vi.fn>;
   let mockLocalStorage: Record<string, string>;
 
   beforeEach(() => {
@@ -14,16 +13,6 @@ describe("<ThemeToggle />", () => {
     );
     vi.spyOn(Storage.prototype, "setItem").mockImplementation((key: string, value: string) => {
       mockLocalStorage[key] = value;
-    });
-
-    mockMatchMedia = vi.fn().mockReturnValue({
-      matches: false,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    });
-    Object.defineProperty(window, "matchMedia", {
-      writable: true,
-      value: mockMatchMedia,
     });
 
     document.documentElement.removeAttribute("data-theme");
@@ -73,7 +62,8 @@ describe("<ThemeToggle />", () => {
     expect(mockLocalStorage["theme"]).toBe("light");
   });
 
-  it("applies data-theme and colorScheme when mode is dark", async () => {
+  // CSS sets color-scheme from data-theme (#203), so no script writes it.
+  it("applies data-theme when mode is dark, and leaves colorScheme to CSS", async () => {
     const user = userEvent.setup();
     mockLocalStorage["theme"] = "light";
     render(() => <ThemeToggle />);
@@ -81,7 +71,7 @@ describe("<ThemeToggle />", () => {
 
     await user.click(button);
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
-    expect(document.documentElement.style.colorScheme).toBe("dark");
+    expect(document.documentElement.style.colorScheme).toBe("");
   });
 
   it("removes data-theme attribute in auto mode", async () => {
