@@ -1,7 +1,5 @@
-import { createSignal, onMount } from "solid-js";
 import Icon, { type IconName } from "~/components/Icon";
-
-type ThemeMode = "light" | "dark" | "auto";
+import { useTheme, type ThemeMode } from "~/components/ThemeContext";
 
 const MODE_ICON = {
   light: "sun",
@@ -9,40 +7,10 @@ const MODE_ICON = {
   auto: "system",
 } as const satisfies Record<ThemeMode, IconName>;
 
-function getInitialMode(): ThemeMode {
-  // onMount (only call site) doesn't run server-side.
-  // `typeof window...` crashes server-side. Defensive code in case
-  // `getInitialMode` is called from server-active code
-  if (typeof window === "undefined") return "auto";
-  const stored = window.localStorage.getItem("theme");
-  if (stored === "light" || stored === "dark" || stored === "auto") return stored;
-  return "auto";
-}
-
-// CSS sets color-scheme from data-theme, and follows the OS in auto mode (#203).
-function applyThemeMode(mode: ThemeMode) {
-  if (mode === "auto") {
-    document.documentElement.removeAttribute("data-theme");
-  } else {
-    document.documentElement.setAttribute("data-theme", mode);
-  }
-}
-
+// Shows the mode and changes it; `ThemeProvider` owns the mode, so every copy
+// shows the same one (#203).
 export default function ThemeToggle() {
-  const [mode, setMode] = createSignal<ThemeMode>("auto");
-
-  onMount(() => {
-    const initialMode = getInitialMode();
-    setMode(initialMode);
-    applyThemeMode(initialMode);
-  });
-
-  function toggleMode() {
-    const next: ThemeMode = mode() === "light" ? "dark" : mode() === "dark" ? "auto" : "light";
-    setMode(next);
-    applyThemeMode(next);
-    window.localStorage.setItem("theme", next);
-  }
+  const { mode, toggleMode } = useTheme();
 
   const label = () =>
     mode() === "auto"

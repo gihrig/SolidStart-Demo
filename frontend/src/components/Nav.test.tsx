@@ -6,6 +6,7 @@ import { stubDialogModal } from "~/lib/test-utils";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { DraftGuardProvider, useDraftGuard } from "./DraftGuardContext";
 import Nav from "./Nav";
+import { ThemeProvider } from "./ThemeContext";
 
 // The nav reads useAuth(); AuthProvider's login/logoff hit backend-rpc, mocked
 // so a test can drive the app to logged-in (mirrors AuthContext.test).
@@ -41,8 +42,10 @@ function LoginTrigger() {
 const renderNav = (withLogin = false) =>
   render(() => (
     <AuthProvider>
-      <Nav />
-      {withLogin ? <LoginTrigger /> : null}
+      <ThemeProvider>
+        <Nav />
+        {withLogin ? <LoginTrigger /> : null}
+      </ThemeProvider>
     </AuthProvider>
   ));
 
@@ -295,11 +298,13 @@ describe("<Nav /> — the Draft guard (ADR-0030)", () => {
       <MemoryRouter
         root={(props) => (
           <AuthProvider>
-            <DraftGuardProvider>
-              <Nav />
-              <LoginTrigger />
-              {props.children}
-            </DraftGuardProvider>
+            <ThemeProvider>
+              <DraftGuardProvider>
+                <Nav />
+                <LoginTrigger />
+                {props.children}
+              </DraftGuardProvider>
+            </ThemeProvider>
           </AuthProvider>
         )}
       >
