@@ -58,6 +58,7 @@ tables were built beside.
 **User**:
 An authenticated identity that owns Posts and Captions, authors Comments, and casts
 Likes. Every User is either an Admin user or a Standard user.
+A username has at most 32 characters (#203).
 _Avoid_: account.
 _BE_: `User = { id, username, typ, avatar_url }` with
 `UserTyp = "Sys" | "User"`. The merge **persisted `avatar_url`** as a back-end
