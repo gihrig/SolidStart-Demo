@@ -328,6 +328,34 @@ test.describe("Home Page - Theme Toggle", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     expect(await bodyBackground(page)).toBe(lightBackground);
   });
+
+  // The Nav renders a copy in the bar and a copy in the mobile menu, and CSS
+  // shows one; `getByRole` matches only the shown copy (#203).
+  test("below sm, the button is in the mobile menu; from sm, in the bar (#203)", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 639, height: 720 });
+    await page.goto("/");
+    // Wait for hydration, so the clicks reach live handlers.
+    await page.waitForLoadState("networkidle");
+    const header = page.getByRole("banner");
+    const menu = header.getByRole("navigation", { name: "Site menu" });
+    const toggles = header.getByRole("button", { name: /^Theme:/ });
+    const menuToggle = menu.getByRole("button", { name: /^Theme:/ });
+    await header.getByRole("button", { name: "Toggle navigation" }).click();
+
+    // 639 px: the open menu shows the one copy, and the bar shows none.
+    await expect(menuToggle).toBeVisible();
+    await expect(toggles).toHaveCount(1);
+    await menuToggle.click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    // 640 px: the bar shows the one copy, with the same mode.
+    await page.setViewportSize({ width: 640, height: 720 });
+    await expect(menuToggle).toHaveCount(0);
+    await expect(toggles).toHaveCount(1);
+    await expect(toggles).toHaveAttribute("aria-label", /^Theme: light\b/);
+  });
 });
 
 // The page background, as the browser computes it.

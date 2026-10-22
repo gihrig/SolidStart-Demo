@@ -88,9 +88,18 @@ describe("<Nav />", () => {
     expect(screen.queryByRole("link", { name: "Jedi" })).not.toBeInTheDocument();
   });
 
-  it("renders the theme toggle and mobile menu toggle", () => {
+  // jsdom applies no breakpoint classes, so both copies render here; CSS shows
+  // the bar copy from sm and the menu copy below sm (#203).
+  it("renders the theme toggle in the bar and in the mobile menu, and the menu toggle", () => {
     renderNav();
-    expect(screen.getByRole("button", { name: /theme/i })).toBeInTheDocument();
+    const menu = screen.getByRole("navigation", { name: /site menu/i });
+    const menuToggle = within(menu).getByRole("button", { name: /theme/i });
+    const barToggles = screen
+      .getAllByRole("button", { name: /theme/i })
+      .filter((button) => !menu.contains(button));
+    expect(barToggles).toHaveLength(1);
+    expect(barToggles[0].parentElement).toHaveClass("hidden", "sm:flex");
+    expect(menuToggle.closest("li")).toHaveClass("sm:hidden");
     expect(screen.getByRole("button", { name: /toggle navigation/i })).toBeInTheDocument();
   });
 

@@ -134,7 +134,10 @@ export default function Nav() {
             </button>
           </Show>
 
-          <ThemeToggle />
+          {/* Below sm, this copy hides, and the mobile menu shows its own copy */}
+          <div class="hidden sm:flex">
+            <ThemeToggle />
+          </div>
 
           {/* Mobile menu toggle */}
           <button
@@ -153,7 +156,9 @@ export default function Nav() {
         </div>
       </div>
 
-      {/* Mobile menu — links only; avatar + theme stay in the top bar */}
+      {/* Mobile menu — the links; below sm, also the dark/light mode button.
+          The avatar stays in the top bar. ThemeProvider keeps both theme copies
+          on one mode (#203). */}
       <nav
         {...mobileNav.panelProps}
         aria-label="Site menu"
@@ -169,6 +174,10 @@ export default function Nav() {
               </li>
             )}
           </For>
+          {/* A click keeps the menu open, so the User can click for the next mode */}
+          <li class="sm:hidden">
+            <ThemeToggle />
+          </li>
         </ul>
       </nav>
     </header>
