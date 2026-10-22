@@ -312,14 +312,12 @@ function CommentItem(props: CommentItemProps) {
 
   return (
     <li class="flex gap-2 border-b border-(--theme-muted) py-2 last:border-b-0">
-      <div class="shrink-0">
-        <Avatar
-          src={props.comment.author.avatarUrl}
-          name={props.comment.author.name}
-          alt=""
-          data-testid="comment-initials"
-        />
-      </div>
+      <Avatar
+        src={props.comment.author.avatarUrl}
+        name={props.comment.author.name}
+        alt=""
+        data-testid="comment-initials"
+      />
       <div class="min-w-0 grow space-y-1">
         <div class="flex flex-wrap items-baseline gap-x-2">
           <span class="font-bold">{props.comment.author.name}</span>

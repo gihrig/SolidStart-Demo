@@ -586,3 +586,24 @@ test.describe("Jedi Page - Caption Comments (#127)", () => {
     await expect(row).toHaveCount(0);
   });
 });
+
+// An avatar keeps its circle in a narrow flex row (#203). jsdom does not
+// calculate layout, so only a real browser shows the squeeze. User 12 has the
+// maximum 32-character name and no image, so the Nav shows its initials.
+test.describe("Jedi Page - Nav avatar keeps its circle (#203)", () => {
+  test("the long-name User's Nav avatar is 32 × 32 at 640 px and at 768 px", async ({ page }) => {
+    await page.goto("/");
+    await loginAs(page, "DemoBartalomo2342and-five-eigths", "dbart_01");
+
+    const avatar = page.getByRole("banner").getByTestId("avatar");
+    for (const width of [640, 768]) {
+      await page.setViewportSize({ width, height: 720 });
+      const box = await avatar.boundingBox();
+      expect(box, `the avatar box at ${width} px`).not.toBeNull();
+      expect({ width: box?.width, height: box?.height }, `at ${width} px`).toEqual({
+        width: 32,
+        height: 32,
+      });
+    }
+  });
+});
