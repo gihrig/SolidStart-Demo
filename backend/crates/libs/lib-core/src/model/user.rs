@@ -371,6 +371,49 @@ mod tests {
 		Ok(())
 	}
 
+	/// A username has at most 32 characters (#203): 32 pass, 33 fail.
+	#[serial]
+	#[tokio::test]
+	async fn test_create_username_max_32() -> Result<()> {
+		// -- Setup & Fixtures
+		let mm = _dev_utils::init_test().await;
+		let ctx = Ctx::root_ctx();
+		let fx_username_32 = "test_create_username_max_32-0032";
+		let fx_username_33 = "test_create_username_max_32-00033";
+		assert_eq!(fx_username_32.len(), 32);
+		assert_eq!(fx_username_33.len(), 33);
+
+		// -- Exec & Check: 32 characters pass.
+		let user_id = UserBmc::create(
+			&ctx,
+			&mm,
+			UserForCreate {
+				username: fx_username_32.to_string(),
+				pwd_clear: "welcome".to_string(),
+			},
+		)
+		.await?;
+		let user: UserForLogin = UserBmc::get(&ctx, &mm, user_id).await?;
+		assert_eq!(user.username, fx_username_32);
+
+		// -- Exec & Check: 33 characters fail.
+		let res = UserBmc::create(
+			&ctx,
+			&mm,
+			UserForCreate {
+				username: fx_username_33.to_string(),
+				pwd_clear: "welcome".to_string(),
+			},
+		)
+		.await;
+		assert!(res.is_err(), "a 33-character username must fail");
+
+		// -- Clean
+		UserBmc::delete(&ctx, &mm, user_id).await?;
+
+		Ok(())
+	}
+
 	#[serial]
 	#[tokio::test]
 	async fn test_first_ok_demo1() -> Result<()> {

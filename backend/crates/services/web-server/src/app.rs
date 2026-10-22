@@ -500,7 +500,7 @@ mod tests {
 		// -- Setup & Fixtures
 		let mm = _dev_utils::init_test().await;
 		let root = Ctx::root_ctx();
-		let fx_username = "test_web_admin_update_hero_ok-admin";
+		let fx_username = "test_web_admin_update_hero-admin";
 		let fx_pwd = "welcome";
 		seed_admin_user(&root, &mm, fx_username, fx_pwd).await?;
 		let mut server = TestServer::new(app(mm.clone(), Arc::new(WsState::new())));

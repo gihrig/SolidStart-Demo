@@ -140,7 +140,7 @@ mod tests {
 	async fn test_authorize_subscription_two_user() -> Result<()> {
 		let mm = _dev_utils::init_test().await;
 		let root = Ctx::root_ctx();
-		let fx_prefix = "test_authorize_subscription_two_user";
+		let fx_prefix = "test_authorize_sub_two_user";
 
 		let b_id = seed_user(&root, &mm, &format!("{fx_prefix}-B")).await?;
 		let ctx_b = Ctx::new(b_id)?;

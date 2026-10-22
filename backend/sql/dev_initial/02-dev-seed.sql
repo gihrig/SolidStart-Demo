@@ -45,6 +45,14 @@ INSERT INTO "user"
     (10, 'Krusty',   0,   now(), 0,   now()),
     (11, 'Ralph',    0,   now(), 0,   now());
 
+-- Long-name User (id 12, #203). Its username has the maximum 32 characters, and
+-- it has no avatar_url, so the Nav shows its initials. An e2e test logs in as it
+-- and checks that the Nav avatar keeps its circle in a narrow row. dev_db.rs sets
+-- its dev-only pwd (dbart_01). It owns no content and casts no Likes.
+INSERT INTO "user"
+    (id, username,                           cid, ctime, mid, mtime) VALUES
+    (12, 'DemoBartalomo2342and-five-eigths', 0,   now(), 0,   now());
+
 -- Posts (ids 1..4), seeded from the front-end mock fixture. Every Post is public,
 -- and owner_id is its author. The fixture likeCount is NOT stored — the like count
 -- is derived from post_like, seeded below to match the fixture (#177).
