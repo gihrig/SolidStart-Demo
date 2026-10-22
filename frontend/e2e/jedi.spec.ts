@@ -258,14 +258,14 @@ test.describe("Home Page - Theme Toggle", () => {
     await expect(toggle).toHaveAttribute("aria-label", /^Theme: light\b/);
     const htmlLight = page.locator("html");
     await expect(htmlLight).toHaveAttribute("data-theme", "light");
-    expect(await htmlLight.evaluate((el) => el.style.colorScheme)).toBe("light");
+    expect(await htmlLight.evaluate((el) => getComputedStyle(el).colorScheme)).toBe("light");
 
     // Click to dark
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-label", /^Theme: dark\b/);
     const htmlDark = page.locator("html");
     await expect(htmlDark).toHaveAttribute("data-theme", "dark");
-    expect(await htmlDark.evaluate((el) => el.style.colorScheme)).toBe("dark");
+    expect(await htmlDark.evaluate((el) => getComputedStyle(el).colorScheme)).toBe("dark");
 
     // Click to auto (aria-label shows "system" — user-facing term for auto mode)
     await toggle.click();
@@ -290,27 +290,82 @@ test.describe("Home Page - Theme Toggle", () => {
     await page.reload();
     const htmlAfterReload = page.locator("html");
     await expect(htmlAfterReload).toHaveAttribute("data-theme", "light");
-    expect(await htmlAfterReload.evaluate((el) => el.style.colorScheme)).toBe("light");
+    expect(await htmlAfterReload.evaluate((el) => getComputedStyle(el).colorScheme)).toBe("light");
   });
 
+  // CSS, not a script, follows the OS theme in auto mode (#203).
   test("should respect system dark preference in auto mode", async ({ page }) => {
     // Emulate dark system preference
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto("/");
 
-    // In auto mode (default), system dark preference should resolve to colorScheme dark
+    // In auto mode (default), CSS leaves the choice to the OS: "light dark".
     const html = page.locator("html");
-    expect(await html.evaluate((el) => el.style.colorScheme)).toBe("dark");
+    expect(await html.evaluate((el) => getComputedStyle(el).colorScheme)).toBe("light dark");
     expect(await html.getAttribute("data-theme")).toBeNull();
+    const darkBackground = await bodyBackground(page);
 
     // Switch to light system preference
     await page.emulateMedia({ colorScheme: "light" });
     await page.goto("/");
     const htmlLight = page.locator("html");
-    expect(await htmlLight.evaluate((el) => el.style.colorScheme)).toBe("light");
+    expect(await htmlLight.evaluate((el) => getComputedStyle(el).colorScheme)).toBe("light dark");
     expect(await htmlLight.getAttribute("data-theme")).toBeNull();
+    expect(await bodyBackground(page)).not.toBe(darkBackground);
+  });
+
+  test("a light choice holds when the OS theme changes to dark (#203)", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.goto("/");
+    const toggle = page.getByRole("button", { name: /theme/i });
+
+    // auto -> light
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-label", /^Theme: light\b/);
+    const lightBackground = await bodyBackground(page);
+
+    await page.emulateMedia({ colorScheme: "dark" });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    expect(await bodyBackground(page)).toBe(lightBackground);
+  });
+
+  // The Nav renders a copy in the bar and a copy in the mobile menu, and CSS
+  // shows one; `getByRole` matches only the shown copy (#203).
+  test("below sm, the button is in the mobile menu; from sm, in the bar (#203)", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 639, height: 720 });
+    await page.goto("/");
+    // Wait for hydration, so the clicks reach live handlers.
+    await page.waitForLoadState("networkidle");
+    const header = page.getByRole("banner");
+    const menu = header.getByRole("navigation", { name: "Site menu" });
+    const toggles = header.getByRole("button", { name: /^Theme:/ });
+    const menuToggle = menu.getByRole("button", { name: /^Theme:/ });
+    const menuButton = header.getByRole("button", { name: "Toggle navigation" });
+    await menuButton.click();
+
+    // 639 px: the open menu shows the one copy, and the bar shows none.
+    await expect(menuToggle).toBeVisible();
+    await expect(toggles).toHaveCount(1);
+    await menuToggle.click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    // 640 px: the menu stays open but shows no copy; the bar shows the one
+    // copy, with the same mode.
+    await page.setViewportSize({ width: 640, height: 720 });
+    await expect(menuButton).toHaveAttribute("aria-expanded", "true");
+    await expect(menu.getByRole("link", { name: "About" })).toBeVisible();
+    await expect(menuToggle).toHaveCount(0);
+    await expect(toggles).toHaveCount(1);
+    await expect(toggles).toHaveAttribute("aria-label", /^Theme: light\b/);
   });
 });
+
+// The page background, as the browser computes it.
+function bodyBackground(page: Page) {
+  return page.locator("body").evaluate((el) => getComputedStyle(el).backgroundColor);
+}
 
 // An unsaved Comment is guarded (ADR-0030): a move that would drop it asks first.
 test.describe("Jedi Page - Draft guard (#124)", () => {
@@ -584,5 +639,26 @@ test.describe("Jedi Page - Caption Comments (#127)", () => {
     // Delete it, so a rerun starts clean.
     await row.getByRole("button", { name: "Delete comment" }).click();
     await expect(row).toHaveCount(0);
+  });
+});
+
+// An avatar keeps its circle in a narrow flex row (#203). jsdom does not
+// calculate layout, so only a real browser shows the squeeze. User 12 has the
+// maximum 32-character name and no image, so the Nav shows its initials.
+test.describe("Jedi Page - Nav avatar keeps its circle (#203)", () => {
+  test("the long-name User's Nav avatar is 32 × 32 at 640 px and at 768 px", async ({ page }) => {
+    await page.goto("/");
+    await loginAs(page, "DemoBartalomo2342and-five-eigths", "dbart_01");
+
+    const avatar = page.getByRole("banner").getByTestId("avatar");
+    for (const width of [640, 768]) {
+      await page.setViewportSize({ width, height: 720 });
+      const box = await avatar.boundingBox();
+      expect(box, `the avatar box at ${width} px`).not.toBeNull();
+      expect({ width: box?.width, height: box?.height }, `at ${width} px`).toEqual({
+        width: 32,
+        height: 32,
+      });
+    }
   });
 });

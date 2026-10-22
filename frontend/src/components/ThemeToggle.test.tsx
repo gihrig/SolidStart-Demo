@@ -1,10 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { render, screen } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
+import { ThemeProvider } from "./ThemeContext";
 import ThemeToggle from "./ThemeToggle";
 
+// One ThemeProvider owns the mode (#203); each ThemeToggle shows and changes it.
+function renderToggle() {
+  return render(() => (
+    <ThemeProvider>
+      <ThemeToggle />
+    </ThemeProvider>
+  ));
+}
+
 describe("<ThemeToggle />", () => {
-  let mockMatchMedia: ReturnType<typeof vi.fn>;
   let mockLocalStorage: Record<string, string>;
 
   beforeEach(() => {
@@ -16,16 +25,6 @@ describe("<ThemeToggle />", () => {
       mockLocalStorage[key] = value;
     });
 
-    mockMatchMedia = vi.fn().mockReturnValue({
-      matches: false,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    });
-    Object.defineProperty(window, "matchMedia", {
-      writable: true,
-      value: mockMatchMedia,
-    });
-
     document.documentElement.removeAttribute("data-theme");
     document.documentElement.style.colorScheme = "";
   });
@@ -35,19 +34,19 @@ describe("<ThemeToggle />", () => {
   });
 
   it("renders a toggle button", () => {
-    render(() => <ThemeToggle />);
+    renderToggle();
     expect(screen.getByRole("button")).toBeInTheDocument();
   });
 
   it("defaults to auto mode when no localStorage value", () => {
-    render(() => <ThemeToggle />);
+    renderToggle();
     const button = screen.getByRole("button");
     expect(button.getAttribute("aria-label")).toContain("system");
   });
 
   it("reads initial mode from localStorage", () => {
     mockLocalStorage["theme"] = "dark";
-    render(() => <ThemeToggle />);
+    renderToggle();
     const button = screen.getByRole("button");
     expect(button.getAttribute("aria-label")).toContain("dark");
   });
@@ -55,7 +54,7 @@ describe("<ThemeToggle />", () => {
   it("cycles light → dark → auto on clicks", async () => {
     const user = userEvent.setup();
     mockLocalStorage["theme"] = "light";
-    render(() => <ThemeToggle />);
+    renderToggle();
     const button = screen.getByRole("button");
 
     expect(button.getAttribute("aria-label")).toContain("light");
@@ -73,21 +72,22 @@ describe("<ThemeToggle />", () => {
     expect(mockLocalStorage["theme"]).toBe("light");
   });
 
-  it("applies data-theme and colorScheme when mode is dark", async () => {
+  // CSS sets color-scheme from data-theme (#203), so no script writes it.
+  it("applies data-theme when mode is dark, and leaves colorScheme to CSS", async () => {
     const user = userEvent.setup();
     mockLocalStorage["theme"] = "light";
-    render(() => <ThemeToggle />);
+    renderToggle();
     const button = screen.getByRole("button");
 
     await user.click(button);
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
-    expect(document.documentElement.style.colorScheme).toBe("dark");
+    expect(document.documentElement.style.colorScheme).toBe("");
   });
 
   it("removes data-theme attribute in auto mode", async () => {
     const user = userEvent.setup();
     mockLocalStorage["theme"] = "dark";
-    render(() => <ThemeToggle />);
+    renderToggle();
     const button = screen.getByRole("button");
 
     await user.click(button);
@@ -96,7 +96,7 @@ describe("<ThemeToggle />", () => {
 
   it("renders the sun sprite icon at 20px in light mode", () => {
     mockLocalStorage["theme"] = "light";
-    const { container } = render(() => <ThemeToggle />);
+    const { container } = renderToggle();
     const svg = container.querySelector("svg")!;
     expect(svg.querySelector("use")!.getAttribute("href")).toBe("/icon-sprite.svg#icon-sun");
     expect(svg).toHaveClass("w-5", "h-5");
@@ -104,16 +104,37 @@ describe("<ThemeToggle />", () => {
 
   it("renders the moon sprite icon at 20px in dark mode", () => {
     mockLocalStorage["theme"] = "dark";
-    const { container } = render(() => <ThemeToggle />);
+    const { container } = renderToggle();
     const svg = container.querySelector("svg")!;
     expect(svg.querySelector("use")!.getAttribute("href")).toBe("/icon-sprite.svg#icon-moon");
     expect(svg).toHaveClass("w-5", "h-5");
   });
 
   it("renders the system sprite icon at 20px in auto mode", () => {
-    const { container } = render(() => <ThemeToggle />);
+    const { container } = renderToggle();
     const svg = container.querySelector("svg")!;
     expect(svg.querySelector("use")!.getAttribute("href")).toBe("/icon-sprite.svg#icon-system");
     expect(svg).toHaveClass("w-5", "h-5");
+  });
+
+  // The Nav renders one copy in the bar and one in the mobile menu (#203).
+  it("keeps two copies under one provider in step", async () => {
+    const user = userEvent.setup();
+    mockLocalStorage["theme"] = "light";
+    render(() => (
+      <ThemeProvider>
+        <ThemeToggle />
+        <ThemeToggle />
+      </ThemeProvider>
+    ));
+    const [first, second] = screen.getAllByRole("button");
+
+    await user.click(first);
+    expect(first.getAttribute("aria-label")).toContain("dark");
+    expect(second.getAttribute("aria-label")).toContain("dark");
+
+    await user.click(second);
+    expect(first.getAttribute("aria-label")).toContain("system");
+    expect(second.getAttribute("aria-label")).toContain("system");
   });
 });

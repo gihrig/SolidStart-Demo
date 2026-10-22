@@ -59,6 +59,19 @@ describe("<Avatar />", () => {
     expect(screen.getByRole("img")).toHaveClass("w-8", "h-8", "rounded-full", "object-cover");
   });
 
+  // jsdom does not calculate layout, so the class is the guard here; the e2e
+  // Nav-avatar test checks the real box (#203).
+  it("never shrinks in a narrow row, as the image and as the initials", () => {
+    render(() => (
+      <>
+        <Avatar src={trustedUrl("/images/avatar.jpg")} name="Lisa" alt="Lisa" />
+        <Avatar src={trustedUrl("")} name="demo1" alt="" data-testid="ini" />
+      </>
+    ));
+    expect(screen.getByRole("img")).toHaveClass("shrink-0");
+    expect(screen.getByTestId("ini")).toHaveClass("shrink-0");
+  });
+
   it("is 24 px at size 24, as the image and as the initials", () => {
     render(() => (
       <>

@@ -5,6 +5,7 @@ import { Suspense } from "solid-js";
 import { AuthProvider } from "~/components/AuthContext";
 import { DraftGuardProvider } from "~/components/DraftGuardContext";
 import { NewPostProvider } from "~/components/NewPostContext";
+import { ThemeProvider } from "~/components/ThemeContext";
 import Nav from "~/components/Nav";
 import Footer from "~/components/Footer";
 import "./app.css";
@@ -15,13 +16,15 @@ export default function App() {
       root={(props) => (
         <MetaProvider>
           <AuthProvider>
-            <DraftGuardProvider>
-              <NewPostProvider>
-                <Nav />
-                <Suspense>{props.children}</Suspense>
-                <Footer />
-              </NewPostProvider>
-            </DraftGuardProvider>
+            <ThemeProvider>
+              <DraftGuardProvider>
+                <NewPostProvider>
+                  <Nav />
+                  <Suspense>{props.children}</Suspense>
+                  <Footer />
+                </NewPostProvider>
+              </DraftGuardProvider>
+            </ThemeProvider>
           </AuthProvider>
         </MetaProvider>
       )}

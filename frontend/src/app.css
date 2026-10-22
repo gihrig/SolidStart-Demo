@@ -25,7 +25,10 @@
 }
 
 @layer base {
+  /* CSS, not a script, sets color-scheme (#203): with no data-theme (auto), the
+     browser follows the OS. */
   :root {
+    color-scheme: light dark;
     --theme-accent: var(--color-sky-700);
     --theme-highlight: var(--color-indigo-100);
     --theme-btn-primary: rgb(88, 40, 244);
@@ -39,7 +42,12 @@
     --theme-muted: var(--color-gray-500);
   }
 
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+
   :root[data-theme="dark"] {
+    color-scheme: dark;
     --theme-highlight: color-mix(in oklch, var(--color-indigo-100), transparent 50%);
     --theme-foreground: var(--color-zinc-100);
     --theme-background: var(--color-zinc-800);

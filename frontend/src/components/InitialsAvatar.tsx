@@ -34,7 +34,7 @@ export default function InitialsAvatar(props: InitialsAvatarProps) {
     <span
       data-testid={props["data-testid"]}
       aria-hidden="true"
-      class={`flex items-center justify-center ${CIRCLE_CLASS[props.size ?? DEFAULT_AVATAR_SIZE]} rounded-full bg-teal-200 text-gray-900 font-bold overflow-hidden`}
+      class={`flex shrink-0 items-center justify-center ${CIRCLE_CLASS[props.size ?? DEFAULT_AVATAR_SIZE]} rounded-full bg-teal-200 text-gray-900 font-bold overflow-hidden`}
     >
       {initials()}
     </span>

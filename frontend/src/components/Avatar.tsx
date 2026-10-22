@@ -26,7 +26,9 @@ export interface AvatarProps {
 /**
  * A User's avatar: the image, else the name's initials in a turquoise circle
  * (`InitialsAvatar`). The one place that makes this choice (#125). A non-square
- * image is cropped to the circle (`object-cover`), not stretched.
+ * image is cropped to the circle (`object-cover`), not stretched. In a narrow
+ * flex row, an avatar never shrinks into an oval (`shrink-0`, #203), so a call
+ * site needs no wrapper.
  */
 export default function Avatar(props: AvatarProps) {
   return (
@@ -39,7 +41,7 @@ export default function Avatar(props: AvatarProps) {
       {(src) => (
         <img
           data-testid={props.imageTestId}
-          class={`${IMAGE_CLASS[props.size ?? DEFAULT_AVATAR_SIZE]} rounded-full object-cover`}
+          class={`${IMAGE_CLASS[props.size ?? DEFAULT_AVATAR_SIZE]} shrink-0 rounded-full object-cover`}
           src={src()}
           alt={props.alt}
           loading="lazy"

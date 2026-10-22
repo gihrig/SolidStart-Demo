@@ -31,7 +31,7 @@ export default function TopCaptionsCard(props: TopCaptionsCardProps) {
               class="flex items-center cursor-pointer w-full p-2 rounded outline-none hover:bg-(--theme-hover-bg) transition-colors duration-150"
               {...getOptionProps(index())}
             >
-              <div class="shrink-0 mr-1">
+              <div class="mr-1">
                 <Avatar
                   src={c.author.avatarUrl}
                   name={c.author.name}

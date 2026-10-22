@@ -45,7 +45,7 @@ export default function TopPhotosCard(props: TopPhotosCardProps) {
                   alt={p.imageAlt}
                   loading="lazy"
                 />
-                <div class="shrink-0 mr-0.5">
+                <div class="mr-0.5">
                   <Avatar
                     src={p.author.avatarUrl}
                     name={p.author.name}
