@@ -342,7 +342,8 @@ test.describe("Home Page - Theme Toggle", () => {
     const menu = header.getByRole("navigation", { name: "Site menu" });
     const toggles = header.getByRole("button", { name: /^Theme:/ });
     const menuToggle = menu.getByRole("button", { name: /^Theme:/ });
-    await header.getByRole("button", { name: "Toggle navigation" }).click();
+    const menuButton = header.getByRole("button", { name: "Toggle navigation" });
+    await menuButton.click();
 
     // 639 px: the open menu shows the one copy, and the bar shows none.
     await expect(menuToggle).toBeVisible();
@@ -350,8 +351,11 @@ test.describe("Home Page - Theme Toggle", () => {
     await menuToggle.click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 
-    // 640 px: the bar shows the one copy, with the same mode.
+    // 640 px: the menu stays open but shows no copy; the bar shows the one
+    // copy, with the same mode.
     await page.setViewportSize({ width: 640, height: 720 });
+    await expect(menuButton).toHaveAttribute("aria-expanded", "true");
+    await expect(menu.getByRole("link", { name: "About" })).toBeVisible();
     await expect(menuToggle).toHaveCount(0);
     await expect(toggles).toHaveCount(1);
     await expect(toggles).toHaveAttribute("aria-label", /^Theme: light\b/);
