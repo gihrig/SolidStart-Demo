@@ -8,7 +8,7 @@ test.describe("Home Page", () => {
     await page.goto("/");
 
     await expect(page).toHaveTitle(/Little Jedi/);
-    await expect(page).toHaveURL("http://localhost:3000/");
+    await expect(page).toHaveURL("/");
   });
 
   test("displays the Jedi hero heading", async ({ page }) => {
@@ -44,7 +44,7 @@ test.describe("Home Page", () => {
     await expect(aboutLink).toHaveAttribute("href", "/about");
     await aboutLink.click();
 
-    await expect(page).toHaveURL("http://localhost:3000/about");
+    await expect(page).toHaveURL("/about");
     await expect(page.getByRole("heading", { name: /^About$/i })).toBeVisible();
   });
 

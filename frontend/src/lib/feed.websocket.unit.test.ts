@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { createSignal } from "solid-js";
 import { renderHook } from "@solidjs/testing-library";
-import { createWebSocketFeed } from "./feed.websocket";
+import { createWebSocketFeed, webSocketUrl } from "./feed.websocket";
 import { Channel } from "./channel";
 
 // Mock WebSocket. The Feed connects from onMount, which renderHook fires by
@@ -50,6 +50,22 @@ class MockWebSocket {
 const wire = (action: "subscribe" | "unsubscribe", channel: Channel) =>
   JSON.stringify({ action, ...channel });
 
+// The socket dials the page's own origin; the HTTPS edge routes `/ws` to the
+// back-end (ADR-0034).
+describe("webSocketUrl", () => {
+  it("uses wss: on an https: page", () => {
+    expect(webSocketUrl({ protocol: "https:", host: "localhost:3443" })).toBe(
+      "wss://localhost:3443/ws",
+    );
+  });
+
+  it("uses ws: on an http: page", () => {
+    expect(webSocketUrl({ protocol: "http:", host: "localhost:3000" })).toBe(
+      "ws://localhost:3000/ws",
+    );
+  });
+});
+
 describe("createWebSocketFeed", () => {
   let errorSpy: ReturnType<typeof vi.spyOn>;
   let randomSpy: ReturnType<typeof vi.spyOn>;
@@ -73,7 +89,7 @@ describe("createWebSocketFeed", () => {
   it("connects to the WebSocket URL on mount", () => {
     renderHook(() => createWebSocketFeed());
     expect(MockWebSocket.instances).toHaveLength(1);
-    expect(MockWebSocket.instances[0].url).toBe("ws://localhost:8080/ws");
+    expect(MockWebSocket.instances[0].url).toBe(`ws://${location.host}/ws`);
   });
 
   it("opens a single socket for many Subscriptions", () => {
@@ -199,7 +215,7 @@ describe("createWebSocketFeed", () => {
       vi.advanceTimersByTime(3000);
 
       expect(MockWebSocket.instances).toHaveLength(2);
-      expect(MockWebSocket.instances[1].url).toBe("ws://localhost:8080/ws");
+      expect(MockWebSocket.instances[1].url).toBe(`ws://${location.host}/ws`);
     } finally {
       vi.useRealTimers();
     }
