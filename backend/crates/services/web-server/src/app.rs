@@ -2,7 +2,7 @@ use crate::config::web_config;
 use crate::web::{routes_login, routes_rpc};
 use lib_web::ws::{self, WsState};
 
-use axum::{http::Method, middleware, Router};
+use axum::{middleware, Router};
 use lib_core::model::ModelManager;
 use lib_web::middleware::mw_auth::{mw_ctx_require, mw_ctx_resolver};
 use lib_web::middleware::mw_req_stamp::mw_req_stamp_resolver;
@@ -10,7 +10,6 @@ use lib_web::middleware::mw_res_map::mw_response_map;
 use lib_web::routes::routes_static;
 use std::sync::Arc;
 use tower_cookies::CookieManagerLayer;
-use tower_http::cors::CorsLayer;
 
 /// Assemble the full Axum application router.
 ///
@@ -32,20 +31,8 @@ pub fn app(mm: ModelManager, ws_state: Arc<WsState>) -> Router {
 	let routes_ws = ws::routes(ws_state.clone(), mm.clone())
 		.route_layer(middleware::from_fn(mw_ctx_require));
 
-	// CORS for the SolidStart front-end (harmless in tests, which send no Origin).
-	let cors = CorsLayer::new()
-		.allow_origin(
-			"http://localhost:3000"
-				.parse::<axum::http::HeaderValue>()
-				.unwrap(),
-		)
-		.allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-		.allow_headers([
-			axum::http::header::CONTENT_TYPE,
-			axum::http::header::AUTHORIZATION,
-		])
-		.allow_credentials(true);
-
+	// No CORS layer: the browser reaches this server on its own origin, through
+	// the HTTPS edge (ADR-0034), so no other origin needs access.
 	Router::new()
 		.merge(routes_login::routes(mm.clone()))
 		.nest("/api", routes_rpc.merge(routes_rpc_public))
@@ -53,7 +40,6 @@ pub fn app(mm: ModelManager, ws_state: Arc<WsState>) -> Router {
 		.layer(middleware::map_response(mw_response_map))
 		.layer(middleware::from_fn_with_state(mm.clone(), mw_ctx_resolver))
 		.layer(CookieManagerLayer::new())
-		.layer(cors)
 		.layer(middleware::from_fn(mw_req_stamp_resolver))
 		.fallback_service(routes_static::serve_dir(&web_config().WEB_FOLDER))
 }
@@ -1628,6 +1614,38 @@ mod tests {
 			"expected a NO_AUTH error body, got: {}",
 			res.text()
 		);
+
+		Ok(())
+	}
+
+	/// The browser reaches the back-end on its own origin, through the HTTPS
+	/// edge (ADR-0034). So the back-end grants no other origin access: a
+	/// request from the old dev origin gets no CORS headers.
+	#[serial]
+	#[tokio::test]
+	async fn test_web_grants_no_cross_origin_access() -> Result<()> {
+		let mm = _dev_utils::init_test().await;
+		let server = TestServer::new(app(mm, Arc::new(WsState::new())));
+
+		let res = server
+			.post("/api/rpc-public")
+			.add_header("origin", "http://localhost:3000")
+			.json(&json!({
+				"jsonrpc": "2.0", "id": 1, "method": "list_categories"
+			}))
+			.await;
+
+		res.assert_status_ok();
+		for name in [
+			"access-control-allow-origin",
+			"access-control-allow-credentials",
+		] {
+			assert!(
+				res.maybe_header(name).is_none(),
+				"unexpected {name}: {:?}",
+				res.maybe_header(name)
+			);
+		}
 
 		Ok(())
 	}
