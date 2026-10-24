@@ -26,6 +26,8 @@ audit = { command = "((cd frontend && vpr audit) || true); (cd backend && cgs au
 "audit:be" = { command = "(cd backend && cgs audit)", info = "Audit back-end dependencies (cargo audit --deny warnings)" }
 bindings = { command = "(cd backend && cgs bindings)", info = "Regenerate ts-rs bindings (backend)" }
 build = { command = "(cd frontend && cgs build) && (cd backend && cgs build)", info = "Build both subtrees" }
+caddy = { command = "./scripts/caddy.sh run", info = "Run the dev/e2e HTTPS edge at https://localhost:3443 (pinned Caddy)" }
+"caddy:trust" = { command = "./scripts/caddy.sh trust", info = "Add the edge's local CA to the system trust stores (edge must be running)" }
 check = { command = "(cd frontend && cgs check) && (cd backend && cgs check)", info = "Format + lint + type-check both subtrees" }
 cover = { command = "(cd frontend && cgs test:cover) && (cd backend && cgs cover)", info = "Run both test suites with coverage" }
 dev = { command = "(cd frontend && vpx concurrently -k -n backend,frontend -c blue,green '(cd ../backend && cgs dev)' 'cgs dev')", info = "Start both dev servers (concurrently, kill-both)" }
