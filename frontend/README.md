@@ -96,7 +96,8 @@ Some parts still need the back-end:
 
 - Login and logoff: `AuthContext` calls `backendRpc.auth` directly, and loads
   the profile through the `jediApi` singleton, not the injected stand-in.
-- The live feed: it connects to `ws://localhost:8080/ws`.
+- The live feed: it connects to `/ws` on the page's origin, which the HTTPS
+  edge routes to the back-end (ADR-0034).
 - Likes and Comment writes, unless the stand-in implements them.
 
 ## Building
