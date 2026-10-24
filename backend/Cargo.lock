@@ -4051,7 +4051,6 @@ dependencies = [
  "strum_macros",
  "tokio",
  "tower-cookies",
- "tower-http 0.7.1",
  "tracing",
  "tracing-subscriber",
  "ts-rs",

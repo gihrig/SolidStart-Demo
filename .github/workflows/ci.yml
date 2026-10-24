@@ -602,6 +602,27 @@ jobs:
           echo "Front-end did not become ready in time." >&2
           exit 1
 
+      # The HTTPS edge (ADR-0034): Playwright's baseURL is https://localhost:3443.
+      # caddy.sh installs the pinned, checksum-verified Caddy, as it does locally.
+      - name: Start HTTPS edge
+        run: nohup ./scripts/caddy.sh run > "$RUNNER_TEMP/edge.log" 2>&1 &
+
+      - name: Wait for HTTPS edge (page + /api over verified TLS)
+        run: |
+          ca=.caddy/pki/authorities/local/root.crt
+          for i in $(seq 1 60); do
+            if [ -f "$ca" ] && curl -sf --cacert "$ca" https://localhost:3443/ > /dev/null &&
+              curl -s --cacert "$ca" -X POST https://localhost:3443/api/rpc \
+                -H 'Content-Type: application/json' \
+                -d '{"jsonrpc":"2.0","id":1,"method":"test","params":{}}' | grep -q "NO_AUTH"; then
+              echo "HTTPS edge up."; exit 0
+            fi
+            sleep 0.5
+          done
+          echo "HTTPS edge did not become ready in time." >&2
+          tail -n 50 "$RUNNER_TEMP/edge.log" || true
+          exit 1
+
       - name: Run Playwright e2e
         working-directory: frontend
         run: playwright test --project=chromium
