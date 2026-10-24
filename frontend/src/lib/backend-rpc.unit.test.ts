@@ -47,7 +47,7 @@ describe("auth.login", () => {
     await auth.login(TEST_USERNAME, TEST_PASSWORD);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/login",
+      "/api/login",
       expect.objectContaining({
         method: "POST",
         credentials: "include",
@@ -104,7 +104,7 @@ describe("auth.logoff", () => {
     await auth.logoff();
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/logoff",
+      "/api/logoff",
       expect.objectContaining({
         method: "POST",
         credentials: "include",
@@ -135,7 +135,7 @@ describe("rpcCall core behaviour", () => {
     await authenticatedRpc("get_post_like", { id: 1 });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/rpc",
+      "/api/rpc",
       expect.objectContaining({
         method: "POST",
         credentials: "include",
@@ -231,7 +231,7 @@ describe("authenticatedRpc / publicRpc", () => {
 
     const like = await authenticatedRpc("get_post_like", { id: 2 });
 
-    expect((fetchMock.mock.calls[0] as any[])[0]).toBe("http://localhost:8080/api/rpc");
+    expect((fetchMock.mock.calls[0] as any[])[0]).toBe("/api/rpc");
     const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
     expect(body.method).toBe("get_post_like");
     expect(body.params).toEqual({ id: 2 });
@@ -245,7 +245,7 @@ describe("authenticatedRpc / publicRpc", () => {
     await publicRpc("list_categories");
 
     // The taxonomy is public, so it posts to /api/rpc-public (no auth), not /api/rpc.
-    expect((fetchMock.mock.calls[0] as any[])[0]).toBe("http://localhost:8080/api/rpc-public");
+    expect((fetchMock.mock.calls[0] as any[])[0]).toBe("/api/rpc-public");
     const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
     expect(body.method).toBe("list_categories");
     expect(body).not.toHaveProperty("params");
@@ -269,6 +269,32 @@ describe("authenticatedRpc / publicRpc", () => {
       await publicRpc("list_posts", { filters: [] });
     };
     expect(typeChecks).toBeTypeOf("function");
+  });
+});
+
+// -- the back-end origin (ADR-0034) --
+
+// The browser posts to its own origin, and the HTTPS edge routes `/api/*` to
+// the back-end. SSR has no page origin, so it calls the back-end directly.
+describe("on the server (SSR)", () => {
+  afterEach(() => {
+    vi.doUnmock("solid-js/web");
+    vi.resetModules();
+  });
+
+  it("posts to the back-end at http://localhost:8080", async () => {
+    vi.resetModules();
+    vi.doMock("solid-js/web", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("solid-js/web")>()),
+      isServer: true,
+    }));
+    const server = await import("./backend-rpc");
+    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await server.publicRpc("list_categories");
+
+    expect((fetchMock.mock.calls[0] as any[])[0]).toBe("http://localhost:8080/api/rpc-public");
   });
 });
 

@@ -6,7 +6,7 @@ test.describe("Jedi Page", () => {
   test("should load successfully and display correct title", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveTitle(/Little Jedi/);
-    await expect(page).toHaveURL("http://localhost:3000/");
+    await expect(page).toHaveURL("/");
   });
 
   test("should display hero section with title and CTA", async ({ page }) => {
@@ -230,7 +230,7 @@ test.describe("Home Page - Footer (preserved from existing tests)", () => {
     await page.goto("/");
     const homeLink = page.locator("footer").getByRole("link", { name: /^Home$/i });
     await homeLink.click();
-    await expect(page).toHaveURL("http://localhost:3000/");
+    await expect(page).toHaveURL("/");
     await expect(page.getByRole("heading", { name: /awesome photos & captions/i })).toBeVisible();
   });
 
@@ -402,7 +402,7 @@ test.describe("Jedi Page - Draft guard (#124)", () => {
       .getByRole("banner")
       .getByRole("link", { name: /awesome/i })
       .click();
-    await expect(page).toHaveURL("http://localhost:3000/");
+    await expect(page).toHaveURL("/");
 
     await page.getByRole("banner").getByRole("button", { name: "New Post" }).click();
     const newPost = page.getByRole("dialog", { name: "New Post" });
@@ -419,7 +419,7 @@ test.describe("Jedi Page - Draft guard (#124)", () => {
     await page.goBack();
     await expect(question).toBeVisible();
     await question.getByRole("button", { name: "Discard" }).click();
-    await expect(page).toHaveURL("http://localhost:3000/about");
+    await expect(page).toHaveURL("/about");
     await expect(newPost).toBeHidden();
     await expect(page.getByRole("dialog")).toHaveCount(0);
   });

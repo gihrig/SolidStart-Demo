@@ -5,7 +5,7 @@ test.describe("About Page", () => {
     await page.goto("/about");
 
     await expect(page).toHaveTitle(/SolidStart About/);
-    await expect(page).toHaveURL("http://localhost:3000/about");
+    await expect(page).toHaveURL("/about");
   });
 
   test("should display page heading", async ({ page }) => {
@@ -61,7 +61,7 @@ test.describe("About Page", () => {
     const homeLink = page.locator("footer").getByRole("link", { name: /^Home$/i });
     await homeLink.click();
 
-    await expect(page).toHaveURL("http://localhost:3000/");
+    await expect(page).toHaveURL("/");
     await expect(page.getByRole("heading", { name: /awesome photos & captions/i })).toBeVisible();
   });
 
