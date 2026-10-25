@@ -3169,12 +3169,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/ctutils@0.4.3?package-id=67dde1509ba802bf",
+      "bom-ref": "pkg:cargo/ctutils@0.4.4?package-id=588c54e0bcb39bd7",
       "type": "library",
       "name": "ctutils",
-      "version": "0.4.3",
-      "cpe": "cpe:2.3:a:ctutils_project:ctutils:0.4.3:*:*:*:*:rust:*:*",
-      "purl": "pkg:cargo/ctutils@0.4.3",
+      "version": "0.4.4",
+      "cpe": "cpe:2.3:a:ctutils_project:ctutils:0.4.4:*:*:*:*:rust:*:*",
+      "purl": "pkg:cargo/ctutils@0.4.4",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -3200,7 +3200,7 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:ctutils:ctutils:0.4.3:*:*:*:*:rust:*:*"
+          "value": "cpe:2.3:a:ctutils:ctutils:0.4.4:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -40949,86 +40949,6 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40types/whatwg-mimetype@3.0.2?package-id=4fef31a711b9525e",
-      "type": "library",
-      "name": "@types/whatwg-mimetype",
-      "version": "3.0.2",
-      "cpe": "cpe:2.3:a:\\@types\\/whatwg-mimetype:\\@types\\/whatwg-mimetype:3.0.2:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40types/whatwg-mimetype@3.0.2",
-      "properties": [
-        {
-          "name": "syft:package:foundBy",
-          "value": "javascript-lock-cataloger"
-        },
-        {
-          "name": "syft:package:language",
-          "value": "javascript"
-        },
-        {
-          "name": "syft:package:type",
-          "value": "npm"
-        },
-        {
-          "name": "syft:package:metadataType",
-          "value": "javascript-yarn-lock-entry"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@types\\/whatwg-mimetype:\\@types\\/whatwg_mimetype:3.0.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@types\\/whatwg_mimetype:\\@types\\/whatwg-mimetype:3.0.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@types\\/whatwg_mimetype:\\@types\\/whatwg_mimetype:3.0.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@types\\/whatwg:\\@types\\/whatwg-mimetype:3.0.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@types\\/whatwg:\\@types\\/whatwg_mimetype:3.0.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:location:0:path",
-          "value": "/frontend/yarn.lock"
-        }
-      ]
-    },
-    {
-      "bom-ref": "pkg:npm/%40types/ws@8.18.2?package-id=2f7adc6285545c9e",
-      "type": "library",
-      "name": "@types/ws",
-      "version": "8.18.2",
-      "cpe": "cpe:2.3:a:\\@types\\/ws:\\@types\\/ws:8.18.2:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40types/ws@8.18.2",
-      "properties": [
-        {
-          "name": "syft:package:foundBy",
-          "value": "javascript-lock-cataloger"
-        },
-        {
-          "name": "syft:package:language",
-          "value": "javascript"
-        },
-        {
-          "name": "syft:package:type",
-          "value": "npm"
-        },
-        {
-          "name": "syft:package:metadataType",
-          "value": "javascript-yarn-lock-entry"
-        },
-        {
-          "name": "syft:location:0:path",
-          "value": "/frontend/yarn.lock"
-        }
-      ]
-    },
-    {
       "bom-ref": "pkg:npm/%40typescript/typescript-aix-ppc64@7.0.2?package-id=5c87901983c2e892",
       "type": "library",
       "name": "@typescript/typescript-aix-ppc64",
@@ -47467,72 +47387,6 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/buffer-image-size@0.6.4?package-id=d26ffe4197ce082a",
-      "type": "library",
-      "name": "buffer-image-size",
-      "version": "0.6.4",
-      "cpe": "cpe:2.3:a:buffer-image-size:buffer-image-size:0.6.4:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/buffer-image-size@0.6.4",
-      "properties": [
-        {
-          "name": "syft:package:foundBy",
-          "value": "javascript-lock-cataloger"
-        },
-        {
-          "name": "syft:package:language",
-          "value": "javascript"
-        },
-        {
-          "name": "syft:package:type",
-          "value": "npm"
-        },
-        {
-          "name": "syft:package:metadataType",
-          "value": "javascript-yarn-lock-entry"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:buffer-image-size:buffer_image_size:0.6.4:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:buffer_image_size:buffer-image-size:0.6.4:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:buffer_image_size:buffer_image_size:0.6.4:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:buffer-image:buffer-image-size:0.6.4:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:buffer-image:buffer_image_size:0.6.4:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:buffer_image:buffer-image-size:0.6.4:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:buffer_image:buffer_image_size:0.6.4:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:buffer:buffer-image-size:0.6.4:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:buffer:buffer_image_size:0.6.4:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:location:0:path",
-          "value": "/frontend/yarn.lock"
-        }
-      ]
-    },
-    {
       "bom-ref": "pkg:npm/buffer@6.0.3?package-id=6ae8935da683ba2c",
       "type": "library",
       "name": "buffer",
@@ -51089,36 +50943,6 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/entities@7.0.1?package-id=ffa72611f0d53ce0",
-      "type": "library",
-      "name": "entities",
-      "version": "7.0.1",
-      "cpe": "cpe:2.3:a:entities:entities:7.0.1:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/entities@7.0.1",
-      "properties": [
-        {
-          "name": "syft:package:foundBy",
-          "value": "javascript-lock-cataloger"
-        },
-        {
-          "name": "syft:package:language",
-          "value": "javascript"
-        },
-        {
-          "name": "syft:package:type",
-          "value": "npm"
-        },
-        {
-          "name": "syft:package:metadataType",
-          "value": "javascript-yarn-lock-entry"
-        },
-        {
-          "name": "syft:location:0:path",
-          "value": "/frontend/yarn.lock"
-        }
-      ]
-    },
-    {
       "bom-ref": "pkg:npm/entities@8.1.0?package-id=bbfde0bba35def26",
       "type": "library",
       "name": "entities",
@@ -53953,36 +53777,6 @@
       "version": "1.15.11",
       "cpe": "cpe:2.3:a:h3:h3:1.15.11:*:*:*:*:node.js:*:*",
       "purl": "pkg:npm/h3@1.15.11",
-      "properties": [
-        {
-          "name": "syft:package:foundBy",
-          "value": "javascript-lock-cataloger"
-        },
-        {
-          "name": "syft:package:language",
-          "value": "javascript"
-        },
-        {
-          "name": "syft:package:type",
-          "value": "npm"
-        },
-        {
-          "name": "syft:package:metadataType",
-          "value": "javascript-yarn-lock-entry"
-        },
-        {
-          "name": "syft:location:0:path",
-          "value": "/frontend/yarn.lock"
-        }
-      ]
-    },
-    {
-      "bom-ref": "pkg:npm/happy-dom@20.14.5?package-id=2ac91505f8df679f",
-      "type": "library",
-      "name": "happy-dom",
-      "version": "20.14.5",
-      "cpe": "cpe:2.3:a:capricorn86:happy_dom:20.14.5:*:*:*:*:node.js:*:*",
-      "purl": "pkg:npm/happy-dom@20.14.5",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -72905,56 +72699,6 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/whatwg-mimetype@3.0.0?package-id=d5fbd70f5fecfbcd",
-      "type": "library",
-      "name": "whatwg-mimetype",
-      "version": "3.0.0",
-      "cpe": "cpe:2.3:a:whatwg-mimetype:whatwg-mimetype:3.0.0:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/whatwg-mimetype@3.0.0",
-      "properties": [
-        {
-          "name": "syft:package:foundBy",
-          "value": "javascript-lock-cataloger"
-        },
-        {
-          "name": "syft:package:language",
-          "value": "javascript"
-        },
-        {
-          "name": "syft:package:type",
-          "value": "npm"
-        },
-        {
-          "name": "syft:package:metadataType",
-          "value": "javascript-yarn-lock-entry"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:whatwg-mimetype:whatwg_mimetype:3.0.0:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:whatwg_mimetype:whatwg-mimetype:3.0.0:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:whatwg_mimetype:whatwg_mimetype:3.0.0:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:whatwg:whatwg-mimetype:3.0.0:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:whatwg:whatwg_mimetype:3.0.0:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:location:0:path",
-          "value": "/frontend/yarn.lock"
-        }
-      ]
-    },
-    {
       "bom-ref": "pkg:npm/whatwg-mimetype@5.0.0?package-id=92b2fd0c9cdd5d67",
       "type": "library",
       "name": "whatwg-mimetype",
@@ -74557,7 +74301,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/ctutils@0.4.3?package-id=67dde1509ba802bf",
+      "ref": "pkg:cargo/ctutils@0.4.4?package-id=588c54e0bcb39bd7",
       "dependsOn": [
         "pkg:cargo/cmov@0.5.4?package-id=72ac0f812a97b50f"
       ]
@@ -74680,7 +74424,7 @@
         "pkg:cargo/block-buffer@0.12.1?package-id=b7ff71918dafaf69",
         "pkg:cargo/const-oid@0.10.2?package-id=85be135157c46ba4",
         "pkg:cargo/crypto-common@0.2.2?package-id=37efe0e90fe9d539",
-        "pkg:cargo/ctutils@0.4.3?package-id=67dde1509ba802bf"
+        "pkg:cargo/ctutils@0.4.4?package-id=588c54e0bcb39bd7"
       ]
     },
     {
@@ -75508,7 +75252,7 @@
       "ref": "pkg:cargo/phc@0.6.1?package-id=3746b468052e21ff",
       "dependsOn": [
         "pkg:cargo/base64ct@1.8.3?package-id=25b4db0fba6b47dc",
-        "pkg:cargo/ctutils@0.4.3?package-id=67dde1509ba802bf",
+        "pkg:cargo/ctutils@0.4.4?package-id=588c54e0bcb39bd7",
         "pkg:cargo/getrandom@0.4.3?package-id=ae94408da611520c"
       ]
     },
@@ -77655,13 +77399,6 @@
       ]
     },
     {
-      "ref": "pkg:npm/%40types/ws@8.18.2?package-id=2f7adc6285545c9e",
-      "dependsOn": [
-        "pkg:npm/%40types/node@26.6.2?package-id=6c8a34e74ab83a21",
-        "pkg:npm/%40types/node@26.6.5?package-id=3bef8467ef4d1362"
-      ]
-    },
-    {
       "ref": "pkg:npm/%40vercel/nft@1.11.0?package-id=5344c44b330f7b8c",
       "dependsOn": [
         "pkg:npm/%40mapbox/node-pre-gyp@2.0.3?package-id=a26267fa1e1484e5",
@@ -78064,13 +77801,6 @@
       ]
     },
     {
-      "ref": "pkg:npm/buffer-image-size@0.6.4?package-id=d26ffe4197ce082a",
-      "dependsOn": [
-        "pkg:npm/%40types/node@26.6.2?package-id=6c8a34e74ab83a21",
-        "pkg:npm/%40types/node@26.6.5?package-id=3bef8467ef4d1362"
-      ]
-    },
-    {
       "ref": "pkg:npm/buffer@6.0.3?package-id=6ae8935da683ba2c",
       "dependsOn": [
         "pkg:npm/base64-js@1.5.1?package-id=4b59bdb3371f20ad",
@@ -78219,7 +77949,6 @@
     {
       "ref": "pkg:npm/data-urls@7.0.0?package-id=eb1cf3684a0ffca0",
       "dependsOn": [
-        "pkg:npm/whatwg-mimetype@3.0.0?package-id=d5fbd70f5fecfbcd",
         "pkg:npm/whatwg-mimetype@5.0.0?package-id=92b2fd0c9cdd5d67",
         "pkg:npm/whatwg-url@16.0.1?package-id=b4050224b788cacb",
         "pkg:npm/whatwg-url@17.3.0?package-id=e1d806600e4fb029",
@@ -78700,22 +78429,6 @@
       ]
     },
     {
-      "ref": "pkg:npm/happy-dom@20.14.5?package-id=2ac91505f8df679f",
-      "dependsOn": [
-        "pkg:npm/%40types/node@26.6.2?package-id=6c8a34e74ab83a21",
-        "pkg:npm/%40types/node@26.6.5?package-id=3bef8467ef4d1362",
-        "pkg:npm/%40types/whatwg-mimetype@3.0.2?package-id=4fef31a711b9525e",
-        "pkg:npm/%40types/ws@8.18.2?package-id=2f7adc6285545c9e",
-        "pkg:npm/buffer-image-size@0.6.4?package-id=d26ffe4197ce082a",
-        "pkg:npm/entities@6.0.1?package-id=91088e00901b2b9d",
-        "pkg:npm/entities@7.0.1?package-id=ffa72611f0d53ce0",
-        "pkg:npm/entities@8.1.0?package-id=bbfde0bba35def26",
-        "pkg:npm/whatwg-mimetype@3.0.0?package-id=d5fbd70f5fecfbcd",
-        "pkg:npm/whatwg-mimetype@5.0.0?package-id=92b2fd0c9cdd5d67",
-        "pkg:npm/ws@8.22.0?package-id=33c28fe226d5f246"
-      ]
-    },
-    {
       "ref": "pkg:npm/hasown@2.0.4?package-id=863f35337cca973c",
       "dependsOn": [
         "pkg:npm/function-bind@1.1.2?package-id=fc8d355766ee346e"
@@ -78907,7 +78620,6 @@
         "pkg:npm/w3c-xmlserializer@5.0.0?package-id=d5842def3094fde7",
         "pkg:npm/webidl-conversions@3.0.1?package-id=e3e33d53a67a1ca0",
         "pkg:npm/webidl-conversions@8.0.1?package-id=331adf3a6a9a72c3",
-        "pkg:npm/whatwg-mimetype@3.0.0?package-id=d5fbd70f5fecfbcd",
         "pkg:npm/whatwg-mimetype@5.0.0?package-id=92b2fd0c9cdd5d67",
         "pkg:npm/whatwg-url@16.0.1?package-id=b4050224b788cacb",
         "pkg:npm/whatwg-url@17.3.0?package-id=e1d806600e4fb029",
@@ -79724,7 +79436,6 @@
       "ref": "pkg:npm/parse5@7.3.0?package-id=e20bfa850633432a",
       "dependsOn": [
         "pkg:npm/entities@6.0.1?package-id=91088e00901b2b9d",
-        "pkg:npm/entities@7.0.1?package-id=ffa72611f0d53ce0",
         "pkg:npm/entities@8.1.0?package-id=bbfde0bba35def26"
       ]
     },
@@ -79732,7 +79443,6 @@
       "ref": "pkg:npm/parse5@8.0.1?package-id=85fe8aeb67d85169",
       "dependsOn": [
         "pkg:npm/entities@6.0.1?package-id=91088e00901b2b9d",
-        "pkg:npm/entities@7.0.1?package-id=ffa72611f0d53ce0",
         "pkg:npm/entities@8.1.0?package-id=bbfde0bba35def26"
       ]
     },
