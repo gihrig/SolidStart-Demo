@@ -284,10 +284,9 @@ describe("on the server (SSR)", () => {
 
   it("posts to the back-end at http://localhost:8080", async () => {
     vi.resetModules();
-    vi.doMock("solid-js/web", async (importOriginal) => ({
-      ...(await importOriginal<typeof import("solid-js/web")>()),
-      isServer: true,
-    }));
+    // `isServer` is the only import backend-rpc.ts takes from solid-js/web. Not
+    // loading the original keeps a second copy of Solid out of the reset registry.
+    vi.doMock("solid-js/web", () => ({ isServer: true }));
     const server = await import("./backend-rpc");
     const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
     vi.stubGlobal("fetch", fetchMock);
