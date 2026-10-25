@@ -40,6 +40,7 @@
     --theme-card-fg: var(--color-gray-900);
     --theme-card-bg: var(--color-zinc-200);
     --theme-muted: var(--color-gray-500);
+    --theme-check: var(--color-green-700);
   }
 
   :root[data-theme="light"] {
@@ -56,6 +57,7 @@
     --theme-card-fg: var(--color-zinc-200);
     --theme-card-bg: var(--color-gray-900);
     --theme-muted: var(--color-gray-200);
+    --theme-check: var(--color-green-500);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -68,6 +70,7 @@
       --theme-card-fg: var(--color-zinc-200);
       --theme-card-bg: var(--color-gray-900);
       --theme-muted: var(--color-gray-200);
+      --theme-check: var(--color-green-500);
     }
   }
 
