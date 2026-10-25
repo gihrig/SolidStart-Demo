@@ -39,11 +39,13 @@ package.json scripts (ADR-0010 addendum).
 
 | Command               | Description                                                          |
 | --------------------- | -------------------------------------------------------------------- |
-| `cgs dev`             | Start both dev servers                                               |
-| `cgs start`           | Build + run both subtrees in release mode                            |
+| `cgs dev`             | Start both dev servers + the HTTPS edge (https://localhost:3443)     |
+| `cgs start`           | Build + run both subtrees in release mode, behind the HTTPS edge     |
 | `cgs build`           | Build both subtrees                                                  |
 | `cgs test`            | Run both test suites                                                 |
-| `cgs test:e2e`        | Run e2e tests (boots back-end + front-end)                           |
+| `cgs test:e2e`        | Run e2e tests (boots back-end + front-end + HTTPS edge)              |
+| `cgs caddy`           | Run the HTTPS edge alone (pinned Caddy, root `Caddyfile`, ADR-0034)  |
+| `cgs caddy:trust`     | Trust the edge's local CA in the system stores (edge must run)       |
 | `cgs cover`           | Run both test suites with coverage                                   |
 | `cgs check`           | Format + lint + type-check both subtrees                             |
 | `cgs update`          | Update dependencies in both subtrees                                 |

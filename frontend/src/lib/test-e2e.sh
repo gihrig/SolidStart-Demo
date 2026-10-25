@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # End-to-End test helper script
-# Starts the Back-End server (release) and the Front-End server, runs Playwright,
-# then stops both. Assumes Postgres is running (see `cgs db`); a cold release
+# Starts the Back-End server (release), the Front-End server and the HTTPS edge
+# (Caddy, ADR-0034), runs Playwright against https://localhost:3443, then stops
+# all three. Assumes Postgres is running (see `cgs db`); a cold release
 # compile can be slow, so run `cgs release` first if the back-end times out below.
 # It refuses to reuse a running back-end (#129): each back-end start rebuilds the
 # DB from the seed, so each run starts from the seed counts the specs check.
@@ -13,6 +14,9 @@ set -e
 BE_PID=""       # launcher subshell (cgs/cargo), set only if we start the back-end
 BE_STARTED=""   # "1" only if THIS script started the back-end (so we own teardown)
 FE_PID=""
+EDGE_PID=""
+# The edge's local CA (scripts/caddy.sh); the probes verify TLS against it.
+EDGE_CA="../.caddy/pki/authorities/local/root.crt"
 
 # True if $1 is $BE_PID or one of its descendants. Walks the parent chain with
 # `ps`, so it must be called while the launcher is still alive — once it exits,
@@ -31,6 +35,10 @@ owned_by_launcher() {
 
 # Trap to ensure the servers this script started are cleaned up on exit.
 cleanup() {
+  if [ -n "$EDGE_PID" ]; then
+    echo "Stopping HTTPS edge (PID: $EDGE_PID)..."
+    kill "$EDGE_PID" 2>/dev/null || true
+  fi
   if [ -n "$FE_PID" ]; then
     echo "Stopping Front-End (PID: $FE_PID)..."
     kill "$FE_PID" 2>/dev/null || true
@@ -79,6 +87,13 @@ if be_ready || [ -n "$(lsof -ti tcp:8080 -sTCP:LISTEN 2>/dev/null || true)" ]; t
   echo "Error: a server is already listening on :8080." >&2
   echo "  Stop it, then run the e2e tests again. Each run starts its own back-end," >&2
   echo "  which rebuilds the DB from the seed." >&2
+  exit 1
+fi
+
+# Refuse another listener on :3443, which our edge could not bind (for example
+# the edge of a running `cgs dev`).
+if [ -n "$(lsof -ti tcp:3443 -sTCP:LISTEN 2>/dev/null || true)" ]; then
+  echo "Error: a server is already listening on :3443. Stop it, then run the e2e tests again." >&2
   exit 1
 fi
 
@@ -132,6 +147,33 @@ while ! curl -s http://localhost:3000 > /dev/null; do
   fi
   sleep 0.5
 done
+
+# Start the HTTPS edge. caddy.sh execs Caddy, so $EDGE_PID is Caddy itself.
+EDGE_ERR_LOG="reports/e2e-edge.stderr.log"
+echo "Starting HTTPS edge (log -> $EDGE_ERR_LOG)..."
+../scripts/caddy.sh run 2>"$EDGE_ERR_LOG" &
+EDGE_PID=$!
+
+# Wait for the edge: the page and the back-end, over verified TLS (with timeout).
+edge_ready() {
+  [ -f "$EDGE_CA" ] || return 1
+  curl -sf --cacert "$EDGE_CA" https://localhost:3443/ > /dev/null || return 1
+  curl -s --cacert "$EDGE_CA" -X POST https://localhost:3443/api/rpc \
+    -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0","id":1,"method":"test","params":{}}' | grep -q "NO_AUTH"
+}
+echo "Waiting for HTTPS edge to be ready..."
+ATTEMPT=0
+until edge_ready; do
+  ATTEMPT=$((ATTEMPT + 1))
+  if [ $ATTEMPT -ge 60 ]; then
+    echo "HTTPS edge failed to start within 30 seconds. Last stderr:"
+    tail -n 20 "$EDGE_ERR_LOG" 2>/dev/null || true
+    exit 1
+  fi
+  sleep 0.5
+done
+echo "HTTPS edge OK: https://localhost:3443 serves the page and routes /api to the back-end"
 
 echo
 echo "Servers ready, running tests..."

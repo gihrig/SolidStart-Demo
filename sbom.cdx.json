@@ -136,63 +136,6 @@
       ]
     },
     {
-      "bom-ref": "6a638235627dc702",
-      "type": "library",
-      "name": "web-server",
-      "version": "0.1.0",
-      "cpe": "cpe:2.3:a:web-server_project:web-server:0.1.0:*:*:*:*:rust:*:*",
-      "properties": [
-        {
-          "name": "syft:package:foundBy",
-          "value": "rust-cargo-lock-cataloger"
-        },
-        {
-          "name": "syft:package:language",
-          "value": "rust"
-        },
-        {
-          "name": "syft:package:type",
-          "value": "rust-crate"
-        },
-        {
-          "name": "syft:package:metadataType",
-          "value": "rust-cargo-lock-entry"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web-server_project:web_server:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web-server:web-server:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web-server:web_server:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web_server:web-server:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web_server:web_server:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web:web-server:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web:web_server:0.1.0:*:*:*:*:rust:*:*"
-        },
-        {
-          "name": "syft:location:0:path",
-          "value": "/backend/Cargo.lock"
-        }
-      ]
-    },
-    {
       "bom-ref": "7365743c3c52beea",
       "type": "library",
       "name": "lib-auth",
@@ -429,6 +372,63 @@
         {
           "name": "syft:cpe23",
           "value": "cpe:2.3:a:lib:lib_rpc_core:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
+      "bom-ref": "fd1104a5f462139e",
+      "type": "library",
+      "name": "web-server",
+      "version": "0.1.0",
+      "cpe": "cpe:2.3:a:web-server_project:web-server:0.1.0:*:*:*:*:rust:*:*",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web-server_project:web_server:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web-server:web-server:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web-server:web_server:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web_server:web-server:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web_server:web_server:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web:web-server:0.1.0:*:*:*:*:rust:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web:web_server:0.1.0:*:*:*:*:rust:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -73938,33 +73938,6 @@
       ]
     },
     {
-      "ref": "6a638235627dc702",
-      "dependsOn": [
-        "4847ade1200173af",
-        "54085103c90bedd2",
-        "7365743c3c52beea",
-        "8ab007ff31f3bb1c",
-        "b7ceed91a44c6a82",
-        "pkg:cargo/axum-test@21.1.0?package-id=23defe831b5b9867",
-        "pkg:cargo/axum@0.8.9?package-id=a2255e3a755ba956",
-        "pkg:cargo/derive_more@2.1.1?package-id=ef571d363c5852ab",
-        "pkg:cargo/httpc-test@0.1.10?package-id=a5782de0457ae855",
-        "pkg:cargo/rpc-router@0.2.0?package-id=355dba8a84b67308",
-        "pkg:cargo/serde@1.0.229?package-id=5aca60f1fff7abda",
-        "pkg:cargo/serde_json@1.0.154?package-id=73c560b33814e47c",
-        "pkg:cargo/serde_with@3.24.0?package-id=491f1d3bd64adb2f",
-        "pkg:cargo/serial_test@4.0.1?package-id=d909f75c200b4f47",
-        "pkg:cargo/strum_macros@0.28.0?package-id=5188411daba7485a",
-        "pkg:cargo/tokio@1.54.1?package-id=be66a380bfd2dd3e",
-        "pkg:cargo/tower-cookies@0.11.0?package-id=622c6094f7a71060",
-        "pkg:cargo/tower-http@0.7.1?package-id=aa85d63da1b319af",
-        "pkg:cargo/tracing-subscriber@0.3.23?package-id=dba5ac01188a7d4a",
-        "pkg:cargo/tracing@0.1.44?package-id=786dd48d017b508c",
-        "pkg:cargo/ts-rs@12.0.1?package-id=95a1516912b50c0a",
-        "pkg:cargo/uuid@1.28.0?package-id=3a33f12496f445f1"
-      ]
-    },
-    {
       "ref": "7365743c3c52beea",
       "dependsOn": [
         "8ab007ff31f3bb1c",
@@ -74009,6 +73982,32 @@
         "pkg:cargo/serde_with@3.24.0?package-id=491f1d3bd64adb2f",
         "pkg:cargo/tokio@1.54.1?package-id=be66a380bfd2dd3e",
         "pkg:cargo/ts-rs@12.0.1?package-id=95a1516912b50c0a"
+      ]
+    },
+    {
+      "ref": "fd1104a5f462139e",
+      "dependsOn": [
+        "4847ade1200173af",
+        "54085103c90bedd2",
+        "7365743c3c52beea",
+        "8ab007ff31f3bb1c",
+        "b7ceed91a44c6a82",
+        "pkg:cargo/axum-test@21.1.0?package-id=23defe831b5b9867",
+        "pkg:cargo/axum@0.8.9?package-id=a2255e3a755ba956",
+        "pkg:cargo/derive_more@2.1.1?package-id=ef571d363c5852ab",
+        "pkg:cargo/httpc-test@0.1.10?package-id=a5782de0457ae855",
+        "pkg:cargo/rpc-router@0.2.0?package-id=355dba8a84b67308",
+        "pkg:cargo/serde@1.0.229?package-id=5aca60f1fff7abda",
+        "pkg:cargo/serde_json@1.0.154?package-id=73c560b33814e47c",
+        "pkg:cargo/serde_with@3.24.0?package-id=491f1d3bd64adb2f",
+        "pkg:cargo/serial_test@4.0.1?package-id=d909f75c200b4f47",
+        "pkg:cargo/strum_macros@0.28.0?package-id=5188411daba7485a",
+        "pkg:cargo/tokio@1.54.1?package-id=be66a380bfd2dd3e",
+        "pkg:cargo/tower-cookies@0.11.0?package-id=622c6094f7a71060",
+        "pkg:cargo/tracing-subscriber@0.3.23?package-id=dba5ac01188a7d4a",
+        "pkg:cargo/tracing@0.1.44?package-id=786dd48d017b508c",
+        "pkg:cargo/ts-rs@12.0.1?package-id=95a1516912b50c0a",
+        "pkg:cargo/uuid@1.28.0?package-id=3a33f12496f445f1"
       ]
     },
     {

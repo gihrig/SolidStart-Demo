@@ -29,16 +29,16 @@ test("navigates via nav links", async ({ page }) => {
   const nav = page.getByRole("navigation", { name: "Main" });
 
   await nav.getByRole("link", { name: "About" }).click();
-  await expect(page).toHaveURL("http://localhost:3000/about");
+  await expect(page).toHaveURL("/about");
   await expect(page.getByRole("heading", { name: /^About$/i })).toBeVisible();
 
   await nav.getByRole("link", { name: "Readme" }).click();
-  await expect(page).toHaveURL("http://localhost:3000/readme");
+  await expect(page).toHaveURL("/readme");
   await expect(page.getByRole("heading", { name: /^Readme$/i })).toBeVisible();
 
   // Brand returns to the Jedi home.
   await page.getByRole("link", { name: /awesome/i }).click();
-  await expect(page).toHaveURL("http://localhost:3000/");
+  await expect(page).toHaveURL("/");
   await expect(page.getByRole("heading", { name: /awesome photos & captions/i })).toBeVisible();
 });
 
@@ -53,20 +53,20 @@ test("keeps the nav across pages including 404", async ({ page }) => {
 
 // 4. Direct URL access to each route
 test("handles direct URL access to each route", async ({ page }) => {
-  await page.goto("http://localhost:3000/");
+  await page.goto("/");
   await expect(page.getByRole("heading", { name: /awesome photos & captions/i })).toBeVisible();
 
-  await page.goto("http://localhost:3000/about");
+  await page.goto("/about");
   await expect(page.getByRole("heading", { name: /^About$/i })).toBeVisible();
 
-  await page.goto("http://localhost:3000/readme");
+  await page.goto("/readme");
   await expect(page.getByRole("heading", { name: /^Readme$/i })).toBeVisible();
 
   // /jedi is retired — Jedi is the home page now.
-  await page.goto("http://localhost:3000/jedi");
+  await page.goto("/jedi");
   await expect(page.getByRole("heading", { name: /^404 - Page Not Found$/i })).toBeVisible();
 
-  await page.goto("http://localhost:3000/xxx");
+  await page.goto("/xxx");
   await expect(page.getByRole("heading", { name: /^404 - Page Not Found$/i })).toBeVisible();
 });
 
@@ -78,14 +78,14 @@ test("handles browser back/forward navigation", async ({ page }) => {
     .locator("footer")
     .getByRole("link", { name: /^About$/i })
     .click();
-  await expect(page).toHaveURL("http://localhost:3000/about");
+  await expect(page).toHaveURL("/about");
 
   await page.goBack();
-  await expect(page).toHaveURL("http://localhost:3000/");
+  await expect(page).toHaveURL("/");
   await expect(page.getByRole("heading", { name: /awesome photos & captions/i })).toBeVisible();
 
   await page.goForward();
-  await expect(page).toHaveURL("http://localhost:3000/about");
+  await expect(page).toHaveURL("/about");
   await expect(page.getByRole("heading", { name: /^About$/i })).toBeVisible();
 });
 
@@ -105,15 +105,15 @@ test.describe("Footer Navigation Integration", () => {
     await expect(footer.getByRole("link", { name: /^Jedi$/i })).toHaveCount(0);
 
     await footer.getByRole("link", { name: /^About$/i }).click();
-    await expect(page).toHaveURL("http://localhost:3000/about");
+    await expect(page).toHaveURL("/about");
     await expect(page.getByRole("heading", { name: /^About$/i })).toBeVisible();
 
     await footer.getByRole("link", { name: /^Readme$/i }).click();
-    await expect(page).toHaveURL("http://localhost:3000/readme");
+    await expect(page).toHaveURL("/readme");
     await expect(page.getByRole("heading", { name: /^Readme$/i })).toBeVisible();
 
     await footer.getByRole("link", { name: /^Home$/i }).click();
-    await expect(page).toHaveURL("http://localhost:3000/");
+    await expect(page).toHaveURL("/");
     await expect(page.getByRole("heading", { name: /awesome photos & captions/i })).toBeVisible();
   });
 

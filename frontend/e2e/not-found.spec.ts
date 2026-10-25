@@ -51,7 +51,7 @@ test.describe("404 Not Found Page", () => {
 
     await expect(homeLink).toBeVisible();
     await homeLink.click();
-    await expect(page).toHaveURL("http://localhost:3000/");
+    await expect(page).toHaveURL("/");
     await expect(page.getByRole("heading", { name: /awesome photos & captions/i })).toBeVisible();
   });
 
