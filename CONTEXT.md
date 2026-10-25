@@ -604,3 +604,24 @@ the Draft, and a notice says so. An Event that moves the Post out of the selecte
 Category keeps the Post shown. The User then chooses to keep or discard the Draft
 ([ADR-0030](docs/adr/0030-unsaved-draft-guard.md)).
 _Avoid_: unsaved comment, pending edit; "lost" or "rejected" for a forced discard.
+
+### Profile menu & Theme
+
+**Profile menu**:
+The drop-down that the avatar button in the nav opens. Every visitor can open it,
+at every width, also before login. It holds My Profile, Log In or Log Out, and the
+three Theme items.
+_FE_: the `profile-menu` disclosure in `Nav` (`components/Nav.tsx`).
+_Avoid_: nav drop-down, profile dropdown, user menu.
+
+**Theme**:
+The light or dark look of the site. There are three: **System Theme**, **Light
+Theme** and **Dark Theme**. System Theme follows the light or dark setting of the
+device, and it is the default. A visitor chooses a Theme in the Profile menu, and a
+check mark shows the Theme in use. The browser keeps the choice: the **saved
+theme**. A User does not own it. It does not follow the User to another browser,
+and login and logout do not change it
+([ADR-0033](docs/adr/0033-saved-theme-in-an-httponly-cookie.md)).
+_FE_: the server reads the saved theme from a cookie, so the first paint shows it.
+_Avoid_: mode, color mode, dark mode, auto, selected theme; color scheme (the CSS
+`color-scheme` property tells the browser which built-in colors to use).

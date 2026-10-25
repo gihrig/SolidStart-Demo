@@ -8,7 +8,6 @@ import { stubDialogModal } from "~/lib/test-utils";
 import { AuthProvider, useAuth } from "~/components/AuthContext";
 import { DraftGuardProvider } from "~/components/DraftGuardContext";
 import { NewPostProvider } from "~/components/NewPostContext";
-import { ThemeProvider } from "~/components/ThemeContext";
 import Nav from "~/components/Nav";
 
 // The Posts the back-end lists, which a test can change, and the live Feed a
@@ -420,15 +419,13 @@ describe("Home route — the Draft guard (ADR-0030)", () => {
         root={(props) => (
           <MetaProvider>
             <AuthProvider>
-              <ThemeProvider>
-                <DraftGuardProvider>
-                  <NewPostProvider>
-                    <Nav />
-                    <LoginTrigger />
-                    {props.children}
-                  </NewPostProvider>
-                </DraftGuardProvider>
-              </ThemeProvider>
+              <DraftGuardProvider>
+                <NewPostProvider>
+                  <Nav />
+                  <LoginTrigger />
+                  {props.children}
+                </NewPostProvider>
+              </DraftGuardProvider>
             </AuthProvider>
           </MetaProvider>
         )}

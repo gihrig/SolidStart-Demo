@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page, type Response } from "@playwright/test";
 import { loginAs } from "./login";
 
 // Jedi is the home page now (#62): it renders at `/` under the global Jedi nav.
@@ -242,64 +242,120 @@ test.describe("Home Page - Footer (preserved from existing tests)", () => {
   });
 });
 
-test.describe("Home Page - Theme Toggle", () => {
-  test("should display theme toggle button", async ({ page }) => {
+// The Theme items in the Profile menu, and the saved theme in an HttpOnly cookie
+// that the server renders (#200, ADR-0033).
+test.describe("Home Page - Theme", () => {
+  // Open the Profile menu after hydration, so the clicks reach live handlers.
+  async function openThemeGroup(page: Page) {
+    await page.waitForLoadState("networkidle");
+    const header = page.getByRole("banner");
+    await header.getByRole("button", { name: "Profile menu" }).click();
+    const group = header.getByRole("group", { name: "Theme" });
+    await expect(group).toBeVisible();
+    return group;
+  }
+
+  // The check mark is the first icon of a Theme item.
+  function checkMark(group: Locator, name: string) {
+    return group.locator("label", { hasText: name }).locator("svg").first();
+  }
+
+  async function themeCookie(page: Page) {
+    return (await page.context().cookies()).find((cookie) => cookie.name === "theme");
+  }
+
+  // A choice saves through the server function; wait until the cookie holds it.
+  async function expectSaved(page: Page, value: string) {
+    await expect.poll(async () => (await themeCookie(page))?.value).toBe(value);
+  }
+
+  test("with no cookie, System Theme is checked and no data-theme renders", async ({ page }) => {
     await page.goto("/");
-    const toggle = page.getByRole("button", { name: /theme/i });
-    await expect(toggle).toBeVisible();
+    const group = await openThemeGroup(page);
+    expect(await page.locator("html").getAttribute("data-theme")).toBeNull();
+    await expect(group.getByRole("radio", { checked: true })).toHaveCount(1);
+    await expect(group.getByRole("radio", { name: "System Theme" })).toBeChecked();
+    await expect(checkMark(group, "System Theme")).toBeVisible();
+    await expect(checkMark(group, "Light Theme")).toBeHidden();
+    await expect(checkMark(group, "Dark Theme")).toBeHidden();
+    expect(await themeCookie(page)).toBeUndefined();
   });
 
-  test("should cycle through auto → light → dark → auto modes", async ({ page }) => {
+  test("a logged-out visitor chooses Dark Theme; the page changes and the menu stays open", async ({
+    page,
+  }) => {
     await page.goto("/");
-    const toggle = page.getByRole("button", { name: /theme/i });
+    const group = await openThemeGroup(page);
+    await group.getByText("Dark Theme").click();
 
-    // Start at auto (default), click to light
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-label", /^Theme: light\b/);
-    const htmlLight = page.locator("html");
-    await expect(htmlLight).toHaveAttribute("data-theme", "light");
-    expect(await htmlLight.evaluate((el) => getComputedStyle(el).colorScheme)).toBe("light");
-
-    // Click to dark
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-label", /^Theme: dark\b/);
-    const htmlDark = page.locator("html");
-    await expect(htmlDark).toHaveAttribute("data-theme", "dark");
-    expect(await htmlDark.evaluate((el) => getComputedStyle(el).colorScheme)).toBe("dark");
-
-    // Click to auto (aria-label shows "system" — user-facing term for auto mode)
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-label", /^Theme: system\b/);
-    const htmlAuto = page.locator("html");
-    expect(await htmlAuto.getAttribute("data-theme")).toBeNull();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    expect(await page.locator("html").evaluate((el) => getComputedStyle(el).colorScheme)).toBe(
+      "dark",
+    );
+    await expect(group.getByRole("radio", { name: "Dark Theme" })).toBeChecked();
+    await expect(checkMark(group, "Dark Theme")).toBeVisible();
+    await expect(checkMark(group, "System Theme")).toBeHidden();
+    await expect(page.getByRole("button", { name: "Profile menu" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await expect(page.locator("#profile-menu")).not.toHaveAttribute("inert");
   });
 
-  test("should persist theme choice across page reload", async ({ page }) => {
+  test("after a reload, the server HTML already has the saved theme", async ({ page }) => {
     await page.goto("/");
-    const toggle = page.getByRole("button", { name: /theme/i });
+    const group = await openThemeGroup(page);
+    await group.getByText("Dark Theme").click();
+    await expectSaved(page, "dark");
 
-    // Set to light explicitly: auto -> light
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-label", /^Theme: light\b/);
-
-    // Verify localStorage was set
-    const stored = await page.evaluate(() => window.localStorage.getItem("theme"));
-    expect(stored).toBe("light");
-
-    // Reload and verify theme persists
-    await page.reload();
-    const htmlAfterReload = page.locator("html");
-    await expect(htmlAfterReload).toHaveAttribute("data-theme", "light");
-    expect(await htmlAfterReload.evaluate((el) => getComputedStyle(el).colorScheme)).toBe("light");
+    // The response text is the server HTML, before any script runs.
+    const response = await page.reload();
+    expect(await response!.text()).toMatch(/<html[^>]*\sdata-theme="dark"/);
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    const reloaded = await openThemeGroup(page);
+    await expect(reloaded.getByRole("radio", { name: "Dark Theme" })).toBeChecked();
   });
 
-  // CSS, not a script, follows the OS theme in auto mode (#203).
-  test("should respect system dark preference in auto mode", async ({ page }) => {
-    // Emulate dark system preference
+  test("the cookie is HttpOnly, Secure, SameSite=Lax on path /", async ({ page }) => {
+    await page.goto("/");
+    const group = await openThemeGroup(page);
+    await group.getByText("Dark Theme").click();
+    await expectSaved(page, "dark");
+
+    expect(await themeCookie(page)).toMatchObject({
+      value: "dark",
+      httpOnly: true,
+      secure: true,
+      sameSite: "Lax",
+      path: "/",
+    });
+  });
+
+  test("System Theme writes theme=system, and the page follows the OS", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.goto("/");
+    const lightBackground = await bodyBackground(page);
+    const group = await openThemeGroup(page);
+    await group.getByText("Dark Theme").click();
+    await expectSaved(page, "dark");
+    await group.getByText("System Theme").click();
+    await expectSaved(page, "system");
+
+    expect(await page.locator("html").getAttribute("data-theme")).toBeNull();
+    expect(await bodyBackground(page)).toBe(lightBackground);
+    await page.emulateMedia({ colorScheme: "dark" });
+    expect(await bodyBackground(page)).not.toBe(lightBackground);
+
+    const response = await page.reload();
+    expect(await response!.text()).not.toMatch(/<html[^>]*\sdata-theme=/);
+  });
+
+  // CSS, not a script, follows the OS theme in System Theme (#203).
+  test("should respect the system preference in System Theme", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto("/");
 
-    // In auto mode (default), CSS leaves the choice to the OS: "light dark".
+    // In System Theme (default), CSS leaves the choice to the OS: "light dark".
     const html = page.locator("html");
     expect(await html.evaluate((el) => getComputedStyle(el).colorScheme)).toBe("light dark");
     expect(await html.getAttribute("data-theme")).toBeNull();
@@ -314,14 +370,12 @@ test.describe("Home Page - Theme Toggle", () => {
     expect(await bodyBackground(page)).not.toBe(darkBackground);
   });
 
-  test("a light choice holds when the OS theme changes to dark (#203)", async ({ page }) => {
+  test("a Light Theme choice holds when the OS theme changes to dark (#203)", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "light" });
     await page.goto("/");
-    const toggle = page.getByRole("button", { name: /theme/i });
-
-    // auto -> light
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-label", /^Theme: light\b/);
+    const group = await openThemeGroup(page);
+    await group.getByText("Light Theme").click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     const lightBackground = await bodyBackground(page);
 
     await page.emulateMedia({ colorScheme: "dark" });
@@ -329,36 +383,130 @@ test.describe("Home Page - Theme Toggle", () => {
     expect(await bodyBackground(page)).toBe(lightBackground);
   });
 
-  // The Nav renders a copy in the bar and a copy in the mobile menu, and CSS
-  // shows one; `getByRole` matches only the shown copy (#203).
-  test("below sm, the button is in the mobile menu; from sm, in the bar (#203)", async ({
+  test("the save refuses a cross-site call", async ({ page }) => {
+    await page.goto("/");
+    const group = await openThemeGroup(page);
+    const [save] = await Promise.all([
+      page.waitForRequest(
+        (request) => request.method() === "POST" && request.url().includes("/_server"),
+      ),
+      group.getByText("Dark Theme").click(),
+    ]);
+    await expectSaved(page, "dark");
+
+    // Send the page's own save request again, with only Sec-Fetch-Site changed.
+    const replay = (site: string) =>
+      page.request.fetch(save.url(), {
+        method: "POST",
+        headers: { ...save.headers(), "sec-fetch-site": site },
+        data: save.postData() ?? undefined,
+      });
+    const crossSite = await replay("cross-site");
+    expect(crossSite.headers()["set-cookie"]).toBeUndefined();
+    // The same request from the same origin sets the cookie, so the check above
+    // shows the refusal, not a broken replay.
+    const sameOrigin = await replay("same-origin");
+    expect(sameOrigin.headers()["set-cookie"]).toMatch(/^theme=dark;/);
+  });
+
+  test("the arrow keys change the Theme, and Escape closes the Profile menu", async ({ page }) => {
+    await page.goto("/");
+    const group = await openThemeGroup(page);
+    const system = group.locator("label", { hasText: "System Theme" });
+    const ring = (label: Locator) => label.evaluate((el) => getComputedStyle(el).boxShadow);
+
+    // A pointer click shows no focus ring.
+    await system.click();
+    expect(await ring(system)).toBe("none");
+
+    // A keyboard user tabs in from the Profile menu button: My Profile, Log In,
+    // then the checked Theme item, which shows the ring. (WebKit, as Safari on
+    // macOS, does not focus a radio on a click.)
+    await page.getByRole("button", { name: "Profile menu" }).focus();
+    for (let i = 0; i < 3; i++) await page.keyboard.press("Tab");
+    await expect(group.getByRole("radio", { name: "System Theme" })).toBeFocused();
+    expect(await ring(system)).not.toBe("none");
+
+    // A key moves the choice. (WebKit 26.6 does not match :focus-visible on a
+    // radio that an arrow key focuses, also in plain HTML, so the ring is not
+    // checked here.)
+    await page.keyboard.press("ArrowDown");
+    await expect(group.getByRole("radio", { name: "Light Theme" })).toBeChecked();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await page.keyboard.press("ArrowDown");
+    await expect(group.getByRole("radio", { name: "Dark Theme" })).toBeChecked();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expectSaved(page, "dark");
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("button", { name: "Profile menu" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    // The closed panel fades out but stays in the page, inert.
+    await expect(page.locator("#profile-menu")).toHaveAttribute("inert", "");
+  });
+
+  test("a page load renews a valid cookie, and sets none without one", async ({ page }) => {
+    const ONE_YEAR = 31536000;
+    const setTheme = (value: string) =>
+      page.context().addCookies([
+        {
+          name: "theme",
+          value,
+          url: "https://localhost:3443",
+          httpOnly: true,
+          secure: true,
+          sameSite: "Lax",
+          expires: Math.floor(Date.now() / 1000) + 60,
+        },
+      ]);
+    const themeHeader = async (response: Response | null) =>
+      (await response!.headersArray()).find(
+        (header) => header.name.toLowerCase() === "set-cookie" && header.value.startsWith("theme="),
+      );
+
+    // No cookie: the page load sets none.
+    expect(await themeHeader(await page.goto("/"))).toBeUndefined();
+    expect(await themeCookie(page)).toBeUndefined();
+
+    // A bad value is System Theme, and the page load sets no cookie.
+    await setTheme("auto");
+    expect(await themeHeader(await page.goto("/"))).toBeUndefined();
+
+    // A cookie that ends in 60 seconds ends about one year later after a load.
+    await setTheme("dark");
+    const response = await page.goto("/");
+    expect((await themeHeader(response))?.value).toBe(
+      "theme=dark; Max-Age=31536000; Path=/; HttpOnly; Secure; SameSite=Lax",
+    );
+    const expires = (await themeCookie(page))!.expires;
+    expect(Math.abs(expires - (Date.now() / 1000 + ONE_YEAR))).toBeLessThan(60);
+  });
+
+  test("at 320 px, a visitor can choose a Theme, and each item fits on one line", async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 639, height: 720 });
+    await page.setViewportSize({ width: 320, height: 640 });
     await page.goto("/");
-    // Wait for hydration, so the clicks reach live handlers.
-    await page.waitForLoadState("networkidle");
-    const header = page.getByRole("banner");
-    const menu = header.getByRole("navigation", { name: "Site menu" });
-    const toggles = header.getByRole("button", { name: /^Theme:/ });
-    const menuToggle = menu.getByRole("button", { name: /^Theme:/ });
-    const menuButton = header.getByRole("button", { name: "Toggle navigation" });
-    await menuButton.click();
-
-    // 639 px: the open menu shows the one copy, and the bar shows none.
-    await expect(menuToggle).toBeVisible();
-    await expect(toggles).toHaveCount(1);
-    await menuToggle.click();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-
-    // 640 px: the menu stays open but shows no copy; the bar shows the one
-    // copy, with the same mode.
-    await page.setViewportSize({ width: 640, height: 720 });
-    await expect(menuButton).toHaveAttribute("aria-expanded", "true");
-    await expect(menu.getByRole("link", { name: "About" })).toBeVisible();
-    await expect(menuToggle).toHaveCount(0);
-    await expect(toggles).toHaveCount(1);
-    await expect(toggles).toHaveAttribute("aria-label", /^Theme: light\b/);
+    const group = await openThemeGroup(page);
+    for (const name of ["System Theme", "Light Theme", "Dark Theme"]) {
+      const box = (await group.locator("label", { hasText: name }).boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(320);
+      // One line: the text needs no more width than the row has, and no icon
+      // shrinks to make room. (Computed sizes ignore the menu's scale animation.)
+      const fits = await group
+        .locator("label", { hasText: name })
+        .evaluate(
+          (el) =>
+            el.scrollWidth <= el.clientWidth &&
+            [...el.querySelectorAll("svg")].every((svg) => getComputedStyle(svg).width === "16px"),
+        );
+      expect(fits).toBe(true);
+    }
+    await group.getByText("Dark Theme").click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   });
 });
 
