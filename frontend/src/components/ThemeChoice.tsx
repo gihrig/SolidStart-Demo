@@ -3,7 +3,7 @@ import { getRequestEvent, isServer } from "solid-js/web";
 import { parseTheme, saveTheme, themeFromCookies, type Theme } from "~/lib/theme";
 import Icon, { type IconName } from "~/components/Icon";
 
-const ITEMS = [
+const THEME_ITEMS = [
   { theme: "system", icon: "system", label: "System Theme" },
   { theme: "light", icon: "sun", label: "Light Theme" },
   { theme: "dark", icon: "moon", label: "Dark Theme" },
@@ -35,10 +35,10 @@ export default function ThemeChoice() {
   // A choice changes the page at once. The saves run one after another, so the
   // last choice becomes the saved theme. A failed save keeps the new Theme until
   // the next page load, shows no alert, and does not stop the queue (ADR-0033).
-  let saves = Promise.resolve();
+  let saveQueue = Promise.resolve();
   function choose(theme: Theme) {
     applyTheme(theme);
-    saves = saves.then(() =>
+    saveQueue = saveQueue.then(() =>
       saveTheme(theme).catch((error: unknown) => console.warn("[ThemeChoice] save failed", error)),
     );
   }
@@ -48,7 +48,7 @@ export default function ThemeChoice() {
     <fieldset class="min-w-0">
       <legend class="sr-only">Theme</legend>
       <div class="hoverlist">
-        <For each={ITEMS}>
+        <For each={THEME_ITEMS}>
           {(item) => (
             <label class="theme-item">
               <input
