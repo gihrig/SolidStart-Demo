@@ -42,4 +42,5 @@ flat "what has been decided" view.
 | [0030](0030-unsaved-draft-guard.md) | Unsaved Drafts are guarded by one app-level guard | Accepted |
 | [0031](0031-jedi-tables-built-beside-fullstack-then-removed.md) | Jedi tables are built beside the FullStack tables, which are then removed | Accepted |
 | [0032](0032-delete-cascades-to-every-row-under-it.md) | A Post or Caption delete cascades to every row under it, other Users' rows too | Accepted |
+| [0033](0033-saved-theme-in-an-httponly-cookie.md) | The saved theme lives in an HttpOnly cookie that the server renders | Accepted |
 | [0034](0034-one-https-edge-for-dev-and-e2e.md) | One HTTPS edge serves dev and e2e, as in production | Accepted |
