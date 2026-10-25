@@ -1,4 +1,4 @@
-import { test, expect, type Locator, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page, type Response } from "@playwright/test";
 import { loginAs } from "./login";
 
 // Jedi is the home page now (#62): it renders at `/` under the global Jedi nav.
@@ -445,6 +445,43 @@ test.describe("Home Page - Theme", () => {
     );
     // The closed panel fades out but stays in the page, inert.
     await expect(page.locator("#profile-menu")).toHaveAttribute("inert", "");
+  });
+
+  test("a page load renews a valid cookie, and sets none without one", async ({ page }) => {
+    const ONE_YEAR = 31536000;
+    const setTheme = (value: string) =>
+      page.context().addCookies([
+        {
+          name: "theme",
+          value,
+          url: "https://localhost:3443",
+          httpOnly: true,
+          secure: true,
+          sameSite: "Lax",
+          expires: Math.floor(Date.now() / 1000) + 60,
+        },
+      ]);
+    const themeHeader = async (response: Response | null) =>
+      (await response!.headersArray()).find(
+        (header) => header.name.toLowerCase() === "set-cookie" && header.value.startsWith("theme="),
+      );
+
+    // No cookie: the page load sets none.
+    expect(await themeHeader(await page.goto("/"))).toBeUndefined();
+    expect(await themeCookie(page)).toBeUndefined();
+
+    // A bad value is System Theme, and the page load sets no cookie.
+    await setTheme("auto");
+    expect(await themeHeader(await page.goto("/"))).toBeUndefined();
+
+    // A cookie that ends in 60 seconds ends about one year later after a load.
+    await setTheme("dark");
+    const response = await page.goto("/");
+    expect((await themeHeader(response))?.value).toBe(
+      "theme=dark; Max-Age=31536000; Path=/; HttpOnly; Secure; SameSite=Lax",
+    );
+    const expires = (await themeCookie(page))!.expires;
+    expect(Math.abs(expires - (Date.now() / 1000 + ONE_YEAR))).toBeLessThan(60);
   });
 
   test("at 320 px, a visitor can choose a Theme, and each item fits on one line", async ({

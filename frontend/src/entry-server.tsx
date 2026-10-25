@@ -1,7 +1,7 @@
 // @refresh reload
 import { createHandler, StartServer } from "@solidjs/start/server";
 import { getRequestEvent } from "solid-js/web";
-import { themeFromCookies } from "~/lib/theme";
+import { themeCookie, themeFromCookies } from "~/lib/theme";
 
 export default createHandler(() => (
   <StartServer
@@ -9,7 +9,13 @@ export default createHandler(() => (
       // The server renders the saved theme, so the first paint is right with no
       // script. System Theme renders no data-theme, and CSS follows the device
       // (ADR-0033).
-      const theme = themeFromCookies(getRequestEvent()?.request.headers.get("cookie"));
+      const event = getRequestEvent();
+      const theme = themeFromCookies(event?.request.headers.get("cookie"));
+      // Each full page load renews a valid cookie, so the saved theme lasts one
+      // year after the last load. The page streams, and the headers go out with
+      // the first byte. The document function runs before it; code after a
+      // Suspense boundary resolves is too late for a header.
+      if (theme) event?.response.headers.append("Set-Cookie", themeCookie(theme));
       return (
         <html lang="en" data-theme={theme === "system" ? undefined : theme}>
           <head>
