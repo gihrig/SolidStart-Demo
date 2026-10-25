@@ -6,7 +6,6 @@ import { stubDialogModal } from "~/lib/test-utils";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { DraftGuardProvider, useDraftGuard } from "./DraftGuardContext";
 import Nav from "./Nav";
-import { ThemeProvider } from "./ThemeContext";
 
 // The nav reads useAuth(); AuthProvider's login/logoff hit backend-rpc, mocked
 // so a test can drive the app to logged-in (mirrors AuthContext.test).
@@ -42,10 +41,8 @@ function LoginTrigger() {
 const renderNav = (withLogin = false) =>
   render(() => (
     <AuthProvider>
-      <ThemeProvider>
-        <Nav />
-        {withLogin ? <LoginTrigger /> : null}
-      </ThemeProvider>
+      <Nav />
+      {withLogin ? <LoginTrigger /> : null}
     </AuthProvider>
   ));
 
@@ -54,7 +51,6 @@ beforeAll(stubDialogModal);
 describe("<Nav />", () => {
   beforeEach(() => {
     profileGetMock.mockReset();
-    localStorage.removeItem("theme");
     document.documentElement.removeAttribute("data-theme");
     setupMatchMedia(false); // desktop
   });
@@ -88,18 +84,13 @@ describe("<Nav />", () => {
     expect(screen.queryByRole("link", { name: "Jedi" })).not.toBeInTheDocument();
   });
 
-  // jsdom applies no breakpoint classes, so both copies render here; CSS shows
-  // the bar copy from sm and the menu copy below sm (#203).
-  it("renders the theme toggle in the bar and in the mobile menu, and the menu toggle", () => {
+  // One theme control, at every width: the Theme group in the Profile menu (#200).
+  it("holds the Theme group in the Profile menu, with no theme button in the bar or the mobile menu", () => {
     renderNav();
-    const menu = screen.getByRole("navigation", { name: /site menu/i });
-    const menuToggle = within(menu).getByRole("button", { name: /theme/i });
-    const barToggles = screen
-      .getAllByRole("button", { name: /theme/i })
-      .filter((button) => !menu.contains(button));
-    expect(barToggles).toHaveLength(1);
-    expect(barToggles[0].parentElement).toHaveClass("hidden", "sm:flex");
-    expect(menuToggle.closest("li")).toHaveClass("sm:hidden");
+    const panel = document.getElementById("profile-menu")!;
+    expect(within(panel).getByRole("group", { name: "Theme" })).toBeInTheDocument();
+    expect(within(panel).getAllByRole("radio")).toHaveLength(3);
+    expect(screen.queryByRole("button", { name: /theme/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /toggle navigation/i })).toBeInTheDocument();
   });
 
@@ -307,13 +298,11 @@ describe("<Nav /> — the Draft guard (ADR-0030)", () => {
       <MemoryRouter
         root={(props) => (
           <AuthProvider>
-            <ThemeProvider>
-              <DraftGuardProvider>
-                <Nav />
-                <LoginTrigger />
-                {props.children}
-              </DraftGuardProvider>
-            </ThemeProvider>
+            <DraftGuardProvider>
+              <Nav />
+              <LoginTrigger />
+              {props.children}
+            </DraftGuardProvider>
           </AuthProvider>
         )}
       >

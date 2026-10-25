@@ -25,8 +25,8 @@
 }
 
 @layer base {
-  /* CSS, not a script, sets color-scheme (#203): with no data-theme (auto), the
-     browser follows the OS. */
+  /* CSS, not a script, sets color-scheme (#203): with no data-theme (System
+     Theme), the browser follows the OS. */
   :root {
     color-scheme: light dark;
     --theme-accent: var(--color-sky-700);
@@ -137,6 +137,30 @@
 
   .hoverlist > * > :is(a, button) {
     @apply flex items-center p-2;
+  }
+
+  /* A Theme item in the Profile menu (#200). The radio is visually hidden, so
+     the row shows its keyboard focus. CSS, not a script, shows the check mark
+     on the checked item only; on a hovered row it takes the hover color, so it
+     keeps 3:1 contrast. */
+  .theme-item {
+    @apply flex cursor-pointer items-center gap-2 p-2 whitespace-nowrap;
+  }
+
+  .theme-item:has(:focus-visible) {
+    @apply ring-2 ring-(--theme-accent);
+  }
+
+  .theme-item .theme-check {
+    @apply invisible text-(--theme-check);
+  }
+
+  .theme-item:has(:checked) .theme-check {
+    @apply visible;
+  }
+
+  .theme-item:hover .theme-check {
+    @apply text-(--theme-hover-fg);
   }
 
   /* A Comment body (#126): the server's sanitized markdown render. It styles

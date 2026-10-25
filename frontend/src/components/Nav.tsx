@@ -6,7 +6,7 @@ import { useNewPost } from "~/components/NewPostContext";
 import Avatar from "~/components/Avatar";
 import Icon from "~/components/Icon";
 import LoginDialog from "~/components/LoginDialog";
-import ThemeToggle from "~/components/ThemeToggle";
+import ThemeChoice from "~/components/ThemeChoice";
 
 const NAV_LINKS = [
   { href: "/about", label: "About" },
@@ -24,8 +24,9 @@ export default function Nav() {
   const guard = useDraftGuard();
   const newPost = useNewPost();
 
-  // The profile dropdown is a popup — hidden (and inert) whenever closed, on
-  // every viewport — dismissed by Escape or a click outside its wrapping <div>.
+  // The Profile menu is a popup — hidden (and inert) whenever closed, on every
+  // viewport — dismissed by Escape or a click outside its wrapping <div>. A
+  // Theme choice is a click inside, so it keeps the menu open (#200).
   const dropdown = useDisclosure({
     id: "profile-menu",
     mode: "popup",
@@ -94,7 +95,7 @@ export default function Nav() {
             </button>
             <div
               {...dropdown.panelProps}
-              class={`absolute right-0 bg-(--theme-card-bg) text-(--theme-card-fg) shadow rounded-lg w-40 p-2 z-20 transition-[opacity,translate,scale] duration-300 ease-out origin-top ${dropdown.open() ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 -translate-y-5 pointer-events-none"}`}
+              class={`absolute right-0 bg-(--theme-card-bg) text-(--theme-card-fg) shadow rounded-lg w-48 p-2 z-20 transition-[opacity,translate,scale] duration-300 ease-out origin-top ${dropdown.open() ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 -translate-y-5 pointer-events-none"}`}
             >
               <ul class="hoverlist">
                 <li>
@@ -117,6 +118,10 @@ export default function Nav() {
                   </Show>
                 </li>
               </ul>
+              {/* The one theme control, at every width (#200) */}
+              <div class="mt-2 border-t border-(--theme-muted) pt-2">
+                <ThemeChoice />
+              </div>
             </div>
           </div>
 
@@ -133,11 +138,6 @@ export default function Nav() {
               New Post
             </button>
           </Show>
-
-          {/* Below sm, this copy hides, and the mobile menu shows its own copy */}
-          <div class="hidden sm:flex">
-            <ThemeToggle />
-          </div>
 
           {/* Mobile menu toggle */}
           <button
@@ -156,9 +156,8 @@ export default function Nav() {
         </div>
       </div>
 
-      {/* Mobile menu — the links; below sm, also the dark/light mode button.
-          The avatar stays in the top bar. ThemeProvider keeps both theme copies
-          on one mode (#203). */}
+      {/* Mobile menu — the links. The avatar and the Profile menu, with the
+          Theme items, stay in the top bar (#200). */}
       <nav
         {...mobileNav.panelProps}
         aria-label="Site menu"
@@ -174,10 +173,6 @@ export default function Nav() {
               </li>
             )}
           </For>
-          {/* A click keeps the menu open, so the User can click for the next mode */}
-          <li class="sm:hidden">
-            <ThemeToggle />
-          </li>
         </ul>
       </nav>
     </header>
