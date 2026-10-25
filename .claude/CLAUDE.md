@@ -44,7 +44,7 @@ package.json scripts (ADR-0010 addendum).
 | `cgs build`           | Build both subtrees                                                  |
 | `cgs test`            | Run both test suites                                                 |
 | `cgs test:e2e`        | Run e2e tests (boots back-end + front-end + HTTPS edge)              |
-| `cgs caddy`           | Run the HTTPS edge alone (pinned Caddy, root `Caddyfile`, ADR-0034)  |
+| `cgs caddy`           | Run only the HTTPS edge (pinned Caddy, root `Caddyfile`, ADR-0034)   |
 | `cgs caddy:trust`     | Trust the edge's local CA in the system stores (edge must run)       |
 | `cgs cover`           | Run both test suites with coverage                                   |
 | `cgs check`           | Format + lint + type-check both subtrees                             |
@@ -60,6 +60,10 @@ package.json scripts (ADR-0010 addendum).
 | `cgs vex:check`       | Verify VEX statements still match current findings (CI guard)        |
 | `cgs vex:add`         | Append a VEX statement via vexctl (`-e VEX_PRODUCT=… -e VEX_VULN=…`) |
 | `cgs vex:rm`          | Remove a VEX statement by advisory id (`-e VEX_VULN=…`)              |
+
+`cgs caddy` serves nothing by itself; `cgs dev` and `cgs start` run it with both
+servers. Run it by hand for `cgs caddy:trust`, or beside each server in its own
+terminal (`cd backend && cgs dev`, `cd frontend && cgs dev`).
 
 Single-side work: `cd frontend` or `cd backend` and use `cgs …`; in `frontend/`,
 `vpr …` also works. See the subtree `CLAUDE.md` for each side's command table.
