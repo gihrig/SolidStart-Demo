@@ -7,7 +7,7 @@
     "check": "vp check --fix",
     "check:type": "vpx tsc --noEmit",
     "dev": "vinxi dev",
-    "lighthouse": "concurrently -g 'vinxi build' 'vinxi start' '../scripts/caddy.sh run' 'CHROME_PATH=\"/Applications/Brave Browser.app/Contents/MacOS/Brave Browser\" lighthouse https://localhost:3443 --chrome-flags=--ignore-certificate-errors --output html --output-path ./reports/lighthouse/lighthouse-report.html --view'",
+    "lighthouse": "./src/lib/lighthouse.sh",
     "prepare": "vp config --no-agent",
     "start": "vinxi start",
     "test:all": "vp test",
