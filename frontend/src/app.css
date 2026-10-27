@@ -171,7 +171,13 @@
      newline renders as a space (CommonMark), so `pre-line` shows it as a line
      break, as the plain-text body did before #126. An `li` with a block child
      gets no `pre-line`: `markdown` puts a newline before each block child, and
-     `pre-line` would show it as an empty line. Its text is then in a `p`. */
+     `pre-line` would show it as an empty line. Its text is then in a `p`.
+     The body is `text-base`, one step above the panel's `text-sm` (#245); the
+     headings move up one step with it, so each stays larger than the body. */
+  .comment-body {
+    @apply text-base;
+  }
+
   .comment-body > * + * {
     @apply mt-2;
   }
@@ -189,7 +195,7 @@
   }
 
   .comment-body code {
-    @apply rounded bg-(--theme-background) px-1 font-mono text-sm;
+    @apply rounded bg-(--theme-background) px-1 font-mono text-base;
   }
 
   .comment-body pre {
@@ -223,15 +229,15 @@
   }
 
   .comment-body .md-h1 {
-    @apply text-xl font-bold;
+    @apply text-2xl font-bold;
   }
 
   .comment-body .md-h2 {
-    @apply text-lg font-bold;
+    @apply text-xl font-bold;
   }
 
   .comment-body :is(.md-h3, .md-h4, .md-h5, .md-h6) {
-    @apply text-base font-bold;
+    @apply text-lg font-bold;
   }
 
   .site-header {

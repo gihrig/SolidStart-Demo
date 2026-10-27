@@ -453,6 +453,20 @@ describe("<CommentThread /> — the Comment row (#125)", () => {
     const position = composeBox().compareDocumentPosition(screen.getByRole("list"));
     expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+
+  // The test setup loads no CSS, so the classes stand for the size: the body's
+  // `.comment-body` rule and the textarea's `text-base` (#245).
+  it("the body and the compose and edit text fields use the larger Comment text (#245)", async () => {
+    const user = userEvent.setup();
+    const { thread } = fakeThread([comment(1, 2, "mine")]);
+    render(() => (
+      <CommentThread id="t" thread={thread} composeLabel="Post Comment" loggedIn userId={2} />
+    ));
+
+    expect(screen.getByText("mine").closest(".comment-body")).not.toBeNull();
+    expect(composeBox()).toHaveClass("text-base");
+    expect(await openEdit(user)).toHaveClass("text-base");
+  });
 });
 
 describe("<CommentThread /> — Drafts (ADR-0030)", () => {

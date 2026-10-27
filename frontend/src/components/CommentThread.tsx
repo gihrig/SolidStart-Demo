@@ -248,7 +248,7 @@ function CommentForm(props: CommentFormProps) {
         aria-invalid={length() > COMMENT_MAX_LENGTH}
         value={value()}
         onInput={(e) => setValue(e.currentTarget.value)}
-        class="theme-input"
+        class="theme-input text-base"
       />
       <div class="flex items-center justify-end gap-2">
         <LengthCount id={countId()} length={length()} />
