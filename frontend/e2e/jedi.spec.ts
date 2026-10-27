@@ -208,6 +208,71 @@ test.describe("Home Page - Profile dropdown (popup disclosure, #55 C5)", () => {
     await expect(trigger).toHaveAttribute("aria-expanded", "false");
     await expect(menu).toHaveAttribute("inert");
   });
+
+  // An action row's click area is its highlighted area (#241). jsdom has no
+  // layout, so only a browser can prove it.
+  async function openProfileMenu(page: Page) {
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("banner").getByRole("button", { name: "Profile menu" }).click();
+    const menu = page.locator("#profile-menu");
+    // The panel opens with a scale transition; measure it at full size.
+    await menu.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
+    return menu;
+  }
+
+  function actionRow(menu: Locator, name: string) {
+    return menu
+      .getByRole("listitem")
+      .filter({ has: menu.page().getByRole("button", { name, exact: true }) });
+  }
+
+  // The button fills its row: the same width, in each browser.
+  async function expectFillsRow(row: Locator) {
+    const rowBox = await row.boundingBox();
+    const buttonBox = await row.getByRole("button").boundingBox();
+    expect(Math.abs(buttonBox!.width - rowBox!.width)).toBeLessThan(0.5);
+  }
+
+  // A click 4 px from the row's right edge, right of the button's text.
+  async function clickRowEdge(row: Locator) {
+    const box = await row.boundingBox();
+    await row.click({ position: { x: box!.width - 4, y: box!.height / 2 } });
+  }
+
+  test("logged out, a click near the right edge of My Profile or Log In runs it", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const menu = await openProfileMenu(page);
+    const myProfile = actionRow(menu, "My Profile");
+    const logIn = actionRow(menu, "Log In");
+    await expectFillsRow(myProfile);
+    await expectFillsRow(logIn);
+
+    let alertText = "";
+    page.once("dialog", async (dialog) => {
+      alertText = dialog.message();
+      await dialog.dismiss();
+    });
+    await clickRowEdge(myProfile);
+    await expect.poll(() => alertText).toBe("Not implemented");
+
+    await clickRowEdge(logIn);
+    await expect(page.getByRole("dialog", { name: "Login" })).toBeVisible();
+  });
+
+  test("logged in, a click near the right edge of Log Out logs the User off", async ({ page }) => {
+    await page.goto("/");
+    await loginAs(page, "demo1", "welcome");
+    const header = page.getByRole("banner");
+    const menu = await openProfileMenu(page);
+    const logOut = actionRow(menu, "Log Out");
+    await expectFillsRow(logOut);
+
+    await clickRowEdge(logOut);
+    await expect(header.getByText("demo1", { exact: true })).toBeHidden();
+    await expect(actionRow(menu, "Log In")).toHaveCount(1);
+  });
 });
 
 test.describe("Home Page - Footer (preserved from existing tests)", () => {
