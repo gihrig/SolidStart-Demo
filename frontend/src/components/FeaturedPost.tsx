@@ -13,6 +13,7 @@ import PostDialog from "~/components/PostDialog";
 import LikeControl from "~/components/LikeControl";
 import OwnerActions from "~/components/OwnerActions";
 import PostCaption from "~/components/PostCaption";
+import Icon from "~/components/Icon";
 
 export interface FeaturedPostProps {
   post: PostView;
@@ -123,13 +124,14 @@ interface ActionsLineProps {
 
 /**
  * One actions line (#210): the Post actions and the Caption actions share this
- * layout. The Comments toggle sits at the left: its label, `+` while its thread
- * is closed and `−` (a minus sign) while it is open, and the count. The glyph
- * is visual only; the toggle's name says the count in words, and neither
- * toggle's name starts the other's. For a logged-in User, the other actions sit
- * at the right, and on a narrow screen they wrap under the toggle. A visitor's
- * fire-heart and count sit right after the toggle. One alert per failed action
- * goes under the line, so one error never hides another.
+ * layout. The Comments toggle sits at the left: its label, the expand-arrow,
+ * and the count. The arrow turns 180° while its thread is open, with the
+ * Profile menu arrow's size and timing (#244). The arrow is visual only; the
+ * toggle's name says the count in words, and neither toggle's name starts the
+ * other's. For a logged-in User, the other actions sit at the right, and on a
+ * narrow screen they wrap under the toggle. A visitor's fire-heart and count
+ * sit right after the toggle. One alert per failed action goes under the line,
+ * so one error never hides another.
  */
 function ActionsLine(props: ActionsLineProps) {
   return (
@@ -140,14 +142,18 @@ function ActionsLine(props: ActionsLineProps) {
         <button
           ref={(el) => props.toggleRef?.(el)}
           type="button"
-          class="font-bold hover:underline rounded disabled:opacity-50 disabled:no-underline"
+          class="flex items-center font-bold hover:underline rounded disabled:opacity-50 disabled:no-underline"
           aria-label={`${props.label}, ${commentCountText(props.count)}`}
           aria-expanded={props.open}
           aria-controls={props.panelId}
           disabled={props.toggleDisabled}
           onClick={() => props.onToggle()}
         >
-          {props.label} <span aria-hidden="true">{props.open ? "−" : "+"}</span>
+          {props.label}
+          <Icon
+            name="expand-arrow"
+            class={`w-4 h-4 ml-1 transition-transform duration-300 ${props.open ? "rotate-180" : ""}`}
+          />
           <span class="font-light text-(--theme-card-fg) ml-2">{props.count}</span>
         </button>
         <div class="flex flex-wrap items-center gap-x-4 gap-y-2">{props.children}</div>

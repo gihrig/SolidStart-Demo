@@ -590,17 +590,24 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
     expect(panel()).toBeEmptyDOMElement();
   });
 
-  it("the toggle reads 'Post Comments + 3', with − while open; the glyph is aria-hidden (#210)", async () => {
+  it("the toggle shows the expand-arrow between label and count; it turns while open; it is aria-hidden (#244)", async () => {
     const user = userEvent.setup();
     const postComments = fakePostComments();
     render(() => <FeaturedPost post={post} caption={caption} postComments={postComments} />);
-    const glyph = () => toggle().querySelector("[aria-hidden='true']");
-    expect(toggle()).toHaveTextContent(/^Post Comments\s*\+\s*3$/);
-    expect(glyph()).toHaveTextContent(/^\+$/);
+    const arrow = () => toggle().querySelector("svg")!;
+    expect(arrow().querySelector("use")).toHaveAttribute(
+      "href",
+      "/icon-sprite.svg#icon-expand-arrow",
+    );
+    expect(arrow()).toHaveAttribute("aria-hidden", "true");
+    expect(arrow()).toHaveClass("w-4", "h-4", "transition-transform", "duration-300");
+    expect(arrow().nextElementSibling).toHaveTextContent(/^3$/);
+    expect(toggle()).toHaveTextContent(/^Post Comments\s*3$/);
+    expect(arrow()).not.toHaveClass("rotate-180");
 
     await user.click(toggle());
-    expect(toggle()).toHaveTextContent(/^Post Comments\s*−\s*3$/);
-    expect(glyph()).toHaveTextContent(/^−$/);
+    expect(arrow()).toHaveClass("rotate-180");
+    expect(toggle()).toHaveTextContent(/^Post Comments\s*3$/);
   });
 
   it("Escape in the empty compose box closes the panel; focus moves to the toggle (#210)", async () => {
@@ -683,7 +690,11 @@ describe("<FeaturedPost /> — the Caption Comments panel (#127)", () => {
 
   it("shows the toggle first in the Caption actions, with the Caption's comment count", () => {
     render(() => <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn />);
-    expect(toggle()).toHaveTextContent(/^Caption Comments\s*\+\s*2$/);
+    expect(toggle()).toHaveTextContent(/^Caption Comments\s*2$/);
+    expect(toggle().querySelector("svg use")).toHaveAttribute(
+      "href",
+      "/icon-sprite.svg#icon-expand-arrow",
+    );
     expect(toggle().parentElement!.firstElementChild).toBe(toggle());
     expect(toggle()).toBeEnabled();
   });
@@ -722,9 +733,11 @@ describe("<FeaturedPost /> — the Caption Comments panel (#127)", () => {
     expect(toggle()).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("region", { name: "Caption Comments" })).toBe(panel());
     expect(panel()).toHaveTextContent("Nice caption");
-    expect(toggle()).toHaveTextContent(/^Caption Comments\s*−\s*2$/);
+    expect(toggle()).toHaveTextContent(/^Caption Comments\s*2$/);
+    expect(toggle().querySelector("svg")).toHaveClass("rotate-180");
 
     await user.click(toggle());
+    expect(toggle().querySelector("svg")).not.toHaveClass("rotate-180");
     expect(captionComments.open()).toBe(false);
     expect(panel()).toBeEmptyDOMElement();
   });
