@@ -1,7 +1,8 @@
-import { batch, createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
+import { batch, createEffect, createMemo, createSignal, For, on, onMount, Show } from "solid-js";
 import { DRAFT_DISCARDED_NOTICE } from "~/lib/createDraftGuard";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { hygieneLength } from "~/lib/hygieneLength";
+import { isImeKey } from "~/lib/isImeKey";
 import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
 import { sanitizeCommentHtml } from "~/lib/sanitizeCommentHtml";
 import type { HygieneCaps } from "~/types/backend";
@@ -78,6 +79,15 @@ const formatTime = (time: string) => TIME_FORMAT.format(new Date(time));
 // second, and the wire can carry 6.
 const isoTime = (time: string) => new Date(time).toISOString();
 
+/** Whether a plain Enter submits a Comment form (#246). With a touch pointer,
+ *  Enter adds a new line, and only the button submits. The server cannot know
+ *  the pointer, so it is false until mount. */
+function useEnterSubmits() {
+  const [enterSubmits, setEnterSubmits] = createSignal(false);
+  onMount(() => setEnterSubmits(!window.matchMedia("(pointer: coarse)").matches));
+  return enterSubmits;
+}
+
 /** The text of each `CommentForm` mode. The compose box's heading comes from
  *  the thread's owner (#210). */
 const FORM_TEXT = {
@@ -85,12 +95,14 @@ const FORM_TEXT = {
     submit: "Add Comment",
     pending: "Adding…",
     error: "Could not add the Comment",
+    hint: "Enter = add Comment. Shift+Enter = new line.",
   },
   edit: {
     label: "Edit your comment",
     submit: "Save",
     pending: "Saving…",
     error: "Could not edit the Comment",
+    hint: "Enter = save. Shift+Enter = new line.",
   },
 } as const;
 
@@ -190,10 +202,14 @@ function CommentForm(props: CommentFormProps) {
         : DRAFT_DISCARDED_NOTICE,
   });
   const countId = () => `${props.id}-count`;
+  const hintId = () => `${props.id}-hint`;
+  // The submit button and the Enter key both obey it (#246).
+  const canSubmit = () => !write.pending() && dirty() && sendable(length()) && !loadError();
+  const enterSubmits = useEnterSubmits();
 
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
-    if (!sendable(length())) return;
+    if (!canSubmit()) return;
     if (await write.run(value())) {
       setValue(saved() ?? "");
       props.onClose?.();
@@ -220,7 +236,19 @@ function CommentForm(props: CommentFormProps) {
   // does not close a menu or the sidebar. An Escape that acts also cancels the
   // browser's own Escape action, which would close the question that the
   // action opens (#210).
+  //
+  // A plain Enter in the text field submits, and Shift+Enter adds a new line
+  // (#246). If the form cannot submit, the Enter does nothing. An IME's Enter,
+  // a modified Enter, any Enter with a touch pointer, and a button's Enter
+  // keep the browser's own action.
   const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Enter") {
+      if (e.target !== textRef || !enterSubmits() || isImeKey(e)) return;
+      if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+      e.preventDefault();
+      if (canSubmit()) (e.currentTarget as HTMLFormElement).requestSubmit();
+      return;
+    }
     if (e.key !== "Escape") return;
     e.stopPropagation();
     if (e.isComposing || write.pending()) return;
@@ -244,13 +272,18 @@ function CommentForm(props: CommentFormProps) {
         required
         disabled={!loaded()}
         placeholder={loaded() ? undefined : "Loading…"}
-        aria-describedby={countId()}
+        aria-describedby={enterSubmits() ? `${hintId()} ${countId()}` : countId()}
         aria-invalid={length() > COMMENT_MAX_LENGTH}
         value={value()}
         onInput={(e) => setValue(e.currentTarget.value)}
         class="theme-input text-base"
       />
       <div class="flex items-center justify-end gap-2">
+        <Show when={enterSubmits()}>
+          <p id={hintId()} class="mr-auto text-sm text-(--theme-muted)">
+            {text().hint}
+          </p>
+        </Show>
         <LengthCount id={countId()} length={length()} />
         <button
           type="button"
@@ -262,7 +295,7 @@ function CommentForm(props: CommentFormProps) {
         </button>
         <button
           type="submit"
-          disabled={write.pending() || !dirty() || !sendable(length()) || !!loadError()}
+          disabled={!canSubmit()}
           class="theme-button-primary shrink-0 disabled:opacity-50"
         >
           {write.pending() ? text().pending : text().submit}

@@ -205,6 +205,8 @@ _Built_ (#124–#127): one Comment module serves both kinds
 ([ADR-0024](docs/adr/0024-typed-bmc-owner-post-child-tables.md) addendum). An add or
 a delete also pokes the channel of the parent's comment count: `posts` for a
 PostComment, `post_caption:{post_id}` for a CaptionComment.
+In a Comment form, a plain Enter submits and Shift+Enter adds a new line (#246).
+With a touch pointer, Enter adds a new line, and only the button submits.
 _Lineage_: built beside the FullStack `ConvMsg`, **split into two** (#108). #128
 removed `ConvMsg`
 ([ADR-0031](docs/adr/0031-jedi-tables-built-beside-fullstack-then-removed.md)).

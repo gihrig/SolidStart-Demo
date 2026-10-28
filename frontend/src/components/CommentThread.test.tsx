@@ -866,3 +866,163 @@ describe("<CommentThread /> — Cancel, Escape and focus (#214)", () => {
     await waitFor(() => expect(editBox()).toBeNull());
   });
 });
+
+describe("<CommentThread /> — Enter submits (#246)", () => {
+  function renderThread(initial: CommentView[] = []) {
+    const { thread } = fakeThread(initial);
+    render(() => (
+      <CommentThread id="t" thread={thread} composeLabel="Post Comment" loggedIn userId={2} />
+    ));
+    return { thread, user: userEvent.setup() };
+  }
+
+  it("a plain Enter in the compose box adds the Comment, and the box clears", async () => {
+    const { thread, user } = renderThread();
+    await user.type(composeBox(), "hello{Enter}");
+
+    expect(thread.add).toHaveBeenCalledWith("hello");
+    await waitFor(() => expect(composeBox()).toHaveValue(""));
+  });
+
+  it("a plain Enter in an edit with changes saves, and the edit closes", async () => {
+    const { thread, user } = renderThread([comment(1, 2, "mine")]);
+    await user.type(await openEdit(user), "!{Enter}");
+
+    expect(thread.update).toHaveBeenCalledWith(1, "mine!");
+    await waitFor(() =>
+      expect(screen.queryByRole("textbox", { name: "Edit your comment" })).toBeNull(),
+    );
+  });
+
+  it("Shift+Enter adds a new line, and no submit occurs", async () => {
+    const { thread, user } = renderThread();
+    await user.type(composeBox(), "one{Shift>}{Enter}{/Shift}two");
+
+    expect(composeBox()).toHaveValue("one\ntwo");
+    expect(thread.add).not.toHaveBeenCalled();
+  });
+
+  // Safari can send the Enter that confirms a composed character with
+  // `isComposing` false and `keyCode` 229 (WebKit bug 165004).
+  it.each([
+    ["isComposing", { isComposing: true }],
+    ["keyCode 229", { isComposing: false, keyCode: 229 }],
+  ])("an IME Enter (%s) does not submit, and keeps its default", async (_, init) => {
+    const { thread, user } = renderThread();
+    await user.type(composeBox(), "hello");
+
+    expect(fireEvent.keyDown(composeBox(), { key: "Enter", ...init })).toBe(true);
+    expect(thread.add).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["Ctrl", { ctrlKey: true }],
+    ["Cmd", { metaKey: true }],
+    ["Alt", { altKey: true }],
+  ])("%s+Enter does not submit, and keeps its default", async (_, init) => {
+    const { thread, user } = renderThread();
+    await user.type(composeBox(), "hello");
+
+    expect(fireEvent.keyDown(composeBox(), { key: "Enter", ...init })).toBe(true);
+    expect(thread.add).not.toHaveBeenCalled();
+  });
+
+  it("a plain Enter on a button does not submit: the button keeps its own action", async () => {
+    const { thread, user } = renderThread();
+    await user.type(composeBox(), "hello");
+
+    expect(fireEvent.keyDown(composeCancel(), { key: "Enter" })).toBe(true);
+    expect(thread.add).not.toHaveBeenCalled();
+  });
+
+  it("with a touch pointer, Enter adds a new line, and does not submit", async () => {
+    const fine = window.matchMedia;
+    const coarse = vi.fn((query: string) =>
+      Object.assign(fine(query), { matches: query === "(pointer: coarse)" }),
+    );
+    vi.stubGlobal("matchMedia", coarse);
+    try {
+      const { thread, user } = renderThread();
+      await user.type(composeBox(), "hello");
+
+      expect(fireEvent.keyDown(composeBox(), { key: "Enter" })).toBe(true);
+      expect(thread.add).not.toHaveBeenCalled();
+      expect(coarse).toHaveBeenCalledWith("(pointer: coarse)");
+      expect(screen.queryByText(/Shift\+Enter/), "no hint").toBeNull();
+      expect(composeBox()).toHaveAttribute("aria-describedby", "t-compose-count");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("the hint names the Enter rule of each form, and describes its text field", async () => {
+    const { user } = renderThread([comment(1, 2, "mine")]);
+    expect(composeBox()).toHaveAccessibleDescription(
+      "Enter = add Comment. Shift+Enter = new line. 0/2000",
+    );
+
+    const editBox = await openEdit(user);
+    expect(editBox).toHaveAttribute(
+      "aria-describedby",
+      "t-comment-1-edit-hint t-comment-1-edit-count",
+    );
+    expect(editBox).toHaveAccessibleDescription("Enter = save. Shift+Enter = new line. 4/2000");
+  });
+
+  it("a plain Enter in a blank compose box does nothing, and adds no new line", async () => {
+    const { thread, user } = renderThread();
+    await user.type(composeBox(), "   ");
+
+    expect(fireEvent.keyDown(composeBox(), { key: "Enter" })).toBe(false);
+    expect(thread.add).not.toHaveBeenCalled();
+    expect(composeBox()).toHaveValue("   ");
+  });
+
+  it("a plain Enter over the cap does nothing", async () => {
+    const { thread, user } = renderThread();
+    await user.click(composeBox());
+    await user.paste("a".repeat(2001));
+
+    expect(fireEvent.keyDown(composeBox(), { key: "Enter" })).toBe(false);
+    expect(thread.add).not.toHaveBeenCalled();
+  });
+
+  it("a plain Enter in an unchanged edit does nothing", async () => {
+    const { thread, user } = renderThread([comment(1, 2, "mine")]);
+    const editBox = await openEdit(user);
+
+    expect(fireEvent.keyDown(editBox, { key: "Enter" })).toBe(false);
+    expect(thread.update).not.toHaveBeenCalled();
+    expect(editBox).toBeInTheDocument();
+  });
+
+  it("a plain Enter while the compose box writes does nothing", async () => {
+    const { thread, user } = renderThread();
+    let finish!: () => void;
+    vi.mocked(thread.add).mockReturnValueOnce(new Promise<void>((r) => (finish = r)));
+    await user.type(composeBox(), "hello{Enter}");
+    expect(screen.getByRole("button", { name: "Adding…" })).toBeDisabled();
+
+    expect(fireEvent.keyDown(composeBox(), { key: "Enter" })).toBe(false);
+    expect(thread.add).toHaveBeenCalledTimes(1);
+
+    finish();
+    await waitFor(() => expect(composeBox()).toHaveValue(""));
+  });
+
+  it("a plain Enter in an edit whose reload failed does nothing", async () => {
+    const { thread, setComments } = fakeThread([comment(1, 2, "mine")]);
+    render(() => (
+      <CommentThread id="t" thread={thread} composeLabel="Post Comment" loggedIn userId={2} />
+    ));
+    const user = userEvent.setup();
+    const editBox = await openEdit(user);
+    await user.type(editBox, "!");
+    vi.mocked(thread.source).mockRejectedValueOnce(new Error("Network down"));
+    setComments([comment(1, 2, "theirs", { mtime: "2026-10-10T12:05:00Z" })]);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Network down");
+
+    expect(fireEvent.keyDown(editBox, { key: "Enter" })).toBe(false);
+    expect(thread.update).not.toHaveBeenCalled();
+  });
+});
