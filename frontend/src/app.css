@@ -49,6 +49,7 @@
 
   :root[data-theme="dark"] {
     color-scheme: dark;
+    --theme-accent: var(--color-sky-500);
     --theme-highlight: color-mix(in oklch, var(--color-indigo-100), transparent 50%);
     --theme-foreground: var(--color-zinc-100);
     --theme-background: var(--color-zinc-800);
@@ -62,6 +63,7 @@
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
+      --theme-accent: var(--color-sky-500);
       --theme-highlight: color-mix(in oklch, var(--color-indigo-100), transparent 50%);
       --theme-foreground: var(--color-zinc-100);
       --theme-background: var(--color-zinc-800);
