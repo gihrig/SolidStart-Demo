@@ -607,6 +607,32 @@ Category keeps the Post shown. The User then chooses to keep or discard the Draf
 ([ADR-0030](docs/adr/0030-unsaved-draft-guard.md)).
 _Avoid_: unsaved comment, pending edit; "lost" or "rejected" for a forced discard.
 
+### Top Nav
+
+**Top Nav**:
+The bar at the top of every page. It holds the Brand link, the Nav links, the
+Profile menu button, New Post for a logged-in User, and the Site menu button on
+a narrow screen.
+_FE_: `Nav` (`components/Nav.tsx`).
+_Avoid_: header, navbar, top bar.
+
+**Brand link**:
+The "Awesome" logo and wordmark at the left of the Top Nav. It goes to the home
+page. It is not a Nav link, so it never marks the current page.
+_Avoid_: logo link, home button.
+
+**Nav links**:
+Home, About and Readme. The Top Nav shows them on a wide screen (768 px and
+wider). The Site menu shows them on a narrow screen. The Nav link of the current
+page has an underline.
+_Avoid_: menu items, tabs.
+
+**Site menu**:
+The drop-down that holds the Nav links on a narrow screen (below 768 px). The ☰
+button in the Top Nav opens it. It is not the Profile menu.
+_FE_: the `site-mobile-nav` disclosure in `Nav`; its accessible name is "Site menu".
+_Avoid_: mobile menu, mobile nav, hamburger menu.
+
 ### Profile menu & Theme
 
 **Profile menu**:
