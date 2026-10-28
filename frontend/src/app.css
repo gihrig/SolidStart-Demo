@@ -246,11 +246,35 @@
     @apply bg-gray-800 text-white sticky top-0 z-50;
   }
 
-  .site-nav > li > .nav-link {
-    @apply flex h-12 items-center gap-2 rounded-lg px-4;
+  /* The Top Nav is dark in every Theme (.site-header), so its links take the
+     Dark Theme accent in every Theme: sky-500 is 5.41:1 on gray-800, and
+     sky-700 is 2.51:1. The override is not on .site-header: the Profile menu
+     panel inside it follows the Theme, and sky-500 on its Light Theme card
+     (zinc-200) is 2.14:1 (#247). */
+  .site-nav,
+  .brand-link {
+    --theme-accent: var(--color-sky-500);
   }
 
-  .site-nav > li > .nav-link:hover {
-    @apply bg-gray-700;
+  /* A transparent underline holds the space, so a hover or the current page
+     colors it without a shift. The top corners only are round, so the
+     underline stays straight. */
+  .site-nav > li > .nav-link {
+    @apply flex h-12 items-center gap-2 rounded-t-lg border-b-4 border-transparent px-4;
+  }
+
+  /* The negative margin keeps the logo where it was before the padding. */
+  .brand-link {
+    @apply -ml-4 flex h-12 items-center gap-1 rounded-t-lg border-b-4 border-transparent px-4;
+  }
+
+  /* The Brand link never marks the current page: the Home Nav link marks /. */
+  .site-nav > li > .nav-link:hover,
+  .brand-link:hover {
+    @apply border-(--theme-accent) bg-gray-700;
+  }
+
+  .site-nav > li > .nav-link[aria-current="page"] {
+    @apply border-(--theme-accent);
   }
 }

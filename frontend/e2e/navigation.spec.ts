@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 // The Top Nav renders on every route: the Brand link "Awesome" → / plus the Nav
 // links Home / About / Readme (#247). Jedi is the home page (#62), so there is no
@@ -190,4 +190,111 @@ test("logs in through the Nav login dialog", async ({ page }) => {
   await expect(dialog).toBeHidden({ timeout: 10000 });
   await expect(header.getByText("demo1", { exact: true })).toBeVisible();
   await expect(profileMenu).toBeFocused();
+});
+
+// 8. Top Nav: the current page and the hover (#247)
+test.describe("Top Nav current page and hover", () => {
+  const TRANSPARENT = "rgba(0, 0, 0, 0)";
+
+  // The computed value of `color: <css>` inside `scope`. A probe resolves the
+  // token the same way the browser resolves the rule, in every browser.
+  async function colorOf(page: Page, css: string, scope = "body") {
+    return page
+      .locator(scope)
+      .first()
+      .evaluate((el, value) => {
+        const probe = document.createElement("span");
+        probe.style.color = value;
+        el.appendChild(probe);
+        const color = getComputedStyle(probe).color;
+        probe.remove();
+        return color;
+      }, css);
+  }
+
+  // The server reads the theme cookie during SSR (#200).
+  async function setTheme(page: Page, value: "light" | "dark") {
+    await page
+      .context()
+      .addCookies([
+        { name: "theme", value, url: "https://localhost:3443", httpOnly: true, secure: true },
+      ]);
+  }
+
+  for (const [path, current] of [
+    ["/", "Home"],
+    ["/about", "About"],
+    ["/readme", "Readme"],
+    ["/nonexistent", null],
+  ] as const) {
+    test(`on ${path}, only the ${current ?? "no"} Nav link has the underline`, async ({ page }) => {
+      await page.goto(path);
+      const sky500 = await colorOf(page, "var(--color-sky-500)");
+      const nav = page.getByRole("navigation", { name: "Main" });
+
+      for (const name of ["Home", "About", "Readme"]) {
+        const link = nav.getByRole("link", { name });
+        await expect(link).toHaveCSS("border-bottom-width", "4px");
+        if (name === current) {
+          await expect(link).toHaveAttribute("aria-current", "page");
+          await expect(link).toHaveCSS("border-bottom-color", sky500);
+        } else {
+          await expect(link).not.toHaveAttribute("aria-current");
+          await expect(link).toHaveCSS("border-bottom-color", TRANSPARENT);
+        }
+      }
+
+      // The Brand link never marks the current page; the Home Nav link marks /.
+      const brand = page.getByRole("link", { name: /awesome/i });
+      await expect(brand).not.toHaveAttribute("aria-current");
+      await expect(brand).toHaveCSS("border-bottom-color", TRANSPARENT);
+    });
+  }
+
+  test("a hovered Nav link and the hovered Brand link get the background and the underline", async ({
+    page,
+  }) => {
+    await page.goto("/about");
+    const sky500 = await colorOf(page, "var(--color-sky-500)");
+    const gray700 = await colorOf(page, "var(--color-gray-700)");
+
+    for (const link of [
+      page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Readme" }),
+      page.getByRole("link", { name: /awesome/i }),
+    ]) {
+      await expect(link).toHaveCSS("border-bottom-color", TRANSPARENT);
+      await link.hover();
+      await expect(link).toHaveCSS("background-color", gray700);
+      await expect(link).toHaveCSS("border-bottom-color", sky500);
+    }
+  });
+
+  // The Top Nav is dark in every Theme, so its underline is sky-500 in every
+  // Theme. The page accent and the Profile menu follow the Theme.
+  for (const theme of ["system", "light", "dark"] as const) {
+    test(`in ${theme} Theme, the underline is sky-500`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: "light" });
+      if (theme !== "system") await setTheme(page, theme);
+      await page.goto("/");
+      const sky500 = await colorOf(page, "var(--color-sky-500)");
+      const sky700 = await colorOf(page, "var(--color-sky-700)");
+
+      const home = page
+        .getByRole("navigation", { name: "Main" })
+        .getByRole("link", { name: "Home" });
+      await expect(home).toHaveCSS("border-bottom-color", sky500);
+
+      const pageAccent = theme === "dark" ? sky500 : sky700;
+      expect(await colorOf(page, "var(--theme-accent)")).toBe(pageAccent);
+      expect(await colorOf(page, "var(--theme-accent)", "#profile-menu")).toBe(pageAccent);
+    });
+  }
+
+  test("in System Theme with a dark OS, the page accent is sky-500", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto("/");
+    expect(await colorOf(page, "var(--theme-accent)")).toBe(
+      await colorOf(page, "var(--color-sky-500)"),
+    );
+  });
 });

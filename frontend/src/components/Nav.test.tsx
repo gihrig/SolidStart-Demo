@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vite-plus/test";
 import { render, screen, within, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route } from "@solidjs/router";
+import { MemoryRouter, Route, createMemoryHistory } from "@solidjs/router";
 import { stubDialogModal } from "~/lib/test-utils";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { DraftGuardProvider, useDraftGuard } from "./DraftGuardContext";
@@ -38,13 +38,24 @@ function LoginTrigger() {
   );
 }
 
-const renderNav = (withLogin = false) =>
-  render(() => (
-    <AuthProvider>
-      <Nav />
-      {withLogin ? <LoginTrigger /> : null}
-    </AuthProvider>
+// The Nav links are router links, so the nav renders inside a router at `path`.
+const renderNav = (withLogin = false, path = "/") => {
+  const history = createMemoryHistory();
+  history.set({ value: path, scroll: false, replace: true });
+  return render(() => (
+    <MemoryRouter
+      history={history}
+      root={() => (
+        <AuthProvider>
+          <Nav />
+          {withLogin ? <LoginTrigger /> : null}
+        </AuthProvider>
+      )}
+    >
+      <Route path="*" component={() => null} />
+    </MemoryRouter>
   ));
+};
 
 beforeAll(stubDialogModal);
 
@@ -71,6 +82,26 @@ describe("<Nav />", () => {
     const links = within(mainNav).getAllByRole("link");
     expect(links.map((a) => a.textContent)).toEqual(["Home", "About", "Readme"]);
     expect(links.map((a) => a.getAttribute("href"))).toEqual(["/", "/about", "/readme"]);
+  });
+
+  // The router's <A end> sets aria-current="page" on an exact match only; CSS
+  // draws the underline from it (#247).
+  it.each([
+    ["/", "Home"],
+    ["/about", "About"],
+    ["/readme", "Readme"],
+    ["/nonexistent", null],
+  ])("on %s, marks only the %s Nav link as the current page", (path, current) => {
+    renderNav(false, path);
+    for (const name of ["Main", "Site menu"]) {
+      const marked = within(screen.getByRole("navigation", { name }))
+        .getAllByRole("link")
+        .filter((a) => a.getAttribute("aria-current") === "page")
+        .map((a) => a.textContent);
+      expect(marked, name).toEqual(current ? [current] : []);
+    }
+    const brand = screen.getByText("Awesome").closest("a")!;
+    expect(brand).not.toHaveAttribute("aria-current");
   });
 
   it("drops the Create Post, Jedi and FullStack links", () => {

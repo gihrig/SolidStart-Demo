@@ -1,4 +1,5 @@
 import { createSignal, For, Show } from "solid-js";
+import { A } from "@solidjs/router";
 import { useDisclosure } from "~/lib/useDisclosure";
 import { useAuth } from "~/components/AuthContext";
 import { useDraftGuard } from "~/components/DraftGuardContext";
@@ -51,7 +52,7 @@ export default function Nav() {
   return (
     <header class="site-header">
       <div class="flex items-center justify-between h-20 px-8">
-        <a class="flex items-center gap-1" href="/">
+        <a class="brand-link" href="/">
           <Icon name="fire-heart" class="w-8 h-8 -mt-1" />
           <span class="text-lg font-bold">Awesome</span>
         </a>
@@ -63,9 +64,9 @@ export default function Nav() {
               <For each={NAV_LINKS}>
                 {(link) => (
                   <li>
-                    <a class="nav-link" href={link.href}>
+                    <A class="nav-link" href={link.href} end>
                       {link.label}
-                    </a>
+                    </A>
                   </li>
                 )}
               </For>
@@ -168,9 +169,9 @@ export default function Nav() {
           <For each={NAV_LINKS}>
             {(link) => (
               <li>
-                <a class="nav-link" href={link.href}>
+                <A class="nav-link" href={link.href} end>
                   {link.label}
-                </a>
+                </A>
               </li>
             )}
           </For>
