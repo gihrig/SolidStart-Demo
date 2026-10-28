@@ -268,12 +268,13 @@
     @apply -ml-4 flex h-12 items-center gap-1 rounded-t-lg border-b-4 border-transparent px-4;
   }
 
-  /* The Brand link never marks the current page: the Home Nav link marks /. */
   .site-nav > li > .nav-link:hover,
   .brand-link:hover {
     @apply border-(--theme-accent) bg-gray-700;
   }
 
+  /* Only a Nav link marks the current page. The Brand link never does: the
+     Home Nav link marks /. */
   .site-nav > li > .nav-link[aria-current="page"] {
     @apply border-(--theme-accent);
   }
