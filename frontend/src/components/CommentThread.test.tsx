@@ -969,6 +969,53 @@ describe("<CommentThread /> — Enter submits (#246)", () => {
     expect(editBox).toHaveAccessibleDescription("Enter = save. Shift+Enter = new line. 4/2000");
   });
 
+  it("the Enter rule and the hint follow a change of the pointer, until the form unmounts", async () => {
+    // A pointer query whose `change` a test fires, as a hybrid device does.
+    const listeners = new Set<(e: MediaQueryListEvent) => void>();
+    const pointer = { matches: false };
+    const fine = window.matchMedia;
+    vi.stubGlobal("matchMedia", (query: string) =>
+      Object.assign(fine(query), {
+        get matches() {
+          return query === "(pointer: coarse)" && pointer.matches;
+        },
+        addEventListener: (_: "change", l: (e: MediaQueryListEvent) => void) => listeners.add(l),
+        removeEventListener: (_: "change", l: (e: MediaQueryListEvent) => void) =>
+          listeners.delete(l),
+      }),
+    );
+    const change = (coarse: boolean) => {
+      pointer.matches = coarse;
+      for (const l of listeners) l({ matches: coarse } as MediaQueryListEvent);
+    };
+    try {
+      const { thread } = fakeThread([]);
+      const { unmount } = render(() => (
+        <CommentThread id="t" thread={thread} composeLabel="Post Comment" loggedIn userId={2} />
+      ));
+      const user = userEvent.setup();
+      await user.type(composeBox(), "hello");
+      const hint = () => screen.queryByText(/Shift\+Enter/);
+      expect(hint()).toBeInTheDocument();
+
+      change(true);
+      expect(hint(), "a touch pointer: no hint").toBeNull();
+      expect(composeBox()).toHaveAttribute("aria-describedby", "t-compose-count");
+      expect(fireEvent.keyDown(composeBox(), { key: "Enter" })).toBe(true);
+      expect(thread.add).not.toHaveBeenCalled();
+
+      change(false);
+      expect(hint(), "a fine pointer again").toBeInTheDocument();
+      expect(fireEvent.keyDown(composeBox(), { key: "Enter" })).toBe(false);
+      expect(thread.add).toHaveBeenCalledWith("hello");
+
+      unmount();
+      expect(listeners.size, "the form stops listening").toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("a plain Enter in a blank compose box does nothing, and adds no new line", async () => {
     const { thread, user } = renderThread();
     await user.type(composeBox(), "   ");

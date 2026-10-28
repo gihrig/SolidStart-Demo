@@ -1,4 +1,14 @@
-import { batch, createEffect, createMemo, createSignal, For, on, onMount, Show } from "solid-js";
+import {
+  batch,
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  on,
+  onCleanup,
+  onMount,
+  Show,
+} from "solid-js";
 import { DRAFT_DISCARDED_NOTICE } from "~/lib/createDraftGuard";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { hygieneLength } from "~/lib/hygieneLength";
@@ -81,10 +91,17 @@ const isoTime = (time: string) => new Date(time).toISOString();
 
 /** Whether a plain Enter submits a Comment form (#246). With a touch pointer,
  *  Enter adds a new line, and only the button submits. The server cannot know
- *  the pointer, so it is false until mount. */
+ *  the pointer, so it is false until mount. It follows a change of the
+ *  pointer, as on a tablet whose keyboard is attached or removed. */
 function useEnterSubmits() {
   const [enterSubmits, setEnterSubmits] = createSignal(false);
-  onMount(() => setEnterSubmits(!window.matchMedia("(pointer: coarse)").matches));
+  onMount(() => {
+    const mql = window.matchMedia("(pointer: coarse)");
+    setEnterSubmits(!mql.matches);
+    const handler = (e: MediaQueryListEvent) => setEnterSubmits(!e.matches);
+    mql.addEventListener("change", handler);
+    onCleanup(() => mql.removeEventListener("change", handler));
+  });
   return enterSubmits;
 }
 
