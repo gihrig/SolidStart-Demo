@@ -65,21 +65,17 @@ describe("<Nav />", () => {
     expect(brand).toHaveAttribute("href", "/");
   });
 
-  it("renders About and Readme in the main nav", () => {
+  it("renders Home, About and Readme, in that order, in the main nav", () => {
     renderNav();
     const mainNav = screen.getByRole("navigation", { name: "Main" });
-    expect(within(mainNav).getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
-    expect(within(mainNav).getByRole("link", { name: "Readme" })).toHaveAttribute(
-      "href",
-      "/readme",
-    );
-    expect(within(mainNav).getAllByRole("link")).toHaveLength(2);
+    const links = within(mainNav).getAllByRole("link");
+    expect(links.map((a) => a.textContent)).toEqual(["Home", "About", "Readme"]);
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(["/", "/about", "/readme"]);
   });
 
-  it("drops the Home, Create Post, Jedi and FullStack links", () => {
+  it("drops the Create Post, Jedi and FullStack links", () => {
     renderNav();
     expect(screen.queryByRole("link", { name: "FullStack" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Home" })).not.toBeInTheDocument();
     expect(screen.queryByText("Create Post")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Jedi" })).not.toBeInTheDocument();
   });
@@ -238,12 +234,13 @@ describe("<Nav />", () => {
       expect(btn.querySelector("use")!.getAttribute("href")).toContain("menu");
     });
 
-    it("lists About/Readme in the mobile menu", () => {
+    it("lists Home, About and Readme, in that order, in the Site menu", () => {
       renderNav();
       const menu = screen.getByRole("navigation", { name: /site menu/i });
-      expect(within(menu).getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
-      expect(within(menu).getByRole("link", { name: "Readme" })).toHaveAttribute("href", "/readme");
-      expect(within(menu).getAllByRole("link")).toHaveLength(2);
+      const links = within(menu).getAllByRole("link");
+      expect(links).toHaveLength(3);
+      expect(links.map((a) => a.textContent)).toEqual(["Home", "About", "Readme"]);
+      expect(links.map((a) => a.getAttribute("href"))).toEqual(["/", "/about", "/readme"]);
     });
   });
 

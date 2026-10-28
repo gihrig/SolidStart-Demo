@@ -1,9 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-// The global nav (Jedi-styled) renders on every route: brand "Awesome" → / plus
-// About / Readme. Unlike the footer, it carries no active-link state.
-// Jedi is the home page now (#62), so there is no Home or Jedi nav link and /jedi
-// 404s.
+// The Top Nav renders on every route: the Brand link "Awesome" → / plus the Nav
+// links Home / About / Readme (#247). Jedi is the home page (#62), so there is no
+// Jedi nav link and /jedi 404s.
 
 // 1. Nav structure
 test("renders the global nav with brand + links", async ({ page }) => {
@@ -12,13 +11,14 @@ test("renders the global nav with brand + links", async ({ page }) => {
   const nav = page.getByRole("navigation", { name: "Main" });
   await expect(nav).toBeVisible();
 
+  await expect(nav.getByRole("link")).toHaveText(["Home", "About", "Readme"]);
+  await expect(nav.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
   await expect(nav.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
   await expect(nav.getByRole("link", { name: "Readme" })).toHaveAttribute("href", "/readme");
 
-  // Brand is the home affordance; no separate Home or Jedi link. The FullStack
-  // link is gone (#128).
+  // The Brand link also goes home (#247 adds the Home Nav link beside it). There
+  // is no Jedi link, and the FullStack link is gone (#128).
   await expect(page.getByRole("link", { name: /awesome/i })).toHaveAttribute("href", "/");
-  await expect(nav.getByRole("link", { name: "Home" })).toHaveCount(0);
   await expect(nav.getByRole("link", { name: "Jedi" })).toHaveCount(0);
   await expect(nav.getByRole("link", { name: "FullStack" })).toHaveCount(0);
 });
@@ -36,7 +36,14 @@ test("navigates via nav links", async ({ page }) => {
   await expect(page).toHaveURL("/readme");
   await expect(page.getByRole("heading", { name: /^Readme$/i })).toBeVisible();
 
-  // Brand returns to the Jedi home.
+  // Home returns to the Jedi home.
+  await nav.getByRole("link", { name: "Home" }).click();
+  await expect(page).toHaveURL("/");
+  await expect(page.getByRole("heading", { name: /awesome photos & captions/i })).toBeVisible();
+
+  // So does the Brand link.
+  await nav.getByRole("link", { name: "About" }).click();
+  await expect(page).toHaveURL("/about");
   await page.getByRole("link", { name: /awesome/i }).click();
   await expect(page).toHaveURL("/");
   await expect(page.getByRole("heading", { name: /awesome photos & captions/i })).toBeVisible();

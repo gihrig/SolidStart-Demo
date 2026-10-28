@@ -9,6 +9,7 @@ import LoginDialog from "~/components/LoginDialog";
 import ThemeChoice from "~/components/ThemeChoice";
 
 const NAV_LINKS = [
+  { href: "/", label: "Home" },
   { href: "/about", label: "About" },
   { href: "/readme", label: "Readme" },
 ] as const;

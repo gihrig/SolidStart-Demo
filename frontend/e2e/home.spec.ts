@@ -20,7 +20,7 @@ test.describe("Home Page", () => {
   test("renders the global nav brand and links", async ({ page }) => {
     await page.goto("/");
 
-    // The brand is the home affordance (no separate Home link).
+    // The Brand link and the Home Nav link both go home (#247).
     await expect(page.getByRole("link", { name: /awesome/i })).toHaveAttribute("href", "/");
 
     const nav = page.getByRole("navigation", { name: "Main" });
