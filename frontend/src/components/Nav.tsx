@@ -165,11 +165,13 @@ export default function Nav() {
         aria-label="Site menu"
         class={`md:hidden absolute inset-x-0 top-full bg-gray-800 transition-[opacity,translate] duration-300 ease-out ${mobileNav.open() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"}`}
       >
-        <ul class="site-nav flex flex-col items-center gap-4 py-6">
+        {/* Each link fills its row, so a tap anywhere on the row follows it
+            (#247). The text stays centered. */}
+        <ul class="site-nav flex flex-col gap-4 py-6">
           <For each={NAV_LINKS}>
             {(link) => (
               <li>
-                <A class="nav-link" href={link.href} end>
+                <A class="nav-link justify-center" href={link.href} end>
                   {link.label}
                 </A>
               </li>

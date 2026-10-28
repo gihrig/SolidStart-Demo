@@ -298,3 +298,30 @@ test.describe("Top Nav current page and hover", () => {
     );
   });
 });
+
+// 9. Site menu rows (#247). jsdom has no layout, so only e2e can prove the
+// click area.
+test("each Site menu link fills its row, so a click at the row's edge follows it", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("button", { name: /toggle navigation/i }).click();
+  const menu = page.getByRole("navigation", { name: "Site menu" });
+  await expect(menu).toHaveCSS("opacity", "1");
+
+  const list = (await menu.getByRole("list").boundingBox())!;
+  const links = menu.getByRole("link");
+  await expect(links).toHaveText(["Home", "About", "Readme"]);
+  for (const link of await links.all()) {
+    const box = (await link.boundingBox())!;
+    expect(box.x).toBeCloseTo(list.x, 0);
+    expect(box.width).toBeCloseTo(list.width, 0);
+    await expect(link).toHaveCSS("height", "48px");
+    await expect(link).toHaveCSS("justify-content", "center");
+  }
+
+  const about = (await menu.getByRole("link", { name: "About" }).boundingBox())!;
+  await page.mouse.click(20, about.y + about.height / 2);
+  await expect(page).toHaveURL("/about");
+});
