@@ -46,7 +46,7 @@
     "jsdom": "30.1.0",
     "lighthouse": "13.5.0",
     "postcss": "8.5.28",
-    "solid-js": "1.9.15",
+    "solid-js": "1.9.17",
     "solid-mdx": "0.0.7",
     "tailwindcss": "4.3.3",
     "typescript": "7.0.2",
