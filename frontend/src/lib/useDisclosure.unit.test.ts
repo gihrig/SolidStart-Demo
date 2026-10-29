@@ -1,4 +1,4 @@
-import { describe, test, expect, vi, afterEach } from "vite-plus/test";
+import { describe, test, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { createRoot, createSignal } from "solid-js";
 import { useDisclosure } from "./useDisclosure";
 
@@ -173,6 +173,108 @@ describe("useDisclosure", () => {
 
     boundary.remove();
     outside.remove();
+  });
+
+  test("close closes an open disclosure and leaves a closed one closed", () => {
+    mockMatchMedia(false);
+    createRoot((dispose) => {
+      const d = useDisclosure({ id: "d" });
+      d.toggle();
+      d.close();
+      expect(d.open()).toBe(false);
+      d.close();
+      expect(d.open()).toBe(false);
+      dispose();
+    });
+  });
+
+  // The Profile menu and the Site menu opt in to the #248 focus rules.
+  describe("focus rules (opt-in, #248)", () => {
+    let boundary: HTMLDivElement;
+    let trigger: HTMLButtonElement;
+    let first: HTMLButtonElement;
+    let outside: HTMLButtonElement;
+
+    beforeEach(() => {
+      boundary = document.createElement("div");
+      trigger = document.createElement("button");
+      first = document.createElement("button");
+      outside = document.createElement("button");
+      boundary.append(trigger, first);
+      document.body.append(boundary, outside);
+    });
+
+    afterEach(() => {
+      boundary.remove();
+      outside.remove();
+    });
+
+    test("initialFocus: the element takes focus when the disclosure opens", () => {
+      mockMatchMedia(false);
+      // The effect starts after createRoot returns, as a click comes after mount.
+      const [d, dispose] = createRoot((dp) => [
+        useDisclosure({ id: "d", initialFocus: () => first }),
+        dp,
+      ]);
+      trigger.focus();
+      d.toggle();
+      expect(document.activeElement).toBe(first);
+      trigger.focus();
+      d.toggle();
+      expect(document.activeElement, "a close moves no focus").toBe(trigger);
+      dispose();
+    });
+
+    test("returnFocus: Escape closes, and the element takes focus", () => {
+      mockMatchMedia(false);
+      createRoot((dispose) => {
+        const d = useDisclosure({ id: "d", ref: () => boundary, returnFocus: () => trigger });
+        d.toggle();
+        first.focus();
+        pressEscape();
+        expect(d.open()).toBe(false);
+        expect(document.activeElement).toBe(trigger);
+        dispose();
+      });
+    });
+
+    test("returnFocus: a click outside moves no focus", () => {
+      mockMatchMedia(false);
+      createRoot((dispose) => {
+        const d = useDisclosure({ id: "d", ref: () => boundary, returnFocus: () => trigger });
+        d.toggle();
+        outside.focus();
+        clickOn(outside);
+        expect(d.open()).toBe(false);
+        expect(document.activeElement).toBe(outside);
+        dispose();
+      });
+    });
+
+    test("closeOnFocusOut: focus outside the ref closes; focus inside does not", () => {
+      mockMatchMedia(false);
+      createRoot((dispose) => {
+        const d = useDisclosure({ id: "d", ref: () => boundary, closeOnFocusOut: true });
+        d.toggle();
+        first.focus();
+        trigger.focus();
+        expect(d.open()).toBe(true);
+        outside.focus();
+        expect(d.open()).toBe(false);
+        dispose();
+      });
+    });
+
+    test("without closeOnFocusOut, focus outside the ref does not close", () => {
+      mockMatchMedia(false);
+      createRoot((dispose) => {
+        const d = useDisclosure({ id: "d", ref: () => boundary });
+        d.toggle();
+        outside.focus();
+        expect(d.open()).toBe(true);
+        dispose();
+      });
+    });
   });
 
   test("without a ref, an outside click does not dismiss (Escape-only)", () => {

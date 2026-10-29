@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vite-plus/test";
 import { render, screen, within, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, createMemoryHistory } from "@solidjs/router";
+import { A, MemoryRouter, Route, createMemoryHistory } from "@solidjs/router";
+import { ROUTE_CONTENT_ID } from "~/lib/routeContent";
 import { stubDialogModal } from "~/lib/test-utils";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { DraftGuardProvider, useDraftGuard } from "./DraftGuardContext";
@@ -234,6 +235,95 @@ describe("<Nav />", () => {
     });
   });
 
+  // The Profile menu takes focus, holds Tab, and returns focus on Escape (#248).
+  describe("Profile menu focus (#248)", () => {
+    const trigger = () => screen.getByRole("button", { name: /profile menu/i });
+    const isOpen = () => trigger().getAttribute("aria-expanded") === "true";
+
+    it("an open gives focus to My Profile", async () => {
+      const user = userEvent.setup();
+      renderNav();
+      await user.click(trigger());
+      expect(screen.getByRole("button", { name: "My Profile" })).toHaveFocus();
+    });
+
+    it("Tab and Shift+Tab wrap in the panel, and the Theme group is one Tab stop", async () => {
+      const user = userEvent.setup();
+      renderNav();
+      await user.click(trigger());
+      const myProfile = screen.getByRole("button", { name: "My Profile" });
+      const system = screen.getByRole("radio", { name: "System Theme" });
+
+      await user.tab();
+      expect(screen.getByRole("button", { name: "Log In" })).toHaveFocus();
+      await user.tab();
+      expect(system).toHaveFocus();
+      await user.tab();
+      expect(myProfile, "Tab from the last control wraps").toHaveFocus();
+      await user.tab({ shift: true });
+      expect(system, "Shift+Tab from the first control wraps").toHaveFocus();
+      expect(isOpen()).toBe(true);
+    });
+
+    it("the arrow keys change the Theme choice", async () => {
+      const user = userEvent.setup();
+      renderNav();
+      await user.click(trigger());
+      await user.tab();
+      await user.tab();
+      await user.keyboard("{ArrowDown}");
+      expect(screen.getByRole("radio", { name: "Light Theme" })).toBeChecked();
+      expect(document.documentElement).toHaveAttribute("data-theme", "light");
+    });
+
+    it("Escape closes the menu and gives focus to the Profile menu button", async () => {
+      const user = userEvent.setup();
+      renderNav();
+      await user.click(trigger());
+      await user.keyboard("{Escape}");
+      expect(isOpen()).toBe(false);
+      expect(trigger()).toHaveFocus();
+    });
+
+    it("a click outside, on an item that takes focus, closes it, and that item has focus", async () => {
+      const user = userEvent.setup();
+      renderNav();
+      await user.click(trigger());
+      const outside = screen.getByRole("button", { name: /toggle navigation/i });
+      await user.click(outside);
+      expect(isOpen()).toBe(false);
+      expect(outside).toHaveFocus();
+    });
+
+    it("focus that leaves the menu by Shift+Tab from the button closes it", async () => {
+      const user = userEvent.setup();
+      renderNav();
+      await user.click(trigger());
+      trigger().focus();
+      expect(isOpen(), "the button is inside the menu").toBe(true);
+      await user.tab({ shift: true });
+      expect(isOpen()).toBe(false);
+    });
+
+    it("a click on Log Out closes the menu and gives focus to the Profile menu button", async () => {
+      const user = userEvent.setup();
+      renderNav(true);
+      await user.click(screen.getByRole("button", { name: /do-login/i }));
+      await user.click(trigger());
+      await user.click(await screen.findByRole("button", { name: /log out/i }));
+      expect(isOpen()).toBe(false);
+      expect(trigger()).toHaveFocus();
+    });
+
+    it("a Theme choice keeps the menu open", async () => {
+      const user = userEvent.setup();
+      renderNav();
+      await user.click(trigger());
+      await user.click(screen.getByText("Dark Theme"));
+      expect(isOpen()).toBe(true);
+    });
+  });
+
   describe("hamburger menu", () => {
     it("aria-controls links the toggle to the mobile menu panel", () => {
       renderNav();
@@ -290,6 +380,124 @@ describe("<Nav />", () => {
 
       expect(menu).toHaveClass("pointer-events-none");
       expect(btn).toHaveAttribute("aria-expanded", "false");
+    });
+
+    // The Site menu closes on a link choice, a click outside or a focus out, and
+    // a link choice gives focus to the new page's route content (#248).
+    describe("Site menu (#248)", () => {
+      // The app shell: route content between the header and an outside button,
+      // as app.tsx holds it between Nav and Footer. /about holds no item that
+      // takes focus; /readme holds one.
+      const renderRoutes = () => {
+        const history = createMemoryHistory();
+        history.set({ value: "/", scroll: false, replace: true });
+        return render(() => (
+          <MemoryRouter
+            history={history}
+            root={(props) => (
+              <AuthProvider>
+                <Nav />
+                <div id={ROUTE_CONTENT_ID}>{props.children}</div>
+                <button type="button">outside</button>
+              </AuthProvider>
+            )}
+          >
+            <Route path="/" component={() => <p>home page</p>} />
+            <Route path="/about" component={() => <p>about page</p>} />
+            <Route
+              path="/readme"
+              component={() => (
+                <>
+                  <p>readme page</p>
+                  <button type="button" disabled>
+                    disabled action
+                  </button>
+                  <button type="button">readme action</button>
+                </>
+              )}
+            />
+          </MemoryRouter>
+        ));
+      };
+      const toggle = () => screen.getByRole("button", { name: /toggle navigation/i });
+      const menu = () => screen.getByRole("navigation", { name: /site menu/i });
+      const openMenu = async (user: ReturnType<typeof userEvent.setup>) => {
+        await user.click(toggle());
+        expect(toggle()).toHaveAttribute("aria-expanded", "true");
+      };
+
+      it("a click on About loads it, closes the menu, and gives focus to Toggle navigation", async () => {
+        const user = userEvent.setup();
+        renderRoutes();
+        await openMenu(user);
+        await user.click(within(menu()).getByRole("link", { name: "About" }));
+        expect(await screen.findByText("about page")).toBeInTheDocument();
+        expect(toggle()).toHaveAttribute("aria-expanded", "false");
+        await waitFor(() => expect(toggle()).toHaveFocus());
+      });
+
+      it("a link choice gives focus to the first item that takes focus in the route content", async () => {
+        const user = userEvent.setup();
+        renderRoutes();
+        await openMenu(user);
+        await user.click(within(menu()).getByRole("link", { name: "Readme" }));
+        const action = await screen.findByRole("button", { name: "readme action" });
+        expect(toggle()).toHaveAttribute("aria-expanded", "false");
+        await waitFor(() => expect(action).toHaveFocus());
+      });
+
+      it("a choice of the current page's link closes the menu and moves focus", async () => {
+        const user = userEvent.setup();
+        renderRoutes();
+        await openMenu(user);
+        await user.click(within(menu()).getByRole("link", { name: "Home" }));
+        expect(toggle()).toHaveAttribute("aria-expanded", "false");
+        await waitFor(() => expect(toggle()).toHaveFocus());
+      });
+
+      it("a click outside, on an item that takes focus, closes it, and that item has focus", async () => {
+        const user = userEvent.setup();
+        renderRoutes();
+        await openMenu(user);
+        const outside = screen.getByRole("button", { name: "outside" });
+        await user.click(outside);
+        expect(toggle()).toHaveAttribute("aria-expanded", "false");
+        expect(outside).toHaveFocus();
+      });
+
+      it("focus that moves outside the menu and its toggle closes it", async () => {
+        const user = userEvent.setup();
+        renderRoutes();
+        await openMenu(user);
+        within(menu()).getByRole("link", { name: "About" }).focus();
+        expect(toggle(), "a link in the menu is inside").toHaveAttribute("aria-expanded", "true");
+        toggle().focus();
+        expect(toggle(), "the toggle is inside").toHaveAttribute("aria-expanded", "true");
+        screen.getByRole("button", { name: "outside" }).focus();
+        expect(toggle()).toHaveAttribute("aria-expanded", "false");
+      });
+
+      // A modifier click opens a new tab, so the router does not route.
+      it("a Ctrl+click on a link keeps the menu open and loads no page", async () => {
+        const user = userEvent.setup();
+        renderRoutes();
+        await openMenu(user);
+        await user.keyboard("{Control>}");
+        await user.click(within(menu()).getByRole("link", { name: "About" }));
+        await user.keyboard("{/Control}");
+        expect(toggle()).toHaveAttribute("aria-expanded", "true");
+        expect(screen.queryByText("about page")).not.toBeInTheDocument();
+      });
+
+      // A pointer hits the icon, which the click swaps out of the page.
+      it("a click on Toggle navigation opens a closed menu and closes an open menu", async () => {
+        const user = userEvent.setup();
+        renderRoutes();
+        await user.click(toggle().querySelector("svg")!);
+        expect(toggle()).toHaveAttribute("aria-expanded", "true");
+        await user.click(toggle().querySelector("svg")!);
+        expect(toggle()).toHaveAttribute("aria-expanded", "false");
+      });
     });
 
     it("click outside closes the profile dropdown", async () => {
@@ -350,5 +558,49 @@ describe("<Nav /> — the Draft guard (ADR-0030)", () => {
 
     await user.click(within(dialog).getByRole("button", { name: "Discard" }));
     expect(await screen.findByRole("button", { name: /log in/i })).toBeInTheDocument();
+  });
+
+  // A Site menu link that the guard holds back starts no route change, so it
+  // must not move focus on a later one (#248).
+  it("a Site menu link held back by Keep editing moves no focus on a later route change", async () => {
+    setupMatchMedia(true);
+    const user = userEvent.setup();
+    render(() => (
+      <MemoryRouter
+        root={(props) => (
+          <AuthProvider>
+            <DraftGuardProvider>
+              <Nav />
+              <div id={ROUTE_CONTENT_ID}>{props.children}</div>
+              <A href="/readme">outside link</A>
+            </DraftGuardProvider>
+          </AuthProvider>
+        )}
+      >
+        <Route path="/" component={DraftHolder} />
+        <Route path="/about" component={() => <p>about page</p>} />
+        <Route path="/readme" component={() => <button type="button">readme action</button>} />
+      </MemoryRouter>
+    ));
+    const dialogName = "You have unsaved changes. Discard them?";
+
+    await user.click(screen.getByRole("button", { name: /toggle navigation/i }));
+    const menu = screen.getByRole("navigation", { name: /site menu/i });
+    await user.click(within(menu).getByRole("link", { name: "About" }));
+    await user.click(
+      within(screen.getByRole("dialog", { name: dialogName })).getByRole("button", {
+        name: "Keep editing",
+      }),
+    );
+    expect(screen.queryByText("about page")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("link", { name: "outside link" }));
+    await user.click(
+      within(screen.getByRole("dialog", { name: dialogName })).getByRole("button", {
+        name: "Discard",
+      }),
+    );
+    const action = await screen.findByRole("button", { name: "readme action" });
+    expect(action).not.toHaveFocus();
   });
 });

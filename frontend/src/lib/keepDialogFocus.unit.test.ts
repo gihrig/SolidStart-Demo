@@ -67,6 +67,59 @@ describe("keepDialogFocus", () => {
     teardown();
   });
 
+  // A radio group is one Tab stop, as in a browser: the checked radio, or the
+  // first radio when none is checked. The arrow keys move inside it (#248).
+  it("gives a radio group one Tab stop: the checked radio, else the first", () => {
+    const panel = document.createElement("div");
+    panel.innerHTML = `
+      <button id="first" type="button">My Profile</button>
+      <input id="system" type="radio" name="theme" />
+      <input id="light" type="radio" name="theme" />
+      <input id="dark" type="radio" name="theme" />
+      <button id="last" type="button">Last</button>`;
+    document.body.append(panel);
+    panel.addEventListener("keydown", keepDialogFocus);
+    const control = (id: string) => panel.querySelector<HTMLInputElement>(`#${id}`)!;
+    const press = (init: KeyboardEventInit = {}) =>
+      document.activeElement!.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true, ...init }),
+      );
+
+    control("first").focus();
+    press();
+    expect(document.activeElement, "no radio checked: the first radio").toBe(control("system"));
+    press();
+    expect(document.activeElement).toBe(control("last"));
+
+    control("light").checked = true;
+    press({ shiftKey: true });
+    expect(document.activeElement, "the checked radio").toBe(control("light"));
+    press({ shiftKey: true });
+    expect(document.activeElement).toBe(control("first"));
+
+    // A focused radio that is not the stop counts as its group's stop.
+    control("dark").focus();
+    press();
+    expect(document.activeElement).toBe(control("last"));
+    panel.remove();
+  });
+
+  it("skips a control inside an inert element", () => {
+    const panel = document.createElement("div");
+    panel.innerHTML = `
+      <button id="a" type="button">A</button>
+      <div inert><button id="b" type="button">B</button></div>
+      <button id="c" type="button">C</button>`;
+    document.body.append(panel);
+    panel.addEventListener("keydown", keepDialogFocus);
+    panel.querySelector<HTMLElement>("#a")!.focus();
+    document.activeElement!.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true }),
+    );
+    expect(document.activeElement).toBe(panel.querySelector("#c"));
+    panel.remove();
+  });
+
   it("lets another key, and a Tab with Ctrl, Alt or Meta, through", () => {
     const { control, press, teardown } = setup();
     control("title").focus();

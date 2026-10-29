@@ -1,6 +1,6 @@
-import { createSignal, type Accessor } from "solid-js";
+import { createEffect, createSignal, on, type Accessor } from "solid-js";
 import { useIsMobile } from "~/lib/useIsMobile";
-import { useDismiss } from "~/lib/useDismiss";
+import { useDismiss, type DismissBoundary } from "~/lib/useDismiss";
 
 /**
  * A disclosure: the open/toggle state plus the a11y wiring a collapsible panel
@@ -39,7 +39,20 @@ export interface UseDisclosureOptions {
    * dismisses in addition to Escape. Omit for Escape-only disclosures (the
    * drawers have no single boundary element spanning trigger + panel).
    */
-  ref?: () => HTMLElement | undefined;
+  ref?: () => DismissBoundary;
+  /**
+   * Opt-in (#248): focus that moves outside `ref` closes the panel, as a click
+   * outside does. It needs a `ref`.
+   */
+  closeOnFocusOut?: boolean;
+  /** Opt-in (#248): the element that takes focus when the panel opens. */
+  initialFocus?: () => HTMLElement | undefined;
+  /**
+   * Opt-in (#248): the element that takes focus when Escape closes the panel,
+   * so focus does not stay in an inert panel. A click outside and a focus out
+   * move no focus: the user chose where focus goes.
+   */
+  returnFocus?: () => HTMLElement | undefined;
 }
 
 export interface Disclosure {
@@ -56,6 +69,7 @@ export interface Disclosure {
   };
   open: Accessor<boolean>;
   toggle: () => void;
+  close: () => void;
 }
 
 export function useDisclosure(options: UseDisclosureOptions): Disclosure {
@@ -64,9 +78,30 @@ export function useDisclosure(options: UseDisclosureOptions): Disclosure {
   const mode = options.mode ?? "drawer";
 
   const dismissActive = () => open() && (options.dismissWhen?.() ?? true);
-  useDismiss(() => setOpen(false), dismissActive, options.ref);
+  useDismiss(
+    (reason) => {
+      setOpen(false);
+      if (reason === "escape") options.returnFocus?.()?.focus();
+    },
+    dismissActive,
+    options.ref,
+    { focusOut: options.closeOnFocusOut },
+  );
+
+  // A user effect runs after the render effects, so a popup is no longer inert
+  // when its element takes focus.
+  createEffect(
+    on(
+      open,
+      (isOpen) => {
+        if (isOpen) options.initialFocus?.()?.focus();
+      },
+      { defer: true },
+    ),
+  );
 
   const toggle = () => setOpen((v) => !v);
+  const close = () => setOpen(false);
   // A popup is hidden until opened, so it is inert whenever closed. A drawer is
   // always shown on desktop, so only its mobile-collapsed state is inert.
   const inert = () => (mode === "popup" ? !open() : isMobile() && !open());
@@ -85,5 +120,5 @@ export function useDisclosure(options: UseDisclosureOptions): Disclosure {
     },
   };
 
-  return { triggerProps, panelProps, open, toggle };
+  return { triggerProps, panelProps, open, toggle, close };
 }

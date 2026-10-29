@@ -356,3 +356,92 @@ test("each Site menu link fills its row, so a click at the row's edge follows it
   await page.mouse.click(20, about.y + about.height / 2);
   await expect(page).toHaveURL("/about");
 });
+
+// 10. Profile menu focus (#248): focus in, Tab held, focus back on Escape.
+test.describe("Profile menu focus (#248)", () => {
+  test("an open gives focus to My Profile; Tab and Shift+Tab wrap; Escape gives focus back", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    const trigger = page.getByRole("banner").getByRole("button", { name: "Profile menu" });
+    const menu = page.locator("#profile-menu");
+    const myProfile = menu.getByRole("button", { name: "My Profile" });
+    const system = menu.getByRole("radio", { name: "System Theme" });
+
+    await trigger.click();
+    await expect(myProfile).toBeFocused();
+
+    // My Profile, Log In, then the Theme group: one stop, the checked radio.
+    await page.keyboard.press("Tab");
+    await expect(menu.getByRole("button", { name: "Log In" })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(system).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(myProfile).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(system).toBeFocused();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    await page.keyboard.press("Escape");
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(trigger).toBeFocused();
+  });
+});
+
+// 11. Site menu link choice (#248): the menu closes, and focus goes to the new
+// page's route content, else to the toggle button.
+test.describe("Site menu link choice (#248)", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+  });
+
+  async function chooseLink(page: Page, name: string) {
+    await page.waitForLoadState("networkidle");
+    const toggle = page.getByRole("button", { name: "Toggle navigation" });
+    await toggle.click();
+    const menu = page.getByRole("navigation", { name: "Site menu" });
+    await expect(menu).toHaveCSS("opacity", "1");
+    await menu.getByRole("link", { name }).click();
+    return toggle;
+  }
+
+  for (const [name, path] of [
+    ["About", "/about"],
+    ["Readme", "/readme"],
+  ] as const) {
+    test(`a click on ${name} loads it, closes the menu, and gives focus to Toggle navigation`, async ({
+      page,
+    }) => {
+      await page.goto("/");
+      const toggle = await chooseLink(page, name);
+      await expect(page).toHaveURL(path);
+      await expect(toggle).toHaveAttribute("aria-expanded", "false");
+      await expect(toggle).toBeFocused();
+    });
+  }
+
+  test("a click on Home gives focus to the first item in the route content that takes focus", async ({
+    page,
+    browserName,
+  }) => {
+    await page.goto("/about");
+    const toggle = await chooseLink(page, "Home");
+    await expect(page).toHaveURL("/");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect
+      .poll(() => page.evaluate(() => document.activeElement !== document.body))
+      .toBe(true);
+    const focused = await page.evaluateHandle(() => document.activeElement!);
+    expect(
+      await focused.evaluate((el) => document.getElementById("route-content")!.contains(el)),
+    ).toBe(true);
+
+    // The browser's own Tab order: one Tab from the toggle, the last header
+    // control, reaches the first item in the route content. WebKit, as Safari
+    // on macOS, skips links on Tab; Option+Tab includes them.
+    await toggle.focus();
+    await page.keyboard.press(browserName === "webkit" ? "Alt+Tab" : "Tab");
+    expect(await focused.evaluate((el) => el === document.activeElement)).toBe(true);
+  });
+});
