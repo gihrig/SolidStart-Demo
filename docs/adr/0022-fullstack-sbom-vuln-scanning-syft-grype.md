@@ -461,3 +461,18 @@ rule stands; the set it produces is now one entry.
   developer's grype on `PATH`, as before.
 - **Known limit.** The gate sees only advisories published before the weekly run. Before
   merging the weekly PR, run `cgs audit` and `cgs scan` locally.
+
+## Addendum — solid-js 1.9.17 drops the nested seroval; VEX entries removed (2026-10-29)
+
+- **`solid-js` pin `1.9.15` → `1.9.17` (#269).** grype failed the gate on 3 High advisories
+  in the nested `solid-js/seroval@1.5.6` (GHSA-97r2-qh9m-474h, GHSA-wp97-x4hv-qvhp,
+  GHSA-7rv5-mrxv-xcr9, fixed in `1.6.8`) and 1 Medium (GHSA-9wx9-5pv9-3349, fixed in
+  `1.6.10`). `solid-js@1.9.17` needs `seroval: ~1.6.8`, so the lockfile keeps one matched
+  pair, `seroval@1.6.11` and `seroval-plugins@1.6.11`. No override is needed.
+- **The 2026-10-06 seroval VEX entries are removed.** They covered `pkg:npm/seroval@1.5.6`
+  (GHSA-p6vx-979v-rg4c, GHSA-jp82-f5mq-hwhp). That product is gone, so `cgs vex:rm` removed
+  both. The 2026-10-06 text "`solid-js@1.9.15` (latest)" no longer holds: `1.9.16` and
+  `1.9.17` had shipped on 2026-10-06/07. An exact pin never moves on `cgs update`, so check
+  for a newer parent release before a VEX statement or an override.
+- **Validation.** `cgs scan` shows only 2 Low findings (`deepmerge`, `serialize-javascript`).
+  `cgs sbom:check`, `cgs vex:check`, `cgs check`, `cgs test` and `cgs test:e2e` pass.
