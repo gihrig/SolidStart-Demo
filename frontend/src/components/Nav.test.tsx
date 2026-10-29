@@ -19,6 +19,13 @@ vi.mock("~/lib/backend-rpc", () => ({
   },
 }));
 
+// A Theme choice saves through a server function, the seam to the server
+// (mirrors ThemeChoice.test); the rest of theme.ts is real.
+vi.mock("~/lib/theme", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/lib/theme")>()),
+  saveTheme: vi.fn().mockResolvedValue(undefined),
+}));
+
 // The nav identity is the logged-in User's profile, read through the `jediApi`
 // seam (#119); each test programs the profile the seam returns.
 const { profileGetMock } = vi.hoisted(() => ({ profileGetMock: vi.fn() }));
@@ -478,13 +485,18 @@ describe("<Nav />", () => {
       });
 
       // A modifier click opens a new tab, so the router does not route.
+      // jsdom cannot open a new tab. A window listener runs after the router's
+      // document listener and cancels the browser's own action.
       it("a Ctrl+click on a link keeps the menu open and loads no page", async () => {
+        const cancel = (e: MouseEvent) => e.preventDefault();
+        window.addEventListener("click", cancel);
         const user = userEvent.setup();
         renderRoutes();
         await openMenu(user);
         await user.keyboard("{Control>}");
         await user.click(within(menu()).getByRole("link", { name: "About" }));
         await user.keyboard("{/Control}");
+        window.removeEventListener("click", cancel);
         expect(toggle()).toHaveAttribute("aria-expanded", "true");
         expect(screen.queryByText("about page")).not.toBeInTheDocument();
       });
