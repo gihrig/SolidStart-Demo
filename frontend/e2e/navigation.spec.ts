@@ -198,7 +198,7 @@ test.describe("Top Nav current page and hover", () => {
 
   // The computed value of `color: <css>` inside `scope`. A probe resolves the
   // token the same way the browser resolves the rule, in every browser.
-  async function colorOf(page: Page, css: string, scope = "body") {
+  async function resolveColor(page: Page, css: string, scope = "body") {
     return page
       .locator(scope)
       .first()
@@ -229,18 +229,23 @@ test.describe("Top Nav current page and hover", () => {
   ] as const) {
     test(`on ${path}, only the ${current ?? "no"} Nav link has the underline`, async ({ page }) => {
       await page.goto(path);
-      const sky500 = await colorOf(page, "var(--color-sky-500)");
-      const nav = page.getByRole("navigation", { name: "Main" });
+      const sky500 = await resolveColor(page, "var(--color-sky-500)");
 
-      for (const name of ["Home", "About", "Readme"]) {
-        const link = nav.getByRole("link", { name });
-        await expect(link).toHaveCSS("border-bottom-width", "4px");
-        if (name === current) {
-          await expect(link).toHaveAttribute("aria-current", "page");
-          await expect(link).toHaveCSS("border-bottom-color", sky500);
-        } else {
-          await expect(link).not.toHaveAttribute("aria-current");
-          await expect(link).toHaveCSS("border-bottom-color", TRANSPARENT);
+      // At 1280 px the Site menu is hidden, so its query includes hidden
+      // elements; the computed underline is the same.
+      for (const navName of ["Main", "Site menu"]) {
+        const includeHidden = navName === "Site menu";
+        const nav = page.getByRole("navigation", { name: navName, includeHidden });
+        for (const name of ["Home", "About", "Readme"]) {
+          const link = nav.getByRole("link", { name, includeHidden });
+          await expect(link, `${navName} ${name}`).toHaveCSS("border-bottom-width", "4px");
+          if (name === current) {
+            await expect(link, `${navName} ${name}`).toHaveAttribute("aria-current", "page");
+            await expect(link, `${navName} ${name}`).toHaveCSS("border-bottom-color", sky500);
+          } else {
+            await expect(link, `${navName} ${name}`).not.toHaveAttribute("aria-current");
+            await expect(link, `${navName} ${name}`).toHaveCSS("border-bottom-color", TRANSPARENT);
+          }
         }
       }
 
@@ -255,8 +260,8 @@ test.describe("Top Nav current page and hover", () => {
     page,
   }) => {
     await page.goto("/about");
-    const sky500 = await colorOf(page, "var(--color-sky-500)");
-    const gray700 = await colorOf(page, "var(--color-gray-700)");
+    const sky500 = await resolveColor(page, "var(--color-sky-500)");
+    const gray700 = await resolveColor(page, "var(--color-gray-700)");
 
     for (const link of [
       page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Readme" }),
@@ -270,14 +275,14 @@ test.describe("Top Nav current page and hover", () => {
   });
 
   // The Top Nav is dark in every Theme, so its underline is sky-500 in every
-  // Theme. The page accent and the Profile menu follow the Theme.
+  // Theme. The page accent follows the Theme.
   for (const theme of ["system", "light", "dark"] as const) {
     test(`in ${theme} Theme, the underline is sky-500`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: "light" });
       if (theme !== "system") await setTheme(page, theme);
       await page.goto("/");
-      const sky500 = await colorOf(page, "var(--color-sky-500)");
-      const sky700 = await colorOf(page, "var(--color-sky-700)");
+      const sky500 = await resolveColor(page, "var(--color-sky-500)");
+      const sky700 = await resolveColor(page, "var(--color-sky-700)");
 
       const home = page
         .getByRole("navigation", { name: "Main" })
@@ -285,16 +290,42 @@ test.describe("Top Nav current page and hover", () => {
       await expect(home).toHaveCSS("border-bottom-color", sky500);
 
       const pageAccent = theme === "dark" ? sky500 : sky700;
-      expect(await colorOf(page, "var(--theme-accent)")).toBe(pageAccent);
-      expect(await colorOf(page, "var(--theme-accent)", "#profile-menu")).toBe(pageAccent);
+      expect(await resolveColor(page, "var(--theme-accent)")).toBe(pageAccent);
     });
   }
+
+  // The Top Nav accent override is not on .site-header, so the Profile menu
+  // panel inside it keeps the Light Theme accent: sky-500 on its zinc-200 card
+  // is 2.14:1.
+  test("in Light Theme, the focus ring of a Theme item is still sky-700", async ({ page }) => {
+    await setTheme(page, "light");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    const sky500 = await resolveColor(page, "var(--color-sky-500)");
+    const sky700 = await resolveColor(page, "var(--color-sky-700)");
+
+    // A keyboard path, so :focus-visible applies: open the menu, then Tab to
+    // the checked radio of the Theme group.
+    await page.getByRole("button", { name: "Profile menu" }).focus();
+    await page.keyboard.press("Enter");
+    const radio = page.getByRole("radio", { name: "Light Theme" });
+    await expect(radio).toBeChecked();
+    for (let i = 0; i < 5 && !(await radio.evaluate((el) => el === document.activeElement)); i++) {
+      await page.keyboard.press("Tab");
+    }
+    await expect(radio).toBeFocused();
+
+    const item = page.locator("label.theme-item", { has: radio });
+    const ring = () => item.evaluate((el) => getComputedStyle(el).boxShadow);
+    await expect.poll(ring).toContain(sky700);
+    expect(await ring()).not.toContain(sky500);
+  });
 
   test("in System Theme with a dark OS, the page accent is sky-500", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto("/");
-    expect(await colorOf(page, "var(--theme-accent)")).toBe(
-      await colorOf(page, "var(--color-sky-500)"),
+    expect(await resolveColor(page, "var(--theme-accent)")).toBe(
+      await resolveColor(page, "var(--color-sky-500)"),
     );
   });
 });
