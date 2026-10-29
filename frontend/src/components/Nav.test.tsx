@@ -485,22 +485,6 @@ describe("<Nav />", () => {
       });
 
       // A modifier click opens a new tab, so the router does not route.
-      // jsdom cannot open a new tab. A window listener runs after the router's
-      // document listener and cancels the browser's own action.
-      it("a Ctrl+click on a link keeps the menu open and loads no page", async () => {
-        const cancel = (e: MouseEvent) => e.preventDefault();
-        window.addEventListener("click", cancel);
-        const user = userEvent.setup();
-        renderRoutes();
-        await openMenu(user);
-        await user.keyboard("{Control>}");
-        await user.click(within(menu()).getByRole("link", { name: "About" }));
-        await user.keyboard("{/Control}");
-        window.removeEventListener("click", cancel);
-        expect(toggle()).toHaveAttribute("aria-expanded", "true");
-        expect(screen.queryByText("about page")).not.toBeInTheDocument();
-      });
-
       // A pointer hits the icon, which the click swaps out of the page.
       it("a click on Toggle navigation opens a closed menu and closes an open menu", async () => {
         const user = userEvent.setup();

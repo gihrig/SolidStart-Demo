@@ -58,8 +58,7 @@ export default function Nav() {
   // route <Suspense>, so the new page is in place only when routing ends. The
   // router routes in its own click listener, so the check runs after the click.
   // A choice of the current page starts no routing. A move that the Draft guard
-  // holds back starts none either, and moves no focus. A modifier click opens a
-  // new tab, so the router does not route.
+  // holds back starts none either, and moves no focus.
   const isRouting = useIsRouting();
   const location = useLocation();
   let focusAfterRoute = false;
@@ -74,8 +73,7 @@ export default function Nav() {
       { defer: true },
     ),
   );
-  const chooseLink = (e: MouseEvent, href: string) => {
-    if (e.button !== 0 || e.metaKey || e.altKey || e.ctrlKey || e.shiftKey) return;
+  const chooseLink = (href: string) => {
     mobileNav.close();
     setTimeout(() => {
       if (isRouting()) focusAfterRoute = true;
@@ -238,7 +236,7 @@ export default function Nav() {
                   class="nav-link justify-center"
                   href={link.href}
                   end
-                  onClick={(e) => chooseLink(e, link.href)}
+                  onClick={() => chooseLink(link.href)}
                 >
                   {link.label}
                 </A>
