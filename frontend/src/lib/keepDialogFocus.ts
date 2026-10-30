@@ -1,3 +1,5 @@
+import { isImeKey } from "~/lib/isImeKey";
+
 /** The elements that can take focus by Tab. */
 const CONTROLS = "a[href], button, input, select, textarea, [tabindex]";
 
@@ -33,7 +35,7 @@ export function tabStops(root: Element) {
  *  order, and wrap. On its own, a browser moves focus out after the last
  *  control, or skips a button. The caller calls it from its keydown listener. */
 export function keepDialogFocus(e: KeyboardEvent) {
-  if (e.key !== "Tab" || e.altKey || e.ctrlKey || e.metaKey || e.isComposing) return;
+  if (e.key !== "Tab" || e.altKey || e.ctrlKey || e.metaKey || isImeKey(e)) return;
   const dialog = e.currentTarget;
   if (!(dialog instanceof Element)) return;
   const controls = tabStops(dialog);

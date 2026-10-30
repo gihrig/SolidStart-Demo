@@ -268,7 +268,7 @@ function CommentForm(props: CommentFormProps) {
     }
     if (e.key !== "Escape") return;
     e.stopPropagation();
-    if (e.isComposing || write.pending()) return;
+    if (isImeKey(e) || write.pending()) return;
     const act = composeEmpty() ? props.onClosePanel : handleCancel;
     if (!act) return;
     e.preventDefault();

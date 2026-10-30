@@ -2,6 +2,7 @@ import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show } 
 import type { DraftScope } from "~/lib/createDraftGuard";
 import { createRpcAction } from "~/lib/createRpcAction";
 import { hygieneLength } from "~/lib/hygieneLength";
+import { isImeKey } from "~/lib/isImeKey";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import type { HygieneCaps } from "~/types/backend";
 import type { CaptionView } from "~/types/jedi";
@@ -123,7 +124,7 @@ export default function CaptionForm(props: CaptionFormProps) {
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key !== "Escape") return;
     e.stopPropagation();
-    if (e.isComposing || !props.onCancel || pending()) return;
+    if (isImeKey(e) || !props.onCancel || pending()) return;
     e.preventDefault();
     cancel();
   };

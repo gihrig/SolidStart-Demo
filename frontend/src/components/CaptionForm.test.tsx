@@ -317,6 +317,16 @@ describe("<CaptionForm /> — Cancel and Escape (#214)", () => {
     expect(onCancel).not.toHaveBeenCalled();
   });
 
+  // Safari can send a composition key with `isComposing` false and `keyCode`
+  // 229 (WebKit bug 165004).
+  it("Safari's composition Escape (keyCode 229, isComposing false) is no Cancel (#251)", async () => {
+    const onCancel = vi.fn();
+    const { input, guard } = renderGuarded({ onCancel });
+    fireEvent.keyDown(input, { key: "Escape", isComposing: false, keyCode: 229 });
+    expect(guard.pending()).toBe(false);
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
   it("a document Escape listener does not get the form's Escape", async () => {
     const onDocumentKey = vi.fn();
     document.addEventListener("keydown", onDocumentKey);

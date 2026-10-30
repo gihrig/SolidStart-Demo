@@ -21,7 +21,7 @@ describe("keepDialogFocus", () => {
     dialog.addEventListener("keydown", keepDialogFocus);
     const control = (id: string) => dialog.querySelector<HTMLElement>(`#${id}`)!;
     // A key press on the focused element; it bubbles to the dialog.
-    const press = (init: KeyboardEventInit = {}) => {
+    const press = (init: KeyboardEventInit & { keyCode?: number } = {}) => {
       const e = new KeyboardEvent("keydown", {
         key: "Tab",
         bubbles: true,
@@ -127,6 +127,19 @@ describe("keepDialogFocus", () => {
       expect(press(init).defaultPrevented, JSON.stringify(init)).toBe(false);
       expect(document.activeElement).toBe(control("title"));
     }
+    teardown();
+  });
+
+  // Safari can send a composition key with `isComposing` false and `keyCode`
+  // 229 (WebKit bug 165004).
+  it.each([
+    ["isComposing", { isComposing: true }],
+    ["keyCode 229", { isComposing: false, keyCode: 229 }],
+  ])("lets an IME Tab (%s) through, and does not move focus (#251)", (_, init) => {
+    const { control, press, teardown } = setup();
+    control("title").focus();
+    expect(press(init).defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(control("title"));
     teardown();
   });
 });

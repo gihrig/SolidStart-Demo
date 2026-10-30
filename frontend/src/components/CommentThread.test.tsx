@@ -802,6 +802,36 @@ describe("<CommentThread /> — Cancel, Escape and focus (#214)", () => {
     expect(editBox()).toBeInTheDocument();
   });
 
+  // Safari can send a composition key with `isComposing` false and `keyCode`
+  // 229 (WebKit bug 165004).
+  const safariImeEscape = { key: "Escape", isComposing: false, keyCode: 229 };
+
+  it("Safari's composition Escape (keyCode 229) is no compose Cancel (#251)", async () => {
+    const { thread } = fakeThread([]);
+    const { guard, user } = renderGuarded(thread);
+    await user.type(composeBox(), "compose");
+    fireEvent.keyDown(composeBox(), safariImeEscape);
+    expect(guard.pending()).toBe(false);
+    expect(composeBox()).toHaveValue("compose");
+  });
+
+  it("Safari's composition Escape (keyCode 229) is no edit Cancel (#251)", async () => {
+    const { thread } = fakeThread([comment(1, 2, "mine")]);
+    const { guard, user } = renderGuarded(thread);
+    await user.type(await openEdit(user), "!");
+    fireEvent.keyDown(editBox()!, safariImeEscape);
+    expect(guard.pending()).toBe(false);
+    expect(editBox()).toBeInTheDocument();
+  });
+
+  it("Safari's composition Escape (keyCode 229) in the empty compose box does not close the panel (#251)", () => {
+    const { thread } = fakeThread([]);
+    const onClosePanel = vi.fn();
+    renderGuarded(thread, onClosePanel);
+    fireEvent.keyDown(composeBox(), safariImeEscape);
+    expect(onClosePanel).not.toHaveBeenCalled();
+  });
+
   it("a document Escape listener does not get a form's Escape", async () => {
     const onDocumentKey = vi.fn();
     document.addEventListener("keydown", onDocumentKey);
