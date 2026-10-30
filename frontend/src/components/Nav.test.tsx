@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vite-plus/test";
 import { render, screen, within, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
+import { createResource, Suspense } from "solid-js";
 import { A, MemoryRouter, Route, createMemoryHistory } from "@solidjs/router";
 import { ROUTE_CONTENT_ID } from "~/lib/routeContent";
 import { stubDialogModal } from "~/lib/test-utils";
@@ -450,6 +451,47 @@ describe("<Nav />", () => {
         await user.click(within(menu()).getByRole("link", { name: "Readme" }));
         const action = await screen.findByRole("button", { name: "readme action" });
         expect(toggle()).toHaveAttribute("aria-expanded", "false");
+        await waitFor(() => expect(action).toHaveFocus());
+      });
+
+      // As in app.tsx, the route <Suspense> holds the old page until the new
+      // page's data loads; focus moves only when the new page is in place.
+      it("a link to a page that loads data gives focus once that page is in place", async () => {
+        let finishLoad!: () => void;
+        const loaded = new Promise<void>((resolve) => (finishLoad = resolve));
+        const SlowReadme = () => {
+          const [label] = createResource(() => loaded.then(() => "loaded action"));
+          return <button type="button">{label()}</button>;
+        };
+        const history = createMemoryHistory();
+        history.set({ value: "/", scroll: false, replace: true });
+        render(() => (
+          <MemoryRouter
+            history={history}
+            root={(props) => (
+              <AuthProvider>
+                <Nav />
+                <div id={ROUTE_CONTENT_ID}>
+                  <Suspense>{props.children}</Suspense>
+                </div>
+              </AuthProvider>
+            )}
+          >
+            <Route path="/" component={() => <p>home page</p>} />
+            <Route path="/readme" component={SlowReadme} />
+          </MemoryRouter>
+        ));
+        const user = userEvent.setup();
+        await openMenu(user);
+        await user.click(within(menu()).getByRole("link", { name: "Readme" }));
+
+        // The click check has run, and the new page still loads.
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        expect(screen.getByText("home page")).toBeInTheDocument();
+        expect(toggle()).not.toHaveFocus();
+
+        finishLoad();
+        const action = await screen.findByRole("button", { name: "loaded action" });
         await waitFor(() => expect(action).toHaveFocus());
       });
 
