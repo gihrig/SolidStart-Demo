@@ -30,7 +30,11 @@ export default function Author(props: AuthorProps) {
       }
     >
       {(href) => (
-        <a class="flex items-center gap-1 hover:underline" href={href()} onClick={props.onClick}>
+        <a
+          class="flex items-center gap-1 rounded-md p-2 -m-2 hover:underline"
+          href={href()}
+          onClick={props.onClick}
+        >
           {avatar()}
           <span class="font-bold">{props.name}</span>
         </a>

@@ -142,7 +142,7 @@ function ActionsLine(props: ActionsLineProps) {
         <button
           ref={(el) => props.toggleRef?.(el)}
           type="button"
-          class="flex items-center font-bold hover:underline rounded disabled:opacity-50 disabled:no-underline"
+          class="flex items-center font-bold hover:underline rounded p-2 -m-2 disabled:opacity-50 disabled:no-underline"
           aria-label={`${props.label}, ${commentCountText(props.count)}`}
           aria-expanded={props.open}
           aria-controls={props.panelId}
@@ -273,7 +273,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
           flickr @{" "}
           <a
             href={props.post.photographerUrl}
-            class="hover:underline rounded"
+            class="hover:underline rounded p-2 -m-2"
             target="_blank"
             rel="noreferrer"
           >

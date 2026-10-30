@@ -133,7 +133,7 @@ export default function Nav() {
               type="button"
               aria-label="Profile menu"
               {...dropdown.triggerProps}
-              class="flex items-center gap-2 cursor-pointer select-none"
+              class="flex items-center gap-2 rounded-md cursor-pointer select-none"
             >
               <Avatar
                 src={avatarUrl()}
@@ -226,14 +226,15 @@ export default function Nav() {
         aria-label="Site menu"
         class={`md:hidden absolute inset-x-0 top-full bg-gray-800 transition-[opacity,translate] duration-300 ease-out ${mobileNav.open() ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"}`}
       >
-        {/* Each link fills its row, so a tap anywhere on the row follows it
-            (#247). The text stays centered. */}
+        {/* Each link fills its row, less a 16px margin on each side, so a tap
+            anywhere on the link's highlight follows it (#247). The text stays
+            centered. */}
         <ul class="site-nav flex flex-col gap-4 py-6">
           <For each={NAV_LINKS}>
             {(link) => (
               <li>
                 <A
-                  class="nav-link justify-center"
+                  class="nav-link justify-center mx-4"
                   href={link.href}
                   end
                   onClick={() => chooseLink(link.href)}
