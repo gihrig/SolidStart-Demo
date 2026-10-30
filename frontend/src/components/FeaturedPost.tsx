@@ -265,19 +265,26 @@ export default function FeaturedPost(props: FeaturedPostProps) {
   return (
     <article class="card-style">
       {/* Title bar */}
-      <div class="flex items-center justify-between px-4 h-14">
-        <h2 ref={(el) => (titleRef = el)} tabindex="-1" class="text-2xl font-bold w-1/2 truncate">
+      {/* The photographer stays on one line, so its focus ring stays whole; the
+          title gives up space first. A name wider than two thirds of the row
+          truncates inside the link, so the link's ring is not clipped. */}
+      <div class="flex items-center justify-between gap-4 px-4 h-14">
+        <h2
+          ref={(el) => (titleRef = el)}
+          tabindex="-1"
+          class="text-2xl font-bold min-w-0 flex-1 truncate"
+        >
           {props.post.title}
         </h2>
-        <div class="text-sm text-(--theme-muted)">
-          flickr @{" "}
+        <div class="flex items-center gap-3 min-w-0 max-w-2/3 whitespace-nowrap text-sm text-(--theme-muted)">
+          <span>flickr @</span>
           <a
             href={props.post.photographerUrl}
-            class="hover:underline rounded p-2 -m-2"
+            class="min-w-0 hover:underline rounded p-2 -m-2"
             target="_blank"
             rel="noreferrer"
           >
-            {props.post.photographer}
+            <span class="block truncate">{props.post.photographer}</span>
           </a>
         </div>
       </div>
