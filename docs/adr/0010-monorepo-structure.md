@@ -139,3 +139,25 @@ via `frontend/src/lib/test-e2e.sh` and **assumes Postgres is already running** �
 zero-infra, self-booting e2e of the original "Dev workflow" section still awaits the
 Turso track ([ADR-0012](0012-postgres-turso-db-swap-seam.md)/[ADR-0013](0013-in-browser-turso-server-sync.md),
 proposed/deferred). `cgs start` likewise assumes Postgres is up, mirroring `cgs dev`.
+
+## Addendum (2026-10-30) — architecture reviews in `docs/ar/`, research in `docs/research/`
+
+The "Shared domain docs stay at the root" decision named only `CONTEXT.md` and
+`docs/adr/`. Other shared documents still sat in the subtrees: the architecture
+reviews in `frontend/docs/ar/` and `backend/docs/ar/`, and the research notes in
+`backend/docs/research/`. Some reviews cover both surfaces, such as
+`architecture-review-20261004-161755.html`, the review of the Jedi slice. The
+durable `C-##` candidate ids form one sequence across both surfaces.
+
+**Decision — architecture reviews live in the root `docs/ar/`; research notes live
+in the root `docs/research/`.** Each folder is flat. A review keeps its timestamped
+name, `architecture-review-YYYYMMDD-HHMMSS.html`, so the reviews sort by date. The
+candidate design notes (`c01-*.md`, `c03-*.md`) moved with their review. A new
+review or research note goes into these folders, never into a subtree.
+
+**Consequences.** The move changed only paths, not decisions. It rewrote the
+citations of the moved files in ADR-0014, ADR-0015, ADR-0020, ADR-0021, ADR-0022,
+ADR-0023, ADR-0024, ADR-0025 and ADR-0026, in the two research notes, and in the
+GitHub issues that cite them. Records of past commands and results keep their old
+paths, such as the `git mv` steps in #68. `git log --follow <file>` still shows
+each file's history.

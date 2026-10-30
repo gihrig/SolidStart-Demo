@@ -10,7 +10,7 @@ never even queries the audit columns.
 
 The merged Jedi build (#113) lands three more public reads — Post (#117), Caption
 (#118), Hero (#119). The architecture review marks this the moment the pattern
-recurs (card **C-06**, `backend/docs/ar/architecture-review-20260911-215934.html`):
+recurs (card **C-06**, `docs/ar/architecture-review-20260911-215934.html`):
 "add the projection seam when the second public read lands." This ADR records what
 the seam is, how audit visibility is selected, and why a single role-keyed read was
 rejected.

@@ -3,8 +3,8 @@
 Issue #18 lists two security boxes — **"Generate SBOM"** and **"Snyk Security Rust —
 requires SBOM"** — with a note to "generate an SBOM in CI (or locally) and run
 `snyk sbom test` … via the CLI/API". Two research passes
-(`backend/docs/research/2026-09-15-rust-sbom-snyk.md`,
-`backend/docs/research/2026-09-15-grype-fullstack-scan.md`; every claim cited to a
+(`docs/research/2026-09-15-rust-sbom-snyk.md`,
+`docs/research/2026-09-15-grype-fullstack-scan.md`; every claim cited to a
 primary source) found that `snyk sbom test` and `snyk sbom monitor` are
 **Enterprise-plan** features (`2026-09-15-rust-sbom-snyk.md:179,227`). This project is on
 Snyk's **free** plan, so that path is unavailable. We **abandon Snyk** for this work and
@@ -111,7 +111,7 @@ T4 cargo-deny; T5 the remaining crates (`cargo-udeps` needs a nightly toolchain)
 - **Mono-repo-wide.** This is a cross-cutting decision spanning both subtrees
   ([ADR-0010](0010-monorepo-structure.md)); the SBOM and its scan treat the repo as one
   unit.
-- **Primary-source record.** The two research files under `backend/docs/research/` hold
+- **Primary-source record.** The two research files under `docs/research/` hold
   the cited evidence for every tool fact above.
 
 ## Addendum — T1 SBOM implementation (#138)

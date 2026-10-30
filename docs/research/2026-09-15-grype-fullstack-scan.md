@@ -1,6 +1,6 @@
 # Full-stack vulnerability scanning with Syft + Grype
 
-**File:** `backend/docs/research/2026-09-15-grype-fullstack-scan.md`
+**File:** `docs/research/2026-09-15-grype-fullstack-scan.md`
 **Date:** 2026-09-15
 **Scope:** One project-wide SBOM (`syft`, CycloneDX 1.6 JSON) covering **both** the
 Rust/Cargo backend and the TypeScript/npm frontend, scanned by **`grype`**. Snyk is
@@ -474,7 +474,7 @@ Run grype as the primary gate and `cargo-audit` as a backend-only supplement.
 - [VUNNEL] anchore/vunnel — GitHub (GHSA) provider (`src/vunnel/providers/github/__init__.py`, iterates advisory.ecosystems): https://github.com/anchore/vunnel/blob/main/src/vunnel/providers/github/__init__.py
 - [SBOM-ACTION] anchore/sbom-action (official syft GitHub Action): https://github.com/anchore/sbom-action
 - [SCAN-ACTION] anchore/scan-action (official grype GitHub Action, `@v7`): https://github.com/anchore/scan-action
-- [REF-SNYK] Sibling research file (syft/cargo-sbom/cargo-cyclonedx/Snyk; cross-reference, not edited): `backend/docs/research/2026-09-15-rust-sbom-snyk.md`
+- [REF-SNYK] Sibling research file (syft/cargo-sbom/cargo-cyclonedx/Snyk; cross-reference, not edited): `docs/research/2026-09-15-rust-sbom-snyk.md`
 
 [G-REL]: https://api.github.com/repos/anchore/grype/releases/latest
 [SY-REL]: https://api.github.com/repos/anchore/syft/releases/latest

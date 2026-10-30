@@ -8,7 +8,7 @@ outdated (`UserBmc::update_pwd`), then mint the auth cookie (`set_token_cookie`)
 (`CONTEXT.md` does not cover `lib-web` — it is infrastructure, not Jedi domain.)
 
 The lib-web architecture review after #162 raised this as card **C-14 — give the login
-use-case its own seam** (`backend/docs/ar/architecture-review-20260921-211857.html`,
+use-case its own seam** (`docs/ar/architecture-review-20260921-211857.html`,
 issue #166): extract a `login()` function so the handler is thin and the flow is testable
 without HTTP. The review flagged the tension with the rust10x blueprint, and grilling
 confirmed it: our `api_login_handler` is a **line-for-line copy of the blueprint's**
