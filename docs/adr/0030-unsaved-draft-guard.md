@@ -261,3 +261,38 @@ this rule, Tab did not reach "Discard".
 closes the panel: the close also unmounts the Comment edits in the thread's scope.
 One Cancel could then ask two questions. A switch that keeps the Caption hold: the
 hold serves an open Caption thread, and the switch closes it.
+
+## Addendum (2026-10-30) — one hook for each form (#270)
+
+This addendum builds C-24 of the 2026-10-30 architecture review. Before #270, each
+form wrote the #214 rules by hand. It reported its Draft and its write, wrapped its
+Cancel, handled Escape and guarded a late write result. #251 had to fix one IME
+rule in four key handlers.
+
+**One hook owns the form rules.** Each form builds on `useDraftForm`. The hook
+runs the write, so it reports the write in flight itself. It ends the Draft after
+a save. When a write ends after its form unmounts, the result changes nothing in
+the form. A Cancel with a Draft asks first. In a form with a Cancel, Escape runs
+the Cancel. A form without a Cancel ignores Escape. An Escape that ends an IME
+composition is not a Cancel. Each form keeps its fields, its Draft test, its write
+and its remote-edit merge.
+
+**Escape can run another action.** A form can name what Escape runs in place of
+the Cancel. In the empty compose box, Escape closes the Comments panel (#210).
+
+**A Post dialog keeps its own Escape.** It takes Escape from its `<dialog>`,
+through the `cancel` event, and its handlers call the hook's Cancel. A browser
+close is still a Cancel, as #214 says.
+
+**Consequences.** The #214 text names `useDraft` and `draft.cancel`. From #270,
+the hook calls them, and no form does. This replaces "A new Cancel calls
+`draft.cancel`, and a new write reports `busy`." A new form gives the hook its
+Draft test, its scope, its Cancel step and its write. "A new form on the Post
+needs a scope in the Post's list" still holds.
+
+**Rejected.** A `<DraftForm>` component that renders the `<form>`: a Post dialog
+takes Escape from its `<dialog>`. Also, the Comment forms share their key handler
+with the Enter rule (#246). A hook that leaves the write in the form: each form
+must still remember the late-result check. The remote-edit merge in the hook: it
+is a field rule, and the forms hold different fields. An Escape tied to the state
+of the Cancel button: it adds a hidden link between a key and a button.
