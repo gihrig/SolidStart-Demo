@@ -441,6 +441,34 @@ describe("<PostDialog /> — the New Post Draft (#214)", () => {
     expect(form.getByLabelText("Title")).toHaveValue("typed");
   });
 
+  it("during the create, a browser close opens the dialog again with no question, and the write is busy", async () => {
+    let land!: (post: PostView) => void;
+    postCreateMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
+    const { user, dialog, form, guard, onClose } = renderCreate();
+    for (const [label, value] of [
+      ["Title", DRAFT.title],
+      ["Image URL", DRAFT.imageSrc],
+      ["Image description", DRAFT.imageAlt],
+      ["Photographer", DRAFT.photographer],
+      ["Photographer URL", DRAFT.photographerUrl],
+      ["Photo page URL", DRAFT.sourceUrl],
+    ] as const) {
+      await user.type(form.getByLabelText(label), value);
+    }
+    await user.click(await form.findByRole("checkbox", { name: "Animals" }));
+    await user.click(form.getByRole("button", { name: "Post" }));
+    expect(guard.busyIn()).toBe(true);
+
+    dialog.close();
+    expect(dialog.open).toBe(true);
+    expect(guard.pending()).toBe(false);
+
+    land(CREATED);
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    expect(guard.hasDraft(), "a created Post is no Draft").toBe(false);
+    expect(guard.notice()).toBeUndefined();
+  });
+
   it("stops its Escape, so a document Escape listener does not get it", async () => {
     const onDocumentKey = vi.fn();
     document.addEventListener("keydown", onDocumentKey);

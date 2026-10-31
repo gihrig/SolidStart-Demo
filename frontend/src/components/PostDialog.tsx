@@ -233,9 +233,6 @@ export default function PostDialog(props: PostDialogProps) {
     fallbackError: text.error,
     onSaved: closeDialog,
   });
-  const pending = form.pending;
-  // The Cancel asks first while the dialog holds a Draft (#214).
-  const cancel = form.cancel;
 
   onMount(() => dialogRef?.showModal());
 
@@ -263,7 +260,7 @@ export default function PostDialog(props: PostDialogProps) {
       // the dialog, so an Esc is its Cancel.
       onCancel={(e) => {
         e.preventDefault();
-        if (!pending()) cancel();
+        if (!form.pending()) form.cancel();
       }}
       // A browser can still close it (Chrome closes on a second Escape). The
       // owner must hear it, or its state stays open with no dialog. While the
@@ -271,9 +268,9 @@ export default function PostDialog(props: PostDialogProps) {
       // write keeps the text and shows its error (PR #216 review). Otherwise
       // it is the Cancel: with a Draft, it opens again to ask (#214).
       onClose={() => {
-        if (pending()) return dialogRef?.showModal();
+        if (form.pending()) return dialogRef?.showModal();
         if (dirty()) dialogRef?.showModal();
-        cancel();
+        form.cancel();
       }}
       on:keydown={(e) => {
         stopDialogEscape(e);
@@ -364,18 +361,18 @@ export default function PostDialog(props: PostDialogProps) {
         <div class="flex justify-end gap-2">
           <button
             type="button"
-            disabled={pending()}
-            onClick={cancel}
+            disabled={form.pending()}
+            onClick={form.cancel}
             class="theme-button disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             type="submit"
-            disabled={pending() || (editing && !dirty())}
+            disabled={form.pending() || (editing && !dirty())}
             class="theme-button-primary disabled:opacity-50"
           >
-            {pending() ? text.pending : text.submit}
+            {form.pending() ? text.pending : text.submit}
           </button>
         </div>
       </form>

@@ -92,10 +92,10 @@ interface Draft {
 }
 
 /**
- * One form's Draft in the app's guard (ADR-0030), inside `useDraftForm`. It owns the form's key, so
- * two forms never share one. It reports `dirty()` as it changes. An unmount
- * with a Draft that the user did not discard is a forced discard: the guard
- * shows the notice.
+ * One form's Draft in the app's guard (ADR-0030), inside `useDraftForm`. It
+ * owns the form's key, so two forms never share one. It reports `dirty()` as
+ * it changes. An unmount with a Draft that the user did not discard is a
+ * forced discard: the guard shows the notice.
  */
 function useDraft(options: DraftOptions): Draft {
   const guard = useDraftGuard();
