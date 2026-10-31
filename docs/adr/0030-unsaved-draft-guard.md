@@ -11,10 +11,10 @@ Later forms will have it too, for example #127 Caption Comments and #187 edits.
 holds a Draft when its text is not blank after a trim. An open Comment edit holds a
 Draft when its text differs from the saved Comment.
 
-**A form reports yes or no.** A form calls `useDraft({ dirty, scope, notice })`. The
-hook makes the form's key, a `Symbol`, so two forms never share a key. An effect
+**A form reports yes or no.** A form calls `useDraftForm({ dirty, scope, notice, … })`.
+The hook makes the form's key, a `Symbol`, so two forms never share a key. An effect
 reports `dirty()` to the guard each time it changes, so a change of the saved text also
-reports. "Cancel" calls `clear()`. The form keeps its own text. The guard holds only the
+reports. "Cancel" ends the Draft. The form keeps its own text. The guard holds only the
 keys with a Draft, each with its scope.
 
 **Every user-started move goes through `guard.attempt(move)`.** With no Draft, the
@@ -189,7 +189,7 @@ New Post Draft. Each one still closes the Post's own forms. So no form stays ope
 with a Draft that the guard no longer holds.
 
 **A Cancel with a Draft asks.** Before #214, "Cancel" called `clear()` at once. Now
-a form's Cancel calls `draft.cancel(close)`. Without a Draft, the form closes at
+a form's Cancel calls the hook's `cancel`, which runs the form's `close`. Without a Draft, the form closes at
 once. With a Draft, the guard asks "You have unsaved changes. Discard them?" about
 that form only. "Discard" drops that Draft and closes the form. "Keep editing"
 keeps the form open with its Draft.
@@ -200,8 +200,8 @@ Cancel. A form or a dialog stops its Escape, so an open menu or sidebar stays op
 A browser close of a Post dialog is also a Cancel: with a Draft, the dialog opens
 again and asks.
 
-**A write in flight blocks a move.** A form tells `useDraft` when its write is in
-flight (`busy`). While a form writes, `attempt` refuses each move that would
+**A write in flight blocks a move.** `useDraftForm` runs the form's write, so it
+reports when the write is in flight. While a form writes, `attempt` refuses each move that would
 unmount it. The route-move listener refuses every route move while any form
 writes. Neither one asks a question. The User makes the move again after the write
 ends. So the User always sees the result of a write.
@@ -220,7 +220,7 @@ dialog that stays open across a move that started before it opened: the provider
 would have to know which move to skip.
 
 **Consequences.** A new form on the Post needs a scope in the Post's list. A new
-Cancel calls `draft.cancel`, and a new write reports `busy`. #210 adds a Cancel to
+form builds on `useDraftForm`, which runs its Cancel and reports its write. #210 adds a Cancel to
 the compose box, so the compose box follows these rules.
 
 ## Addendum (2026-10-19) — one Comments panel (#210)
@@ -284,9 +284,10 @@ the Cancel. In the empty compose box, Escape closes the Comments panel (#210).
 through the `cancel` event, and its handlers call the hook's Cancel. A browser
 close is still a Cancel, as #214 says.
 
-**Consequences.** The #214 text names `useDraft` and `draft.cancel`. From #270,
-the hook calls them, and no form does. This replaces "A new Cancel calls
-`draft.cancel`, and a new write reports `busy`." A new form gives the hook its
+**Consequences.** #270 updates the earlier text of this ADR in place. Where it
+named `useDraft`, `draft.cancel`, `clear()` or `busy`, it now names `useDraftForm`
+and the hook's `cancel`. No form calls `useDraft` now: it is internal to the hook.
+A new form gives the hook its
 Draft test, its scope, its Cancel step and its write. "A new form on the Post
 needs a scope in the Post's list" still holds.
 
