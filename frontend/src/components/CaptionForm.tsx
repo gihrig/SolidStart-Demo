@@ -1,12 +1,10 @@
-import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, on, onMount, Show } from "solid-js";
 import type { DraftScope } from "~/lib/createDraftGuard";
-import { createRpcAction } from "~/lib/createRpcAction";
 import { hygieneLength } from "~/lib/hygieneLength";
-import { isImeKey } from "~/lib/isImeKey";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import type { HygieneCaps } from "~/types/backend";
 import type { CaptionView } from "~/types/jedi";
-import { useDraft } from "~/components/DraftGuardContext";
+import { useDraftForm } from "~/components/DraftGuardContext";
 
 // Mirrors the back-end cap (`CaptionBmc::hygiene_rules`), counted the back-end's
 // way (`hygieneLength`). `satisfies` pins it to the cap, so a changed cap fails
@@ -69,8 +67,9 @@ export interface CaptionFormProps {
  * the text differs from the saved Caption, and Save stays disabled until then.
  * A remote edit shows while the User has not changed the text.
  *
- * In both modes, a Cancel with a Draft asks first, and Escape is the Cancel of
- * a form with one. The form reports its write to the guard (#214).
+ * In both modes, the form builds on `useDraftForm` (#270): a Cancel with a
+ * Draft asks first, Escape is the Cancel of a form with one, and the form
+ * reports its write to the guard (#214).
  */
 export default function CaptionForm(props: CaptionFormProps) {
   const api = props.api ?? jediApi;
@@ -92,65 +91,44 @@ export default function CaptionForm(props: CaptionFormProps) {
   const length = createMemo(() => hygieneLength(value()));
   const overLimit = () => length() > CAPTION_MAX_LENGTH;
   const dirty = () => (editing ? value() !== saved() : value().trim() !== "");
-  const add = createRpcAction((caption: string) => api.captions.add(props.postId, caption), {
-    fallbackError: MODE_TEXT.add.error,
-  });
-  const save = createRpcAction(
-    async (caption: string) => {
-      await props.onSave?.(caption);
-      return true;
+  // The write of each mode: the add returns the new Caption; the edit, none.
+  const write = editing
+    ? async (caption: string) => {
+        await props.onSave?.(caption);
+        return undefined;
+      }
+    : (caption: string): Promise<CaptionView | undefined> =>
+        api.captions.add(props.postId, caption);
+  // The owner can change `onCancel` while the form is open, so the hook reads
+  // it at each Cancel.
+  const form = useDraftForm({
+    dirty,
+    scope: props.draftScope,
+    close: () => props.onCancel,
+    write,
+    fallbackError: text.error,
+    onSaved: (added) => {
+      if (editing) return props.onSaved?.();
+      setValue("");
+      if (added) props.onAdded?.(added);
     },
-    { fallbackError: MODE_TEXT.edit.error },
-  );
-  const pending = () => add.pending() || save.pending();
-  const error = () => add.error() ?? save.error();
-  const draft = useDraft({ dirty, scope: props.draftScope, busy: pending });
+  });
 
   onMount(() => {
     if (props.autofocus) inputRef?.focus();
   });
-  // A submit can outlive its form: the owner remounts the form for a new Post.
-  // A stale result must not report, or it would close the next Post's form and
-  // move focus (#185 review). The Caption itself is still saved.
-  let unmounted = false;
-  onCleanup(() => (unmounted = true));
-
-  // The Cancel asks first while the form holds a Draft (#214).
-  const cancel = () => draft.cancel(() => props.onCancel?.());
-  // Escape is the Cancel of a form that has one (#214). The form stops it, so
-  // a document listener (`useDismiss`) does not close a menu or the sidebar. An
-  // Escape that runs the Cancel also cancels the browser's own Escape action,
-  // which would close the question that the Cancel opens (#210).
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key !== "Escape") return;
-    e.stopPropagation();
-    if (isImeKey(e) || !props.onCancel || pending()) return;
-    e.preventDefault();
-    cancel();
-  };
 
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
     if (overLimit()) return;
-    if (editing) {
-      if ((await save.run(value())) && !unmounted) {
-        draft.clear();
-        props.onSaved?.();
-      }
-      return;
-    }
-    const added = await add.run(value());
-    if (added && !unmounted) {
-      setValue("");
-      props.onAdded?.(added);
-    }
+    await form.submit(value());
   };
 
   return (
-    <form onSubmit={handleSubmit} on:keydown={handleKeyDown} class="space-y-2">
-      <Show when={error()}>
+    <form onSubmit={handleSubmit} on:keydown={form.keydown} class="space-y-2">
+      <Show when={form.error()}>
         <div role="alert" class="rounded bg-red-100 p-2 text-red-700">
-          {error()}
+          {form.error()}
         </div>
       </Show>
       <label for={`${text.id}-text`} class="block text-sm font-medium">
@@ -172,8 +150,8 @@ export default function CaptionForm(props: CaptionFormProps) {
         <Show when={props.onCancel}>
           <button
             type="button"
-            disabled={pending()}
-            onClick={cancel}
+            disabled={form.pending()}
+            onClick={form.cancel}
             class="theme-button shrink-0 disabled:opacity-50"
           >
             Cancel
@@ -181,10 +159,10 @@ export default function CaptionForm(props: CaptionFormProps) {
         </Show>
         <button
           type="submit"
-          disabled={pending() || overLimit() || (editing && !dirty())}
+          disabled={form.pending() || overLimit() || (editing && !dirty())}
           class="theme-button-primary shrink-0 disabled:opacity-50"
         >
-          {pending() ? text.pending : text.submit}
+          {form.pending() ? text.pending : text.submit}
         </button>
       </div>
       <p
