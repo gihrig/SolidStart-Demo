@@ -128,7 +128,7 @@ function useDraft(options: DraftOptions): Draft {
   };
 }
 
-export interface DraftFormOptions<TArgs, TResult> {
+export interface DraftFormOptions<TResult> {
   /** Whether the form holds a Draft now: the form's own Draft test. */
   dirty: Accessor<boolean>;
   /** The form's scope, when a move can unmount its group of forms alone. */
@@ -136,13 +136,17 @@ export interface DraftFormOptions<TArgs, TResult> {
   /** The notice of a forced discard. Defaults to `DRAFT_DISCARDED_NOTICE`. */
   notice?: () => string;
   /** The Cancel's step, read at each Cancel and Escape. None: the form has no
-   *  Cancel, and Escape does nothing. */
+   *  Cancel, and Escape does nothing. It is an accessor, so a caller passes
+   *  `() => step`: the outer arrow lets the hook read the step late. A form's
+   *  step can change while the form is open (`onCancel` of CaptionForm, from
+   *  PostCaption), and a step read one time at mount would go stale. */
   close?: Accessor<(() => void) | undefined>;
   /** What Escape runs when that is not the Cancel (#210). It gets the Cancel and
    *  returns an action, or none. Default: the Cancel, when the form has one. */
   escape?: (cancel: () => void) => (() => void) | undefined;
-  /** The form's write. It rejects on failure. */
-  write: (args: TArgs) => Promise<TResult>;
+  /** The form's write. It reads the form's fields when it runs, and it rejects
+   *  on failure. */
+  write: () => Promise<TResult>;
   /** The error text of a failure that is not an `Error`. */
   fallbackError: string;
   /** Runs after a saved write, only while the form is mounted. The Draft has
@@ -150,9 +154,9 @@ export interface DraftFormOptions<TArgs, TResult> {
   onSaved?: (result: TResult) => void;
 }
 
-export interface DraftForm<TArgs> {
+export interface DraftForm {
   /** Runs the write. A late result, after the form unmounts, changes nothing. */
-  submit: (args: TArgs) => Promise<void>;
+  submit: () => Promise<void>;
   /** Whether the write is in flight. */
   pending: Accessor<boolean>;
   /** The last write's error, or null. */
@@ -170,14 +174,13 @@ export interface DraftForm<TArgs> {
  * after the form unmounts changes nothing in the form. The form keeps its
  * fields, its Draft test, its write and its remote-edit merge.
  */
-export function useDraftForm<TArgs, TResult>(
-  options: DraftFormOptions<TArgs, TResult>,
-): DraftForm<TArgs> {
+export function useDraftForm<TResult>(options: DraftFormOptions<TResult>): DraftForm {
   // The wrap keeps a result of `undefined` apart from the failure value of
   // `createRpcAction`, so no write returns `true` only to show it saved.
-  const action = createRpcAction(async (args: TArgs) => ({ result: await options.write(args) }), {
-    fallbackError: options.fallbackError,
-  });
+  const action = createRpcAction<void, { result: TResult }>(
+    async () => ({ result: await options.write() }),
+    { fallbackError: options.fallbackError },
+  );
   const draft = useDraft({
     dirty: options.dirty,
     scope: options.scope,
@@ -190,8 +193,8 @@ export function useDraftForm<TArgs, TResult>(
   let unmounted = false;
   onCleanup(() => (unmounted = true));
 
-  const submit = async (args: TArgs) => {
-    const saved = await action.run(args);
+  const submit = async () => {
+    const saved = await action.run();
     if (!saved || unmounted) return;
     draft.clear();
     options.onSaved?.(saved.result);

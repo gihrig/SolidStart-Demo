@@ -221,13 +221,14 @@ function CommentForm(props: CommentFormProps) {
       props.comment && props.thread.deleted(props.comment.id)
         ? COMMENT_DELETED_NOTICE
         : DRAFT_DISCARDED_NOTICE,
+    // An accessor: the hook reads the step at each Cancel (`close`).
     close: () => closeForm,
     // Escape is the Cancel (#214). In the empty compose box, it closes the
     // Comments panel instead, as the toggle does (#210).
     escape: (cancel) => (composeEmpty() ? props.onClosePanel : cancel),
-    write: async (content: string) => {
-      if (props.comment) await props.thread.update(props.comment.id, content);
-      else await props.thread.add(content);
+    write: async () => {
+      if (props.comment) await props.thread.update(props.comment.id, value());
+      else await props.thread.add(value());
     },
     fallbackError: text().error,
     onSaved: () => {
@@ -244,7 +245,7 @@ function CommentForm(props: CommentFormProps) {
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
     if (!canSubmit()) return;
-    await form.submit(value());
+    await form.submit();
   };
   // The Cancel is disabled while the form writes, and the compose box's while
   // it is empty (#210).

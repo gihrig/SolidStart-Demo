@@ -224,10 +224,10 @@ export default function PostDialog(props: PostDialogProps) {
   // write. A write that ends after a browser close unmounted the edit does not
   // close the next dialog (PR #216 review).
   const closeDialog = () => props.onClose?.();
-  // The write reads the fields, so it takes no argument.
-  const form = useDraftForm<void, void>({
+  const form = useDraftForm({
     dirty,
     scope: props.draftScope,
+    // An accessor: the hook reads the step at each Cancel (`close`).
     close: () => closeDialog,
     write,
     fallbackError: text.error,

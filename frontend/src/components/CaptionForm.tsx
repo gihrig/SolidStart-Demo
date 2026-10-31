@@ -91,28 +91,32 @@ export default function CaptionForm(props: CaptionFormProps) {
   const length = createMemo(() => hygieneLength(value()));
   const overLimit = () => length() > CAPTION_MAX_LENGTH;
   const dirty = () => (editing ? value() !== saved() : value().trim() !== "");
-  // The write of each mode: the add returns the new Caption; the edit, none.
-  const write = editing
-    ? async (caption: string) => {
-        await props.onSave?.(caption);
-        return undefined;
-      }
-    : (caption: string): Promise<CaptionView | undefined> =>
-        api.captions.add(props.postId, caption);
-  // The owner can change `onCancel` while the form is open, so the hook reads
-  // it at each Cancel.
-  const form = useDraftForm({
+  // The owner can change `onCancel` while the form is open, so `close` is an
+  // accessor: the hook reads it at each Cancel.
+  const base = {
     dirty,
     scope: props.draftScope,
     close: () => props.onCancel,
-    write,
     fallbackError: text.error,
-    onSaved: (added) => {
-      if (editing) return props.onSaved?.();
-      setValue("");
-      if (added) props.onAdded?.(added);
-    },
-  });
+  };
+  // One hook call for each mode: the mode is fixed for the form's life. The
+  // add returns the new Caption; the edit, none.
+  const form = editing
+    ? useDraftForm({
+        ...base,
+        write: async () => {
+          await props.onSave?.(value());
+        },
+        onSaved: () => props.onSaved?.(),
+      })
+    : useDraftForm({
+        ...base,
+        write: () => api.captions.add(props.postId, value()),
+        onSaved: (added) => {
+          setValue("");
+          props.onAdded?.(added);
+        },
+      });
 
   onMount(() => {
     if (props.autofocus) inputRef?.focus();
@@ -121,7 +125,7 @@ export default function CaptionForm(props: CaptionFormProps) {
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
     if (overLimit()) return;
-    await form.submit(value());
+    await form.submit();
   };
 
   return (

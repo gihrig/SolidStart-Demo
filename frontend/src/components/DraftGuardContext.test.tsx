@@ -19,7 +19,7 @@ function deferredWrite<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason: unknown) => void;
   const write = vi.fn(
-    (_text: string) =>
+    () =>
       new Promise<T>((res, rej) => {
         resolve = res;
         reject = rej;
@@ -30,7 +30,7 @@ function deferredWrite<T>() {
 
 /** A small test form on `useDraftForm`: one text field, Escape on the form. */
 function renderDraftForm(
-  options: Partial<DraftFormOptions<string, string | undefined>> & { cancels?: boolean } = {},
+  options: Partial<DraftFormOptions<string | undefined>> & { cancels?: boolean } = {},
 ) {
   const { cancels = true, ...overrides } = options;
   const guard = createDraftGuard();
@@ -41,7 +41,7 @@ function renderDraftForm(
   const { write, resolve, reject } = deferredWrite<string | undefined>();
   const close = vi.fn(() => setOpen(false));
   const onSaved = vi.fn();
-  let form!: DraftForm<string>;
+  let form!: DraftForm;
   function Form() {
     form = useDraftForm({
       dirty: () => {
@@ -93,7 +93,7 @@ describe("useDraftForm (#270)", () => {
     setDirty(false);
     expect(guard.hasDraftIn([scope])).toBe(false);
 
-    const done = form.submit("text");
+    const done = form.submit();
     expect(form.pending()).toBe(true);
     expect(guard.busyIn([scope])).toBe(true);
     resolve("saved");
@@ -101,7 +101,7 @@ describe("useDraftForm (#270)", () => {
     expect(form.pending()).toBe(false);
     expect(guard.busyIn([scope])).toBe(false);
 
-    void form.submit("again");
+    void form.submit();
     setOpen(false);
     expect(guard.busyIn()).toBe(false);
   });
@@ -160,7 +160,7 @@ describe("useDraftForm (#270)", () => {
 
   it("Escape does nothing while the write is in flight", () => {
     const { guard, form, close, input } = renderDraftForm();
-    void form.submit("text");
+    void form.submit();
     expect(fireEvent.keyDown(input(), { key: "Escape" })).toBe(true);
     expect(guard.pending()).toBe(false);
     expect(close).not.toHaveBeenCalled();
@@ -200,7 +200,7 @@ describe("useDraftForm (#270)", () => {
 
   it("a write that ends after the form unmounts changes nothing in the form", async () => {
     const { form, setOpen, resolve, onSaved } = renderDraftForm();
-    const done = form.submit("text");
+    const done = form.submit();
     setOpen(false);
     resolve("saved");
     await done;
@@ -209,14 +209,14 @@ describe("useDraftForm (#270)", () => {
 
   it("a failed write shows its error and keeps the Draft", async () => {
     const { guard, form, reject, onSaved } = renderDraftForm();
-    let done = form.submit("text");
+    let done = form.submit();
     reject(new Error("The back-end refused it"));
     await done;
     expect(form.error()).toBe("The back-end refused it");
     expect(guard.hasDraft()).toBe(true);
     expect(onSaved).not.toHaveBeenCalled();
 
-    done = form.submit("text");
+    done = form.submit();
     expect(form.error(), "a new write clears the error").toBeNull();
     reject("not an Error");
     await done;
@@ -225,7 +225,7 @@ describe("useDraftForm (#270)", () => {
 
   it("a saved write ends the Draft until the form is clean, then runs onSaved (#187)", async () => {
     const { guard, form, resolve, onSaved, setDirty, setRerun } = renderDraftForm();
-    const done = form.submit("text");
+    const done = form.submit();
     resolve("saved");
     await done;
     expect(onSaved).toHaveBeenCalledExactlyOnceWith("saved");
@@ -240,7 +240,7 @@ describe("useDraftForm (#270)", () => {
 
   it("a write that resolves to undefined is a saved write", async () => {
     const { guard, form, resolve, onSaved } = renderDraftForm();
-    const done = form.submit("text");
+    const done = form.submit();
     resolve(undefined);
     await done;
     expect(onSaved).toHaveBeenCalledExactlyOnceWith(undefined);
@@ -255,7 +255,7 @@ describe("DraftGuardProvider — a route move during a write (#214)", () => {
   it("does nothing and asks nothing; the beforeunload listener stays on", async () => {
     let guard!: DraftGuard;
     const { write, reject } = deferredWrite<void>();
-    let form!: DraftForm<string>;
+    let form!: DraftForm;
     function Form() {
       guard = useDraftGuard();
       form = useDraftForm({ dirty: () => true, write, fallbackError: "Could not save" });
@@ -268,7 +268,7 @@ describe("DraftGuardProvider — a route move during a write (#214)", () => {
       </MemoryRouter>
     ));
     const user = userEvent.setup();
-    const done = form.submit("text");
+    const done = form.submit();
 
     await user.click(screen.getByRole("link", { name: "About" }));
     expect(screen.queryByRole("heading", { name: "About page" })).toBeNull();
