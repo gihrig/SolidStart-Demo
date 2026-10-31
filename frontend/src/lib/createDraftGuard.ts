@@ -14,7 +14,7 @@ export interface DraftGuard {
   holds: (key: symbol) => boolean;
   /** A form reports whether it holds a Draft, under its own key. It reports
    *  `false` when it saves, when it cancels, and when it unmounts. A form
-   *  reports through `useDraft`, which makes the key. A form in a `scope`
+   *  reports through `useDraftForm`, which makes the key. A form in a `scope`
    *  reports it too. */
   report: (key: symbol, dirty: boolean, scope?: DraftScope) => void;
   /** Run a user-started move. With no Draft, it runs at once. With a Draft, it
@@ -30,7 +30,7 @@ export interface DraftGuard {
    *  runs `close`. */
   cancel: (key: symbol, close: () => void) => void;
   /** A form reports whether its write is in flight, under its own key (#214).
-   *  A form reports through `useDraft`, with its scope. */
+   *  A form reports through `useDraftForm`, with its scope. */
   reportBusy: (key: symbol, busy: boolean, scope?: DraftScope) => void;
   /** Whether a form in any of `scopes` writes; with no `scopes`, any form. */
   busyIn: (scopes?: readonly DraftScope[]) => boolean;

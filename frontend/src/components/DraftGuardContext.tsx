@@ -64,7 +64,7 @@ export function useDraftGuard(): DraftGuard {
   return useContext(DraftGuardContext);
 }
 
-export interface DraftOptions {
+interface DraftOptions {
   /** Whether the form holds a Draft now. An effect reads it, so each change
    *  of a signal it reads reports again: an input, and a change of the saved
    *  text. */
@@ -79,7 +79,7 @@ export interface DraftOptions {
   notice?: () => string;
 }
 
-export interface Draft {
+interface Draft {
   /** The user drops the Draft (a Cancel, or a saved write that closes the
    *  form). The form's unmount then shows no notice. The Draft stays released
    *  until the form is clean: a report that re-runs before the saved text
@@ -92,12 +92,12 @@ export interface Draft {
 }
 
 /**
- * One form's Draft in the app's guard (ADR-0030). It owns the form's key, so
+ * One form's Draft in the app's guard (ADR-0030), inside `useDraftForm`. It owns the form's key, so
  * two forms never share one. It reports `dirty()` as it changes. An unmount
  * with a Draft that the user did not discard is a forced discard: the guard
  * shows the notice.
  */
-export function useDraft(options: DraftOptions): Draft {
+function useDraft(options: DraftOptions): Draft {
   const guard = useDraftGuard();
   const key = Symbol("draft");
   let cleared = false;

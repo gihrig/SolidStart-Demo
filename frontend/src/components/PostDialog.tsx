@@ -6,19 +6,17 @@ import {
   createUniqueId,
   For,
   on,
-  onCleanup,
   onMount,
   Show,
 } from "solid-js";
 import { createStore } from "solid-js/store";
 import type { DraftScope } from "~/lib/createDraftGuard";
-import { createRpcAction } from "~/lib/createRpcAction";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { keepDialogFocus } from "~/lib/keepDialogFocus";
 import { stopDialogEscape } from "~/lib/stopDialogEscape";
 import type { HygieneCaps } from "~/types/backend";
 import type { PostChanges, PostDraft, PostView } from "~/types/jedi";
-import { useDraft } from "~/components/DraftGuardContext";
+import { useDraftForm } from "~/components/DraftGuardContext";
 
 // The draft's text fields, in form order. Each `maxLength` mirrors the back-end
 // cap (`PostBmc::hygiene_rules`) and pins to it with `satisfies`, so a changed
@@ -150,7 +148,8 @@ export interface PostDialogProps {
  * In both modes, Cancel, Escape and a browser close are one Cancel: with a
  * Draft, it asks first, and a browser close opens the dialog again to ask.
  * While the write is in flight, none of them closes the dialog (#214). Tab and
- * Shift+Tab keep focus in the dialog (#210).
+ * Shift+Tab keep focus in the dialog (#210). The dialog builds on
+ * `useDraftForm` (#270), but takes Escape from its `<dialog>`.
  */
 export default function PostDialog(props: PostDialogProps) {
   const api = props.api ?? jediApi;
@@ -205,34 +204,40 @@ export default function PostDialog(props: PostDialogProps) {
   // Each open loads the taxonomy: the dialog mounts to open.
   const [categories, { refetch: refetchCategories }] = createResource(() => api.categories.list());
   const [categoryError, setCategoryError] = createSignal<string | null>(null);
-  const create = createRpcAction((post: PostDraft) => api.posts.create(post), {
-    fallbackError: MODE_TEXT.create.error,
+  // The write of each mode. An edit sends only the changed fields.
+  const write = editing
+    ? async () => {
+        await props.onSave?.(changes());
+      }
+    : async () => {
+        await api.posts.create({
+          title: values.title,
+          imageSrc: values.imageSrc,
+          imageAlt: values.imageAlt,
+          photographer: values.photographer,
+          photographerUrl: values.photographerUrl,
+          sourceUrl: values.sourceUrl,
+          categoryIds: [...values.categoryIds],
+        });
+      };
+  // The owner unmounts the dialog to close it: on a Cancel, and after a saved
+  // write. A write that ends after a browser close unmounted the edit does not
+  // close the next dialog (PR #216 review).
+  const closeDialog = () => props.onClose?.();
+  // The write reads the fields, so it takes no argument.
+  const form = useDraftForm<void, void>({
+    dirty,
+    scope: props.draftScope,
+    close: () => closeDialog,
+    write,
+    fallbackError: text.error,
+    onSaved: closeDialog,
   });
-  const save = createRpcAction(
-    async (edit: PostChanges) => {
-      await props.onSave?.(edit);
-      return true;
-    },
-    { fallbackError: MODE_TEXT.edit.error },
-  );
-  const pending = () => create.pending() || save.pending();
-  const draft = useDraft({ dirty, scope: props.draftScope, busy: pending });
+  const pending = form.pending;
+  // The Cancel asks first while the dialog holds a Draft (#214).
+  const cancel = form.cancel;
 
   onMount(() => dialogRef?.showModal());
-
-  // A write can outlive its dialog: a browser close unmounts the edit while the
-  // Save waits. A stale result must not close the next dialog (PR #216
-  // review). The Post itself is still saved.
-  let unmounted = false;
-  onCleanup(() => (unmounted = true));
-
-  // A saved write drops the Draft: the close then shows no notice.
-  const close = () => {
-    draft.clear();
-    props.onClose?.();
-  };
-  // The Cancel asks first while the dialog holds a Draft (#214).
-  const cancel = () => draft.cancel(() => props.onClose?.());
 
   const toggleCategory = (id: number, checked: boolean) =>
     setValues("categoryIds", (ids) => (checked ? [...ids, id] : ids.filter((c) => c !== id)));
@@ -245,23 +250,10 @@ export default function PostDialog(props: PostDialogProps) {
       return;
     }
     setCategoryError(null);
-    if (editing) {
-      if ((await save.run(changes())) && !unmounted) close();
-      return;
-    }
-    const created = await create.run({
-      title: values.title,
-      imageSrc: values.imageSrc,
-      imageAlt: values.imageAlt,
-      photographer: values.photographer,
-      photographerUrl: values.photographerUrl,
-      sourceUrl: values.sourceUrl,
-      categoryIds: [...values.categoryIds],
-    });
-    if (created && !unmounted) close();
+    await form.submit();
   };
 
-  const error = () => categoryError() ?? create.error() ?? save.error();
+  const error = () => categoryError() ?? form.error();
 
   return (
     <dialog
