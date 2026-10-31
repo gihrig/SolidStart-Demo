@@ -18,7 +18,7 @@ import { sanitizeCommentHtml } from "~/lib/sanitizeCommentHtml";
 import type { HygieneCaps } from "~/types/backend";
 import type { CommentView } from "~/types/jedi";
 import Avatar from "~/components/Avatar";
-import { useDraft } from "~/components/DraftGuardContext";
+import { useDraftForm } from "~/components/DraftGuardContext";
 
 // Mirrors the back-end caps (`PostCommentBmc::hygiene_rules` and
 // `CaptionCommentBmc::hygiene_rules`, #127), counted the back-end's way
@@ -142,9 +142,10 @@ interface CommentFormProps {
 }
 
 /**
- * The one Comment form: the compose box, and the edit of one Comment. It holds
- * the write as an RPC action, so each form shows its own error. A saved write
- * clears the compose box; an edit closes.
+ * The one Comment form: the compose box, and the edit of one Comment. It
+ * builds on `useDraftForm` (#270), so each form shows its own error. A saved
+ * write clears the compose box; an edit closes. A write that ends after the
+ * form unmounts changes nothing in the form.
  *
  * An edit loads the stored text with `get_post_comment` (#126): the view
  * carries no raw text. Until the text loads, the textarea is disabled and shows
@@ -201,63 +202,57 @@ function CommentForm(props: CommentFormProps) {
   // An edit holds a Draft while its loaded text differs from the saved
   // Comment; the compose box while its text is not blank.
   const dirty = () => (props.comment ? loaded() && value() !== saved() : value().trim() !== "");
-  const write = createRpcAction(
-    async (content: string) => {
-      if (props.comment) await props.thread.update(props.comment.id, content);
-      else await props.thread.add(content);
-      return true;
-    },
-    { fallbackError: text().error },
-  );
-  const draft = useDraft({
+  const composeEmpty = () => !props.comment && value() === "";
+  // The Cancel's step. The hook asks first while the form holds a Draft, about
+  // this form only (#214): the compose box and the edits share one scope. An
+  // edit's Cancel closes it. The compose box's Cancel empties it, and focus
+  // moves to its text field (#210).
+  const closeForm = () => {
+    if (props.comment) props.onClose?.();
+    else {
+      setValue("");
+      textRef?.focus();
+    }
+  };
+  const form = useDraftForm({
     dirty,
     scope: props.thread.draftScope,
-    busy: write.pending,
     notice: () =>
       props.comment && props.thread.deleted(props.comment.id)
         ? COMMENT_DELETED_NOTICE
         : DRAFT_DISCARDED_NOTICE,
+    close: () => closeForm,
+    // Escape is the Cancel (#214). In the empty compose box, it closes the
+    // Comments panel instead, as the toggle does (#210).
+    escape: (cancel) => (composeEmpty() ? props.onClosePanel : cancel),
+    write: async (content: string) => {
+      if (props.comment) await props.thread.update(props.comment.id, content);
+      else await props.thread.add(content);
+    },
+    fallbackError: text().error,
+    onSaved: () => {
+      setValue(saved() ?? "");
+      props.onClose?.();
+    },
   });
   const countId = () => `${props.id}-count`;
   const hintId = () => `${props.id}-hint`;
   // The submit button and the Enter key both obey it (#246).
-  const canSubmit = () => !write.pending() && dirty() && sendable(length()) && !loadError();
+  const canSubmit = () => !form.pending() && dirty() && sendable(length()) && !loadError();
   const enterSubmits = useEnterSubmits();
 
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
     if (!canSubmit()) return;
-    if (await write.run(value())) {
-      setValue(saved() ?? "");
-      props.onClose?.();
-    }
+    await form.submit(value());
   };
-  // The Cancel asks first while the form holds a Draft, about this form only
-  // (#214): the compose box and the edits share one scope. The compose box's
-  // Cancel empties it, and focus moves to its text field (#210).
-  const handleCancel = () =>
-    draft.cancel(() => {
-      if (props.comment) props.onClose?.();
-      else {
-        setValue("");
-        textRef?.focus();
-      }
-    });
   // The Cancel is disabled while the form writes, and the compose box's while
   // it is empty (#210).
-  const composeEmpty = () => !props.comment && value() === "";
-  const cancelDisabled = () => write.pending() || composeEmpty();
-  // Escape is the Cancel (#214). In the empty compose box, it closes the
-  // Comments panel instead, as the toggle does (#210). While the form writes,
-  // it does nothing. The form stops it, so a document listener (`useDismiss`)
-  // does not close a menu or the sidebar. An Escape that acts also cancels the
-  // browser's own Escape action, which would close the question that the
-  // action opens (#210).
-  //
+  const cancelDisabled = () => form.pending() || composeEmpty();
   // A plain Enter in the text field submits, and Shift+Enter adds a new line
   // (#246). If the form cannot submit, the Enter does nothing. An IME's Enter,
   // a modified Enter, any Enter with a touch pointer, and a button's Enter
-  // keep the browser's own action.
+  // keep the browser's own action. The hook handles every other key: Escape.
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter") {
       if (e.target !== textRef || !enterSubmits() || isImeKey(e)) return;
@@ -266,18 +261,12 @@ function CommentForm(props: CommentFormProps) {
       if (canSubmit()) (e.currentTarget as HTMLFormElement).requestSubmit();
       return;
     }
-    if (e.key !== "Escape") return;
-    e.stopPropagation();
-    if (isImeKey(e) || write.pending()) return;
-    const act = composeEmpty() ? props.onClosePanel : handleCancel;
-    if (!act) return;
-    e.preventDefault();
-    act();
+    form.keydown(e);
   };
 
   return (
     <form onSubmit={handleSubmit} on:keydown={handleKeyDown} class="space-y-2">
-      <ErrorAlert error={write.error() ?? loadError()} />
+      <ErrorAlert error={form.error() ?? loadError()} />
       <label for={props.id} class={props.comment ? "sr-only" : "block font-medium"}>
         {props.comment ? FORM_TEXT.edit.label : props.label}
       </label>
@@ -305,7 +294,7 @@ function CommentForm(props: CommentFormProps) {
         <button
           type="button"
           disabled={cancelDisabled()}
-          onClick={handleCancel}
+          onClick={form.cancel}
           class="theme-button disabled:opacity-50"
         >
           Cancel
@@ -315,7 +304,7 @@ function CommentForm(props: CommentFormProps) {
           disabled={!canSubmit()}
           class="theme-button-primary shrink-0 disabled:opacity-50"
         >
-          {write.pending() ? text().pending : text().submit}
+          {form.pending() ? text().pending : text().submit}
         </button>
       </div>
     </form>
