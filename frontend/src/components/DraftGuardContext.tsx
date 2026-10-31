@@ -14,6 +14,8 @@ import {
   type DraftGuard,
   type DraftScope,
 } from "~/lib/createDraftGuard";
+import { createRpcAction } from "~/lib/createRpcAction";
+import { isImeKey } from "~/lib/isImeKey";
 import ConfirmDialog from "~/components/ConfirmDialog";
 
 /** The app's one Draft guard. Without a provider, the pass-through guard: a
@@ -124,4 +126,94 @@ export function useDraft(options: DraftOptions): Draft {
         close();
       }),
   };
+}
+
+export interface DraftFormOptions<TArgs, TResult> {
+  /** Whether the form holds a Draft now: the form's own Draft test. */
+  dirty: Accessor<boolean>;
+  /** The form's scope, when a move can unmount its group of forms alone. */
+  scope?: DraftScope;
+  /** The notice of a forced discard. Defaults to `DRAFT_DISCARDED_NOTICE`. */
+  notice?: () => string;
+  /** The Cancel's step, read at each Cancel and Escape. None: the form has no
+   *  Cancel, and Escape does nothing. */
+  close?: Accessor<(() => void) | undefined>;
+  /** What Escape runs when that is not the Cancel (#210). It gets the Cancel and
+   *  returns an action, or none. Default: the Cancel, when the form has one. */
+  escape?: (cancel: () => void) => (() => void) | undefined;
+  /** The form's write. It rejects on failure. */
+  write: (args: TArgs) => Promise<TResult>;
+  /** The error text of a failure that is not an `Error`. */
+  fallbackError: string;
+  /** Runs after a saved write, only while the form is mounted. The Draft has
+   *  ended. */
+  onSaved?: (result: TResult) => void;
+}
+
+export interface DraftForm<TArgs> {
+  /** Runs the write. A late result, after the form unmounts, changes nothing. */
+  submit: (args: TArgs) => Promise<void>;
+  /** Whether the write is in flight. */
+  pending: Accessor<boolean>;
+  /** The last write's error, or null. */
+  error: Accessor<string | null>;
+  /** The form's Cancel: with a Draft, it asks first. */
+  cancel: () => void;
+  /** The form's key handler: Escape is the Cancel, or the `escape` action. */
+  keydown: (e: KeyboardEvent) => void;
+}
+
+/**
+ * One form's Draft and write (ADR-0030, #270). It reports the form's Draft and
+ * its write in flight to the app's guard (#214). A Cancel with a Draft asks
+ * first. A saved write ends the Draft, then runs `onSaved`. A write that ends
+ * after the form unmounts changes nothing in the form. The form keeps its
+ * fields, its Draft test, its write and its remote-edit merge.
+ */
+export function useDraftForm<TArgs, TResult>(
+  options: DraftFormOptions<TArgs, TResult>,
+): DraftForm<TArgs> {
+  // The wrap keeps a result of `undefined` apart from the failure value of
+  // `createRpcAction`, so no write returns `true` only to show it saved.
+  const action = createRpcAction(async (args: TArgs) => ({ result: await options.write(args) }), {
+    fallbackError: options.fallbackError,
+  });
+  const draft = useDraft({
+    dirty: options.dirty,
+    scope: options.scope,
+    busy: action.pending,
+    notice: options.notice,
+  });
+  // A write can outlive its form: its owner can unmount it (a browser close, a
+  // new Post). A stale result must not close or clear the next form (#185 and
+  // PR #216 reviews). The write itself still lands.
+  let unmounted = false;
+  onCleanup(() => (unmounted = true));
+
+  const submit = async (args: TArgs) => {
+    const saved = await action.run(args);
+    if (!saved || unmounted) return;
+    draft.clear();
+    options.onSaved?.(saved.result);
+  };
+  const cancel = () => {
+    const close = options.close?.();
+    if (close) draft.cancel(close);
+  };
+  // The form stops Escape, so a document listener (`useDismiss`) does not close
+  // a menu or the sidebar. An Escape that acts also cancels the browser's own
+  // Escape action, which would close the question that the action opens
+  // (#210). An IME's Escape ends its composition (#251), and while the form
+  // writes, Escape does nothing.
+  const keydown = (e: KeyboardEvent) => {
+    if (e.key !== "Escape") return;
+    e.stopPropagation();
+    if (isImeKey(e) || action.pending()) return;
+    const act = options.escape ? options.escape(cancel) : options.close?.() && cancel;
+    if (!act) return;
+    e.preventDefault();
+    act();
+  };
+
+  return { submit, pending: action.pending, error: action.error, cancel, keydown };
 }
