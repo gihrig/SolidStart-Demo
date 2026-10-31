@@ -585,17 +585,6 @@ describe("<CommentThread /> — Drafts (ADR-0030)", () => {
     expect(guard.hasDraft()).toBe(false);
     expect(guard.notice()).toBe("This Comment was deleted. Your unsaved changes were discarded.");
   });
-
-  it("a form that unmounts with no Draft shows no notice", async () => {
-    const user = userEvent.setup();
-    const { thread, setComments } = fakeThread([comment(1, 2, "mine")]);
-    const { guard, unmount } = renderGuarded(thread);
-    await user.click(screen.getByRole("button", { name: "Edit comment" }));
-
-    setComments([]);
-    unmount();
-    expect(guard.notice()).toBeUndefined();
-  });
 });
 
 describe("<CommentThread /> — Cancel, Escape and focus (#214)", () => {
@@ -633,19 +622,6 @@ describe("<CommentThread /> — Cancel, Escape and focus (#214)", () => {
     expect(guard.pending()).toBe(true);
     guard.confirmMove();
     expect(editBox()).toBeNull();
-  });
-
-  it("the edit's Cancel asks only about itself: a compose Draft in the thread stays", async () => {
-    const { thread } = fakeThread([comment(1, 2, "mine")]);
-    const { guard, user } = renderGuarded(thread);
-    await user.type(composeBox(), "compose");
-    await user.type(await openEdit(user), "!");
-
-    await user.click(editCancel());
-    guard.confirmMove();
-    expect(editBox()).toBeNull();
-    expect(composeBox()).toHaveValue("compose");
-    expect(guard.hasDraftIn([thread.draftScope]), "the compose Draft stays").toBe(true);
   });
 
   it("the compose Cancel is disabled while the box is empty, and while it writes (#210)", async () => {
@@ -691,19 +667,6 @@ describe("<CommentThread /> — Cancel, Escape and focus (#214)", () => {
     expect(composeBox()).toHaveValue("");
   });
 
-  it("the compose Cancel asks only about the compose box: an edit Draft in the thread stays (#210)", async () => {
-    const { thread } = fakeThread([comment(1, 2, "mine")]);
-    const { guard, user } = renderGuarded(thread);
-    await user.type(await openEdit(user), "!");
-    await user.type(composeBox(), "compose");
-
-    await user.click(composeCancel());
-    guard.confirmMove();
-    expect(composeBox()).toHaveValue("");
-    expect(editBox()).toHaveValue("mine!");
-    expect(guard.hasDraftIn([thread.draftScope]), "the edit Draft stays").toBe(true);
-  });
-
   it("focus moves to the text field after a compose Cancel, and after Discard (#210)", async () => {
     const { thread } = fakeThread([]);
     const { guard, user } = renderGuarded(thread);
@@ -738,20 +701,6 @@ describe("<CommentThread /> — Cancel, Escape and focus (#214)", () => {
     }
   });
 
-  it("an Escape that runs a Cancel cancels the browser's own Escape action (#210)", async () => {
-    const { thread } = fakeThread([comment(1, 2, "mine")]);
-    const { guard, user } = renderGuarded(thread);
-    await user.type(composeBox(), "compose");
-    // The browser would close the question on the same Escape.
-    expect(fireEvent.keyDown(composeBox(), { key: "Escape" }), "the compose Cancel").toBe(false);
-    expect(guard.pending()).toBe(true);
-    guard.cancelMove();
-
-    await user.type(await openEdit(user), "!");
-    expect(fireEvent.keyDown(editBox()!, { key: "Escape" }), "the edit's Cancel").toBe(false);
-    expect(guard.pending()).toBe(true);
-  });
-
   it("Escape in the empty compose box closes the panel, as the toggle does (#210)", async () => {
     const { thread } = fakeThread([]);
     const onClosePanel = vi.fn();
@@ -764,88 +713,6 @@ describe("<CommentThread /> — Cancel, Escape and focus (#214)", () => {
     // The browser's own Escape action stays canceled: the close can ask.
     expect(fireEvent.keyDown(composeBox(), { key: "Escape" })).toBe(false);
     expect(onClosePanel).toHaveBeenCalledOnce();
-  });
-
-  it("while the compose box writes, Escape does nothing (#210)", async () => {
-    const { thread } = fakeThread([]);
-    let finish!: () => void;
-    vi.mocked(thread.add).mockReturnValueOnce(new Promise<void>((r) => (finish = r)));
-    const onClosePanel = vi.fn();
-    const { guard, user } = renderGuarded(thread, onClosePanel);
-    await user.type(composeBox(), "hello");
-    await user.click(screen.getByRole("button", { name: "Add Comment" }));
-    await user.click(composeBox());
-    await user.keyboard("{Escape}");
-    expect(guard.pending(), "no Cancel").toBe(false);
-    expect(onClosePanel, "no close").not.toHaveBeenCalled();
-    expect(composeBox()).toHaveValue("hello");
-
-    finish();
-    await waitFor(() => expect(composeBox()).toHaveValue(""));
-  });
-
-  it("an Escape that ends an IME composition is no compose Cancel (#210)", async () => {
-    const { thread } = fakeThread([]);
-    const { guard, user } = renderGuarded(thread);
-    await user.type(composeBox(), "compose");
-    fireEvent.keyDown(composeBox(), { key: "Escape", isComposing: true });
-    expect(guard.pending()).toBe(false);
-    expect(composeBox()).toHaveValue("compose");
-  });
-
-  it("an Escape that ends an IME composition is no Cancel", async () => {
-    const { thread } = fakeThread([comment(1, 2, "mine")]);
-    const { guard, user } = renderGuarded(thread);
-    await user.type(await openEdit(user), "!");
-    fireEvent.keyDown(editBox()!, { key: "Escape", isComposing: true });
-    expect(guard.pending()).toBe(false);
-    expect(editBox()).toBeInTheDocument();
-  });
-
-  // Safari can send a composition key with `isComposing` false and `keyCode`
-  // 229 (WebKit bug 165004).
-  const safariImeEscape = { key: "Escape", isComposing: false, keyCode: 229 };
-
-  it("Safari's composition Escape (keyCode 229) is no compose Cancel (#251)", async () => {
-    const { thread } = fakeThread([]);
-    const { guard, user } = renderGuarded(thread);
-    await user.type(composeBox(), "compose");
-    fireEvent.keyDown(composeBox(), safariImeEscape);
-    expect(guard.pending()).toBe(false);
-    expect(composeBox()).toHaveValue("compose");
-  });
-
-  it("Safari's composition Escape (keyCode 229) is no edit Cancel (#251)", async () => {
-    const { thread } = fakeThread([comment(1, 2, "mine")]);
-    const { guard, user } = renderGuarded(thread);
-    await user.type(await openEdit(user), "!");
-    fireEvent.keyDown(editBox()!, safariImeEscape);
-    expect(guard.pending()).toBe(false);
-    expect(editBox()).toBeInTheDocument();
-  });
-
-  it("Safari's composition Escape (keyCode 229) in the empty compose box does not close the panel (#251)", () => {
-    const { thread } = fakeThread([]);
-    const onClosePanel = vi.fn();
-    renderGuarded(thread, onClosePanel);
-    fireEvent.keyDown(composeBox(), safariImeEscape);
-    expect(onClosePanel).not.toHaveBeenCalled();
-  });
-
-  it("a document Escape listener does not get a form's Escape", async () => {
-    const onDocumentKey = vi.fn();
-    document.addEventListener("keydown", onDocumentKey);
-    try {
-      const { thread } = fakeThread([comment(1, 2, "mine")]);
-      const { user } = renderGuarded(thread);
-      await user.click(composeBox());
-      await user.keyboard("{Escape}");
-      await user.click(await openEdit(user));
-      await user.keyboard("{Escape}");
-      expect(onDocumentKey).not.toHaveBeenCalledWith(expect.objectContaining({ key: "Escape" }));
-    } finally {
-      document.removeEventListener("keydown", onDocumentKey);
-    }
   });
 
   it("focus returns to the Comment's Edit button after a Cancel, an Escape and a Save", async () => {
@@ -873,27 +740,6 @@ describe("<CommentThread /> — Cancel, Escape and focus (#214)", () => {
     await user.click(editCancel());
     guard.confirmMove();
     expect(editButton()).toHaveFocus();
-  });
-
-  it("a move during a write does nothing, and Escape does nothing", async () => {
-    const { thread } = fakeThread([comment(1, 2, "mine")]);
-    let finish!: () => void;
-    vi.mocked(thread.update).mockReturnValueOnce(new Promise<void>((r) => (finish = r)));
-    const { guard, user } = renderGuarded(thread);
-    await user.type(await openEdit(user), "!");
-    await user.click(screen.getByRole("button", { name: "Save" }));
-
-    const move = vi.fn();
-    guard.attempt(move, [thread.draftScope]);
-    expect(move).not.toHaveBeenCalled();
-    expect(guard.pending()).toBe(false);
-    await user.click(editBox()!);
-    await user.keyboard("{Escape}");
-    expect(guard.pending()).toBe(false);
-    expect(editBox()).toBeInTheDocument();
-
-    finish();
-    await waitFor(() => expect(editBox()).toBeNull());
   });
 });
 

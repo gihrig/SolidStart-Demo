@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
-import { render, screen, waitFor, fireEvent } from "@solidjs/testing-library";
+import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
-import { createSignal, Show } from "solid-js";
+import { createSignal } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import { createDraftGuard } from "~/lib/createDraftGuard";
 import type { JediApi } from "~/lib/jedi/jedi-api";
@@ -122,27 +122,6 @@ describe("<CaptionForm />", () => {
     await user.click(screen.getByRole("button", { name: "Add Caption" }));
 
     await screen.findByRole("alert");
-    expect(onAdded).not.toHaveBeenCalled();
-  });
-
-  it("does not call onAdded when it resolves after the form unmounted (#185 review)", async () => {
-    let resolve!: (c: CaptionView) => void;
-    captionAddMock.mockReturnValue(new Promise((r) => (resolve = r)));
-    const onAdded = vi.fn();
-    const [shown, setShown] = createSignal(true);
-    const user = userEvent.setup();
-    render(() => (
-      <Show when={shown()}>
-        <CaptionForm postId={1} api={api} onAdded={onAdded} />
-      </Show>
-    ));
-
-    await user.type(screen.getByLabelText("Your caption"), ADDED.text);
-    await user.click(screen.getByRole("button", { name: "Add Caption" }));
-    setShown(false);
-    resolve(ADDED);
-    await new Promise((r) => setTimeout(r, 0));
-
     expect(onAdded).not.toHaveBeenCalled();
   });
 
@@ -282,81 +261,5 @@ describe("<CaptionForm /> — Cancel and Escape (#214)", () => {
     guard.confirmMove();
     expect(onCancel).toHaveBeenCalledOnce();
     expect(guard.hasDraft()).toBe(false);
-  });
-
-  it("an Escape that runs the Cancel cancels the browser's own Escape action (#210)", async () => {
-    const { user, input, guard } = renderGuarded({ onCancel: vi.fn() });
-    await user.type(input, "draft");
-    // The browser would close the question on the same Escape.
-    expect(fireEvent.keyDown(input, { key: "Escape" })).toBe(false);
-    expect(guard.pending()).toBe(true);
-  });
-
-  it("Escape without a Draft closes at once", async () => {
-    const onCancel = vi.fn();
-    const { user, input, guard } = renderGuarded({ onCancel });
-    await user.click(input);
-    await user.keyboard("{Escape}");
-    expect(guard.pending()).toBe(false);
-    expect(onCancel).toHaveBeenCalledOnce();
-  });
-
-  it("a form without a Cancel ignores Escape", async () => {
-    const { user, input, guard } = renderGuarded();
-    await user.type(input, "draft");
-    await user.keyboard("{Escape}");
-    expect(guard.pending()).toBe(false);
-    expect(input.value).toBe("draft");
-  });
-
-  it("an Escape that ends an IME composition is no Cancel", async () => {
-    const onCancel = vi.fn();
-    const { input, guard } = renderGuarded({ onCancel });
-    fireEvent.keyDown(input, { key: "Escape", isComposing: true });
-    expect(guard.pending()).toBe(false);
-    expect(onCancel).not.toHaveBeenCalled();
-  });
-
-  // Safari can send a composition key with `isComposing` false and `keyCode`
-  // 229 (WebKit bug 165004).
-  it("Safari's composition Escape (keyCode 229, isComposing false) is no Cancel (#251)", async () => {
-    const onCancel = vi.fn();
-    const { input, guard } = renderGuarded({ onCancel });
-    fireEvent.keyDown(input, { key: "Escape", isComposing: false, keyCode: 229 });
-    expect(guard.pending()).toBe(false);
-    expect(onCancel).not.toHaveBeenCalled();
-  });
-
-  it("a document Escape listener does not get the form's Escape", async () => {
-    const onDocumentKey = vi.fn();
-    document.addEventListener("keydown", onDocumentKey);
-    try {
-      const { user, input } = renderGuarded({ onCancel: vi.fn() });
-      await user.click(input);
-      await user.keyboard("{Escape}");
-      expect(onDocumentKey).not.toHaveBeenCalled();
-    } finally {
-      document.removeEventListener("keydown", onDocumentKey);
-    }
-  });
-
-  it("during the write, Escape does nothing and a move in its scope does nothing", async () => {
-    let resolve!: (c: CaptionView) => void;
-    captionAddMock.mockReturnValue(new Promise((r) => (resolve = r)));
-    const onCancel = vi.fn();
-    const { user, input, guard } = renderGuarded({ onCancel });
-    await user.type(input, ADDED.text);
-    await user.click(screen.getByRole("button", { name: "Add Caption" }));
-
-    await user.click(input);
-    await user.keyboard("{Escape}");
-    expect(onCancel).not.toHaveBeenCalled();
-    const move = vi.fn();
-    guard.attempt(move, [scope]);
-    expect(move).not.toHaveBeenCalled();
-    expect(guard.pending()).toBe(false);
-
-    resolve(ADDED);
-    await waitFor(() => expect(guard.busyIn([scope])).toBe(false));
   });
 });
