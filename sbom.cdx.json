@@ -54845,12 +54845,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/follow-redirects@1.16.1?package-id=2bae5da20bc8ab31",
+      "bom-ref": "pkg:npm/follow-redirects@1.16.2?package-id=58ecf5ee6d55ed70",
       "type": "library",
       "name": "follow-redirects",
-      "version": "1.16.1",
-      "cpe": "cpe:2.3:a:follow-redirects:follow_redirects:1.16.1:*:*:*:*:node.js:*:*",
-      "purl": "pkg:npm/follow-redirects@1.16.1",
+      "version": "1.16.2",
+      "cpe": "cpe:2.3:a:follow-redirects:follow_redirects:1.16.2:*:*:*:*:node.js:*:*",
+      "purl": "pkg:npm/follow-redirects@1.16.2",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -65795,12 +65795,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/node-forge@1.4.0?package-id=4ae01438bc7f2ea7",
+      "bom-ref": "pkg:npm/node-forge@1.4.1?package-id=9b40bc689ac12c41",
       "type": "library",
       "name": "node-forge",
-      "version": "1.4.0",
-      "cpe": "cpe:2.3:a:digitalbazaar:forge:1.4.0:*:*:*:*:node.js:*:*",
-      "purl": "pkg:npm/node-forge@1.4.0",
+      "version": "1.4.1",
+      "cpe": "cpe:2.3:a:digitalbazaar:forge:1.4.1:*:*:*:*:node.js:*:*",
+      "purl": "pkg:npm/node-forge@1.4.1",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -81221,7 +81221,7 @@
         "pkg:npm/jiti@1.21.7?package-id=9612f125ce34ebaf",
         "pkg:npm/jiti@2.7.0?package-id=a0dd11c399ed4b31",
         "pkg:npm/mlly@1.8.2?package-id=5b21f304db4bb410",
-        "pkg:npm/node-forge@1.4.0?package-id=4ae01438bc7f2ea7",
+        "pkg:npm/node-forge@1.4.1?package-id=9b40bc689ac12c41",
         "pkg:npm/pathe@1.1.2?package-id=5ecb0c907a1952c0",
         "pkg:npm/pathe@2.0.3?package-id=e0040e6131f732fe",
         "pkg:npm/std-env@3.10.0?package-id=d4e207016619d35e",
@@ -82390,7 +82390,7 @@
       "ref": "pkg:npm/http-proxy@1.18.1?package-id=25b8d757baf9d9e9",
       "dependsOn": [
         "pkg:npm/eventemitter3@4.0.7?package-id=ac333c5191ed7533",
-        "pkg:npm/follow-redirects@1.16.1?package-id=2bae5da20bc8ab31",
+        "pkg:npm/follow-redirects@1.16.2?package-id=58ecf5ee6d55ed70",
         "pkg:npm/requires-port@1.0.0?package-id=1815be8586d3df94"
       ]
     },
@@ -82649,7 +82649,7 @@
         "pkg:npm/http-shutdown@1.2.2?package-id=02f901aae91713d9",
         "pkg:npm/jiti@1.21.7?package-id=9612f125ce34ebaf",
         "pkg:npm/jiti@2.7.0?package-id=a0dd11c399ed4b31",
-        "pkg:npm/node-forge@1.4.0?package-id=4ae01438bc7f2ea7",
+        "pkg:npm/node-forge@1.4.1?package-id=9b40bc689ac12c41",
         "pkg:npm/pathe@1.1.2?package-id=5ecb0c907a1952c0",
         "pkg:npm/pathe@2.0.3?package-id=e0040e6131f732fe",
         "pkg:npm/std-env@3.10.0?package-id=d4e207016619d35e",
