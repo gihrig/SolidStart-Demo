@@ -235,26 +235,27 @@ export function createSelection(deps: SelectionDeps): SelectionState {
   // fallback for `selectedPost`.
   const featured = (): PostView | undefined => posts()?.[0];
 
-  // The clicked Post, but only while the filter still lists it; then the held
-  // Post; then the held Post that an Event moved out of the filter, when
-  // `keep` (#187); otherwise the top-ranked visible Post. `visible ===
+  // The Post that the filter at `index` shows: the clicked Post, but only
+  // while the filter still lists it; then the `held` Post of the Post hold;
+  // then the `kept` Post, which an Event moved out of the filter, while it is
+  // the held Post (#187); otherwise the top-ranked visible Post. `visible ===
   // undefined` is the loading state (fall back to `featured`); an empty array
   // is a real Category with no Posts, which stays undefined so `<main>` can
   // show the empty panel instead of a stale Post.
-  const selectedPostIn = (
+  const postShownIn = (
     index: number,
-    heldId: number | undefined,
-    keep: boolean,
+    { held, kept }: { held?: number; kept?: number } = {},
   ): PostView | undefined => {
     const visible = visiblePostsIn(index);
     if (visible === undefined) return featured();
     const id = selectedPostId();
-    const kept =
-      keep && heldId !== undefined && heldId === keptPostId()
-        ? posts()?.find((p) => p.id === heldId)
-        : undefined;
+    const keptPost =
+      held !== undefined && kept === held ? posts()?.find((p) => p.id === held) : undefined;
     return (
-      visible.find((p) => p.id === id) ?? visible.find((p) => p.id === heldId) ?? kept ?? visible[0]
+      visible.find((p) => p.id === id) ??
+      visible.find((p) => p.id === held) ??
+      keptPost ??
+      visible[0]
     );
   };
   // Whether a Comments panel is open (#271): the Post's or the Caption's.
@@ -269,10 +270,11 @@ export function createSelection(deps: SelectionDeps): SelectionState {
   // scope, such as the New Post Draft, does not start it (#214).
   const heldPostId = createMemo<number | undefined>((held) =>
     guard.hasDraftIn(postScope) || postEditOn() !== undefined || panelOpen()
-      ? (held ?? untrack(() => selectedPostIn(categoryIndex(), undefined, false))?.id)
+      ? (held ?? untrack(() => postShownIn(categoryIndex()))?.id)
       : undefined,
   );
-  const selectedPost = () => selectedPostIn(categoryIndex(), heldPostId(), true);
+  const selectedPost = () =>
+    postShownIn(categoryIndex(), { held: heldPostId(), kept: keptPostId() });
 
   // A move that keeps the Post shown unmounts no form, so it is no guarded
   // move. A move to another Post closes the Post's forms only (#214).
@@ -284,9 +286,9 @@ export function createSelection(deps: SelectionDeps): SelectionState {
     guardPostChange(id, () => setSelectedPostId(id));
   };
   // A User's own Category change does not keep a held Post outside the filter
-  // (#187): it asks first, then moves.
+  // (#187), so it names no `kept` Post: it asks first, then moves.
   const setSelectedCategory = (index: number): void => {
-    guardPostChange(selectedPostIn(index, heldPostId(), false)?.id, () => {
+    guardPostChange(postShownIn(index, { held: heldPostId() })?.id, () => {
       setKeptPostId(undefined);
       deps.setCategoryIndex(index);
     });
