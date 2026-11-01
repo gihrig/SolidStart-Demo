@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import { createDraftGuard, createDraftScope, type DraftGuard } from "~/lib/createDraftGuard";
+import { authenticatedRpc } from "~/lib/backend-rpc";
 import { stubDialogModal } from "~/lib/test-utils";
 import FeaturedPost from "./FeaturedPost";
 import { DraftGuardContext } from "./DraftGuardContext";
@@ -260,6 +261,91 @@ describe("<FeaturedPost /> — Add Caption (#121)", () => {
     // A `posts` poke refetches the list: a new object for the same Post.
     setCurrent({ ...post });
     expect(input()).toHaveValue("draft");
+  });
+});
+
+describe("<FeaturedPost /> — a Draft keeps the Add Caption form open (#271)", () => {
+  const input = () => screen.queryByLabelText("Your caption");
+  // A Post with no Caption, so the form shows at once. `setShown` is a Caption
+  // that arrives, as a `post_caption` refetch delivers it.
+  function renderWithoutCaption() {
+    const user = userEvent.setup();
+    const [shown, setShown] = createSignal<CaptionView | undefined>();
+    const guard = createDraftGuard();
+    render(() => (
+      <DraftGuardContext.Provider value={guard}>
+        <FeaturedPost
+          draftScopes={DRAFT_SCOPES}
+          post={post}
+          caption={shown()}
+          loggedIn
+          captionsLoaded
+        />
+      </DraftGuardContext.Provider>
+    ));
+    return { user, guard, setShown };
+  }
+
+  it("a Caption that arrives does not close the form with a Draft; its text, Draft and Cancel stay", async () => {
+    const { user, guard, setShown } = renderWithoutCaption();
+    expect(screen.queryByRole("button", { name: "Cancel" }), "no Caption, no Cancel").toBeNull();
+    await user.type(input()!, "draft");
+
+    setShown(caption);
+    expect(input(), "the form stays").toHaveValue("draft");
+    expect(guard.hasDraft(), "its Draft stays").toBe(true);
+    expect(guard.notice(), "no notice").toBeUndefined();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    expect(screen.queryByText(caption.text)).toBeNull();
+    expect(addCaptionTrigger(), "Add stays off while the form is open").toBeDisabled();
+  });
+
+  it("without a Draft, the Caption replaces the form", () => {
+    const { setShown } = renderWithoutCaption();
+    expect(input()).toBeInTheDocument();
+    setShown(caption);
+    expect(input()).toBeNull();
+    expect(screen.getByText(caption.text)).toBeInTheDocument();
+  });
+
+  it("after a Cancel and Discard, the Caption line shows the Caption shown", async () => {
+    const { user, guard, setShown } = renderWithoutCaption();
+    await user.type(input()!, "draft");
+    setShown(caption);
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(guard.pending()).toBe(true);
+    guard.confirmMove();
+    expect(input()).toBeNull();
+    expect(screen.getByText(caption.text)).toBeInTheDocument();
+    expect(guard.notice()).toBeUndefined();
+  });
+
+  it("a Caption that arrives while the form writes keeps it; after the save, the line shows the Caption shown", async () => {
+    let answer!: (row: never) => void;
+    vi.mocked(authenticatedRpc).mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    const { user, guard, setShown } = renderWithoutCaption();
+    await user.type(input()!, "Mine");
+    const submit = screen
+      .getAllByRole("button", { name: "Add Caption" })
+      .find((b) => b.getAttribute("type") === "submit")!;
+    await user.click(submit);
+
+    // The poke of the new Caption can arrive before the write's result.
+    setShown(caption);
+    expect(input(), "the form stays while it writes").toHaveValue("Mine");
+    answer({
+      id: 2,
+      post_id: post.id,
+      author: { id: 2, name: "Bart", avatar_url: null },
+      text: "Mine",
+      like_count: 0,
+      comment_count: 0,
+    } as never);
+    await waitFor(() => expect(input()).toBeNull());
+    expect(screen.getByText(caption.text)).toBeInTheDocument();
+    expect(guard.hasDraft()).toBe(false);
+    expect(guard.notice()).toBeUndefined();
   });
 });
 

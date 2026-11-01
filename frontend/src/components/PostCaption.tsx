@@ -17,6 +17,9 @@ export interface PostCaptionProps {
   adding: boolean;
   /** Called when the form closes: on Cancel, or once the back-end commits. */
   onClose: () => void;
+  /** Called when the add form starts a Draft (#271). The owner then sets
+   *  `adding`, so a Caption that arrives does not close the form. */
+  onAddDraft?: () => void;
   /** Passed through to the form (the inject-or-default idiom). */
   api?: CaptionFormProps["api"];
   /** The line's element, which takes focus after the Owner's Caption delete
@@ -39,8 +42,11 @@ export interface PostCaptionProps {
  * the caption-submit form in the same place. The owner holds `adding` (its Add
  * Caption button sits in the Caption actions). A Post with no caption shows the
  * form directly — but only once its captions have loaded, so the form never
- * flashes during a load. The Owner's Caption edit (#187) takes the place of the
- * Caption text, keyed on the Caption id, so a refetch keeps its text.
+ * flashes during a load. At its first Draft, that form becomes an opened Add
+ * Caption form, as after a click on Add (#271): a Caption that arrives then
+ * does not close it. Without a Draft, the Caption replaces it. The Owner's
+ * Caption edit (#187) takes the place of the Caption text, keyed on the
+ * Caption id, so a refetch keeps its text.
  */
 export default function PostCaption(props: PostCaptionProps) {
   const showForm = () => props.canAdd && (props.adding || (props.captionsLoaded && !props.caption));
@@ -75,6 +81,7 @@ export default function PostCaption(props: PostCaptionProps) {
                 postId={postId}
                 api={props.api}
                 autofocus={props.adding}
+                onDraft={props.onAddDraft}
                 onAdded={props.onClose}
                 onCancel={onCancel()}
               />

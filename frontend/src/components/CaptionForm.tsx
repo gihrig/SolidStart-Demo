@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, on, onMount, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, on, onMount, Show, untrack } from "solid-js";
 import { hygieneLength } from "~/lib/hygieneLength";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import type { HygieneCaps } from "~/types/backend";
@@ -37,6 +37,9 @@ export interface CaptionFormProps {
   onCancel?: () => void;
   /** Focus the input on mount — set when a click opened the form. */
   autofocus?: boolean;
+  /** Runs each time the form starts a Draft (#271). The owner of the add form
+   *  that shows at once then keeps it open, as after a click on Add. */
+  onDraft?: () => void;
   /** The Jedi seam slice the form uses. Defaults to the real `jediApi`; a test
    *  injects an in-memory stand-in (the inject-or-default idiom). */
   api?: { captions: Pick<JediApi["captions"], "add"> };
@@ -88,6 +91,11 @@ export default function CaptionForm(props: CaptionFormProps) {
   const length = createMemo(() => hygieneLength(value()));
   const overLimit = () => length() > CAPTION_MAX_LENGTH;
   const dirty = () => (editing ? value() !== saved() : value().trim() !== "");
+  createEffect(
+    on(dirty, (isDirty) => {
+      if (isDirty) untrack(() => props.onDraft?.());
+    }),
+  );
   // The owner can change `onCancel` while the form is open, so `close` is an
   // accessor: the hook reads it at each Cancel.
   const base = {

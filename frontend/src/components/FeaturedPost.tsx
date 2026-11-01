@@ -229,7 +229,9 @@ export default function FeaturedPost(props: FeaturedPostProps) {
   // keeps that from closing the Caption form.
   const postId = createMemo(() => props.post.id);
   // Add Caption (#121): the button sits in the Caption actions, the form in the
-  // Caption line. A new Post starts on its caption, not on a form left open.
+  // Caption line. A new Post starts on its caption, not on a form left open. A
+  // Draft in the form that shows at once opens it too (#271), so a Caption
+  // that arrives does not close it.
   const [addingCaption, setAddingCaption] = createSignal(false);
   let addCaptionRef: HTMLButtonElement | undefined;
   createEffect(on(postId, () => setAddingCaption(false), { defer: true }));
@@ -392,6 +394,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
             canAdd={props.loggedIn ?? false}
             adding={addingCaption()}
             onClose={closeCaptionForm}
+            onAddDraft={() => setAddingCaption(true)}
             ref={(el) => (captionLineRef = el)}
             editing={captionEditOpen()}
             captionScope={props.draftScopes.caption}
