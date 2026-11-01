@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vite-plus/test";
-import { createRoot, createSignal } from "solid-js";
+import { batch, createRoot, createSignal } from "solid-js";
 import { createDraftGuard, createDraftScope, type DraftGuard } from "~/lib/createDraftGuard";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { AuthorRef, CaptionView, JediCategory, PostView } from "~/types/jedi";
@@ -261,6 +261,116 @@ describe("createSelection — the Post hold", () => {
       draft();
       load(RE_RANKED);
       expect(shownPost(selection)).toBe(3);
+    }));
+});
+
+describe("createSelection — an open Comments panel starts a Post hold (#271)", () => {
+  // Each panel, and the subject it opens on: Post 1, or its Caption 1.
+  const PANELS = [
+    ["post", 1],
+    ["caption", 1],
+  ] as const;
+  const openPanel = (selection: SelectionState, panel: "post" | "caption", on: number) => {
+    const [, setOpenOn] = selection.threadOpenOn[panel];
+    setOpenOn(on);
+    return () => setOpenOn(undefined);
+  };
+
+  it.each(PANELS)(
+    "an open %s panel keeps the Post shown across a re-rank, with no Draft, until it closes",
+    (panel, on) =>
+      withSelection(({ selection, guard, load }) => {
+        const close = openPanel(selection, panel, on);
+        load(RE_RANKED);
+        expect(guard.hasDraft()).toBe(false);
+        expect(shownPost(selection), "the Post card stays").toBe(1);
+
+        close();
+        expect(shownPost(selection), "it follows the ranking again").toBe(3);
+      }),
+  );
+
+  it.each(PANELS)(
+    "with an open %s panel and no Draft, a Post that leaves the Category stays shown with no question; after the close, it moves and speaks",
+    (panel, on) =>
+      withSelection(async ({ selection, guard, load }) => {
+        selection.setSelectedCategory(ANIMALS_ROW);
+        const close = openPanel(selection, panel, on);
+        load(POST_1_LEFT_ANIMALS);
+        await settle();
+        expect(guard.pending(), "no question").toBe(false);
+        expect(shownPost(selection)).toBe(1);
+
+        close();
+        await settle();
+        expect(shownPost(selection)).toBe(3);
+        expect(selection.announcement()).toBe(LEFT);
+      }),
+  );
+
+  it.each(PANELS)(
+    "Discard on the Category question also closes an open %s panel, and the Post card moves",
+    (panel, on) =>
+      withSelection(async ({ selection, guard, load, draft }) => {
+        selection.setSelectedCategory(ANIMALS_ROW);
+        openPanel(selection, panel, on);
+        draft(selection.draftScopes.post);
+        load(POST_1_LEFT_ANIMALS);
+        expect(guard.question()).toBe(LEFT_QUESTION);
+
+        guard.confirmMove();
+        await settle();
+        const [openOn] = selection.threadOpenOn[panel];
+        expect(openOn(), "the panel closes").toBeUndefined();
+        expect(shownPost(selection)).toBe(3);
+        expect(selection.announcement()).toBe(LEFT);
+      }),
+  );
+
+  it.each(PANELS)(
+    "with an open %s panel, a deleted Post still moves, and the live region speaks",
+    (panel, on) =>
+      withSelection(async ({ selection, guard, load }) => {
+        openPanel(selection, panel, on);
+        load(WITHOUT_POST_1);
+        await settle();
+        expect(guard.notice()).toBeUndefined();
+        expect(shownPost(selection)).toBe(3);
+        expect(selection.announcement()).toBe("This Post was deleted.");
+      }),
+  );
+
+  it.each(PANELS)(
+    "with an open %s panel, a Top Photo click or a Category change by the User still moves the Post card",
+    (panel, on) =>
+      withSelection(({ selection }) => {
+        openPanel(selection, panel, on);
+        selection.selectPost(2);
+        expect(shownPost(selection)).toBe(2);
+
+        selection.selectPost(1);
+        openPanel(selection, panel, on);
+        selection.setSelectedCategory(LANDSCAPE_ROW);
+        expect(shownPost(selection)).toBe(2);
+      }),
+  );
+
+  it("a switch between the panels in one step keeps the Post shown after a re-rank", () =>
+    withSelection(({ selection, load }) => {
+      const [, setPostOn] = selection.threadOpenOn.post;
+      const [, setCaptionOn] = selection.threadOpenOn.caption;
+      setPostOn(1);
+      load(RE_RANKED);
+      batch(() => {
+        setCaptionOn(1);
+        setPostOn(undefined);
+      });
+      expect(shownPost(selection)).toBe(1);
+      batch(() => {
+        setPostOn(1);
+        setCaptionOn(undefined);
+      });
+      expect(shownPost(selection)).toBe(1);
     }));
 });
 

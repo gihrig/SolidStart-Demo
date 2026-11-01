@@ -1,4 +1,4 @@
-import { createResource, createSignal, onCleanup, untrack, type Accessor } from "solid-js";
+import { batch, createResource, createSignal, onCleanup, untrack, type Accessor } from "solid-js";
 import { isServer } from "solid-js/web";
 import { passThroughGuard, type DraftGuard, type DraftScope } from "~/lib/createDraftGuard";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
@@ -105,11 +105,12 @@ export interface JediFeed {
   /** The selected Post's Comment thread (#124): the panel's open state, its
    *  rows and its writes. It loads only while the panel is open. The read is
    *  public, so it loads on the anonymous landing too; the writes need a login.
-   *  A close goes through the Draft guard. An open first closes the other
-   *  thread, in that thread's scope (#210). */
+   *  A close goes through the Draft guard. An open closes the other thread,
+   *  in that thread's scope (#210), in one step. While its panel is open, it
+   *  starts a Post hold (#271). */
   postComments: CommentThreadState;
   /** The shown Caption's Comment thread (#127), as `postComments` is for the
-   *  Post. While its panel is open, it holds the Caption shown. */
+   *  Post. While its panel is open, it starts a Caption hold and a Post hold. */
   captionComments: CommentThreadState;
   /** The Owner's writes on the shown Post (#187). The edit is the Edit
    *  dialog. When a save's Categories drop the selected one, the filter
@@ -259,9 +260,11 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     guard,
     parentScope: selection.draftScopes.caption,
   });
-  // One Comments panel at a time (#210). An open of one thread first closes
-  // the other, a guarded move in the other thread's scope. In the move, that
-  // close runs at once: the attempt checked the same scope.
+  // One Comments panel at a time (#210). An open of one thread closes the
+  // other, a guarded move in the other thread's scope. In the move, that close
+  // runs at once: the attempt checked the same scope. The switch is one step
+  // (#271): no panel is closed between the two, so the Post hold stays. The
+  // open comes first, as it reads the subject shown, which the Post hold keeps.
   const openAlone = (
     thread: CommentThreadState,
     other: CommentThreadState,
@@ -270,10 +273,14 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     setOpen: (open) => {
       if (!open || !other.open()) thread.setOpen(open);
       else
-        guard.attempt(() => {
-          other.setOpen(false);
-          thread.setOpen(true);
-        }, other.draftScope);
+        guard.attempt(
+          () =>
+            batch(() => {
+              thread.setOpen(true);
+              other.setOpen(false);
+            }),
+          other.draftScope,
+        );
     },
   });
   const postComments = openAlone(postThread, captionThread);

@@ -159,8 +159,8 @@ const inCategory = (post: PostView, category: JediCategory): boolean =>
  *
  * The Post shown is the clicked Post while the filter lists it, else the
  * top-ranked Post in the filter. A **Post hold** keeps the Post shown: a Draft
- * on the Post or an open Post edit starts it, and it ends when the last of
- * them ends. During a Post hold, a re-rank does not move the Post card, and a
+ * on the Post, an open Post edit or an open Comments panel starts it, and it
+ * ends when the last of them ends. During a Post hold, a re-rank does not move the Post card, and a
  * Post that an Event moves out of the Category stays shown. The guard asks
  * whether to keep the Drafts on it.
  *
@@ -239,14 +239,18 @@ export function createSelection(deps: SelectionDeps): SelectionState {
       visible.find((p) => p.id === id) ?? visible.find((p) => p.id === heldId) ?? kept ?? visible[0]
     );
   };
-  // The Post hold (#187): the Post shown when it started, while a Draft on the
-  // Post exists or the Post edit is open. A re-rank (a Like) must not move the
-  // Post card and discard the Draft or close the edit. With no Post hold, the
+  // Whether a Comments panel is open (#271): the Post's or the Caption's.
+  const panelOpen = () =>
+    postThreadOpenOn[0]() !== undefined || captionThreadOpenOn[0]() !== undefined;
+  // The Post hold (#187, #271): the Post shown when it started, while a Draft
+  // on the Post exists, the Post edit is open or a Comments panel is open. A
+  // re-rank (a Like) must not move the Post card and discard the Draft, close
+  // the edit or close a thread that the User reads. With no Post hold, the
   // Post card follows the ranking again. A held Post that leaves the list is
   // no longer shown, which is a forced discard. A Draft outside the Post
   // scope, such as the New Post Draft, does not start it (#214).
   const heldPostId = createMemo<number | undefined>((held) =>
-    guard.hasDraftIn(postScope) || postEditOn() !== undefined
+    guard.hasDraftIn(postScope) || postEditOn() !== undefined || panelOpen()
       ? (held ?? untrack(() => selectedPostIn(categoryIndex(), undefined, false))?.id)
       : undefined,
   );
@@ -360,9 +364,14 @@ export function createSelection(deps: SelectionDeps): SelectionState {
     if (!category || heldPostId() !== shown.id) return;
     if (!inCategory(shown, category) || inCategory(next, category)) return;
     setKeptPostId(shown.id);
-    // "Discard" also closes the Post edit, so the Post hold ends and the Post
-    // card moves: no form stays open with text that the guard no longer holds.
-    guard.ask(leftCategoryNotice(category.name), postScope, () => setPostEditOn(undefined));
+    // "Discard" also closes the Post edit and the Comments panels (#271), so
+    // the Post hold ends and the Post card moves: no form stays open with text
+    // that the guard no longer holds.
+    guard.ask(leftCategoryNotice(category.name), postScope, () => {
+      setPostEditOn(undefined);
+      postThreadOpenOn[1](undefined);
+      captionThreadOpenOn[1](undefined);
+    });
   };
   // When the Post card moves off a Post that is no longer in the selected
   // Category, and the User did not change the Category, the live region says

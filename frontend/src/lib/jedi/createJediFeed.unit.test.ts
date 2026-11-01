@@ -799,6 +799,28 @@ describe("createJediFeed — one Comments panel at a time (#210)", () => {
       expect(jedi.selectedCaption()?.id, "a re-rank after the switch").toBe(winner.id);
     }));
 
+  it("after a re-rank, a switch between the panels keeps the Post shown (#271)", () =>
+    withLive(async (jedi, _guard, mem) => {
+      jedi.postComments.setOpen(true);
+      const [first, second, ...rest] = RANKED_POSTS;
+      postListMock.mockResolvedValue([second, first, ...rest]);
+      mem.emit(pokeOn(Channel.posts));
+      await settle();
+      expect(jedi.visiblePosts()![0].id).toBe(3);
+      expect(jedi.selectedPost()?.id, "the open panel keeps the Post shown").toBe(1);
+      expect(jedi.postComments.open(), "and the panel stays open").toBe(true);
+
+      jedi.captionComments.setOpen(true);
+      expect(jedi.selectedPost()?.id, "a switch keeps it").toBe(1);
+      expect(jedi.captionComments.open()).toBe(true);
+      jedi.postComments.setOpen(true);
+      expect(jedi.selectedPost()?.id, "and a switch back").toBe(1);
+      expect(jedi.postComments.open()).toBe(true);
+
+      jedi.postComments.setOpen(false);
+      expect(jedi.selectedPost()?.id, "after the close, it follows the ranking").toBe(3);
+    }));
+
   it("a Caption pick leaves an open Post panel open", () =>
     withLive(async (jedi) => {
       jedi.postComments.setOpen(true);
