@@ -54,18 +54,25 @@ For the PR's CI: list every check that did not pass, read its log
 (`gh run view <run> --job <job> --log`), and say in one sentence why it does or
 does not block. Hiding a red check makes the whole summary untrustworthy.
 
-Say what each proof covers. A claim about an older commit ("its tests pass at
-commit 5") is not proven by CI at the merge. Either run the check at that commit
-(in a temporary `git worktree`), or write the proof as it is: "CI passed at the
-merge; commit 5 was not re-run." A reader must never take an indirect proof for a
-direct one.
+Say what each proof covers. Two kinds of claim need different proof:
+
+- **A claim about the merged code** (a grep, an export, a prop, a test that
+  exists, a doc text): prove it on `origin/<base>`. If you cannot, it is a gap.
+- **A claim about history** (a test failed before its fix, the tests passed at
+  commit 5): the record may prove it — the commit message, the PR body, or CI on
+  that commit. Name the record, and say that it was not re-run: "Commit 7
+  records that these tests failed before the fix; not re-run at close." Re-run it
+  in a temporary `git worktree` only if the record is missing or the user asks.
+
+A reader must never take an indirect proof for a direct one.
 
 ## 4. Decide
 
 - **Every criterion proven, and no blocking check failed:** write the comment and
   close the issue (unless this is a dry run).
-- **Anything else** — a criterion not met, a proof you could not get, the PR not
-  merged, a blocking check red: do not close. Report each gap with its evidence,
+- **Anything else** — a criterion not met, a claim about the merged code that
+  you could not prove, a claim about history with no record, the PR not merged,
+  a blocking check red: do not close. Report each gap with its evidence,
   and offer the fix. Closing an issue with an unmet criterion hides open work.
 
 ## 5. Write the comment
@@ -73,6 +80,10 @@ direct one.
 Write it to the session scratchpad (e.g. `close<N>.md`). Keep it short, in the
 repo's plain English: one fact per sentence, sentences under 20 words. Use
 checklists, not tables (GitHub's comment column is narrow).
+
+The comment posts from the user's GitHub account, so it speaks for the user.
+Write it without "I", "we" or "the PR author": state the facts, and say "not
+re-run at close" for a check that was not run again.
 
 The user asks for a concise summary, so each line must earn its place:
 
