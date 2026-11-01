@@ -54,6 +54,10 @@ export interface CommentThreadDeps {
   /** The app's Draft guard (ADR-0030). Defaults to the pass-through guard,
    *  which runs each move at once. */
   guard?: DraftGuard;
+  /** The scope of the parent shown, which the thread's scope sits under
+   *  (#271): a move that names it also closes the thread's forms. None: the
+   *  thread's scope has no parent. */
+  parentScope?: DraftScope;
 }
 
 /** The Comment thread of the parent shown (#124, #127), and its actions. */
@@ -118,14 +122,14 @@ export function createCommentThread(deps: CommentThreadDeps): {
   const parentId = createMemo(deps.parentId);
   const { api, events } = deps;
   const guard = deps.guard ?? passThroughGuard;
-  const draftScope: DraftScope = createDraftScope(`${events.upsert}-thread`);
+  const draftScope: DraftScope = createDraftScope(`${events.upsert}-thread`, deps.parentScope);
   // The parent the panel was opened on. A change of the parent shown closes
   // the panel at once, and the effect clears it, so a return does not reopen it.
   const [openOn, setOpenOn] = deps.openOn ?? createSignal<number>();
   const open = (): boolean => openOn() !== undefined && openOn() === parentId();
   const setOpen = (value: boolean): void => {
     if (value) setOpenOn(parentId());
-    else guard.attempt(() => setOpenOn(undefined), [draftScope]);
+    else guard.attempt(() => setOpenOn(undefined), draftScope);
   };
   createEffect(on(parentId, () => setOpenOn(undefined), { defer: true }));
   // The parent whose thread is shown: the parent shown while the panel is open.

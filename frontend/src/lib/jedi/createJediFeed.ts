@@ -135,8 +135,8 @@ export interface JediFeed {
   visibleCaptions: Accessor<CaptionView[] | undefined>;
   selectedCaption: Accessor<CaptionView | undefined>;
   /** Select a Caption (a Top Captions click). A change of the Caption shown
-   *  closes its Comments panel, so it goes through the Draft guard, in that
-   *  panel's scope (#127). */
+   *  closes its Comments panel and its edit, so it goes through the Draft
+   *  guard, in the Caption scope (#127, #271). */
   selectCaption: (id: number) => void;
   selectedCategory: Accessor<number>;
   /** Select a category by index. A change that changes the selected Post goes
@@ -175,7 +175,8 @@ export interface JediFeed {
   postOwner: OwnerWrites<PostChanges>;
   /** The Owner's writes on the shown Caption (#187). The edit is the form in
    *  the Caption line. A save rejects for a Caption that got a Like. A delete
-   *  releases the Drafts in the Caption's Comments panel. */
+   *  releases every Draft on the Caption: its edit's and its Comments panel's
+   *  (#271). */
   captionOwner: OwnerWrites<string>;
   /** The scope of the Add Caption form's Draft (#214). */
   addCaptionScope: DraftScope;
@@ -236,6 +237,13 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const [selectedCategory, setSelectedCategoryIndex] = createSignal(0);
   const [selectedPostId, setSelectedPostId] = createSignal<number | undefined>();
   const [selectedCaptionId, setSelectedCaptionId] = createSignal<number | undefined>();
+  // The scopes of the Post card's forms (#271, ADR-0030 addendum). The Post
+  // thread scope and the Caption scope sit under the Post scope, and the
+  // Caption thread scope under the Caption scope. Each Post move and Event
+  // names the Post scope, so none touches a Draft outside the Post, such as
+  // the New Post Draft (#214).
+  const postScope = createDraftScope("post");
+  const captionScope = createDraftScope("caption", postScope);
 
   const [announcement, setAnnouncement] = createSignal("");
   // The live region speaks a change of its text, so it clears first: a repeat
@@ -323,16 +331,10 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // it exists or the Post edit is open (#187): a re-rank (a Like) must not move
   // the article and discard the Draft or close the edit. With no hold, the
   // article follows the ranking again. A held Post that leaves the list is no
-  // longer shown, which is a forced discard. A Draft outside the Post's scopes,
+  // longer shown, which is a forced discard. A Draft outside the Post scope,
   // such as the New Post Draft, does not hold it (#214).
-  //
-  // The scopes of every form on the Post (#214): each Post move and Event, and
-  // the Owner's own Post delete, names them, so none touches a Draft outside
-  // the Post. They are set below, once the forms' scopes exist; the hold's
-  // first run comes before any form, so it reads none.
-  let postScopes: readonly DraftScope[] = [];
   const heldPostId = createMemo<number | undefined>((held) =>
-    guard.hasDraftIn(postScopes) || postEditOn() !== undefined
+    guard.hasDraftIn(postScope) || postEditOn() !== undefined
       ? (held ?? untrack(() => selectedPostIn(selectedCategory(), undefined, false))?.id)
       : undefined,
   );
@@ -342,7 +344,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // move. A move to another Post unmounts the Post's forms only (#214).
   const guardPostChange = (nextPostId: number | undefined, move: () => void): void => {
     if (nextPostId === selectedPost()?.id) move();
-    else guard.attempt(move, postScopes);
+    else guard.attempt(move, postScope);
   };
 
   // Truthy only when a real (non-"All") category filters every post away. A
@@ -412,14 +414,10 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     );
   };
   // A pick of the Caption shown unmounts no form, so it is no guarded move. A
-  // pick names both scopes that it unmounts: the edit and the thread (#187).
+  // pick names the Caption scope: it closes the edit and the thread (#187).
   const selectCaption = (id: number): void => {
     if (id === selectedCaption()?.id) setSelectedCaptionId(id);
-    else
-      guard.attempt(
-        () => setSelectedCaptionId(id),
-        [captionEdit.draftScope, captionComments.draftScope],
-      );
+    else guard.attempt(() => setSelectedCaptionId(id), captionScope);
   };
 
   // The Owner's edits (#187). Each is open on its subject's id, so a change of
@@ -428,7 +426,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     openOn: Accessor<number | undefined>,
     setOpenOn: (id: number | undefined) => void,
     shownId: () => number | undefined,
-    name: string,
+    draftScope: DraftScope,
   ): EditState => {
     // A memo, so a refetched subject with the same id does not close the edit.
     const shown = createMemo(shownId);
@@ -436,17 +434,19 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     return {
       open: () => openOn() !== undefined && openOn() === shown(),
       setOpen: (open) => setOpenOn(open ? shown() : undefined),
-      draftScope: createDraftScope(name),
+      draftScope,
     };
   };
-  const postEdit = editState(postEditOn, setPostEditOn, () => selectedPost()?.id, "post-edit");
+  // The Post edit and the Add Caption form report in the Post scope, and the
+  // Caption edit in the Caption scope: no move closes one of them alone.
+  const postEdit = editState(postEditOn, setPostEditOn, () => selectedPost()?.id, postScope);
   const captionEdit = editState(
     captionEditOn,
     setCaptionEditOn,
     () => selectedCaption()?.id,
-    "caption-edit",
+    captionScope,
   );
-  const addCaptionScope: DraftScope = createDraftScope("add-caption");
+  const addCaptionScope: DraftScope = postScope;
 
   // The viewer's like state of the selected Post (#122) and of the selected
   // Caption (#123). The read needs a login, so each loads only while a live
@@ -473,6 +473,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     api: api.comments,
     events: POST_COMMENT_EVENTS,
     guard,
+    parentScope: postScope,
   });
   // The shown Caption's Comment thread (#127), the same way.
   const { thread: captionThread, onEvent: onCaptionCommentEvent } = createCommentThread({
@@ -481,6 +482,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     events: CAPTION_COMMENT_EVENTS,
     openOn: captionThreadOpenOn,
     guard,
+    parentScope: captionScope,
   });
   // One Comments panel at a time (#210). An open of one thread first closes
   // the other, a guarded move in the other thread's scope. In the move, that
@@ -496,19 +498,11 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
         guard.attempt(() => {
           other.setOpen(false);
           thread.setOpen(true);
-        }, [other.draftScope]);
+        }, other.draftScope);
     },
   });
   const postComments = openAlone(postThread, captionThread);
   const captionComments = openAlone(captionThread, postThread);
-
-  postScopes = [
-    postEdit.draftScope,
-    captionEdit.draftScope,
-    addCaptionScope,
-    postComments.draftScope,
-    captionComments.draftScope,
-  ];
 
   // A held Post that is not in the full list was deleted (#187): a forced
   // discard of every Draft on it. A viewer without a Draft hears it. A held
@@ -519,7 +513,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     if (!shown || ownDeletedPosts.has(shown.id)) return;
     const next = list.find((p) => p.id === shown.id);
     if (!next) {
-      if (!guard.discardIn(postScopes, POST_DELETED_NOTICE)) {
+      if (!guard.discardIn(postScope, POST_DELETED_NOTICE)) {
         announce(POST_WAS_DELETED_ANNOUNCEMENT);
       }
       return;
@@ -530,7 +524,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     setKeptPostId(shown.id);
     // "Discard" also closes the Post edit, so the hold ends and the article
     // moves: no form stays open with text that the guard no longer holds.
-    guard.ask(leftCategoryNotice(category.name), postScopes, () => setPostEditOn(undefined));
+    guard.ask(leftCategoryNotice(category.name), postScope, () => setPostEditOn(undefined));
   };
   // When the article moves off a Post that is no longer in the selected
   // Category, and the User did not change the Category, the live region says
@@ -550,13 +544,12 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     ),
   );
   // A held Caption that is not in its Post's list was deleted (#187): a forced
-  // discard of the Drafts in its Comments panel.
+  // discard of the Drafts on it, in its edit and in its Comments panel.
   const noteDeletedCaption = (postId: number, captions: CaptionView[]): void => {
     const shown = selectedCaption();
     if (!shown || shown.postId !== postId || ownDeletedCaptions.has(shown.id)) return;
     if (captions.some((c) => c.id === shown.id)) return;
-    const scopes = [captionEdit.draftScope, captionComments.draftScope];
-    if (!guard.discardIn(scopes, CAPTION_DELETED_NOTICE)) {
+    if (!guard.discardIn(captionScope, CAPTION_DELETED_NOTICE)) {
       announce(CAPTION_WAS_DELETED_ANNOUNCEMENT);
     }
   };
@@ -583,14 +576,14 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   };
   const deletePost = async (id: number): Promise<void> => {
     if (selectedPost()?.id !== id) throw new Error(POST_CHANGED_ERROR);
-    await deleteSubject(id, ownDeletedPosts, api.posts.remove, () => guard.release(postScopes));
+    await deleteSubject(id, ownDeletedPosts, api.posts.remove, () => guard.release(postScope));
     announce(POST_DELETED_ANNOUNCEMENT);
     void refetchPosts();
   };
   const deleteCaption = async (id: number): Promise<void> => {
     if (selectedCaption()?.id !== id) throw new Error(CAPTION_CHANGED_ERROR);
     await deleteSubject(id, ownDeletedCaptions, api.captions.remove, () =>
-      guard.release([captionComments.draftScope]),
+      guard.release(captionScope),
     );
     announce(CAPTION_DELETED_ANNOUNCEMENT);
     void refetchCaptions();
@@ -692,13 +685,13 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
       edit: postEdit,
       save: updatePost,
       remove: deletePost,
-      removeDiscardsDraft: () => guard.hasDraftIn(postScopes),
+      removeDiscardsDraft: () => guard.hasDraftIn(postScope),
     },
     captionOwner: {
       edit: captionEdit,
       save: updateCaption,
       remove: deleteCaption,
-      removeDiscardsDraft: () => guard.hasDraftIn([captionComments.draftScope]),
+      removeDiscardsDraft: () => guard.hasDraftIn(captionScope),
     },
     addCaptionScope,
     announcement,

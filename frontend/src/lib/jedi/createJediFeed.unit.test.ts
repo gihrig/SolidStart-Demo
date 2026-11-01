@@ -863,7 +863,7 @@ describe("createJediFeed — one Comments panel at a time (#210)", () => {
       guard.cancelMove();
       expect(jedi.postComments.open(), "Keep editing keeps the open thread").toBe(true);
       expect(jedi.captionComments.open()).toBe(false);
-      expect(guard.hasDraftIn([jedi.postComments.draftScope]), "and its Draft").toBe(true);
+      expect(guard.hasDraftIn(jedi.postComments.draftScope), "and its Draft").toBe(true);
 
       jedi.captionComments.setOpen(true);
       guard.confirmMove();
@@ -1138,21 +1138,26 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
       expect(guard.hasDraft(), "no Draft is released").toBe(true);
     }));
 
-  it("the Owner's Caption delete releases only its Comments panel's Drafts", () =>
+  it("the Owner's Caption delete releases the Caption scope: its edit's and its panel's Drafts", () =>
     withLive(async (jedi, guard) => {
       const shown = jedi.selectedCaption()!.id;
       const outside = Symbol("add caption");
       guard.report(outside, true, jedi.addCaptionScope);
       expect(jedi.captionOwner.removeDiscardsDraft()).toBe(false);
-      guard.report(Symbol("caption comment"), true, jedi.captionComments.draftScope);
+      const comment = Symbol("caption comment");
+      guard.report(comment, true, jedi.captionComments.draftScope);
       expect(jedi.captionOwner.removeDiscardsDraft()).toBe(true);
+      const edit = Symbol("caption edit");
+      guard.report(edit, true, jedi.captionOwner.edit.draftScope);
       withoutCaption(shown);
 
       await jedi.captionOwner.remove(shown);
       await settle();
 
       expect(captionRemoveMock).toHaveBeenCalledWith(shown);
-      expect(guard.holds(outside), "a Draft outside the panel stays").toBe(true);
+      expect(guard.holds(comment), "the panel's Draft is released").toBe(false);
+      expect(guard.holds(edit), "and the Caption edit's (#271)").toBe(false);
+      expect(guard.holds(outside), "a Draft outside the Caption stays").toBe(true);
       expect(guard.notice()).toBeUndefined();
       expect(jedi.selectedCaption()?.id).not.toBe(shown);
       expect(jedi.announcement()).toBe("Caption deleted.");
@@ -1505,13 +1510,8 @@ describe("createJediFeed — a Draft outside the Post, such as the New Post Draf
   const POST_DELETED = "This Post was deleted. Your unsaved changes were discarded.";
   // The New Post Draft has no scope.
   const newPost = Symbol("new post");
-  const postScopes = (jedi: JediFeed) => [
-    jedi.postOwner.edit.draftScope,
-    jedi.captionOwner.edit.draftScope,
-    jedi.addCaptionScope,
-    jedi.postComments.draftScope,
-    jedi.captionComments.draftScope,
-  ];
+  // The Post scope: the scope of the Post edit (#271).
+  const postScope = (jedi: JediFeed) => jedi.postOwner.edit.draftScope;
   // The Post's two Comments panels: one opens at a time (#210).
   const PANELS = ["postComments", "captionComments"] as const;
   // Open the Post edit and one Comments panel, as the Post's own forms.
@@ -1524,7 +1524,7 @@ describe("createJediFeed — a Draft outside the Post, such as the New Post Draf
     expect(jedi.postOwner.edit.open(), "the Post edit closes").toBe(false);
     expect(jedi.postComments.open(), "the Comments panel closes").toBe(false);
     expect(jedi.captionComments.open(), "the Caption Comments panel closes").toBe(false);
-    expect(guard.hasDraftIn(postScopes(jedi)), "no Draft in the Post's scopes").toBe(false);
+    expect(guard.hasDraftIn(postScope(jedi)), "no Draft in the Post scope").toBe(false);
   };
   const withoutPost1 = () => postListMock.mockResolvedValue(RANKED_POSTS.slice(1));
 
@@ -1638,7 +1638,7 @@ describe("createJediFeed — a Draft outside the Post, such as the New Post Draf
     withLive(async (jedi, guard, mem) => {
       const addCaption = Symbol("add caption");
       guard.report(addCaption, true, jedi.addCaptionScope);
-      expect(guard.hasDraftIn([jedi.addCaptionScope])).toBe(true);
+      expect(guard.hasDraftIn(jedi.addCaptionScope)).toBe(true);
       jedi.selectPost(2);
       expect(guard.pending()).toBe(true);
       guard.cancelMove();

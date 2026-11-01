@@ -115,7 +115,7 @@ describe("<PostCaption />", () => {
     ));
 
     await user.type(input()!, "draft");
-    expect(guard.hasDraftIn([addScope])).toBe(true);
+    expect(guard.hasDraftIn(addScope)).toBe(true);
   });
 
   it("shows no form while the Post's captions are loading", () => {

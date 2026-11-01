@@ -89,17 +89,17 @@ function renderDraftForm(
 describe("useDraftForm (#270)", () => {
   it("reports its Draft and its write in its scope; an unmount ends both", async () => {
     const { guard, form, scope, setDirty, setOpen, resolve } = renderDraftForm();
-    expect(guard.hasDraftIn([scope])).toBe(true);
+    expect(guard.hasDraftIn(scope)).toBe(true);
     setDirty(false);
-    expect(guard.hasDraftIn([scope])).toBe(false);
+    expect(guard.hasDraftIn(scope)).toBe(false);
 
     const done = form.submit();
     expect(form.pending()).toBe(true);
-    expect(guard.busyIn([scope])).toBe(true);
+    expect(guard.busyIn(scope)).toBe(true);
     resolve("saved");
     await done;
     expect(form.pending()).toBe(false);
-    expect(guard.busyIn([scope])).toBe(false);
+    expect(guard.busyIn(scope)).toBe(false);
 
     void form.submit();
     setOpen(false);

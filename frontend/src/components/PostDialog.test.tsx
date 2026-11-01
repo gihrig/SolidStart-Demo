@@ -426,7 +426,7 @@ describe("<PostDialog /> — the New Post Draft (#214)", () => {
   it("the Draft has no scope: a move that names scopes does not ask", async () => {
     const { user, form, guard } = renderCreate();
     await user.type(form.getByLabelText("Title"), "typed");
-    expect(guard.hasDraftIn([createDraftScope("post-edit")])).toBe(false);
+    expect(guard.hasDraftIn(createDraftScope("post-edit"))).toBe(false);
     expect(guard.hasDraftIn()).toBe(true);
   });
 

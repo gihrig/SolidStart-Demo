@@ -198,9 +198,9 @@ describe("<CaptionForm /> — the edit mode (#187)", () => {
 
   it("holds a Draft in its scope while the text differs; Cancel asks, and Discard drops it", async () => {
     const { user, input, guard, onCancel } = renderEdit();
-    expect(guard.hasDraftIn([scope])).toBe(false);
+    expect(guard.hasDraftIn(scope)).toBe(false);
     await user.type(input, "!");
-    expect(guard.hasDraftIn([scope])).toBe(true);
+    expect(guard.hasDraftIn(scope)).toBe(true);
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(guard.pending()).toBe(true);
