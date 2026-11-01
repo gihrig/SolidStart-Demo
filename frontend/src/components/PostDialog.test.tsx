@@ -3,7 +3,7 @@ import { render, screen, within, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal, Suspense } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
-import { createDraftGuard } from "~/lib/createDraftGuard";
+import { createDraftGuard, createDraftScope } from "~/lib/createDraftGuard";
 import { stubDialogModal } from "~/lib/test-utils";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { JediCategory, PostChanges, PostDraft, PostView } from "~/types/jedi";
@@ -426,7 +426,7 @@ describe("<PostDialog /> — the New Post Draft (#214)", () => {
   it("the Draft has no scope: a move that names scopes does not ask", async () => {
     const { user, form, guard } = renderCreate();
     await user.type(form.getByLabelText("Title"), "typed");
-    expect(guard.hasDraftIn([Symbol("post-edit")])).toBe(false);
+    expect(guard.hasDraftIn([createDraftScope("post-edit")])).toBe(false);
     expect(guard.hasDraftIn()).toBe(true);
   });
 

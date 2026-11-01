@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vite-plus/test";
 import { createMemo, createRoot } from "solid-js";
-import { createDraftGuard, type DraftGuard } from "./createDraftGuard";
+import { createDraftGuard, createDraftScope, type DraftGuard } from "./createDraftGuard";
 
 // The app-level Draft guard (ADR-0030): forms report yes or no, and every
 // user-started move goes through `attempt`.
@@ -10,8 +10,8 @@ const compose = Symbol("compose");
 const edit1 = Symbol("edit-1");
 const caption = Symbol("caption");
 // The scope of one panel's forms, and of one edit form.
-const panel = Symbol("panel");
-const captionEdit = Symbol("caption-edit");
+const panel = createDraftScope("panel");
+const captionEdit = createDraftScope("caption-edit");
 
 function withGuard(run: (guard: DraftGuard) => void) {
   createRoot((dispose) => {
@@ -214,6 +214,91 @@ describe("createDraftGuard — scopes", () => {
       expect(inPanel()).toBe(true);
       guard.report(compose, false, panel);
       expect(inPanel()).toBe(false);
+    }));
+});
+
+describe("createDraftGuard — the scope tree (#271)", () => {
+  // The Post card's scopes (ADR-0030 addendum, #271).
+  const post = createDraftScope("post");
+  const postThread = createDraftScope("post-thread", post);
+  const captionScope = createDraftScope("caption", post);
+  const captionThread = createDraftScope("caption-thread", captionScope);
+
+  it("each call makes a new scope, with its name and its parent", () => {
+    expect(captionThread.name).toBe("caption-thread");
+    expect(captionThread.parent).toBe(captionScope);
+    expect(post.parent).toBeUndefined();
+    expect(createDraftScope("post")).not.toBe(post);
+  });
+
+  it("a call that names a scope matches the Drafts in it and in each scope under it", () =>
+    withGuard((guard) => {
+      guard.report(compose, true, captionThread);
+      expect(guard.hasDraftIn([captionThread]), "the scope itself").toBe(true);
+      expect(guard.hasDraftIn([captionScope]), "its parent").toBe(true);
+      expect(guard.hasDraftIn([post]), "its grandparent").toBe(true);
+      expect(guard.hasDraftIn([postThread]), "a sibling of its parent").toBe(false);
+
+      guard.report(compose, false, captionThread);
+      guard.report(edit1, true, captionScope);
+      expect(guard.hasDraftIn([captionThread]), "a scope under the Draft's scope").toBe(false);
+    }));
+
+  it("a move that names a parent asks about the Drafts under it, and Discard drops only them", () =>
+    withGuard((guard) => {
+      const move = vi.fn();
+      guard.report(compose, true, postThread);
+      guard.report(edit1, true, captionThread);
+      guard.report(caption, true, panel);
+      guard.attempt(move, [post]);
+      expect(guard.pending()).toBe(true);
+      guard.confirmMove();
+      expect(move).toHaveBeenCalledOnce();
+      expect(guard.holds(compose)).toBe(false);
+      expect(guard.holds(edit1)).toBe(false);
+      expect(guard.holds(caption), "a Draft outside the tree stays").toBe(true);
+    }));
+
+  it("a write under a parent stops a move that names it", () =>
+    withGuard((guard) => {
+      const move = vi.fn();
+      guard.reportBusy(compose, true, captionThread);
+      expect(guard.busyIn([post])).toBe(true);
+      expect(guard.busyIn([postThread])).toBe(false);
+      guard.attempt(move, [post]);
+      expect(move).not.toHaveBeenCalled();
+    }));
+
+  it("a forced discard, a release and a question that name a parent reach the scopes under it", () =>
+    withGuard((guard) => {
+      guard.report(compose, true, captionThread);
+      const restore = guard.release([captionScope]);
+      expect(guard.holds(compose), "release").toBe(false);
+      restore();
+
+      guard.ask("This Post is no longer in Animals.", [post]);
+      expect(guard.pending(), "ask").toBe(true);
+      guard.cancelMove();
+
+      expect(guard.discardIn([post], "This Post was deleted.")).toBe(true);
+      expect(guard.holds(compose), "discardIn").toBe(false);
+    }));
+
+  it("a call with no scope matches every Draft", () =>
+    withGuard((guard) => {
+      guard.report(compose, true, captionThread);
+      guard.report(caption, true);
+      expect(guard.hasDraftIn()).toBe(true);
+      expect(guard.discardIn(undefined, "This Post was deleted.")).toBe(true);
+      expect(guard.hasDraft()).toBe(false);
+    }));
+
+  it("a Draft with no scope matches only a call with no scope", () =>
+    withGuard((guard) => {
+      guard.report(caption, true);
+      expect(guard.hasDraftIn([post])).toBe(false);
+      expect(guard.hasDraftIn([captionThread])).toBe(false);
+      expect(guard.hasDraftIn()).toBe(true);
     }));
 });
 

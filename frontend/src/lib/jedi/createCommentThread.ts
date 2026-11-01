@@ -8,7 +8,12 @@ import {
   type Signal,
 } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
-import { passThroughGuard, type DraftGuard, type DraftScope } from "~/lib/createDraftGuard";
+import {
+  createDraftScope,
+  passThroughGuard,
+  type DraftGuard,
+  type DraftScope,
+} from "~/lib/createDraftGuard";
 import { toCommentView, type CommentApi } from "~/lib/jedi/jedi-api";
 import type { FeedHandler } from "~/lib/feed";
 import type { CommentView } from "~/types/jedi";
@@ -113,7 +118,7 @@ export function createCommentThread(deps: CommentThreadDeps): {
   const parentId = createMemo(deps.parentId);
   const { api, events } = deps;
   const guard = deps.guard ?? passThroughGuard;
-  const draftScope: DraftScope = Symbol(`${events.upsert}-thread`);
+  const draftScope: DraftScope = createDraftScope(`${events.upsert}-thread`);
   // The parent the panel was opened on. A change of the parent shown closes
   // the panel at once, and the effect clears it, so a return does not reopen it.
   const [openOn, setOpenOn] = deps.openOn ?? createSignal<number>();

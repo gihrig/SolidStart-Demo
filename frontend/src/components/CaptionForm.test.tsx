@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
-import { createDraftGuard } from "~/lib/createDraftGuard";
+import { createDraftGuard, createDraftScope } from "~/lib/createDraftGuard";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { CaptionView } from "~/types/jedi";
 import CaptionForm, { type CaptionFormProps } from "./CaptionForm";
@@ -158,7 +158,7 @@ describe("<CaptionForm />", () => {
 });
 
 describe("<CaptionForm /> — the edit mode (#187)", () => {
-  const scope = Symbol("caption-edit");
+  const scope = createDraftScope("caption-edit");
 
   function renderEdit() {
     const [caption, setCaption] = createSignal(ADDED);
@@ -232,7 +232,7 @@ describe("<CaptionForm /> — the edit mode (#187)", () => {
 });
 
 describe("<CaptionForm /> — Cancel and Escape (#214)", () => {
-  const scope = Symbol("add-caption");
+  const scope = createDraftScope("add-caption");
 
   function renderGuarded(props: Partial<CaptionFormProps> = {}) {
     const guard = createDraftGuard();

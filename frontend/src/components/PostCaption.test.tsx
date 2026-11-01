@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
-import { createDraftGuard } from "~/lib/createDraftGuard";
+import { createDraftGuard, createDraftScope } from "~/lib/createDraftGuard";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { CaptionView } from "~/types/jedi";
@@ -106,7 +106,7 @@ describe("<PostCaption />", () => {
 
   it("the add form reports its Draft in the add scope (#214)", async () => {
     const guard = createDraftGuard();
-    const addScope = Symbol("add-caption");
+    const addScope = createDraftScope("add-caption");
     const user = userEvent.setup();
     render(() => (
       <DraftGuardContext.Provider value={guard}>

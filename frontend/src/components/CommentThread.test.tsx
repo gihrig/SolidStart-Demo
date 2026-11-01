@@ -3,7 +3,7 @@ import { render, screen, waitFor, within, fireEvent } from "@solidjs/testing-lib
 import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
-import { createDraftGuard, type DraftGuard } from "~/lib/createDraftGuard";
+import { createDraftGuard, createDraftScope, type DraftGuard } from "~/lib/createDraftGuard";
 import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { CommentView } from "~/types/jedi";
@@ -46,7 +46,7 @@ function fakeThread(initial: CommentView[] | undefined) {
   const thread: CommentThreadState = {
     open: () => true,
     setOpen: () => {},
-    draftScope: Symbol("post-comments"),
+    draftScope: createDraftScope("post-comments"),
     comments: () => state.rows,
     deleted: (id) => state.rows !== undefined && state.rows.every((c) => c.id !== id),
     error,

@@ -9,7 +9,12 @@ import {
   type Accessor,
 } from "solid-js";
 import { isServer } from "solid-js/web";
-import { passThroughGuard, type DraftGuard, type DraftScope } from "~/lib/createDraftGuard";
+import {
+  createDraftScope,
+  passThroughGuard,
+  type DraftGuard,
+  type DraftScope,
+} from "~/lib/createDraftGuard";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { createLikeState } from "~/lib/jedi/createLikeState";
 import {
@@ -431,7 +436,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     return {
       open: () => openOn() !== undefined && openOn() === shown(),
       setOpen: (open) => setOpenOn(open ? shown() : undefined),
-      draftScope: Symbol(name),
+      draftScope: createDraftScope(name),
     };
   };
   const postEdit = editState(postEditOn, setPostEditOn, () => selectedPost()?.id, "post-edit");
@@ -441,7 +446,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     () => selectedCaption()?.id,
     "caption-edit",
   );
-  const addCaptionScope: DraftScope = Symbol("add-caption");
+  const addCaptionScope: DraftScope = createDraftScope("add-caption");
 
   // The viewer's like state of the selected Post (#122) and of the selected
   // Caption (#123). The read needs a login, so each loads only while a live

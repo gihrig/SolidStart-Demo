@@ -1,9 +1,24 @@
 import { batch, createSignal, getOwner, onCleanup, type Accessor } from "solid-js";
 import { isServer } from "solid-js/web";
 
-/** A group of forms that one move unmounts, such as the forms in one panel.
- *  A move that names scopes asks only about the Drafts in them. */
-export type DraftScope = symbol;
+/** A group of forms that one move closes, such as the forms in one panel. A
+ *  scope can sit under a parent scope: a guard call that names a scope also
+ *  matches the Drafts in each scope under it. */
+export interface DraftScope {
+  readonly name: string;
+  readonly parent?: DraftScope;
+}
+
+/** A new scope, under `parent` when it is given. Each call makes a new scope. */
+export function createDraftScope(name: string, parent?: DraftScope): DraftScope {
+  return parent === undefined ? { name } : { name, parent };
+}
+
+/** Whether `scope` is `outer` or sits under it (#271). */
+const within = (scope: DraftScope | undefined, outer: DraftScope): boolean => {
+  for (let s = scope; s !== undefined; s = s.parent) if (s === outer) return true;
+  return false;
+};
 
 /** The app-level guard for unsaved form text (ADR-0030). */
 export interface DraftGuard {
@@ -159,13 +174,14 @@ export function createDraftGuard(): DraftGuard {
     sync();
   };
 
-  // The keys in `forms` in `scopes`; with no `scopes`, every key.
+  // The keys in `forms` in `scopes` or in a scope under one of them; with no
+  // `scopes`, every key.
   const keysIn = (
     forms: Map<symbol, DraftScope | undefined>,
     scopes: readonly DraftScope[] | undefined,
   ): symbol[] =>
     [...forms]
-      .filter(([, s]) => scopes === undefined || (s !== undefined && scopes.includes(s)))
+      .filter(([, s]) => scopes === undefined || scopes.some((outer) => within(s, outer)))
       .map(([key]) => key);
   const draftsIn = (scopes: readonly DraftScope[] | undefined) => keysIn(drafts, scopes);
   const busyIn = (scopes?: readonly DraftScope[]) => keysIn(busy, scopes).length > 0;

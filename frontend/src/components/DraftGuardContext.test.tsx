@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from "@solidjs/testing-library";
 import { A, MemoryRouter, Route } from "@solidjs/router";
 import userEvent from "@testing-library/user-event";
 import { createSignal, Show } from "solid-js";
-import { createDraftGuard, type DraftGuard } from "~/lib/createDraftGuard";
+import { createDraftGuard, createDraftScope, type DraftGuard } from "~/lib/createDraftGuard";
 import { stubDialogModal } from "~/lib/test-utils";
 import {
   DraftGuardContext,
@@ -37,7 +37,7 @@ function renderDraftForm(
   const [open, setOpen] = createSignal(true);
   const [dirty, setDirty] = createSignal(true);
   const [rerun, setRerun] = createSignal(0);
-  const scope = Symbol("panel");
+  const scope = createDraftScope("panel");
   const { write, resolve, reject } = deferredWrite<string | undefined>();
   const close = vi.fn(() => setOpen(false));
   const onSaved = vi.fn();

@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
-import { createDraftGuard, type DraftGuard } from "~/lib/createDraftGuard";
+import { createDraftGuard, createDraftScope, type DraftGuard } from "~/lib/createDraftGuard";
 import { stubDialogModal } from "~/lib/test-utils";
 import FeaturedPost from "./FeaturedPost";
 import { DraftGuardContext } from "./DraftGuardContext";
@@ -551,7 +551,7 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
     return {
       open,
       setOpen,
-      draftScope: Symbol("post-comments"),
+      draftScope: createDraftScope("post-comments"),
       comments,
       deleted: () => false,
       error: () => undefined,
@@ -675,7 +675,7 @@ describe("<FeaturedPost /> — the Caption Comments panel (#127)", () => {
     return {
       open,
       setOpen,
-      draftScope: Symbol("comments"),
+      draftScope: createDraftScope("comments"),
       comments,
       deleted: () => false,
       error: () => undefined,
@@ -805,7 +805,7 @@ function fakeOwner<Changes>(
 ): OwnerWrites<Changes> {
   const [open, setOpen] = createSignal(false);
   return {
-    edit: { open, setOpen, draftScope: Symbol("edit") },
+    edit: { open, setOpen, draftScope: createDraftScope("edit") },
     save: writes.save ?? (() => Promise.resolve()),
     remove: writes.remove ?? (() => Promise.resolve()),
     removeDiscardsDraft: writes.removeDiscardsDraft ?? (() => false),
