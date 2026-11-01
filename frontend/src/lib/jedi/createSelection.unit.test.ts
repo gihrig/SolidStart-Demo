@@ -267,7 +267,7 @@ describe("createSelection — the Post hold", () => {
 describe("createSelection — the Caption hold", () => {
   it("an open Caption Comments panel keeps the Caption shown across a re-rank", () =>
     withSelection(async ({ selection, loadCaptions }) => {
-      const [, setThreadOpenOn] = selection.captionThreadOpenOn;
+      const [, setThreadOpenOn] = selection.threadOpenOn.caption;
       setThreadOpenOn(1);
       await loadCaptions(1, [caption(2, 1), caption(1, 1)]);
       expect(shownCaption(selection)).toBe(1);

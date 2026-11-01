@@ -15,8 +15,34 @@ import {
   type DraftGuard,
   type DraftScope,
 } from "~/lib/createDraftGuard";
-import type { EditState, OwnerWrites } from "~/lib/jedi/createJediFeed";
 import type { CaptionView, JediCategory, PostChanges, PostView } from "~/types/jedi";
+
+/** One edit's open state (#187): the Post edit or the Caption edit. */
+export interface EditState {
+  /** Whether the edit is open on the subject shown. A change of the subject
+   *  shown closes it. While it is open, it starts the hold of its subject. */
+  open: Accessor<boolean>;
+  /** Open the edit on the subject shown, or close it. A close is the form's
+   *  own Cancel or Save, so it is no guarded move. */
+  setOpen: (open: boolean) => void;
+}
+
+/** The Owner's writes on one subject (#187): its edit, save and delete. */
+export interface OwnerWrites<Changes> {
+  /** The edit's open state. */
+  edit: EditState;
+  /** Save the Owner's edit of the subject `id`: only the changes. Refetches at
+   *  once. Rejects on failure. */
+  save: (id: number, changes: Changes) => Promise<void>;
+  /** Delete the subject `id`, as its Owner: the one the delete question
+   *  asked about. It must still be the subject shown, or nothing is deleted
+   *  and it rejects (PR #216 review). It releases the Drafts on the subject
+   *  first, as the poke can arrive before the result, and refetches at once.
+   *  Rejects on failure, and the guard holds the Drafts again. */
+  remove: (id: number) => Promise<void>;
+  /** Whether `remove` would discard a Draft: the delete question says so. */
+  removeDiscardsDraft: () => boolean;
+}
 
 /** The back-end calls of the selection: the Captions read and the Owner's
  *  writes (#187). Each rejects on failure. */
@@ -86,12 +112,12 @@ export interface SelectionState {
   draftScopes: { post: DraftScope; caption: DraftScope };
   /** The message of the route's polite live region (#187). */
   announcement: Accessor<string>;
-  /** The Post that the Post Comments panel is open on: the signal that the
-   *  Post thread gets through `openOn`. */
-  postThreadOpenOn: Signal<number | undefined>;
-  /** The Caption that the Caption Comments panel is open on: the signal that
-   *  the Caption thread gets through `openOn`. It starts a Caption hold. */
-  captionThreadOpenOn: Signal<number | undefined>;
+  /** The subject that each Comments panel is open on: the signal that each
+   *  thread gets through `openOn`. The Caption one starts a Caption hold. */
+  threadOpenOn: {
+    post: Signal<number | undefined>;
+    caption: Signal<number | undefined>;
+  };
   /** The cause check of a new Post list (#187). The owner of the Posts calls
    *  it before the view sees the list: a deleted Post is a forced discard of
    *  the Drafts on it, and a Post that left the Category asks. */
@@ -446,8 +472,7 @@ export function createSelection(deps: SelectionDeps): SelectionState {
     },
     draftScopes: { post: postScope, caption: captionScope },
     announcement,
-    postThreadOpenOn,
-    captionThreadOpenOn,
+    threadOpenOn: { post: postThreadOpenOn, caption: captionThreadOpenOn },
     checkPosts,
     refetchCaptions: () => void refetchCaptions(),
   };
