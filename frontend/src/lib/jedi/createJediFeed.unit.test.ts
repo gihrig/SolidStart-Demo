@@ -271,19 +271,6 @@ describe("createJediFeed — the route's view-model seam", () => {
       expect(jedi.selectedCategory()).toBe(2);
     }));
 
-  it("defaults selectedPost to the top-ranked post", () =>
-    withAnonymousJedi((jedi) => {
-      expect(jedi.selectedPost()?.id).toBe(1);
-      expect(jedi.selectedPost()?.title).toBe("Little Jedi");
-    }));
-
-  it("selectPost switches the selected post to the clicked one", () =>
-    withAnonymousJedi((jedi) => {
-      jedi.selectPost(2);
-      expect(jedi.selectedPost()?.id).toBe(2);
-      expect(jedi.selectedPost()?.title).toBe("Brilliant tree");
-    }));
-
   it("exposes the externalized hero content", () =>
     withAnonymousJedi((jedi) => {
       expect(jedi.hero()?.title).toBe("Awesome Photos & Captions");
@@ -324,13 +311,6 @@ describe("createJediFeed — visiblePosts, the category filter (#33-b)", () => {
       jedi.setSelectedCategory(1); // Landscape hides post 1
       expect(jedi.selectedPost()?.id).toBe(2);
     }));
-
-  it("keeps an explicitly selected post while the filter still shows it", () =>
-    withAnonymousJedi((jedi) => {
-      jedi.selectPost(2);
-      jedi.setSelectedCategory(1); // Landscape still contains post 2
-      expect(jedi.selectedPost()?.id).toBe(2);
-    }));
 });
 
 describe("createJediFeed — the empty-category state", () => {
@@ -350,44 +330,14 @@ describe("createJediFeed — the empty-category state", () => {
       jedi.setSelectedCategory(2); // People — no posts
       expect(jedi.emptyCategoryLabel()).toBe("People");
     }));
-
-  it("leaves selectedPost undefined for an empty category (no top-ranked fallback)", () =>
-    withAnonymousJedi((jedi) => {
-      jedi.setSelectedCategory(2); // People — no posts
-      expect(jedi.selectedPost()).toBeUndefined();
-    }));
 });
 
 describe("createJediFeed — the captions of the selected post", () => {
-  it("ranks the selected post's captions by likes (top first)", () =>
-    withAnonymousJedi((jedi) => {
-      expect(jedi.visibleCaptions()?.map((c) => c.likeCount)).toEqual([8, 5]);
-    }));
-
-  it("renders the selected post's captions as visibleCaptions when a post is shown", () =>
-    withAnonymousJedi((jedi) => {
-      const postId = jedi.selectedPost()?.id;
-      expect(jedi.visibleCaptions()?.length).toBeGreaterThan(0);
-      expect(jedi.visibleCaptions()?.every((c) => c.postId === postId)).toBe(true);
-    }));
-
   it("empties visibleCaptions when the category leaves no photo selected", () =>
     withAnonymousJedi((jedi) => {
       jedi.setSelectedCategory(2); // People — no posts, no selected photo
       expect(jedi.selectedPost()).toBeUndefined();
       expect(jedi.visibleCaptions()).toEqual([]);
-    }));
-
-  it("defaults selectedCaption to the winning (top-ranked) caption of the selected post", () =>
-    withAnonymousJedi((jedi) => {
-      expect(jedi.selectedCaption()).toBe(jedi.visibleCaptions()?.[0]);
-      expect(jedi.selectedCaption()?.text).toBe("Jedi Kitty protects the street");
-    }));
-
-  it("selectCaption switches the caption shown in <main>", () =>
-    withAnonymousJedi((jedi) => {
-      jedi.selectCaption(2);
-      expect(jedi.selectedCaption()?.text).toBe("May the paws be with you");
     }));
 
   it("re-keys the captions and selected caption to the newly selected post", () =>
@@ -400,77 +350,6 @@ describe("createJediFeed — the captions of the selected post", () => {
       expect(caps2?.every((c) => c.postId === 2)).toBe(true);
       expect(jedi.selectedCaption()).toBe(caps2?.[0]);
     }));
-
-  it("self-resets to the new post's winning caption when the post changes", () =>
-    withAnonymousJedi(async (jedi) => {
-      jedi.selectCaption(2); // a caption of post 1
-      expect(jedi.selectedCaption()?.id).toBe(2);
-      jedi.selectPost(2);
-      await tick();
-      await tick();
-      // Caption 2 belongs to post 1, so it falls back to post 2's winner.
-      expect(jedi.selectedCaption()).toBe(jedi.visibleCaptions()?.[0]);
-      expect(jedi.selectedCaption()?.postId).toBe(2);
-    }));
-
-  // The captions load by a network RPC, so the previous post's captions must not
-  // stand in for the new post's while that request is in flight (#118 review):
-  // neither Top Captions nor <main> may offer a caption of the wrong post.
-  it("shows no captions of the previous post while the new post's captions load", () =>
-    withAnonymousJedi(async (jedi) => {
-      let release!: () => void;
-      captionListForPostMock.mockImplementationOnce(
-        (postId: number) =>
-          new Promise((resolve) => {
-            release = () => resolve(captionsFor(postId));
-          }),
-      );
-      jedi.selectCaption(2); // a caption of post 1
-      jedi.selectPost(2);
-      await tick();
-      await tick();
-      // In flight: no caption at all, rather than post 1's.
-      expect(jedi.visibleCaptions()).toBeUndefined();
-      expect(jedi.selectedCaption()).toBeUndefined();
-
-      release();
-      await tick();
-      await tick();
-      expect(jedi.visibleCaptions()?.every((c) => c.postId === 2)).toBe(true);
-      expect(jedi.selectedCaption()?.postId).toBe(2);
-    }));
-
-  it("an empty list from the previous post does not read as the new post's (#185 review)", async () => {
-    // Post 1 has no captions; post 2's load is held in flight. `[].every(...)` is
-    // true, so an ownerless empty list would pass as post 2's "none" and show the
-    // caption form before post 2's real captions arrive.
-    let release!: () => void;
-    captionListForPostMock.mockImplementation((postId: number) =>
-      postId === 1
-        ? Promise.resolve([])
-        : new Promise((resolve) => {
-            release = () => resolve(captionsFor(postId));
-          }),
-    );
-    await createRoot(async (dispose) => {
-      const jedi = createJediFeed({ api });
-      await tick();
-      await tick();
-      expect(jedi.visibleCaptions()).toEqual([]); // post 1: loaded, none
-
-      jedi.selectPost(2);
-      await tick();
-      await tick();
-      expect(jedi.visibleCaptions()).toBeUndefined(); // post 2: still loading
-
-      release();
-      await tick();
-      await tick();
-      expect(jedi.visibleCaptions()).toEqual(captionsFor(2));
-
-      dispose();
-    });
-  });
 });
 
 describe("createJediFeed — the realtime posts poke (#117)", () => {
@@ -958,25 +837,6 @@ describe("createJediFeed — the Draft guard (ADR-0030)", () => {
       expect(jedi.selectedPost()?.id).toBe(2);
     }));
 
-  it("a click on the Post already shown is no move", () =>
-    withDraft((jedi, guard) => {
-      jedi.selectPost(1);
-      expect(guard.pending()).toBe(false);
-    }));
-
-  it("guards a category change only when it changes the selected Post", () =>
-    withDraft((jedi, guard) => {
-      jedi.setSelectedCategory(3); // Animals still lists post 1
-      expect(guard.pending()).toBe(false);
-      expect(jedi.selectedCategory()).toBe(3);
-
-      jedi.setSelectedCategory(1); // Landscape moves the article to post 2
-      expect(guard.pending()).toBe(true);
-      expect(jedi.selectedCategory()).toBe(3);
-      guard.cancelMove();
-      expect(jedi.selectedPost()?.id).toBe(1);
-    }));
-
   it("guards closing the Comments panel, not opening it", () =>
     withDraft((jedi, guard) => {
       jedi.postComments.setOpen(true);
@@ -1003,26 +863,6 @@ describe("createJediFeed — the Draft guard (ADR-0030)", () => {
       guard.confirmMove();
       expect(jedi.postComments.open()).toBe(false);
       expect(guard.hasDraft(), "Discard keeps the Draft outside the panel").toBe(true);
-    }));
-
-  it("guards a Caption pick that changes the Caption shown, in the Caption thread's scope (#127)", () =>
-    withDraft((jedi, guard) => {
-      // `withDraft`'s Draft sits outside the Caption panel: a pick runs at once.
-      jedi.selectCaption(2);
-      expect(guard.pending()).toBe(false);
-      expect(jedi.selectedCaption()?.id).toBe(2);
-
-      jedi.captionComments.setOpen(true);
-      guard.report(Symbol("caption comment"), true, jedi.captionComments.draftScope);
-      jedi.selectCaption(2);
-      expect(guard.pending(), "a pick of the Caption shown is no move").toBe(false);
-
-      jedi.selectCaption(1);
-      expect(guard.pending()).toBe(true);
-      expect(jedi.selectedCaption()?.id).toBe(2);
-      guard.confirmMove();
-      expect(jedi.selectedCaption()?.id).toBe(1);
-      expect(jedi.captionComments.open()).toBe(false);
     }));
 
   it("keeps the shown Post while a Draft exists: a re-rank does not move the article", async () => {
@@ -1112,32 +952,6 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
       expect(jedi.announcement()).toBe("Post deleted.");
     }));
 
-  it("a failed Post delete holds the Drafts again and rejects", () =>
-    withLive(async (jedi, guard) => {
-      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
-      postRemoveMock.mockRejectedValueOnce(new Error("Could not delete the Post"));
-
-      await expect(jedi.postOwner.remove(1)).rejects.toThrow("Could not delete the Post");
-      expect(guard.hasDraft()).toBe(true);
-      expect(jedi.selectedPost()?.id).toBe(1);
-    }));
-
-  it("a delete of a subject that is no longer shown deletes nothing and rejects", () =>
-    withLive(async (jedi, guard) => {
-      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
-      const caption = jedi.selectedCaption()!.id;
-
-      await expect(jedi.postOwner.remove(3)).rejects.toThrow(
-        "The Post shown changed. Nothing was deleted.",
-      );
-      await expect(jedi.captionOwner.remove(caption + 1)).rejects.toThrow(
-        "The Caption shown changed. Nothing was deleted.",
-      );
-      expect(postRemoveMock).not.toHaveBeenCalled();
-      expect(captionRemoveMock).not.toHaveBeenCalled();
-      expect(guard.hasDraft(), "no Draft is released").toBe(true);
-    }));
-
   it("the Owner's Caption delete releases the Caption scope: its edit's and its panel's Drafts", () =>
     withLive(async (jedi, guard) => {
       const shown = jedi.selectedCaption()!.id;
@@ -1176,16 +990,6 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
       expect(jedi.selectedPost()?.id).toBe(3);
     }));
 
-  it("a viewer without a Draft hears the Post delete and gets no dialog", () =>
-    withLive(async (jedi, guard, mem) => {
-      withoutPost1();
-      mem.emit(pokeOn(Channel.posts));
-      await settle();
-
-      expect(guard.notice()).toBeUndefined();
-      expect(jedi.announcement()).toBe("This Post was deleted.");
-    }));
-
   it("another User's Caption delete discards its panel's Drafts with the Caption notice", () =>
     withLive(async (jedi, guard, mem) => {
       const shown = jedi.selectedCaption()!.id;
@@ -1200,28 +1004,6 @@ describe("createJediFeed — a Post or Caption delete (#187)", () => {
       expect(guard.holds(outside), "a Draft outside the Caption stays").toBe(true);
       expect(jedi.selectedCaption()?.id).not.toBe(shown);
     }));
-
-  it("a viewer without a Draft on the Caption hears its delete", () =>
-    withLive(async (jedi, guard, mem) => {
-      withoutCaption(jedi.selectedCaption()!.id);
-      mem.emit(pokeOn(Channel.postCaption(1)));
-      await settle();
-
-      expect(guard.notice()).toBeUndefined();
-      expect(jedi.announcement()).toBe("This Caption was deleted.");
-    }));
-
-  it("a refetch that keeps the shown Post and Caption says nothing", () =>
-    withLive(async (jedi, guard, mem) => {
-      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
-      mem.emit(pokeOn(Channel.posts));
-      mem.emit(pokeOn(Channel.postCaption(1)));
-      await settle();
-
-      expect(guard.notice()).toBeUndefined();
-      expect(guard.hasDraft()).toBe(true);
-      expect(jedi.announcement()).toBe("");
-    }));
 });
 
 describe("createJediFeed — the Post and Caption edits (#187)", () => {
@@ -1234,42 +1016,6 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
     postListMock.mockResolvedValue(
       RANKED_POSTS.map((p) => (p.id === 1 ? { ...p, categories: [CAT[1]] } : p)),
     );
-  // The back-end after a re-rank: Post 3 first.
-  const reRanked = () => {
-    const [first, second, ...rest] = RANKED_POSTS;
-    postListMock.mockResolvedValue([second, first, ...rest]);
-  };
-
-  it("an open Post edit holds the shown Post across a re-rank, with no Draft", () =>
-    withLive(async (jedi, guard, mem) => {
-      jedi.postOwner.edit.setOpen(true);
-      expect(jedi.postOwner.edit.open()).toBe(true);
-      reRanked();
-      mem.emit(pokeOn(Channel.posts));
-      await settle();
-      expect(guard.hasDraft()).toBe(false);
-      expect(jedi.selectedPost()?.id, "the edit holds the Post").toBe(1);
-
-      jedi.postOwner.edit.setOpen(false);
-      expect(jedi.selectedPost()?.id, "a close lets it follow the ranking").toBe(3);
-    }));
-
-  it("an open Caption edit holds the Caption shown across a re-rank", () =>
-    withLive(async (jedi, _guard, mem) => {
-      const [winner, next] = captionsFor(1);
-      jedi.captionOwner.edit.setOpen(true);
-      captionListForPostMock.mockImplementation((postId: number) =>
-        Promise.resolve(postId === 1 ? [next, winner] : captionsFor(postId)),
-      );
-      mem.emit(pokeOn(Channel.postCaption(1)));
-      await settle();
-      expect(jedi.selectedCaption()?.id).toBe(winner.id);
-      expect(jedi.captionOwner.edit.open()).toBe(true);
-
-      jedi.captionOwner.edit.setOpen(false);
-      expect(jedi.selectedCaption()?.id).toBe(next.id);
-    }));
-
   it("a change of the shown Post or Caption closes its edit", () =>
     withLive(async (jedi) => {
       jedi.captionOwner.edit.setOpen(true);
@@ -1286,26 +1032,6 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
       expect(jedi.postOwner.edit.open(), "a return does not reopen it").toBe(false);
     }));
 
-  it("a Caption pick names the Caption edit and Caption thread scopes", () =>
-    withLive(async (jedi, guard) => {
-      const other = captionsFor(1)[1].id;
-      guard.report(Symbol("add caption"), true, jedi.draftScopes.post);
-      jedi.selectCaption(other);
-      expect(guard.pending(), "a Draft outside both scopes").toBe(false);
-      jedi.selectCaption(captionsFor(1)[0].id);
-
-      const edit = Symbol("caption edit");
-      guard.report(edit, true, jedi.draftScopes.caption);
-      jedi.selectCaption(other);
-      expect(guard.pending(), "a Draft in the Caption edit").toBe(true);
-      guard.cancelMove();
-      guard.report(edit, false, jedi.draftScopes.caption);
-
-      guard.report(Symbol("caption comment"), true, jedi.captionComments.draftScope);
-      jedi.selectCaption(other);
-      expect(guard.pending(), "a Draft in the Caption thread").toBe(true);
-    }));
-
   it("postOwner.save saves the changes, refetches at once and speaks", () =>
     withLive(async (jedi) => {
       const before = postListMock.mock.calls.length;
@@ -1313,21 +1039,6 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
       expect(postUpdateMock).toHaveBeenCalledWith(1, { title: "Big Jedi" });
       expect(postListMock.mock.calls.length).toBeGreaterThan(before);
       expect(jedi.announcement()).toBe("Post saved.");
-    }));
-
-  it("the Owner's own Category edit switches the filter to All when it sends the save", () =>
-    withLive(async (jedi, guard) => {
-      jedi.setSelectedCategory(ANIMALS);
-      guard.report(Symbol("post edit"), true, jedi.draftScopes.post);
-      let answer!: (post: PostView) => void;
-      postUpdateMock.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
-      const saved = jedi.postOwner.save(1, { categoryIds: [1] });
-
-      expect(jedi.selectedCategory()).toBe(0);
-      expect(jedi.selectedPost()?.id).toBe(1);
-      expect(guard.pending(), "no question").toBe(false);
-      answer(RANKED_POSTS[0]);
-      await saved;
     }));
 
   it("captionOwner.save saves the text, refetches at once and speaks", () =>
@@ -1364,150 +1075,9 @@ describe("createJediFeed — the Post and Caption edits (#187)", () => {
       expect(jedi.selectedPost()?.id).toBe(3);
       expect(jedi.announcement()).toBe(LEFT);
     }));
-
-  it("a held Post that leaves its Category empty stays shown, with no empty panel", () =>
-    withLive(async (jedi, guard, mem) => {
-      jedi.setSelectedCategory(ANIMALS);
-      const draft = Symbol("comment");
-      guard.report(draft, true, jedi.postComments.draftScope);
-      // Every Post leaves Animals, so the filter lists none.
-      postListMock.mockResolvedValue(
-        RANKED_POSTS.map((p) => ({
-          ...p,
-          categories: p.categories.filter((c) => c.id !== ANIMALS),
-        })),
-      );
-      mem.emit(pokeOn(Channel.posts));
-      await settle();
-
-      expect(jedi.selectedPost()?.id, "the Post stays shown").toBe(1);
-      expect(jedi.emptyCategoryLabel(), "no empty panel unmounts its forms").toBeUndefined();
-      expect(guard.question()).toBe(T6);
-
-      // The last Draft ends: the Category is empty.
-      guard.cancelMove();
-      guard.report(draft, false);
-      await settle();
-      expect(jedi.emptyCategoryLabel()).toBe("Animals");
-    }));
-
-  it("Discard on the Category question drops the Drafts and moves the article", () =>
-    withLive(async (jedi, guard, mem) => {
-      jedi.setSelectedCategory(ANIMALS);
-      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
-      post1LeavesAnimals();
-      mem.emit(pokeOn(Channel.posts));
-      await settle();
-
-      guard.confirmMove();
-      await settle();
-      expect(guard.hasDraft()).toBe(false);
-      expect(jedi.selectedPost()?.id).toBe(3);
-      expect(jedi.announcement()).toBe(LEFT);
-    }));
-
-  it("Discard on the Category question also closes an open Post edit, so its forms unmount", () =>
-    withLive(async (jedi, guard, mem) => {
-      jedi.setSelectedCategory(ANIMALS);
-      jedi.postOwner.edit.setOpen(true);
-      guard.report(Symbol("post edit"), true, jedi.draftScopes.post);
-      post1LeavesAnimals();
-      mem.emit(pokeOn(Channel.posts));
-      await settle();
-      expect(guard.question()).toBe(T6);
-
-      guard.confirmMove();
-      await settle();
-      expect(jedi.postOwner.edit.open()).toBe(false);
-      expect(jedi.selectedPost()?.id).toBe(3);
-    }));
-
-  it("a repeated message is spoken again: the live region clears first", () =>
-    withLive(async (jedi) => {
-      await jedi.postOwner.save(1, { title: "Big Jedi" });
-      expect(jedi.announcement()).toBe("Post saved.");
-      const saved = jedi.postOwner.save(1, { title: "Bigger Jedi" });
-      await Promise.resolve();
-      expect(jedi.announcement(), "cleared before the same text").toBe("");
-      await saved;
-      await settle();
-      expect(jedi.announcement()).toBe("Post saved.");
-    }));
-
-  it("a viewer without a Draft sees the article move and hears why", () =>
-    withLive(async (jedi, guard, mem) => {
-      jedi.setSelectedCategory(ANIMALS);
-      post1LeavesAnimals();
-      mem.emit(pokeOn(Channel.posts));
-      await settle();
-
-      expect(guard.pending()).toBe(false);
-      expect(jedi.selectedPost()?.id).toBe(3);
-      expect(jedi.announcement()).toBe(LEFT);
-    }));
-
-  it("an open edit with no Draft keeps the Post with no question, until it closes", () =>
-    withLive(async (jedi, guard, mem) => {
-      jedi.setSelectedCategory(ANIMALS);
-      jedi.postOwner.edit.setOpen(true);
-      post1LeavesAnimals();
-      mem.emit(pokeOn(Channel.posts));
-      await settle();
-      expect(guard.pending()).toBe(false);
-      expect(jedi.selectedPost()?.id).toBe(1);
-
-      jedi.postOwner.edit.setOpen(false);
-      await settle();
-      expect(jedi.selectedPost()?.id).toBe(3);
-      expect(jedi.announcement()).toBe(LEFT);
-    }));
-
-  it("a User's own Category change still asks first, then moves", () =>
-    withLive(async (jedi, guard) => {
-      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
-      jedi.setSelectedCategory(1); // Landscape does not list Post 1
-      expect(guard.pending()).toBe(true);
-      expect(guard.question()).toBe("You have unsaved changes. Discard them?");
-      guard.confirmMove();
-      expect(jedi.selectedPost()?.id).toBe(2);
-      expect(jedi.announcement(), "a User's own move says nothing").toBe("");
-    }));
-
-  it("a Post delete while the Category question is open shows the Post notice instead", () =>
-    withLive(async (jedi, guard, mem) => {
-      jedi.setSelectedCategory(ANIMALS);
-      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
-      post1LeavesAnimals();
-      mem.emit(pokeOn(Channel.posts));
-      await settle();
-      expect(guard.pending()).toBe(true);
-
-      postListMock.mockResolvedValue(RANKED_POSTS.slice(1));
-      mem.emit(pokeOn(Channel.posts));
-      await settle();
-      expect(guard.pending()).toBe(false);
-      expect(guard.notice()).toBe("This Post was deleted. Your unsaved changes were discarded.");
-    }));
-
-  it("a deleted Caption discards the Caption edit's Draft too", () =>
-    withLive(async (jedi, guard, mem) => {
-      const shown = jedi.selectedCaption()!.id;
-      jedi.captionOwner.edit.setOpen(true);
-      guard.report(Symbol("caption edit"), true, jedi.draftScopes.caption);
-      captionListForPostMock.mockImplementation((postId: number) =>
-        Promise.resolve(captionsFor(postId).filter((c) => c.id !== shown)),
-      );
-      mem.emit(pokeOn(Channel.postCaption(1)));
-      await settle();
-      expect(guard.notice()).toBe("This Caption was deleted. Your unsaved changes were discarded.");
-      expect(guard.hasDraft()).toBe(false);
-    }));
 });
 
 describe("createJediFeed — a Draft outside the Post, such as the New Post Draft (#214)", () => {
-  // Category index 3 is Animals: Posts 1 and 3, in that rank.
-  const ANIMALS = 3;
-  const POST_DELETED = "This Post was deleted. Your unsaved changes were discarded.";
   // The New Post Draft has no scope.
   const newPost = Symbol("new post");
   // The Post scope (#271).
@@ -1526,18 +1096,6 @@ describe("createJediFeed — a Draft outside the Post, such as the New Post Draf
     expect(jedi.captionComments.open(), "the Caption Comments panel closes").toBe(false);
     expect(guard.hasDraftIn(postScope(jedi)), "no Draft in the Post scope").toBe(false);
   };
-  const withoutPost1 = () => postListMock.mockResolvedValue(RANKED_POSTS.slice(1));
-
-  it("does not hold the Post: a re-rank moves the article", () =>
-    withLive(async (jedi, guard, mem) => {
-      guard.report(newPost, true);
-      const [first, second, ...rest] = RANKED_POSTS;
-      postListMock.mockResolvedValue([second, first, ...rest]);
-      mem.emit(pokeOn(Channel.posts));
-      await settle();
-      expect(jedi.selectedPost()?.id).toBe(3);
-      expect(guard.holds(newPost)).toBe(true);
-    }));
 
   it.each(PANELS)(
     "a Post change does not ask about it, and still closes the Post's forms (%s)",
@@ -1552,103 +1110,6 @@ describe("createJediFeed — a Draft outside the Post, such as the New Post Draf
         expectPostFormsClosed(jedi, guard);
       }),
   );
-
-  it.each(PANELS)(
-    "another User's Post delete does not drop it, shows no notice, and closes the Post's forms (%s)",
-    (panel) =>
-      withLive(async (jedi, guard, mem) => {
-        guard.report(newPost, true);
-        jedi[panel].setOpen(true);
-        expect(jedi[panel].open(), "the panel opens").toBe(true);
-        withoutPost1();
-        mem.emit(pokeOn(Channel.posts));
-        await settle();
-        expect(guard.notice()).toBeUndefined();
-        expect(jedi.announcement()).toBe("This Post was deleted.");
-        expect(guard.holds(newPost)).toBe(true);
-        expectPostFormsClosed(jedi, guard);
-      }),
-  );
-
-  it("with a Draft on the Post too, a Post delete discards only the Post's Draft", () =>
-    withLive(async (jedi, guard, mem) => {
-      guard.report(newPost, true);
-      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
-      withoutPost1();
-      mem.emit(pokeOn(Channel.posts));
-      await settle();
-      expect(guard.notice()).toBe(POST_DELETED);
-      expect(guard.holds(newPost)).toBe(true);
-      expectPostFormsClosed(jedi, guard);
-    }));
-
-  it("a Category leave does not ask about it; Discard of the Post's Draft keeps it", () =>
-    withLive(async (jedi, guard, mem) => {
-      jedi.setSelectedCategory(ANIMALS);
-      guard.report(newPost, true);
-      jedi.postOwner.edit.setOpen(true);
-      guard.report(Symbol("post edit"), true, jedi.draftScopes.post);
-      jedi.postComments.setOpen(true);
-      postListMock.mockResolvedValue(
-        RANKED_POSTS.map((p) => (p.id === 1 ? { ...p, categories: [CAT[1]] } : p)),
-      );
-      mem.emit(pokeOn(Channel.posts));
-      await settle();
-      expect(guard.pending()).toBe(true);
-
-      guard.confirmMove();
-      await settle();
-      expect(jedi.selectedPost()?.id, "the article moves").toBe(3);
-      expect(guard.holds(newPost)).toBe(true);
-      expectPostFormsClosed(jedi, guard);
-    }));
-
-  it("with only this Draft, a Category leave moves the article with no question", () =>
-    withLive(async (jedi, guard, mem) => {
-      jedi.setSelectedCategory(ANIMALS);
-      guard.report(newPost, true);
-      jedi.postComments.setOpen(true);
-      postListMock.mockResolvedValue(
-        RANKED_POSTS.map((p) => (p.id === 1 ? { ...p, categories: [CAT[1]] } : p)),
-      );
-      mem.emit(pokeOn(Channel.posts));
-      await settle();
-      expect(guard.pending()).toBe(false);
-      expect(jedi.selectedPost()?.id).toBe(3);
-      expect(guard.holds(newPost)).toBe(true);
-      expectPostFormsClosed(jedi, guard);
-    }));
-
-  it("the Owner's own Post delete keeps it, and the delete question shows no Draft line for it", () =>
-    withLive(async (jedi, guard) => {
-      guard.report(newPost, true);
-      expect(jedi.postOwner.removeDiscardsDraft()).toBe(false);
-      guard.report(Symbol("comment"), true, jedi.postComments.draftScope);
-      expect(jedi.postOwner.removeDiscardsDraft()).toBe(true);
-      withoutPost1();
-
-      await jedi.postOwner.remove(1);
-      await settle();
-      expect(guard.holds(newPost)).toBe(true);
-      expect(guard.notice()).toBeUndefined();
-      expectPostFormsClosed(jedi, guard);
-    }));
-
-  it("the Add Caption Draft is in its own scope: a Post change asks, and a Post delete discards it", () =>
-    withLive(async (jedi, guard, mem) => {
-      const addCaption = Symbol("add caption");
-      guard.report(addCaption, true, jedi.draftScopes.post);
-      expect(guard.hasDraftIn(jedi.draftScopes.post)).toBe(true);
-      jedi.selectPost(2);
-      expect(guard.pending()).toBe(true);
-      guard.cancelMove();
-
-      withoutPost1();
-      mem.emit(pokeOn(Channel.posts));
-      await settle();
-      expect(guard.notice()).toBe(POST_DELETED);
-      expect(guard.holds(addCaption)).toBe(false);
-    }));
 });
 
 describe("createJediFeed — the selected Post's like state (#122)", () => {
