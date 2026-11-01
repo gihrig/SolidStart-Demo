@@ -23,6 +23,10 @@ import ConfirmDialog from "~/components/ConfirmDialog";
  *  provides its own with `<DraftGuardContext.Provider value={guard}>`. */
 export const DraftGuardContext = createContext<DraftGuard>(passThroughGuard);
 
+/** The scope of the forms under it (ADR-0030). Without a provider, a form has
+ *  no scope, so only a move with no scope asks about its Draft. */
+export const DraftScopeContext = createContext<DraftScope | undefined>(undefined);
+
 /**
  * The app's Draft guard (ADR-0030), in `app.tsx` inside the Router. It shares
  * one guard, routes every in-app route move through it (`useBeforeLeave`), and
@@ -69,8 +73,6 @@ interface DraftOptions {
    *  of a signal it reads reports again: an input, and a change of the saved
    *  text. */
   dirty: Accessor<boolean>;
-  /** The form's scope, when a move can unmount its group of forms alone. */
-  scope?: DraftScope;
   /** Whether the form's write is in flight (#214). While it is, no move that
    *  would unmount the form runs. */
   busy?: Accessor<boolean>;
@@ -94,19 +96,21 @@ interface Draft {
 /**
  * One form's Draft in the app's guard (ADR-0030), inside `useDraftForm`. It
  * owns the form's key, so two forms never share one. It reports `dirty()` as
- * it changes. An unmount with a Draft that the user did not discard is a
- * forced discard: the guard shows the notice.
+ * it changes, in the scope of `DraftScopeContext` where the form mounts
+ * (#271). An unmount with a Draft that the user did not discard is a forced
+ * discard: the guard shows the notice.
  */
 function useDraft(options: DraftOptions): Draft {
   const guard = useDraftGuard();
+  const scope = useContext(DraftScopeContext);
   const key = Symbol("draft");
   let cleared = false;
   createEffect(() => {
     const dirty = options.dirty();
     if (!dirty) cleared = false;
-    guard.report(key, dirty && !cleared, options.scope);
+    guard.report(key, dirty && !cleared, scope);
   });
-  createEffect(() => guard.reportBusy(key, options.busy?.() ?? false, options.scope));
+  createEffect(() => guard.reportBusy(key, options.busy?.() ?? false, scope));
   // A Draft that an own delete released (`guard.release`) ends here too, with no
   // notice.
   onCleanup(() => {
@@ -131,8 +135,6 @@ function useDraft(options: DraftOptions): Draft {
 export interface DraftFormOptions<TResult> {
   /** Whether the form holds a Draft now: the form's own Draft test. */
   dirty: Accessor<boolean>;
-  /** The form's scope, when a move can unmount its group of forms alone. */
-  scope?: DraftScope;
   /** The notice of a forced discard. Defaults to `DRAFT_DISCARDED_NOTICE`. */
   notice?: () => string;
   /** The Cancel's step, read at each Cancel and Escape. None: the form has no
@@ -169,7 +171,8 @@ export interface DraftForm {
 
 /**
  * One form's Draft and write (ADR-0030, #270). It reports the form's Draft and
- * its write in flight to the app's guard (#214). A Cancel with a Draft asks
+ * its write in flight to the app's guard (#214), in the scope where the form
+ * mounts (`DraftScopeContext`, #271). A Cancel with a Draft asks
  * first. A saved write ends the Draft, then runs `onSaved`. A write that ends
  * after the form unmounts changes nothing in the form. The form keeps its
  * fields, its Draft test, its write and its remote-edit merge.
@@ -183,7 +186,6 @@ export function useDraftForm<TResult>(options: DraftFormOptions<TResult>): Draft
   );
   const draft = useDraft({
     dirty: options.dirty,
-    scope: options.scope,
     busy: action.pending,
     notice: options.notice,
   });

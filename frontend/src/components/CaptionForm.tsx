@@ -1,5 +1,4 @@
 import { createEffect, createMemo, createSignal, on, onMount, Show } from "solid-js";
-import type { DraftScope } from "~/lib/createDraftGuard";
 import { hygieneLength } from "~/lib/hygieneLength";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import type { HygieneCaps } from "~/types/backend";
@@ -50,8 +49,6 @@ export interface CaptionFormProps {
   onSave?: (text: string) => Promise<void>;
   /** Edit mode: called once the save has committed. */
   onSaved?: () => void;
-  /** The scope of the form's Draft (ADR-0030): the add form's or the edit's. */
-  draftScope?: DraftScope;
 }
 
 /**
@@ -95,7 +92,6 @@ export default function CaptionForm(props: CaptionFormProps) {
   // accessor: the hook reads it at each Cancel.
   const base = {
     dirty,
-    scope: props.draftScope,
     close: () => props.onCancel,
     fallbackError: text.error,
   };

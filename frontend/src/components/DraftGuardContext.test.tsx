@@ -8,6 +8,7 @@ import { stubDialogModal } from "~/lib/test-utils";
 import {
   DraftGuardContext,
   DraftGuardProvider,
+  DraftScopeContext,
   useDraftForm,
   useDraftGuard,
   type DraftForm,
@@ -48,7 +49,6 @@ function renderDraftForm(
         rerun();
         return dirty();
       },
-      scope,
       close: () => (cancels ? close : undefined),
       write,
       fallbackError: "Could not save",
@@ -63,9 +63,11 @@ function renderDraftForm(
   }
   render(() => (
     <DraftGuardContext.Provider value={guard}>
-      <Show when={open()}>
-        <Form />
-      </Show>
+      <DraftScopeContext.Provider value={scope}>
+        <Show when={open()}>
+          <Form />
+        </Show>
+      </DraftScopeContext.Provider>
     </DraftGuardContext.Provider>
   ));
   const input = () => screen.getByRole("textbox", { name: "Text" });
@@ -87,7 +89,7 @@ function renderDraftForm(
 }
 
 describe("useDraftForm (#270)", () => {
-  it("reports its Draft and its write in its scope; an unmount ends both", async () => {
+  it("reports its Draft and its write in the scope where it mounts; an unmount ends both", async () => {
     const { guard, form, scope, setDirty, setOpen, resolve } = renderDraftForm();
     expect(guard.hasDraftIn(scope)).toBe(true);
     setDirty(false);

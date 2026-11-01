@@ -49,7 +49,7 @@ export default function Home() {
     captionComments,
     postOwner,
     captionOwner,
-    addCaptionScope,
+    draftScopes,
     announcement,
     connectFeed,
   } = createJediFeed({ guard: useDraftGuard() });
@@ -116,7 +116,7 @@ export default function Home() {
                   captionComments={captionComments}
                   postOwner={postOwner}
                   captionOwner={captionOwner}
-                  addCaptionScope={addCaptionScope}
+                  draftScopes={draftScopes}
                   onAddPost={newPost.open}
                 />
               )}

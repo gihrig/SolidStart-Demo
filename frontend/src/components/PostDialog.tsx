@@ -10,7 +10,6 @@ import {
   Show,
 } from "solid-js";
 import { createStore } from "solid-js/store";
-import type { DraftScope } from "~/lib/createDraftGuard";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { keepDialogFocus } from "~/lib/keepDialogFocus";
 import { stopDialogEscape } from "~/lib/stopDialogEscape";
@@ -122,8 +121,6 @@ export interface PostDialogProps {
   /** Called on Cancel, and after a create or a save: the owner unmounts the
    *  dialog. */
   onClose?: () => void;
-  /** Edit mode: the scope of the edit's Draft (ADR-0030). */
-  draftScope?: DraftScope;
 }
 
 /**
@@ -144,6 +141,8 @@ export interface PostDialogProps {
  * while a field differs from the saved Post, and Save stays disabled until
  * then. Save sends only the changed fields; the Categories count as one field.
  * A remote edit of the Post shows in each field that the User did not change.
+ * The edit reports its Draft in the Post scope, which the Post card provides
+ * (#271).
  *
  * In both modes, Cancel, Escape and a browser close are one Cancel: with a
  * Draft, it asks first, and a browser close opens the dialog again to ask.
@@ -226,7 +225,6 @@ export default function PostDialog(props: PostDialogProps) {
   const closeDialog = () => props.onClose?.();
   const form = useDraftForm({
     dirty,
-    scope: props.draftScope,
     // An accessor: the hook reads the step at each Cancel (`close`).
     close: () => closeDialog,
     write,

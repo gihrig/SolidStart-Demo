@@ -42,8 +42,6 @@ export interface EditState {
   /** Open the edit on the subject shown, or close it. A close is the form's
    *  own Cancel or Save, so it is no guarded move. */
   setOpen: (open: boolean) => void;
-  /** The scope of the edit form's Draft (ADR-0030). */
-  draftScope: DraftScope;
 }
 
 /** The Owner's writes on one subject (#187): its edit, save and delete. */
@@ -178,8 +176,8 @@ export interface JediFeed {
    *  releases every Draft on the Caption: its edit's and its Comments panel's
    *  (#271). */
   captionOwner: OwnerWrites<string>;
-  /** The scope of the Add Caption form's Draft (#214). */
-  addCaptionScope: DraftScope;
+  /** The scopes of the Post shown and of the Caption shown (ADR-0030). */
+  draftScopes: { post: DraftScope; caption: DraftScope };
   /** The message of the route's polite live region (#187): the result of the
    *  Owner's own delete, or a delete by another User that discarded no Draft.
    *  Empty until the first message. */
@@ -426,7 +424,6 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     openOn: Accessor<number | undefined>,
     setOpenOn: (id: number | undefined) => void,
     shownId: () => number | undefined,
-    draftScope: DraftScope,
   ): EditState => {
     // A memo, so a refetched subject with the same id does not close the edit.
     const shown = createMemo(shownId);
@@ -434,19 +431,13 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     return {
       open: () => openOn() !== undefined && openOn() === shown(),
       setOpen: (open) => setOpenOn(open ? shown() : undefined),
-      draftScope,
     };
   };
   // The Post edit and the Add Caption form report in the Post scope, and the
-  // Caption edit in the Caption scope: no move closes one of them alone.
-  const postEdit = editState(postEditOn, setPostEditOn, () => selectedPost()?.id, postScope);
-  const captionEdit = editState(
-    captionEditOn,
-    setCaptionEditOn,
-    () => selectedCaption()?.id,
-    captionScope,
-  );
-  const addCaptionScope: DraftScope = postScope;
+  // Caption edit in the Caption scope (`DraftScopeContext`): no move closes
+  // one of them alone.
+  const postEdit = editState(postEditOn, setPostEditOn, () => selectedPost()?.id);
+  const captionEdit = editState(captionEditOn, setCaptionEditOn, () => selectedCaption()?.id);
 
   // The viewer's like state of the selected Post (#122) and of the selected
   // Caption (#123). The read needs a login, so each loads only while a live
@@ -693,7 +684,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
       remove: deleteCaption,
       removeDiscardsDraft: () => guard.hasDraftIn(captionScope),
     },
-    addCaptionScope,
+    draftScopes: { post: postScope, caption: captionScope },
     announcement,
     connectFeed,
   };

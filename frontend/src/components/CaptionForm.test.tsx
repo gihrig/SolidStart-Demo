@@ -7,7 +7,7 @@ import { createDraftGuard, createDraftScope } from "~/lib/createDraftGuard";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { CaptionView } from "~/types/jedi";
 import CaptionForm, { type CaptionFormProps } from "./CaptionForm";
-import { DraftGuardContext } from "./DraftGuardContext";
+import { DraftGuardContext, DraftScopeContext } from "./DraftGuardContext";
 
 const ADDED: CaptionView = {
   id: 99,
@@ -168,15 +168,16 @@ describe("<CaptionForm /> — the edit mode (#187)", () => {
     const guard = createDraftGuard();
     render(() => (
       <DraftGuardContext.Provider value={guard}>
-        <CaptionForm
-          postId={1}
-          api={api}
-          caption={caption()}
-          draftScope={scope}
-          onSave={onSave}
-          onSaved={onSaved}
-          onCancel={onCancel}
-        />
+        <DraftScopeContext.Provider value={scope}>
+          <CaptionForm
+            postId={1}
+            api={api}
+            caption={caption()}
+            onSave={onSave}
+            onSaved={onSaved}
+            onCancel={onCancel}
+          />
+        </DraftScopeContext.Provider>
       </DraftGuardContext.Provider>
     ));
     const input = screen.getByLabelText("Edit your caption") as HTMLInputElement;
@@ -238,7 +239,9 @@ describe("<CaptionForm /> — Cancel and Escape (#214)", () => {
     const guard = createDraftGuard();
     render(() => (
       <DraftGuardContext.Provider value={guard}>
-        <CaptionForm postId={1} api={api} draftScope={scope} {...props} />
+        <DraftScopeContext.Provider value={scope}>
+          <CaptionForm postId={1} api={api} {...props} />
+        </DraftScopeContext.Provider>
       </DraftGuardContext.Provider>
     ));
     const input = screen.getByLabelText("Your caption") as HTMLInputElement;

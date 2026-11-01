@@ -73,57 +73,73 @@ const panelOf = (toggle: HTMLElement) =>
 const follows = (a: Node, b: Node) =>
   !a.contains(b) && Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
+// The scopes of the Post shown and of the Caption shown (#271).
+const POST_SCOPE = createDraftScope("post");
+const DRAFT_SCOPES = { post: POST_SCOPE, caption: createDraftScope("caption", POST_SCOPE) };
+
 describe("<FeaturedPost />", () => {
   it("renders the post title and winning caption", () => {
-    render(() => <FeaturedPost post={post} caption={caption} />);
+    render(() => <FeaturedPost draftScopes={DRAFT_SCOPES} post={post} caption={caption} />);
     expect(screen.getByRole("heading", { name: /little jedi/i })).toBeInTheDocument();
     expect(screen.getByText(caption.text)).toBeInTheDocument();
   });
 
   it("renders an empty caption line when there is no winning caption", () => {
-    render(() => <FeaturedPost post={post} caption={undefined} />);
+    render(() => <FeaturedPost draftScopes={DRAFT_SCOPES} post={post} caption={undefined} />);
     // No caption entity yet — the post still renders (title present).
     expect(screen.getByRole("heading", { name: /little jedi/i })).toBeInTheDocument();
     expect(screen.queryByText(caption.text)).not.toBeInTheDocument();
   });
 
   it("shows no Add Caption button by default (anonymous)", () => {
-    render(() => <FeaturedPost post={post} caption={caption} />);
+    render(() => <FeaturedPost draftScopes={DRAFT_SCOPES} post={post} caption={caption} />);
     expect(screen.queryByRole("button", { name: "Add Caption" })).toBeNull();
   });
 
   it("disables Add Caption while the captions load or when there are none (#123)", () => {
-    render(() => <FeaturedPost post={post} caption={undefined} loggedIn />);
+    render(() => (
+      <FeaturedPost draftScopes={DRAFT_SCOPES} post={post} caption={undefined} loggedIn />
+    ));
     expect(addCaptionTrigger()).toBeDisabled();
   });
   it("links to the photographer's flickr page", () => {
-    render(() => <FeaturedPost post={post} caption={caption} />);
+    render(() => <FeaturedPost draftScopes={DRAFT_SCOPES} post={post} caption={caption} />);
     const link = screen.getByRole("link", { name: /felicity berkleef/i });
     expect(link).toHaveAttribute("href", "https://example.com/felicity");
   });
 
   it("renders a chip button per category (tags == categories)", () => {
-    render(() => <FeaturedPost post={post} caption={caption} />);
+    render(() => <FeaturedPost draftScopes={DRAFT_SCOPES} post={post} caption={caption} />);
     expect(screen.getByRole("button", { name: /^Animals$/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Cute$/ })).toBeInTheDocument();
   });
 
   it("shows the author and the comment / like counts", () => {
-    render(() => <FeaturedPost post={post} caption={caption} />);
+    render(() => <FeaturedPost draftScopes={DRAFT_SCOPES} post={post} caption={caption} />);
     expect(screen.getByText("Lisa")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /3 comments/i })).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
   });
 
   it("exposes accessible Like / Edit / Delete actions labelled by author", () => {
-    render(() => <FeaturedPost post={post} caption={caption} loggedIn userId={1} />);
+    render(() => (
+      <FeaturedPost draftScopes={DRAFT_SCOPES} post={post} caption={caption} loggedIn userId={1} />
+    ));
     expect(screen.getByRole("button", { name: /like post by lisa/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /edit post by lisa/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /delete post by lisa/i })).toBeInTheDocument();
   });
 
   it("shows the parts in order: the Author line, the Post actions, the Caption line, the Caption actions and the panels (#210)", () => {
-    render(() => <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn />);
+    render(() => (
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        post={post}
+        caption={caption}
+        captionsLoaded
+        loggedIn
+      />
+    ));
     const parts = [
       authorLine(),
       postActions(),
@@ -138,7 +154,7 @@ describe("<FeaturedPost />", () => {
   });
 
   it("the Author line shows the avatar, the name, the title and the Categories (#210)", () => {
-    render(() => <FeaturedPost post={post} caption={caption} />);
+    render(() => <FeaturedPost draftScopes={DRAFT_SCOPES} post={post} caption={caption} />);
     const line = authorLine();
     expect(within(line).getByRole("img", { name: "Lisa" })).toBeInTheDocument();
     expect(line).toHaveTextContent(/^Lisa\s*-\s*Little Jedi\s*-\s*Animals\s*Cute$/);
@@ -153,7 +169,15 @@ describe("<FeaturedPost /> — Add Caption (#121)", () => {
   const input = () => screen.queryByLabelText("Your caption");
   const renderLoggedIn = (postSignal = createSignal(post)[0]) => {
     const user = userEvent.setup();
-    render(() => <FeaturedPost post={postSignal()} caption={caption} loggedIn captionsLoaded />);
+    render(() => (
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        post={postSignal()}
+        caption={caption}
+        loggedIn
+        captionsLoaded
+      />
+    ));
     return { user };
   };
 
@@ -197,7 +221,13 @@ describe("<FeaturedPost /> — Add Caption (#121)", () => {
       guard = createDraftGuard();
       return (
         <DraftGuardContext.Provider value={guard}>
-          <FeaturedPost post={post} caption={caption} loggedIn captionsLoaded />
+          <FeaturedPost
+            draftScopes={DRAFT_SCOPES}
+            post={post}
+            caption={caption}
+            loggedIn
+            captionsLoaded
+          />
         </DraftGuardContext.Provider>
       );
     });
@@ -206,6 +236,10 @@ describe("<FeaturedPost /> — Add Caption (#121)", () => {
     expect(guard.hasDraft(), "blank after a trim").toBe(false);
     await user.type(input()!, "draft");
     expect(guard.hasDraft()).toBe(true);
+    expect(guard.hasDraftIn(POST_SCOPE), "in the Post scope that the card provides (#271)").toBe(
+      true,
+    );
+    expect(guard.hasDraftIn(DRAFT_SCOPES.caption), "not in the Caption scope").toBe(false);
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(guard.pending()).toBe(true);
@@ -234,7 +268,9 @@ describe("<FeaturedPost /> — Like (#122)", () => {
   const like: Like = { id: 1, likeCount: 6, liked: true };
 
   it("disables Like and shows the Post's count while the like state loads", () => {
-    render(() => <FeaturedPost loggedIn post={post} caption={caption} />);
+    render(() => (
+      <FeaturedPost draftScopes={DRAFT_SCOPES} loggedIn post={post} caption={caption} />
+    ));
     expect(likeButton()).toBeDisabled();
     expect(likeButton()).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText("Likes:").parentElement).toHaveTextContent("Likes: 5");
@@ -242,7 +278,14 @@ describe("<FeaturedPost /> — Like (#122)", () => {
 
   it("shows the viewer's live count and pressed state", () => {
     render(() => (
-      <FeaturedPost loggedIn post={post} caption={caption} like={like} onToggleLike={vi.fn()} />
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        loggedIn
+        post={post}
+        caption={caption}
+        like={like}
+        onToggleLike={vi.fn()}
+      />
     ));
     expect(likeButton()).toBeEnabled();
     expect(likeButton()).toHaveAttribute("aria-pressed", "true");
@@ -254,6 +297,7 @@ describe("<FeaturedPost /> — Like (#122)", () => {
     const onToggleLike = vi.fn(() => Promise.resolve());
     render(() => (
       <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
         loggedIn
         post={post}
         caption={caption}
@@ -270,6 +314,7 @@ describe("<FeaturedPost /> — Like (#122)", () => {
     const onToggleLike = vi.fn(() => new Promise<void>(() => {}));
     render(() => (
       <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
         loggedIn
         post={post}
         caption={caption}
@@ -288,6 +333,7 @@ describe("<FeaturedPost /> — Like (#122)", () => {
     const onToggleLike = () => Promise.reject(new Error("Network down"));
     render(() => (
       <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
         loggedIn
         post={post}
         caption={caption}
@@ -308,6 +354,7 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
   it("puts the Caption actions in order: the toggle, the fire-heart and count, Like, Add, Edit and Delete", () => {
     render(() => (
       <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
         loggedIn
         userId={1}
         post={post}
@@ -330,12 +377,22 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
   });
 
   it("labels the Add button 'Add', with the accessible name 'Add Caption'", () => {
-    render(() => <FeaturedPost loggedIn post={post} caption={caption} captionsLoaded />);
+    render(() => (
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        loggedIn
+        post={post}
+        caption={caption}
+        captionsLoaded
+      />
+    ));
     expect(screen.getByRole("button", { name: "Add Caption" })).toHaveTextContent(/^Add$/);
   });
 
   it("disables Like and shows the Caption's count while the like state loads", () => {
-    render(() => <FeaturedPost loggedIn post={post} caption={caption} />);
+    render(() => (
+      <FeaturedPost draftScopes={DRAFT_SCOPES} loggedIn post={post} caption={caption} />
+    ));
     expect(likeButton()).toBeDisabled();
     expect(likeButton()).toHaveAttribute("aria-pressed", "false");
     expect(captionCount()).toHaveTextContent("Caption likes: 8");
@@ -344,6 +401,7 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
   it("shows the viewer's live Caption count and pressed state", () => {
     render(() => (
       <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
         loggedIn
         post={post}
         caption={caption}
@@ -362,6 +420,7 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
     const onToggleLike = vi.fn(() => Promise.resolve());
     render(() => (
       <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
         loggedIn
         post={post}
         caption={caption}
@@ -380,6 +439,7 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
     const onToggleCaptionLike = () => Promise.reject(new Error("Network down"));
     render(() => (
       <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
         loggedIn
         post={post}
         caption={caption}
@@ -395,6 +455,7 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
     const user = userEvent.setup();
     render(() => (
       <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
         loggedIn
         post={post}
         caption={caption}
@@ -417,7 +478,7 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
   });
 
   it("shows no Caption actions when the Post has no Caption", () => {
-    render(() => <FeaturedPost post={post} caption={undefined} />);
+    render(() => <FeaturedPost draftScopes={DRAFT_SCOPES} post={post} caption={undefined} />);
     expect(screen.queryByRole("button", { name: /like caption/i })).toBeNull();
     expect(screen.queryByText("Caption likes:")).toBeNull();
   });
@@ -433,7 +494,9 @@ describe("<FeaturedPost /> — visibility rule, Post actions and Caption actions
   const button = (name: RegExp | string) => screen.queryByRole("button", { name });
 
   it("shows a visitor who is not logged in the Comments toggles, the fire-heart and the count", () => {
-    render(() => <FeaturedPost post={post} caption={bartsCaption} captionsLoaded />);
+    render(() => (
+      <FeaturedPost draftScopes={DRAFT_SCOPES} post={post} caption={bartsCaption} captionsLoaded />
+    ));
     expect(postToggle()).toBeEnabled();
     expect(captionToggle()).toBeEnabled();
     expect(screen.getByText("Likes:").parentElement).toHaveTextContent("Likes: 5");
@@ -455,7 +518,14 @@ describe("<FeaturedPost /> — visibility rule, Post actions and Caption actions
 
   it("shows a logged-in User every button in both actions lines, in order", () => {
     render(() => (
-      <FeaturedPost post={post} caption={bartsCaption} captionsLoaded loggedIn userId={2} />
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        post={post}
+        caption={bartsCaption}
+        captionsLoaded
+        loggedIn
+        userId={2}
+      />
     ));
     const names = (el: Element) =>
       [...el.querySelectorAll("button")].map((b) => b.getAttribute("aria-label") ?? b.textContent);
@@ -477,7 +547,14 @@ describe("<FeaturedPost /> — visibility rule, Post actions and Caption actions
 
   it("disables another User's Edit / Delete, and enables Add", () => {
     render(() => (
-      <FeaturedPost post={post} caption={bartsCaption} captionsLoaded loggedIn userId={2} />
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        post={post}
+        caption={bartsCaption}
+        captionsLoaded
+        loggedIn
+        userId={2}
+      />
     ));
     expect(addCaptionTrigger()).toBeEnabled();
     expect(enabled("Add Post")).toBe(true);
@@ -488,7 +565,14 @@ describe("<FeaturedPost /> — visibility rule, Post actions and Caption actions
 
   it("enables Edit / Delete for the Owner only, on each line", () => {
     render(() => (
-      <FeaturedPost post={post} caption={bartsCaption} captionsLoaded loggedIn userId={1} />
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        post={post}
+        caption={bartsCaption}
+        captionsLoaded
+        loggedIn
+        userId={1}
+      />
     ));
     expect(enabled(/edit post by lisa/i)).toBe(true);
     expect(enabled(/delete post by lisa/i)).toBe(true);
@@ -497,14 +581,24 @@ describe("<FeaturedPost /> — visibility rule, Post actions and Caption actions
   });
 
   it("keeps Edit / Delete disabled until the User's id loads", () => {
-    render(() => <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn />);
+    render(() => (
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        post={post}
+        caption={caption}
+        captionsLoaded
+        loggedIn
+      />
+    ));
     for (const name of [/edit post/i, /delete post/i, /edit caption/i, /delete caption/i]) {
       expect(enabled(name), String(name)).toBe(false);
     }
   });
 
   it("shows a logged-in User the Caption buttons, disabled, on a Post with no Caption", () => {
-    render(() => <FeaturedPost post={post} captionsLoaded loggedIn userId={1} />);
+    render(() => (
+      <FeaturedPost draftScopes={DRAFT_SCOPES} post={post} captionsLoaded loggedIn userId={1} />
+    ));
     expect(screen.getByText("Caption likes:").parentElement).toHaveTextContent("Caption likes: 0");
     expect(addCaptionTrigger()).toBeDisabled();
     for (const name of [/like caption/i, /edit caption/i, /delete caption/i]) {
@@ -513,7 +607,15 @@ describe("<FeaturedPost /> — visibility rule, Post actions and Caption actions
   });
 
   it("lays out the Caption actions as the Post actions (#210)", () => {
-    render(() => <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn />);
+    render(() => (
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        post={post}
+        caption={caption}
+        captionsLoaded
+        loggedIn
+      />
+    ));
     expect(captionActions().className).toBe(postActions().className);
     const group = (toggle: HTMLElement) => toggle.nextElementSibling!.className;
     expect(group(captionToggle())).toBe(group(postToggle()));
@@ -523,7 +625,14 @@ describe("<FeaturedPost /> — visibility rule, Post actions and Caption actions
     const onAddPost = vi.fn();
     const user = userEvent.setup();
     render(() => (
-      <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn onAddPost={onAddPost} />
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        post={post}
+        caption={caption}
+        captionsLoaded
+        loggedIn
+        onAddPost={onAddPost}
+      />
     ));
     expect(button("Add Post")).toHaveTextContent(/^Add$/);
 
@@ -566,7 +675,14 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
 
   it("keeps the panel element while closed, hidden and empty, so aria-controls resolves", () => {
     const postComments = fakePostComments();
-    render(() => <FeaturedPost post={post} caption={caption} postComments={postComments} />);
+    render(() => (
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        post={post}
+        caption={caption}
+        postComments={postComments}
+      />
+    ));
     expect(toggle()).toHaveAttribute("aria-expanded", "false");
     expect(panel()).toBeInTheDocument();
     expect(panel()).not.toBeVisible();
@@ -576,7 +692,14 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
   it("the Comments toggle opens and closes the thread panel", async () => {
     const user = userEvent.setup();
     const postComments = fakePostComments();
-    render(() => <FeaturedPost post={post} caption={caption} postComments={postComments} />);
+    render(() => (
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        post={post}
+        caption={caption}
+        postComments={postComments}
+      />
+    ));
 
     await user.click(toggle());
     expect(postComments.open()).toBe(true);
@@ -593,7 +716,14 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
   it("the toggle shows the expand-arrow between label and count; it turns while open; it is aria-hidden (#244)", async () => {
     const user = userEvent.setup();
     const postComments = fakePostComments();
-    render(() => <FeaturedPost post={post} caption={caption} postComments={postComments} />);
+    render(() => (
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        post={post}
+        caption={caption}
+        postComments={postComments}
+      />
+    ));
     const arrow = () => toggle().querySelector("svg")!;
     expect(arrow().querySelector("use")).toHaveAttribute(
       "href",
@@ -614,7 +744,14 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
     const user = userEvent.setup();
     const postComments = fakePostComments();
     render(() => (
-      <FeaturedPost post={post} caption={caption} postComments={postComments} loggedIn userId={2} />
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        post={post}
+        caption={caption}
+        postComments={postComments}
+        loggedIn
+        userId={2}
+      />
     ));
     await user.click(toggle());
     await user.click(screen.getByRole("textbox", { name: "Post Comment" }));
@@ -627,7 +764,14 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
   it("sits under the Caption actions; its top border is the rule, with no separator (#210)", async () => {
     const user = userEvent.setup();
     const postComments = fakePostComments();
-    render(() => <FeaturedPost post={post} caption={caption} postComments={postComments} />);
+    render(() => (
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        post={post}
+        caption={caption}
+        postComments={postComments}
+      />
+    ));
     expect(follows(captionActions(), panel()!)).toBe(true);
 
     await user.click(toggle());
@@ -641,6 +785,7 @@ describe("<FeaturedPost /> — the Comments panel (#124)", () => {
     const postComments = fakePostComments();
     render(() => (
       <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
         post={shown()}
         caption={caption}
         postComments={postComments}
@@ -689,7 +834,15 @@ describe("<FeaturedPost /> — the Caption Comments panel (#127)", () => {
   const panel = () => document.getElementById(toggle().getAttribute("aria-controls")!);
 
   it("shows the toggle first in the Caption actions, with the Caption's comment count", () => {
-    render(() => <FeaturedPost post={post} caption={caption} captionsLoaded loggedIn />);
+    render(() => (
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        post={post}
+        caption={caption}
+        captionsLoaded
+        loggedIn
+      />
+    ));
     expect(toggle()).toHaveTextContent(/^Caption Comments\s*2$/);
     expect(toggle().querySelector("svg use")).toHaveAttribute(
       "href",
@@ -701,30 +854,46 @@ describe("<FeaturedPost /> — the Caption Comments panel (#127)", () => {
 
   it("names each toggle by its label and its count in words; a count of one says 1 comment (#210)", () => {
     render(() => (
-      <FeaturedPost post={post} caption={{ ...caption, commentCount: 1 }} captionsLoaded />
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        post={post}
+        caption={{ ...caption, commentCount: 1 }}
+        captionsLoaded
+      />
     ));
     expect(screen.getByRole("button", { name: "Post Comments, 3 comments" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Caption Comments, 1 comment" })).toBeInTheDocument();
   });
 
   it("shows a visitor the toggle only when a Caption exists", () => {
-    const { unmount } = render(() => <FeaturedPost post={post} caption={caption} />);
+    const { unmount } = render(() => (
+      <FeaturedPost draftScopes={DRAFT_SCOPES} post={post} caption={caption} />
+    ));
     expect(toggle()).toBeEnabled();
     unmount();
 
-    render(() => <FeaturedPost post={post} caption={undefined} />);
+    render(() => <FeaturedPost draftScopes={DRAFT_SCOPES} post={post} caption={undefined} />);
     expect(screen.queryByRole("button", { name: /^Caption Comments/ })).toBeNull();
   });
 
   it("shows a logged-in User the toggle, disabled, on a Post with no Caption", () => {
-    render(() => <FeaturedPost post={post} captionsLoaded loggedIn userId={1} />);
+    render(() => (
+      <FeaturedPost draftScopes={DRAFT_SCOPES} post={post} captionsLoaded loggedIn userId={1} />
+    ));
     expect(screen.getByRole("button", { name: "Caption Comments, 0 comments" })).toBeDisabled();
   });
 
   it("the toggle opens and closes the Caption thread panel", async () => {
     const user = userEvent.setup();
     const captionComments = fakeThread("<p>Nice caption</p>");
-    render(() => <FeaturedPost post={post} caption={caption} captionComments={captionComments} />);
+    render(() => (
+      <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
+        post={post}
+        caption={caption}
+        captionComments={captionComments}
+      />
+    ));
     expect(toggle()).toHaveAttribute("aria-expanded", "false");
     expect(panel()).not.toBeVisible();
 
@@ -747,6 +916,7 @@ describe("<FeaturedPost /> — the Caption Comments panel (#127)", () => {
     const captionComments = fakeThread("<p>Nice caption</p>");
     render(() => (
       <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
         post={post}
         caption={caption}
         captionComments={captionComments}
@@ -767,6 +937,7 @@ describe("<FeaturedPost /> — the Caption Comments panel (#127)", () => {
     const captionComments = fakeThread("<p>On the Caption</p>");
     render(() => (
       <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
         post={post}
         caption={caption}
         postComments={postComments}
@@ -805,7 +976,7 @@ function fakeOwner<Changes>(
 ): OwnerWrites<Changes> {
   const [open, setOpen] = createSignal(false);
   return {
-    edit: { open, setOpen, draftScope: createDraftScope("edit") },
+    edit: { open, setOpen },
     save: writes.save ?? (() => Promise.resolve()),
     remove: writes.remove ?? (() => Promise.resolve()),
     removeDiscardsDraft: writes.removeDiscardsDraft ?? (() => false),
@@ -829,6 +1000,7 @@ describe("<FeaturedPost /> — the Owner's delete (#187)", () => {
     const captionOwner = fakeOwner<string>({ remove: props.onDeleteCaption });
     render(() => (
       <FeaturedPost
+        draftScopes={DRAFT_SCOPES}
         loggedIn
         userId={1}
         post={post}
@@ -904,6 +1076,7 @@ describe("<FeaturedPost /> — the Owner's edits (#187)", () => {
     render(() => (
       <DraftGuardContext.Provider value={guard}>
         <FeaturedPost
+          draftScopes={DRAFT_SCOPES}
           loggedIn
           userId={1}
           post={post}

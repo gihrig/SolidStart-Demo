@@ -18,7 +18,7 @@ import { sanitizeCommentHtml } from "~/lib/sanitizeCommentHtml";
 import type { HygieneCaps } from "~/types/backend";
 import type { CommentView } from "~/types/jedi";
 import Avatar from "~/components/Avatar";
-import { useDraftForm } from "~/components/DraftGuardContext";
+import { DraftScopeContext, useDraftForm } from "~/components/DraftGuardContext";
 
 // Mirrors the back-end caps (`PostCommentBmc::hygiene_rules` and
 // `CaptionCommentBmc::hygiene_rules`, #127), counted the back-end's way
@@ -216,7 +216,6 @@ function CommentForm(props: CommentFormProps) {
   };
   const form = useDraftForm({
     dirty,
-    scope: props.thread.draftScope,
     notice: () =>
       props.comment && props.thread.deleted(props.comment.id)
         ? COMMENT_DELETED_NOTICE
@@ -424,11 +423,12 @@ function CommentItem(props: CommentItemProps) {
  * newest Comment first, so the compose box sits above the list (#125). Each
  * body is rendered markdown (#126). The compose box sits outside
  * the list, and the rows come from a store keyed by id, so a live Event or a
- * reload never wipes a draft.
+ * reload never wipes a draft. Its forms report their Drafts in the thread's
+ * scope (`DraftScopeContext`, #271).
  */
 export default function CommentThread(props: CommentThreadProps) {
   return (
-    <>
+    <DraftScopeContext.Provider value={props.thread.draftScope}>
       <Show when={props.loggedIn}>
         <CommentForm
           id={`${props.id}-compose`}
@@ -466,6 +466,6 @@ export default function CommentThread(props: CommentThreadProps) {
           </Show>
         )}
       </Show>
-    </>
+    </DraftScopeContext.Provider>
   );
 }
