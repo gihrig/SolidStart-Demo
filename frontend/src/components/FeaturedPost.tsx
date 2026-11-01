@@ -1,8 +1,7 @@
 import { createEffect, createMemo, createSignal, For, on, Show, type JSX } from "solid-js";
-import type { DraftScope } from "~/lib/createDraftGuard";
 import { createRpcAction } from "~/lib/createRpcAction";
 import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
-import type { OwnerWrites } from "~/lib/jedi/createJediFeed";
+import type { OwnerWrites, PostCardScopes } from "~/lib/jedi/createJediFeed";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { PostChanges, PostView, CaptionView, Like } from "~/types/jedi";
 import Image from "~/components/Image";
@@ -58,7 +57,7 @@ export interface FeaturedPostProps {
   /** The scopes of the Post shown and of the Caption shown (ADR-0030, #271).
    *  The card provides the Post scope to each form in it, and the Caption line
    *  provides the Caption scope to the Caption edit. */
-  draftScopes: { post: DraftScope; caption: DraftScope };
+  draftScopes: PostCardScopes;
   /** Open the New Post dialog (#214). `opener` is the Add button, which takes
    *  focus after the close. */
   onAddPost?: (opener: HTMLElement) => void;

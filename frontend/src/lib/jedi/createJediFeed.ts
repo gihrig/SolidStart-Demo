@@ -1,6 +1,6 @@
 import { batch, createResource, createSignal, onCleanup, untrack, type Accessor } from "solid-js";
 import { isServer } from "solid-js/web";
-import { passThroughGuard, type DraftGuard, type DraftScope } from "~/lib/createDraftGuard";
+import { passThroughGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { createLikeState } from "~/lib/jedi/createLikeState";
 import {
@@ -9,7 +9,12 @@ import {
   POST_COMMENT_EVENTS,
   type CommentThreadState,
 } from "~/lib/jedi/createCommentThread";
-import { createSelection, type OwnerWrites, type SelectionState } from "~/lib/jedi/createSelection";
+import {
+  createSelection,
+  type OwnerWrites,
+  type PostCardScopes,
+  type SelectionState,
+} from "~/lib/jedi/createSelection";
 import type { Feed } from "~/lib/feed";
 import { Channel } from "~/lib/channel";
 import type {
@@ -21,7 +26,7 @@ import type {
   HeroView,
 } from "~/types/jedi";
 
-export type { EditState, OwnerWrites } from "~/lib/jedi/createSelection";
+export type { EditState, OwnerWrites, PostCardScopes } from "~/lib/jedi/createSelection";
 
 /**
  * The Jedi feed's view-model: it owns the route's four data resources and the
@@ -122,7 +127,7 @@ export interface JediFeed {
    *  (#271). */
   captionOwner: OwnerWrites<string>;
   /** The scopes of the Post shown and of the Caption shown (ADR-0030). */
-  draftScopes: { post: DraftScope; caption: DraftScope };
+  draftScopes: PostCardScopes;
   /** The message of the route's polite live region (#187): the result of the
    *  Owner's own delete, or a delete by another User that discarded no Draft.
    *  Empty until the first message. */

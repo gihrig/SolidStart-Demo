@@ -45,6 +45,13 @@ export interface OwnerWrites<Changes> {
   removeDiscardsDraft: () => boolean;
 }
 
+/** The scopes of the Post shown and of the Caption shown (ADR-0030, #271).
+ *  The Caption scope sits under the Post scope. */
+export interface PostCardScopes {
+  post: DraftScope;
+  caption: DraftScope;
+}
+
 /** The back-end calls of the selection: the Captions read and the Owner's
  *  writes (#187). Each rejects on failure. */
 export interface SelectionCalls {
@@ -108,9 +115,8 @@ export interface SelectionState {
   postOwner: OwnerWrites<PostChanges>;
   /** The Owner's writes on the Caption shown (#187). */
   captionOwner: OwnerWrites<string>;
-  /** The scopes of the Post shown and of the Caption shown (ADR-0030). The
-   *  Caption scope sits under the Post scope. */
-  draftScopes: { post: DraftScope; caption: DraftScope };
+  /** The scopes of the Post shown and of the Caption shown. */
+  draftScopes: PostCardScopes;
   /** The message of the route's polite live region (#187). */
   announcement: Accessor<string>;
   /** The subject that each Comments panel is open on: the signal that each
