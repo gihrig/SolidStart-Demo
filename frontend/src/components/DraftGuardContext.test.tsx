@@ -3,11 +3,12 @@ import { fireEvent, render, screen } from "@solidjs/testing-library";
 import { A, MemoryRouter, Route } from "@solidjs/router";
 import userEvent from "@testing-library/user-event";
 import { createSignal, Show } from "solid-js";
-import { createDraftGuard, type DraftGuard } from "~/lib/createDraftGuard";
+import { createDraftGuard, createDraftScope, type DraftGuard } from "~/lib/createDraftGuard";
 import { stubDialogModal } from "~/lib/test-utils";
 import {
   DraftGuardContext,
   DraftGuardProvider,
+  DraftScopeContext,
   useDraftForm,
   useDraftGuard,
   type DraftForm,
@@ -37,7 +38,7 @@ function renderDraftForm(
   const [open, setOpen] = createSignal(true);
   const [dirty, setDirty] = createSignal(true);
   const [rerun, setRerun] = createSignal(0);
-  const scope = Symbol("panel");
+  const scope = createDraftScope("panel");
   const { write, resolve, reject } = deferredWrite<string | undefined>();
   const close = vi.fn(() => setOpen(false));
   const onSaved = vi.fn();
@@ -48,7 +49,6 @@ function renderDraftForm(
         rerun();
         return dirty();
       },
-      scope,
       close: () => (cancels ? close : undefined),
       write,
       fallbackError: "Could not save",
@@ -63,9 +63,11 @@ function renderDraftForm(
   }
   render(() => (
     <DraftGuardContext.Provider value={guard}>
-      <Show when={open()}>
-        <Form />
-      </Show>
+      <DraftScopeContext.Provider value={scope}>
+        <Show when={open()}>
+          <Form />
+        </Show>
+      </DraftScopeContext.Provider>
     </DraftGuardContext.Provider>
   ));
   const input = () => screen.getByRole("textbox", { name: "Text" });
@@ -87,19 +89,19 @@ function renderDraftForm(
 }
 
 describe("useDraftForm (#270)", () => {
-  it("reports its Draft and its write in its scope; an unmount ends both", async () => {
+  it("reports its Draft and its write in the scope where it mounts; an unmount ends both", async () => {
     const { guard, form, scope, setDirty, setOpen, resolve } = renderDraftForm();
-    expect(guard.hasDraftIn([scope])).toBe(true);
+    expect(guard.hasDraftIn(scope)).toBe(true);
     setDirty(false);
-    expect(guard.hasDraftIn([scope])).toBe(false);
+    expect(guard.hasDraftIn(scope)).toBe(false);
 
     const done = form.submit();
     expect(form.pending()).toBe(true);
-    expect(guard.busyIn([scope])).toBe(true);
+    expect(guard.busyIn(scope)).toBe(true);
     resolve("saved");
     await done;
     expect(form.pending()).toBe(false);
-    expect(guard.busyIn([scope])).toBe(false);
+    expect(guard.busyIn(scope)).toBe(false);
 
     void form.submit();
     setOpen(false);

@@ -297,3 +297,70 @@ with the Enter rule (#246). A hook that leaves the write in the form: each form
 must still remember the late-result check. The remote-edit merge in the hook: it
 is a field rule, and the forms hold different fields. An Escape tied to the state
 of the Cancel button: it adds a hidden link between a key and a button.
+
+## Addendum (2026-10-31) — a scope tree, the Post hold and the Caption hold (#271)
+
+This addendum builds C-25 and C-26 of the 2026-10-30 architecture review. It also
+closes two gaps that probe tests measured on 2026-10-31. A **Post hold** is the
+time in which the Post card keeps the Post shown. A **Caption hold** is the time
+in which the Caption line keeps the Caption shown (`CONTEXT.md`).
+
+**A scope can sit under another scope.** A scope can have a parent scope. A move
+names one scope. It asks about the Drafts in that scope and in each scope under
+it. A move with no scope still asks about every Draft. A form still reports one
+scope, so no form needs to know its parent. This replaces the paragraph "A move
+names every scope that it unmounts" of the #187 addendum.
+
+**Four scopes on the Post card.** The Post thread scope and the Caption scope sit
+under the Post scope. The Caption thread scope sits under the Caption scope. The
+Post edit and the Add Caption form report in the Post scope. The Caption edit
+reports in the Caption scope. No move closes one of these three forms alone. Each
+Post move and Event names the Post scope, and a Caption pick names the Caption
+scope. The Owner's own Caption delete releases the Caption scope, so it also
+releases the Caption edit. This replaces the first four sentences of "The Post's
+scopes" in the #214 addendum. Its rule stays: no Post move or Event touches the
+New Post Draft.
+
+**A form takes its scope from where it mounts.** The Post card gives the Post
+scope to each form in it. The Caption line gives the Caption scope to the Caption
+edit. Each Comment thread gives its own scope to its forms. A form outside these
+places has no scope, such as the New Post dialog. So a new form on the Post card
+is in the Post scope, and it needs no scope prop. If one move closes a new group
+of forms alone, the group gets its own scope under its subject. This replaces "A
+new form on the Post needs a scope in the Post's list" in the #214 and #270
+addenda.
+
+**An open Comments panel starts a Post hold.** A Draft on the Post, an open Post
+edit or an open Comments panel starts a Post hold. The Post hold ends when the
+last of them ends. The panel counts with or without a Draft, as an open edit does.
+So a re-rank no longer closes a thread that the User is reading. An open Caption
+Comments panel starts a Caption hold and a Post hold. A switch between the two
+panels keeps the Post hold. A switch away from the Caption thread still ends the
+Caption hold (#210). An Event that moves the Post out of the selected Category
+keeps the Post shown until the Post hold ends. Without a Draft, no question shows.
+"Discard" on that question closes the Post edit and both Comments panels, so the
+Post hold ends and the Post card moves. This replaces "A Draft holds the Post." in
+"Difference from the Post hold" of the #127 addendum.
+
+**A Draft keeps the Add Caption form open.** On a Post with no Caption, the Add
+Caption form shows in place of the Caption. Before #271, a Caption from another
+User then closed the form, and the guard discarded its Draft with a notice. But
+the subject of the form, the Post, was still there. Now, at its first Draft, the
+form becomes an opened Add Caption form, as after a click on Add. So a Caption
+that arrives does not close it, and the form gets its Cancel. Without a Draft, the
+Caption replaces the form, as before.
+
+**One module owns both holds.** `createSelection` decides which Post and which
+Caption the Post card shows. It owns the picks, the Post hold, the Caption hold,
+the guarded moves and the change causes of #187. It also owns the Owner's own
+save and delete, and the live region of the route. `createJediFeed` composes it
+with the Likes, the Comment threads and the Feed.
+
+**Rejected.** A scope for each form: no move closes the Post edit, the Add Caption
+form or the Caption edit alone. Optional scope props: a missed prop put a Draft in
+no scope, so each scoped move skipped it. Required scope props on each form: each
+new form must get its scope through each component between. A module for the two
+holds alone: the selection reads them, and they read the selection. An Add Caption
+form with no Draft as a start of a Post hold: each Post with no Caption would then
+stay shown. A forced discard when a Caption arrives: the subject of the form
+stays.

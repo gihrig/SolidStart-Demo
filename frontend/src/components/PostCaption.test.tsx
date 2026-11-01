@@ -2,11 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
-import { createDraftGuard } from "~/lib/createDraftGuard";
+import { createDraftGuard, createDraftScope } from "~/lib/createDraftGuard";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { CaptionView } from "~/types/jedi";
-import { DraftGuardContext } from "./DraftGuardContext";
+import { DraftGuardContext, DraftScopeContext } from "./DraftGuardContext";
 import PostCaption, { type PostCaptionProps } from "./PostCaption";
 
 const CAPTION: CaptionView = {
@@ -21,6 +21,9 @@ const CAPTION: CaptionView = {
 const captionAddMock = vi.fn<JediApi["captions"]["add"]>();
 const api = { captions: { add: captionAddMock } };
 const onClose = vi.fn();
+// The Post scope, where the Caption line mounts, and the Caption scope (#271).
+const postScope = createDraftScope("post");
+const captionScope = createDraftScope("caption", postScope);
 
 beforeEach(() => {
   captionAddMock.mockReset();
@@ -35,6 +38,7 @@ const defaults: PostCaptionProps = {
   adding: false,
   onClose,
   api,
+  captionScope,
 };
 const renderCaption = (props: Partial<PostCaptionProps> = {}) => {
   const user = userEvent.setup();
@@ -104,18 +108,31 @@ describe("<PostCaption />", () => {
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
   });
 
-  it("the add form reports its Draft in the add scope (#214)", async () => {
+  // The Caption line mounts in the Post scope, as on the Post card.
+  const renderInPostScope = (props: Partial<PostCaptionProps>) => {
     const guard = createDraftGuard();
-    const addScope = Symbol("add-caption");
-    const user = userEvent.setup();
+    const merged = { ...defaults, ...props };
     render(() => (
       <DraftGuardContext.Provider value={guard}>
-        <PostCaption {...defaults} adding addScope={addScope} />
+        <DraftScopeContext.Provider value={postScope}>
+          <PostCaption {...merged} />
+        </DraftScopeContext.Provider>
       </DraftGuardContext.Provider>
     ));
+    return { guard, user: userEvent.setup() };
+  };
 
+  it("the add form reports its Draft in the scope where the line mounts (#214, #271)", async () => {
+    const { guard, user } = renderInPostScope({ adding: true });
     await user.type(input()!, "draft");
-    expect(guard.hasDraftIn([addScope])).toBe(true);
+    expect(guard.hasDraftIn(postScope)).toBe(true);
+    expect(guard.hasDraftIn(captionScope), "not in the Caption scope").toBe(false);
+  });
+
+  it("the Caption edit reports its Draft in the Caption scope (#271)", async () => {
+    const { guard, user } = renderInPostScope({ editing: true });
+    await user.type(screen.getByLabelText("Edit your caption"), "!");
+    expect(guard.hasDraftIn(captionScope)).toBe(true);
   });
 
   it("shows no form while the Post's captions are loading", () => {

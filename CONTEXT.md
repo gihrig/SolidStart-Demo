@@ -593,6 +593,27 @@ _FE_: `FeaturedPost` (`components/FeaturedPost.tsx`).
 _Avoid_: Featured Post (`featured` is the top-ranked Post, only the default); Post
 line; categories line.
 
+**Post hold**:
+The time in which the Post card keeps the Post shown. A Draft on the Post, an open
+Post edit or an open Comments panel starts it. It ends when the last of them ends.
+During a Post hold, a re-rank does not move the Post card. An Event that moves the
+Post out of the selected Category keeps the Post shown until the Post hold ends. A
+move by the User to another Post ends it: a Top Photo click, or a change to a
+Category without the Post. With a Draft, the User is asked first. A deleted Post
+ends it ([ADR-0030](docs/adr/0030-unsaved-draft-guard.md) addendum, #271).
+_FE_: `createSelection` (`lib/jedi/createSelection.ts`).
+_Avoid_: pin, lock, freeze; "hold" alone.
+
+**Caption hold**:
+The time in which the Caption line keeps the Caption shown. An open Caption edit
+or an open Caption Comments panel starts it. It ends when the last of them closes.
+During a Caption hold, a re-rank does not change the Caption shown. A pick of
+another Caption ends it, and so does a move to another Post. With a Draft, the
+User is asked first. A deleted Caption ends it
+([ADR-0030](docs/adr/0030-unsaved-draft-guard.md) addendum, #271).
+_FE_: `createSelection` (`lib/jedi/createSelection.ts`).
+_Avoid_: pin, lock, freeze; "hold" alone.
+
 ### Unsaved Drafts
 
 **Draft** (unsaved form text):
@@ -602,7 +623,8 @@ field is not blank or a Category is checked. An open Comment, Caption or Post ed
 holds one when it differs from the saved entity. A Cancel, an Escape or a
 user-started move that would close the form asks first. While the form is saving,
 no user-started move closes it. An Event that removes the form's subject discards
-the Draft, and a notice says so. An Event that moves the Post out of the selected
+the Draft, and a notice says so. A Caption that arrives does not close an Add
+Caption form with a Draft. An Event that moves the Post out of the selected
 Category keeps the Post shown. The User then chooses to keep or discard the Draft
 ([ADR-0030](docs/adr/0030-unsaved-draft-guard.md)).
 _Avoid_: unsaved comment, pending edit; "lost" or "rejected" for a forced discard.

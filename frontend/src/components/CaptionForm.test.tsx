@@ -3,11 +3,11 @@ import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
-import { createDraftGuard } from "~/lib/createDraftGuard";
+import { createDraftGuard, createDraftScope } from "~/lib/createDraftGuard";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { CaptionView } from "~/types/jedi";
 import CaptionForm, { type CaptionFormProps } from "./CaptionForm";
-import { DraftGuardContext } from "./DraftGuardContext";
+import { DraftGuardContext, DraftScopeContext } from "./DraftGuardContext";
 
 const ADDED: CaptionView = {
   id: 99,
@@ -158,7 +158,7 @@ describe("<CaptionForm />", () => {
 });
 
 describe("<CaptionForm /> — the edit mode (#187)", () => {
-  const scope = Symbol("caption-edit");
+  const scope = createDraftScope("caption-edit");
 
   function renderEdit() {
     const [caption, setCaption] = createSignal(ADDED);
@@ -168,15 +168,16 @@ describe("<CaptionForm /> — the edit mode (#187)", () => {
     const guard = createDraftGuard();
     render(() => (
       <DraftGuardContext.Provider value={guard}>
-        <CaptionForm
-          postId={1}
-          api={api}
-          caption={caption()}
-          draftScope={scope}
-          onSave={onSave}
-          onSaved={onSaved}
-          onCancel={onCancel}
-        />
+        <DraftScopeContext.Provider value={scope}>
+          <CaptionForm
+            postId={1}
+            api={api}
+            caption={caption()}
+            onSave={onSave}
+            onSaved={onSaved}
+            onCancel={onCancel}
+          />
+        </DraftScopeContext.Provider>
       </DraftGuardContext.Provider>
     ));
     const input = screen.getByLabelText("Edit your caption") as HTMLInputElement;
@@ -198,9 +199,9 @@ describe("<CaptionForm /> — the edit mode (#187)", () => {
 
   it("holds a Draft in its scope while the text differs; Cancel asks, and Discard drops it", async () => {
     const { user, input, guard, onCancel } = renderEdit();
-    expect(guard.hasDraftIn([scope])).toBe(false);
+    expect(guard.hasDraftIn(scope)).toBe(false);
     await user.type(input, "!");
-    expect(guard.hasDraftIn([scope])).toBe(true);
+    expect(guard.hasDraftIn(scope)).toBe(true);
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(guard.pending()).toBe(true);
@@ -232,13 +233,15 @@ describe("<CaptionForm /> — the edit mode (#187)", () => {
 });
 
 describe("<CaptionForm /> — Cancel and Escape (#214)", () => {
-  const scope = Symbol("add-caption");
+  const scope = createDraftScope("add-caption");
 
   function renderGuarded(props: Partial<CaptionFormProps> = {}) {
     const guard = createDraftGuard();
     render(() => (
       <DraftGuardContext.Provider value={guard}>
-        <CaptionForm postId={1} api={api} draftScope={scope} {...props} />
+        <DraftScopeContext.Provider value={scope}>
+          <CaptionForm postId={1} api={api} {...props} />
+        </DraftScopeContext.Provider>
       </DraftGuardContext.Provider>
     ));
     const input = screen.getByLabelText("Your caption") as HTMLInputElement;
