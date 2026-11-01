@@ -338,8 +338,9 @@ Comments panel starts a Caption hold and a Post hold. A switch between the two
 panels keeps the Post hold. A switch away from the Caption thread still ends the
 Caption hold (#210). An Event that moves the Post out of the selected Category
 keeps the Post shown until the Post hold ends. Without a Draft, no question shows.
-This replaces "A Draft holds the Post." in "Difference from the Post hold" of the
-#127 addendum.
+"Discard" on that question closes the Post edit and both Comments panels, so the
+Post hold ends and the Post card moves. This replaces "A Draft holds the Post." in
+"Difference from the Post hold" of the #127 addendum.
 
 **A Draft keeps the Add Caption form open.** On a Post with no Caption, the Add
 Caption form shows in place of the Caption. Before #271, a Caption from another
