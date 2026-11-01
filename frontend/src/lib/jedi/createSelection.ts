@@ -95,7 +95,7 @@ export interface SelectionDeps {
 /** The Post and the Caption that the Post card shows (#271), and the moves
  *  and writes on them. */
 export interface SelectionState {
-  /** The Post shown. */
+  /** The Post shown in the Post card (#29). */
   selectedPost: Accessor<PostView | undefined>;
   /** Select a Post (a Top Photo click). A change of the Post shown goes
    *  through the Draft guard, in the Post scope. */
@@ -103,21 +103,31 @@ export interface SelectionState {
   /** Select a Category by index. A change that changes the Post shown goes
    *  through the Draft guard; one that keeps it does not. */
   setSelectedCategory: (index: number) => void;
-  /** The Captions of the Post shown: undefined while they load, and empty
-   *  when no Post is shown. */
+  /** What Top Captions renders: the Captions of the Post shown. Undefined
+   *  while they load. Empty when no Post is shown (an empty Category), so the
+   *  card clears with `<main>`. */
   visibleCaptions: Accessor<CaptionView[] | undefined>;
-  /** The Caption shown. */
+  /** The Caption shown under the Post (#33). */
   selectedCaption: Accessor<CaptionView | undefined>;
   /** Select a Caption (a Top Captions click). A change of the Caption shown
-   *  goes through the Draft guard, in the Caption scope. */
+   *  closes its Comments panel and its edit, so it goes through the Draft
+   *  guard, in the Caption scope (#127, #271). */
   selectCaption: (id: number) => void;
-  /** The Owner's writes on the Post shown (#187). */
+  /** The Owner's writes on the Post shown (#187). The edit is the Edit
+   *  dialog. When a save's Categories drop the selected one, the filter
+   *  switches to "All" when the save is sent, so the Post stays shown. A
+   *  delete releases every Draft on the Post. */
   postOwner: OwnerWrites<PostChanges>;
-  /** The Owner's writes on the Caption shown (#187). */
+  /** The Owner's writes on the Caption shown (#187). The edit is the form in
+   *  the Caption line. A save rejects for a Caption that got a Like. A delete
+   *  releases every Draft on the Caption: its edit's and its Comments panel's
+   *  (#271). */
   captionOwner: OwnerWrites<string>;
   /** The scopes of the Post shown and of the Caption shown. */
   draftScopes: PostCardScopes;
-  /** The message of the route's polite live region (#187). */
+  /** The message of the route's polite live region (#187): the result of the
+   *  Owner's own save or delete, or a change by another User that discarded
+   *  no Draft. Empty until the first message. */
   announcement: Accessor<string>;
   /** The subject that each Comments panel is open on: the signal that each
    *  thread gets through `openOn`. The Caption one starts a Caption hold. */

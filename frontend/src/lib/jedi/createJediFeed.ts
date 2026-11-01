@@ -9,22 +9,10 @@ import {
   POST_COMMENT_EVENTS,
   type CommentThreadState,
 } from "~/lib/jedi/createCommentThread";
-import {
-  createSelection,
-  type OwnerWrites,
-  type PostCardScopes,
-  type SelectionState,
-} from "~/lib/jedi/createSelection";
+import { createSelection, type SelectionState } from "~/lib/jedi/createSelection";
 import type { Feed } from "~/lib/feed";
 import { Channel } from "~/lib/channel";
-import type {
-  JediCategory,
-  Like,
-  PostChanges,
-  PostView,
-  CaptionView,
-  HeroView,
-} from "~/types/jedi";
+import type { JediCategory, Like, PostView, HeroView } from "~/types/jedi";
 
 export type { EditState, OwnerWrites, PostCardScopes } from "~/lib/jedi/createSelection";
 
@@ -65,7 +53,11 @@ export type { EditState, OwnerWrites, PostCardScopes } from "~/lib/jedi/createSe
  * route renders the Hero from `hero`, so it is not hard-coded in the markup. The
  * nav avatar's profile now lives in the global Nav, not here (see ADR-0007).
  */
-export interface JediFeed {
+/** The members of the selection that the route reads (#271): every member
+ *  but the three that only this view-model uses. */
+type SelectionMembers = Omit<SelectionState, "threadOpenOn" | "checkPosts" | "refetchCaptions">;
+
+export interface JediFeed extends SelectionMembers {
   /** The real categories behind an "All" row at index 0 (`selectedCategory`). */
   categories: Accessor<JediCategory[] | undefined>;
   /** The ranked posts filtered to `selectedCategory` — what Top Photos renders (#33-b). */
@@ -73,22 +65,7 @@ export interface JediFeed {
   /** The selected category's name when its filter matches no posts, so `<main>`
    *  can show a "No Posts in …" panel; undefined when posts exist or are loading. */
   emptyCategoryLabel: Accessor<string | undefined>;
-  selectedPost: Accessor<PostView | undefined>;
-  /** Select a Post (a Top Photo click). A change of the selected Post goes
-   *  through the Draft guard. */
-  selectPost: (id: number) => void;
-  /** What Top Captions renders: the selected post's captions, or empty when no
-   *  post is selected (an empty category), so the card clears with `<main>`. */
-  visibleCaptions: Accessor<CaptionView[] | undefined>;
-  selectedCaption: Accessor<CaptionView | undefined>;
-  /** Select a Caption (a Top Captions click). A change of the Caption shown
-   *  closes its Comments panel and its edit, so it goes through the Draft
-   *  guard, in the Caption scope (#127, #271). */
-  selectCaption: (id: number) => void;
   selectedCategory: Accessor<number>;
-  /** Select a category by index. A change that changes the selected Post goes
-   *  through the Draft guard; one that keeps it does not. */
-  setSelectedCategory: (index: number) => void;
   hero: Accessor<HeroView | undefined>;
   /** The viewer's like state of the selected Post (#122): the live count and
    *  whether the viewer likes it. Undefined while loading, and on the anonymous
@@ -116,22 +93,6 @@ export interface JediFeed {
   /** The shown Caption's Comment thread (#127), as `postComments` is for the
    *  Post. While its panel is open, it starts a Caption hold and a Post hold. */
   captionComments: CommentThreadState;
-  /** The Owner's writes on the shown Post (#187). The edit is the Edit
-   *  dialog. When a save's Categories drop the selected one, the filter
-   *  switches to "All" when the save is sent, so the Post stays shown. A
-   *  delete releases every Draft on the Post. */
-  postOwner: OwnerWrites<PostChanges>;
-  /** The Owner's writes on the shown Caption (#187). The edit is the form in
-   *  the Caption line. A save rejects for a Caption that got a Like. A delete
-   *  releases every Draft on the Caption: its edit's and its Comments panel's
-   *  (#271). */
-  captionOwner: OwnerWrites<string>;
-  /** The scopes of the Post shown and of the Caption shown (ADR-0030). */
-  draftScopes: PostCardScopes;
-  /** The message of the route's polite live region (#187): the result of the
-   *  Owner's own delete, or a delete by another User that discarded no Draft.
-   *  Empty until the first message. */
-  announcement: Accessor<string>;
   /** Wire a live Feed after creation (#120): the route builds this view-model
    *  anonymously, then connects the socket's Feed once a User logs in. The
    *  subscription is owned by the caller's reactive scope, so it ends with it. */
@@ -164,10 +125,10 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // a form that the change unmounts then holds no Draft (#187). Only in the
   // browser: an Event reaches no server render, and on the server a read after
   // the `await` can meet another request's render context. The check runs
-  // after the `await`, so `selection` below exists by then.
+  // after the `await`, so `checkPosts` below exists by then.
   const [postsResource, { refetch: refetchPosts }] = createResource(async () => {
     const list = await api.posts.list();
-    if (!isServer) untrack(() => selection.checkPosts(list));
+    if (!isServer) untrack(() => checkPosts(list));
     return list;
   });
   // The first load reads `postsResource()`, so the route's <Suspense> (and SSR)
@@ -200,7 +161,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
 
   // The Post and the Caption shown, with the Post hold, the Caption hold and
   // the Owner's writes (#271).
-  const selection: SelectionState = createSelection({
+  const { threadOpenOn, checkPosts, refetchCaptions, ...shown }: SelectionState = createSelection({
     posts,
     visiblePostsIn,
     filterCategory,
@@ -216,7 +177,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     },
     guard,
   });
-  const { selectedPost, selectedCaption } = selection;
+  const { selectedPost, selectedCaption } = shown;
 
   // Truthy only when a real (non-"All") category filters every post away. A
   // held Post that an Event moved out of the filter still shows: the empty
@@ -250,9 +211,9 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     parentId: () => selectedPost()?.id,
     api: api.comments,
     events: POST_COMMENT_EVENTS,
-    openOn: selection.threadOpenOn.post,
+    openOn: threadOpenOn.post,
     guard,
-    parentScope: selection.draftScopes.post,
+    parentScope: shown.draftScopes.post,
   });
   // The shown Caption's Comment thread (#127), the same way, under the
   // Caption scope.
@@ -260,9 +221,9 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     parentId: () => selectedCaption()?.id,
     api: api.captionComments,
     events: CAPTION_COMMENT_EVENTS,
-    openOn: selection.threadOpenOn.caption,
+    openOn: threadOpenOn.caption,
     guard,
-    parentScope: selection.draftScopes.caption,
+    parentScope: shown.draftScopes.caption,
   });
   // One Comments panel at a time (#210). An open of one thread closes the
   // other, a guarded move in the other thread's scope. In the move, that close
@@ -325,7 +286,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
       () => Channel.posts,
       () => void refetchPosts(),
     );
-    feed.subscribe(selectedChannel(postId, Channel.postCaption), selection.refetchCaptions);
+    feed.subscribe(selectedChannel(postId, Channel.postCaption), refetchCaptions);
     feed.subscribe(selectedChannel(postId, Channel.postLike), () => postLike.refetch());
     feed.subscribe(selectedChannel(captionId, Channel.captionLike), () => captionLike.refetch());
     // The thread's Subscription is held only while the Comments panel is open.
@@ -341,16 +302,11 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const [hero] = createResource(() => api.hero.get());
 
   return {
+    ...shown,
     categories,
     visiblePosts,
     emptyCategoryLabel,
-    selectedPost,
-    selectPost: selection.selectPost,
-    visibleCaptions: selection.visibleCaptions,
-    selectedCaption,
-    selectCaption: selection.selectCaption,
     selectedCategory,
-    setSelectedCategory: selection.setSelectedCategory,
     hero,
     selectedPostLike: postLike.like,
     togglePostLike: postLike.toggle,
@@ -358,10 +314,6 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     toggleCaptionLike: captionLike.toggle,
     postComments,
     captionComments,
-    postOwner: selection.postOwner,
-    captionOwner: selection.captionOwner,
-    draftScopes: selection.draftScopes,
-    announcement: selection.announcement,
     connectFeed,
   };
 }

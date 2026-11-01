@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
+import { describe, it, expect, expectTypeOf, vi, beforeEach } from "vite-plus/test";
 import { createComponent, createRoot, getOwner, runWithOwner, Suspense, type JSX } from "solid-js";
 import { render, screen } from "@solidjs/testing-library";
 import { Channel } from "~/lib/channel";
@@ -269,6 +269,17 @@ describe("createJediFeed — the route's view-model seam", () => {
       expect(jedi.selectedCategory()).toBe(0);
       jedi.setSelectedCategory(2);
       expect(jedi.selectedCategory()).toBe(2);
+    }));
+
+  it("exposes none of the selection's members that only the view-model uses (#271)", () =>
+    withAnonymousJedi((jedi) => {
+      expectTypeOf<JediFeed>().not.toHaveProperty("threadOpenOn");
+      expectTypeOf<JediFeed>().not.toHaveProperty("checkPosts");
+      expectTypeOf<JediFeed>().not.toHaveProperty("refetchCaptions");
+      for (const internal of ["threadOpenOn", "checkPosts", "refetchCaptions"]) {
+        expect(jedi, internal).not.toHaveProperty(internal);
+      }
+      expect(jedi.selectedPost()?.id, "a selection member reaches the route").toBe(1);
     }));
 
   it("exposes the externalized hero content", () =>
