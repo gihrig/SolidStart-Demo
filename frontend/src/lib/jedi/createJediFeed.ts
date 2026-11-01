@@ -9,7 +9,7 @@ import {
   POST_COMMENT_EVENTS,
   type CommentThreadState,
 } from "~/lib/jedi/createCommentThread";
-import { createSelection, type SelectionState } from "~/lib/jedi/createSelection";
+import { createSelection, type OwnerWrites, type SelectionState } from "~/lib/jedi/createSelection";
 import type { Feed } from "~/lib/feed";
 import { Channel } from "~/lib/channel";
 import type {
@@ -20,7 +20,6 @@ import type {
   CaptionView,
   HeroView,
 } from "~/types/jedi";
-import type { OwnerWrites } from "~/lib/jedi/createSelection";
 
 export type { EditState, OwnerWrites } from "~/lib/jedi/createSelection";
 

@@ -20,7 +20,8 @@ import type { CaptionView, JediCategory, PostChanges, PostView } from "~/types/j
 /** One edit's open state (#187): the Post edit or the Caption edit. */
 export interface EditState {
   /** Whether the edit is open on the subject shown. A change of the subject
-   *  shown closes it. While it is open, it starts the hold of its subject. */
+   *  shown closes it. While it is open, it starts the Post hold or the
+   *  Caption hold of its subject. */
   open: Accessor<boolean>;
   /** Open the edit on the subject shown, or close it. A close is the form's
    *  own Cancel or Save, so it is no guarded move. */
@@ -160,9 +161,9 @@ const inCategory = (post: PostView, category: JediCategory): boolean =>
  * The Post shown is the clicked Post while the filter lists it, else the
  * top-ranked Post in the filter. A **Post hold** keeps the Post shown: a Draft
  * on the Post, an open Post edit or an open Comments panel starts it, and it
- * ends when the last of them ends. During a Post hold, a re-rank does not move the Post card, and a
- * Post that an Event moves out of the Category stays shown. The guard asks
- * whether to keep the Drafts on it.
+ * ends when the last of them ends. During a Post hold, a re-rank does not move
+ * the Post card, and a Post that an Event moves out of the Category stays
+ * shown. With a Draft, the guard asks whether to keep the Drafts on it.
  *
  * The Caption shown is the picked Caption, else the top-ranked Caption. A
  * **Caption hold** keeps the Caption shown: an open Caption edit or an open
@@ -202,7 +203,8 @@ export function createSelection(deps: SelectionDeps): SelectionState {
   const [postEditOn, setPostEditOn] = createSignal<number>();
   const [captionEditOn, setCaptionEditOn] = createSignal<number>();
   // The subject each Comments panel is open on (#124, #127). This module owns
-  // the signals, as the holds read them; each thread sets and clears its own.
+  // the signals, as the Post hold and the Caption hold read them; each thread
+  // sets and clears its own.
   const postThreadOpenOn = createSignal<number>();
   const captionThreadOpenOn = createSignal<number>();
   // The held Post that an Event moved out of the selected Category (#187): it
