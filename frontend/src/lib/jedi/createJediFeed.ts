@@ -1,4 +1,4 @@
-import { batch, createResource, createSignal, onCleanup, untrack, type Accessor } from "solid-js";
+import { batch, createResource, createSignal, untrack, type Accessor } from "solid-js";
 import { isServer } from "solid-js/web";
 import { passThroughGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
@@ -11,7 +11,7 @@ import {
 } from "~/lib/jedi/createCommentThread";
 import { createSelection, type SelectionState } from "~/lib/jedi/createSelection";
 import type { Feed } from "~/lib/feed";
-import { Channel } from "~/lib/channel";
+import { Channel, selectedChannel } from "~/lib/channel";
 import type { JediCategory, Like, PostView, HeroView } from "~/types/jedi";
 
 export type { EditState, OwnerWrites, PostCardScopes } from "~/lib/jedi/createSelection";
@@ -37,7 +37,8 @@ export type { EditState, OwnerWrites, PostCardScopes } from "~/lib/jedi/createSe
  *
  * `selectedPostLike` / `selectedCaptionLike` are the viewer's like state of the
  * selected Post and the selected Caption (#122, #123). Each comes from one
- * `createLikeState`; this view-model holds their Subscriptions.
+ * `createLikeState`, with its own Subscription: this view-model only hands
+ * each Like state the Feed.
  *
  * `postComments` is the selected Post's Comment thread (#124), and
  * `captionComments` the shown Caption's (#127). Each is one
@@ -188,18 +189,17 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   };
 
   // The viewer's like state of the selected Post (#122) and of the selected
-  // Caption (#123). The read needs a login, so each loads only while a live
-  // session is connected.
-  const [live, setLive] = createSignal(false);
-  const postLike = createLikeState({
+  // Caption (#123). Each holds the Subscription on its own Channel. The read
+  // needs a login, so each loads only after `connectFeed`.
+  const { state: postLike, connectFeed: connectPostLike } = createLikeState({
     selectedId: () => selectedPost()?.id,
-    live,
+    channel: Channel.postLike,
     getLike: (id) => api.posts.getLike(id),
     toggleLike: (id, liked) => api.posts.toggleLike(id, liked),
   });
-  const captionLike = createLikeState({
+  const { state: captionLike, connectFeed: connectCaptionLike } = createLikeState({
     selectedId: () => selectedCaption()?.id,
-    live,
+    channel: Channel.captionLike,
     getLike: (id) => api.captions.getLike(id),
     toggleLike: (id, liked) => api.captions.toggleLike(id, liked),
   });
@@ -253,41 +253,25 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
 
   // Live propagation (#117): a `posts` poke means the Post list may have changed,
   // so refetch the list (the featured post re-derives from it). A `post_caption`
-  // poke means one Post's Captions changed (#121), and a `post_like` poke means
-  // one Post's like count changed (#122): each is held for the selected Post
-  // only. A `caption_like` poke means one Caption's like count changed (#123),
-  // held for the selected Caption. Each Comment thread holds the Subscription
-  // on its own Channel (#124, #127), so this view-model only hands it the
-  // Feed. Each Subscription names its Channel through an accessor, so the Feed
-  // moves the hold with the selection and routes only the held Channel here
-  // (ADR-0028). Each handler refetches on a poke and on the resync call after a
-  // (re)connect, so a poke lost while the socket was down is recovered (#120
-  // review). The anonymous landing page has no socket, so the route calls this
-  // on login (#120).
+  // poke means one Post's Captions changed (#121); it is held for the selected
+  // Post only. Each Like state (#122, #123) and each Comment thread (#124,
+  // #127) holds the Subscription on its own Channel, so this view-model only
+  // hands each one the Feed. Each Subscription names its Channel through an
+  // accessor, so the Feed moves the hold with the selection and routes only the
+  // held Channel here (ADR-0028). Each handler refetches on a poke and on the
+  // resync call after a (re)connect, so a poke lost while the socket was down
+  // is recovered (#120 review). The anonymous landing page has no socket, so
+  // the route calls this on login (#120).
   const connectFeed = (feed: Feed): void => {
-    // A connected Feed means a logged-in User, so the viewer's like state can
-    // load now; it ends with the caller's scope (logout), like the socket. A
-    // logout also drops the wanted Likes (`createLikeState`), so a queued send
-    // stops after the request in flight and never goes out with the next User's
-    // cookie (#122 review).
-    setLive(true);
-    onCleanup(() => setLive(false));
-    // The Channel for the selected entity's id, or none while nothing is selected.
-    const selectedChannel =
-      (id: () => number | undefined, channel: (id: number) => Channel) =>
-      (): Channel | undefined => {
-        const value = id();
-        return value === undefined ? undefined : channel(value);
-      };
     const postId = () => selectedPost()?.id;
-    const captionId = () => selectedCaption()?.id;
     feed.subscribe(
       () => Channel.posts,
       () => void refetchPosts(),
     );
     feed.subscribe(selectedChannel(postId, Channel.postCaption), refetchCaptions);
-    feed.subscribe(selectedChannel(postId, Channel.postLike), () => postLike.refetch());
-    feed.subscribe(selectedChannel(captionId, Channel.captionLike), () => captionLike.refetch());
+    // Each Like state holds its own Subscription, and loads once connected.
+    connectPostLike(feed);
+    connectCaptionLike(feed);
     // Each thread holds its own Subscription, while its Comments panel is open.
     connectPostThread(feed);
     connectCaptionThread(feed);

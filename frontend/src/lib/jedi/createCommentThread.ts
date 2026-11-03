@@ -15,7 +15,7 @@ import {
   type DraftScope,
 } from "~/lib/createDraftGuard";
 import { toCommentView, type CommentApi } from "~/lib/jedi/jedi-api";
-import { Channel } from "~/lib/channel";
+import { Channel, selectedChannel } from "~/lib/channel";
 import type { Feed, FeedHandler } from "~/lib/feed";
 import type { CommentView } from "~/types/jedi";
 
@@ -237,10 +237,7 @@ export function createCommentThread(deps: CommentThreadDeps): {
   };
 
   const connectFeed = (feed: Feed): void => {
-    feed.subscribe(() => {
-      const id = shownParentId();
-      return id === undefined ? undefined : target.channel(id);
-    }, handleEvent);
+    feed.subscribe(selectedChannel(shownParentId, target.channel), handleEvent);
   };
 
   const add = async (content: string): Promise<void> => {

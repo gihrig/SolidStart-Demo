@@ -1,3 +1,4 @@
+import type { Accessor } from "solid-js";
 import type { Channel as ChannelType } from "~/types/backend";
 
 /**
@@ -30,3 +31,13 @@ export const Channel = {
   captionLike: (id: number): Channel => ({ kind: "caption_like", id }),
   postCaption: (id: number): Channel => ({ kind: "post_caption", id }),
 };
+
+/** The Channel of the selected entity, as an accessor for `feed.subscribe`
+ *  (ADR-0028): `channel(id)` for the id `id()` gives, or none while it gives
+ *  undefined. The Feed moves the hold when the id changes. */
+export const selectedChannel =
+  (id: Accessor<number | undefined>, channel: (id: number) => Channel) =>
+  (): Channel | undefined => {
+    const value = id();
+    return value === undefined ? undefined : channel(value);
+  };
