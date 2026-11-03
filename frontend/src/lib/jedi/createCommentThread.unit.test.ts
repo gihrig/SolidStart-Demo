@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { createRoot, createSignal } from "solid-js";
-import type { FeedHandler } from "~/lib/feed";
+import { Channel } from "~/lib/channel";
+import { createMemoryFeed, type MemoryFeed } from "~/lib/feed.memory";
 import type { CommentApi } from "~/lib/jedi/jedi-api";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { CommentView as CommentViewWire } from "~/types/backend";
@@ -14,9 +15,10 @@ import {
 } from "./createCommentThread";
 
 // The Comment thread of the selected Post (#124). This seam test drives the
-// factory with a selected Post id and a stateful fake back-end, and hands it
-// Feed Events through `onEvent`; `createJediFeed.unit.test.ts` covers the Feed
-// wiring around it.
+// factory with a selected Post id and a stateful fake back-end. The thread
+// holds its Subscription on a memory Feed (ADR-0028), so each Event and each
+// resync goes through the real Feed core; `createJediFeed.unit.test.ts` covers
+// the view-model's wiring around it.
 
 // A time `seconds` after a fixed moment, as the wire writes it: trailing zeros
 // trimmed. A Comment is made `id` seconds in, so a higher id is newer.
@@ -107,21 +109,38 @@ beforeEach(() => {
 
 interface Harness {
   thread: CommentThreadState;
-  onEvent: FeedHandler;
+  /** The memory Feed the thread holds its Subscription on (ADR-0028). */
+  mem: MemoryFeed;
   select: (id: number | undefined) => void;
 }
 
-// The panel starts open, unless a test asks for it closed.
+// Drop the wire and connect it again: the Feed core replays each held Channel,
+// then calls each holder's resync.
+const reconnect = (mem: MemoryFeed) => {
+  mem.setConnected(false);
+  mem.setConnected(true);
+};
+
+// The panel starts open, unless a test asks for it closed. The wire connects
+// before the thread is made, so the first connect calls no resync. With
+// `feed: false`, the thread has no Feed, as on the anonymous landing page.
 async function withThread(
   run: (h: Harness) => Promise<void>,
-  { open = true, events = POST_COMMENT_EVENTS }: { open?: boolean; events?: CommentEvents } = {},
+  {
+    open = true,
+    events = POST_COMMENT_EVENTS,
+    feed = true,
+  }: { open?: boolean; events?: CommentEvents; feed?: boolean } = {},
 ) {
+  const mem = createMemoryFeed();
+  mem.setConnected(true);
   await createRoot(async (dispose) => {
     const [postId, select] = createSignal<number | undefined>(1);
-    const { thread, onEvent } = createCommentThread({ parentId: postId, api, events });
+    const { thread, connectFeed } = createCommentThread({ parentId: postId, api, events });
+    if (feed) connectFeed(mem.feed);
     thread.setOpen(open);
     try {
-      await run({ thread, onEvent, select });
+      await run({ thread, mem, select });
     } finally {
       dispose();
     }
@@ -133,13 +152,13 @@ const contents = (thread: CommentThreadState) => thread.comments()?.map((c) => c
 describe("createCommentThread — the open state (lazy thread)", () => {
   it("makes no read and merges no Event while the panel is closed", () =>
     withThread(
-      async ({ thread, onEvent }) => {
+      async ({ thread, mem }) => {
         await tick();
         expect(thread.open()).toBe(false);
         expect(listMock).not.toHaveBeenCalled();
 
-        onEvent({ event_type: "post_comment", payload: wire(comment(12, 1, "third")) });
-        onEvent(undefined); // the resync call after a (re)connect
+        mem.emit({ event_type: "post_comment", payload: wire(comment(12, 1, "third")) });
+        reconnect(mem); // the resync call after a (re)connect
         await tick();
         expect(listMock).not.toHaveBeenCalled();
         expect(thread.comments()).toBeUndefined();
@@ -177,6 +196,44 @@ describe("createCommentThread — the open state (lazy thread)", () => {
     }));
 });
 
+describe("createCommentThread — the Subscription (#120, ADR-0028)", () => {
+  it("an open holds the parent's Channel; a close releases it", () =>
+    withThread(
+      async ({ thread, mem }) => {
+        await tick();
+        expect(mem.held()).toEqual([]);
+        thread.setOpen(true);
+        expect(mem.held()).toEqual([Channel.postComment(1)]);
+        thread.setOpen(false);
+        expect(mem.held()).toEqual([]);
+      },
+      { open: false },
+    ));
+
+  it("a change of the parent shown releases the Channel", () =>
+    withThread(async ({ thread, mem, select }) => {
+      await tick();
+      expect(mem.held()).toEqual([Channel.postComment(1)]);
+      select(2);
+      expect(thread.open()).toBe(false);
+      expect(mem.held()).toEqual([]);
+      thread.setOpen(true);
+      expect(mem.held()).toEqual([Channel.postComment(2)]);
+    }));
+
+  it("with no Feed, the thread still loads and adds a Comment (the anonymous landing)", () =>
+    withThread(
+      async ({ thread, mem }) => {
+        await tick();
+        expect(contents(thread)).toEqual(["second", "first"]);
+        await thread.add("hello");
+        expect(contents(thread)).toEqual(["hello", "second", "first"]);
+        expect(mem.held()).toEqual([]);
+      },
+      { feed: false },
+    ));
+});
+
 describe("createCommentThread — the thread read", () => {
   it("loads the selected Post's thread, and re-keys with the selection", () =>
     withThread(async ({ thread, select }) => {
@@ -199,12 +256,12 @@ describe("createCommentThread — the thread read", () => {
     }));
 
   it("keeps each row on a reload: rows reconcile by id, never recreate", () =>
-    withThread(async ({ thread, onEvent }) => {
+    withThread(async ({ thread, mem }) => {
       await tick();
       const [second, first] = thread.comments()!;
 
       threads.get(1)![0].contentHtml = "second, edited elsewhere";
-      onEvent(undefined); // the resync call after a (re)connect
+      reconnect(mem); // the resync call after a (re)connect
       await tick();
 
       expect(listMock).toHaveBeenCalledTimes(2);
@@ -214,40 +271,41 @@ describe("createCommentThread — the thread read", () => {
     }));
 
   it("shows an error when the thread fails to load", () =>
-    withThread(async ({ thread, onEvent }) => {
+    withThread(async ({ thread, mem }) => {
       await tick();
       listMock.mockRejectedValueOnce(new Error("Network down"));
-      onEvent(undefined);
+      reconnect(mem);
       await tick();
       expect(thread.error()).toBe("Could not load the Comments");
     }));
 });
 
 describe("createCommentThread — the live Events", () => {
-  it("a Caption thread merges only the Caption Comment Events (#127)", () =>
+  it("a Caption thread holds the Caption Comment Channel, and merges only its Events (#127)", () =>
     withThread(
-      async ({ thread, onEvent }) => {
+      async ({ thread, mem }) => {
         await tick();
+        expect(mem.held()).toEqual([Channel.captionComment(1)]);
         // Post 1 and Caption 1 share the id 1: a Post Comment Event is not this
         // thread's.
-        onEvent({ event_type: "post_comment", payload: wire(comment(12, 1, "on the Post")) });
-        onEvent({ event_type: "post_comment_removal", payload: { id: 11, parent_id: 1 } });
+        mem.emit({ event_type: "post_comment", payload: wire(comment(12, 1, "on the Post")) });
+        mem.emit({ event_type: "post_comment_removal", payload: { id: 11, parent_id: 1 } });
         expect(contents(thread)).toEqual(["second", "first"]);
 
-        onEvent({ event_type: "caption_comment", payload: wire(comment(12, 1, "third")) });
-        onEvent({ event_type: "caption_comment_removal", payload: { id: 10, parent_id: 1 } });
+        mem.emit({ event_type: "caption_comment", payload: wire(comment(12, 1, "third")) });
+        mem.emit({ event_type: "caption_comment_removal", payload: { id: 10, parent_id: 1 } });
         expect(contents(thread)).toEqual(["third", "second"]);
       },
       { events: CAPTION_COMMENT_EVENTS },
     ));
 
   it("an upsert of a new Comment puts it on top; an upsert of a known one edits it in place", () =>
-    withThread(async ({ thread, onEvent }) => {
+    withThread(async ({ thread, mem }) => {
       await tick();
       const first = thread.comments()![1];
 
-      onEvent({ event_type: "post_comment", payload: wire(comment(12, 1, "third")) });
-      onEvent({
+      mem.emit({ event_type: "post_comment", payload: wire(comment(12, 1, "third")) });
+      mem.emit({
         event_type: "post_comment",
         payload: wire(comment(10, 1, "first, edited")),
       });
@@ -257,58 +315,58 @@ describe("createCommentThread — the live Events", () => {
     }));
 
   it("a late push of an older Comment goes below a newer one", () =>
-    withThread(async ({ thread, onEvent }) => {
+    withThread(async ({ thread, mem }) => {
       await tick();
       const between = { ...comment(12, 1, "between"), ctime: "2026-10-10T12:00:10.5Z" };
-      onEvent({ event_type: "post_comment", payload: wire(comment(5, 1, "oldest")) });
-      onEvent({ event_type: "post_comment", payload: wire(between) });
+      mem.emit({ event_type: "post_comment", payload: wire(comment(5, 1, "oldest")) });
+      mem.emit({ event_type: "post_comment", payload: wire(between) });
 
       expect(contents(thread)).toEqual(["second", "between", "first", "oldest"]);
     }));
 
   it("places by time, not by string order: the wire trims trailing zeros", () =>
-    withThread(async ({ thread, onEvent }) => {
+    withThread(async ({ thread, mem }) => {
       await tick();
       // "…:11.1Z" sorts before "…:11Z" as a string, but it is the later time.
       const later = { ...comment(12, 1, "a tenth later"), ctime: "2026-10-10T12:00:11.1Z" };
-      onEvent({ event_type: "post_comment", payload: wire(later) });
+      mem.emit({ event_type: "post_comment", payload: wire(later) });
 
       expect(contents(thread)).toEqual(["a tenth later", "second", "first"]);
     }));
 
   it("breaks a time tie by id: the higher id goes first", () =>
-    withThread(async ({ thread, onEvent }) => {
+    withThread(async ({ thread, mem }) => {
       await tick();
       const tie = { ...comment(12, 1, "same time as second"), ctime: at(11) };
-      onEvent({ event_type: "post_comment", payload: wire(tie) });
+      mem.emit({ event_type: "post_comment", payload: wire(tie) });
 
       expect(contents(thread)).toEqual(["same time as second", "second", "first"]);
     }));
 
   it("an upsert with a time that does not parse throws, and leaves the thread unchanged", () =>
-    withThread(async ({ thread, onEvent }) => {
+    withThread(async ({ thread, mem }) => {
       await tick();
       const bad = { ...comment(12, 1, "bad time"), ctime: "not a time" };
-      expect(() => onEvent({ event_type: "post_comment", payload: wire(bad) })).toThrow(
+      expect(() => mem.emit({ event_type: "post_comment", payload: wire(bad) })).toThrow(
         "Invalid Comment time: not a time",
       );
       expect(contents(thread)).toEqual(["second", "first"]);
     }));
 
   it("a removal drops the Comment by id", () =>
-    withThread(async ({ thread, onEvent }) => {
+    withThread(async ({ thread, mem }) => {
       await tick();
-      onEvent({ event_type: "post_comment_removal", payload: { id: 10, parent_id: 1 } });
+      mem.emit({ event_type: "post_comment_removal", payload: { id: 10, parent_id: 1 } });
       expect(contents(thread)).toEqual(["second"]);
     }));
 
   it("deleted() names a Comment the shown thread dropped, and is false with no thread", () =>
-    withThread(async ({ thread, onEvent }) => {
+    withThread(async ({ thread, mem }) => {
       expect(thread.deleted(10), "the thread still loads").toBe(false);
       await tick();
       expect(thread.deleted(10)).toBe(false);
 
-      onEvent({ event_type: "post_comment_removal", payload: { id: 10, parent_id: 1 } });
+      mem.emit({ event_type: "post_comment_removal", payload: { id: 10, parent_id: 1 } });
       expect(thread.deleted(10)).toBe(true);
 
       thread.setOpen(false);
@@ -316,19 +374,19 @@ describe("createCommentThread — the live Events", () => {
     }));
 
   it("ignores an upsert for another Post's thread", () =>
-    withThread(async ({ thread, onEvent }) => {
+    withThread(async ({ thread, mem }) => {
       await tick();
-      onEvent({ event_type: "post_comment", payload: wire(comment(30, 2, "elsewhere")) });
+      mem.emit({ event_type: "post_comment", payload: wire(comment(30, 2, "elsewhere")) });
       expect(contents(thread)).toEqual(["second", "first"]);
     }));
 
   it("a list that was read before a change landed is not applied: the thread reloads", () =>
-    withThread(async ({ thread, onEvent }) => {
+    withThread(async ({ thread, mem }) => {
       await tick();
       const stale = deferred<CommentView[]>();
       listMock.mockReturnValueOnce(stale.promise);
-      onEvent(undefined); // a reload starts...
-      onEvent({ event_type: "post_comment", payload: wire(comment(12, 1, "third")) });
+      reconnect(mem); // a reload starts...
+      mem.emit({ event_type: "post_comment", payload: wire(comment(12, 1, "third")) });
       threads.get(1)!.unshift(comment(12, 1, "third"));
       stale.resolve([comment(11, 1, "second"), comment(10, 1, "first")]); // ...read before it
       await tick();
@@ -339,14 +397,14 @@ describe("createCommentThread — the live Events", () => {
 
 describe("createCommentThread — the writes", () => {
   it("add() posts to the selected Post and shows the new Comment at once", () =>
-    withThread(async ({ thread, onEvent }) => {
+    withThread(async ({ thread, mem }) => {
       await tick();
       await thread.add("hello");
       expect(addMock).toHaveBeenCalledWith(1, "hello");
       expect(contents(thread)).toEqual(["hello", "second", "first"]);
 
       // The back-end's push of the same Comment does not add it twice.
-      onEvent({ event_type: "post_comment", payload: wire(comment(100, 1, "hello")) });
+      mem.emit({ event_type: "post_comment", payload: wire(comment(100, 1, "hello")) });
       expect(contents(thread)).toEqual(["hello", "second", "first"]);
     }));
 
@@ -367,27 +425,27 @@ describe("createCommentThread — the writes", () => {
     }));
 
   it("a late edit response does not bring back a Comment that a push removed", () =>
-    withThread(async ({ thread, onEvent }) => {
+    withThread(async ({ thread, mem }) => {
       await tick();
       const answer = deferred<CommentView>();
       updateMock.mockReturnValueOnce(answer.promise);
       const updated = thread.update(10, "first, edited");
 
       // Another tab deletes it before the edit's response arrives.
-      onEvent({ event_type: "post_comment_removal", payload: { id: 10, parent_id: 1 } });
+      mem.emit({ event_type: "post_comment_removal", payload: { id: 10, parent_id: 1 } });
       answer.resolve(comment(10, 1, "first, edited"));
       await updated;
       expect(contents(thread)).toEqual(["second"]);
     }));
 
   it("a late edit response does not overwrite a newer edit", () =>
-    withThread(async ({ thread, onEvent }) => {
+    withThread(async ({ thread, mem }) => {
       await tick();
       const answer = deferred<CommentView>();
       updateMock.mockReturnValueOnce(answer.promise);
       const updated = thread.update(11, "older");
 
-      onEvent({
+      mem.emit({
         event_type: "post_comment",
         payload: wire({ ...comment(11, 1, "newer"), mtime: at(50) }),
       });
