@@ -261,8 +261,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // held Channel here (ADR-0028). Each handler refetches on a poke and on the
   // resync call after a (re)connect, so a poke lost while the socket was down
   // is recovered (#120 review). The anonymous landing page has no socket, so
-  // the route calls this on login (#120). The Subscriptions end with the
-  // caller's scope (logout), like the socket.
+  // the route calls this on login (#120).
   const connectFeed = (feed: Feed): void => {
     const postId = () => selectedPost()?.id;
     feed.subscribe(
@@ -270,10 +269,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
       () => void refetchPosts(),
     );
     feed.subscribe(selectedChannel(postId, Channel.postCaption), refetchCaptions);
-    // Each Like state holds its own Subscription. A connected Feed means a
-    // logged-in User, so its like state loads now. A logout also drops its
-    // wanted Likes, so a queued send never goes out with the next User's
-    // cookie (#122 review).
+    // Each Like state holds its own Subscription, and loads once connected.
     connectPostLike(feed);
     connectCaptionLike(feed);
     // Each thread holds its own Subscription, while its Comments panel is open.
