@@ -19,26 +19,27 @@ import { Channel } from "~/lib/channel";
 import type { Feed, FeedHandler } from "~/lib/feed";
 import type { CommentView } from "~/types/jedi";
 
-/** The Event names on one Comment target's Channel (#124, #127): an upsert
- *  and a removal. */
-export type CommentEvents =
-  | { upsert: "post_comment"; removal: "post_comment_removal" }
-  | { upsert: "caption_comment"; removal: "caption_comment_removal" };
+/** One Comment target (#124, #127): the Channel of a parent's thread, and the
+ *  label of the thread's Draft scope. */
+export interface CommentTarget {
+  name: "post_comment" | "caption_comment";
+  channel: (parentId: number) => Channel;
+}
 
-/** The Events of a Post's thread. */
-export const POST_COMMENT_EVENTS: CommentEvents = {
-  upsert: "post_comment",
-  removal: "post_comment_removal",
+/** The target of a Post's thread. */
+export const POST_COMMENT_TARGET: CommentTarget = {
+  name: "post_comment",
+  channel: Channel.postComment,
 };
 
-/** The Events of a Caption's thread (#127). */
-export const CAPTION_COMMENT_EVENTS: CommentEvents = {
-  upsert: "caption_comment",
-  removal: "caption_comment_removal",
+/** The target of a Caption's thread (#127). */
+export const CAPTION_COMMENT_TARGET: CommentTarget = {
+  name: "caption_comment",
+  channel: Channel.captionComment,
 };
 
 /** The inputs of one Comment thread: the parent shown (a Post or a Caption),
- *  its back-end calls, and the Events on its Channel. */
+ *  its back-end calls, and its Comment target. */
 export interface CommentThreadDeps {
   /** The id of the parent shown; undefined for none. */
   parentId: Accessor<number | undefined>;
@@ -46,8 +47,8 @@ export interface CommentThreadDeps {
    *  `jediApi.captionComments` for a Caption. A test injects an in-memory
    *  stand-in. */
   api: CommentApi;
-  /** The Events that the target's Channel carries. */
-  events: CommentEvents;
+  /** The target: the Channel the thread holds, and its Draft scope label. */
+  target: CommentTarget;
   /** The id of the parent that the panel is open on, as a signal the caller
    *  owns, when the caller reads it: the Caption hold (#127, ADR-0030
    *  addendum). Defaults to a signal of the thread's own. */
@@ -116,15 +117,16 @@ const newestFirst = (a: CommentView, b: CommentView): number =>
  */
 export function createCommentThread(deps: CommentThreadDeps): {
   thread: CommentThreadState;
-  onEvent: FeedHandler;
+  /** Hold the thread's Subscription on the Feed (#120): the Channel of the
+   *  parent shown, while the panel is open. The caller's scope releases it. */
   connectFeed: (feed: Feed) => void;
 } {
   // A memo, so a refetched parent with the same id (a `posts` or
   // `post_caption` poke) does not reload the thread.
   const parentId = createMemo(deps.parentId);
-  const { api, events } = deps;
+  const { api, target } = deps;
   const guard = deps.guard ?? passThroughGuard;
-  const draftScope: DraftScope = createDraftScope(`${events.upsert}-thread`, deps.parentScope);
+  const draftScope: DraftScope = createDraftScope(`${target.name}-thread`, deps.parentScope);
   // The parent the panel was opened on. A change of the parent shown closes
   // the panel at once, and the effect clears it, so a return does not reopen it.
   const [openOn, setOpenOn] = deps.openOn ?? createSignal<number>();
@@ -212,9 +214,10 @@ export function createCommentThread(deps: CommentThreadDeps): {
     setStore("rows", (rows) => rows.filter((c) => c.id !== id));
   };
 
-  // Only this target's Events merge: a Post id and a Caption id can be equal,
-  // so the other target's Event is never read as this thread's.
-  const onEvent: FeedHandler = (event) => {
+  // Only the held Channel reaches the handler (ADR-0028), so it needs no
+  // check of the target: each upsert kind adds or edits a row, each removal
+  // kind drops one, and the resync call reloads the thread.
+  const handleEvent: FeedHandler = (event) => {
     if (event === undefined) {
       const id = shownParentId();
       if (id !== undefined) load(id);
@@ -223,21 +226,20 @@ export function createCommentThread(deps: CommentThreadDeps): {
     switch (event.event_type) {
       case "post_comment":
       case "caption_comment":
-        if (event.event_type === events.upsert) upsertRow(toCommentView(event.payload));
+        upsertRow(toCommentView(event.payload));
         break;
       case "post_comment_removal":
       case "caption_comment_removal":
-        if (event.event_type === events.removal) removeRow(event.payload.id);
+        removeRow(event.payload.id);
         break;
     }
   };
 
-  const channel = events.upsert === "post_comment" ? Channel.postComment : Channel.captionComment;
   const connectFeed = (feed: Feed): void => {
     feed.subscribe(() => {
       const id = shownParentId();
-      return id === undefined ? undefined : channel(id);
-    }, onEvent);
+      return id === undefined ? undefined : target.channel(id);
+    }, handleEvent);
   };
 
   const add = async (content: string): Promise<void> => {
@@ -266,7 +268,6 @@ export function createCommentThread(deps: CommentThreadDeps): {
       remove,
       source: api.source,
     },
-    onEvent,
     connectFeed,
   };
 }

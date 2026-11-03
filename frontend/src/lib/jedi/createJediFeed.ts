@@ -4,9 +4,9 @@ import { passThroughGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { createLikeState } from "~/lib/jedi/createLikeState";
 import {
-  CAPTION_COMMENT_EVENTS,
+  CAPTION_COMMENT_TARGET,
   createCommentThread,
-  POST_COMMENT_EVENTS,
+  POST_COMMENT_TARGET,
   type CommentThreadState,
 } from "~/lib/jedi/createCommentThread";
 import { createSelection, type SelectionState } from "~/lib/jedi/createSelection";
@@ -210,7 +210,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const { thread: postThread, connectFeed: connectPostThread } = createCommentThread({
     parentId: () => selectedPost()?.id,
     api: api.comments,
-    events: POST_COMMENT_EVENTS,
+    target: POST_COMMENT_TARGET,
     openOn: threadOpenOn.post,
     guard,
     parentScope: shown.draftScopes.post,
@@ -220,7 +220,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const { thread: captionThread, connectFeed: connectCaptionThread } = createCommentThread({
     parentId: () => selectedCaption()?.id,
     api: api.captionComments,
-    events: CAPTION_COMMENT_EVENTS,
+    target: CAPTION_COMMENT_TARGET,
     openOn: threadOpenOn.caption,
     guard,
     parentScope: shown.draftScopes.caption,

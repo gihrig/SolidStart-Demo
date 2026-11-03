@@ -7,10 +7,10 @@ import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { CommentView as CommentViewWire } from "~/types/backend";
 import type { CommentView } from "~/types/jedi";
 import {
-  CAPTION_COMMENT_EVENTS,
+  CAPTION_COMMENT_TARGET,
   createCommentThread,
-  POST_COMMENT_EVENTS,
-  type CommentEvents,
+  POST_COMMENT_TARGET,
+  type CommentTarget,
   type CommentThreadState,
 } from "./createCommentThread";
 
@@ -128,15 +128,15 @@ async function withThread(
   run: (h: Harness) => Promise<void>,
   {
     open = true,
-    events = POST_COMMENT_EVENTS,
+    target = POST_COMMENT_TARGET,
     feed = true,
-  }: { open?: boolean; events?: CommentEvents; feed?: boolean } = {},
+  }: { open?: boolean; target?: CommentTarget; feed?: boolean } = {},
 ) {
   const mem = createMemoryFeed();
   mem.setConnected(true);
   await createRoot(async (dispose) => {
     const [postId, select] = createSignal<number | undefined>(1);
-    const { thread, connectFeed } = createCommentThread({ parentId: postId, api, events });
+    const { thread, connectFeed } = createCommentThread({ parentId: postId, api, target });
     if (feed) connectFeed(mem.feed);
     thread.setOpen(open);
     try {
@@ -296,7 +296,7 @@ describe("createCommentThread — the live Events", () => {
         mem.emit({ event_type: "caption_comment_removal", payload: { id: 10, parent_id: 1 } });
         expect(contents(thread)).toEqual(["third", "second"]);
       },
-      { events: CAPTION_COMMENT_EVENTS },
+      { target: CAPTION_COMMENT_TARGET },
     ));
 
   it("an upsert of a new Comment puts it on top; an upsert of a known one edits it in place", () =>
