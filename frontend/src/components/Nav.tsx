@@ -186,7 +186,10 @@ export default function Nav() {
             </div>
           </div>
 
-          <LoginDialog open={loginOpen()} onClose={closeLogin} />
+          {/* Each open mounts a fresh Login dialog, with empty fields (#278) */}
+          <Show when={loginOpen()}>
+            <LoginDialog onClose={closeLogin} />
+          </Show>
 
           {/* Create a Post (#120) — a logged-in User only. It opens the one New
               Post dialog (#214). */}
