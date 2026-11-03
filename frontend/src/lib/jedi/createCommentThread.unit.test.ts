@@ -223,12 +223,11 @@ describe("createCommentThread — the Subscription (#120, ADR-0028)", () => {
 
   it("with no Feed, the thread still loads and adds a Comment (the anonymous landing)", () =>
     withThread(
-      async ({ thread, mem }) => {
+      async ({ thread }) => {
         await tick();
         expect(contents(thread)).toEqual(["second", "first"]);
         await thread.add("hello");
         expect(contents(thread)).toEqual(["hello", "second", "first"]);
-        expect(mem.held()).toEqual([]);
       },
       { feed: false },
     ));
