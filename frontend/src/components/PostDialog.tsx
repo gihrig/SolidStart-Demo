@@ -123,7 +123,7 @@ export interface PostDialogProps {
 
 /**
  * The one Post dialog: the create overlay (#120) and the Post edit (#187). It
- * is a modal `<dialog>` form that opens on mount: its owner mounts it to open
+ * is a `ModalDialog` form that opens on mount: its owner mounts it to open
  * it, and unmounts it to close it (#214).
  *
  * The create mode is the New Post dialog, which `NewPostProvider` owns. The

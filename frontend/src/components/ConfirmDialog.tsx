@@ -19,7 +19,7 @@ export interface ConfirmDialogProps {
  * is. The cancel button is the default, and Escape cancels. Without a
  * `cancelLabel`, it is a notice: one button, and Escape confirms.
  *
- * Each open mounts a fresh `<dialog>` (#214): Chromium closes a reused modal
+ * Each open mounts a fresh `ModalDialog` (#214): Chromium closes a reused modal
  * dialog that opens with no user gesture over another one, such as the
  * route-move question after the browser's Back over the New Post dialog.
  */
