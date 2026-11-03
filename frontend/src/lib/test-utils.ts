@@ -3,12 +3,14 @@ import { vi } from "vite-plus/test";
 /**
  * jsdom has `HTMLDialogElement` but not its modal methods. This minimal stand-in
  * toggles the `open` attribute, the state a browser's `showModal` / `close` set,
- * and `close` fires the `close` event, as a browser does. Only imported by test
- * files.
+ * and `close` fires the `close` event, as a browser does. `showModal` focuses
+ * the `[autofocus]` element in the dialog, as a browser does (#278). Only
+ * imported by test files.
  */
 export function stubDialogModal() {
   HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
     this.open = true;
+    this.querySelector<HTMLElement>("[autofocus]")?.focus();
   };
   HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
     this.open = false;
