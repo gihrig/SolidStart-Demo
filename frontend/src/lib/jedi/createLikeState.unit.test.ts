@@ -8,8 +8,9 @@ import type { Like } from "~/types/jedi";
 import { createLikeState, type LikeState } from "./createLikeState";
 
 // The Like state of one Like target kind (#123): a Post or a Caption. This seam
-// test drives the factory with a selected id, a live flag, and a stateful fake
-// back-end; `createJediFeed.unit.test.ts` covers the Feed wiring around it.
+// test drives the factory with a selected id, the memory Feed (ADR-0028), and a
+// stateful fake back-end; `createJediFeed.unit.test.ts` covers the view-model's
+// wiring around it.
 
 const like = (id: number, likeCount: number, liked: boolean): Like => ({ id, likeCount, liked });
 

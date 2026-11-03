@@ -36,12 +36,19 @@ export interface LikeState {
 /**
  * The Like state of one Like target kind (#122, #123): the server read, the
  * wanted-state overlay, the send loop, and the race fix. `createJediFeed` makes
- * one for the Post and one for the Caption, and keeps the Feed wiring.
+ * one for the Post and one for the Caption.
+ *
+ * It returns the public state, `state`, and `connectFeed`, which holds the
+ * Subscription on the Channel of the target shown (ADR-0028). A poke and the
+ * resync call after a (re)connect each reread the like state. With no Feed, as
+ * on the anonymous landing page, the state stays empty: the read needs a login.
  */
 export function createLikeState(deps: LikeStateDeps): {
   state: LikeState;
   /** Hold the Subscription on the Feed (#120): the Channel of the target
-   *  shown. The caller's scope releases it. */
+   *  shown. A connected Feed means a logged-in User, so the read loads now.
+   *  The caller's scope (logout) releases the Subscription and drops the
+   *  wanted Likes. */
   connectFeed: (feed: Feed) => void;
 } {
   const { selectedId, channel, getLike, toggleLike } = deps;
