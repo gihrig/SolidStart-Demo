@@ -110,10 +110,11 @@ const newestFirst = (a: CommentView, b: CommentView): number =>
  * The rows live in a store and reconcile by id, so a reload does not recreate
  * them: a row's DOM, and any input in it, survives (`reconcile`).
  *
- * It returns the public thread, `thread`, and its Feed handler, `onEvent`.
- * Only `createJediFeed` holds `onEvent`, for the Subscription on the parent's
- * Comment Channel. An upsert adds or edits a row, a removal drops one, and the
- * resync call reloads the thread.
+ * It returns the public thread, `thread`, and `connectFeed`, which holds the
+ * thread's Subscription on its target's Channel for the parent shown, while
+ * the panel is open (ADR-0028). An upsert adds or edits a row, a removal drops
+ * one, and the resync call reloads the thread. With no Feed, as on the
+ * anonymous landing page, the thread still loads and writes.
  */
 export function createCommentThread(deps: CommentThreadDeps): {
   thread: CommentThreadState;

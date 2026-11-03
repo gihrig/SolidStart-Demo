@@ -37,13 +37,13 @@ export type { EditState, OwnerWrites, PostCardScopes } from "~/lib/jedi/createSe
  *
  * `selectedPostLike` / `selectedCaptionLike` are the viewer's like state of the
  * selected Post and the selected Caption (#122, #123). Each comes from one
- * `createLikeState`; this view-model keeps the Feed wiring around them.
+ * `createLikeState`; this view-model holds their Subscriptions.
  *
  * `postComments` is the selected Post's Comment thread (#124), and
  * `captionComments` the shown Caption's (#127). Each is one
  * `createCommentThread`, exposed as one nested member, with its own open state,
- * Draft scope and Subscription; this view-model keeps the Feed wiring around
- * them. One of the two is open at a time (#210).
+ * Draft scope and Subscription: this view-model only hands each thread the
+ * Feed. One of the two is open at a time (#210).
  *
  * A close of a Comments panel, by its toggle or by an open of the other panel
  * (#210), goes through the app's Draft guard (ADR-0030): with a Draft, it waits
@@ -256,15 +256,14 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // poke means one Post's Captions changed (#121), and a `post_like` poke means
   // one Post's like count changed (#122): each is held for the selected Post
   // only. A `caption_like` poke means one Caption's like count changed (#123),
-  // held for the selected Caption. A `post_comment` Event carries a Comment
-  // upsert or removal for one Post's thread (#124), held for the selected Post
-  // while its Comments panel is open; a `caption_comment` Event, the same for
-  // the shown Caption's thread (#127). Each Subscription names its Channel
-  // through an accessor, so the Feed moves the hold with the selection and
-  // routes only the held Channel here (ADR-0028). Each handler refetches on a
-  // poke and on the resync call after a (re)connect, so a poke lost while the
-  // socket was down is recovered (#120 review). The anonymous landing page has
-  // no socket, so the route calls this on login (#120).
+  // held for the selected Caption. Each Comment thread holds the Subscription
+  // on its own Channel (#124, #127), so this view-model only hands it the
+  // Feed. Each Subscription names its Channel through an accessor, so the Feed
+  // moves the hold with the selection and routes only the held Channel here
+  // (ADR-0028). Each handler refetches on a poke and on the resync call after a
+  // (re)connect, so a poke lost while the socket was down is recovered (#120
+  // review). The anonymous landing page has no socket, so the route calls this
+  // on login (#120).
   const connectFeed = (feed: Feed): void => {
     // A connected Feed means a logged-in User, so the viewer's like state can
     // load now; it ends with the caller's scope (logout), like the socket. A
