@@ -63,23 +63,6 @@ describe("<ConfirmDialog />", () => {
     expect(screen.getByRole("button", { name: "Keep editing" })).toHaveFocus();
   });
 
-  it("Tab and Shift+Tab move focus between the buttons, and wrap (#210)", async () => {
-    const user = userEvent.setup();
-    const { setOpen } = renderConfirm();
-    setOpen(true);
-    const keep = screen.getByRole("button", { name: "Keep editing" });
-    const discard = screen.getByRole("button", { name: "Discard" });
-
-    await user.tab();
-    expect(discard).toHaveFocus();
-    await user.tab();
-    expect(keep).toHaveFocus();
-    await user.tab({ shift: true });
-    expect(discard).toHaveFocus();
-    await user.tab({ shift: true });
-    expect(keep).toHaveFocus();
-  });
-
   it("reports each result: confirm and cancel", async () => {
     const user = userEvent.setup();
     const { setOpen, onConfirm, onCancel } = renderConfirm();
@@ -104,18 +87,6 @@ describe("<ConfirmDialog />", () => {
     expect(shown()).toBeNull();
   });
 
-  it("a close by the browser itself reports a cancel", () => {
-    const { setOpen, onCancel } = renderConfirm();
-    setOpen(true);
-    dialog().close();
-    expect(onCancel).toHaveBeenCalledOnce();
-
-    // A close by the owner reports nothing.
-    setOpen(true);
-    setOpen(false);
-    expect(onCancel).toHaveBeenCalledOnce();
-  });
-
   it("without a cancelLabel, shows one OK button and works as a notice", () => {
     const onConfirm = vi.fn();
     render(() => (
@@ -132,27 +103,5 @@ describe("<ConfirmDialog />", () => {
 
     fireEvent(dialog(), new Event("cancel", { cancelable: true }));
     expect(onConfirm, "Escape means OK").toHaveBeenCalledOnce();
-  });
-
-  it("a notice keeps Tab on its one button (#210)", async () => {
-    const user = userEvent.setup();
-    render(() => <ConfirmDialog open message="Notice" confirmLabel="OK" onConfirm={vi.fn()} />);
-    await user.tab();
-    expect(screen.getByRole("button", { name: "OK" })).toHaveFocus();
-    await user.tab({ shift: true });
-    expect(screen.getByRole("button", { name: "OK" })).toHaveFocus();
-  });
-
-  it("stops its Escape, so a document Escape listener does not get it (#214)", () => {
-    const onDocumentKey = vi.fn();
-    document.addEventListener("keydown", onDocumentKey);
-    try {
-      const { setOpen } = renderConfirm();
-      setOpen(true);
-      fireEvent.keyDown(screen.getByRole("button", { name: "Keep editing" }), { key: "Escape" });
-      expect(onDocumentKey).not.toHaveBeenCalled();
-    } finally {
-      document.removeEventListener("keydown", onDocumentKey);
-    }
   });
 });

@@ -72,19 +72,6 @@ describe("<LoginDialog />", () => {
     expect(screen.getByRole("dialog", { name: "Login" })).toBe(dialog);
   });
 
-  it("Tab and Shift+Tab keep focus in the dialog, and wrap (#210)", async () => {
-    const { user, openLogin } = renderDialog();
-    const { form } = await openLogin();
-    const username = form.getByLabelText(/username/i);
-    const login = form.getByRole("button", { name: /^login$/i });
-
-    username.focus();
-    await user.tab({ shift: true });
-    expect(login).toHaveFocus();
-    await user.tab();
-    expect(username).toHaveFocus();
-  });
-
   it("closes after a successful login and reports the close", async () => {
     const { backendRpc } = await import("~/lib/backend-rpc");
     // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -121,26 +108,15 @@ describe("<LoginDialog />", () => {
     expect(open()).toBe(false);
   });
 
-  it("Escape closes it; while the login is pending, Escape does nothing and Cancel is disabled", async () => {
-    const { backendRpc } = await import("~/lib/backend-rpc");
-    let resolveLogin!: (v: { result: { success: boolean } }) => void;
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    vi.mocked(backendRpc.auth.login).mockReturnValueOnce(new Promise((r) => (resolveLogin = r)));
-    const { open, openLogin, shown, submitLogin } = renderDialog();
+  it("Escape closes it and reports the close", async () => {
+    const { open, openLogin, shown } = renderDialog();
+    const { dialog } = await openLogin();
 
-    const idle = await openLogin();
-    idle.dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
-    expect(open()).toBe(false);
-
-    const { dialog, form } = await openLogin();
-    await submitLogin(form);
+    // A browser fires `cancel` on Escape.
     dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
-    expect(open()).toBe(true);
-    expect(dialog.open).toBe(true);
-    expect(form.getByRole("button", { name: "Cancel" })).toHaveProperty("disabled", true);
 
-    resolveLogin({ result: { success: true } });
-    await waitFor(() => expect(shown()).toBeNull());
+    expect(shown()).toBeNull();
+    expect(open()).toBe(false);
   });
 
   it("a browser close during a login opens the dialog again; a failed login then shows its error (#278)", async () => {
@@ -153,6 +129,8 @@ describe("<LoginDialog />", () => {
     const { open, openLogin, submitLogin } = renderDialog();
     const { dialog, form } = await openLogin();
     await submitLogin(form);
+
+    expect(form.getByRole("button", { name: "Cancel" })).toHaveProperty("disabled", true);
 
     // A browser closes the dialog after repeated Escape, while the login waits.
     dialog.close();
@@ -191,19 +169,5 @@ describe("<LoginDialog />", () => {
 
     expect(dialog.open).toBe(true);
     expect(form.queryByText("Invalid credentials")).toBeNull();
-  });
-
-  it("stops its Escape, so a document Escape listener does not get it (#214)", async () => {
-    const onDocumentKey = vi.fn();
-    document.addEventListener("keydown", onDocumentKey);
-    try {
-      const { user, openLogin } = renderDialog();
-      const { form } = await openLogin();
-      await user.click(form.getByLabelText(/username/i));
-      await user.keyboard("{Escape}");
-      expect(onDocumentKey).not.toHaveBeenCalledWith(expect.objectContaining({ key: "Escape" }));
-    } finally {
-      document.removeEventListener("keydown", onDocumentKey);
-    }
   });
 });

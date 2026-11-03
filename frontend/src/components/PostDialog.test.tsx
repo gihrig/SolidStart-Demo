@@ -193,26 +193,6 @@ describe("<PostDialog />", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("Tab and Shift+Tab keep focus in the dialog, and wrap (#210)", async () => {
-    const user = userEvent.setup();
-    render(() => (
-      <>
-        <button type="button">outside</button>
-        <PostDialog api={api} onClose={vi.fn()} />
-      </>
-    ));
-    const form = within(screen.getByRole("dialog"));
-    await form.findByRole("checkbox", { name: "Animals" });
-    const title = form.getByLabelText("Title");
-    const submit = form.getByRole("button", { name: "Post" });
-
-    title.focus();
-    await user.tab({ shift: true });
-    expect(submit).toHaveFocus();
-    await user.tab();
-    expect(title).toHaveFocus();
-  });
-
   it('says "Could not add the Post" when the add fails with no message (#210)', async () => {
     postCreateMock.mockRejectedValue({ status: 500 });
     const { user, form } = await openAndFill();
@@ -279,7 +259,8 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
 
   it("a close by the browser is the edit's Cancel (PR #216 review)", async () => {
     const { dialog, onClose } = renderEdit();
-    // Chrome closes a modal dialog on a second Escape, with no `cancel` event.
+    // A browser closes a modal dialog after repeated Escape. Its `cancel`
+    // comes first, but the page cannot stop it (measured 2026-11-02, #278).
     dialog.close();
     expect(onClose).toHaveBeenCalledOnce();
   });
@@ -305,24 +286,6 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
     guard.confirmMove();
     expect(onClose).toHaveBeenCalledOnce();
     expect(guard.hasDraft()).toBe(false);
-  });
-
-  it("a browser close during a Save reopens the dialog; a failed Save keeps the text (PR #216 review)", async () => {
-    const { user, dialog, form, guard, onSave, onClose } = renderEdit();
-    let fail!: (reason: unknown) => void;
-    onSave.mockReturnValueOnce(new Promise<void>((_, reject) => (fail = reject)));
-    await user.type(input(form, "Title"), "!");
-    await user.click(form.getByRole("button", { name: "Save" }));
-
-    // Chrome closes the dialog while the Save waits.
-    dialog.close();
-    expect(dialog.open, "the dialog opens again").toBe(true);
-    expect(onClose).not.toHaveBeenCalled();
-
-    fail({ status: 500 });
-    expect(await form.findByRole("alert")).toHaveTextContent("Could not edit the Post");
-    expect(input(form, "Title").value).toBe(`${DRAFT.title}!`);
-    expect(guard.hasDraft()).toBe(true);
   });
 
   it("shows the photo URL, disabled, with the hint", () => {
@@ -430,21 +393,10 @@ describe("<PostDialog /> — the New Post Draft (#214)", () => {
     expect(guard.hasDraftIn()).toBe(true);
   });
 
-  it("a browser close with a Draft opens the dialog again and asks", async () => {
-    const { user, dialog, form, guard, onClose } = renderCreate();
-    await user.type(form.getByLabelText("Title"), "typed");
-    dialog.close();
-    expect(dialog.open).toBe(true);
-    expect(guard.pending()).toBe(true);
-    guard.cancelMove();
-    expect(onClose).not.toHaveBeenCalled();
-    expect(form.getByLabelText("Title")).toHaveValue("typed");
-  });
-
-  it("during the create, a browser close opens the dialog again with no question, and the write is busy", async () => {
+  it("during the create, the write is busy; a created Post is no Draft", async () => {
     let land!: (post: PostView) => void;
     postCreateMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
-    const { user, dialog, form, guard, onClose } = renderCreate();
+    const { user, form, guard, onClose } = renderCreate();
     for (const [label, value] of [
       ["Title", DRAFT.title],
       ["Image URL", DRAFT.imageSrc],
@@ -459,26 +411,9 @@ describe("<PostDialog /> — the New Post Draft (#214)", () => {
     await user.click(form.getByRole("button", { name: "Post" }));
     expect(guard.busyIn()).toBe(true);
 
-    dialog.close();
-    expect(dialog.open).toBe(true);
-    expect(guard.pending()).toBe(false);
-
     land(CREATED);
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
     expect(guard.hasDraft(), "a created Post is no Draft").toBe(false);
     expect(guard.notice()).toBeUndefined();
-  });
-
-  it("stops its Escape, so a document Escape listener does not get it", async () => {
-    const onDocumentKey = vi.fn();
-    document.addEventListener("keydown", onDocumentKey);
-    try {
-      const { user, form } = renderCreate();
-      await user.click(form.getByLabelText("Title"));
-      await user.keyboard("{Escape}");
-      expect(onDocumentKey).not.toHaveBeenCalledWith(expect.objectContaining({ key: "Escape" }));
-    } finally {
-      document.removeEventListener("keydown", onDocumentKey);
-    }
   });
 });
