@@ -1,4 +1,11 @@
-import { createComputed, createResource, createSignal, on, type Accessor } from "solid-js";
+import {
+  createComputed,
+  createResource,
+  createSignal,
+  on,
+  onCleanup,
+  type Accessor,
+} from "solid-js";
 import type { Channel } from "~/lib/channel";
 import type { Feed } from "~/lib/feed";
 import type { Like } from "~/types/jedi";
@@ -7,10 +14,6 @@ import type { Like } from "~/types/jedi";
 export interface LikeStateDeps {
   /** The id of the Like target shown (a Post or a Caption); undefined for none. */
   selectedId: Accessor<number | undefined>;
-  /** True while a live session is connected. The read needs a login, so the
-   *  state loads only while live. When it turns false (logout), the wanted
-   *  states drop, so a queued send never goes out with the next User's cookie. */
-  live: Accessor<boolean>;
   /** The Channel of a target's Like count: `Channel.postLike` or
    *  `Channel.captionLike`. */
   channel: (id: number) => Channel;
@@ -43,7 +46,13 @@ export function createLikeState(deps: LikeStateDeps): {
    *  shown. The caller's scope releases it. */
   connectFeed: (feed: Feed) => void;
 } {
-  const { selectedId, live, channel, getLike, toggleLike } = deps;
+  const { selectedId, channel, getLike, toggleLike } = deps;
+
+  // True while a Feed is connected (`connectFeed`): a logged-in User. The read
+  // needs a login, so the state loads only while live. When it turns false
+  // (logout), the wanted states drop, so a queued send never goes out with the
+  // next User's cookie (#122 review).
+  const [live, setLive] = createSignal(false);
 
   // The server read re-keys with the selected target, and only while live.
   const [serverRead, { refetch, mutate: setServerRead }] = createResource(
@@ -127,6 +136,8 @@ export function createLikeState(deps: LikeStateDeps): {
   // Only the held Channel reaches the handler (ADR-0028). A poke and the
   // resync call after a (re)connect each reread the target shown.
   const connectFeed = (feed: Feed): void => {
+    setLive(true);
+    onCleanup(() => setLive(false));
     feed.subscribe(
       () => {
         const id = selectedId();

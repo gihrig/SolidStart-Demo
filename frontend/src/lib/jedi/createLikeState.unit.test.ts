@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { createComponent, createRoot, createSignal, Suspense, type JSX } from "solid-js";
 import { render, screen } from "@solidjs/testing-library";
 import { Channel } from "~/lib/channel";
+import { createMemoryFeed, type MemoryFeed } from "~/lib/feed.memory";
+import type { WsEvent } from "~/types/backend";
 import type { Like } from "~/types/jedi";
 import { createLikeState, type LikeState } from "./createLikeState";
 
@@ -23,6 +25,8 @@ function deferred<T>() {
 }
 
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
+
+const pokeOn = (channel: Channel): WsEvent => ({ event_type: "poke", ...channel });
 
 // A stateful fake back-end: target N has N * 10 Likes from other Users, plus 1
 // while the viewer likes it. A toggle writes the wanted state, so a later read
@@ -46,28 +50,42 @@ beforeEach(() => {
 interface Harness {
   state: LikeState;
   select: (id: number | undefined) => void;
-  setLive: (live: boolean) => void;
+  /** The memory Feed the Like state holds its Subscription on (ADR-0028). */
+  mem: MemoryFeed;
+  /** End the login scope: it releases the Subscription, as a logout does. */
+  logout: () => void;
 }
 
+// The wire connects before the Like state is made, so the first connect calls
+// no resync. The login runs `connectFeed` in its own root, so `logout` can end
+// it alone. With `connected: false`, no `connectFeed` runs: the anonymous
+// landing page.
 async function withLikeState(
   run: (h: Harness) => Promise<void>,
-  { live = true }: { live?: boolean } = {},
+  { connected = true }: { connected?: boolean } = {},
 ) {
+  const mem = createMemoryFeed();
+  mem.setConnected(true);
   await createRoot(async (dispose) => {
     const [selectedId, select] = createSignal<number | undefined>(1);
-    const [isLive, setLive] = createSignal(live);
-    const { state } = createLikeState({
+    const { state, connectFeed } = createLikeState({
       selectedId,
-      live: isLive,
       channel: Channel.postLike,
       getLike: getLikeMock,
       toggleLike: toggleLikeMock,
     });
+    let logout = () => {};
+    if (connected)
+      createRoot((end) => {
+        connectFeed(mem.feed);
+        logout = end;
+      });
     await tick();
     await tick();
     try {
-      await run({ state, select, setLive });
+      await run({ state, select, mem, logout });
     } finally {
+      logout();
       dispose();
     }
   });
@@ -80,7 +98,7 @@ describe("createLikeState — the server read", () => {
         expect(state.like()).toBeUndefined();
         expect(getLikeMock).not.toHaveBeenCalled();
       },
-      { live: false },
+      { connected: false },
     ));
 
   it("loads the selected target's like state, and re-keys with the selection", () =>
@@ -93,10 +111,10 @@ describe("createLikeState — the server read", () => {
       expect(state.like()).toEqual(like(2, 20, false));
     }));
 
-  it("refetch rereads the selected target, so another User's Like shows", () =>
-    withLikeState(async ({ state }) => {
+  it("a poke rereads the selected target, so another User's Like shows", () =>
+    withLikeState(async ({ state, mem }) => {
       getLikeMock.mockResolvedValue(like(1, 11, false));
-      state.refetch();
+      mem.emit(pokeOn(Channel.postLike(1)));
       await tick();
       await tick();
       expect(state.like()).toEqual(like(1, 11, false));
@@ -128,7 +146,7 @@ describe("createLikeState — toggle", () => {
         await state.toggle();
         expect(toggleLikeMock).not.toHaveBeenCalled();
       },
-      { live: false },
+      { connected: false },
     ));
 
   it("shows the Like at once, before the back-end answers", () =>
@@ -153,10 +171,10 @@ describe("createLikeState — toggle", () => {
     }));
 
   it("ignores an older read that lands after the toggle (the race)", () =>
-    withLikeState(async ({ state }) => {
+    withLikeState(async ({ state, mem }) => {
       const olderRead = deferred<Like>();
       getLikeMock.mockReturnValueOnce(olderRead.promise);
-      state.refetch();
+      mem.emit(pokeOn(Channel.postLike(1)));
       await tick();
 
       await state.toggle();
@@ -208,13 +226,13 @@ describe("createLikeState — toggle", () => {
     }));
 
   it("drops a queued Like when the live session ends, so it is never sent", () =>
-    withLikeState(async ({ state, setLive }) => {
+    withLikeState(async ({ state, logout }) => {
       const first = deferred<Like>();
       toggleLikeMock.mockReturnValueOnce(first.promise);
 
       const done = state.toggle(); // like, in flight
       void state.toggle(); // unlike, queued
-      setLive(false);
+      logout();
 
       first.resolve(like(1, 11, true));
       await done;
@@ -227,28 +245,31 @@ describe("createLikeState — under the route's <Suspense>", () => {
   it("does not suspend while the first like state loads after login", async () => {
     // The Jedi route renders under the app's <Suspense>. A suspending read here
     // would swap the whole route for the fallback at login, like a page reload.
-    const [live, setLive] = createSignal(false);
+    const mem = createMemoryFeed();
+    mem.setConnected(true);
+    let connectFeed!: (feed: typeof mem.feed) => void;
     const answer = deferred<Like>();
     getLikeMock.mockReturnValueOnce(answer.promise);
     render(() =>
       createComponent(Suspense, {
         fallback: "Loading",
         get children() {
-          const { state } = createLikeState({
+          const likeState = createLikeState({
             selectedId: () => 1,
-            live,
             channel: Channel.postLike,
             getLike: getLikeMock,
             toggleLike: toggleLikeMock,
           });
+          connectFeed = likeState.connectFeed;
           // A function child renders as reactive text.
-          return (() => String(state.like()?.likeCount ?? "none")) as unknown as JSX.Element;
+          return (() =>
+            String(likeState.state.like()?.likeCount ?? "none")) as unknown as JSX.Element;
         },
       }),
     );
     expect(screen.getByText("none")).toBeInTheDocument();
 
-    setLive(true);
+    createRoot(() => connectFeed(mem.feed));
     await tick();
     expect(screen.queryByText("Loading")).toBeNull();
 

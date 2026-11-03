@@ -1,4 +1,4 @@
-import { batch, createResource, createSignal, onCleanup, untrack, type Accessor } from "solid-js";
+import { batch, createResource, createSignal, untrack, type Accessor } from "solid-js";
 import { isServer } from "solid-js/web";
 import { passThroughGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
@@ -190,17 +190,14 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // The viewer's like state of the selected Post (#122) and of the selected
   // Caption (#123). The read needs a login, so each loads only while a live
   // session is connected.
-  const [live, setLive] = createSignal(false);
   const { state: postLike, connectFeed: connectPostLike } = createLikeState({
     selectedId: () => selectedPost()?.id,
-    live,
     channel: Channel.postLike,
     getLike: (id) => api.posts.getLike(id),
     toggleLike: (id, liked) => api.posts.toggleLike(id, liked),
   });
   const { state: captionLike, connectFeed: connectCaptionLike } = createLikeState({
     selectedId: () => selectedCaption()?.id,
-    live,
     channel: Channel.captionLike,
     getLike: (id) => api.captions.getLike(id),
     toggleLike: (id, liked) => api.captions.toggleLike(id, liked),
@@ -272,8 +269,6 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     // logout also drops the wanted Likes (`createLikeState`), so a queued send
     // stops after the request in flight and never goes out with the next User's
     // cookie (#122 review).
-    setLive(true);
-    onCleanup(() => setLive(false));
     // The Channel for the selected entity's id, or none while nothing is selected.
     const selectedChannel =
       (id: () => number | undefined, channel: (id: number) => Channel) =>
