@@ -15,7 +15,8 @@ import {
   type DraftScope,
 } from "~/lib/createDraftGuard";
 import { toCommentView, type CommentApi } from "~/lib/jedi/jedi-api";
-import type { FeedHandler } from "~/lib/feed";
+import { Channel } from "~/lib/channel";
+import type { Feed, FeedHandler } from "~/lib/feed";
 import type { CommentView } from "~/types/jedi";
 
 /** The Event names on one Comment target's Channel (#124, #127): an upsert
@@ -116,6 +117,7 @@ const newestFirst = (a: CommentView, b: CommentView): number =>
 export function createCommentThread(deps: CommentThreadDeps): {
   thread: CommentThreadState;
   onEvent: FeedHandler;
+  connectFeed: (feed: Feed) => void;
 } {
   // A memo, so a refetched parent with the same id (a `posts` or
   // `post_caption` poke) does not reload the thread.
@@ -230,6 +232,14 @@ export function createCommentThread(deps: CommentThreadDeps): {
     }
   };
 
+  const channel = events.upsert === "post_comment" ? Channel.postComment : Channel.captionComment;
+  const connectFeed = (feed: Feed): void => {
+    feed.subscribe(() => {
+      const id = shownParentId();
+      return id === undefined ? undefined : channel(id);
+    }, onEvent);
+  };
+
   const add = async (content: string): Promise<void> => {
     const id = parentId();
     if (id === undefined) return;
@@ -257,5 +267,6 @@ export function createCommentThread(deps: CommentThreadDeps): {
       source: api.source,
     },
     onEvent,
+    connectFeed,
   };
 }

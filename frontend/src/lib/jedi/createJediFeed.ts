@@ -207,7 +207,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // The selected Post's Comment thread (#124). It loads while its panel is
   // open; the read is public, so it does not wait for a live session. Its
   // close goes through the guard. Its scope sits under the Post scope.
-  const { thread: postThread, onEvent: onPostCommentEvent } = createCommentThread({
+  const { thread: postThread, connectFeed: connectPostThread } = createCommentThread({
     parentId: () => selectedPost()?.id,
     api: api.comments,
     events: POST_COMMENT_EVENTS,
@@ -217,7 +217,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   });
   // The shown Caption's Comment thread (#127), the same way, under the
   // Caption scope.
-  const { thread: captionThread, onEvent: onCaptionCommentEvent } = createCommentThread({
+  const { thread: captionThread, connectFeed: connectCaptionThread } = createCommentThread({
     parentId: () => selectedCaption()?.id,
     api: api.captionComments,
     events: CAPTION_COMMENT_EVENTS,
@@ -289,14 +289,9 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     feed.subscribe(selectedChannel(postId, Channel.postCaption), refetchCaptions);
     feed.subscribe(selectedChannel(postId, Channel.postLike), () => postLike.refetch());
     feed.subscribe(selectedChannel(captionId, Channel.captionLike), () => captionLike.refetch());
-    // The thread's Subscription is held only while the Comments panel is open.
-    const shownThreadId = () => (postComments.open() ? postId() : undefined);
-    feed.subscribe(selectedChannel(shownThreadId, Channel.postComment), onPostCommentEvent);
-    const shownCaptionThreadId = () => (captionComments.open() ? captionId() : undefined);
-    feed.subscribe(
-      selectedChannel(shownCaptionThreadId, Channel.captionComment),
-      onCaptionCommentEvent,
-    );
+    // Each thread holds its own Subscription, while its Comments panel is open.
+    connectPostThread(feed);
+    connectCaptionThread(feed);
   };
 
   const [hero] = createResource(() => api.hero.get());
