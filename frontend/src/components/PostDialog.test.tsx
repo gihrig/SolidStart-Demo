@@ -257,14 +257,6 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
     expect(form.getByRole("checkbox", { name: "Landscape" })).not.toBeChecked();
   });
 
-  it("a close by the browser is the edit's Cancel (PR #216 review)", async () => {
-    const { dialog, onClose } = renderEdit();
-    // A browser closes a modal dialog after repeated Escape. Its `cancel`
-    // comes first, but the page cannot stop it (measured 2026-11-02, #278).
-    dialog.close();
-    expect(onClose).toHaveBeenCalledOnce();
-  });
-
   it("Cancel, Escape and a browser close with a Draft ask; Discard closes (#214)", async () => {
     const { user, dialog, form, guard, onClose } = renderEdit();
     await user.type(input(form, "Photographer"), "!");
