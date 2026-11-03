@@ -1,6 +1,5 @@
-import { createUniqueId, onCleanup, onMount, Show } from "solid-js";
-import { keepDialogFocus } from "~/lib/keepDialogFocus";
-import { stopDialogEscape } from "~/lib/stopDialogEscape";
+import { createUniqueId, Show } from "solid-js";
+import ModalDialog from "~/components/ModalDialog";
 
 export interface ConfirmDialogProps {
   /** The owner holds the open state; the dialog never closes itself. */
@@ -16,10 +15,9 @@ export interface ConfirmDialogProps {
 }
 
 /**
- * A modal confirm (ADR-0030): a native `<dialog>` opened with `showModal()`, as
- * `PostDialog` is. The cancel button is the default, and Escape cancels.
- * Without a `cancelLabel`, it is a notice: one button, and Escape confirms.
- * Tab and Shift+Tab move between the buttons (#210).
+ * A modal confirm (ADR-0030), built on `ModalDialog` (#278), as `PostDialog`
+ * is. The cancel button is the default, and Escape cancels. Without a
+ * `cancelLabel`, it is a notice: one button, and Escape confirms.
  *
  * Each open mounts a fresh `<dialog>` (#214): Chromium closes a reused modal
  * dialog that opens with no user gesture over another one, such as the
@@ -35,50 +33,21 @@ export default function ConfirmDialog(props: ConfirmDialogProps) {
 
 function OpenConfirmDialog(props: ConfirmDialogProps) {
   const messageId = createUniqueId();
-  let dialogRef: HTMLDialogElement | undefined;
-  let defaultRef: HTMLButtonElement | undefined;
   const cancel = () => (props.onCancel ?? props.onConfirm)();
 
-  onMount(() => {
-    dialogRef?.showModal();
-    defaultRef?.focus();
-  });
-  // The owner's close: close it in the browser too, which returns focus to the
-  // element that had it before the open. It reports nothing.
-  let closing = false;
-  onCleanup(() => {
-    closing = true;
-    if (dialogRef?.open) dialogRef.close();
-  });
-
   return (
-    <dialog
-      ref={(el) => (dialogRef = el)}
-      // Esc fires `cancel`. The owner's state closes the dialog, not the browser.
-      onCancel={(e) => {
-        e.preventDefault();
-        cancel();
-      }}
-      // A browser can still close it (Chrome closes on a second Escape). Then
-      // the owner must hear a cancel, or its state stays open with no dialog.
-      onClose={() => !closing && cancel()}
-      on:keydown={(e) => {
-        stopDialogEscape(e);
-        keepDialogFocus(e);
-      }}
-      aria-labelledby={messageId}
-      class="theme-dialog max-w-sm"
-    >
+    <ModalDialog onCancel={cancel} labelledBy={messageId} class="max-w-sm">
       <p id={messageId} class="mb-4">
         {props.message}
       </p>
       <div class="flex justify-end gap-2">
+        {/* The default button has `autofocus`: the open focuses it. */}
         <Show
           when={props.cancelLabel}
           fallback={
             <button
-              ref={(el) => (defaultRef = el)}
               type="button"
+              autofocus
               onClick={() => props.onConfirm()}
               class="theme-button-primary"
             >
@@ -91,18 +60,13 @@ function OpenConfirmDialog(props: ConfirmDialogProps) {
               <button type="button" onClick={() => props.onConfirm()} class="theme-button">
                 {props.confirmLabel}
               </button>
-              <button
-                ref={(el) => (defaultRef = el)}
-                type="button"
-                onClick={() => cancel()}
-                class="theme-button-primary"
-              >
+              <button type="button" autofocus onClick={() => cancel()} class="theme-button-primary">
                 {cancelLabel()}
               </button>
             </>
           )}
         </Show>
       </div>
-    </dialog>
+    </ModalDialog>
   );
 }
