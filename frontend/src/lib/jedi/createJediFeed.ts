@@ -191,15 +191,17 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // Caption (#123). The read needs a login, so each loads only while a live
   // session is connected.
   const [live, setLive] = createSignal(false);
-  const postLike = createLikeState({
+  const { state: postLike, connectFeed: connectPostLike } = createLikeState({
     selectedId: () => selectedPost()?.id,
     live,
+    channel: Channel.postLike,
     getLike: (id) => api.posts.getLike(id),
     toggleLike: (id, liked) => api.posts.toggleLike(id, liked),
   });
-  const captionLike = createLikeState({
+  const { state: captionLike, connectFeed: connectCaptionLike } = createLikeState({
     selectedId: () => selectedCaption()?.id,
     live,
+    channel: Channel.captionLike,
     getLike: (id) => api.captions.getLike(id),
     toggleLike: (id, liked) => api.captions.toggleLike(id, liked),
   });
@@ -280,14 +282,14 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
         return value === undefined ? undefined : channel(value);
       };
     const postId = () => selectedPost()?.id;
-    const captionId = () => selectedCaption()?.id;
     feed.subscribe(
       () => Channel.posts,
       () => void refetchPosts(),
     );
     feed.subscribe(selectedChannel(postId, Channel.postCaption), refetchCaptions);
-    feed.subscribe(selectedChannel(postId, Channel.postLike), () => postLike.refetch());
-    feed.subscribe(selectedChannel(captionId, Channel.captionLike), () => captionLike.refetch());
+    // Each Like state holds its own Subscription.
+    connectPostLike(feed);
+    connectCaptionLike(feed);
     // Each thread holds its own Subscription, while its Comments panel is open.
     connectPostThread(feed);
     connectCaptionThread(feed);

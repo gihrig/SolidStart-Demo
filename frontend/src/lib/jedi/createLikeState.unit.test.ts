@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { createComponent, createRoot, createSignal, Suspense, type JSX } from "solid-js";
 import { render, screen } from "@solidjs/testing-library";
+import { Channel } from "~/lib/channel";
 import type { Like } from "~/types/jedi";
 import { createLikeState, type LikeState } from "./createLikeState";
 
@@ -55,9 +56,10 @@ async function withLikeState(
   await createRoot(async (dispose) => {
     const [selectedId, select] = createSignal<number | undefined>(1);
     const [isLive, setLive] = createSignal(live);
-    const state = createLikeState({
+    const { state } = createLikeState({
       selectedId,
       live: isLive,
+      channel: Channel.postLike,
       getLike: getLikeMock,
       toggleLike: toggleLikeMock,
     });
@@ -232,9 +234,10 @@ describe("createLikeState — under the route's <Suspense>", () => {
       createComponent(Suspense, {
         fallback: "Loading",
         get children() {
-          const state = createLikeState({
+          const { state } = createLikeState({
             selectedId: () => 1,
             live,
+            channel: Channel.postLike,
             getLike: getLikeMock,
             toggleLike: toggleLikeMock,
           });

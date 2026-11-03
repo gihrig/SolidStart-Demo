@@ -1,4 +1,6 @@
 import { createComputed, createResource, createSignal, on, type Accessor } from "solid-js";
+import type { Channel } from "~/lib/channel";
+import type { Feed } from "~/lib/feed";
 import type { Like } from "~/types/jedi";
 
 /** The inputs of one Like state: the target shown, and its two back-end calls. */
@@ -9,6 +11,9 @@ export interface LikeStateDeps {
    *  state loads only while live. When it turns false (logout), the wanted
    *  states drop, so a queued send never goes out with the next User's cookie. */
   live: Accessor<boolean>;
+  /** The Channel of a target's Like count: `Channel.postLike` or
+   *  `Channel.captionLike`. */
+  channel: (id: number) => Channel;
   getLike: (id: number) => Promise<Like>;
   toggleLike: (id: number, liked: boolean) => Promise<Like>;
 }
@@ -32,8 +37,13 @@ export interface LikeState {
  * wanted-state overlay, the send loop, and the race fix. `createJediFeed` makes
  * one for the Post and one for the Caption, and keeps the Feed wiring.
  */
-export function createLikeState(deps: LikeStateDeps): LikeState {
-  const { selectedId, live, getLike, toggleLike } = deps;
+export function createLikeState(deps: LikeStateDeps): {
+  state: LikeState;
+  /** Hold the Subscription on the Feed (#120): the Channel of the target
+   *  shown. The caller's scope releases it. */
+  connectFeed: (feed: Feed) => void;
+} {
+  const { selectedId, live, channel, getLike, toggleLike } = deps;
 
   // The server read re-keys with the selected target, and only while live.
   const [serverRead, { refetch, mutate: setServerRead }] = createResource(
@@ -114,5 +124,17 @@ export function createLikeState(deps: LikeStateDeps): LikeState {
     return sending;
   };
 
-  return { like, toggle, refetch: () => void refetch() };
+  // Only the held Channel reaches the handler (ADR-0028). A poke and the
+  // resync call after a (re)connect each reread the target shown.
+  const connectFeed = (feed: Feed): void => {
+    feed.subscribe(
+      () => {
+        const id = selectedId();
+        return id === undefined ? undefined : channel(id);
+      },
+      () => void refetch(),
+    );
+  };
+
+  return { state: { like, toggle, refetch: () => void refetch() }, connectFeed };
 }
