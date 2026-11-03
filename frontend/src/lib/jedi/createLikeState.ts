@@ -6,7 +6,7 @@ import {
   onCleanup,
   type Accessor,
 } from "solid-js";
-import type { Channel } from "~/lib/channel";
+import { selectedChannel, type Channel } from "~/lib/channel";
 import type { Feed } from "~/lib/feed";
 import type { Like } from "~/types/jedi";
 
@@ -143,13 +143,7 @@ export function createLikeState(deps: LikeStateDeps): {
   const connectFeed = (feed: Feed): void => {
     setLive(true);
     onCleanup(() => setLive(false));
-    feed.subscribe(
-      () => {
-        const id = selectedId();
-        return id === undefined ? undefined : channel(id);
-      },
-      () => void refetch(),
-    );
+    feed.subscribe(selectedChannel(selectedId, channel), () => void refetch());
   };
 
   return { state: { like, toggle }, connectFeed };

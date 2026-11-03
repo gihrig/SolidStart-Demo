@@ -11,7 +11,7 @@ import {
 } from "~/lib/jedi/createCommentThread";
 import { createSelection, type SelectionState } from "~/lib/jedi/createSelection";
 import type { Feed } from "~/lib/feed";
-import { Channel } from "~/lib/channel";
+import { Channel, selectedChannel } from "~/lib/channel";
 import type { JediCategory, Like, PostView, HeroView } from "~/types/jedi";
 
 export type { EditState, OwnerWrites, PostCardScopes } from "~/lib/jedi/createSelection";
@@ -264,13 +264,6 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // the route calls this on login (#120). The Subscriptions end with the
   // caller's scope (logout), like the socket.
   const connectFeed = (feed: Feed): void => {
-    // The Channel for the selected entity's id, or none while nothing is selected.
-    const selectedChannel =
-      (id: () => number | undefined, channel: (id: number) => Channel) =>
-      (): Channel | undefined => {
-        const value = id();
-        return value === undefined ? undefined : channel(value);
-      };
     const postId = () => selectedPost()?.id;
     feed.subscribe(
       () => Channel.posts,
