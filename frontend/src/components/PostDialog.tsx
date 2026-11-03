@@ -6,16 +6,14 @@ import {
   createUniqueId,
   For,
   on,
-  onMount,
   Show,
 } from "solid-js";
 import { createStore } from "solid-js/store";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
-import { keepDialogFocus } from "~/lib/keepDialogFocus";
-import { stopDialogEscape } from "~/lib/stopDialogEscape";
 import type { HygieneCaps } from "~/types/backend";
 import type { PostChanges, PostDraft, PostView } from "~/types/jedi";
 import { useDraftForm } from "~/components/DraftGuardContext";
+import ModalDialog from "~/components/ModalDialog";
 
 // The draft's text fields, in form order. Each `maxLength` mirrors the back-end
 // cap (`PostBmc::hygiene_rules`) and pins to it with `satisfies`, so a changed
@@ -146,9 +144,9 @@ export interface PostDialogProps {
  *
  * In both modes, Cancel, Escape and a browser close are one Cancel: with a
  * Draft, it asks first, and a browser close opens the dialog again to ask.
- * While the write is in flight, none of them closes the dialog (#214). Tab and
- * Shift+Tab keep focus in the dialog (#210). The dialog builds on
- * `useDraftForm` (#270), but takes Escape from its `<dialog>`.
+ * While the write is in flight, none of them closes the dialog (#214). The
+ * dialog builds on `ModalDialog` (#278), which owns the open, Escape, the
+ * browser close and Tab, and on `useDraftForm` (#270) for the write.
  */
 export default function PostDialog(props: PostDialogProps) {
   const api = props.api ?? jediApi;
@@ -159,7 +157,6 @@ export default function PostDialog(props: PostDialogProps) {
   const uid = createUniqueId();
   const headingId = `${uid}-heading`;
   const photoHintId = `${uid}-photo-hint`;
-  let dialogRef: HTMLDialogElement | undefined;
 
   // The saved Post's values (edit mode); undefined in create mode.
   const saved = createMemo(() => (props.post ? draftOf(props.post) : undefined));
@@ -232,8 +229,6 @@ export default function PostDialog(props: PostDialogProps) {
     onSaved: closeDialog,
   });
 
-  onMount(() => dialogRef?.showModal());
-
   const toggleCategory = (id: number, checked: boolean) =>
     setValues("categoryIds", (ids) => (checked ? [...ids, id] : ids.filter((c) => c !== id)));
 
@@ -251,31 +246,15 @@ export default function PostDialog(props: PostDialogProps) {
   const error = () => categoryError() ?? form.error();
 
   return (
-    <dialog
-      ref={(el) => (dialogRef = el)}
-      // Esc fires `cancel`: refuse it while the write is in flight, so the
-      // result (the close, or the rejection) stays visible. The owner closes
-      // the dialog, so an Esc is its Cancel.
-      onCancel={(e) => {
-        e.preventDefault();
-        if (!form.pending()) form.cancel();
-      }}
-      // A browser can still close it (Chrome closes on a second Escape). The
-      // owner must hear it, or its state stays open with no dialog. While the
-      // write is in flight, it opens again, as Esc is refused, so a failed
-      // write keeps the text and shows its error (PR #216 review). Otherwise
-      // it is the Cancel: with a Draft, it opens again to ask (#214).
-      onClose={() => {
-        if (form.pending()) return dialogRef?.showModal();
-        if (dirty()) dialogRef?.showModal();
-        form.cancel();
-      }}
-      on:keydown={(e) => {
-        stopDialogEscape(e);
-        keepDialogFocus(e);
-      }}
-      aria-labelledby={headingId}
-      class="theme-dialog max-w-md"
+    // The Cancel asks first with a Draft, so a browser close opens the dialog
+    // again before it. While the write is in flight, the dialog is busy: a
+    // failed write keeps the text and shows its error (PR #216 review).
+    <ModalDialog
+      onCancel={form.cancel}
+      busy={form.pending()}
+      reopen={dirty()}
+      labelledBy={headingId}
+      class="max-w-md"
     >
       <form onSubmit={handleSubmit} class="space-y-4">
         <h2 id={headingId} class="text-xl font-bold">
@@ -374,6 +353,6 @@ export default function PostDialog(props: PostDialogProps) {
           </button>
         </div>
       </form>
-    </dialog>
+    </ModalDialog>
   );
 }
