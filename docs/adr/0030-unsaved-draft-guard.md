@@ -364,3 +364,47 @@ holds alone: the selection reads them, and they read the selection. An Add Capti
 form with no Draft as a start of a Post hold: each Post with no Caption would then
 stay shown. A forced discard when a Caption arrives: the subject of the form
 stays.
+
+## Addendum (2026-11-02) — one modal dialog module (#278)
+
+This addendum builds C-27 of the 2026-10-30 architecture review. Before #278, each
+modal dialog wired the native `<dialog>` by hand. ConfirmDialog, PostDialog and
+LoginDialog each handled the open, Escape, the browser close and Tab. The copies
+differed. A browser close during a login closed the Login dialog, so a failed
+login showed no error.
+
+**One module owns the dialog rules.** Each modal dialog builds on `ModalDialog`.
+The dialog opens when it mounts. The owner unmounts it to close it. Escape runs
+the dialog's Cancel. While the dialog is busy, Escape does nothing. An Escape that
+ends an IME composition is not a Cancel. The dialog stops its Escape, so an open
+menu or sidebar stays open. Tab and Shift+Tab stay in the dialog. Each dialog
+keeps its content and its write.
+
+**A browser can close a dialog.** Chromium, Firefox and WebKit close a modal
+dialog after repeated Escape, even when the page refuses the `cancel` event
+(measured 2026-11-02, Playwright 1.63). The browser first sends a `cancel` that
+the page cannot refuse, and then a `close`. A browser close is a Cancel. While the
+dialog is busy, it opens again and runs no Cancel. With a Draft, it opens again
+and then runs the Cancel, so the question shows over it. One Escape runs the
+Cancel one time only.
+
+**The Login dialog follows these rules.** While the login is in flight, a browser
+close opens the Login dialog again. So the User always sees the login result. Each
+open shows empty fields and no old error. Before #278, the dialog stayed mounted.
+So a typed username and password stayed in it after a Cancel.
+
+**The first focus is the `autofocus` element.** The question focuses its default
+button by this attribute. Without one, the browser focuses the first control.
+
+**Consequences.** A new modal dialog builds on `ModalDialog`. It gives the module
+its Cancel, and its busy state when it writes. A dialog whose Cancel can ask a
+question also gives `reopen`. ConfirmDialog keeps its `open` prop.
+
+**Rejected.** A dialog that stays mounted and follows an `open` prop: a reused
+modal dialog can close when it opens over another one with no user gesture
+(#214). Two open models would also keep two code paths. A browser close that
+always opens the dialog again before the Cancel: the question would then open
+again over the dialog behind it, with no user gesture. An `initialFocus` prop: the
+`autofocus` attribute is the platform rule. A module that also takes the Escape of
+the inline forms: those forms are not dialogs, and `useDraftForm` owns their
+Escape (#270).
