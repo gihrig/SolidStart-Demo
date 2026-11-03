@@ -4,9 +4,9 @@ import { passThroughGuard, type DraftGuard } from "~/lib/createDraftGuard";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import { createLikeState } from "~/lib/jedi/createLikeState";
 import {
-  CAPTION_COMMENT_EVENTS,
+  CAPTION_COMMENT_TARGET,
   createCommentThread,
-  POST_COMMENT_EVENTS,
+  POST_COMMENT_TARGET,
   type CommentThreadState,
 } from "~/lib/jedi/createCommentThread";
 import { createSelection, type SelectionState } from "~/lib/jedi/createSelection";
@@ -37,13 +37,13 @@ export type { EditState, OwnerWrites, PostCardScopes } from "~/lib/jedi/createSe
  *
  * `selectedPostLike` / `selectedCaptionLike` are the viewer's like state of the
  * selected Post and the selected Caption (#122, #123). Each comes from one
- * `createLikeState`; this view-model keeps the Feed wiring around them.
+ * `createLikeState`; this view-model holds their Subscriptions.
  *
  * `postComments` is the selected Post's Comment thread (#124), and
  * `captionComments` the shown Caption's (#127). Each is one
  * `createCommentThread`, exposed as one nested member, with its own open state,
- * Draft scope and Subscription; this view-model keeps the Feed wiring around
- * them. One of the two is open at a time (#210).
+ * Draft scope and Subscription: this view-model only hands each thread the
+ * Feed. One of the two is open at a time (#210).
  *
  * A close of a Comments panel, by its toggle or by an open of the other panel
  * (#210), goes through the app's Draft guard (ADR-0030): with a Draft, it waits
@@ -207,20 +207,20 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // The selected Post's Comment thread (#124). It loads while its panel is
   // open; the read is public, so it does not wait for a live session. Its
   // close goes through the guard. Its scope sits under the Post scope.
-  const { thread: postThread, onEvent: onPostCommentEvent } = createCommentThread({
+  const { thread: postThread, connectFeed: connectPostThread } = createCommentThread({
     parentId: () => selectedPost()?.id,
     api: api.comments,
-    events: POST_COMMENT_EVENTS,
+    target: POST_COMMENT_TARGET,
     openOn: threadOpenOn.post,
     guard,
     parentScope: shown.draftScopes.post,
   });
   // The shown Caption's Comment thread (#127), the same way, under the
   // Caption scope.
-  const { thread: captionThread, onEvent: onCaptionCommentEvent } = createCommentThread({
+  const { thread: captionThread, connectFeed: connectCaptionThread } = createCommentThread({
     parentId: () => selectedCaption()?.id,
     api: api.captionComments,
-    events: CAPTION_COMMENT_EVENTS,
+    target: CAPTION_COMMENT_TARGET,
     openOn: threadOpenOn.caption,
     guard,
     parentScope: shown.draftScopes.caption,
@@ -256,15 +256,14 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // poke means one Post's Captions changed (#121), and a `post_like` poke means
   // one Post's like count changed (#122): each is held for the selected Post
   // only. A `caption_like` poke means one Caption's like count changed (#123),
-  // held for the selected Caption. A `post_comment` Event carries a Comment
-  // upsert or removal for one Post's thread (#124), held for the selected Post
-  // while its Comments panel is open; a `caption_comment` Event, the same for
-  // the shown Caption's thread (#127). Each Subscription names its Channel
-  // through an accessor, so the Feed moves the hold with the selection and
-  // routes only the held Channel here (ADR-0028). Each handler refetches on a
-  // poke and on the resync call after a (re)connect, so a poke lost while the
-  // socket was down is recovered (#120 review). The anonymous landing page has
-  // no socket, so the route calls this on login (#120).
+  // held for the selected Caption. Each Comment thread holds the Subscription
+  // on its own Channel (#124, #127), so this view-model only hands it the
+  // Feed. Each Subscription names its Channel through an accessor, so the Feed
+  // moves the hold with the selection and routes only the held Channel here
+  // (ADR-0028). Each handler refetches on a poke and on the resync call after a
+  // (re)connect, so a poke lost while the socket was down is recovered (#120
+  // review). The anonymous landing page has no socket, so the route calls this
+  // on login (#120).
   const connectFeed = (feed: Feed): void => {
     // A connected Feed means a logged-in User, so the viewer's like state can
     // load now; it ends with the caller's scope (logout), like the socket. A
@@ -289,14 +288,9 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     feed.subscribe(selectedChannel(postId, Channel.postCaption), refetchCaptions);
     feed.subscribe(selectedChannel(postId, Channel.postLike), () => postLike.refetch());
     feed.subscribe(selectedChannel(captionId, Channel.captionLike), () => captionLike.refetch());
-    // The thread's Subscription is held only while the Comments panel is open.
-    const shownThreadId = () => (postComments.open() ? postId() : undefined);
-    feed.subscribe(selectedChannel(shownThreadId, Channel.postComment), onPostCommentEvent);
-    const shownCaptionThreadId = () => (captionComments.open() ? captionId() : undefined);
-    feed.subscribe(
-      selectedChannel(shownCaptionThreadId, Channel.captionComment),
-      onCaptionCommentEvent,
-    );
+    // Each thread holds its own Subscription, while its Comments panel is open.
+    connectPostThread(feed);
+    connectCaptionThread(feed);
   };
 
   const [hero] = createResource(() => api.hero.get());
