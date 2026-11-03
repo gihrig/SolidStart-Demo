@@ -59,11 +59,11 @@ interface Harness {
 
 // The wire connects before the Like state is made, so the first connect calls
 // no resync. The login runs `connectFeed` in its own root, so `logout` can end
-// it alone. With `connected: false`, no `connectFeed` runs: the anonymous
-// landing page.
+// it alone. With `feed: false`, no `connectFeed` runs: the anonymous landing
+// page.
 async function withLikeState(
   run: (h: Harness) => Promise<void>,
-  { connected = true }: { connected?: boolean } = {},
+  { feed = true }: { feed?: boolean } = {},
 ) {
   const mem = createMemoryFeed();
   mem.setConnected(true);
@@ -76,7 +76,7 @@ async function withLikeState(
       toggleLike: toggleLikeMock,
     });
     let logout = () => {};
-    if (connected)
+    if (feed)
       createRoot((end) => {
         connectFeed(mem.feed);
         logout = end;
@@ -99,7 +99,7 @@ describe("createLikeState — the server read", () => {
         expect(state.like()).toBeUndefined();
         expect(getLikeMock).not.toHaveBeenCalled();
       },
-      { connected: false },
+      { feed: false },
     ));
 
   it("loads the selected target's like state, and re-keys with the selection", () =>
@@ -189,7 +189,7 @@ describe("createLikeState — toggle", () => {
         await state.toggle();
         expect(toggleLikeMock).not.toHaveBeenCalled();
       },
-      { connected: false },
+      { feed: false },
     ));
 
   it("shows the Like at once, before the back-end answers", () =>
