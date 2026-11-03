@@ -128,6 +128,48 @@ describe("createLikeState — the server read", () => {
     }));
 });
 
+describe("createLikeState — the Subscription", () => {
+  it("holds the Channel of the selected target, and moves the hold with the selection", () =>
+    withLikeState(async ({ select, mem }) => {
+      expect(mem.held()).toEqual([Channel.postLike(1)]);
+
+      select(2);
+      await tick();
+      expect(mem.held()).toEqual([Channel.postLike(2)]);
+
+      select(undefined);
+      await tick();
+      expect(mem.held()).toEqual([]);
+    }));
+
+  it("releases the Channel at logout", () =>
+    withLikeState(async ({ state, mem, logout }) => {
+      logout();
+      expect(mem.held()).toEqual([]);
+      expect(state.like()).toBeUndefined();
+    }));
+
+  it("rereads the like state after the wire drops and connects again", () =>
+    withLikeState(async ({ state, mem }) => {
+      getLikeMock.mockResolvedValue(like(1, 12, false)); // Likes made while down
+      mem.setConnected(false);
+      mem.setConnected(true);
+      await tick();
+      await tick();
+      expect(mem.held()).toEqual([Channel.postLike(1)]);
+      expect(state.like()).toEqual(like(1, 12, false));
+    }));
+
+  it("does not reread on a poke of another target's Channel", () =>
+    withLikeState(async ({ mem }) => {
+      const reads = getLikeMock.mock.calls.length;
+      mem.emit(pokeOn(Channel.postLike(2)));
+      mem.emit(pokeOn(Channel.captionLike(1)));
+      await tick();
+      expect(getLikeMock.mock.calls.length).toBe(reads);
+    }));
+});
+
 describe("createLikeState — toggle", () => {
   it("sets the like to the opposite state, then back", () =>
     withLikeState(async ({ state }) => {

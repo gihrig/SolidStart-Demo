@@ -31,8 +31,6 @@ export interface LikeState {
    *  a toggle runs counts too. A no-op without a like state. Rejects, and rolls
    *  the Like back, when the back-end fails. */
   toggle: () => Promise<void>;
-  /** Reread the selected target's like state (a poke, or a socket reconnect). */
-  refetch: () => void;
 }
 
 /**
@@ -147,5 +145,5 @@ export function createLikeState(deps: LikeStateDeps): {
     );
   };
 
-  return { state: { like, toggle, refetch: () => void refetch() }, connectFeed };
+  return { state: { like, toggle }, connectFeed };
 }
