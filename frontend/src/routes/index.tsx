@@ -53,10 +53,14 @@ export default function Home() {
     draftScopes,
     announcement,
     connectFeed,
+    postCreated,
   } = createJediFeed({ guard: useDraftGuard() });
 
   const sidebar = useDisclosure({ id: "jedi-sidebar" });
   const newPost = useNewPost();
+  // The User's own new Post shows at once: the refetch does not wait for the
+  // `posts` poke (#283). The listener ends with this route.
+  newPost.onCreated(postCreated);
 
   return (
     <>
