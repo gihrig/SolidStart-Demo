@@ -30,52 +30,9 @@ holds the front-end-specific rules and loads when Claude works in `frontend/`.
 
 ## Project Commands
 
-All project-specific scripts must use `vpr <script>` (not `vp <script>`) to avoid invoking Vite+ built-ins. A `cgs <script>` surface (`frontend/Scripts.toml`) also proxies these package.json scripts through `vpr` (ADR-0010 addendum), so `cgs test`/`build`/etc. work here too.
+All project-specific scripts must use `vpr <script>` (not `vp <script>`) to avoid invoking Vite+ built-ins. A `cgs <script>` surface (`frontend/Scripts.toml`) also proxies these package.json scripts through `vpr` (ADR-0010 addendum), so `cgs test`/`build`/etc. work here too. The scripts and their flags live in `package.json`.
 
-### Development
-
-| Command          | Description                                 |
-| ---------------- | ------------------------------------------- |
-| `vpr dev`        | Start dev server (port 3000, behind edge)   |
-| `vpr build`      | Production build                            |
-| `vpr start`      | Start production server                     |
-| `vpr check`      | Format, lint, and type-check with auto-fix  |
-| `vpr check:type` | TypeScript type-check only (`tsc --noEmit`) |
-
-### Testing
-
-| Command                    | Description                                 |
-| -------------------------- | ------------------------------------------- |
-| `vpr test:all`             | Run all unit + component tests              |
-| `vpr test:unit`            | Run `src/lib` unit tests only               |
-| `vpr test:unit -t "regex"` | Run `src/lib` unit tests matching regex     |
-| `vpr test:comp`            | Run `src/components` tests only             |
-| `vpr test:comp -t "regex"` | Run `src/components` tests matching regex   |
-| `vpr test:cover`           | Run tests with V8 coverage report           |
-| `vpr test:e2e`             | Run Playwright e2e tests (see gotcha below) |
-| `vpr test:show`            | Open last Playwright HTML report            |
-| `vpr test:all:watch`       | Watch mode for all tests                    |
-| `vpr test:unit:watch`      | Watch mode for unit tests                   |
-| `vpr test:comp:watch`      | Watch mode for component tests              |
-
-### Other
-
-| Command             | Description                   |
-| ------------------- | ----------------------------- |
-| `vpr audit`         | Security audit                |
-| `vpr lighthouse`    | Lighthouse report (see below) |
-| `vpr update`        | Update dependencies           |
-| `vpr update:latest` | Update dependencies to latest |
-| `vp i <pkg>`        | Install a package via Vite+   |
-
-## Tech Stack
-
-- **Framework**: SolidStart (SSR) + SolidJS/Router
-- **Server**: Vinxi
-- **Styles**: Tailwind CSS v4 (Vite plugin, no config file needed)
-- **Linting**: vp check (includes --fix) — Formats and corrects errors
-- **Build**: Vinxi (Vite plus) + vite-tsconfig-paths for `~` aliases
-- **MDX**: `@vinxi/plugin-mdx` configured in `app.config.ts`; example route at `src/routes/readme.mdx`
+## Config and tests
 
 Key config files: `app.config.ts` (SolidStart/Vinxi), `vite.config.ts`, `vitest.config.ts`, `vitest-setup.ts` (global test setup), `playwright.config.ts`.
 
