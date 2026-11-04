@@ -3,6 +3,7 @@ import {
   createEffect,
   createSignal,
   on,
+  onCleanup,
   Show,
   useContext,
   type ParentComponent,
@@ -16,11 +17,14 @@ export interface NewPost {
   /** Open the dialog. `opener` is the button that opened it: focus returns to
    *  it after the close. */
   open: (opener: HTMLElement) => void;
+  /** Run `listener` after each Post create commits (#283). The caller's
+   *  reactive scope owns the listener: it ends with that scope. */
+  onCreated: (listener: () => void) => void;
 }
 
-/** Without a provider, an open does nothing: a component test without the app
- *  shell renders no dialog. */
-const NewPostContext = createContext<NewPost>({ open: () => {} });
+/** Without a provider, an open does nothing and no create runs: a component
+ *  test without the app shell renders no dialog. */
+const NewPostContext = createContext<NewPost>({ open: () => {}, onCreated: () => {} });
 
 export interface NewPostProviderProps {
   /** Passed through to the dialog (the inject-or-default idiom). */
@@ -45,9 +49,33 @@ export interface NewPostProviderProps {
  * A logoff closes the dialog too (#221 review). The logoff asks about the
  * Draft first. A dialog opened while the logoff waits for the back-end closes
  * when the logoff ends.
+ *
+ * Each committed create calls every create listener one time, before the
+ * close (#283). A failed create and a Cancel call none. A listener that
+ * throws does not fail the create or skip the others. The Jedi route adds
+ * one, so the User's own new Post shows at once: it does not wait for the
+ * `posts` poke. On another route, no listener exists, and the Jedi route
+ * loads the Posts fresh when it mounts.
  */
 export const NewPostProvider: ParentComponent<NewPostProviderProps> = (props) => {
   const [opener, setOpener] = createSignal<HTMLElement>();
+  const listeners = new Set<() => void>();
+  const onCreated = (listener: () => void): void => {
+    listeners.add(listener);
+    onCleanup(() => listeners.delete(listener));
+  };
+  // A listener's throw must not fail the create, which has committed: the
+  // dialog would keep the Draft, and a second submit would add a second Post.
+  // It must not skip the other listeners either. The console reports it.
+  const created = (): void => {
+    for (const listener of listeners) {
+      try {
+        listener();
+      } catch (e) {
+        console.error("[NewPost] A create listener failed:", e);
+      }
+    }
+  };
   const close = () => {
     const el = opener();
     setOpener(undefined);
@@ -67,10 +95,10 @@ export const NewPostProvider: ParentComponent<NewPostProviderProps> = (props) =>
   );
 
   return (
-    <NewPostContext.Provider value={{ open: (el) => !isRouting() && setOpener(el) }}>
+    <NewPostContext.Provider value={{ open: (el) => !isRouting() && setOpener(el), onCreated }}>
       {props.children}
       <Show when={opener()}>
-        <PostDialog api={props.api} onClose={close} />
+        <PostDialog api={props.api} onCreated={created} onClose={close} />
       </Show>
     </NewPostContext.Provider>
   );

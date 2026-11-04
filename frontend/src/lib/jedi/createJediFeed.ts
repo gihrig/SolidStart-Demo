@@ -30,10 +30,12 @@ export type { EditState, OwnerWrites, PostCardScopes } from "~/lib/jedi/createSe
  * `selectedPost` is the Post shown in the main article (#29), and
  * `selectedCaption` the Caption shown under it (#33). One `createSelection`
  * owns both (#271): the picks, the Post hold, the Caption hold, the guarded
- * moves, the change causes (#187), the Owner's writes (`postOwner`,
- * `captionOwner`), the Draft scopes and the live region (`announcement`).
- * This view-model keeps the Posts resource, whose load runs the selection's
- * cause check before the view sees the new list.
+ * moves, the change causes (#187), the User's own writes (`postOwner`,
+ * `captionOwner`, `addCaption`, #283), the Draft scopes and the live region
+ * (`announcement`). This view-model keeps the Posts resource, whose load runs
+ * the selection's cause check before the view sees the new list. The New Post
+ * dialog sits above the route, so the route tells this view-model of the
+ * User's own create (`postCreated`): it refetches the Posts at once (#283).
  *
  * `selectedPostLike` / `selectedCaptionLike` are the viewer's like state of the
  * selected Post and the selected Caption (#122, #123). Each comes from one
@@ -98,6 +100,9 @@ export interface JediFeed extends SelectionMembers {
    *  anonymously, then connects the socket's Feed once a User logs in. The
    *  subscription is owned by the caller's reactive scope, so it ends with it. */
   connectFeed: (feed: Feed) => void;
+  /** A Post create by this User committed: refetch the Posts at once (#283).
+   *  The route calls `newPost.onCreated(postCreated)`. */
+  postCreated: () => void;
 }
 
 /** The synthetic "no filter" row. Id 0 is unused by the real categories. */
@@ -175,6 +180,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
       removePost: (id) => api.posts.remove(id),
       updateCaption: (id, text) => api.captions.update(id, text),
       removeCaption: (id) => api.captions.remove(id),
+      addCaption: (postId, text) => api.captions.add(postId, text),
     },
     guard,
   });
@@ -251,12 +257,14 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   const postComments = openAlone(postThread, captionThread);
   const captionComments = openAlone(captionThread, postThread);
 
-  // Live propagation (#117): a `posts` poke means the Post list may have changed,
-  // so refetch the list (the featured post re-derives from it). A `post_caption`
-  // poke means one Post's Captions changed (#121); it is held for the selected
-  // Post only. Each Like state (#122, #123) and each Comment thread (#124,
-  // #127) holds the Subscription on its own Channel, so this view-model only
-  // hands each one the Feed. Each Subscription names its Channel through an
+  // Live propagation (#117), for the writes of the other clients: a User's own
+  // write refetches at once and does not wait for the poke (#283). A `posts`
+  // poke means the Post list may have changed, so refetch the list (the
+  // featured post re-derives from it). A `post_caption` poke means one Post's
+  // Captions changed (#121); it is held for the selected Post only. Each Like
+  // state (#122, #123) and each Comment thread (#124, #127) holds the
+  // Subscription on its own Channel, so this view-model only hands each one
+  // the Feed. Each Subscription names its Channel through an
   // accessor, so the Feed moves the hold with the selection and routes only the
   // held Channel here (ADR-0028). Each handler refetches on a poke and on the
   // resync call after a (re)connect, so a poke lost while the socket was down
@@ -293,5 +301,6 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     postComments,
     captionComments,
     connectFeed,
+    postCreated: () => void refetchPosts(),
   };
 }

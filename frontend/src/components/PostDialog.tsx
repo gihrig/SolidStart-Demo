@@ -119,6 +119,9 @@ export interface PostDialogProps {
   /** Called on Cancel, and after a create or a save: the owner unmounts the
    *  dialog. */
   onClose?: () => void;
+  /** Create mode: called once the create commits, before the close (#283).
+   *  A failed create and a Cancel do not call it. */
+  onCreated?: () => void;
 }
 
 /**
@@ -128,11 +131,11 @@ export interface PostDialogProps {
  *
  * The create mode is the New Post dialog, which `NewPostProvider` owns. The
  * submit never reloads the page; the dialog stays open until the back-end has
- * committed the Post, then closes. The new Post reaches the feed through the
- * `posts` poke the back-end fires on commit, not through this form. It holds a
- * Draft while a text field is not blank after a trim, or a Category is
- * checked. The Draft has no scope, so only the logoff and a route move ask
- * about it (#214).
+ * committed the Post, then calls `onCreated` and closes. The owner's listener
+ * refetches the Posts at once, so the new Post does not wait for the `posts`
+ * poke (#283). It holds a Draft while a text field is not blank after a trim,
+ * or a Category is checked. The Draft has no scope, so only the logoff and a
+ * route move ask about it (#214).
  *
  * The edit mode fills every field from the Post, with its Categories checked.
  * The photo URL shows, disabled: Save never sends it. The edit holds a Draft
@@ -215,6 +218,7 @@ export default function PostDialog(props: PostDialogProps) {
           sourceUrl: values.sourceUrl,
           categoryIds: [...values.categoryIds],
         });
+        props.onCreated?.();
       };
   // The owner unmounts the dialog to close it: on a Cancel, and after a saved
   // write. A write that ends after a browser close unmounted the edit does not

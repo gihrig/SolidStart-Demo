@@ -1486,3 +1486,14 @@ describe("createJediFeed — the selected Caption's like state (#123)", () => {
       expect(postToggleLikeMock).not.toHaveBeenCalled();
     }));
 });
+
+describe("createJediFeed — the User's own Post create (#283)", () => {
+  it("a postCreated call refetches the Posts at once, with no poke", () =>
+    // The anonymous view-model has no Feed, so no poke can arrive.
+    withAnonymousJedi(async (jedi) => {
+      const before = postListMock.mock.calls.length;
+      jedi.postCreated();
+      await tick();
+      expect(postListMock.mock.calls.length).toBeGreaterThan(before);
+    }));
+});

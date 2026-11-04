@@ -52,8 +52,8 @@ export interface PostCardScopes {
   caption: DraftScope;
 }
 
-/** The back-end calls of the selection: the Captions read and the Owner's
- *  writes (#187). Each rejects on failure. */
+/** The back-end calls of the selection: the Captions read, the User's own
+ *  Caption add (#283) and the Owner's writes (#187). Each rejects on failure. */
 export interface SelectionCalls {
   /** The Captions of the Post `postId`, ranked. */
   listCaptions: (postId: number) => Promise<CaptionView[]>;
@@ -65,6 +65,8 @@ export interface SelectionCalls {
   updateCaption: (id: number, text: string) => Promise<unknown>;
   /** Delete the Caption `id`, as its Owner. */
   removeCaption: (id: number) => Promise<void>;
+  /** Add a Caption with `text` to the Post `postId`. */
+  addCaption: (postId: number, text: string) => Promise<CaptionView>;
 }
 
 /** The inputs of the selection: the Posts and the filter, which its owner
@@ -123,6 +125,9 @@ export interface SelectionState {
    *  releases every Draft on the Caption: its edit's and its Comments panel's
    *  (#271). */
   captionOwner: OwnerWrites<string>;
+  /** Add a Caption to the Post `postId`, as the logged-in User (#283).
+   *  Refetches the Captions of the Post shown at once. Rejects on failure. */
+  addCaption: (postId: number, text: string) => Promise<CaptionView>;
   /** The scopes of the Post shown and of the Caption shown. */
   draftScopes: PostCardScopes;
   /** The message of the route's polite live region (#187): the result of the
@@ -171,8 +176,9 @@ const inCategory = (post: PostView, category: JediCategory): boolean =>
 /**
  * The Post and the Caption that the Post card shows (#271, ADR-0030 addendum).
  * It owns the picks, the Post hold, the Caption hold, the guarded moves and the
- * change causes of #187. It also owns the Owner's own save and delete, and the
- * live region of the route.
+ * change causes of #187. It also owns the User's own writes: the Owner's save
+ * and delete, and the Caption add (#283). Each refetches at once: the writer
+ * does not wait for the poke. It owns the live region of the route too.
  *
  * The Post shown is the clicked Post while the filter lists it, else the
  * top-ranked Post in the filter. A **Post hold** keeps the Post shown: a Draft
@@ -457,6 +463,7 @@ export function createSelection(deps: SelectionDeps): SelectionState {
   };
 
   // The Owner's own edits (#187). The refetch does not wait for the poke.
+  // The User's own Caption add (#283) does the same, below.
   const updatePost = async (id: number, changes: PostChanges): Promise<void> => {
     // A save that drops the selected Category keeps the Post shown: the
     // filter switches to "All" when the save is sent, as the poke can arrive
@@ -479,6 +486,14 @@ export function createSelection(deps: SelectionDeps): SelectionState {
     announce(CAPTION_SAVED_ANNOUNCEMENT);
     void refetchCaptions();
   };
+  // Any logged-in User adds; only the Owner edits or deletes (#283). It takes
+  // the Post id, so an add that runs while the Post shown changes still goes
+  // to its own Post. No announcement: the add stays silent, as before.
+  const addCaption = async (postId: number, text: string): Promise<CaptionView> => {
+    const added = await calls.addCaption(postId, text);
+    void refetchCaptions();
+    return added;
+  };
 
   return {
     selectedPost,
@@ -499,6 +514,7 @@ export function createSelection(deps: SelectionDeps): SelectionState {
       remove: deleteCaption,
       removeDiscardsDraft: () => guard.hasDraftIn(captionScope),
     },
+    addCaption,
     draftScopes: { post: postScope, caption: captionScope },
     announcement,
     threadOpenOn: { post: postThreadOpenOn, caption: captionThreadOpenOn },

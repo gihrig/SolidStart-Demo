@@ -104,6 +104,9 @@ async function withSelection(run: (h: Harness) => void | Promise<void>) {
         removePost: vi.fn(() => Promise.resolve()),
         updateCaption: vi.fn(() => Promise.resolve()),
         removeCaption: vi.fn(() => Promise.resolve()),
+        addCaption: vi.fn((postId: number, text: string) =>
+          Promise.resolve({ ...caption(9, postId), text }),
+        ),
       };
       const refetchPosts = vi.fn();
       const guard = createDraftGuard();
@@ -724,5 +727,31 @@ describe("createSelection — the Owner's writes (#187)", () => {
       expect(calls.updateCaption).toHaveBeenCalledWith(1, "New text");
       expect(calls.listCaptions.mock.calls.length).toBeGreaterThan(loads);
       expect(selection.announcement()).toBe("Caption saved.");
+    }));
+});
+
+describe("createSelection — the User's own Caption add (#283)", () => {
+  it("the add sends the Post id and the text, and returns the new Caption", () =>
+    withSelection(async ({ selection, calls }) => {
+      const added = await selection.addCaption(1, "Hello");
+      expect(calls.addCaption).toHaveBeenCalledWith(1, "Hello");
+      expect(added).toMatchObject({ postId: 1, text: "Hello" });
+    }));
+
+  it("the add refetches the Captions at once, with no poke", () =>
+    withSelection(async ({ selection, calls }) => {
+      const loads = calls.listCaptions.mock.calls.length;
+      await selection.addCaption(1, "Hello");
+      await settle();
+      expect(calls.listCaptions.mock.calls.length).toBeGreaterThan(loads);
+    }));
+
+  it("a failed add rejects and does not refetch", () =>
+    withSelection(async ({ selection, calls }) => {
+      calls.addCaption.mockRejectedValueOnce(new Error("Could not add the Caption"));
+      const loads = calls.listCaptions.mock.calls.length;
+      await expect(selection.addCaption(1, "Hello")).rejects.toThrow("Could not add the Caption");
+      await settle();
+      expect(calls.listCaptions.mock.calls.length).toBe(loads);
     }));
 });

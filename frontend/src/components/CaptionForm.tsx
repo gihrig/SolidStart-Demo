@@ -1,6 +1,5 @@
 import { createEffect, createMemo, createSignal, on, onMount, Show, untrack } from "solid-js";
 import { hygieneLength } from "~/lib/hygieneLength";
-import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import type { HygieneCaps } from "~/types/backend";
 import type { CaptionView } from "~/types/jedi";
 import { useDraftForm } from "~/components/DraftGuardContext";
@@ -29,10 +28,6 @@ const MODE_TEXT = {
 } as const;
 
 export interface CaptionFormProps {
-  /** The Post the Caption competes on. */
-  postId: number;
-  /** Called with the new Caption once the back-end has committed it. */
-  onAdded?: (caption: CaptionView) => void;
   /** When given, the form offers a Cancel button that calls it. */
   onCancel?: () => void;
   /** Focus the input on mount — set when a click opened the form. */
@@ -40,17 +35,15 @@ export interface CaptionFormProps {
   /** Runs each time the form starts a Draft (#271). The owner of the add form
    *  that shows at once then keeps it open, as after a click on Add. */
   onDraft?: () => void;
-  /** The Jedi seam slice the form uses. Defaults to the real `jediApi`; a test
-   *  injects an in-memory stand-in (the inject-or-default idiom). */
-  api?: { captions: Pick<JediApi["captions"], "add"> };
   /** The Caption to edit (#187). With it, the form is the edit mode, filled
    *  from the Caption text. The mode is fixed for the form's life: its owner
    *  keys an edit on the Caption id. */
   caption?: CaptionView;
-  /** Edit mode: save the new text (the view-model's `captionOwner.save`). Rejects
-   *  on failure. */
-  onSave?: (text: string) => Promise<void>;
-  /** Edit mode: called once the save has committed. */
+  /** Save the text: the add mode adds a Caption (the view-model's
+   *  `addCaption`, #283), the edit mode saves the new text (its
+   *  `captionOwner.save`). Rejects on failure. */
+  onSave?: (text: string) => Promise<unknown>;
+  /** Called once the save has committed. */
   onSaved?: () => void;
 }
 
@@ -58,10 +51,10 @@ export interface CaptionFormProps {
  * The one Caption form on a Post: the add form (#121) and the Caption edit
  * (#187), for a logged-in User. The submit never reloads the page.
  *
- * The add mode clears the input once the back-end has committed the Caption.
- * The new Caption reaches Top Captions through the `post_caption` poke the
- * back-end fires on commit, not through this form. It reports a Draft to the
- * app's guard while its text is not blank (ADR-0030).
+ * The add mode saves through `onSave` and clears the input once the back-end
+ * has committed the Caption. The owner's save refetches the Captions at once,
+ * so the new Caption does not wait for the `post_caption` poke (#283). It
+ * reports a Draft to the app's guard while its text is not blank (ADR-0030).
  *
  * The edit mode fills the input from the Caption text. It holds a Draft while
  * the text differs from the saved Caption, and Save stays disabled until then.
@@ -72,7 +65,6 @@ export interface CaptionFormProps {
  * reports its write to the guard (#214).
  */
 export default function CaptionForm(props: CaptionFormProps) {
-  const api = props.api ?? jediApi;
   // The mode is fixed: the owner keys an edit on its Caption id.
   const editing = props.caption !== undefined;
   const text = MODE_TEXT[editing ? "edit" : "add"];
@@ -103,24 +95,18 @@ export default function CaptionForm(props: CaptionFormProps) {
     close: () => props.onCancel,
     fallbackError: text.error,
   };
-  // One hook call for each mode: the mode is fixed for the form's life. The
-  // add returns the new Caption; the edit, none.
-  const form = editing
-    ? useDraftForm({
-        ...base,
-        write: async () => {
-          await props.onSave?.(value());
-        },
-        onSaved: () => props.onSaved?.(),
-      })
-    : useDraftForm({
-        ...base,
-        write: () => api.captions.add(props.postId, value()),
-        onSaved: (added) => {
-          setValue("");
-          props.onAdded?.(added);
-        },
-      });
+  // Both modes save through `onSave` (#283). The add clears its input after
+  // the save.
+  const form = useDraftForm({
+    ...base,
+    write: async () => {
+      await props.onSave?.(value());
+    },
+    onSaved: () => {
+      if (!editing) setValue("");
+      props.onSaved?.();
+    },
+  });
 
   onMount(() => {
     if (props.autofocus) inputRef?.focus();

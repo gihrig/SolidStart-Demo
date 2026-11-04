@@ -4,9 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import { createDraftGuard, createDraftScope, type DraftGuard } from "~/lib/createDraftGuard";
-import { authenticatedRpc } from "~/lib/backend-rpc";
 import { stubDialogModal } from "~/lib/test-utils";
-import FeaturedPost from "./FeaturedPost";
+import FeaturedPost, { type FeaturedPostProps } from "./FeaturedPost";
 import { DraftGuardContext } from "./DraftGuardContext";
 import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
 import type { OwnerWrites } from "~/lib/jedi/createJediFeed";
@@ -25,7 +24,6 @@ vi.mock("~/lib/backend-rpc", () => ({
         : [],
     ),
   ),
-  authenticatedRpc: vi.fn(() => Promise.reject(new Error("not used here"))),
 }));
 
 const post: PostView = {
@@ -268,7 +266,7 @@ describe("<FeaturedPost /> — a Draft keeps the Add Caption form open (#271)", 
   const input = () => screen.queryByLabelText("Your caption");
   // A Post with no Caption, so the form shows at once. `setShown` is a Caption
   // that arrives, as a `post_caption` refetch delivers it.
-  function renderWithoutCaption() {
+  function renderWithoutCaption(addCaption?: FeaturedPostProps["addCaption"]) {
     const user = userEvent.setup();
     const [shown, setShown] = createSignal<CaptionView | undefined>();
     const guard = createDraftGuard();
@@ -280,6 +278,7 @@ describe("<FeaturedPost /> — a Draft keeps the Add Caption form open (#271)", 
           caption={shown()}
           loggedIn
           captionsLoaded
+          addCaption={addCaption}
         />
       </DraftGuardContext.Provider>
     ));
@@ -322,9 +321,9 @@ describe("<FeaturedPost /> — a Draft keeps the Add Caption form open (#271)", 
   });
 
   it("a Caption that arrives while the form writes keeps it; after the save, the line shows the Caption shown", async () => {
-    let answer!: (row: never) => void;
-    vi.mocked(authenticatedRpc).mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
-    const { user, guard, setShown } = renderWithoutCaption();
+    let answer!: (added: CaptionView) => void;
+    const addCaption = vi.fn(() => new Promise<CaptionView>((resolve) => (answer = resolve)));
+    const { user, guard, setShown } = renderWithoutCaption(addCaption);
     await user.type(input()!, "Mine");
     const submit = screen
       .getAllByRole("button", { name: "Add Caption" })
@@ -334,14 +333,8 @@ describe("<FeaturedPost /> — a Draft keeps the Add Caption form open (#271)", 
     // The poke of the new Caption can arrive before the write's result.
     setShown(caption);
     expect(input(), "the form stays while it writes").toHaveValue("Mine");
-    answer({
-      id: 2,
-      post_id: post.id,
-      author: { id: 2, name: "Bart", avatar_url: null },
-      text: "Mine",
-      like_count: 0,
-      comment_count: 0,
-    } as never);
+    expect(addCaption).toHaveBeenCalledWith(post.id, "Mine");
+    answer({ ...caption, id: 2, text: "Mine" });
     await waitFor(() => expect(input()).toBeNull());
     expect(screen.getByText(caption.text)).toBeInTheDocument();
     expect(guard.hasDraft()).toBe(false);
