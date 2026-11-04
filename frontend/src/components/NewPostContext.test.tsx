@@ -341,6 +341,27 @@ describe("<NewPostProvider /> — the create listeners (#283)", () => {
     for (const listener of listeners) expect(listener).toHaveBeenCalledOnce();
   });
 
+  it("a listener that throws does not fail the create or skip the other listeners", async () => {
+    postCreateMock.mockResolvedValue(CREATED);
+    const { user, listeners } = renderOpeners();
+    const boom = new Error("listener fault");
+    listeners[0].mockImplementation(() => {
+      throw boom;
+    });
+    // The console reports the fault, apart from the create.
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await user.click(screen.getByRole("button", { name: "New Post" }));
+      await fill(user);
+      await user.click(within(dialog()!).getByRole("button", { name: "Post" }));
+      await waitFor(() => expect(dialog()).toBeNull());
+      expect(listeners[1]).toHaveBeenCalledOnce();
+      expect(consoleError).toHaveBeenCalledWith("[NewPost] A create listener failed:", boom);
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
   it("a failed create calls no listener", async () => {
     postCreateMock.mockRejectedValue(new Error("RPC Error: unsafe URL"));
     const { user, listeners } = renderOpeners();

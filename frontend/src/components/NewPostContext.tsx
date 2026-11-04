@@ -51,7 +51,8 @@ export interface NewPostProviderProps {
  * when the logoff ends.
  *
  * Each committed create calls every create listener one time, before the
- * close (#283). A failed create and a Cancel call none. The Jedi route adds
+ * close (#283). A failed create and a Cancel call none. A listener that
+ * throws does not fail the create or skip the others. The Jedi route adds
  * one, so the User's own new Post shows at once: it does not wait for the
  * `posts` poke. On another route, no listener exists, and the Jedi route
  * loads the Posts fresh when it mounts.
@@ -63,8 +64,17 @@ export const NewPostProvider: ParentComponent<NewPostProviderProps> = (props) =>
     listeners.add(listener);
     onCleanup(() => listeners.delete(listener));
   };
+  // A listener's throw must not fail the create, which has committed: the
+  // dialog would keep the Draft, and a second submit would add a second Post.
+  // It must not skip the other listeners either. The console reports it.
   const created = (): void => {
-    for (const listener of listeners) listener();
+    for (const listener of listeners) {
+      try {
+        listener();
+      } catch (e) {
+        console.error("[NewPost] A create listener failed:", e);
+      }
+    }
   };
   const close = () => {
     const el = opener();
