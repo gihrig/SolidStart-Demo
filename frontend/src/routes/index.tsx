@@ -49,6 +49,7 @@ export default function Home() {
     captionComments,
     postOwner,
     captionOwner,
+    addCaption,
     draftScopes,
     announcement,
     connectFeed,
@@ -116,6 +117,7 @@ export default function Home() {
                   captionComments={captionComments}
                   postOwner={postOwner}
                   captionOwner={captionOwner}
+                  addCaption={addCaption}
                   draftScopes={draftScopes}
                   onAddPost={newPost.open}
                 />

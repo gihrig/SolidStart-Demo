@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
 import { createDraftGuard, createDraftScope } from "~/lib/createDraftGuard";
 import { trustedUrl } from "~/lib/sanitizeUrl";
-import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { CaptionView } from "~/types/jedi";
 import { DraftGuardContext, DraftScopeContext } from "./DraftGuardContext";
 import PostCaption, { type PostCaptionProps } from "./PostCaption";
@@ -18,15 +17,15 @@ const CAPTION: CaptionView = {
   commentCount: 0,
 };
 
-const captionAddMock = vi.fn<JediApi["captions"]["add"]>();
-const api = { captions: { add: captionAddMock } };
+// The add of the view-model (`addCaption`, #283).
+const onAddMock = vi.fn<(postId: number, text: string) => Promise<CaptionView>>();
 const onClose = vi.fn();
 // The Post scope, where the Caption line mounts, and the Caption scope (#271).
 const postScope = createDraftScope("post");
 const captionScope = createDraftScope("caption", postScope);
 
 beforeEach(() => {
-  captionAddMock.mockReset();
+  onAddMock.mockReset();
   onClose.mockReset();
 });
 
@@ -37,7 +36,7 @@ const defaults: PostCaptionProps = {
   canAdd: true,
   adding: false,
   onClose,
-  api,
+  onAdd: onAddMock,
   captionScope,
 };
 const renderCaption = (props: Partial<PostCaptionProps> = {}) => {
@@ -72,19 +71,19 @@ describe("<PostCaption />", () => {
   });
 
   it("calls onClose once the back-end commits the new Caption", async () => {
-    captionAddMock.mockResolvedValue({ ...CAPTION, id: 99, text: "A new contender" });
+    onAddMock.mockResolvedValue({ ...CAPTION, id: 99, text: "A new contender" });
     const { user } = renderCaption({ adding: true });
 
     await user.type(input()!, "A new contender");
     await user.click(screen.getByRole("button", { name: "Add Caption" }));
 
-    expect(captionAddMock).toHaveBeenCalledWith(1, "A new contender");
+    expect(onAddMock).toHaveBeenCalledWith(1, "A new contender");
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
 
   it("an earlier Post's submit does not close the form opened on the next Post (#185 review)", async () => {
     let resolve!: (c: CaptionView) => void;
-    captionAddMock.mockReturnValue(new Promise((r) => (resolve = r)));
+    onAddMock.mockReturnValue(new Promise((r) => (resolve = r)));
     const [postId, setPostId] = createSignal(1);
     const user = userEvent.setup();
     render(() => <PostCaption {...defaults} adding postId={postId()} />);

@@ -1,7 +1,7 @@
 import { Match, Show, Switch } from "solid-js";
 import type { DraftScope } from "~/lib/createDraftGuard";
 import type { CaptionView } from "~/types/jedi";
-import CaptionForm, { type CaptionFormProps } from "~/components/CaptionForm";
+import CaptionForm from "~/components/CaptionForm";
 import { DraftScopeContext } from "~/components/DraftGuardContext";
 
 export interface PostCaptionProps {
@@ -20,8 +20,9 @@ export interface PostCaptionProps {
   /** Called when the add form starts a Draft (#271). The owner then sets
    *  `adding`, so a Caption that arrives does not close the form. */
   onAddDraft?: () => void;
-  /** Passed through to the form (the inject-or-default idiom). */
-  api?: CaptionFormProps["api"];
+  /** Add a Caption with `text` to the Post `postId` (#283). Rejects on
+   *  failure. */
+  onAdd?: (postId: number, text: string) => Promise<unknown>;
   /** The line's element, which takes focus after the Owner's Caption delete
    *  (#187). */
   ref?: (el: HTMLDivElement) => void;
@@ -79,10 +80,10 @@ export default function PostCaption(props: PostCaptionProps) {
             {(postId) => (
               <CaptionForm
                 postId={postId}
-                api={props.api}
                 autofocus={props.adding}
                 onDraft={props.onAddDraft}
-                onAdded={props.onClose}
+                onSave={(text) => props.onAdd?.(postId, text) ?? Promise.resolve()}
+                onSaved={props.onClose}
                 onCancel={onCancel()}
               />
             )}

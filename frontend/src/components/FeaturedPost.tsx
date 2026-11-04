@@ -54,6 +54,9 @@ export interface FeaturedPostProps {
   /** The Owner's writes on the Caption shown (#187): the edit form in the
    *  Caption line, its save and the delete. */
   captionOwner?: OwnerWrites<string>;
+  /** Add a Caption to the Post `postId`, as the logged-in User (the
+   *  view-model's `addCaption`, #283). Refetches the Captions at once. */
+  addCaption?: (postId: number, text: string) => Promise<CaptionView>;
   /** The scopes of the Post shown and of the Caption shown (ADR-0030, #271).
    *  The card provides the Post scope to each form in it, and the Caption line
    *  provides the Caption scope to the Caption edit. */
@@ -394,6 +397,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
             adding={addingCaption()}
             onClose={closeCaptionForm}
             onAddDraft={() => setAddingCaption(true)}
+            onAdd={(postId, text) => props.addCaption?.(postId, text) ?? Promise.resolve()}
             ref={(el) => (captionLineRef = el)}
             editing={captionEditOpen()}
             captionScope={props.draftScopes.caption}
