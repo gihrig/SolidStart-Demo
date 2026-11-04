@@ -347,6 +347,9 @@ A Channel's semantics follow its data shape (#109):
   (#85). This covers `posts` (the list), `post_like` / `caption_like` (derived
   counts), and `post_caption` (the Top Captions ranking, which reshuffles on every
   like).
+- **The writer does not wait.** A User's own write shows at once in that User's
+  client: it does not wait for the Event. The Event is for the other clients
+  (C-29, #283).
 
 _Avoid_: refresh, notify.
 _BE_: a list-or-count mutation proves its poke at compile time. A `broadcast_*`
