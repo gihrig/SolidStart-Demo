@@ -63,7 +63,6 @@ export default function PostCaption(props: PostCaptionProps) {
           {(id) => (
             <DraftScopeContext.Provider value={props.captionScope}>
               <CaptionForm
-                postId={props.postId}
                 caption={props.caption}
                 autofocus
                 onSave={(text) => props.onSaveEdit?.(id, text) ?? Promise.resolve()}
@@ -79,7 +78,6 @@ export default function PostCaption(props: PostCaptionProps) {
           <Show when={props.postId} keyed>
             {(postId) => (
               <CaptionForm
-                postId={postId}
                 autofocus={props.adding}
                 onDraft={props.onAddDraft}
                 onSave={(text) => props.onAdd?.(postId, text) ?? Promise.resolve()}

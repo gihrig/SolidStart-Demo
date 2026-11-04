@@ -28,8 +28,6 @@ const MODE_TEXT = {
 } as const;
 
 export interface CaptionFormProps {
-  /** The Post the Caption competes on. */
-  postId: number;
   /** When given, the form offers a Cancel button that calls it. */
   onCancel?: () => void;
   /** Focus the input on mount — set when a click opened the form. */

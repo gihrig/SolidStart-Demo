@@ -126,7 +126,7 @@ export interface SelectionState {
    *  (#271). */
   captionOwner: OwnerWrites<string>;
   /** Add a Caption to the Post `postId`, as the logged-in User (#283).
-   *  Refetches the Captions at once. Rejects on failure. */
+   *  Refetches the Captions of the Post shown at once. Rejects on failure. */
   addCaption: (postId: number, text: string) => Promise<CaptionView>;
   /** The scopes of the Post shown and of the Caption shown. */
   draftScopes: PostCardScopes;

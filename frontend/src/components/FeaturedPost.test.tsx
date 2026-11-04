@@ -24,7 +24,6 @@ vi.mock("~/lib/backend-rpc", () => ({
         : [],
     ),
   ),
-  authenticatedRpc: vi.fn(() => Promise.reject(new Error("not used here"))),
 }));
 
 const post: PostView = {

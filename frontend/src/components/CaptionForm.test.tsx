@@ -26,7 +26,7 @@ beforeEach(() => {
 
 function renderForm(props: Partial<CaptionFormProps> = {}) {
   const user = userEvent.setup();
-  render(() => <CaptionForm postId={1} onSave={onSaveMock} {...props} />);
+  render(() => <CaptionForm onSave={onSaveMock} {...props} />);
   return { user, input: screen.getByLabelText("Your caption") as HTMLInputElement };
 }
 
@@ -168,13 +168,7 @@ describe("<CaptionForm /> — the edit mode (#187)", () => {
     render(() => (
       <DraftGuardContext.Provider value={guard}>
         <DraftScopeContext.Provider value={scope}>
-          <CaptionForm
-            postId={1}
-            caption={caption()}
-            onSave={onSave}
-            onSaved={onSaved}
-            onCancel={onCancel}
-          />
+          <CaptionForm caption={caption()} onSave={onSave} onSaved={onSaved} onCancel={onCancel} />
         </DraftScopeContext.Provider>
       </DraftGuardContext.Provider>
     ));
@@ -237,7 +231,7 @@ describe("<CaptionForm /> — Cancel and Escape (#214)", () => {
     render(() => (
       <DraftGuardContext.Provider value={guard}>
         <DraftScopeContext.Provider value={scope}>
-          <CaptionForm postId={1} onSave={onSaveMock} {...props} />
+          <CaptionForm onSave={onSaveMock} {...props} />
         </DraftScopeContext.Provider>
       </DraftGuardContext.Provider>
     ));
