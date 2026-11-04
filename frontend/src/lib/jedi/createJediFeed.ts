@@ -175,6 +175,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
       removePost: (id) => api.posts.remove(id),
       updateCaption: (id, text) => api.captions.update(id, text),
       removeCaption: (id) => api.captions.remove(id),
+      addCaption: (postId, text) => api.captions.add(postId, text),
     },
     guard,
   });
