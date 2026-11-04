@@ -261,9 +261,10 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // write refetches at once and does not wait for the poke (#283). A `posts`
   // poke means the Post list may have changed, so refetch the list (the
   // featured post re-derives from it). A `post_caption` poke means one Post's
-  // Captions changed (#121); it is held for the selected Post only. Each Like state (#122, #123) and each Comment thread (#124,
-  // #127) holds the Subscription on its own Channel, so this view-model only
-  // hands each one the Feed. Each Subscription names its Channel through an
+  // Captions changed (#121); it is held for the selected Post only. Each Like
+  // state (#122, #123) and each Comment thread (#124, #127) holds the
+  // Subscription on its own Channel, so this view-model only hands each one
+  // the Feed. Each Subscription names its Channel through an
   // accessor, so the Feed moves the hold with the selection and routes only the
   // held Channel here (ADR-0028). Each handler refetches on a poke and on the
   // resync call after a (re)connect, so a poke lost while the socket was down
