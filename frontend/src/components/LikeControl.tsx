@@ -20,9 +20,10 @@ export interface LikeControlProps {
 
 /**
  * One Like target's fire-heart, live count, and Like button (#123): the Post
- * line and the Caption line each render one. A visitor sees only the fire-heart
- * and the count. For a logged-in User, Like stays disabled until the like state
- * loads; it stays enabled while a toggle runs, so a fast click counts (#122).
+ * actions and the Caption actions each render one. A visitor sees only the
+ * fire-heart and the count. For a logged-in User, Like stays disabled until the
+ * like state loads; it stays enabled while a toggle runs, so a fast click
+ * counts (#122).
  */
 export default function LikeControl(props: LikeControlProps) {
   return (

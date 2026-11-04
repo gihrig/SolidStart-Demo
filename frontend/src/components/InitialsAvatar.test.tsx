@@ -31,4 +31,16 @@ describe("<InitialsAvatar />", () => {
     renderFor("demo1");
     expect(circle()).toHaveAttribute("aria-hidden", "true");
   });
+
+  it("is 32 px by default, with small text", () => {
+    renderFor("demo1");
+    expect(circle()).toHaveClass("h-8", "w-8", "text-sm");
+  });
+
+  it("is 24 px at size 24, with the text scaled down", () => {
+    render(() => <InitialsAvatar name="demo1" size={24} data-testid="initials" />);
+    expect(circle()).toHaveClass("h-6", "w-6", "text-xs");
+    expect(circle()).not.toHaveClass("h-8");
+    expect(circle()).not.toHaveClass("text-sm");
+  });
 });

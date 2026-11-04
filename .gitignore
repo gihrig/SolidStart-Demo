@@ -19,6 +19,8 @@ Thumbs.db
 /coverage/
 # Pinned tool binaries fetched by scripts (e.g. syft via scripts/sbom.sh)
 /.tools/
+# Caddy's local CA and state for the dev/e2e HTTPS edge (scripts/caddy.sh)
+/.caddy/
 
 # Environment (real secrets never committed)
 .env

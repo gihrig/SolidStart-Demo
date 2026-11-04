@@ -8,7 +8,7 @@ to seven sites across the three. `WsEvent::channel()` mapped each event variant 
 a wrong arm still compiled, and two tests backfilled the guarantee
 (`jedi_poke_wire_shape_is_stable`, `jedi_channel_keys_are_stable`).
 
-This is candidate **C-04** of `backend/docs/ar/architecture-review-20260911-215934.html`.
+This is candidate **C-04** of `docs/ar/architecture-review-20260911-215934.html`.
 It collapses the three types into one exported `Channel`. It **supersedes** two
 ADR-0018 decisions: "Keep `Channel` and `ChannelKind` as two types" and the rejection
 of merging them.

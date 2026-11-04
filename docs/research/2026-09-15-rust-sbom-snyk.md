@@ -1,6 +1,6 @@
 # Rust backend SBOM generation + Snyk scanning
 
-**File:** `backend/docs/research/2026-09-15-rust-sbom-snyk.md`
+**File:** `docs/research/2026-09-15-rust-sbom-snyk.md`
 **Date:** 2026-09-15
 **Issue:** #18 — generate an SBOM for the Rust backend, then run Snyk against that SBOM.
 **Scope:** Rust/Cargo backend only. The frontend TypeScript project stays on Snyk's

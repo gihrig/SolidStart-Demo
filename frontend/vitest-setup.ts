@@ -5,6 +5,20 @@ import { afterEach, expect } from "vite-plus/test";
 // jsdom prints "Not implemented". Scrolling has no effect in jsdom, so a no-op.
 window.scrollTo = () => {};
 
+// jsdom has no `window.matchMedia`. The default matches no query: a wide
+// screen with a fine pointer. A test that needs a match stubs its own.
+window.matchMedia = (query: string) =>
+  ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false,
+  }) satisfies MediaQueryList;
+
 // Solid warns when a computation, a cleanup or an error handler is created with
 // no owner, e.g. after an `await` or in an event handler. Nothing disposes it,
 // so it leaks. Each such warning fails the test that raised it. The fix is to

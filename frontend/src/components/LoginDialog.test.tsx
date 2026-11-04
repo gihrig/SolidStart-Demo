@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vite-plus/test";
-import { createSignal } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { render, screen, within, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { stubDialogModal } from "~/lib/test-utils";
@@ -27,7 +27,8 @@ vi.mock("~/lib/jedi/jedi-api", () => ({
   },
 }));
 
-// The Nav's role: it owns the open state and opens the dialog.
+// The Nav's role: it owns the open state, and mounts the dialog to open it.
+// `openLogin` opens it and returns the new dialog.
 function renderDialog() {
   const [open, setOpen] = createSignal(false);
   render(() => (
@@ -35,19 +36,25 @@ function renderDialog() {
       <button type="button" onClick={() => setOpen(true)}>
         open-login
       </button>
-      <LoginDialog open={open()} onClose={() => setOpen(false)} />
+      <Show when={open()}>
+        <LoginDialog onClose={() => setOpen(false)} />
+      </Show>
     </AuthProvider>
   ));
-  const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
   const user = userEvent.setup();
-  const form = within(dialog);
+  const openLogin = async () => {
+    await user.click(screen.getByRole("button", { name: "open-login" }));
+    const dialog = screen.getByRole("dialog") as HTMLDialogElement;
+    return { dialog, form: within(dialog) };
+  };
+  const shown = () => screen.queryByRole("dialog", { hidden: true });
   // The fields open empty and are required, so type the credentials first.
-  const submitLogin = async () => {
+  const submitLogin = async (form: ReturnType<typeof within>) => {
     await user.type(form.getByLabelText(/username/i), "demo1");
     await user.type(form.getByLabelText(/password/i), "welcome");
     await user.click(form.getByRole("button", { name: /^login$/i }));
   };
-  return { user, dialog, form, open, submitLogin };
+  return { user, open, openLogin, shown, submitLogin };
 }
 
 describe("<LoginDialog />", () => {
@@ -56,10 +63,10 @@ describe("<LoginDialog />", () => {
   });
 
   it("opens as a modal named by its Login heading", async () => {
-    const { user, dialog } = renderDialog();
-    expect(dialog.open).toBe(false);
+    const { openLogin, shown } = renderDialog();
+    expect(shown()).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "open-login" }));
+    const { dialog } = await openLogin();
 
     expect(dialog.open).toBe(true);
     expect(screen.getByRole("dialog", { name: "Login" })).toBe(dialog);
@@ -69,12 +76,12 @@ describe("<LoginDialog />", () => {
     const { backendRpc } = await import("~/lib/backend-rpc");
     // eslint-disable-next-line @typescript-eslint/unbound-method
     vi.mocked(backendRpc.auth.login).mockResolvedValueOnce({ result: { success: true } });
-    const { user, dialog, open, submitLogin } = renderDialog();
-    await user.click(screen.getByRole("button", { name: "open-login" }));
+    const { open, openLogin, shown, submitLogin } = renderDialog();
+    const { form } = await openLogin();
 
-    await submitLogin();
+    await submitLogin(form);
 
-    await waitFor(() => expect(dialog.open).toBe(false));
+    await waitFor(() => expect(shown()).toBeNull());
     expect(open()).toBe(false);
   });
 
@@ -82,75 +89,85 @@ describe("<LoginDialog />", () => {
     const { backendRpc } = await import("~/lib/backend-rpc");
     // eslint-disable-next-line @typescript-eslint/unbound-method
     vi.mocked(backendRpc.auth.login).mockRejectedValueOnce(new Error("Invalid credentials"));
-    const { user, dialog, form, submitLogin } = renderDialog();
-    await user.click(screen.getByRole("button", { name: "open-login" }));
+    const { openLogin, submitLogin } = renderDialog();
+    const { dialog, form } = await openLogin();
 
-    await submitLogin();
+    await submitLogin(form);
 
     expect(await form.findByText("Invalid credentials")).toBeInTheDocument();
     expect(dialog.open).toBe(true);
   });
 
   it("closes on Cancel and reports the close", async () => {
-    const { user, dialog, form, open } = renderDialog();
-    await user.click(screen.getByRole("button", { name: "open-login" }));
+    const { user, open, openLogin, shown } = renderDialog();
+    const { form } = await openLogin();
 
     await user.click(form.getByRole("button", { name: "Cancel" }));
 
-    expect(dialog.open).toBe(false);
+    expect(shown()).toBeNull();
     expect(open()).toBe(false);
   });
 
-  it("refuses Escape and Cancel while the login is pending, and allows them otherwise", async () => {
+  it("Escape closes it and reports the close", async () => {
+    const { open, openLogin, shown } = renderDialog();
+    const { dialog } = await openLogin();
+
+    // A browser fires `cancel` on Escape.
+    dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
+
+    expect(shown()).toBeNull();
+    expect(open()).toBe(false);
+  });
+
+  it("a browser close during a login opens the dialog again; a failed login then shows its error (#278)", async () => {
     const { backendRpc } = await import("~/lib/backend-rpc");
-    let resolveLogin!: (v: { result: { success: boolean } }) => void;
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    vi.mocked(backendRpc.auth.login).mockReturnValueOnce(new Promise((r) => (resolveLogin = r)));
-    const { user, dialog, form, submitLogin } = renderDialog();
-    await user.click(screen.getByRole("button", { name: "open-login" }));
+    let failLogin!: (reason: unknown) => void;
+    vi.mocked(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      backendRpc.auth.login,
+    ).mockReturnValueOnce(new Promise((_, reject) => (failLogin = reject)));
+    const { open, openLogin, submitLogin } = renderDialog();
+    const { dialog, form } = await openLogin();
+    await submitLogin(form);
 
-    const idleEsc = new Event("cancel", { cancelable: true });
-    dialog.dispatchEvent(idleEsc);
-    expect(idleEsc.defaultPrevented).toBe(false);
-    expect(form.getByRole("button", { name: "Cancel" })).toHaveProperty("disabled", false);
-
-    await submitLogin();
-    const pendingEsc = new Event("cancel", { cancelable: true });
-    dialog.dispatchEvent(pendingEsc);
-    expect(pendingEsc.defaultPrevented).toBe(true);
     expect(form.getByRole("button", { name: "Cancel" })).toHaveProperty("disabled", true);
 
-    resolveLogin({ result: { success: true } });
-    await waitFor(() => expect(dialog.open).toBe(false));
+    // A browser closes the dialog after repeated Escape, while the login waits.
+    dialog.close();
+    expect(dialog.open, "the dialog opens again").toBe(true);
+    expect(open()).toBe(true);
+
+    failLogin(new Error("Invalid credentials"));
+    expect(await form.findByText("Invalid credentials")).toBeInTheDocument();
+    expect(dialog.open).toBe(true);
+  });
+
+  it("each open shows empty fields (#278)", async () => {
+    const { user, openLogin } = renderDialog();
+    const first = await openLogin();
+    await user.type(first.form.getByLabelText(/username/i), "demo1");
+    await user.type(first.form.getByLabelText(/password/i), "welcome");
+    await user.click(first.form.getByRole("button", { name: "Cancel" }));
+
+    const { form } = await openLogin();
+
+    expect(form.getByLabelText(/username/i)).toHaveValue("");
+    expect(form.getByLabelText(/password/i)).toHaveValue("");
   });
 
   it("shows no old error when it opens again", async () => {
     const { backendRpc } = await import("~/lib/backend-rpc");
     // eslint-disable-next-line @typescript-eslint/unbound-method
     vi.mocked(backendRpc.auth.login).mockRejectedValueOnce(new Error("Invalid credentials"));
-    const { user, dialog, form, submitLogin } = renderDialog();
-    await user.click(screen.getByRole("button", { name: "open-login" }));
-    await submitLogin();
-    expect(await form.findByText("Invalid credentials")).toBeInTheDocument();
+    const { user, openLogin, submitLogin } = renderDialog();
+    const first = await openLogin();
+    await submitLogin(first.form);
+    expect(await first.form.findByText("Invalid credentials")).toBeInTheDocument();
+    await user.click(first.form.getByRole("button", { name: "Cancel" }));
 
-    dialog.close();
-    await user.click(screen.getByRole("button", { name: "open-login" }));
+    const { dialog, form } = await openLogin();
 
     expect(dialog.open).toBe(true);
     expect(form.queryByText("Invalid credentials")).toBeNull();
-  });
-
-  it("stops its Escape, so a document Escape listener does not get it (#214)", async () => {
-    const onDocumentKey = vi.fn();
-    document.addEventListener("keydown", onDocumentKey);
-    try {
-      const { user, form } = renderDialog();
-      await user.click(screen.getByRole("button", { name: "open-login" }));
-      await user.click(form.getByLabelText(/username/i));
-      await user.keyboard("{Escape}");
-      expect(onDocumentKey).not.toHaveBeenCalledWith(expect.objectContaining({ key: "Escape" }));
-    } finally {
-      document.removeEventListener("keydown", onDocumentKey);
-    }
   });
 });

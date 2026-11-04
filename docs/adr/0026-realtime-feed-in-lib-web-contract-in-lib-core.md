@@ -15,7 +15,7 @@ beside the rest of the domain in `lib-core`.
 
 The `web-server` architecture review after #163 raised this as cards **C-16** (relocate
 the Feed behind a lib seam) and **C-17** (co-locate the Poke rule)
-(`backend/docs/ar/architecture-review-20260922-084743.html`, issue #167). Issue #167 asks
+(`docs/ar/architecture-review-20260922-084743.html`, issue #167). Issue #167 asks
 to "keep the service thin, delegate to the libs."
 
 This is the counterpart to [ADR-0025](0025-login-handler-keeps-blueprint-inline-orchestration.md),

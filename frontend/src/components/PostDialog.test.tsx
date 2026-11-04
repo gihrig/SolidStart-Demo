@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vite-plus/test";
 import { render, screen, within, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
-import { createSignal, Show, Suspense } from "solid-js";
+import { createSignal, Suspense } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
-import { createDraftGuard } from "~/lib/createDraftGuard";
+import { createDraftGuard, createDraftScope } from "~/lib/createDraftGuard";
 import { stubDialogModal } from "~/lib/test-utils";
 import type { JediApi } from "~/lib/jedi/jedi-api";
 import type { JediCategory, PostChanges, PostDraft, PostView } from "~/types/jedi";
@@ -193,6 +193,16 @@ describe("<PostDialog />", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it('says "Could not add the Post" when the add fails with no message (#210)', async () => {
+    postCreateMock.mockRejectedValue({ status: 500 });
+    const { user, form } = await openAndFill();
+    await user.click(await form.findByRole("checkbox", { name: "Landscape" }));
+
+    await user.click(form.getByRole("button", { name: "Post" }));
+
+    expect(await form.findByRole("alert")).toHaveTextContent("Could not add the Post");
+  });
+
   it("Cancel, Esc and a browser close each close it", async () => {
     const { user, dialog, form, onClose } = await openAndFill();
     await user.click(form.getByRole("button", { name: "Cancel" }));
@@ -247,13 +257,6 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
     expect(form.getByRole("checkbox", { name: "Landscape" })).not.toBeChecked();
   });
 
-  it("a close by the browser is the edit's Cancel (PR #216 review)", async () => {
-    const { dialog, onClose } = renderEdit();
-    // Chrome closes a modal dialog on a second Escape, with no `cancel` event.
-    dialog.close();
-    expect(onClose).toHaveBeenCalledOnce();
-  });
-
   it("Cancel, Escape and a browser close with a Draft ask; Discard closes (#214)", async () => {
     const { user, dialog, form, guard, onClose } = renderEdit();
     await user.type(input(form, "Photographer"), "!");
@@ -275,53 +278,6 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
     guard.confirmMove();
     expect(onClose).toHaveBeenCalledOnce();
     expect(guard.hasDraft()).toBe(false);
-  });
-
-  it("a browser close during a Save reopens the dialog; a failed Save keeps the text (PR #216 review)", async () => {
-    const { user, dialog, form, guard, onSave, onClose } = renderEdit();
-    let fail!: (reason: unknown) => void;
-    onSave.mockReturnValueOnce(new Promise<void>((_, reject) => (fail = reject)));
-    await user.type(input(form, "Title"), "!");
-    await user.click(form.getByRole("button", { name: "Save" }));
-
-    // Chrome closes the dialog while the Save waits.
-    dialog.close();
-    expect(dialog.open, "the dialog opens again").toBe(true);
-    expect(onClose).not.toHaveBeenCalled();
-
-    fail({ status: 500 });
-    expect(await form.findByRole("alert")).toHaveTextContent("Could not edit the Post");
-    expect(input(form, "Title").value).toBe(`${DRAFT.title}!`);
-    expect(guard.hasDraft()).toBe(true);
-  });
-
-  it("a Save that ends after its edit unmounts does not close the next edit (PR #216 review)", async () => {
-    let answer!: () => void;
-    const onSave = vi.fn(() => new Promise<void>((resolve) => (answer = resolve)));
-    // The owner unmounts the edit when it closes, as FeaturedPost does, and
-    // when the Post shown changes.
-    const [open, setOpen] = createSignal(true);
-    const onClose = vi.fn(() => setOpen(false));
-    render(() => (
-      <DraftGuardContext.Provider value={createDraftGuard()}>
-        <Show when={open()}>
-          <PostDialog api={api} post={CREATED} onSave={onSave} onClose={onClose} />
-        </Show>
-      </DraftGuardContext.Provider>
-    ));
-    const user = userEvent.setup();
-    const first = within(screen.getByRole("dialog"));
-    await user.type(input(first, "Title"), "!");
-    await user.click(first.getByRole("button", { name: "Save" }));
-
-    // The Post shown changes while the Save waits; the User opens a new edit.
-    setOpen(false);
-    setOpen(true);
-
-    answer();
-    await new Promise((r) => setTimeout(r, 0));
-    expect(onClose, "the old Save does not close the new edit").not.toHaveBeenCalled();
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("shows the photo URL, disabled, with the hint", () => {
@@ -425,49 +381,14 @@ describe("<PostDialog /> — the New Post Draft (#214)", () => {
   it("the Draft has no scope: a move that names scopes does not ask", async () => {
     const { user, form, guard } = renderCreate();
     await user.type(form.getByLabelText("Title"), "typed");
-    expect(guard.hasDraftIn([Symbol("post-edit")])).toBe(false);
+    expect(guard.hasDraftIn(createDraftScope("post-edit"))).toBe(false);
     expect(guard.hasDraftIn()).toBe(true);
   });
 
-  it("Cancel and Escape with a Draft ask; Keep editing keeps the text, and Discard closes", async () => {
-    const { user, dialog, form, guard, onClose } = renderCreate();
-    await user.type(form.getByLabelText("Title"), "typed");
-
-    await user.click(form.getByRole("button", { name: "Cancel" }));
-    expect(guard.pending()).toBe(true);
-    guard.cancelMove();
-    expect(form.getByLabelText("Title")).toHaveValue("typed");
-
-    dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
-    expect(guard.pending()).toBe(true);
-    guard.confirmMove();
-    expect(onClose).toHaveBeenCalledOnce();
-    expect(guard.hasDraft()).toBe(false);
-  });
-
-  it("without a Draft, Cancel and Escape close at once", async () => {
-    const { user, dialog, form, guard, onClose } = renderCreate();
-    await user.click(form.getByRole("button", { name: "Cancel" }));
-    dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
-    expect(guard.pending()).toBe(false);
-    expect(onClose).toHaveBeenCalledTimes(2);
-  });
-
-  it("a browser close with a Draft opens the dialog again and asks", async () => {
-    const { user, dialog, form, guard, onClose } = renderCreate();
-    await user.type(form.getByLabelText("Title"), "typed");
-    dialog.close();
-    expect(dialog.open).toBe(true);
-    expect(guard.pending()).toBe(true);
-    guard.cancelMove();
-    expect(onClose).not.toHaveBeenCalled();
-    expect(form.getByLabelText("Title")).toHaveValue("typed");
-  });
-
-  it("during the create, a browser close opens the dialog again with no question, and the write is busy", async () => {
+  it("during the create, the write is busy; a created Post is no Draft", async () => {
     let land!: (post: PostView) => void;
     postCreateMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
-    const { user, dialog, form, guard, onClose } = renderCreate();
+    const { user, form, guard, onClose } = renderCreate();
     for (const [label, value] of [
       ["Title", DRAFT.title],
       ["Image URL", DRAFT.imageSrc],
@@ -482,26 +403,9 @@ describe("<PostDialog /> — the New Post Draft (#214)", () => {
     await user.click(form.getByRole("button", { name: "Post" }));
     expect(guard.busyIn()).toBe(true);
 
-    dialog.close();
-    expect(dialog.open).toBe(true);
-    expect(guard.pending()).toBe(false);
-
     land(CREATED);
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
     expect(guard.hasDraft(), "a created Post is no Draft").toBe(false);
     expect(guard.notice()).toBeUndefined();
-  });
-
-  it("stops its Escape, so a document Escape listener does not get it", async () => {
-    const onDocumentKey = vi.fn();
-    document.addEventListener("keydown", onDocumentKey);
-    try {
-      const { user, form } = renderCreate();
-      await user.click(form.getByLabelText("Title"));
-      await user.keyboard("{Escape}");
-      expect(onDocumentKey).not.toHaveBeenCalledWith(expect.objectContaining({ key: "Escape" }));
-    } finally {
-      document.removeEventListener("keydown", onDocumentKey);
-    }
   });
 });

@@ -6,18 +6,14 @@ import {
   createUniqueId,
   For,
   on,
-  onCleanup,
-  onMount,
   Show,
 } from "solid-js";
 import { createStore } from "solid-js/store";
-import type { DraftScope } from "~/lib/createDraftGuard";
-import { createRpcAction } from "~/lib/createRpcAction";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
-import { stopDialogEscape } from "~/lib/stopDialogEscape";
 import type { HygieneCaps } from "~/types/backend";
 import type { PostChanges, PostDraft, PostView } from "~/types/jedi";
-import { useDraft } from "~/components/DraftGuardContext";
+import { useDraftForm } from "~/components/DraftGuardContext";
+import ModalDialog from "~/components/ModalDialog";
 
 // The draft's text fields, in form order. Each `maxLength` mirrors the back-end
 // cap (`PostBmc::hygiene_rules`) and pins to it with `satisfies`, so a changed
@@ -72,7 +68,7 @@ const MODE_TEXT = {
     heading: "New Post",
     submit: "Post",
     pending: "Posting…",
-    error: "Could not create the Post",
+    error: "Could not add the Post",
   },
   edit: {
     heading: "Edit Post",
@@ -123,32 +119,37 @@ export interface PostDialogProps {
   /** Called on Cancel, and after a create or a save: the owner unmounts the
    *  dialog. */
   onClose?: () => void;
-  /** Edit mode: the scope of the edit's Draft (ADR-0030). */
-  draftScope?: DraftScope;
+  /** Create mode: called once the create commits, before the close (#283).
+   *  A failed create and a Cancel do not call it. */
+  onCreated?: () => void;
 }
 
 /**
  * The one Post dialog: the create overlay (#120) and the Post edit (#187). It
- * is a modal `<dialog>` form that opens on mount: its owner mounts it to open
+ * is a `ModalDialog` form that opens on mount: its owner mounts it to open
  * it, and unmounts it to close it (#214).
  *
  * The create mode is the New Post dialog, which `NewPostProvider` owns. The
  * submit never reloads the page; the dialog stays open until the back-end has
- * committed the Post, then closes. The new Post reaches the feed through the
- * `posts` poke the back-end fires on commit, not through this form. It holds a
- * Draft while a text field is not blank after a trim, or a Category is
- * checked. The Draft has no scope, so only the logoff and a route move ask
- * about it (#214).
+ * committed the Post, then calls `onCreated` and closes. The owner's listener
+ * refetches the Posts at once, so the new Post does not wait for the `posts`
+ * poke (#283). It holds a Draft while a text field is not blank after a trim,
+ * or a Category is checked. The Draft has no scope, so only the logoff and a
+ * route move ask about it (#214).
  *
  * The edit mode fills every field from the Post, with its Categories checked.
  * The photo URL shows, disabled: Save never sends it. The edit holds a Draft
  * while a field differs from the saved Post, and Save stays disabled until
  * then. Save sends only the changed fields; the Categories count as one field.
  * A remote edit of the Post shows in each field that the User did not change.
+ * The edit reports its Draft in the Post scope, which the Post card provides
+ * (#271).
  *
  * In both modes, Cancel, Escape and a browser close are one Cancel: with a
  * Draft, it asks first, and a browser close opens the dialog again to ask.
- * While the write is in flight, none of them closes the dialog (#214).
+ * While the write is in flight, none of them closes the dialog (#214). The
+ * dialog builds on `ModalDialog` (#278), which owns the open, Escape, the
+ * browser close and Tab, and on `useDraftForm` (#270) for the write.
  */
 export default function PostDialog(props: PostDialogProps) {
   const api = props.api ?? jediApi;
@@ -159,7 +160,6 @@ export default function PostDialog(props: PostDialogProps) {
   const uid = createUniqueId();
   const headingId = `${uid}-heading`;
   const photoHintId = `${uid}-photo-hint`;
-  let dialogRef: HTMLDialogElement | undefined;
 
   // The saved Post's values (edit mode); undefined in create mode.
   const saved = createMemo(() => (props.post ? draftOf(props.post) : undefined));
@@ -203,34 +203,35 @@ export default function PostDialog(props: PostDialogProps) {
   // Each open loads the taxonomy: the dialog mounts to open.
   const [categories, { refetch: refetchCategories }] = createResource(() => api.categories.list());
   const [categoryError, setCategoryError] = createSignal<string | null>(null);
-  const create = createRpcAction((post: PostDraft) => api.posts.create(post), {
-    fallbackError: MODE_TEXT.create.error,
+  // The write of each mode. An edit sends only the changed fields.
+  const write = editing
+    ? async () => {
+        await props.onSave?.(changes());
+      }
+    : async () => {
+        await api.posts.create({
+          title: values.title,
+          imageSrc: values.imageSrc,
+          imageAlt: values.imageAlt,
+          photographer: values.photographer,
+          photographerUrl: values.photographerUrl,
+          sourceUrl: values.sourceUrl,
+          categoryIds: [...values.categoryIds],
+        });
+        props.onCreated?.();
+      };
+  // The owner unmounts the dialog to close it: on a Cancel, and after a saved
+  // write. A write that ends after a browser close unmounted the edit does not
+  // close the next dialog (PR #216 review).
+  const closeDialog = () => props.onClose?.();
+  const form = useDraftForm({
+    dirty,
+    // An accessor: the hook reads the step at each Cancel (`close`).
+    close: () => closeDialog,
+    write,
+    fallbackError: text.error,
+    onSaved: closeDialog,
   });
-  const save = createRpcAction(
-    async (edit: PostChanges) => {
-      await props.onSave?.(edit);
-      return true;
-    },
-    { fallbackError: MODE_TEXT.edit.error },
-  );
-  const pending = () => create.pending() || save.pending();
-  const draft = useDraft({ dirty, scope: props.draftScope, busy: pending });
-
-  onMount(() => dialogRef?.showModal());
-
-  // A write can outlive its dialog: a browser close unmounts the edit while the
-  // Save waits. A stale result must not close the next dialog (PR #216
-  // review). The Post itself is still saved.
-  let unmounted = false;
-  onCleanup(() => (unmounted = true));
-
-  // A saved write drops the Draft: the close then shows no notice.
-  const close = () => {
-    draft.clear();
-    props.onClose?.();
-  };
-  // The Cancel asks first while the dialog holds a Draft (#214).
-  const cancel = () => draft.cancel(() => props.onClose?.());
 
   const toggleCategory = (id: number, checked: boolean) =>
     setValues("categoryIds", (ids) => (checked ? [...ids, id] : ids.filter((c) => c !== id)));
@@ -243,47 +244,21 @@ export default function PostDialog(props: PostDialogProps) {
       return;
     }
     setCategoryError(null);
-    if (editing) {
-      if ((await save.run(changes())) && !unmounted) close();
-      return;
-    }
-    const created = await create.run({
-      title: values.title,
-      imageSrc: values.imageSrc,
-      imageAlt: values.imageAlt,
-      photographer: values.photographer,
-      photographerUrl: values.photographerUrl,
-      sourceUrl: values.sourceUrl,
-      categoryIds: [...values.categoryIds],
-    });
-    if (created && !unmounted) close();
+    await form.submit();
   };
 
-  const error = () => categoryError() ?? create.error() ?? save.error();
+  const error = () => categoryError() ?? form.error();
 
   return (
-    <dialog
-      ref={(el) => (dialogRef = el)}
-      // Esc fires `cancel`: refuse it while the write is in flight, so the
-      // result (the close, or the rejection) stays visible. The owner closes
-      // the dialog, so an Esc is its Cancel.
-      onCancel={(e) => {
-        e.preventDefault();
-        if (!pending()) cancel();
-      }}
-      // A browser can still close it (Chrome closes on a second Escape). The
-      // owner must hear it, or its state stays open with no dialog. While the
-      // write is in flight, it opens again, as Esc is refused, so a failed
-      // write keeps the text and shows its error (PR #216 review). Otherwise
-      // it is the Cancel: with a Draft, it opens again to ask (#214).
-      onClose={() => {
-        if (pending()) return dialogRef?.showModal();
-        if (dirty()) dialogRef?.showModal();
-        cancel();
-      }}
-      on:keydown={stopDialogEscape}
-      aria-labelledby={headingId}
-      class="theme-dialog max-w-md"
+    // The Cancel asks first with a Draft, so a browser close opens the dialog
+    // again before it. While the write is in flight, the dialog is busy: a
+    // failed write keeps the text and shows its error (PR #216 review).
+    <ModalDialog
+      onCancel={form.cancel}
+      busy={form.pending()}
+      reopen={dirty()}
+      labelledBy={headingId}
+      class="max-w-md"
     >
       <form onSubmit={handleSubmit} class="space-y-4">
         <h2 id={headingId} class="text-xl font-bold">
@@ -367,21 +342,21 @@ export default function PostDialog(props: PostDialogProps) {
         <div class="flex justify-end gap-2">
           <button
             type="button"
-            disabled={pending()}
-            onClick={cancel}
+            disabled={form.pending()}
+            onClick={form.cancel}
             class="theme-button disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             type="submit"
-            disabled={pending() || (editing && !dirty())}
+            disabled={form.pending() || (editing && !dirty())}
             class="theme-button-primary disabled:opacity-50"
           >
-            {pending() ? text.pending : text.submit}
+            {form.pending() ? text.pending : text.submit}
           </button>
         </div>
       </form>
-    </dialog>
+    </ModalDialog>
   );
 }

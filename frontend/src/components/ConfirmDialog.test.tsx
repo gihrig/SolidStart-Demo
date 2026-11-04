@@ -87,18 +87,6 @@ describe("<ConfirmDialog />", () => {
     expect(shown()).toBeNull();
   });
 
-  it("a close by the browser itself reports a cancel", () => {
-    const { setOpen, onCancel } = renderConfirm();
-    setOpen(true);
-    dialog().close();
-    expect(onCancel).toHaveBeenCalledOnce();
-
-    // A close by the owner reports nothing.
-    setOpen(true);
-    setOpen(false);
-    expect(onCancel).toHaveBeenCalledOnce();
-  });
-
   it("without a cancelLabel, shows one OK button and works as a notice", () => {
     const onConfirm = vi.fn();
     render(() => (
@@ -115,18 +103,5 @@ describe("<ConfirmDialog />", () => {
 
     fireEvent(dialog(), new Event("cancel", { cancelable: true }));
     expect(onConfirm, "Escape means OK").toHaveBeenCalledOnce();
-  });
-
-  it("stops its Escape, so a document Escape listener does not get it (#214)", () => {
-    const onDocumentKey = vi.fn();
-    document.addEventListener("keydown", onDocumentKey);
-    try {
-      const { setOpen } = renderConfirm();
-      setOpen(true);
-      fireEvent.keyDown(screen.getByRole("button", { name: "Keep editing" }), { key: "Escape" });
-      expect(onDocumentKey).not.toHaveBeenCalled();
-    } finally {
-      document.removeEventListener("keydown", onDocumentKey);
-    }
   });
 });

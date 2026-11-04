@@ -2,7 +2,13 @@ import { createSignal, onCleanup, onMount } from "solid-js";
 import { createFeed, type Feed, type FeedTransport } from "~/lib/feed";
 import type { WsEvent } from "~/types/backend";
 
-const WS_URL = "ws://localhost:8080/ws";
+/**
+ * The socket URL on the page's own origin: the HTTPS edge routes `/ws` to the
+ * back-end (ADR-0034). An `https:` page must dial `wss:`.
+ */
+export function webSocketUrl(page: Pick<Location, "protocol" | "host">): string {
+  return `${page.protocol === "https:" ? "wss:" : "ws:"}//${page.host}/ws`;
+}
 
 // Reconnect back-off. The socket only exists inside the authenticated app (the
 // `<Show when={isAuthenticated()}>` in the Jedi route), so a logged-out client
@@ -38,7 +44,7 @@ const webSocketTransport: FeedTransport = (sink) => {
   const connect = () => {
     intentionalClose = false;
     try {
-      ws = new WebSocket(WS_URL);
+      ws = new WebSocket(webSocketUrl(location));
 
       ws.onopen = () => {
         // A successful connection resets the back-off.

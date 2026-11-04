@@ -1,14 +1,22 @@
-import { createComputed, createResource, createSignal, on, type Accessor } from "solid-js";
+import {
+  createComputed,
+  createResource,
+  createSignal,
+  on,
+  onCleanup,
+  type Accessor,
+} from "solid-js";
+import { selectedChannel, type Channel } from "~/lib/channel";
+import type { Feed } from "~/lib/feed";
 import type { Like } from "~/types/jedi";
 
 /** The inputs of one Like state: the target shown, and its two back-end calls. */
 export interface LikeStateDeps {
   /** The id of the Like target shown (a Post or a Caption); undefined for none. */
   selectedId: Accessor<number | undefined>;
-  /** True while a live session is connected. The read needs a login, so the
-   *  state loads only while live. When it turns false (logout), the wanted
-   *  states drop, so a queued send never goes out with the next User's cookie. */
-  live: Accessor<boolean>;
+  /** The Channel of a target's Like count: `Channel.postLike` or
+   *  `Channel.captionLike`. */
+  channel: (id: number) => Channel;
   getLike: (id: number) => Promise<Like>;
   toggleLike: (id: number, liked: boolean) => Promise<Like>;
 }
@@ -23,17 +31,33 @@ export interface LikeState {
    *  a toggle runs counts too. A no-op without a like state. Rejects, and rolls
    *  the Like back, when the back-end fails. */
   toggle: () => Promise<void>;
-  /** Reread the selected target's like state (a poke, or a socket reconnect). */
-  refetch: () => void;
 }
 
 /**
  * The Like state of one Like target kind (#122, #123): the server read, the
  * wanted-state overlay, the send loop, and the race fix. `createJediFeed` makes
- * one for the Post and one for the Caption, and keeps the Feed wiring.
+ * one for the Post and one for the Caption.
+ *
+ * It returns the public state, `state`, and `connectFeed`, which holds the
+ * Subscription on the Channel of the target shown (ADR-0028). A poke and the
+ * resync call after a (re)connect each reread the like state. With no Feed, as
+ * on the anonymous landing page, the state stays empty: the read needs a login.
  */
-export function createLikeState(deps: LikeStateDeps): LikeState {
-  const { selectedId, live, getLike, toggleLike } = deps;
+export function createLikeState(deps: LikeStateDeps): {
+  state: LikeState;
+  /** Hold the Subscription on the Feed (#120): the Channel of the target
+   *  shown. A connected Feed means a logged-in User, so the read loads now.
+   *  The caller's scope (logout) releases the Subscription and drops the
+   *  wanted Likes. */
+  connectFeed: (feed: Feed) => void;
+} {
+  const { selectedId, channel, getLike, toggleLike } = deps;
+
+  // True while a Feed is connected (`connectFeed`): a logged-in User. The read
+  // needs a login, so the state loads only while live. When it turns false
+  // (logout), the wanted states drop, so a queued send never goes out with the
+  // next User's cookie (#122 review).
+  const [live, setLive] = createSignal(false);
 
   // The server read re-keys with the selected target, and only while live.
   const [serverRead, { refetch, mutate: setServerRead }] = createResource(
@@ -114,5 +138,13 @@ export function createLikeState(deps: LikeStateDeps): LikeState {
     return sending;
   };
 
-  return { like, toggle, refetch: () => void refetch() };
+  // Only the held Channel reaches the handler (ADR-0028). A poke and the
+  // resync call after a (re)connect each reread the target shown.
+  const connectFeed = (feed: Feed): void => {
+    setLive(true);
+    onCleanup(() => setLive(false));
+    feed.subscribe(selectedChannel(selectedId, channel), () => void refetch());
+  };
+
+  return { state: { like, toggle }, connectFeed };
 }

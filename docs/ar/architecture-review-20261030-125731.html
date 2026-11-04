@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — Jedi front-end</title>
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose", flowchart: { curve: "basis" } });
+    </script>
+    <style>
+      .seam { border-top: 2px dashed #64748b; }
+      .deep { background: linear-gradient(135deg, #1e1b4b, #0f172a); }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .card-shadow { box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 18px 44px -24px rgba(0,0,0,.8); }
+      .ev code { display: block; white-space: pre-wrap; word-break: break-word; }
+      .cell { border-radius: 4px; padding: 3px 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .copy { background: rgba(239,68,68,.10); border: 1px solid rgba(239,68,68,.40); color: #fecaca; }
+      .variant { background: rgba(245,158,11,.08); border: 1px dashed rgba(245,158,11,.55); color: #fde68a; }
+      .gap { background: rgba(239,68,68,.04); border: 1px dashed #f87171; color: #f87171; }
+      .rowhead { color: #cbd5e1; padding: 3px 0; }
+      .colhead { text-transform: uppercase; letter-spacing: .06em; color: #64748b; font-size: 10px; padding-bottom: 2px; }
+      .band { position: absolute; left: 0; right: 0; }
+      .mermaid { background: transparent; }
+      .grid > * { min-width: 0; overflow-wrap: anywhere; }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-100 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-12">
+
+      <!-- ============ HEADER ============ -->
+      <header class="space-y-5">
+        <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <h1 class="font-serif text-4xl tracking-tight">Architecture review</h1>
+          <span class="mono text-lg text-slate-500">the Jedi front-end · C-24 to C-29</span>
+        </div>
+        <p class="text-slate-400 max-w-3xl">
+          SolidStart Demo · branch <span class="mono text-slate-300">#220-small-ui-improvements</span> ·
+          after <span class="mono text-slate-300">fab52a4</span> (#251) · 2026-10-30.
+          The ids continue after C-23 (#191).
+          The back-end is out of scope: its <span class="mono text-slate-300">app.rs</span> churn is the test module.
+        </p>
+
+        <!-- hot spots -->
+        <div class="flex flex-wrap gap-2 text-xs mono">
+          <span class="text-slate-500 uppercase tracking-wider self-center mr-1">changes in the last 250 commits</span>
+          <span class="px-2 py-1 rounded bg-red-500/10 border border-red-500/30 text-red-200">createJediFeed.ts 34</span>
+          <span class="px-2 py-1 rounded bg-red-500/10 border border-red-500/30 text-red-200">FeaturedPost.tsx 33</span>
+          <span class="px-2 py-1 rounded bg-red-500/10 border border-red-500/30 text-red-200">CommentThread.tsx 28</span>
+          <span class="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300">jedi-api.ts 19</span>
+          <span class="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300">Nav.tsx 17</span>
+          <span class="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300">PostDialog.tsx 11</span>
+          <span class="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300">createDraftGuard.ts 10</span>
+        </div>
+
+        <!-- legend -->
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs uppercase tracking-wider text-slate-500 border-t border-b border-slate-800 py-3">
+          <span class="flex items-center gap-2"><span class="inline-block w-4 h-4 border border-slate-500 bg-slate-800"></span> module</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-6 seam"></span> seam</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-4 h-4 copy"></span> copy / leak</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-4 h-4 variant"></span> drifted copy</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-4 h-4 deep border-2 border-indigo-400/60"></span> deep module</span>
+        </div>
+      </header>
+
+      <section id="candidates" class="space-y-10">
+
+        <!-- ============ C-24 ============ -->
+        <article id="c24" class="bg-slate-900 rounded-2xl border border-slate-800 card-shadow p-5 sm:p-7 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-serif text-2xl text-slate-100">C-24 · Deepen the <span class="italic text-indigo-300">Draft form</span></h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Strong</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500 break-words">
+            components/CaptionForm.tsx · components/CommentThread.tsx · components/PostDialog.tsx ·
+            components/DraftGuardContext.tsx (useDraft) · lib/stopDialogEscape.ts · lib/isImeKey.ts
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- before: rule x form matrix -->
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — six ADR-0030 rules, written into each form</p>
+              <div class="grid grid-cols-[5.5rem_repeat(3,minmax(0,1fr))] sm:grid-cols-[7.2rem_repeat(3,minmax(0,1fr))] gap-1 text-[11px]">
+                <div></div>
+                <div class="colhead">Caption&shy;Form</div><div class="colhead">Comment&shy;Thread</div><div class="colhead">Post&shy;Dialog</div>
+
+                <div class="rowhead">Draft + busy report</div>
+                <div class="cell copy">:107</div><div class="cell copy">:212</div><div class="cell copy">:219</div>
+
+                <div class="rowhead">Cancel asks first</div>
+                <div class="cell copy">:119</div><div class="cell copy">:238</div><div class="cell copy">:235</div>
+
+                <div class="rowhead">Escape is a Cancel</div>
+                <div class="cell copy">:124 keydown</div><div class="cell copy">:269 keydown</div><div class="cell variant">:272 cancel event</div>
+
+                <div class="rowhead">IME Escape: no Cancel</div>
+                <div class="cell copy">:127</div><div class="cell copy">:271</div><div class="cell variant">stopDialog­Escape:10</div>
+
+                <div class="rowhead">Stale-result guard</div>
+                <div class="cell copy">:115</div><div class="cell variant">:186 load counter</div><div class="cell copy">:226</div>
+
+                <div class="rowhead">Remote-edit merge</div>
+                <div class="cell copy">:86</div><div class="cell copy">:188</div><div class="cell copy">:175</div>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-3">under them: <span class="mono text-slate-400">useDraft</span> — 2 members (<span class="mono">clear</span>, <span class="mono">cancel</span>)</p>
+            </div>
+
+            <!-- after: forms on one deep module -->
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4 flex flex-col">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — forms keep fields and write; one module owns the rules</p>
+              <div class="grid grid-cols-4 gap-2 text-[11px]">
+                <div class="border border-slate-600 rounded-md bg-slate-800/60 px-2 py-2 text-center text-slate-300">CaptionForm<br><span class="text-slate-500">fields + write</span></div>
+                <div class="border border-slate-600 rounded-md bg-slate-800/60 px-2 py-2 text-center text-slate-300">Comment&shy;Thread<br><span class="text-slate-500">fields + write</span></div>
+                <div class="border border-slate-600 rounded-md bg-slate-800/60 px-2 py-2 text-center text-slate-300">PostDialog<br><span class="text-slate-500">fields + write</span></div>
+                <div class="border border-dashed border-emerald-500/50 rounded-md px-2 py-2 text-center text-emerald-300/90">next form<br><span class="mono text-emerald-400/70">e.g. #181</span></div>
+              </div>
+              <div class="seam my-3"></div>
+              <div class="deep border-2 border-indigo-400/60 rounded-lg p-4 flex-1">
+                <p class="text-xs uppercase tracking-wider text-slate-100">Draft form</p>
+                <div class="grid grid-cols-2 gap-1.5 mt-3 text-[11px] text-indigo-200/50">
+                  <span class="border border-indigo-400/20 rounded px-2 py-1">Draft + busy report</span>
+                  <span class="border border-indigo-400/20 rounded px-2 py-1">Cancel asks first</span>
+                  <span class="border border-indigo-400/20 rounded px-2 py-1">Escape is a Cancel</span>
+                  <span class="border border-indigo-400/20 rounded px-2 py-1">IME Escape: no Cancel</span>
+                  <span class="border border-indigo-400/20 rounded px-2 py-1">stale-result guard</span>
+                  <span class="border border-indigo-400/20 rounded px-2 py-1">remote-edit merge</span>
+                </div>
+                <p class="mono text-[10px] text-indigo-300/70 mt-3">→ the Draft guard (createDraftGuard), unchanged</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</p>
+              <p class="text-slate-300"><span class="mono text-slate-400">useDraft</span> is shallow: it reports the Draft, and each form adds the other five rules by hand. #251 changed four key handlers and four test files for one IME rule.</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</p>
+              <p class="text-slate-300">One Draft-form module owns the six rules. Each form keeps only its fields and its write.</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+              <li><b class="text-slate-100">locality</b>: one rule, one edit</li>
+              <li><b class="text-slate-100">leverage</b>: each new form inherits six rules</li>
+              <li>one test suite at the interface</li>
+              <li><span class="mono">useDraft</span> folds into the module</li>
+            </ul>
+            <p class="text-xs text-slate-500 mt-3">Tests: 57 of 121 tests in the three form suites name Escape, Cancel, busy, Draft, pending, close or IME (30 + 12 + 15, by a test-name grep). They move to one suite. Each form keeps its field tests.</p>
+            <p class="text-xs text-slate-500 mt-1">Keep two variants: the empty compose box closes the Comments panel (#210). A form without a Cancel ignores Escape.</p>
+          </div>
+
+          <div class="ev">
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Evidence</p>
+            <ul class="space-y-2 text-xs">
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">const draft = useDraft({ dirty, scope: props.draftScope, busy: pending });</code><span class="text-slate-500">CaptionForm.tsx:107 and PostDialog.tsx:219 — the same line twice</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">let unmounted = false;
+onCleanup(() =&gt; (unmounted = true));</code><span class="text-slate-500">CaptionForm.tsx:115–116 and PostDialog.tsx:226–227</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">const cancel = () =&gt; draft.cancel(() =&gt; props.onCancel?.());</code><span class="text-slate-500">CaptionForm.tsx:119 · PostDialog.tsx:235 has the same line with <span class="mono">props.onClose</span></span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">const handleKeyDown = (e: KeyboardEvent) =&gt; {
+  if (e.key !== "Escape") return;
+  e.stopPropagation();
+  if (isImeKey(e) || !props.onCancel || pending()) return;
+  e.preventDefault();
+  cancel();
+};</code><span class="text-slate-500">CaptionForm.tsx:124–130</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">if (e.key !== "Escape") return;
+e.stopPropagation();
+if (isImeKey(e) || write.pending()) return;
+const act = composeEmpty() ? props.onClosePanel : handleCancel;
+if (!act) return;
+e.preventDefault();
+act();</code><span class="text-slate-500">CommentThread.tsx:269–275 — the same rule, written again</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">if (prev !== undefined &amp;&amp; value() === prev) setValue(next);</code><span class="text-slate-500">CaptionForm.tsx:87 · also CommentThread.tsx:188 <span class="mono">if (value() === (saved() ?? "")) setValue(next);</span> · PostDialog.tsx:178 per field</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">fab52a4 fix(#251): treat Safari's keyCode 229 key as an IME key in four handlers</code><span class="text-slate-500">git show --stat: CaptionForm.tsx, CommentThread.tsx, keepDialogFocus.ts, stopDialogEscape.ts, and four test files</span></li>
+            </ul>
+          </div>
+
+          <div class="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4 text-sm text-amber-200">
+            <b>ADR-0030:</b> fits it. Its Consequences say: “A new Cancel calls <span class="mono">draft.cancel</span>, and a new write reports <span class="mono">busy</span>.” (lines 222–223). The module takes over that duty. This is an addendum, not a reversal.
+          </div>
+        </article>
+
+        <!-- ============ C-25 ============ -->
+        <article id="c25" class="bg-slate-900 rounded-2xl border border-slate-800 card-shadow p-5 sm:p-7 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-serif text-2xl text-slate-100">C-25 · Give the <span class="italic text-indigo-300">Post hold</span> its own module</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Strong</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500 break-words">
+            lib/jedi/createJediFeed.ts (702 lines; hold code at 186–206, 242–251, 317–341, 508–592) ·
+            lib/jedi/createJediFeed.unit.test.ts (1994 lines, 106 tests, 16 describe blocks)
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- before: file map -->
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — the hold is spread through the route's view-model</p>
+              <div class="flex gap-3 items-start">
+                <div class="flex flex-col items-center gap-1">
+                  <div class="w-10 border border-dashed border-slate-600 rounded-sm" style="height:100px"></div>
+                  <p class="mono text-[10px] text-slate-500 text-center leading-tight">#191<br>250 lines<br>16 members</p>
+                </div>
+                <div class="relative w-14 border border-slate-500 bg-slate-800/60 rounded-sm" style="height:280px">
+                  <div class="band bg-slate-500/40" style="top:47px;height:26px"></div>
+                  <div class="band bg-red-500/60" style="top:74px;height:8px"></div>
+                  <div class="band bg-red-500/60" style="top:97px;height:4px"></div>
+                  <div class="band bg-red-500/60" style="top:126px;height:10px"></div>
+                  <div class="band bg-red-500/60" style="top:203px;height:34px"></div>
+                  <div class="band bg-slate-500/40" style="top:259px;height:6px"></div>
+                </div>
+                <div class="relative flex-1 text-[10.5px]" style="height:280px">
+                  <span class="absolute text-slate-400" style="top:52px">118–184 · JediFeed interface</span>
+                  <span class="absolute text-red-300" style="top:70px">186–206 · 10 texts + 2 text functions</span>
+                  <span class="absolute text-red-300" style="top:92px">242–251 · edit-open ids, kept Post, own-delete marks</span>
+                  <span class="absolute text-red-300" style="top:124px">317–341 · Post hold, guarded Post change</span>
+                  <span class="absolute text-red-300" style="top:212px">508–592 · change causes, forced discards, Owner deletes</span>
+                  <span class="absolute text-slate-400" style="top:256px">650–664 · Feed wiring</span>
+                </div>
+              </div>
+              <p class="mono text-[10px] text-slate-500 mt-2">createJediFeed.ts today · 702 lines · 22 members</p>
+            </div>
+
+            <!-- after -->
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4 flex flex-col gap-3">
+              <p class="text-xs uppercase tracking-wider text-slate-500">After — createJediFeed composes; the hold is one module</p>
+              <div class="border border-slate-600 rounded-md bg-slate-800/60 px-3 py-2 text-center">
+                <p class="mono text-xs text-slate-300">createJediFeed · Post list, filter, Top Captions, composition</p>
+              </div>
+              <div class="seam"></div>
+              <div class="grid grid-cols-3 gap-2 flex-1">
+                <div class="col-span-2 deep border-2 border-indigo-400/60 rounded-lg p-3">
+                  <p class="text-xs uppercase tracking-wider text-slate-100">Post hold</p>
+                  <div class="flex flex-col gap-1 mt-2 text-[11px] text-indigo-200/50">
+                    <span class="border border-indigo-400/20 rounded px-2 py-0.5">held Post · held Caption · kept Post</span>
+                    <span class="border border-indigo-400/20 rounded px-2 py-0.5">own-delete marks</span>
+                    <span class="border border-indigo-400/20 rounded px-2 py-0.5">change causes: deleted, left the Category</span>
+                    <span class="border border-indigo-400/20 rounded px-2 py-0.5">forced discard or question</span>
+                    <span class="border border-indigo-400/20 rounded px-2 py-0.5">notices + live-region texts</span>
+                  </div>
+                </div>
+                <div class="flex flex-col gap-2 text-[11px]">
+                  <div class="deep border border-indigo-500/40 rounded-md p-2 text-slate-200">createComment­Thread ×2<p class="mono text-[10px] text-indigo-300/70">exists (#124)</p></div>
+                  <div class="deep border border-indigo-500/40 rounded-md p-2 text-slate-200">createLike­State ×2<p class="mono text-[10px] text-indigo-300/70">exists (#123)</p></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</p>
+              <p class="text-slate-300">createJediFeed grew from 250 to 702 lines after #191, and from 16 to 22 interface members. #187 added 258 lines inline. The hold, its causes and its texts now sit in four places in the file.</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</p>
+              <p class="text-slate-300">Move the Post and Caption hold, the change causes, the forced discards and the announcements into one module. createJediFeed composes it, as it composes each Comment thread.</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+              <li><b class="text-slate-100">locality</b>: hold bugs in one module</li>
+              <li>the view-model goes back to composing</li>
+              <li>hold tests cross the hold's interface</li>
+              <li>#176 paging meets one module</li>
+            </ul>
+            <p class="text-xs text-slate-500 mt-3">#176 note: line 508 treats a Post missing from the full list as deleted. Paging changes what the list holds.</p>
+          </div>
+
+          <div class="ev">
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Evidence</p>
+            <ul class="space-y-2 text-xs">
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">const [keptPostId, setKeptPostId] = createSignal&lt;number&gt;();
+// The ids of the Owner's own deletes (#187): their absence from a list is no
+// Event cause, so it shows no notice.
+const ownDeletedPosts = new Set&lt;number&gt;();
+const ownDeletedCaptions = new Set&lt;number&gt;();</code><span class="text-slate-500">createJediFeed.ts:247–251</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">// A held Post that is not in the full list was deleted (#187): a forced</code><span class="text-slate-500">createJediFeed.ts:508</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">const noteChangedPost = (list: PostView[]): void =&gt; {
+  const shown = selectedPost();
+  if (!shown || ownDeletedPosts.has(shown.id)) return;
+  const next = list.find((p) =&gt; p.id === shown.id);
+  if (!next) {
+    if (!guard.discardIn(postScopes, POST_DELETED_NOTICE)) {
+      announce(POST_WAS_DELETED_ANNOUNCEMENT);
+    }</code><span class="text-slate-500">createJediFeed.ts:512–519</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">const POST_DELETED_NOTICE = "This Post was deleted. Your unsaved changes were discarded.";</code><span class="text-slate-500">createJediFeed.ts:188 — first of 10 text constants and 2 text functions (188–206)</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">git show 18ec9a0:frontend/src/lib/jedi/createJediFeed.ts | wc -l   →   250</code><span class="text-slate-500">the file after #191; today 702. #187: 8e97a33 +106 −2, 7f64d08 +183 −29</span></li>
+            </ul>
+          </div>
+
+          <div class="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4 text-sm text-amber-200">
+            <b>Reopens #191 D5</b> (“no split”). Its premise, “That code has not changed since #118”, no longer holds: 21 commits since 2026-10-09. D5 also said “New concerns get their own module from the start”; #187 went inline. D9 recorded no ADR, so a reversal is cheap.
+          </div>
+        </article>
+
+        <!-- ============ C-26 ============ -->
+        <article id="c26" class="bg-slate-900 rounded-2xl border border-slate-800 card-shadow p-5 sm:p-7 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-serif text-2xl text-slate-100">C-26 · Let <span class="italic text-indigo-300">Draft scopes</span> nest under their subject</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Worth exploring</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500 break-words">
+            lib/jedi/createJediFeed.ts:324–341, 409–418, 500–506, 553, 588, 690, 696 · lib/createDraftGuard.ts:168 ·
+            components/DraftGuardContext.tsx:71 · routes/index.tsx:119 · components/FeaturedPost.tsx:395, 449 ·
+            components/PostCaption.tsx:77 · components/CaptionForm.tsx:107
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — hand-kept scope lists; a prop chain carries each scope</p>
+              <pre class="mermaid">
+flowchart TB
+  VM["createJediFeed"]
+  A["postScopes: 5, set late"]
+  B["Caption pick, discard: 2"]
+  C["Caption delete: 1"]
+  G["Draft guard: filter by list"]
+  VM --> A
+  VM --> B
+  VM --> C
+  A --> G
+  B --> G
+  C --> G
+  R["route"] -->|addCaptionScope| FP["FeaturedPost"]
+  FP -->|addScope| PC["PostCaption"]
+  PC -->|draftScope| CF["CaptionForm"]
+  CF -->|"scope? optional"| G
+  FP -. "Delete off while Caption edit open" .-> C
+  classDef leak stroke:#f87171,stroke-width:2px,color:#fecaca
+  class C,FP,CF leak
+              </pre>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — a scope tree; a move names one subject</p>
+              <pre class="mermaid">
+flowchart TB
+  M(["a move names one subject"]) -.-> P
+  P["Post"] --> PE["Post edit"]
+  P --> AC["Add Caption form"]
+  P --> PCm["Post Comments"]
+  P --> C["Caption shown"]
+  C --> CE["Caption edit"]
+  C --> CC["Caption Comments"]
+  classDef deep fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#e0e7ff
+  class P,C deep
+              </pre>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</p>
+              <p class="text-slate-300">The view-model lists scopes by hand: 5 for the Post, 2 for a Caption pick, 1 for a Caption delete. <span class="mono text-slate-400">postScopes</span> is set late, a new ordering trap. A form gets its scope through optional props. A missed prop puts its Draft in no scope, and every scoped move skips it.</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</p>
+              <p class="text-slate-300">Each scope nests under its subject: the Post, then the Caption. A move names one subject, and the guard finds every Draft under it. A form takes its scope from where it mounts.</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+              <li>no hand-kept scope lists</li>
+              <li>no late-set <span class="mono">postScopes</span></li>
+              <li>a missed scope cannot occur</li>
+              <li>26 fake form reports simplify</li>
+            </ul>
+            <p class="text-xs text-red-300/80 mt-3">Leak: the Caption delete releases 1 scope. That is safe only because FeaturedPost disables Delete while the Caption edit is open.</p>
+          </div>
+
+          <div class="ev">
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Evidence</p>
+            <ul class="space-y-2 text-xs">
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">// the Post. They are set below, once the forms' scopes exist; the hold's
+// first run comes before any form, so it reads none.
+let postScopes: readonly DraftScope[] = [];</code><span class="text-slate-500">createJediFeed.ts:326–328 — assigned at :500–506</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">postScopes = [
+  postEdit.draftScope,
+  captionEdit.draftScope,
+  addCaptionScope,
+  postComments.draftScope,
+  captionComments.draftScope,
+];</code><span class="text-slate-500">createJediFeed.ts:500–506</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">[captionEdit.draftScope, captionComments.draftScope],</code><span class="text-slate-500">createJediFeed.ts:416 (Caption pick) · the same pair at :553 (deleted Caption)</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">guard.release([captionComments.draftScope]),</code><span class="text-slate-500">createJediFeed.ts:588 (Owner's Caption delete) · also :696 <span class="mono">removeDiscardsDraft</span></span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">deleteDisabled={deleteCaption.pending() || captionEditOpen()}</code><span class="text-slate-500">FeaturedPost.tsx:449 — the rule that makes the 1-scope release safe</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">.filter(([, s]) =&gt; scopes === undefined || (s !== undefined &amp;&amp; scopes.includes(s)))</code><span class="text-slate-500">createDraftGuard.ts:168 — a Draft with no scope never matches a scoped move · <span class="mono">scope?: DraftScope;</span> is optional (DraftGuardContext.tsx:71)</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">addCaptionScope={addCaptionScope}      → index.tsx:119
+addScope={props.addCaptionScope}       → FeaturedPost.tsx:395
+draftScope={props.addScope}            → PostCaption.tsx:77
+useDraft({ dirty, scope: props.draftScope, busy: pending })  → CaptionForm.tsx:107</code><span class="text-slate-500">the prop chain: four hops</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">grep -c "guard.report(Symbol(" createJediFeed.unit.test.ts   →   26</code><span class="text-slate-500">tests that act as forms to put a Draft in a scope</span></li>
+            </ul>
+          </div>
+
+          <div class="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4 text-sm text-amber-200">
+            <b>ADR-0030 #214 addendum:</b> amends one sentence, “The view-model names them for each Post move and Event” (lines 186–187), and the Consequence “A new form on the Post needs a scope in the Post's list” (line 222). The guard decision stays. Pairs with C-25: the tree is the hold's input.
+          </div>
+        </article>
+
+        <!-- ============ C-27 ============ -->
+        <article id="c27" class="bg-slate-900 rounded-2xl border border-slate-800 card-shadow p-5 sm:p-7 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-serif text-2xl text-slate-100">C-27 · One <span class="italic text-indigo-300">modal dialog</span> module</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Worth exploring</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500 break-words">
+            components/ConfirmDialog.tsx · components/PostDialog.tsx · components/LoginDialog.tsx ·
+            lib/stopDialogEscape.ts · lib/keepDialogFocus.ts
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — each dialog wires the native dialog by hand</p>
+              <div class="grid grid-cols-[5.5rem_repeat(3,minmax(0,1fr))] sm:grid-cols-[7.2rem_repeat(3,minmax(0,1fr))] gap-1 text-[11px]">
+                <div></div>
+                <div class="colhead">Confirm&shy;Dialog</div><div class="colhead">Post&shy;Dialog</div><div class="colhead">Login&shy;Dialog</div>
+
+                <div class="rowhead">Open</div>
+                <div class="cell copy">:43 showModal</div><div class="cell copy">:221 onMount</div><div class="cell variant">:29 effect on open</div>
+
+                <div class="rowhead">Escape = Cancel, not while busy</div>
+                <div class="cell copy">:58</div><div class="cell copy">:272</div><div class="cell copy">:40</div>
+
+                <div class="rowhead">Browser close</div>
+                <div class="cell copy">:64 Cancel</div><div class="cell copy">:281 opens again if busy or Draft</div><div class="cell gap">:41 no re-open ?</div>
+
+                <div class="rowhead">Escape stop + Tab trap</div>
+                <div class="cell copy">:66–67</div><div class="cell copy">:287–288</div><div class="cell copy">:43–44</div>
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4 flex flex-col">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — dialogs keep content and write</p>
+              <div class="grid grid-cols-4 gap-2 text-[11px]">
+                <div class="border border-slate-600 rounded-md bg-slate-800/60 px-2 py-2 text-center text-slate-300">Confirm<br><span class="text-slate-500">question</span></div>
+                <div class="border border-slate-600 rounded-md bg-slate-800/60 px-2 py-2 text-center text-slate-300">Post<br><span class="text-slate-500">fields + write</span></div>
+                <div class="border border-slate-600 rounded-md bg-slate-800/60 px-2 py-2 text-center text-slate-300">Login<br><span class="text-slate-500">form + login</span></div>
+                <div class="border border-dashed border-emerald-500/50 rounded-md px-2 py-2 text-center text-emerald-300/90">next<br><span class="mono text-emerald-400/70">dialog</span></div>
+              </div>
+              <div class="seam my-3"></div>
+              <div class="deep border-2 border-indigo-400/60 rounded-lg p-4 flex-1">
+                <p class="text-xs uppercase tracking-wider text-slate-100">Modal dialog</p>
+                <div class="grid grid-cols-2 gap-1.5 mt-3 text-[11px] text-indigo-200/50">
+                  <span class="border border-indigo-400/20 rounded px-2 py-1">open on mount</span>
+                  <span class="border border-indigo-400/20 rounded px-2 py-1">Escape = Cancel unless busy or IME</span>
+                  <span class="border border-indigo-400/20 rounded px-2 py-1">browser close = Cancel; re-open if busy</span>
+                  <span class="border border-indigo-400/20 rounded px-2 py-1">Escape stop + Tab trap</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</p>
+              <p class="text-slate-300">Each dialog connects the open, the <span class="mono text-slate-400">cancel</span> event, the browser close and the key pair by hand. The copies drifted: PostDialog opens again after a browser close during a write. LoginDialog does not.</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</p>
+              <p class="text-slate-300">One modal module owns the open, Escape as a Cancel, the browser close and Tab. Each dialog keeps its content and its write.</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+              <li><b class="text-slate-100">locality</b>: dialog lifecycle in one module</li>
+              <li>drift between dialogs cannot recur</li>
+              <li><span class="mono">stopDialogEscape</span> folds in</li>
+              <li><b class="text-slate-100">leverage</b>: each new dialog inherits it</li>
+            </ul>
+            <p class="text-xs text-slate-500 mt-3">Tests: 24 of 48 dialog tests name Escape, Cancel, busy, Draft, pending, close or IME (6 + 15 + 3, by a test-name grep). Part of PostDialog's 15 overlap C-24.</p>
+            <p class="text-xs text-slate-500 mt-1">Open question, not measured: PostDialog.tsx:276 says Chrome closes a dialog on a second Escape. LoginDialog has no re-open while the login runs. The maintainer decides if this is a bug.</p>
+          </div>
+
+          <div class="ev">
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Evidence</p>
+            <ul class="space-y-2 text-xs">
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">onClose={() =&gt; {
+  if (pending()) return dialogRef?.showModal();
+  if (dirty()) dialogRef?.showModal();
+  cancel();
+}}</code><span class="text-slate-500">PostDialog.tsx:281–285</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">onCancel={(e) =&gt; pending() &amp;&amp; e.preventDefault()}
+onClose={() =&gt; props.onClose()}</code><span class="text-slate-500">LoginDialog.tsx:40–41 — no re-open</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">onClose={() =&gt; !closing &amp;&amp; cancel()}</code><span class="text-slate-500">ConfirmDialog.tsx:64 — a third shape</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">on:keydown={(e) =&gt; {
+  stopDialogEscape(e);
+  keepDialogFocus(e);
+}}</code><span class="text-slate-500">PostDialog.tsx:286–289 · the same pair at ConfirmDialog.tsx:65–67 and LoginDialog.tsx:42–44</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">// A browser can still close it (Chrome closes on a second Escape). The</code><span class="text-slate-500">PostDialog.tsx:276</span></li>
+            </ul>
+          </div>
+
+          <div class="rounded-lg bg-slate-800/60 border border-slate-700 p-4 text-sm text-slate-400">
+            <b class="text-slate-300">ADR:</b> no conflict. ADR-0030 “One dialog component” (line 57) covers <span class="mono">ConfirmDialog</span> only.
+          </div>
+        </article>
+
+        <!-- ============ C-28 ============ -->
+        <article id="c28" class="bg-slate-900 rounded-2xl border border-slate-800 card-shadow p-5 sm:p-7 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-serif text-2xl text-slate-100">C-28 · Each <span class="italic text-indigo-300">Comment thread</span> holds its own Subscription</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Worth exploring</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">ports &amp; adapters</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500 break-words">
+            lib/jedi/createJediFeed.ts:466, 473, 656–663 (connectFeed) · lib/jedi/createCommentThread.ts:102–110, 126–127 ·
+            lib/jedi/createCommentThread.unit.test.ts · lib/feed.ts · lib/feed.websocket.ts · lib/feed.memory.ts
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — the view-model picks the thread's Channel</p>
+              <pre class="mermaid">
+flowchart TB
+  subgraph VM["connectFeed"]
+    S["shownThreadId: postComments.open() ? postId()"]
+  end
+  subgraph T["createCommentThread"]
+    M["shownParentId: open() ? parentId()"]
+    H["onEvent"]
+  end
+  F[("Feed")]
+  S -->|"subscribe post_comment"| F
+  F -->|Event| H
+  S -. "same rule twice" .- M
+  X["thread tests: 23 direct onEvent calls"] -.-> H
+  classDef leak stroke:#f87171,stroke-width:2px,color:#fecaca
+  class S,X leak
+              </pre>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — two adapters justify the seam</p>
+              <pre class="mermaid">
+flowchart LR
+  subgraph T["createCommentThread"]
+    M["shownParentId"]
+    SUB["its Subscription"]
+  end
+  F[("Feed port")]
+  WS["feed.websocket.ts"]
+  MEM["feed.memory.ts"]
+  SUB -->|subscribe| F
+  F --- WS
+  F --- MEM
+  VM["createJediFeed: posts, post_caption, Likes"] -->|subscribe| F
+  X["thread tests"] --> MEM
+  style T fill:#1e1b4b,stroke:#818cf8,stroke-width:2px
+              </pre>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</p>
+              <p class="text-slate-300">The view-model computes each thread's shown parent again, to pick its Channel. The thread computes the same value. The thread tests call the internal <span class="mono text-slate-400">onEvent</span> 23 times, past the Feed seam that production uses.</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</p>
+              <p class="text-slate-300">The thread takes the Feed and subscribes on its own shown parent. <span class="mono text-slate-400">connectFeed</span> keeps only the Channels that the view-model owns.</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+              <li>one shown-parent rule, not two</li>
+              <li>tests cross the real Feed seam</li>
+              <li><span class="mono">onEvent</span> leaves the interface</li>
+              <li><span class="mono">connectFeed</span> shrinks</li>
+            </ul>
+          </div>
+
+          <div class="ev">
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Evidence</p>
+            <ul class="space-y-2 text-xs">
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">// The thread's Subscription is held only while the Comments panel is open.
+const shownThreadId = () =&gt; (postComments.open() ? postId() : undefined);
+feed.subscribe(selectedChannel(shownThreadId, Channel.postComment), onPostCommentEvent);</code><span class="text-slate-500">createJediFeed.ts:656–658 · the Caption thread repeats it at :659–663</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">// The parent whose thread is shown: the parent shown while the panel is open.
+const shownParentId = createMemo(() =&gt; (open() ? parentId() : undefined));</code><span class="text-slate-500">createCommentThread.ts:126–127 — the same rule, inside the thread</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1"> * Only `createJediFeed` holds `onEvent`, for the Subscription on the parent's</code><span class="text-slate-500">createCommentThread.ts:103 · <span class="mono">onEvent: FeedHandler;</span> in the return type (:109)</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">grep -c "onEvent(" createCommentThread.unit.test.ts   →   23</code><span class="text-slate-500">tests that bypass the Feed</span></li>
+            </ul>
+          </div>
+
+          <div class="rounded-lg bg-slate-800/60 border border-slate-700 p-4 text-sm text-slate-400">
+            <b class="text-slate-300">ADR:</b> matches ADR-0028 and CONTEXT.md: “Each view-model holds its own”. #191 D8 fixed only the nested-member shape. The comments at createJediFeed.ts:87 and :92 (“keeps the Feed wiring”) change.
+          </div>
+        </article>
+
+        <!-- ============ C-29 ============ -->
+        <article id="c29" class="bg-slate-900 rounded-2xl border border-slate-800 card-shadow p-5 sm:p-7 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-serif text-2xl text-slate-100">C-29 · One <span class="italic text-indigo-300">write path</span> per subject</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Worth exploring</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">in-process</span>
+            </div>
+          </div>
+
+          <p class="mono text-sm text-slate-500 break-words">
+            components/CaptionForm.tsx:43–45, 63–66, 95–104 · components/PostDialog.tsx:112–117, 208–217 ·
+            lib/jedi/createJediFeed.ts:594–616
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — two write paths and two refetch rules per subject</p>
+              <pre class="mermaid">
+flowchart TB
+  BE[("back-end")]
+  CA["CaptionForm: add"] -->|"own api seam"| BE
+  PD["PostDialog: create"] -->|"own api seam"| BE
+  CE["CaptionForm: edit"] -->|onSave| VM["view-model: updateCaption, updatePost"]
+  PE["PostDialog: edit"] -->|onSave| VM
+  VM --> BE
+  BE -->|"poke: the add waits"| R["refetch"]
+  VM -->|"edit: refetch at once"| R
+  classDef leak stroke:#f87171,stroke-width:2px,color:#fecaca
+  class CA,PD leak
+              </pre>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — one seam to the back-end</p>
+              <pre class="mermaid">
+flowchart LR
+  CF["CaptionForm"] -->|"one write function"| S["subject module: every write, one refetch rule"]
+  PD["PostDialog"] -->|"one write function"| S
+  S --> BE[("back-end")]
+  classDef deep fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#e0e7ff
+  class S deep
+              </pre>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</p>
+              <p class="text-slate-300">A Caption add runs in the form, through its own <span class="mono text-slate-400">api</span> seam, and waits for the poke. A Caption edit runs in the view-model and refetches at once. The Post splits the same way.</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</p>
+              <p class="text-slate-300">The view-model, or the C-25 module, owns every write on a subject. Each form gets one write function.</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Wins</p>
+            <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-slate-300 list-disc pl-5 marker:text-slate-600">
+              <li><b class="text-slate-100">locality</b>: one refetch rule per subject</li>
+              <li>one seam to the back-end</li>
+              <li>forms stop injecting <span class="mono">api</span> slices</li>
+            </ul>
+            <p class="text-xs text-slate-500 mt-3">The two rules behave differently today. The maintainer decides which rule is correct before any move.</p>
+          </div>
+
+          <div class="ev">
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Evidence</p>
+            <ul class="space-y-2 text-xs">
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">api?: { captions: Pick&lt;JediApi["captions"], "add"&gt; };</code><span class="text-slate-500">CaptionForm.tsx:45 · PostDialog.tsx:114–117 injects <span class="mono">categories.list</span> and <span class="mono">posts.create</span></span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">const add = createRpcAction((caption: string) =&gt; api.captions.add(props.postId, caption), {</code><span class="text-slate-500">CaptionForm.tsx:95 · <span class="mono">const create = createRpcAction((post: PostDraft) =&gt; api.posts.create(post), {</span> at PostDialog.tsx:208</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1"> * The new Caption reaches Top Captions through the `post_caption` poke the
+ * back-end fires on commit, not through this form.</code><span class="text-slate-500">CaptionForm.tsx:64–65</span></li>
+              <li><code class="mono text-slate-200 bg-slate-950/60 border border-slate-800 rounded px-2 py-1">// The Owner's own edits (#187). The refetch does not wait for the poke.</code><span class="text-slate-500">createJediFeed.ts:594</span></li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- ============ considered / fine ============ -->
+        <article class="rounded-2xl border border-slate-800 p-5 sm:p-7 space-y-5">
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Considered, not proposed</p>
+            <p class="text-sm text-slate-300">Group FeaturedPost's props into one nested member per subject. <span class="mono text-slate-400">routes/index.tsx:106–120</span> passes 15 props. A regroup hides no behavior: it adds structure, not depth (the false-fix pattern). Look again after C-25, C-26 and C-29.</p>
+          </div>
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Checked and judged fine</p>
+            <ul class="space-y-1.5 text-xs text-slate-400">
+              <li><span class="mono text-slate-300">jedi-api.ts:28</span> <span class="mono">const safe = (url: string): SafeUrl =&gt; sanitizeUrl(url) ?? trustedUrl("");</span> — a real seam: wire mapping and the SafeUrl brand.</li>
+              <li><span class="mono text-slate-300">createLikeState.ts:17–27</span> <span class="mono">like</span>, <span class="mono">toggle</span>, <span class="mono">refetch</span> — three members over 118 lines. Deep.</li>
+              <li><span class="mono text-slate-300">NewPostContext.tsx:18</span> <span class="mono">open: (opener: HTMLElement) =&gt; void;</span> — one member. Deep.</li>
+              <li><span class="mono text-slate-300">createDraftGuard.ts:83</span> <span class="mono">export const passThroughGuard: DraftGuard = {</span> — a second adapter, so the guard seam is real.</li>
+              <li><span class="mono text-slate-300">lib/feed.websocket.ts + lib/feed.memory.ts</span> — two adapters, so the Feed seam is real.</li>
+              <li><span class="mono text-slate-300">isImeKey.ts:6</span> <span class="mono">return e.isComposing || e.keyCode === 229;</span> — the rule is in one place. Its callers are C-24 and C-27.</li>
+              <li><span class="mono text-slate-300">backend app.rs:19</span> <span class="mono">pub fn app(mm: ModelManager, ws_state: Arc&lt;WsState&gt;) -&gt; Router {</span> — lines 49–1654 are the test module (18 tests).</li>
+            </ul>
+          </div>
+        </article>
+      </section>
+
+      <!-- ============ TOP RECOMMENDATION ============ -->
+      <section id="top-recommendation">
+        <div class="rounded-2xl border-2 border-emerald-500/40 bg-emerald-500/5 p-6 sm:p-8 space-y-3">
+          <p class="text-xs uppercase tracking-wider text-emerald-400">Top recommendation</p>
+          <h2 class="font-serif text-3xl text-slate-100"><a href="#c24" class="hover:underline">C-24 · Deepen the Draft form</a></h2>
+          <p class="text-slate-300 max-w-3xl">It is small, in-process and independent of the others. Today each new form must copy six rules (ADR-0030 Consequences). #251 had to fix one rule in four handlers. After C-24, grill C-25 with C-26: the scope tree is the hold's input.</p>
+        </div>
+      </section>
+
+    </main>
+  </body>
+</html>

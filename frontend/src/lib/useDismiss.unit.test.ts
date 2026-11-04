@@ -178,6 +178,122 @@ describe("useDismiss", () => {
     });
   });
 
+  // A boundary of more than one element: a toggle button and its panel that no
+  // one element holds (#248).
+  describe("a list boundary", () => {
+    test("a click in any boundary element keeps it; a click outside all dismisses", () => {
+      const toggle = document.createElement("button");
+      document.body.append(toggle);
+      createRoot((dispose) => {
+        const onDismiss = vi.fn();
+        useDismiss(
+          onDismiss,
+          () => true,
+          () => [toggle, container],
+        );
+        clickOn(toggle);
+        clickOn(container);
+        expect(onDismiss).not.toHaveBeenCalled();
+        clickOn(outside);
+        expect(onDismiss).toHaveBeenCalledOnce();
+        dispose();
+      });
+      toggle.remove();
+    });
+  });
+
+  // A toggle button that swaps its icon on a click removes the click target
+  // before the document listener runs. The click was still inside (#248).
+  test("a click on an element that the click removes from the boundary is inside", () => {
+    const icon = document.createElement("span");
+    container.append(icon);
+    icon.addEventListener("click", () => icon.remove());
+    createRoot((dispose) => {
+      const onDismiss = vi.fn();
+      useDismiss(
+        onDismiss,
+        () => true,
+        () => container,
+      );
+      clickOn(icon);
+      expect(onDismiss).not.toHaveBeenCalled();
+      dispose();
+    });
+  });
+
+  describe("focus out (opt-in)", () => {
+    let insideButton: HTMLButtonElement;
+    let outsideButton: HTMLButtonElement;
+
+    beforeEach(() => {
+      insideButton = document.createElement("button");
+      outsideButton = document.createElement("button");
+      container.append(insideButton);
+      outside.append(outsideButton);
+    });
+
+    test("focus that moves outside the boundary dismisses, with the reason 'focus'", () => {
+      createRoot((dispose) => {
+        const onDismiss = vi.fn();
+        useDismiss(
+          onDismiss,
+          () => true,
+          () => container,
+          { focusOut: true },
+        );
+        insideButton.focus();
+        expect(onDismiss).not.toHaveBeenCalled();
+        outsideButton.focus();
+        expect(onDismiss).toHaveBeenCalledExactlyOnceWith("focus");
+        dispose();
+      });
+    });
+
+    test("is off by default", () => {
+      createRoot((dispose) => {
+        const onDismiss = vi.fn();
+        useDismiss(
+          onDismiss,
+          () => true,
+          () => container,
+        );
+        outsideButton.focus();
+        expect(onDismiss).not.toHaveBeenCalled();
+        dispose();
+      });
+    });
+
+    test("does not fire when inactive", () => {
+      createRoot((dispose) => {
+        const onDismiss = vi.fn();
+        useDismiss(
+          onDismiss,
+          () => false,
+          () => container,
+          { focusOut: true },
+        );
+        outsideButton.focus();
+        expect(onDismiss).not.toHaveBeenCalled();
+        dispose();
+      });
+    });
+  });
+
+  test("passes the reason: 'escape' for Escape, 'click' for a click outside", () => {
+    createRoot((dispose) => {
+      const onDismiss = vi.fn();
+      useDismiss(
+        onDismiss,
+        () => true,
+        () => container,
+      );
+      pressKey("Escape");
+      clickOn(outside);
+      expect(onDismiss.mock.calls).toEqual([["escape"], ["click"]]);
+      dispose();
+    });
+  });
+
   describe("combined behavior", () => {
     test("escape and click-outside both work together", () => {
       createRoot((dispose) => {

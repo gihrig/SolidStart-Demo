@@ -14,7 +14,7 @@ Owner boundary, unenforced on the **push path**.
 
 This ADR records **where realtime authorization lives**. The enforcing slice (for
 `Conv` message events) is specified in
-`backend/docs/ar/c03-realtime-channel-design.md`; this ADR distills the durable
+`docs/ar/c03-realtime-channel-design.md`; this ADR distills the durable
 decision. It is the push-path companion to ADR-0014 (which governs the read/write
 path) and reuses ADR-0014's scope verbatim rather than inventing a second one.
 

@@ -14,7 +14,7 @@ returned a `Result` because any string could miss. Understanding "which scheme, 
 it current?" meant bouncing between two modules.
 
 The architecture review after #163 raised this as card **C-07 — concentrate scheme
-identity** (`backend/docs/ar/architecture-review-20260920-173449.html`, issue #164).
+identity** (`docs/ar/architecture-review-20260920-173449.html`, issue #164).
 This ADR records the deepening: a typed scheme, its identity owned in one place.
 
 ## Decisions

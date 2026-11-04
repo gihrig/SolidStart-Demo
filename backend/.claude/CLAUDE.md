@@ -91,7 +91,5 @@ Workspace crates: `lib-utils`, `lib-rpc-core`, `lib-auth`, `lib-core`, `lib-web`
     them, so a plain `cargo test` writes the same bindings as `cgs bindings`. Do
     not add `#[ts(type = "number")]` to a field, and do not re-type a binding in
     the front-end barrel. If a binding shows `bigint`, check this setting first.
-- **CORS is configured for the front-end** at `http://localhost:3000` with
-  credentials enabled (`crates/services/web-server/src/app.rs`).
 - **`cargo watch` needs installing**: `cargo install cargo-watch` before
   `cgs dev-watch`/`cgs test:watch`.

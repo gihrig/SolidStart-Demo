@@ -12,7 +12,7 @@ front-end filter fix ([ADR-0005](0005-rpc-mutations-via-rpcaction.md) surface,
 
 This ADR records **where authorization lives** in the back-end. The first
 enforcing slice (the Owner boundary for `Conv`, `ConvMsg`, `Agent`) is specified
-in `backend/docs/ar/c01-owner-scope-design.md`; this ADR distills the durable
+in `docs/ar/c01-owner-scope-design.md`; this ADR distills the durable
 seam that slice establishes and that later slices extend. No prior ADR
 (0001–0013) governs back-end authorization; [ADR-0011](0011-jedi-backend-domain-contract.md)
 defines *what entities exist*, this one defines *who may touch them*.

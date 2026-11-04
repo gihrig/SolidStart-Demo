@@ -21,7 +21,7 @@ typed `PostBmc` already used it — `.from(PostBmc::table_ref())` (`post.rs:473`
 The child tables did not.
 
 The architecture review after #165 raised this as card **C-10 — give the Post
-child-tables a typed BMC owner** (`backend/docs/ar/architecture-review-20260921-001306.html`).
+child-tables a typed BMC owner** (`docs/ar/architecture-review-20260921-001306.html`).
 This ADR records the deepening: each child table's identity owned by one typed
 marker BMC, routed through `table_ref()`. It follows ADR-0023's C-07 move —
 concentrate a scattered identity behind one small seam.

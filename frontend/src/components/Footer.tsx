@@ -9,26 +9,33 @@ export default function Footer() {
     <footer role="contentinfo" aria-label="Site footer">
       <p class="mt-8 text-center!">
         Visit{" "}
-        <a href="https://solidjs.com" target="_blank" class="text-(--theme-accent) hover:underline">
+        <a
+          href="https://solidjs.com"
+          target="_blank"
+          class="rounded-md text-(--theme-accent) hover:underline"
+        >
           solidjs.com
         </a>{" "}
         to learn how to build SolidStart apps.
       </p>
       <p class="my-4 text-center!">
-        <A href="/" class={`border-b-2 ${active("/")} text-(--theme-accent) hover:underline`}>
+        <A
+          href="/"
+          class={`border-b-2 ${active("/")} focus-visible:rounded-md text-(--theme-accent) hover:underline`}
+        >
           Home
         </A>{" "}
         {" - "}
         <A
           href="/about"
-          class={`border-b-2 ${active("/about")} text-(--theme-accent) hover:underline`}
+          class={`border-b-2 ${active("/about")} focus-visible:rounded-md text-(--theme-accent) hover:underline`}
         >
           About
         </A>{" "}
         {" - "}
         <A
           href="/readme"
-          class={`border-b-2 ${active("/readme")} text-(--theme-accent) hover:underline`}
+          class={`border-b-2 ${active("/readme")} focus-visible:rounded-md text-(--theme-accent) hover:underline`}
         >
           ReadMe
         </A>{" "}

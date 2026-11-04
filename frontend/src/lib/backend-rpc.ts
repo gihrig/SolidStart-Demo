@@ -6,9 +6,12 @@ import type {
   LogoffPayload,
   PublicRpc,
 } from "~/types/backend";
+import { isServer } from "solid-js/web";
 import { isRpcError } from "~/types/backend";
 
-const BACKEND_URL = "http://localhost:8080";
+// The browser posts to its own origin: the HTTPS edge routes `/api/*` to the
+// back-end (ADR-0034). SSR has no page origin, so it calls the back-end directly.
+const BACKEND_URL = isServer ? "http://localhost:8080" : "";
 
 // The params argument of a typed call: none when the method's params export no
 // field (`undefined` in the RPC contract), so a list takes no argument.

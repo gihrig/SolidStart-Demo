@@ -61,10 +61,19 @@ function SlowPage() {
   return <h1>{data()}</h1>;
 }
 
-// Two openers, as the Nav's New Post and the Post line's Add. The Add can
-// leave the page, as the Post line does.
+// Two openers, as the Nav's New Post and the Add in the Post actions. The Add
+// can leave the page, as the Post actions do.
 function renderOpeners() {
   const [addShown, setAddShown] = createSignal(true);
+  // Two create listeners, as a route adds them (#283). Each lives in the scope
+  // of `Listeners`, which `setListening(false)` ends.
+  const [listening, setListening] = createSignal(true);
+  const listeners = [vi.fn(), vi.fn()];
+  function Listeners() {
+    const newPost = useNewPost();
+    for (const listener of listeners) newPost.onCreated(listener);
+    return null;
+  }
   function Openers() {
     const newPost = useNewPost();
     return (
@@ -109,6 +118,9 @@ function renderOpeners() {
             <NewPostProvider api={api}>
               <Session />
               <Openers />
+              <Show when={listening()}>
+                <Listeners />
+              </Show>
               <A href="/about">About</A>
               <A href="/slow">Slow</A>
               <Suspense>{props.children}</Suspense>
@@ -122,7 +134,7 @@ function renderOpeners() {
       <Route path="/slow" component={SlowPage} />
     </MemoryRouter>
   ));
-  return { user: userEvent.setup(), setAddShown };
+  return { user: userEvent.setup(), setAddShown, listeners, setListening };
 }
 const confirmDialog = () =>
   screen.queryByRole("dialog", { name: "You have unsaved changes. Discard them?" });
@@ -315,5 +327,67 @@ describe("<NewPostProvider /> (#214)", () => {
     land(CREATED);
     await waitFor(() => expect(dialog()).toBeNull());
     expect(screen.getByRole("heading", { name: "Home page" })).toBeInTheDocument();
+  });
+});
+
+describe("<NewPostProvider /> — the create listeners (#283)", () => {
+  it("a committed create calls each listener one time", async () => {
+    postCreateMock.mockResolvedValue(CREATED);
+    const { user, listeners } = renderOpeners();
+    await user.click(screen.getByRole("button", { name: "New Post" }));
+    await fill(user);
+    await user.click(within(dialog()!).getByRole("button", { name: "Post" }));
+    await waitFor(() => expect(dialog()).toBeNull());
+    for (const listener of listeners) expect(listener).toHaveBeenCalledOnce();
+  });
+
+  it("a listener that throws does not fail the create or skip the other listeners", async () => {
+    postCreateMock.mockResolvedValue(CREATED);
+    const { user, listeners } = renderOpeners();
+    const boom = new Error("listener fault");
+    listeners[0].mockImplementation(() => {
+      throw boom;
+    });
+    // The console reports the fault, apart from the create.
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await user.click(screen.getByRole("button", { name: "New Post" }));
+      await fill(user);
+      await user.click(within(dialog()!).getByRole("button", { name: "Post" }));
+      await waitFor(() => expect(dialog()).toBeNull());
+      expect(listeners[1]).toHaveBeenCalledOnce();
+      expect(consoleError).toHaveBeenCalledWith("[NewPost] A create listener failed:", boom);
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("a failed create calls no listener", async () => {
+    postCreateMock.mockRejectedValue(new Error("RPC Error: unsafe URL"));
+    const { user, listeners } = renderOpeners();
+    await user.click(screen.getByRole("button", { name: "New Post" }));
+    await fill(user);
+    await user.click(within(dialog()!).getByRole("button", { name: "Post" }));
+    expect(await within(dialog()!).findByRole("alert")).toHaveTextContent("unsafe URL");
+    for (const listener of listeners) expect(listener).not.toHaveBeenCalled();
+  });
+
+  it("a Cancel calls no listener", async () => {
+    const { user, listeners } = renderOpeners();
+    await user.click(screen.getByRole("button", { name: "New Post" }));
+    await user.click(within(dialog()!).getByRole("button", { name: "Cancel" }));
+    expect(dialog()).toBeNull();
+    for (const listener of listeners) expect(listener).not.toHaveBeenCalled();
+  });
+
+  it("a listener whose scope ended is not called", async () => {
+    postCreateMock.mockResolvedValue(CREATED);
+    const { user, listeners, setListening } = renderOpeners();
+    setListening(false);
+    await user.click(screen.getByRole("button", { name: "New Post" }));
+    await fill(user);
+    await user.click(within(dialog()!).getByRole("button", { name: "Post" }));
+    await waitFor(() => expect(dialog()).toBeNull());
+    for (const listener of listeners) expect(listener).not.toHaveBeenCalled();
   });
 });

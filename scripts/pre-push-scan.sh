@@ -92,7 +92,7 @@ fi
 cat >&2 <<EOF
 pre-push: the grype gate blocked this push (exit $rc). Next steps:
   - Vulnerability: fix or accept the high/critical finding (see 'cgs vex').
-  - grype not installed: install grype (CI pins v0.120.1).
+  - grype not installed: install grype (CI pin: scripts/grype-install.sh).
   - DB missing or stale: run 'grype db update' (this hook runs offline).
   - Emergency bypass: git push --no-verify (CI still enforces the gate).
 EOF

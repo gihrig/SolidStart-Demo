@@ -38,8 +38,11 @@ export default defineConfig({
   outputDir: "./reports/playwright-test-results",
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Base URL to use in actions like `await page.goto('')`. */
-    baseURL: "http://localhost:3000",
+    /* Base URL to use in actions like `await page.goto('')`. The HTTPS edge
+       (ADR-0034) serves the app and routes /api and /ws to the back-end. */
+    baseURL: "https://localhost:3443",
+    /* The edge signs with Caddy's local CA, which the browsers do not trust. */
+    ignoreHTTPSErrors: true,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",

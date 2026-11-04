@@ -47,18 +47,18 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # stable
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # stable
         with:
           toolchain: stable
           components: rustfmt, clippy
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           workspaces: backend
 
-      - uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2
+      - uses: taiki-e/install-action@1e29709c0ec63babbe8f266397a465f29a825f91 # v2.87.31
         with:
-          tool: nextest
+          tool: nextest,cargo-audit,cargo-deny@0.20.2
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
@@ -91,6 +91,26 @@ jobs:
       - name: Regenerate SBOM
         run: ./scripts/sbom.sh write
 
+      # -- Security gate (mirrors ci.yml's cargo-audit, cargo-deny and grype-scan
+      #    jobs, which skip this PR; #225). Runs first: it needs only the
+      #    lockfiles and the regenerated SBOM, so a vulnerable bump fails fast.
+      - name: Back-end audit (fails on any advisory)
+        working-directory: backend
+        run: cargo audit --deny warnings
+
+      - name: Back-end deny (licenses / bans / sources)
+        working-directory: backend
+        run: cargo deny check licenses bans sources
+
+      - name: Install grype (pinned release, checksum-verified)
+        run: ./scripts/grype-install.sh
+
+      - name: Scan the regenerated SBOM (fails on high/critical)
+        run: ./scripts/grype-scan.sh
+
+      - name: Verify VEX statements are not stale
+        run: ./scripts/vex-check.sh
+
       # -- Gate (mirrors ci.yml). A failure here fails the job -> no PR opens.
       - name: Back-end format check
         working-directory: backend
@@ -120,12 +140,11 @@ jobs:
         working-directory: frontend
         run: vinxi build
 
-      # `bun update` above runs frontend/package.json's `prepare`
-      # (`vp config`), which points core.hooksPath at the Vite+ hooks — including
-      # the pre-push grype gate. grype is not installed on this runner, so that
-      # hook would block the create-pull-request push (exit 127 -> gate fails).
-      # The hook is a local developer convenience; ci.yml's `grype-scan` job
-      # enforces the gate on the resulting PR. Disable local hooks for the push.
+      # `bun update` above runs frontend/package.json's `prepare` (`vp config`),
+      # which points core.hooksPath at the Vite+ hooks (pre-commit, pre-push).
+      # The hooks are a local developer convenience; the security gate steps
+      # above already scanned this SBOM. Disable local hooks so they cannot
+      # block the create-pull-request commit or push.
       - name: Disable local git hooks for the automated push
         run: |
           mkdir -p "$RUNNER_TEMP/no-hooks"
@@ -144,6 +163,10 @@ jobs:
 
             - `cargo update` (back-end) + `bun update` (front-end)
             - `/sbom.cdx.json` regenerated for the lockfile bumps
-            - Full gate passed in the workflow: back-end fmt/clippy/build/nextest
-              and front-end check/test/build. This PR was opened only because the
-              gate was green.
+            - Full gate passed in the workflow: security (cargo audit
+              --deny warnings, cargo deny check licenses bans sources,
+              grype --fail-on high, VEX check), back-end
+              fmt/clippy/build/nextest and front-end check/test/build. This PR
+              was opened only because the gate was green.
+            - Advisories published after this run are not covered. Before
+              merging, run `cgs audit` and `cgs scan` locally.

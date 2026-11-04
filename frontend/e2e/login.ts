@@ -4,7 +4,7 @@ import { expect, type Page } from "@playwright/test";
  * Log in as a seeded User through the Nav login dialog (#128, #129): open the
  * Profile menu, click Log In, type the credentials (the fields open empty),
  * submit, and wait for the name in the Nav. A seeded User's name is its
- * username: `demo1` / `welcome`, or an Author from `AUTHOR_PWDS` in `dev_db.rs`.
+ * username: `demo1` / `welcome`, or a User from `SEED_USER_PWDS` in `dev_db.rs`.
  * The caller navigates first; the login state lives in the page, so later moves
  * must stay in-app.
  */

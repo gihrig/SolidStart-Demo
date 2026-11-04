@@ -1,13 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
-import { render, screen, waitFor, fireEvent } from "@solidjs/testing-library";
+import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
-import { createSignal, Show } from "solid-js";
+import { createSignal } from "solid-js";
 import { trustedUrl } from "~/lib/sanitizeUrl";
-import { createDraftGuard } from "~/lib/createDraftGuard";
-import type { JediApi } from "~/lib/jedi/jedi-api";
+import { createDraftGuard, createDraftScope } from "~/lib/createDraftGuard";
 import type { CaptionView } from "~/types/jedi";
 import CaptionForm, { type CaptionFormProps } from "./CaptionForm";
-import { DraftGuardContext } from "./DraftGuardContext";
+import { DraftGuardContext, DraftScopeContext } from "./DraftGuardContext";
 
 const ADDED: CaptionView = {
   id: 99,
@@ -18,34 +17,34 @@ const ADDED: CaptionView = {
   commentCount: 0,
 };
 
-const captionAddMock = vi.fn<JediApi["captions"]["add"]>();
-const api = { captions: { add: captionAddMock } };
+// The add mode's save (the view-model's `addCaption`, through its owner, #283).
+const onSaveMock = vi.fn<(text: string) => Promise<CaptionView>>();
 
 beforeEach(() => {
-  captionAddMock.mockReset();
+  onSaveMock.mockReset();
 });
 
 function renderForm(props: Partial<CaptionFormProps> = {}) {
   const user = userEvent.setup();
-  render(() => <CaptionForm postId={1} api={api} {...props} />);
+  render(() => <CaptionForm onSave={onSaveMock} {...props} />);
   return { user, input: screen.getByLabelText("Your caption") as HTMLInputElement };
 }
 
 describe("<CaptionForm />", () => {
   it("submits the text for the Post, then clears the input (#121)", async () => {
-    captionAddMock.mockResolvedValue(ADDED);
+    onSaveMock.mockResolvedValue(ADDED);
     const { user, input } = renderForm();
 
     await user.type(input, ADDED.text);
     await user.click(screen.getByRole("button", { name: "Add Caption" }));
 
-    expect(captionAddMock).toHaveBeenCalledWith(1, ADDED.text);
+    expect(onSaveMock).toHaveBeenCalledWith(ADDED.text);
     await waitFor(() => expect(input.value).toBe(""));
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("shows the back-end rejection and keeps the text", async () => {
-    captionAddMock.mockRejectedValue(new Error("text: too long"));
+    onSaveMock.mockRejectedValue(new Error("text: too long"));
     const { user, input } = renderForm();
 
     await user.type(input, "rejected");
@@ -68,7 +67,7 @@ describe("<CaptionForm />", () => {
   it("counts as the back-end does: 36 emoji fit (#185 review)", async () => {
     // `maxLength` counted UTF-16 units, so it stopped this caption at 18 emoji.
     const caption = "😀".repeat(36);
-    captionAddMock.mockResolvedValue({ ...ADDED, text: caption });
+    onSaveMock.mockResolvedValue({ ...ADDED, text: caption });
     const { user, input } = renderForm();
     expect(input.maxLength).toBe(-1); // no UTF-16 cap on the input
 
@@ -77,7 +76,7 @@ describe("<CaptionForm />", () => {
     expect(screen.getByText("36/36")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add Caption" }));
 
-    expect(captionAddMock).toHaveBeenCalledWith(1, caption);
+    expect(onSaveMock).toHaveBeenCalledWith(caption);
   });
 
   it("over the cap: flags the count and the input, and blocks the submit", async () => {
@@ -90,11 +89,11 @@ describe("<CaptionForm />", () => {
     expect(screen.getByRole("button", { name: "Add Caption" })).toBeDisabled();
 
     await user.keyboard("{Enter}");
-    expect(captionAddMock).not.toHaveBeenCalled();
+    expect(onSaveMock).not.toHaveBeenCalled();
   });
 
   it("resets the count after a committed submit", async () => {
-    captionAddMock.mockResolvedValue(ADDED);
+    onSaveMock.mockResolvedValue(ADDED);
     const { user, input } = renderForm();
 
     await user.type(input, ADDED.text);
@@ -102,48 +101,27 @@ describe("<CaptionForm />", () => {
     await waitFor(() => expect(screen.getByText("0/36")).toBeInTheDocument());
   });
 
-  it("calls onAdded with the new Caption once the back-end commits it", async () => {
-    captionAddMock.mockResolvedValue(ADDED);
-    const onAdded = vi.fn();
-    const { user, input } = renderForm({ onAdded });
+  it("calls onSaved once the back-end commits the new Caption", async () => {
+    onSaveMock.mockResolvedValue(ADDED);
+    const onSaved = vi.fn();
+    const { user, input } = renderForm({ onSaved });
 
     await user.type(input, ADDED.text);
     await user.click(screen.getByRole("button", { name: "Add Caption" }));
 
-    await waitFor(() => expect(onAdded).toHaveBeenCalledWith(ADDED));
+    await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
   });
 
-  it("does not call onAdded when the back-end rejects the Caption", async () => {
-    captionAddMock.mockRejectedValue(new Error("text: too long"));
-    const onAdded = vi.fn();
-    const { user, input } = renderForm({ onAdded });
+  it("does not call onSaved when the back-end rejects the Caption", async () => {
+    onSaveMock.mockRejectedValue(new Error("text: too long"));
+    const onSaved = vi.fn();
+    const { user, input } = renderForm({ onSaved });
 
     await user.type(input, "rejected");
     await user.click(screen.getByRole("button", { name: "Add Caption" }));
 
     await screen.findByRole("alert");
-    expect(onAdded).not.toHaveBeenCalled();
-  });
-
-  it("does not call onAdded when it resolves after the form unmounted (#185 review)", async () => {
-    let resolve!: (c: CaptionView) => void;
-    captionAddMock.mockReturnValue(new Promise((r) => (resolve = r)));
-    const onAdded = vi.fn();
-    const [shown, setShown] = createSignal(true);
-    const user = userEvent.setup();
-    render(() => (
-      <Show when={shown()}>
-        <CaptionForm postId={1} api={api} onAdded={onAdded} />
-      </Show>
-    ));
-
-    await user.type(screen.getByLabelText("Your caption"), ADDED.text);
-    await user.click(screen.getByRole("button", { name: "Add Caption" }));
-    setShown(false);
-    resolve(ADDED);
-    await new Promise((r) => setTimeout(r, 0));
-
-    expect(onAdded).not.toHaveBeenCalled();
+    expect(onSaved).not.toHaveBeenCalled();
   });
 
   it("offers Cancel only when onCancel is given", async () => {
@@ -165,7 +143,7 @@ describe("<CaptionForm />", () => {
 
   it("disables the submit and Cancel while the Caption is in flight", async () => {
     let resolve!: (c: CaptionView) => void;
-    captionAddMock.mockReturnValue(new Promise((r) => (resolve = r)));
+    onSaveMock.mockReturnValue(new Promise((r) => (resolve = r)));
     const { user, input } = renderForm({ onCancel: vi.fn() });
 
     await user.type(input, ADDED.text);
@@ -179,7 +157,7 @@ describe("<CaptionForm />", () => {
 });
 
 describe("<CaptionForm /> — the edit mode (#187)", () => {
-  const scope = Symbol("caption-edit");
+  const scope = createDraftScope("caption-edit");
 
   function renderEdit() {
     const [caption, setCaption] = createSignal(ADDED);
@@ -189,15 +167,9 @@ describe("<CaptionForm /> — the edit mode (#187)", () => {
     const guard = createDraftGuard();
     render(() => (
       <DraftGuardContext.Provider value={guard}>
-        <CaptionForm
-          postId={1}
-          api={api}
-          caption={caption()}
-          draftScope={scope}
-          onSave={onSave}
-          onSaved={onSaved}
-          onCancel={onCancel}
-        />
+        <DraftScopeContext.Provider value={scope}>
+          <CaptionForm caption={caption()} onSave={onSave} onSaved={onSaved} onCancel={onCancel} />
+        </DraftScopeContext.Provider>
       </DraftGuardContext.Provider>
     ));
     const input = screen.getByLabelText("Edit your caption") as HTMLInputElement;
@@ -214,14 +186,13 @@ describe("<CaptionForm /> — the edit mode (#187)", () => {
 
     expect(onSave).toHaveBeenCalledWith(`${ADDED.text}!`);
     await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
-    expect(captionAddMock).not.toHaveBeenCalled();
   });
 
   it("holds a Draft in its scope while the text differs; Cancel asks, and Discard drops it", async () => {
     const { user, input, guard, onCancel } = renderEdit();
-    expect(guard.hasDraftIn([scope])).toBe(false);
+    expect(guard.hasDraftIn(scope)).toBe(false);
     await user.type(input, "!");
-    expect(guard.hasDraftIn([scope])).toBe(true);
+    expect(guard.hasDraftIn(scope)).toBe(true);
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(guard.pending()).toBe(true);
@@ -253,13 +224,15 @@ describe("<CaptionForm /> — the edit mode (#187)", () => {
 });
 
 describe("<CaptionForm /> — Cancel and Escape (#214)", () => {
-  const scope = Symbol("add-caption");
+  const scope = createDraftScope("add-caption");
 
   function renderGuarded(props: Partial<CaptionFormProps> = {}) {
     const guard = createDraftGuard();
     render(() => (
       <DraftGuardContext.Provider value={guard}>
-        <CaptionForm postId={1} api={api} draftScope={scope} {...props} />
+        <DraftScopeContext.Provider value={scope}>
+          <CaptionForm onSave={onSaveMock} {...props} />
+        </DraftScopeContext.Provider>
       </DraftGuardContext.Provider>
     ));
     const input = screen.getByLabelText("Your caption") as HTMLInputElement;
@@ -282,63 +255,5 @@ describe("<CaptionForm /> — Cancel and Escape (#214)", () => {
     guard.confirmMove();
     expect(onCancel).toHaveBeenCalledOnce();
     expect(guard.hasDraft()).toBe(false);
-  });
-
-  it("Escape without a Draft closes at once", async () => {
-    const onCancel = vi.fn();
-    const { user, input, guard } = renderGuarded({ onCancel });
-    await user.click(input);
-    await user.keyboard("{Escape}");
-    expect(guard.pending()).toBe(false);
-    expect(onCancel).toHaveBeenCalledOnce();
-  });
-
-  it("a form without a Cancel ignores Escape", async () => {
-    const { user, input, guard } = renderGuarded();
-    await user.type(input, "draft");
-    await user.keyboard("{Escape}");
-    expect(guard.pending()).toBe(false);
-    expect(input.value).toBe("draft");
-  });
-
-  it("an Escape that ends an IME composition is no Cancel", async () => {
-    const onCancel = vi.fn();
-    const { input, guard } = renderGuarded({ onCancel });
-    fireEvent.keyDown(input, { key: "Escape", isComposing: true });
-    expect(guard.pending()).toBe(false);
-    expect(onCancel).not.toHaveBeenCalled();
-  });
-
-  it("a document Escape listener does not get the form's Escape", async () => {
-    const onDocumentKey = vi.fn();
-    document.addEventListener("keydown", onDocumentKey);
-    try {
-      const { user, input } = renderGuarded({ onCancel: vi.fn() });
-      await user.click(input);
-      await user.keyboard("{Escape}");
-      expect(onDocumentKey).not.toHaveBeenCalled();
-    } finally {
-      document.removeEventListener("keydown", onDocumentKey);
-    }
-  });
-
-  it("during the write, Escape does nothing and a move in its scope does nothing", async () => {
-    let resolve!: (c: CaptionView) => void;
-    captionAddMock.mockReturnValue(new Promise((r) => (resolve = r)));
-    const onCancel = vi.fn();
-    const { user, input, guard } = renderGuarded({ onCancel });
-    await user.type(input, ADDED.text);
-    await user.click(screen.getByRole("button", { name: "Add Caption" }));
-
-    await user.click(input);
-    await user.keyboard("{Escape}");
-    expect(onCancel).not.toHaveBeenCalled();
-    const move = vi.fn();
-    guard.attempt(move, [scope]);
-    expect(move).not.toHaveBeenCalled();
-    expect(guard.pending()).toBe(false);
-
-    resolve(ADDED);
-    await waitFor(() => expect(guard.busyIn([scope])).toBe(false));
   });
 });

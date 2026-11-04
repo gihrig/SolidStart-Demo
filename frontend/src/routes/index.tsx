@@ -49,13 +49,18 @@ export default function Home() {
     captionComments,
     postOwner,
     captionOwner,
-    addCaptionScope,
+    addCaption,
+    draftScopes,
     announcement,
     connectFeed,
+    postCreated,
   } = createJediFeed({ guard: useDraftGuard() });
 
   const sidebar = useDisclosure({ id: "jedi-sidebar" });
   const newPost = useNewPost();
+  // The User's own new Post shows at once: the refetch does not wait for the
+  // `posts` poke (#283). The listener ends with this route.
+  newPost.onCreated(postCreated);
 
   return (
     <>
@@ -116,7 +121,8 @@ export default function Home() {
                   captionComments={captionComments}
                   postOwner={postOwner}
                   captionOwner={captionOwner}
-                  addCaptionScope={addCaptionScope}
+                  addCaption={addCaption}
+                  draftScopes={draftScopes}
                   onAddPost={newPost.open}
                 />
               )}

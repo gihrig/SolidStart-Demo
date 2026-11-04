@@ -1,0 +1,39 @@
+# The dev and e2e HTTPS edge (ADR-0034, #233). Run it with `cgs caddy`
+# (scripts/caddy.sh), which pins Caddy and sets CADDY_STORAGE.
+#
+# The edge ends TLS at https://localhost:3443 and routes by path, so the browser
+# sees one origin, as in production. The production edge (#19) needs the same
+# routes: /api/* and /ws to the back-end, every other path to the front-end.
+{
+	# Keep the local CA in the repo's git-ignored /.caddy/, not the home folder.
+	storage file_system {$CADDY_STORAGE}
+	# Never change the system trust store; `cgs caddy:trust` does that on request.
+	skip_install_trust
+	# No HTTP listener on :80, which needs root on Linux.
+	auto_https disable_redirects
+	# Write no autosave.json into the home folder.
+	persist_config off
+}
+
+https://localhost:3443 {
+	# Serve only this machine.
+	bind 127.0.0.1 [::1]
+
+	# Dev only: Vite HMR's socket for the client router (frontend/app.config.ts).
+	@hmr {
+		path /_build/
+		header Upgrade websocket
+	}
+	handle @hmr {
+		reverse_proxy localhost:24678
+	}
+	handle /api/* {
+		reverse_proxy localhost:8080
+	}
+	handle /ws {
+		reverse_proxy localhost:8080
+	}
+	handle {
+		reverse_proxy localhost:3000
+	}
+}

@@ -58,6 +58,7 @@ tables were built beside.
 **User**:
 An authenticated identity that owns Posts and Captions, authors Comments, and casts
 Likes. Every User is either an Admin user or a Standard user.
+A username has at most 32 characters (#203).
 _Avoid_: account.
 _BE_: `User = { id, username, typ, avatar_url }` with
 `UserTyp = "Sys" | "User"`. The merge **persisted `avatar_url`** as a back-end
@@ -146,21 +147,20 @@ _Built_ (#121): the authenticated `add_caption` takes a `CaptionForCreate`
 (`post_id`, `text`), sets the caller as Owner, and returns the `CaptionView`. Text
 over 36 characters or an unknown Post is a `Validation` error. An add pokes
 `post_caption:{post_id}`; the Jedi route holds the selected Post's channel while a
-User is logged in, so Top Captions refetches and re-ranks. On the Post, the
-full-width caption line swaps to the caption form: a logged-in User clicks **Add**
-on the categories line, or sees the form directly when the Post has no
-caption.
+User is logged in, so Top Captions refetches and re-ranks. On the Post card, the
+Caption line swaps to the Caption form. A logged-in User clicks **Add** in the
+Caption actions to open it. On a Post with no Caption, the form shows directly.
 _Built_ (#123): a logged-in User likes the Caption shown on the Post, from the
-Caption actions on the categories line: fire-heart, count, **Like**, **Add**,
-**Edit**, **Delete**. To like another Caption, the User selects it in Top
-Captions first; Top Captions shows counts only. A toggle that changed a Like pokes
-`caption_like:{caption_id}` and `post_caption:{post_id}`. On the Post line and the
-Caption line, a visitor who is not logged in sees only the fire-heart and the
-count. A logged-in User sees every button, and a button that cannot act now is
-disabled: only the Owner can use **Edit** and **Delete**. The Post line's **Add**
+Caption actions: fire-heart, count, **Like**, **Add**, **Edit**, **Delete**. To
+like another Caption, the User selects it in Top Captions first; Top Captions
+shows counts only. A toggle that changed a Like pokes `caption_like:{caption_id}`
+and `post_caption:{post_id}`. In the Post actions and the Caption actions, a
+logged-out visitor sees the Comments toggle, the fire-heart and the count. A
+logged-in User sees every button, and a button that cannot act now is disabled:
+only the Owner can use **Edit** and **Delete**. The **Add** in the Post actions
 opens the same New Post dialog as the Nav.
-_Built_ (#127): the Caption actions start with a **Comments** toggle and the
-Caption's comment count. It opens the Caption's thread below the categories line,
+_Built_ (#127): the Caption actions start with a **Caption Comments** toggle and
+the Caption's comment count. It opens the Caption's thread in the Comments panel,
 for the Caption shown. While the thread is open, a re-rank does not change the
 Caption shown ([ADR-0030](docs/adr/0030-unsaved-draft-guard.md) addendum).
 _Built_ (#187): the Owner edits the text with `update_caption` and deletes the
@@ -205,6 +205,8 @@ _Built_ (#124–#127): one Comment module serves both kinds
 ([ADR-0024](docs/adr/0024-typed-bmc-owner-post-child-tables.md) addendum). An add or
 a delete also pokes the channel of the parent's comment count: `posts` for a
 PostComment, `post_caption:{post_id}` for a CaptionComment.
+In a Comment form, a plain Enter submits and Shift+Enter adds a new line (#246).
+With a touch pointer, Enter adds a new line, and only the button submits.
 _Lineage_: built beside the FullStack `ConvMsg`, **split into two** (#108). #128
 removed `ConvMsg`
 ([ADR-0031](docs/adr/0031-jedi-tables-built-beside-fullstack-then-removed.md)).
@@ -345,6 +347,9 @@ A Channel's semantics follow its data shape (#109):
   (#85). This covers `posts` (the list), `post_like` / `caption_like` (derived
   counts), and `post_caption` (the Top Captions ranking, which reshuffles on every
   like).
+- **The writer does not wait.** A User's own write shows at once in that User's
+  client: it does not wait for the Event. The Event is for the other clients
+  (C-29, #283).
 
 _Avoid_: refresh, notify.
 _BE_: a list-or-count mutation proves its poke at compile time. A `broadcast_*`
@@ -576,6 +581,42 @@ rule. A focus ring appearing on mouse click is a defect, not desired behavior; t
 `<main>` action buttons showing no ring on click are correct.
 _Avoid_: always-on focus outlines; showing the ring on pointer interaction.
 
+### Post card
+
+**Post card**:
+The main article, which shows the selected Post. From the top, it holds the title
+bar, the photo and the **Author line**. Under them come the **Post actions**, the
+**Caption line**, the **Caption actions** and the **Comments panel**. The Author
+line holds the Author's avatar and name, the Post title and the Categories. The
+Caption line holds the Caption shown, or a Caption form in its place. Each actions
+line starts with its Comments toggle: **Post Comments** or **Caption Comments**.
+The Comments panel shows one thread at a time, the Post's or the Caption's
+([ADR-0030](docs/adr/0030-unsaved-draft-guard.md) addendum, #210).
+_FE_: `FeaturedPost` (`components/FeaturedPost.tsx`).
+_Avoid_: Featured Post (`featured` is the top-ranked Post, only the default); Post
+line; categories line.
+
+**Post hold**:
+The time in which the Post card keeps the Post shown. A Draft on the Post, an open
+Post edit or an open Comments panel starts it. It ends when the last of them ends.
+During a Post hold, a re-rank does not move the Post card. An Event that moves the
+Post out of the selected Category keeps the Post shown until the Post hold ends. A
+move by the User to another Post ends it: a Top Photo click, or a change to a
+Category without the Post. With a Draft, the User is asked first. A deleted Post
+ends it ([ADR-0030](docs/adr/0030-unsaved-draft-guard.md) addendum, #271).
+_FE_: `createSelection` (`lib/jedi/createSelection.ts`).
+_Avoid_: pin, lock, freeze; "hold" alone.
+
+**Caption hold**:
+The time in which the Caption line keeps the Caption shown. An open Caption edit
+or an open Caption Comments panel starts it. It ends when the last of them closes.
+During a Caption hold, a re-rank does not change the Caption shown. A pick of
+another Caption ends it, and so does a move to another Post. With a Draft, the
+User is asked first. A deleted Caption ends it
+([ADR-0030](docs/adr/0030-unsaved-draft-guard.md) addendum, #271).
+_FE_: `createSelection` (`lib/jedi/createSelection.ts`).
+_Avoid_: pin, lock, freeze; "hold" alone.
+
 ### Unsaved Drafts
 
 **Draft** (unsaved form text):
@@ -585,7 +626,55 @@ field is not blank or a Category is checked. An open Comment, Caption or Post ed
 holds one when it differs from the saved entity. A Cancel, an Escape or a
 user-started move that would close the form asks first. While the form is saving,
 no user-started move closes it. An Event that removes the form's subject discards
-the Draft, and a notice says so. An Event that moves the Post out of the selected
+the Draft, and a notice says so. A Caption that arrives does not close an Add
+Caption form with a Draft. An Event that moves the Post out of the selected
 Category keeps the Post shown. The User then chooses to keep or discard the Draft
 ([ADR-0030](docs/adr/0030-unsaved-draft-guard.md)).
 _Avoid_: unsaved comment, pending edit; "lost" or "rejected" for a forced discard.
+
+### Top Nav
+
+**Top Nav**:
+The bar at the top of every page. It holds the Brand link, the Nav links, the
+Profile menu button, New Post for a logged-in User, and the Site menu button on
+a narrow screen.
+_FE_: `Nav` (`components/Nav.tsx`).
+_Avoid_: header, navbar, top bar.
+
+**Brand link**:
+The "Awesome" logo and wordmark at the left of the Top Nav. It goes to the home
+page. It is not a Nav link, so it never marks the current page.
+_Avoid_: logo link, home button.
+
+**Nav links**:
+Home, About and Readme. The Top Nav shows them on a wide screen (768 px and
+wider). The Site menu shows them on a narrow screen. The Nav link of the current
+page has an underline.
+_Avoid_: menu items, tabs.
+
+**Site menu**:
+The drop-down that holds the Nav links on a narrow screen (below 768 px). The ☰
+button in the Top Nav opens it. It is not the Profile menu.
+_FE_: the `site-mobile-nav` disclosure in `Nav`; its accessible name is "Site menu".
+_Avoid_: mobile menu, mobile nav, hamburger menu.
+
+### Profile menu & Theme
+
+**Profile menu**:
+The drop-down that the avatar button in the nav opens. Every visitor can open it,
+at every width, also before login. It holds My Profile, Log In or Log Out, and the
+three Theme items.
+_FE_: the `profile-menu` disclosure in `Nav` (`components/Nav.tsx`).
+_Avoid_: nav drop-down, profile dropdown, user menu.
+
+**Theme**:
+The light or dark look of the site. There are three: **System Theme**, **Light
+Theme** and **Dark Theme**. System Theme follows the light or dark setting of the
+device, and it is the default. A visitor chooses a Theme in the Profile menu, and a
+check mark shows the Theme in use. The browser keeps the choice: the **saved
+theme**. A User does not own it. It does not follow the User to another browser,
+and login and logout do not change it
+([ADR-0033](docs/adr/0033-saved-theme-in-an-httponly-cookie.md)).
+_FE_: the server reads the saved theme from a cookie, so the first paint shows it.
+_Avoid_: mode, color mode, dark mode, auto, selected theme; color scheme (the CSS
+`color-scheme` property tells the browser which built-in colors to use).

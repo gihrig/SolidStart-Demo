@@ -4,6 +4,7 @@ import type { JSX } from "solid-js";
 // `icon-` prefix). Kept in sync by the drift test in Icon.test.tsx.
 export const ICON_NAMES = [
   "180-degrees",
+  "check",
   "collage",
   "delete-sign",
   "dog",

@@ -1,9 +1,24 @@
 import { batch, createSignal, getOwner, onCleanup, type Accessor } from "solid-js";
 import { isServer } from "solid-js/web";
 
-/** A group of forms that one move unmounts, such as the forms in one panel.
- *  A move that names scopes asks only about the Drafts in them. */
-export type DraftScope = symbol;
+/** A group of forms that one move closes, such as the forms in one panel. A
+ *  scope can sit under a parent scope: a guard call that names a scope also
+ *  matches the Drafts in each scope under it. */
+export interface DraftScope {
+  readonly name: string;
+  readonly parent?: DraftScope;
+}
+
+/** A new scope, under `parent` when it is given. Each call makes a new scope. */
+export function createDraftScope(name: string, parent?: DraftScope): DraftScope {
+  return parent === undefined ? { name } : { name, parent };
+}
+
+/** Whether `scope` is `outer` or sits under it (#271). */
+const within = (scope: DraftScope | undefined, outer: DraftScope): boolean => {
+  for (let s = scope; s !== undefined; s = s.parent) if (s === outer) return true;
+  return false;
+};
 
 /** The app-level guard for unsaved form text (ADR-0030). */
 export interface DraftGuard {
@@ -14,42 +29,43 @@ export interface DraftGuard {
   holds: (key: symbol) => boolean;
   /** A form reports whether it holds a Draft, under its own key. It reports
    *  `false` when it saves, when it cancels, and when it unmounts. A form
-   *  reports through `useDraft`, which makes the key. A form in a `scope`
+   *  reports through `useDraftForm`, which makes the key. A form in a `scope`
    *  reports it too. */
   report: (key: symbol, dirty: boolean, scope?: DraftScope) => void;
   /** Run a user-started move. With no Draft, it runs at once. With a Draft, it
    *  waits for the confirm dialog: `confirmMove` or `cancelMove`. A move names
-   *  every scope that it unmounts, and it asks only about the Drafts in them. A
-   *  move with no `scopes` asks about every Draft. While a form in its scopes
-   *  writes, it does nothing and asks nothing (#214); with no `scopes`, every
-   *  form counts. */
-  attempt: (move: () => void, scopes?: readonly DraftScope[]) => void;
+   *  the scope that it closes, and it asks only about the Drafts in that scope
+   *  and in each scope under it (#271). A move with no `scope` asks about every
+   *  Draft. While a form in its scope writes, it does nothing and asks nothing
+   *  (#214); with no `scope`, every form counts. */
+  attempt: (move: () => void, scope?: DraftScope) => void;
   /** A form's Cancel (#214): `close` closes the form under `key`. Without a
    *  Draft in that form, it runs at once. With one, it waits for the confirm
    *  dialog, which asks about that form only: "Discard" drops its Draft, then
    *  runs `close`. */
   cancel: (key: symbol, close: () => void) => void;
   /** A form reports whether its write is in flight, under its own key (#214).
-   *  A form reports through `useDraft`, with its scope. */
+   *  A form reports through `useDraftForm`, with its scope. */
   reportBusy: (key: symbol, busy: boolean, scope?: DraftScope) => void;
-  /** Whether a form in any of `scopes` writes; with no `scopes`, any form. */
-  busyIn: (scopes?: readonly DraftScope[]) => boolean;
-  /** Whether a form in any of `scopes` holds a Draft; with no `scopes`, any
-   *  form. It is reactive. */
-  hasDraftIn: (scopes?: readonly DraftScope[]) => boolean;
+  /** Whether a form in `scope`, or in a scope under it, writes; with no
+   *  `scope`, any form. */
+  busyIn: (scope?: DraftScope) => boolean;
+  /** Whether a form in `scope`, or in a scope under it, holds a Draft; with no
+   *  `scope`, any form. It is reactive. */
+  hasDraftIn: (scope?: DraftScope) => boolean;
   /** Whether a move waits for the confirm dialog. */
   pending: Accessor<boolean>;
   /** The confirm dialog's question: the waiting `ask`'s message, else the
    *  question of a move. */
   question: Accessor<string>;
-  /** Ask whether to keep the Drafts in `scopes`, or every Draft with no
-   *  `scopes`, after an Event made them doubtful (#187), such as a Post that
+  /** Ask whether to keep the Drafts in `scope`, or every Draft with no
+   *  `scope`, after an Event made them doubtful (#187), such as a Post that
    *  left the selected Category. It waits as a move does: "Keep editing" keeps
    *  them, and "Discard" drops them, then runs `onDiscard`, such as a close of
    *  the forms. It replaces a waiting move. With no Draft, it does not ask. */
-  ask: (message: string, scopes?: readonly DraftScope[], onDiscard?: () => void) => void;
-  /** "Discard": drop the Drafts the waiting move unmounts (every Draft, or
-   *  its scopes'), then run it. */
+  ask: (message: string, scope?: DraftScope, onDiscard?: () => void) => void;
+  /** "Discard": drop the Drafts the waiting move closes (every Draft, or the
+   *  Drafts in its scope), then run it. */
   confirmMove: () => void;
   /** "Keep editing": drop the waiting move. The Drafts stay. */
   cancelMove: () => void;
@@ -58,18 +74,18 @@ export interface DraftGuard {
   /** A forced discard: an Event removed the subject of the Draft under `key`.
    *  It drops that Draft, cancels a waiting move, and shows `message`. */
   discard: (key: symbol, message: string) => void;
-  /** A forced discard of every Draft in `scopes`, or of every Draft with no
-   *  `scopes` (#187): an Event removed their subject, such as a deleted Post.
+  /** A forced discard of every Draft in `scope`, or of every Draft with no
+   *  `scope` (#187): an Event removed their subject, such as a deleted Post.
    *  With a Draft, it drops them, cancels a waiting move and shows `message`.
    *  Returns whether it dropped a Draft. */
-  discardIn: (scopes: readonly DraftScope[] | undefined, message: string) => boolean;
+  discardIn: (scope: DraftScope | undefined, message: string) => boolean;
   /** Close the notice ("OK"). */
   dismissNotice: () => void;
-  /** The Owner's own delete (#187): release the Drafts in `scopes`, or every
-   *  Draft with no `scopes`, with no notice. A released form's unmount shows
+  /** The Owner's own delete (#187): release the Drafts in `scope`, or every
+   *  Draft with no `scope`, with no notice. A released form's unmount shows
    *  none. Returns `restore`, which holds them again after a failed delete; a
    *  form that ended its Draft or unmounted meanwhile is not held again. */
-  release: (scopes?: readonly DraftScope[]) => () => void;
+  release: (scope?: DraftScope) => () => void;
 }
 
 /** The notice of a forced discard whose cause the form cannot name. */
@@ -116,16 +132,16 @@ export function createDraftGuard(): DraftGuard {
   // form ends its Draft.
   const released = new Map<symbol, DraftScope | undefined>();
   const [hasDraft, setHasDraft] = createSignal(false);
-  // Each change of `drafts`, so a read of the Drafts in some scopes is
-  // reactive (#214).
+  // Each change of `drafts`, so a read of the Drafts in a scope is reactive
+  // (#214).
   const [draftsChanged, setDraftsChanged] = createSignal(undefined, { equals: false });
   // Each writing form's key, and the form's scope (#214).
   const busy = new Map<symbol, DraftScope | undefined>();
   // The move sits in an object: a bare function given to a setter runs as an
-  // updater. A move names its scopes, or one form's `key` (a Cancel).
+  // updater. A move names its scope, or one form's `key` (a Cancel).
   const [pendingMove, setPendingMove] = createSignal<{
     run: () => void;
-    scopes?: readonly DraftScope[];
+    scope?: DraftScope;
     key?: symbol;
     message?: string;
   }>();
@@ -159,21 +175,20 @@ export function createDraftGuard(): DraftGuard {
     sync();
   };
 
-  // The keys in `forms` in `scopes`; with no `scopes`, every key.
+  // The keys in `forms` in `scope` or in a scope under it; with no `scope`,
+  // every key.
   const keysIn = (
     forms: Map<symbol, DraftScope | undefined>,
-    scopes: readonly DraftScope[] | undefined,
+    scope: DraftScope | undefined,
   ): symbol[] =>
-    [...forms]
-      .filter(([, s]) => scopes === undefined || (s !== undefined && scopes.includes(s)))
-      .map(([key]) => key);
-  const draftsIn = (scopes: readonly DraftScope[] | undefined) => keysIn(drafts, scopes);
-  const busyIn = (scopes?: readonly DraftScope[]) => keysIn(busy, scopes).length > 0;
+    [...forms].filter(([, s]) => scope === undefined || within(s, scope)).map(([key]) => key);
+  const draftsIn = (scope: DraftScope | undefined) => keysIn(drafts, scope);
+  const busyIn = (scope?: DraftScope) => keysIn(busy, scope).length > 0;
 
-  const attempt = (move: () => void, scopes?: readonly DraftScope[]): void => {
-    if (busyIn(scopes)) return;
-    if (draftsIn(scopes).length === 0) move();
-    else setPendingMove({ run: move, scopes });
+  const attempt = (move: () => void, scope?: DraftScope): void => {
+    if (busyIn(scope)) return;
+    if (draftsIn(scope).length === 0) move();
+    else setPendingMove({ run: move, scope });
   };
 
   const cancel = (key: symbol, close: () => void): void => {
@@ -190,7 +205,7 @@ export function createDraftGuard(): DraftGuard {
     if (!move) return;
     batch(() => {
       setPendingMove(undefined);
-      for (const key of move.key ? [move.key] : draftsIn(move.scopes)) drafts.delete(key);
+      for (const key of move.key ? [move.key] : draftsIn(move.scope)) drafts.delete(key);
       sync();
       if (!move.key) move.run();
     });
@@ -203,8 +218,8 @@ export function createDraftGuard(): DraftGuard {
     setNotice(message);
   };
 
-  const discardIn = (scopes: readonly DraftScope[] | undefined, message: string): boolean => {
-    const keys = draftsIn(scopes);
+  const discardIn = (scope: DraftScope | undefined, message: string): boolean => {
+    const keys = draftsIn(scope);
     if (keys.length === 0) return false;
     batch(() => {
       for (const key of keys) drafts.delete(key);
@@ -215,8 +230,8 @@ export function createDraftGuard(): DraftGuard {
     return true;
   };
 
-  const release = (scopes?: readonly DraftScope[]): (() => void) => {
-    const keys = draftsIn(scopes);
+  const release = (scope?: DraftScope): (() => void) => {
+    const keys = draftsIn(scope);
     for (const key of keys) {
       released.set(key, drafts.get(key));
       drafts.delete(key);
@@ -243,15 +258,15 @@ export function createDraftGuard(): DraftGuard {
       else busy.delete(key);
     },
     busyIn,
-    hasDraftIn: (scopes) => {
+    hasDraftIn: (scope) => {
       draftsChanged();
-      return draftsIn(scopes).length > 0;
+      return draftsIn(scope).length > 0;
     },
     pending: () => pendingMove() !== undefined,
     question: () => pendingMove()?.message ?? MOVE_QUESTION,
-    ask: (message, scopes, onDiscard) => {
-      if (draftsIn(scopes).length > 0) {
-        setPendingMove({ run: onDiscard ?? (() => {}), scopes, message });
+    ask: (message, scope, onDiscard) => {
+      if (draftsIn(scope).length > 0) {
+        setPendingMove({ run: onDiscard ?? (() => {}), scope, message });
       }
     },
     confirmMove,

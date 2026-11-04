@@ -25,7 +25,10 @@
 }
 
 @layer base {
+  /* CSS, not a script, sets color-scheme (#203): with no data-theme (System
+     Theme), the browser follows the OS. */
   :root {
+    color-scheme: light dark;
     --theme-accent: var(--color-sky-700);
     --theme-highlight: var(--color-indigo-100);
     --theme-btn-primary: rgb(88, 40, 244);
@@ -37,9 +40,16 @@
     --theme-card-fg: var(--color-gray-900);
     --theme-card-bg: var(--color-zinc-200);
     --theme-muted: var(--color-gray-500);
+    --theme-check: var(--color-green-700);
+  }
+
+  :root[data-theme="light"] {
+    color-scheme: light;
   }
 
   :root[data-theme="dark"] {
+    color-scheme: dark;
+    --theme-accent: var(--color-sky-500);
     --theme-highlight: color-mix(in oklch, var(--color-indigo-100), transparent 50%);
     --theme-foreground: var(--color-zinc-100);
     --theme-background: var(--color-zinc-800);
@@ -48,10 +58,12 @@
     --theme-card-fg: var(--color-zinc-200);
     --theme-card-bg: var(--color-gray-900);
     --theme-muted: var(--color-gray-200);
+    --theme-check: var(--color-green-500);
   }
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
+      --theme-accent: var(--color-sky-500);
       --theme-highlight: color-mix(in oklch, var(--color-indigo-100), transparent 50%);
       --theme-foreground: var(--color-zinc-100);
       --theme-background: var(--color-zinc-800);
@@ -60,6 +72,7 @@
       --theme-card-fg: var(--color-zinc-200);
       --theme-card-bg: var(--color-gray-900);
       --theme-muted: var(--color-gray-200);
+      --theme-check: var(--color-green-500);
     }
   }
 
@@ -124,8 +137,35 @@
     @apply bg-(--theme-hover-bg);
   }
 
+  /* The row's link or button fills the row, so a click anywhere on the
+     highlight runs it, as on a Theme item (#241). Its corners match the row,
+     so the focus ring is round too. */
   .hoverlist > * > :is(a, button) {
-    @apply flex items-center p-2;
+    @apply flex w-full cursor-pointer items-center rounded-md p-2;
+  }
+
+  /* A Theme item in the Profile menu (#200). The radio is visually hidden, so
+     the row shows its keyboard focus. CSS, not a script, shows the check mark
+     on the checked item only; on a hovered row it takes the hover color, so it
+     keeps 3:1 contrast. */
+  .theme-item {
+    @apply flex cursor-pointer items-center gap-2 p-2 whitespace-nowrap;
+  }
+
+  .theme-item:has(:focus-visible) {
+    @apply ring-2 ring-(--theme-accent);
+  }
+
+  .theme-item .theme-check {
+    @apply invisible text-(--theme-check);
+  }
+
+  .theme-item:has(:checked) .theme-check {
+    @apply visible;
+  }
+
+  .theme-item:hover .theme-check {
+    @apply text-(--theme-hover-fg);
   }
 
   /* A Comment body (#126): the server's sanitized markdown render. It styles
@@ -134,7 +174,13 @@
      newline renders as a space (CommonMark), so `pre-line` shows it as a line
      break, as the plain-text body did before #126. An `li` with a block child
      gets no `pre-line`: `markdown` puts a newline before each block child, and
-     `pre-line` would show it as an empty line. Its text is then in a `p`. */
+     `pre-line` would show it as an empty line. Its text is then in a `p`.
+     The body is `text-base`, one step above the panel's `text-sm` (#245); the
+     headings move up one step with it, so each stays larger than the body. */
+  .comment-body {
+    @apply text-base;
+  }
+
   .comment-body > * + * {
     @apply mt-2;
   }
@@ -152,7 +198,7 @@
   }
 
   .comment-body code {
-    @apply rounded bg-(--theme-background) px-1 font-mono text-sm;
+    @apply rounded bg-(--theme-background) px-1 font-mono text-base;
   }
 
   .comment-body pre {
@@ -186,26 +232,51 @@
   }
 
   .comment-body .md-h1 {
-    @apply text-xl font-bold;
+    @apply text-2xl font-bold;
   }
 
   .comment-body .md-h2 {
-    @apply text-lg font-bold;
+    @apply text-xl font-bold;
   }
 
   .comment-body :is(.md-h3, .md-h4, .md-h5, .md-h6) {
-    @apply text-base font-bold;
+    @apply text-lg font-bold;
   }
 
   .site-header {
     @apply bg-gray-800 text-white sticky top-0 z-50;
   }
 
-  .site-nav > li > .nav-link {
-    @apply flex h-12 items-center gap-2 rounded-lg px-4;
+  /* The Top Nav is dark in every Theme (.site-header), so its links take the
+     Dark Theme accent in every Theme: sky-500 is 5.41:1 on gray-800, and
+     sky-700 is 2.51:1. The override is not on .site-header: the Profile menu
+     panel inside it follows the Theme, and sky-500 on its Light Theme card
+     (zinc-200) is 2.14:1 (#247). */
+  .site-nav,
+  .brand-link {
+    --theme-accent: var(--color-sky-500);
   }
 
-  .site-nav > li > .nav-link:hover {
-    @apply bg-gray-700;
+  /* A transparent underline holds the space, so a hover or the current page
+     colors it without a shift. The top corners only are round, so the
+     underline stays straight. */
+  .site-nav > li > .nav-link {
+    @apply flex h-12 items-center gap-2 rounded-t-lg border-b-4 border-transparent px-4;
+  }
+
+  /* The negative margin keeps the logo where it was before the padding. */
+  .brand-link {
+    @apply -ml-4 flex h-12 items-center gap-1 rounded-t-lg border-b-4 border-transparent px-4;
+  }
+
+  .site-nav > li > .nav-link:hover,
+  .brand-link:hover {
+    @apply border-(--theme-accent) bg-gray-700;
+  }
+
+  /* Only a Nav link marks the current page. The Brand link never does: the
+     Home Nav link marks /. */
+  .site-nav > li > .nav-link[aria-current="page"] {
+    @apply border-(--theme-accent);
   }
 }

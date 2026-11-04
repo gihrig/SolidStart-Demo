@@ -3,8 +3,8 @@
 Issue #18 lists two security boxes — **"Generate SBOM"** and **"Snyk Security Rust —
 requires SBOM"** — with a note to "generate an SBOM in CI (or locally) and run
 `snyk sbom test` … via the CLI/API". Two research passes
-(`backend/docs/research/2026-09-15-rust-sbom-snyk.md`,
-`backend/docs/research/2026-09-15-grype-fullstack-scan.md`; every claim cited to a
+(`docs/research/2026-09-15-rust-sbom-snyk.md`,
+`docs/research/2026-09-15-grype-fullstack-scan.md`; every claim cited to a
 primary source) found that `snyk sbom test` and `snyk sbom monitor` are
 **Enterprise-plan** features (`2026-09-15-rust-sbom-snyk.md:179,227`). This project is on
 Snyk's **free** plan, so that path is unavailable. We **abandon Snyk** for this work and
@@ -111,7 +111,7 @@ T4 cargo-deny; T5 the remaining crates (`cargo-udeps` needs a nightly toolchain)
 - **Mono-repo-wide.** This is a cross-cutting decision spanning both subtrees
   ([ADR-0010](0010-monorepo-structure.md)); the SBOM and its scan treat the repo as one
   unit.
-- **Primary-source record.** The two research files under `backend/docs/research/` hold
+- **Primary-source record.** The two research files under `docs/research/` hold
   the cited evidence for every tool fact above.
 
 ## Addendum — T1 SBOM implementation (#138)
@@ -440,3 +440,39 @@ rule stands; the set it produces is now one entry.
   1.54.1 left the SBOM format unchanged: the SBOM diff is the syft version and the
   `shell-quote` component only.
 - **Validation.** `cgs scan` clean (no findings), `cgs sbom:check` and `cgs vex:check` pass.
+
+## Addendum — weekly deps security gate; one grype pin (2026-10-20)
+
+- **The weekly `deps.yml` run now runs the security gates (#225).** Commit `3406dfd`
+  made every `ci.yml` job skip the `deps/weekly-update` PR, because bot-authored PR runs
+  need manual approval (`action_required`). The security jobs skipped too, so the weekly
+  PR reached review unscanned. `deps.yml` now runs `cargo audit --deny warnings`,
+  `cargo deny check licenses bans sources`, `scripts/grype-scan.sh` and
+  `scripts/vex-check.sh` directly after it regenerates the SBOM. A failure stops the job;
+  no PR opens. This corrects "`grype-scan` carries no `if:` guard" above: since `3406dfd`,
+  its only guard skips `deps/weekly-update`.
+- **Rejected: remove the guard from the `ci.yml` security jobs.** Each weekly PR would
+  then need a manual approval to run them.
+- **An unfixed advisory or a stale VEX statement stops the weekly update** until it is
+  triaged (an ignore entry in `backend/.cargo/audit.toml`, or a VEX change). The `ci.yml`
+  runs on `main` fail for the same cause, so the triage is not new work.
+- **One grype pin: `scripts/grype-install.sh`.** It holds the grype version and the
+  `linux_amd64` sha256; both workflows call it. It is CI-only: local runs use the
+  developer's grype on `PATH`, as before.
+- **Known limit.** The gate sees only advisories published before the weekly run. Before
+  merging the weekly PR, run `cgs audit` and `cgs scan` locally.
+
+## Addendum — solid-js 1.9.17 drops the nested seroval; VEX entries removed (2026-10-29)
+
+- **`solid-js` pin `1.9.15` → `1.9.17` (#269).** grype failed the gate on 3 High advisories
+  in the nested `solid-js/seroval@1.5.6` (GHSA-97r2-qh9m-474h, GHSA-wp97-x4hv-qvhp,
+  GHSA-7rv5-mrxv-xcr9, fixed in `1.6.8`) and 1 Medium (GHSA-9wx9-5pv9-3349, fixed in
+  `1.6.10`). `solid-js@1.9.17` needs `seroval: ~1.6.8`, so the lockfile keeps one matched
+  pair, `seroval@1.6.11` and `seroval-plugins@1.6.11`. No override is needed.
+- **The 2026-10-06 seroval VEX entries are removed.** They covered `pkg:npm/seroval@1.5.6`
+  (GHSA-p6vx-979v-rg4c, GHSA-jp82-f5mq-hwhp). That product is gone, so `cgs vex:rm` removed
+  both. The 2026-10-06 text "`solid-js@1.9.15` (latest)" no longer holds: `1.9.16` and
+  `1.9.17` had shipped on 2026-10-06/07. An exact pin never moves on `cgs update`, so check
+  for a newer parent release before a VEX statement or an override.
+- **Validation.** `cgs scan` shows only 2 Low findings (`deepmerge`, `serialize-javascript`).
+  `cgs sbom:check`, `cgs vex:check`, `cgs check`, `cgs test` and `cgs test:e2e` pass.

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vite-plus/test";
 import { createMemo, createRoot } from "solid-js";
-import { createDraftGuard, type DraftGuard } from "./createDraftGuard";
+import { createDraftGuard, createDraftScope, type DraftGuard } from "./createDraftGuard";
 
 // The app-level Draft guard (ADR-0030): forms report yes or no, and every
 // user-started move goes through `attempt`.
@@ -10,8 +10,8 @@ const compose = Symbol("compose");
 const edit1 = Symbol("edit-1");
 const caption = Symbol("caption");
 // The scope of one panel's forms, and of one edit form.
-const panel = Symbol("panel");
-const captionEdit = Symbol("caption-edit");
+const panel = createDraftScope("panel");
+const captionEdit = createDraftScope("caption-edit");
 
 function withGuard(run: (guard: DraftGuard) => void) {
   createRoot((dispose) => {
@@ -136,11 +136,11 @@ describe("createDraftGuard — scopes", () => {
     withGuard((guard) => {
       const move = vi.fn();
       guard.report(caption, true);
-      guard.attempt(move, [panel]);
+      guard.attempt(move, panel);
       expect(move, "a Draft outside the scope").toHaveBeenCalledOnce();
 
       guard.report(compose, true, panel);
-      guard.attempt(move, [panel]);
+      guard.attempt(move, panel);
       expect(guard.pending()).toBe(true);
       guard.confirmMove();
       expect(move).toHaveBeenCalledTimes(2);
@@ -159,42 +159,21 @@ describe("createDraftGuard — scopes", () => {
       expect(guard.hasDraft()).toBe(false);
     }));
 
-  it("a move with two scopes asks about the Drafts in both, and Discard drops them", () =>
-    withGuard((guard) => {
-      const move = vi.fn();
-      guard.report(edit1, true, captionEdit);
-      guard.report(caption, true);
-      guard.attempt(move, [captionEdit, panel]);
-      expect(guard.pending(), "a Draft in the first scope").toBe(true);
-      guard.cancelMove();
-
-      guard.report(edit1, false, captionEdit);
-      guard.report(compose, true, panel);
-      guard.attempt(move, [captionEdit, panel]);
-      expect(guard.pending(), "a Draft in the second scope").toBe(true);
-      guard.report(edit1, true, captionEdit);
-      guard.confirmMove();
-      expect(move).toHaveBeenCalledOnce();
-      expect(guard.holds(edit1), "Discard drops the first scope's Drafts").toBe(false);
-      expect(guard.holds(compose), "and the second scope's").toBe(false);
-      expect(guard.holds(caption), "and keeps the others").toBe(true);
-    }));
-
   it("a panel close names one scope, so it asks only about that panel", () =>
     withGuard((guard) => {
       const move = vi.fn();
       guard.report(edit1, true, captionEdit);
-      guard.attempt(move, [panel]);
+      guard.attempt(move, panel);
       expect(move).toHaveBeenCalledOnce();
     }));
 
-  it("hasDraftIn tells whether a Draft exists in any of the scopes", () =>
+  it("hasDraftIn tells whether a Draft exists in the scope", () =>
     withGuard((guard) => {
       guard.report(caption, true);
-      expect(guard.hasDraftIn([panel, captionEdit])).toBe(false);
+      expect(guard.hasDraftIn(panel)).toBe(false);
       guard.report(compose, true, panel);
-      expect(guard.hasDraftIn([panel, captionEdit])).toBe(true);
-      expect(guard.hasDraftIn([captionEdit])).toBe(false);
+      expect(guard.hasDraftIn(panel)).toBe(true);
+      expect(guard.hasDraftIn(captionEdit)).toBe(false);
     }));
 
   it("hasDraftIn with no scope asks about every Draft", () =>
@@ -206,7 +185,7 @@ describe("createDraftGuard — scopes", () => {
 
   it("hasDraftIn is reactive, so a memo can read it (#214)", () =>
     withGuard((guard) => {
-      const inPanel = createMemo(() => guard.hasDraftIn([panel]));
+      const inPanel = createMemo(() => guard.hasDraftIn(panel));
       expect(inPanel()).toBe(false);
       guard.report(caption, true);
       expect(inPanel(), "a Draft outside the scope").toBe(false);
@@ -217,12 +196,97 @@ describe("createDraftGuard — scopes", () => {
     }));
 });
 
+describe("createDraftGuard — the scope tree (#271)", () => {
+  // The Post card's scopes (ADR-0030 addendum, #271).
+  const post = createDraftScope("post");
+  const postThread = createDraftScope("post-thread", post);
+  const captionScope = createDraftScope("caption", post);
+  const captionThread = createDraftScope("caption-thread", captionScope);
+
+  it("each call makes a new scope, with its name and its parent", () => {
+    expect(captionThread.name).toBe("caption-thread");
+    expect(captionThread.parent).toBe(captionScope);
+    expect(post.parent).toBeUndefined();
+    expect(createDraftScope("post")).not.toBe(post);
+  });
+
+  it("a call that names a scope matches the Drafts in it and in each scope under it", () =>
+    withGuard((guard) => {
+      guard.report(compose, true, captionThread);
+      expect(guard.hasDraftIn(captionThread), "the scope itself").toBe(true);
+      expect(guard.hasDraftIn(captionScope), "its parent").toBe(true);
+      expect(guard.hasDraftIn(post), "its grandparent").toBe(true);
+      expect(guard.hasDraftIn(postThread), "a sibling of its parent").toBe(false);
+
+      guard.report(compose, false, captionThread);
+      guard.report(edit1, true, captionScope);
+      expect(guard.hasDraftIn(captionThread), "a scope under the Draft's scope").toBe(false);
+    }));
+
+  it("a move that names a parent asks about the Drafts under it, and Discard drops only them", () =>
+    withGuard((guard) => {
+      const move = vi.fn();
+      guard.report(compose, true, postThread);
+      guard.report(edit1, true, captionThread);
+      guard.report(caption, true, panel);
+      guard.attempt(move, post);
+      expect(guard.pending()).toBe(true);
+      guard.confirmMove();
+      expect(move).toHaveBeenCalledOnce();
+      expect(guard.holds(compose)).toBe(false);
+      expect(guard.holds(edit1)).toBe(false);
+      expect(guard.holds(caption), "a Draft outside the tree stays").toBe(true);
+    }));
+
+  it("a write under a parent stops a move that names it", () =>
+    withGuard((guard) => {
+      const move = vi.fn();
+      guard.reportBusy(compose, true, captionThread);
+      expect(guard.busyIn(post)).toBe(true);
+      expect(guard.busyIn(postThread)).toBe(false);
+      guard.attempt(move, post);
+      expect(move).not.toHaveBeenCalled();
+    }));
+
+  it("a forced discard, a release and a question that name a parent reach the scopes under it", () =>
+    withGuard((guard) => {
+      guard.report(compose, true, captionThread);
+      const restore = guard.release(captionScope);
+      expect(guard.holds(compose), "release").toBe(false);
+      restore();
+
+      guard.ask("This Post is no longer in Animals.", post);
+      expect(guard.pending(), "ask").toBe(true);
+      guard.cancelMove();
+
+      expect(guard.discardIn(post, "This Post was deleted.")).toBe(true);
+      expect(guard.holds(compose), "discardIn").toBe(false);
+    }));
+
+  it("a call with no scope matches every Draft", () =>
+    withGuard((guard) => {
+      guard.report(compose, true, captionThread);
+      guard.report(caption, true);
+      expect(guard.hasDraftIn()).toBe(true);
+      expect(guard.discardIn(undefined, "This Post was deleted.")).toBe(true);
+      expect(guard.hasDraft()).toBe(false);
+    }));
+
+  it("a Draft with no scope matches only a call with no scope", () =>
+    withGuard((guard) => {
+      guard.report(caption, true);
+      expect(guard.hasDraftIn(post)).toBe(false);
+      expect(guard.hasDraftIn(captionThread)).toBe(false);
+      expect(guard.hasDraftIn()).toBe(true);
+    }));
+});
+
 describe("createDraftGuard — the Owner's own delete (#187)", () => {
-  it("release frees the Drafts in the scopes with no notice, and restore holds them again", () =>
+  it("release frees the Drafts in the scope with no notice, and restore holds them again", () =>
     withGuard((guard) => {
       guard.report(compose, true, panel);
       guard.report(caption, true);
-      const restore = guard.release([panel]);
+      const restore = guard.release(panel);
       expect(guard.holds(compose), "the scope's Draft is released").toBe(false);
       expect(guard.holds(caption), "the other Draft stays").toBe(true);
       expect(guard.notice()).toBeUndefined();
@@ -243,7 +307,7 @@ describe("createDraftGuard — the Owner's own delete (#187)", () => {
     withGuard((guard) => {
       guard.report(compose, true, panel);
       guard.report(edit1, true, panel);
-      const restore = guard.release([panel]);
+      const restore = guard.release(panel);
       guard.report(compose, false, panel);
       restore();
       expect(guard.holds(compose)).toBe(false);
@@ -253,32 +317,32 @@ describe("createDraftGuard — the Owner's own delete (#187)", () => {
   it("a released form keeps its Draft released while it types", () =>
     withGuard((guard) => {
       guard.report(compose, true, panel);
-      guard.release([panel]);
+      guard.release(panel);
       guard.report(compose, true, panel);
       expect(guard.hasDraft()).toBe(false);
     }));
 });
 
 describe("createDraftGuard — a forced discard of a scope (#187)", () => {
-  it("drops the Drafts in the scopes, shows the notice and cancels a waiting move", () =>
+  it("drops the Drafts in the scope, shows the notice and cancels a waiting move", () =>
     withGuard((guard) => {
       const move = vi.fn();
       guard.report(compose, true, panel);
       guard.report(caption, true);
       guard.attempt(move);
 
-      expect(guard.discardIn([panel], "This Caption was deleted.")).toBe(true);
+      expect(guard.discardIn(panel, "This Caption was deleted.")).toBe(true);
       expect(guard.holds(compose)).toBe(false);
       expect(guard.holds(caption)).toBe(true);
       expect(guard.notice()).toBe("This Caption was deleted.");
       expect(guard.pending()).toBe(false);
     }));
 
-  it("with no Draft in the scopes, shows no notice and keeps a waiting move", () =>
+  it("with no Draft in the scope, shows no notice and keeps a waiting move", () =>
     withGuard((guard) => {
       guard.report(caption, true);
       guard.attempt(() => {});
-      expect(guard.discardIn([panel], "This Caption was deleted.")).toBe(false);
+      expect(guard.discardIn(panel, "This Caption was deleted.")).toBe(false);
       expect(guard.notice()).toBeUndefined();
       expect(guard.pending()).toBe(true);
     }));
@@ -391,7 +455,7 @@ describe("createDraftGuard — a form's Cancel (#214)", () => {
       const close = vi.fn();
       guard.report(edit1, true, panel);
       guard.cancel(edit1, close);
-      guard.discardIn([panel], "This Post was deleted.");
+      guard.discardIn(panel, "This Post was deleted.");
       expect(guard.pending()).toBe(false);
       guard.confirmMove();
       expect(close).not.toHaveBeenCalled();
@@ -402,7 +466,7 @@ describe("createDraftGuard — a form's Cancel (#214)", () => {
       const close = vi.fn();
       guard.report(edit1, true, panel);
       guard.cancel(edit1, close);
-      guard.ask("This Post is no longer in Animals.", [panel]);
+      guard.ask("This Post is no longer in Animals.", panel);
       expect(guard.question()).toBe("This Post is no longer in Animals.");
       guard.confirmMove();
       expect(close).not.toHaveBeenCalled();
@@ -410,34 +474,34 @@ describe("createDraftGuard — a form's Cancel (#214)", () => {
 });
 
 describe("createDraftGuard — a write in flight (#214)", () => {
-  it("attempt refuses a move while a form in its scopes is busy, and asks nothing", () =>
+  it("attempt refuses a move while a form in its scope is busy, and asks nothing", () =>
     withGuard((guard) => {
       const move = vi.fn();
       guard.report(compose, true, panel);
       guard.reportBusy(compose, true, panel);
-      guard.attempt(move, [panel]);
+      guard.attempt(move, panel);
       expect(move).not.toHaveBeenCalled();
       expect(guard.pending()).toBe(false);
 
       guard.reportBusy(compose, false, panel);
-      guard.attempt(move, [panel]);
+      guard.attempt(move, panel);
       expect(guard.pending(), "after the write, the move asks").toBe(true);
     }));
 
-  it("a busy form outside the scopes does not stop the move", () =>
+  it("a busy form outside the scope does not stop the move", () =>
     withGuard((guard) => {
       const move = vi.fn();
       guard.reportBusy(caption, true);
-      guard.attempt(move, [panel]);
+      guard.attempt(move, panel);
       expect(move).toHaveBeenCalledOnce();
     }));
 
-  it("a move with no scopes is refused while any form is busy", () =>
+  it("a move with no scope is refused while any form is busy", () =>
     withGuard((guard) => {
       const move = vi.fn();
       guard.reportBusy(edit1, true, captionEdit);
       expect(guard.busyIn()).toBe(true);
-      expect(guard.busyIn([panel])).toBe(false);
+      expect(guard.busyIn(panel)).toBe(false);
       guard.attempt(move);
       expect(move).not.toHaveBeenCalled();
       expect(guard.pending()).toBe(false);

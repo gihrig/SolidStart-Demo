@@ -8,7 +8,7 @@ test.describe("Home Page", () => {
     await page.goto("/");
 
     await expect(page).toHaveTitle(/Little Jedi/);
-    await expect(page).toHaveURL("http://localhost:3000/");
+    await expect(page).toHaveURL("/");
   });
 
   test("displays the Jedi hero heading", async ({ page }) => {
@@ -20,7 +20,7 @@ test.describe("Home Page", () => {
   test("renders the global nav brand and links", async ({ page }) => {
     await page.goto("/");
 
-    // The brand is the home affordance (no separate Home link).
+    // The Brand link and the Home Nav link both go home (#247).
     await expect(page.getByRole("link", { name: /awesome/i })).toHaveAttribute("href", "/");
 
     const nav = page.getByRole("navigation", { name: "Main" });
@@ -44,7 +44,7 @@ test.describe("Home Page", () => {
     await expect(aboutLink).toHaveAttribute("href", "/about");
     await aboutLink.click();
 
-    await expect(page).toHaveURL("http://localhost:3000/about");
+    await expect(page).toHaveURL("/about");
     await expect(page.getByRole("heading", { name: /^About$/i })).toBeVisible();
   });
 

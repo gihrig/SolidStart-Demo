@@ -14,12 +14,18 @@ import {
   type DraftGuard,
   type DraftScope,
 } from "~/lib/createDraftGuard";
+import { createRpcAction } from "~/lib/createRpcAction";
+import { isImeKey } from "~/lib/isImeKey";
 import ConfirmDialog from "~/components/ConfirmDialog";
 
 /** The app's one Draft guard. Without a provider, the pass-through guard: a
  *  component test without the app shell behaves as before the guard. A test
  *  provides its own with `<DraftGuardContext.Provider value={guard}>`. */
 export const DraftGuardContext = createContext<DraftGuard>(passThroughGuard);
+
+/** The scope of the forms under it (ADR-0030). Without a provider, a form has
+ *  no scope, so only a move with no scope asks about its Draft. */
+export const DraftScopeContext = createContext<DraftScope | undefined>(undefined);
 
 /**
  * The app's Draft guard (ADR-0030), in `app.tsx` inside the Router. It shares
@@ -62,13 +68,11 @@ export function useDraftGuard(): DraftGuard {
   return useContext(DraftGuardContext);
 }
 
-export interface DraftOptions {
+interface DraftOptions {
   /** Whether the form holds a Draft now. An effect reads it, so each change
    *  of a signal it reads reports again: an input, and a change of the saved
    *  text. */
   dirty: Accessor<boolean>;
-  /** The form's scope, when a move can unmount its group of forms alone. */
-  scope?: DraftScope;
   /** Whether the form's write is in flight (#214). While it is, no move that
    *  would unmount the form runs. */
   busy?: Accessor<boolean>;
@@ -77,7 +81,7 @@ export interface DraftOptions {
   notice?: () => string;
 }
 
-export interface Draft {
+interface Draft {
   /** The user drops the Draft (a Cancel, or a saved write that closes the
    *  form). The form's unmount then shows no notice. The Draft stays released
    *  until the form is clean: a report that re-runs before the saved text
@@ -90,21 +94,23 @@ export interface Draft {
 }
 
 /**
- * One form's Draft in the app's guard (ADR-0030). It owns the form's key, so
- * two forms never share one. It reports `dirty()` as it changes. An unmount
- * with a Draft that the user did not discard is a forced discard: the guard
- * shows the notice.
+ * One form's Draft in the app's guard (ADR-0030), inside `useDraftForm`. It
+ * owns the form's key, so two forms never share one. It reports `dirty()` as
+ * it changes, in the scope of `DraftScopeContext` where the form mounts
+ * (#271). An unmount with a Draft that the user did not discard is a forced
+ * discard: the guard shows the notice.
  */
-export function useDraft(options: DraftOptions): Draft {
+function useDraft(options: DraftOptions): Draft {
   const guard = useDraftGuard();
+  const scope = useContext(DraftScopeContext);
   const key = Symbol("draft");
   let cleared = false;
   createEffect(() => {
     const dirty = options.dirty();
     if (!dirty) cleared = false;
-    guard.report(key, dirty && !cleared, options.scope);
+    guard.report(key, dirty && !cleared, scope);
   });
-  createEffect(() => guard.reportBusy(key, options.busy?.() ?? false, options.scope));
+  createEffect(() => guard.reportBusy(key, options.busy?.() ?? false, scope));
   // A Draft that an own delete released (`guard.release`) ends here too, with no
   // notice.
   onCleanup(() => {
@@ -124,4 +130,95 @@ export function useDraft(options: DraftOptions): Draft {
         close();
       }),
   };
+}
+
+export interface DraftFormOptions<TResult> {
+  /** Whether the form holds a Draft now: the form's own Draft test. */
+  dirty: Accessor<boolean>;
+  /** The notice of a forced discard. Defaults to `DRAFT_DISCARDED_NOTICE`. */
+  notice?: () => string;
+  /** The Cancel's step, read at each Cancel and Escape. None: the form has no
+   *  Cancel, and Escape does nothing. It is an accessor, so a caller passes
+   *  `() => step`: the outer arrow lets the hook read the step late. A form's
+   *  step can change while the form is open (`onCancel` of CaptionForm, from
+   *  PostCaption), and a step read one time at mount would go stale. */
+  close?: Accessor<(() => void) | undefined>;
+  /** What Escape runs when that is not the Cancel (#210). It gets the Cancel and
+   *  returns an action, or none. Default: the Cancel, when the form has one. */
+  escape?: (cancel: () => void) => (() => void) | undefined;
+  /** The form's write. It reads the form's fields when it runs, and it rejects
+   *  on failure. */
+  write: () => Promise<TResult>;
+  /** The error text of a failure that is not an `Error`. */
+  fallbackError: string;
+  /** Runs after a saved write, only while the form is mounted. The Draft has
+   *  ended. */
+  onSaved?: (result: TResult) => void;
+}
+
+export interface DraftForm {
+  /** Runs the write. A late result, after the form unmounts, changes nothing. */
+  submit: () => Promise<void>;
+  /** Whether the write is in flight. */
+  pending: Accessor<boolean>;
+  /** The last write's error, or null. */
+  error: Accessor<string | null>;
+  /** The form's Cancel: with a Draft, it asks first. */
+  cancel: () => void;
+  /** The form's key handler: Escape is the Cancel, or the `escape` action. */
+  keydown: (e: KeyboardEvent) => void;
+}
+
+/**
+ * One form's Draft and write (ADR-0030, #270). It reports the form's Draft and
+ * its write in flight to the app's guard (#214), in the scope where the form
+ * mounts (`DraftScopeContext`, #271). A Cancel with a Draft asks
+ * first. A saved write ends the Draft, then runs `onSaved`. A write that ends
+ * after the form unmounts changes nothing in the form. The form keeps its
+ * fields, its Draft test, its write and its remote-edit merge.
+ */
+export function useDraftForm<TResult>(options: DraftFormOptions<TResult>): DraftForm {
+  // The wrap keeps a result of `undefined` apart from the failure value of
+  // `createRpcAction`, so no write returns `true` only to show it saved.
+  const action = createRpcAction<void, { result: TResult }>(
+    async () => ({ result: await options.write() }),
+    { fallbackError: options.fallbackError },
+  );
+  const draft = useDraft({
+    dirty: options.dirty,
+    busy: action.pending,
+    notice: options.notice,
+  });
+  // A write can outlive its form: its owner can unmount it (a browser close, a
+  // new Post). A stale result must not close or clear the next form (#185 and
+  // PR #216 reviews). The write itself still lands.
+  let unmounted = false;
+  onCleanup(() => (unmounted = true));
+
+  const submit = async () => {
+    const saved = await action.run();
+    if (!saved || unmounted) return;
+    draft.clear();
+    options.onSaved?.(saved.result);
+  };
+  const cancel = () => {
+    const close = options.close?.();
+    if (close) draft.cancel(close);
+  };
+  // The form stops Escape, so a document listener (`useDismiss`) does not close
+  // a menu or the sidebar. An Escape that acts also cancels the browser's own
+  // Escape action, which would close the question that the action opens
+  // (#210). An IME's Escape ends its composition (#251), and while the form
+  // writes, Escape does nothing.
+  const keydown = (e: KeyboardEvent) => {
+    if (e.key !== "Escape") return;
+    e.stopPropagation();
+    if (isImeKey(e) || action.pending()) return;
+    const act = options.escape ? options.escape(cancel) : options.close?.() && cancel;
+    if (!act) return;
+    e.preventDefault();
+    act();
+  };
+
+  return { submit, pending: action.pending, error: action.error, cancel, keydown };
 }

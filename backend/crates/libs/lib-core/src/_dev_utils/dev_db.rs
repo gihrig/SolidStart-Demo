@@ -20,12 +20,15 @@ const SQL_DIR: &str = "sql/dev_initial";
 
 const DEMO_PWD: &str = "welcome";
 
-/// The seeded Author Users and their dev-only passwords, so a developer can log
-/// in as the Owner of the seeded Posts and Captions (Edit / Delete, #123).
-const AUTHOR_PWDS: &[(&str, &str)] = &[
+/// The seeded Users with a dev-only password, other than demo1. A developer can
+/// log in as an Author, the Owner of the seeded Posts and Captions (Edit /
+/// Delete, #123), or as the long-name User, whose username has the maximum 32
+/// characters (#203).
+const SEED_USER_PWDS: &[(&str, &str)] = &[
 	("Lisa", "lisa_01"),
 	("Homer", "homer_01"),
 	("Bart", "bart_01"),
+	("DemoBartalomo2342and-five-eigths", "dbart_01"),
 ];
 
 pub async fn init_dev_db() -> Result<(), Box<dyn std::error::Error>> {
@@ -81,14 +84,14 @@ pub async fn init_dev_db() -> Result<(), Box<dyn std::error::Error>> {
 	UserBmc::update_pwd(&ctx, &mm, demo1_user.id, DEMO_PWD).await?;
 	info!("{:<12} - init_dev_db - set demo1 pwd", "FOR-DEV-ONLY");
 
-	// -- Set the Author pwds
-	for (username, pwd) in AUTHOR_PWDS {
-		let author: User = UserBmc::first_by_username(&ctx, &mm, username)
+	// -- Set the seed User pwds
+	for (username, pwd) in SEED_USER_PWDS {
+		let user: User = UserBmc::first_by_username(&ctx, &mm, username)
 			.await?
 			.unwrap();
-		UserBmc::update_pwd(&ctx, &mm, author.id, pwd).await?;
+		UserBmc::update_pwd(&ctx, &mm, user.id, pwd).await?;
 	}
-	info!("{:<12} - init_dev_db - set Author pwds", "FOR-DEV-ONLY");
+	info!("{:<12} - init_dev_db - set seed User pwds", "FOR-DEV-ONLY");
 
 	Ok(())
 }

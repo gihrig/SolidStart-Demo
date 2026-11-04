@@ -1,8 +1,7 @@
-import { createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
-import type { DraftScope } from "~/lib/createDraftGuard";
+import { createEffect, createMemo, createSignal, For, on, Show, type JSX } from "solid-js";
 import { createRpcAction } from "~/lib/createRpcAction";
 import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
-import type { OwnerWrites } from "~/lib/jedi/createJediFeed";
+import type { OwnerWrites, PostCardScopes } from "~/lib/jedi/createJediFeed";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { PostChanges, PostView, CaptionView, Like } from "~/types/jedi";
 import Image from "~/components/Image";
@@ -13,6 +12,8 @@ import PostDialog from "~/components/PostDialog";
 import LikeControl from "~/components/LikeControl";
 import OwnerActions from "~/components/OwnerActions";
 import PostCaption from "~/components/PostCaption";
+import { DraftScopeContext } from "~/components/DraftGuardContext";
+import Icon from "~/components/Icon";
 
 export interface FeaturedPostProps {
   post: PostView;
@@ -20,7 +21,8 @@ export interface FeaturedPostProps {
    *  text); undefined until the post's captions load or when it has none. */
   caption?: CaptionView;
   /** Whether the viewer is a logged-in User (#121, #123). A logged-in User sees
-   *  every button on both lines; a visitor sees only the fire-heart and the count. */
+   *  every button in the Post actions and the Caption actions; a visitor sees
+   *  the Comments toggles, the fire-heart and the count. */
   loggedIn?: boolean;
   /** The logged-in User's id (#123). Edit / Delete are enabled only for the
    *  Owner, and stay disabled until the id loads. This only gates buttons; the
@@ -39,12 +41,12 @@ export interface FeaturedPostProps {
   captionLike?: Like;
   /** Like or unlike the Caption shown; the opposite of `captionLike.liked`. */
   onToggleCaptionLike?: () => Promise<void>;
-  /** This Post's Comment thread (#124), with the panel's open state. The
-   *  Comments toggle opens it as an inline panel; without it, the toggle opens
+  /** This Post's Comment thread (#124), with its open state. The Post Comments
+   *  toggle opens it in the Comments panel; without it, the toggle opens
    *  nothing. */
   postComments?: CommentThreadState;
-  /** The shown Caption's Comment thread (#127), with the panel's open state.
-   *  The Caption line's Comments toggle opens it as an inline panel. */
+  /** The shown Caption's Comment thread (#127), with its open state. The
+   *  Caption Comments toggle opens it in the Comments panel. */
   captionComments?: CommentThreadState;
   /** The Owner's writes on this Post (#187): the Edit dialog, its save and
    *  the delete. */
@@ -52,8 +54,13 @@ export interface FeaturedPostProps {
   /** The Owner's writes on the Caption shown (#187): the edit form in the
    *  Caption line, its save and the delete. */
   captionOwner?: OwnerWrites<string>;
-  /** The scope of the Add Caption form's Draft (#214). */
-  addCaptionScope?: DraftScope;
+  /** Add a Caption to the Post `postId`, as the logged-in User (the
+   *  view-model's `addCaption`, #283). Refetches the Captions at once. */
+  addCaption?: (postId: number, text: string) => Promise<CaptionView>;
+  /** The scopes of the Post shown and of the Caption shown (ADR-0030, #271).
+   *  The card provides the Post scope to each form in it, and the Caption line
+   *  provides the Caption scope to the Caption edit. */
+  draftScopes: PostCardScopes;
   /** Open the New Post dialog (#214). `opener` is the Add button, which takes
    *  focus after the close. */
   onAddPost?: (opener: HTMLElement) => void;
@@ -90,6 +97,82 @@ const createDeleteAction = (
     },
     { fallbackError },
   );
+
+/** A comment count in words, for a Comments toggle's name (#210): "1 comment",
+ *  "3 comments". */
+const commentCountText = (count: number) => `${count} ${count === 1 ? "comment" : "comments"}`;
+
+interface ActionsLineProps {
+  /** The Comments toggle's label: "Post Comments" or "Caption Comments". */
+  label: string;
+  /** The comment count after the label. */
+  count: number;
+  /** Whether the toggle's thread is open in the Comments panel. */
+  open: boolean;
+  /** The panel's element id. */
+  panelId: string;
+  /** Disables the toggle, such as on a Post with no Caption. */
+  toggleDisabled?: boolean;
+  onToggle: () => void;
+  /** The toggle, which takes focus when Escape closes its panel (#210). */
+  toggleRef?: (el: HTMLButtonElement) => void;
+  /** The errors of the line's actions. */
+  errors: (string | null)[];
+  /** Whether the viewer is a logged-in User: then the other actions sit at the
+   *  right of the line (#210). */
+  loggedIn?: boolean;
+  /** The block's classes, such as its margin. */
+  class?: string;
+  /** The other actions: the fire-heart and count, Like, Add, Edit and Delete. */
+  children: JSX.Element;
+}
+
+/**
+ * One actions line (#210): the Post actions and the Caption actions share this
+ * layout. The Comments toggle sits at the left: its label, the expand-arrow,
+ * and the count. The arrow turns 180° while its thread is open, with the
+ * Profile menu arrow's size and timing (#244). The arrow is visual only; the
+ * toggle's name says the count in words, and neither toggle's name starts the
+ * other's. For a logged-in User, the other actions sit at the right, and on a
+ * narrow screen they wrap under the toggle. A visitor's fire-heart and count
+ * sit right after the toggle. One alert per failed action goes under the line,
+ * so one error never hides another.
+ */
+function ActionsLine(props: ActionsLineProps) {
+  return (
+    <div class={props.class}>
+      <div
+        class={`flex flex-wrap items-center gap-y-2 text-sm px-2 ${props.loggedIn ? "justify-between" : "gap-x-4"}`}
+      >
+        <button
+          ref={(el) => props.toggleRef?.(el)}
+          type="button"
+          class="flex items-center font-bold hover:underline rounded p-2 -m-2 disabled:opacity-50 disabled:no-underline"
+          aria-label={`${props.label}, ${commentCountText(props.count)}`}
+          aria-expanded={props.open}
+          aria-controls={props.panelId}
+          disabled={props.toggleDisabled}
+          onClick={() => props.onToggle()}
+        >
+          {props.label}
+          <Icon
+            name="expand-arrow"
+            class={`w-4 h-4 ml-1 transition-transform duration-300 ${props.open ? "rotate-180" : ""}`}
+          />
+          <span class="font-light text-(--theme-card-fg) ml-2">{props.count}</span>
+        </button>
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2">{props.children}</div>
+      </div>
+      <For each={props.errors.filter((e) => e !== null)}>
+        {(error) => (
+          <div role="alert" class="rounded bg-red-100 p-2 mt-2 text-red-700 text-sm">
+            {error}
+          </div>
+        )}
+      </For>
+    </div>
+  );
+}
 
 export default function FeaturedPost(props: FeaturedPostProps) {
   // One action per Like target (#123), so each toggle reports its own error.
@@ -147,8 +230,10 @@ export default function FeaturedPost(props: FeaturedPostProps) {
   // A `posts` poke refetches the Post as a new object with the same id. The memo
   // keeps that from closing the Caption form.
   const postId = createMemo(() => props.post.id);
-  // Add Caption (#121): the button sits on the categories line, the form in the
-  // caption line. A new Post starts on its caption, not on a form left open.
+  // Add Caption (#121): the button sits in the Caption actions, the form in the
+  // Caption line. A new Post starts on its caption, not on a form left open. A
+  // Draft in the form that shows at once opens it too (#271), so a Caption
+  // that arrives does not close it.
   const [addingCaption, setAddingCaption] = createSignal(false);
   let addCaptionRef: HTMLButtonElement | undefined;
   createEffect(on(postId, () => setAddingCaption(false), { defer: true }));
@@ -157,14 +242,26 @@ export default function FeaturedPost(props: FeaturedPostProps) {
     setAddingCaption(false);
     addCaptionRef?.focus();
   };
-  // The Comments panel (#124). Its open state lives in the view-model, which
-  // closes it when the selected Post changes.
+  // The Post's thread in the Comments panel (#124). Its open state lives in the
+  // view-model, which closes it when the selected Post changes.
   const commentsOpen = () => props.postComments?.open() ?? false;
   const commentsPanelId = () => `post-${postId()}-comments`;
-  // The Caption Comments panel (#127), the same way. The view-model closes it
-  // when the Caption shown changes.
+  // The Caption's thread (#127), the same way. The view-model closes it when
+  // the Caption shown changes.
   const captionCommentsOpen = () => props.captionComments?.open() ?? false;
   const captionCommentsPanelId = () => `post-${postId()}-caption-comments`;
+  // Escape in the empty compose box closes the panel as a toggle click does
+  // (#210): focus moves to the toggle, then the guarded close runs.
+  let postToggleRef: HTMLButtonElement | undefined;
+  let captionToggleRef: HTMLButtonElement | undefined;
+  const closePostComments = () => {
+    postToggleRef?.focus();
+    props.postComments?.setOpen(false);
+  };
+  const closeCaptionComments = () => {
+    captionToggleRef?.focus();
+    props.captionComments?.setOpen(false);
+  };
   const captionCommentCount = () => props.caption?.commentCount ?? 0;
   // The author link is a placeholder until it lands on the feed seam.
   const notImplemented = (e: MouseEvent) => {
@@ -173,84 +270,157 @@ export default function FeaturedPost(props: FeaturedPostProps) {
   };
 
   return (
-    <article class="card-style">
-      {/* Title bar */}
-      <div class="flex items-center justify-between px-4 h-14">
-        <h2 ref={(el) => (titleRef = el)} tabindex="-1" class="text-2xl font-bold w-1/2 truncate">
-          {props.post.title}
-        </h2>
-        <div class="text-sm text-(--theme-muted)">
-          flickr @{" "}
-          <a
-            href={props.post.photographerUrl}
-            class="hover:underline rounded"
-            target="_blank"
-            rel="noreferrer"
+    <DraftScopeContext.Provider value={props.draftScopes.post}>
+      <article class="card-style">
+        {/* Title bar */}
+        {/* The photographer stays on one line, so its focus ring stays whole; the
+          title gives up space first. A name wider than two thirds of the row
+          truncates inside the link, so the link's ring is not clipped. */}
+        <div class="flex items-center justify-between gap-4 px-4 h-14">
+          <h2
+            ref={(el) => (titleRef = el)}
+            tabindex="-1"
+            class="text-2xl font-bold min-w-0 flex-1 truncate"
           >
-            {props.post.photographer}
-          </a>
+            {props.post.title}
+          </h2>
+          <div class="flex items-center gap-3 min-w-0 max-w-2/3 whitespace-nowrap text-sm text-(--theme-muted)">
+            <span>flickr @</span>
+            <a
+              href={props.post.photographerUrl}
+              class="min-w-0 hover:underline rounded p-2 -m-2"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span class="block truncate">{props.post.photographer}</span>
+            </a>
+          </div>
         </div>
-      </div>
-      {/* Image */}
-      <Image
-        src={props.post.imageSrc}
-        alt={props.post.imageAlt}
-        href={props.post.sourceUrl}
-        loading="lazy"
-      />
-      {/* Body: author, caption, tags, actions. The Comments line sits two line
-          heights (40px) below the categories and above the card's bottom edge:
-          pb-6 here plus the card's own pb-4. */}
-      <div class="p-4 pb-6">
-        <Author
-          avatarSrc={props.post.author.avatarUrl}
-          name={props.post.author.name}
-          href={trustedUrl("#")}
-          onClick={notImplemented}
+        {/* Image */}
+        <Image
+          src={props.post.imageSrc}
+          alt={props.post.imageAlt}
+          href={props.post.sourceUrl}
+          loading="lazy"
         />
-        <PostCaption
-          postId={props.post.id}
-          caption={props.caption}
-          captionsLoaded={props.captionsLoaded ?? false}
-          canAdd={props.loggedIn ?? false}
-          adding={addingCaption()}
-          onClose={closeCaptionForm}
-          ref={(el) => (captionLineRef = el)}
-          editing={captionEditOpen()}
-          editScope={props.captionOwner?.edit.draftScope}
-          addScope={props.addCaptionScope}
-          onSaveEdit={(id, text) => props.captionOwner?.save(id, text) ?? Promise.resolve()}
-          onEditClose={closeCaptionEdit}
-        />
-        <div class="flex items-center gap-2 text-sm mb-10">
-          <For each={props.post.categories}>
-            {(c) => (
-              <button type="button" onClick={() => {}} class="theme-button">
-                {c.name}
-              </button>
-            )}
-          </For>
-          {/* The Caption actions (#123), for the Caption shown: the Comments
-              toggle and its count (#127), fire-heart, count, Like, Add, Edit,
-              Delete. A visitor sees the Comments toggle, the fire-heart and the
-              count of a Caption that exists. A logged-in User sees every button;
-              one that cannot act now is disabled. The toggle's accessible name
-              starts "Caption comments", so it never reads as the Post's toggle.
-              pr-2 matches the Post line's px-2. */}
-          <Show when={props.loggedIn || props.caption}>
-            <div class="flex items-center gap-4 ml-auto pr-2">
+        {/* The body (#210): the Author line, the Post actions, the Caption line,
+          the Caption actions and the Comments panel. The last part sits two
+          line heights (40px) above the card's bottom edge: pb-6 here plus the
+          card's own pb-4. */}
+        <div class="p-4 pb-6">
+          {/* The Author line (#210): the avatar and name, the Post title and the
+            Categories. The title is plain text, not a heading, and the
+            separators are visual only. On a narrow screen, the line wraps, and
+            nothing is truncated. */}
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-4">
+            <Author
+              avatarSrc={props.post.author.avatarUrl}
+              name={props.post.author.name}
+              href={trustedUrl("#")}
+              onClick={notImplemented}
+            />
+            <span aria-hidden="true">-</span>
+            <span class="min-w-0 wrap-break-word">{props.post.title}</span>
+            <span aria-hidden="true">-</span>
+            <For each={props.post.categories}>
+              {(c) => (
+                <button type="button" onClick={() => {}} class="theme-button text-sm">
+                  {c.name}
+                </button>
+              )}
+            </For>
+          </div>
+          {/* The Post actions (#123): the Post Comments toggle and its count
+            (#124), the fire-heart, count, Like, Add, Edit and Delete. A visitor
+            sees the toggle, the fire-heart and the count. A logged-in User sees
+            every button; Edit / Delete act for the Owner only. Add opens the
+            one New Post dialog (#214). */}
+          <ActionsLine
+            class="mb-10"
+            label="Post Comments"
+            loggedIn={props.loggedIn}
+            count={props.post.commentCount}
+            open={commentsOpen()}
+            panelId={commentsPanelId()}
+            onToggle={() => props.postComments?.setOpen(!commentsOpen())}
+            toggleRef={(el) => (postToggleRef = el)}
+            errors={[toggleLike.error(), deletePost.error()]}
+          >
+            <LikeControl
+              like={props.like}
+              fallbackCount={props.post.likeCount}
+              countLabel="Likes"
+              label={`Like post by ${props.post.author.name}`}
+              loggedIn={props.loggedIn}
+              onToggle={() => void toggleLike.run(undefined)}
+            />
+            <Show when={props.loggedIn}>
               <button
                 type="button"
-                class="font-bold hover:underline rounded disabled:opacity-50 disabled:no-underline"
-                aria-label={`Caption comments, ${captionCommentCount()} comments`}
-                aria-expanded={captionCommentsOpen()}
-                aria-controls={captionCommentsPanelId()}
-                disabled={!props.caption}
-                onClick={() => props.captionComments?.setOpen(!captionCommentsOpen())}
+                onClick={(e) => props.onAddPost?.(e.currentTarget)}
+                class="theme-button"
+                aria-label="Add Post"
               >
-                Comments
-                <span class="font-light text-(--theme-card-fg) ml-2">{captionCommentCount()}</span>
+                Add
               </button>
+            </Show>
+            <OwnerActions
+              noun="Post"
+              author={props.post.author}
+              loggedIn={props.loggedIn}
+              userId={props.userId}
+              subjectId={props.post.id}
+              deleteQuestion={POST_DELETE_QUESTION}
+              deleteDiscardsDraft={props.postOwner?.removeDiscardsDraft}
+              deleteDisabled={deletePost.pending()}
+              onDelete={(id) => void runDelete(deletePost, id, () => titleRef)}
+              onEdit={() => props.postOwner?.edit.setOpen(true)}
+              editRef={(el) => (postEditRef = el)}
+            />
+            {/* The Post edit (#187), keyed on the Post id: an edit never writes
+              to another Post. */}
+            <Show when={postEditOpen() && props.post.id} keyed>
+              {(id) => (
+                <PostDialog
+                  post={props.post}
+                  onSave={(changes) => props.postOwner?.save(id, changes) ?? Promise.resolve()}
+                  onClose={closePostEdit}
+                />
+              )}
+            </Show>
+          </ActionsLine>
+          <PostCaption
+            postId={props.post.id}
+            caption={props.caption}
+            captionsLoaded={props.captionsLoaded ?? false}
+            canAdd={props.loggedIn ?? false}
+            adding={addingCaption()}
+            onClose={closeCaptionForm}
+            onAddDraft={() => setAddingCaption(true)}
+            onAdd={(postId, text) => props.addCaption?.(postId, text) ?? Promise.resolve()}
+            ref={(el) => (captionLineRef = el)}
+            editing={captionEditOpen()}
+            captionScope={props.draftScopes.caption}
+            onSaveEdit={(id, text) => props.captionOwner?.save(id, text) ?? Promise.resolve()}
+            onEditClose={closeCaptionEdit}
+          />
+          {/* The Caption actions (#123), for the Caption shown: the Caption
+            Comments toggle and its count (#127), the fire-heart, count, Like,
+            Add, Edit and Delete. A visitor sees the toggle, the fire-heart and
+            the count of a Caption that exists. A logged-in User sees every
+            button; one that cannot act now is disabled. */}
+          <Show when={props.loggedIn || props.caption}>
+            <ActionsLine
+              label="Caption Comments"
+              loggedIn={props.loggedIn}
+              count={captionCommentCount()}
+              open={captionCommentsOpen()}
+              panelId={captionCommentsPanelId()}
+              toggleDisabled={!props.caption}
+              onToggle={() => props.captionComments?.setOpen(!captionCommentsOpen())}
+              toggleRef={(el) => (captionToggleRef = el)}
+              errors={[toggleCaptionLike.error(), deleteCaption.error()]}
+            >
               <LikeControl
                 like={props.caption ? props.captionLike : undefined}
                 fallbackCount={props.caption?.likeCount ?? 0}
@@ -263,8 +433,8 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               />
               <Show when={props.loggedIn}>
                 {/* Disabled while a form is open: on Add, on a Post with no
-                    Caption, which shows the form directly, and while the
-                    Caption edit is open (#187). */}
+                  Caption, which shows the form directly, and while the
+                  Caption edit is open (#187). */}
                 <button
                   ref={(el) => (addCaptionRef = el)}
                   type="button"
@@ -298,126 +468,54 @@ export default function FeaturedPost(props: FeaturedPostProps) {
                   onConfirm={closeLockedNotice}
                 />
               </Show>
-            </div>
+            </ActionsLine>
           </Show>
-        </div>
-        {/* The Caption Comments panel (#127): directly below the categories
-            line, above the Post's panel. Both panels may be open at once. */}
-        <section
-          id={captionCommentsPanelId()}
-          aria-label="Caption comments"
-          hidden={!captionCommentsOpen()}
-          class="mb-4 space-y-2 px-2 text-sm"
-        >
-          <Show when={captionCommentsOpen() && props.captionComments}>
-            {(captionComments) => (
-              <CommentThread
-                id={captionCommentsPanelId()}
-                thread={captionComments()}
-                loggedIn={props.loggedIn}
-                userId={props.userId}
-              />
-            )}
-          </Show>
-        </section>
-        {/* The Comments panel (#124): below the categories line, above the
-            Comments line, which stays at the bottom of the card. The element is
-            always here, so the toggle's aria-controls resolves; the thread
-            mounts only while open. */}
-        <section
-          id={commentsPanelId()}
-          aria-label="Comments"
-          hidden={!commentsOpen()}
-          class="mb-4 space-y-2 px-2 text-sm"
-        >
-          <Show when={commentsOpen() && props.postComments}>
-            {(postComments) => (
-              <CommentThread
-                id={commentsPanelId()}
-                thread={postComments()}
-                loggedIn={props.loggedIn}
-                userId={props.userId}
-              />
-            )}
-          </Show>
-        </section>
-        {/* One alert per action, so a Caption error never hides a Post error. */}
-        <For
-          each={[
-            toggleCaptionLike.error(),
-            deleteCaption.error(),
-            toggleLike.error(),
-            deletePost.error(),
-          ].filter((e) => e !== null)}
-        >
-          {(error) => (
-            <div role="alert" class="rounded bg-red-100 p-2 mb-2 text-red-700 text-sm">
-              {error}
-            </div>
-          )}
-        </For>
-        <div class="flex items-center justify-between text-sm px-2">
-          <button
-            type="button"
-            class="font-bold hover:underline rounded"
-            aria-label={`Comments, ${props.post.commentCount} comments`}
-            aria-expanded={commentsOpen()}
-            aria-controls={commentsPanelId()}
-            onClick={() => props.postComments?.setOpen(!commentsOpen())}
+          {/* The Comments panel (#124, #127), under the Caption actions. It shows
+            one thread at a time, the Post's or the Caption's (#210). Each
+            element is always here, so its toggle's aria-controls resolves; the
+            thread mounts only while open. The open panel's top border is the
+            rule above it, not an <hr>, so screen readers announce no
+            separator. */}
+          <section
+            id={commentsPanelId()}
+            aria-label="Post Comments"
+            hidden={!commentsOpen()}
+            class="mt-4 space-y-2 border-t border-(--theme-muted) px-2 pt-4 text-sm"
           >
-            Comments
-            <span class="font-light text-(--theme-card-fg) ml-2">{props.post.commentCount}</span>
-          </button>
-          <div class="flex items-center gap-4">
-            {/* The visibility rule (#123): a visitor sees the fire-heart and the
-                count. A logged-in User sees every button; Edit / Delete act for
-                the Owner only. Add opens the one New Post dialog (#214). */}
-            <LikeControl
-              like={props.like}
-              fallbackCount={props.post.likeCount}
-              countLabel="Likes"
-              label={`Like post by ${props.post.author.name}`}
-              loggedIn={props.loggedIn}
-              onToggle={() => void toggleLike.run(undefined)}
-            />
-            <Show when={props.loggedIn}>
-              <button
-                type="button"
-                onClick={(e) => props.onAddPost?.(e.currentTarget)}
-                class="theme-button"
-                aria-label="Add Post"
-              >
-                Add
-              </button>
-            </Show>
-            <OwnerActions
-              noun="Post"
-              author={props.post.author}
-              loggedIn={props.loggedIn}
-              userId={props.userId}
-              subjectId={props.post.id}
-              deleteQuestion={POST_DELETE_QUESTION}
-              deleteDiscardsDraft={props.postOwner?.removeDiscardsDraft}
-              deleteDisabled={deletePost.pending()}
-              onDelete={(id) => void runDelete(deletePost, id, () => titleRef)}
-              onEdit={() => props.postOwner?.edit.setOpen(true)}
-              editRef={(el) => (postEditRef = el)}
-            />
-            {/* The Post edit (#187), keyed on the Post id: an edit never writes
-                to another Post. */}
-            <Show when={postEditOpen() && props.post.id} keyed>
-              {(id) => (
-                <PostDialog
-                  post={props.post}
-                  draftScope={props.postOwner?.edit.draftScope}
-                  onSave={(changes) => props.postOwner?.save(id, changes) ?? Promise.resolve()}
-                  onClose={closePostEdit}
+            <Show when={commentsOpen() && props.postComments}>
+              {(postComments) => (
+                <CommentThread
+                  id={commentsPanelId()}
+                  thread={postComments()}
+                  composeLabel="Post Comment"
+                  onClosePanel={closePostComments}
+                  loggedIn={props.loggedIn}
+                  userId={props.userId}
                 />
               )}
             </Show>
-          </div>
+          </section>
+          <section
+            id={captionCommentsPanelId()}
+            aria-label="Caption Comments"
+            hidden={!captionCommentsOpen()}
+            class="mt-4 space-y-2 border-t border-(--theme-muted) px-2 pt-4 text-sm"
+          >
+            <Show when={captionCommentsOpen() && props.captionComments}>
+              {(captionComments) => (
+                <CommentThread
+                  id={captionCommentsPanelId()}
+                  thread={captionComments()}
+                  composeLabel="Caption Comment"
+                  onClosePanel={closeCaptionComments}
+                  loggedIn={props.loggedIn}
+                  userId={props.userId}
+                />
+              )}
+            </Show>
+          </section>
         </div>
-      </div>
-    </article>
+      </article>
+    </DraftScopeContext.Provider>
   );
 }
