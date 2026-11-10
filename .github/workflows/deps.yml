@@ -56,7 +56,7 @@ jobs:
         with:
           workspaces: backend
 
-      - uses: taiki-e/install-action@1919c4a95903d2c33e4a221102edca87309fc14b # v2.89.0
+      - uses: taiki-e/install-action@3a3daafd3b7f23b8f65d9f5ba2db203fb59b79e2 # v2.90.2
         with:
           tool: nextest,cargo-audit,cargo-deny@0.20.2
 
@@ -152,7 +152,7 @@ jobs:
 
       # -- Open the PR. No-op when the updates produced no file changes.
       - name: Open pull request
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        uses: peter-evans/create-pull-request@15733dbdfeedb4f7fdb73d13c6f5ac83b710fab8 # v8.1.2
         with:
           branch: deps/weekly-update
           delete-branch: true
