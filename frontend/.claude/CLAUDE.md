@@ -11,6 +11,13 @@ holds the front-end-specific rules and loads when Claude works in `frontend/`.
 - Use `solidjs-solidstart-expert` skills
 - Use `tailwind-design-system` when creating styles
 
+## Code navigation
+
+- If the LSP tool is available, use it (hover, goToDefinition, findReferences) for
+  types and references in `frontend/` before falling back to grep. It does **not**
+  report type errors after an edit (TypeScript 7 sends diagnostics only on
+  request), so still run `vp check` to see them.
+
 ## Code Output Rules
 
 - Write complete code, with no placeholder elisions such as `// ...rest unchanged`.
