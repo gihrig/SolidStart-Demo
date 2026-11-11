@@ -69,3 +69,9 @@ Workspace crates: `lib-utils`, `lib-rpc-core`, `lib-auth`, `lib-core`, `lib-web`
     the front-end barrel. If a binding shows `bigint`, check this setting first.
 - **`cargo watch` needs installing**: `cargo install cargo-watch` before
   `cgs dev-watch`/`cgs test:watch`.
+- **`rust-analyzer` is a per-toolchain rustup component**: the
+  `rust-analyzer-lsp` Claude Code plugin (in-session Rust diagnostics after an
+  edit) needs `rustup component add rust-analyzer` for the **active** toolchain.
+  Without it, the rustup stub prints "`rust-analyzer` is unavailable for the
+  active toolchain" and the plugin silently does nothing. Switching the default
+  toolchain (e.g. nightly → stable) needs the component added again.
