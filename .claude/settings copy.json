@@ -1,0 +1,20 @@
+{
+  "env": {
+    "CLAUDE_CODE_FORK_SUBAGENT": "1",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"
+  },
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Edit",
+      "Bash(git status)",
+      "Bash(vpr *)",
+      "Bash(vp test *)",
+      "Bash(vp check *)",
+      "Bash(vp lint *)",
+      "Bash(gh issue comment *)"
+    ],
+    "deny": ["Read(**/.env*)", "Read(**/.ssh/**)", "Bash(sudo *)"]
+  }
+}
