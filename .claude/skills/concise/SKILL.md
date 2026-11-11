@@ -8,7 +8,7 @@ description: Reduces output verbosity for Claude Code compatible agents. Use to 
 ## Overview
 
 Produce concise, action-focused output.
-Talk in ASD-STE100 Simplified Technical English, and use the ubiquitous language from CONTEXT.md
+Talk in ASD-STE100 Simplified Technical English, and use the ubiquitous language from GLOSSARY.md
 
 ## Instructions
 

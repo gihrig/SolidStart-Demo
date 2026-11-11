@@ -1,4 +1,4 @@
-//! The realtime **Feed** transport (CONTEXT.md "Feed"): the WebSocket broadcast
+//! The realtime **Feed** transport (GLOSSARY.md "Feed"): the WebSocket broadcast
 //! hub, the socket driver, the subscription-authorization fan-out, and the
 //! co-located compile-time **Poke** rule (ADR-0016). The exported contract it
 //! serves — [`Channel`](lib_core::realtime::Channel) and

@@ -57,7 +57,7 @@ This update ([GitHub tag: E06](https://github.com/rust10x/rust-web-app/releases/
 
 ## Mono-repo & commands (ADR-0010)
 
-This is the `backend/` subtree of the [SolidStart Demo mono-repo](../CONTEXT.md)
+This is the `backend/` subtree of the [SolidStart Demo mono-repo](../GLOSSARY.md)
 (a SolidJS front-end in `frontend/` + this Rust/Axum back-end). See
 [ADR-0010](../docs/adr/0010-monorepo-structure.md) for the structure.
 

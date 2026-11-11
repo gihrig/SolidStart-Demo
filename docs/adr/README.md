@@ -2,7 +2,7 @@
 
 One decision per file, titled with the decision itself. Numbered and immutable
 once accepted — a reversal is a **new** ADR that supersedes the old one, never an
-edit. `CONTEXT.md` cites ADRs inline where a topic comes up; this table is the
+edit. `GLOSSARY.md` cites ADRs inline where a topic comes up; this table is the
 flat "what has been decided" view.
 
 > **Generated file — do not edit by hand.** Regenerate with `cgs adr:index`

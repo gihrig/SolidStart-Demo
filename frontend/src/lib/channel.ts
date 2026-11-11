@@ -2,7 +2,7 @@ import type { Accessor } from "solid-js";
 import type { Channel as ChannelType } from "~/types/backend";
 
 /**
- * A realtime **Channel** (`CONTEXT.md`): the front-end mirror of the back-end
+ * A realtime **Channel** (`GLOSSARY.md`): the front-end mirror of the back-end
  * `Channel` ([ADR-0020](../../../docs/adr/0020-collapse-channel-vocabulary.md)),
  * the one exported vocabulary that merged the former `WsEvent` / `ChannelKind` /
  * `Channel` split. It is the ts-rs-generated type (ids rewritten to `number`);

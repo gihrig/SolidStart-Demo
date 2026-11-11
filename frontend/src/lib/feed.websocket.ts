@@ -107,7 +107,7 @@ const webSocketTransport: FeedTransport = (sink) => {
 };
 
 /**
- * The one live **Feed** (`CONTEXT.md`) for a client, over a WebSocket. Build it
+ * The one live **Feed** (`GLOSSARY.md`) for a client, over a WebSocket. Build it
  * once at the authenticated boundary (`routes/index.tsx`)
  * and inject it into each view-model (ADR-0028). Its scope closes the socket.
  */

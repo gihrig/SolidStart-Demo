@@ -1,7 +1,7 @@
 # SolidStart Demo — Mono-repo
 
 A SolidJS/SolidStart front-end (`frontend/`) and a Rust/Axum back-end (`backend/`)
-in one repo. See `CONTEXT.md` and `docs/adr/` (root) for the shared domain model;
+in one repo. See `GLOSSARY.md` and `docs/adr/` (root) for the shared domain model;
 [ADR-0010](docs/adr/0010-monorepo-structure.md) records the mono-repo structure.
 
 **This file holds cross-cutting rules only.** Tool-specific rules live in the
@@ -59,4 +59,4 @@ Five canonical triage roles, each mapped to a like-named GitHub label. See `docs
 
 ### Domain docs
 
-Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context: one `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
