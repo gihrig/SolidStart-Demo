@@ -18,30 +18,44 @@ and one generated contract ([ADR-0010][0010]).
 | Term                          | Group                             |
 | ----------------------------- | --------------------------------- |
 | Admin user                    | [Domain](#domain)                 |
+| Announcement                  | [User interface](#user-interface) |
 | Audit columns                 | [Contract seam](#contract-seam)   |
 | Author                        | [Domain](#domain)                 |
+| Author line                   | [User interface](#user-interface) |
 | Brand link                    | [User interface](#user-interface) |
 | Caption                       | [Domain](#domain)                 |
+| Caption actions               | [User interface](#user-interface) |
 | Caption hold                  | [User interface](#user-interface) |
+| Caption line                  | [User interface](#user-interface) |
+| Caption lock                  | [User interface](#user-interface) |
 | Category                      | [Domain](#domain)                 |
 | Channel                       | [Real-time feed](#real-time-feed) |
 | Channel semantics rule        | [Real-time feed](#real-time-feed) |
 | Comment                       | [Domain](#domain)                 |
+| Comments panel                | [User interface](#user-interface) |
+| Comments toggle               | [User interface](#user-interface) |
+| Compose box                   | [User interface](#user-interface) |
 | Draft                         | [User interface](#user-interface) |
+| Draft guard                   | [User interface](#user-interface) |
+| Draft scope                   | [User interface](#user-interface) |
 | Event                         | [Real-time feed](#real-time-feed) |
 | Feed                          | [Real-time feed](#real-time-feed) |
 | Focus ring                    | [User interface](#user-interface) |
 | Focus visibility              | [User interface](#user-interface) |
+| Guarded move                  | [User interface](#user-interface) |
 | Hero                          | [Domain](#domain)                 |
 | `IconName`                    | [Contract seam](#contract-seam)   |
 | Jedi                          | [Domain](#domain)                 |
 | Like                          | [Domain](#domain)                 |
 | Nav links                     | [User interface](#user-interface) |
+| Notice                        | [User interface](#user-interface) |
 | Owner                         | [Domain](#domain)                 |
 | Params shapes                 | [Contract seam](#contract-seam)   |
 | photographer                  | [Domain](#domain)                 |
 | Post                          | [Domain](#domain)                 |
+| Post actions                  | [User interface](#user-interface) |
 | Post card                     | [User interface](#user-interface) |
+| Post dialog                   | [User interface](#user-interface) |
 | Post hold                     | [User interface](#user-interface) |
 | Profile menu                  | [User interface](#user-interface) |
 | Public projection             | [Contract seam](#contract-seam)   |
@@ -50,8 +64,11 @@ and one generated contract ([ADR-0010][0010]).
 | `SafeUrl` / `HeroView`        | [Contract seam](#contract-seam)   |
 | Sanitization boundary         | [Contract seam](#contract-seam)   |
 | Selection highlight           | [User interface](#user-interface) |
+| Sidebar                       | [User interface](#user-interface) |
+| Sidebar cards                 | [User interface](#user-interface) |
 | Site menu                     | [User interface](#user-interface) |
 | Standard user                 | [Domain](#domain)                 |
+| Subject                       | [User interface](#user-interface) |
 | Subscription                  | [Real-time feed](#real-time-feed) |
 | Theme                         | [User interface](#user-interface) |
 | Top Nav                       | [User interface](#user-interface) |
@@ -60,6 +77,9 @@ and one generated contract ([ADR-0010][0010]).
 | `~/types/backend` barrel      | [Contract seam](#contract-seam)   |
 | `useAuth` identity            | [Contract seam](#contract-seam)   |
 | User                          | [Domain](#domain)                 |
+| View                          | [Contract seam](#contract-seam)   |
+| View-model                    | [User interface](#user-interface) |
+| Visitor                       | [User interface](#user-interface) |
 
 ## Domain
 
@@ -82,7 +102,7 @@ User.
 _Avoid_: user (when the owning role is meant); poster.
 
 **Caption**:
-An independently-liked line of text that a User submits for a Post, with its own
+An independently-liked short text that a User submits for a Post, with its own
 real-time Comment thread and real-time Likes. Many Captions compete per Post, each
 ranked by its own Likes, and the top one shows on the Post. A first-class entity,
 never merely a Post's "caption text".
@@ -100,11 +120,6 @@ never merely a Post's "caption text".
 - The Caption actions start with a **Caption Comments** toggle and the Caption's
   comment count. It opens the thread of the Caption shown in the Comments panel.
   While the thread is open, a re-rank does not change the Caption shown.
-- In the Post actions and the Caption actions, a logged-out visitor sees the
-  Comments toggle, the fire-heart and the count. A logged-in User sees every
-  button, and a button that cannot act now is disabled. Only the Owner can use
-  **Edit** and **Delete**. The **Add** in the Post actions opens the New Post
-  dialog, as the Nav's **New Post** does.
 
 _BE_: `add_caption` takes a `CaptionForCreate` (`post_id`, `text`), sets the
 caller as Owner, and returns the `CaptionView` (author, derived like and comment
@@ -113,8 +128,8 @@ A Caption is ranked by its own `caption_like` rows and hosts its own
 `CaptionComment` thread. An add, edit or delete pokes `post_caption:{post_id}`. A
 Like toggle that changed a Like pokes `caption_like:{caption_id}` and
 `post_caption:{post_id}`.
-_FE_: the Jedi route holds the selected Post's channel while a User is logged in,
-so Top Captions refetches and re-ranks.
+_FE_: the Jedi route keeps a Subscription to the selected Post's channel while a
+User is logged in, so Top Captions refetches and re-ranks.
 _See_: [ADR-0030][0030] addendum; #106, #108, #121, #123, #127, #187.
 _Avoid_: title; caption text (as a Post field).
 
@@ -178,17 +193,11 @@ _See_: [ADR-0011][0011] addendum; #110, #119.
 _Avoid_: banner, splash (as separate concepts); treating it as per-User content.
 
 **Jedi**:
-The application: a responsive, accessible photo-and-caption site with its own
-style and navigation. The user-facing brand is **"Awesome"** (`Nav.tsx`, page
-`<Title>`, Hero). **Jedi** stays the code and domain token. They coexist by
-design: #17's "'Awesome' (formerly Jedi)" is _not_ a rename.
+The application: a photo-and-caption site where Users share Flickr photos as
+Posts and compete to caption them. "Awesome" is the brand that users see.
+"Jedi" is the name in code and in ADRs.
 
-_FE_: `src/types/jedi.ts`, `src/lib/jedi/`; one SolidStart package, a modular
-monolith.
-_Planned_: a code→brand alignment (Jedi → Awesome) is a separate effort.
-_See_: [ADR-0001][0001], [ADR-0008][0008], [ADR-0011][0011]; [ADR-0002][0002]
-(the former mock is now the seed source and a test fixture); [ADR-0012][0012]
-(database portability).
+_Avoid_: "Awesome" in code; "Jedi" in UI text.
 
 **Like**:
 A User's endorsement of one Post or one Caption: a first-class record, not a
@@ -224,7 +233,7 @@ _See_: [ADR-0032][0032].
 _Avoid_: creator.
 
 **photographer**:
-The external Flickr attribution on a Post: the photo's original creator, who is
+The external Flickr attribution on a Post: the person who took the photo, who is
 **not** a User.
 
 _Avoid_: author (that names the owning User); user.
@@ -233,7 +242,7 @@ _Avoid_: author (that names the owning User); user.
 The core entity: a shared Flickr photo with its Owner, Categories, Caption
 competition, real-time Comment thread and real-time Likes. The Post _is_ the photo
 (mandatory, and fixed for the Post's life). **Every Post is public**: any
-logged-in User may read and take part; there is no private or archived scope.
+logged-in User may read and take part; there is no private or archived Post.
 
 - A Post carries many Categories, **minimum one**.
 - The Nav's **New Post** opens the New Post dialog, which creates a Post.
@@ -291,7 +300,7 @@ How Comments, Captions and Likes reach a User's client live, without polling.
 
 **Channel**:
 The routing key that an Event is addressed to and a Subscription names. The
-exported `Channel` type holds **six variants**:
+exported `Channel` type has **six variants**:
 
 | Wire string       | Routing key                    | Semantics |
 | ----------------- | ------------------------------ | --------- |
@@ -369,7 +378,7 @@ Held per connection and authorized per variant. Every variant is
 authenticated-read; the exhaustive `authorize` match stays as the seam for a
 future scoped channel.
 _FE_: `feed.subscribe(channel, handler)`: a view-model names a Channel and a
-handler, and its reactive scope releases the Subscription. Each view-model holds
+handler, and its reactive scope releases the Subscription. Each view-model has
 its own. The Feed sends one per Channel to the server, replays them on
 (re)connect, then asks each handler to resync.
 _See_: [ADR-0014][0014], [ADR-0015][0015], [ADR-0018][0018] addendum,
@@ -385,7 +394,8 @@ lives in [ADR-0010][0010].
 
 **Audit columns**:
 The rust10x audit fields that most back-end entities carry, `cid` / `ctime` /
-`mid` / `mtime`: creator id / create time, modifier id / modify time. `ctime` and
+`mid` / `mtime`: the id of the User who created the row and the create time,
+and the id of the User who last changed it and the change time. `ctime` and
 `mtime` are RFC3339 `TEXT` in the portable schema.
 
 - A Like is write-once, but `post_like` / `caption_like` still carry the full
@@ -428,7 +438,7 @@ shows that time.
 - A projection may be **enriched** (an author-and-counts `PostView`) or a bare
   **narrowing** (`CategoryPublic`).
 - Audit visibility is chosen by **surface**, not by the caller's role: the public
-  surface strips, and a future admin surface reads the full row. A visitor and a
+  surface strips, and a future admin surface reads the full row. A Visitor and a
   logged-in User share one read shape and differ only in **write**.
 
 _BE_: the `PublicProjection` marker in the model `base`. `base::list_public`
@@ -461,7 +471,7 @@ The back-end's two JSON-RPC endpoints. `/api/rpc` is **authenticated** (behind
 under the caller's own `Ctx`. `/api/rpc-public` is **public** (no auth): it
 carries a hand-picked set of anonymous reads, and runs under `root_ctx`.
 
-- The Jedi feed's static, back-end-owned content is public, so the front-end reads
+- Jedi's static, back-end-owned content is public, so the front-end reads
   it without a login: the Category, Post, Caption and Hero reads.
 - Register ONLY safe public reads there: never a mutation or a row-scoped read.
 - The **RPC contract** test enforces the list: the public surface must carry
@@ -540,9 +550,23 @@ A change of the identity's source stays behind this seam.
 _See_: [ADR-0007][0007], [ADR-0011][0011] addendum; #119.
 _Avoid_: rewiring components when the source changes; the seam absorbs it.
 
+**View**:
+A back-end read shape that adds data to an entity row for the UI, such as the
+author and the like and comment counts. Each View is a Public projection.
+
+_BE_: `PostView`, `CaptionView`, `CommentView`, `HeroView`.
+_Avoid_: Public view; "view" for a page or a screen.
+
 ## User interface
 
 How the front-end (`frontend/src/`) shows the domain.
+
+**Author line**:
+The line under the photo on the Post card. It shows the Author's avatar and
+name, the Post title and the Post's Categories.
+
+_FE_: `FeaturedPost` (`components/FeaturedPost.tsx`).
+_Avoid_: Post line; categories line.
 
 **Brand link**:
 The "Awesome" logo and wordmark at the left of the Top Nav. It goes to the home
@@ -564,22 +588,103 @@ _FE_: `createSelection` (`lib/jedi/createSelection.ts`).
 _See_: [ADR-0030][0030] addendum; #271.
 _Avoid_: pin, lock, freeze; "hold" alone.
 
+**Caption line**:
+The line on the Post card that shows the Caption shown. A Caption form takes
+its place to add or edit a Caption. On a Post with no Caption, the form shows
+there at once.
+
+_FE_: `PostCaption` (`components/PostCaption.tsx`).
+
+**Caption lock**:
+The rule that a Caption's text cannot change after its first Like or Comment,
+the Owner's own Like too. After that, the Owner can only delete the Caption.
+
+- An **Edit** on a locked Caption shows a Notice.
+- The back-end is the authority: an edit with a stale count gets a `Validation` error.
+
+_FE_: `captionLocked` (`components/FeaturedPost.tsx`).
+_BE_: `update_caption`.
+_Avoid_: "lock" alone.
+
+**Comments panel**:
+The part of the Post card that shows one Comment thread: the Post's or the
+Caption's. An open Comments panel starts a Post hold. An open Caption Comments
+panel also starts a Caption hold.
+
+_FE_: `CommentThread` (`components/CommentThread.tsx`), `createCommentThread`
+(`lib/jedi/createCommentThread.ts`).
+_Avoid_: comment section; "thread" for the panel.
+
+**Comments toggle**:
+The first button of the Post actions (**Post Comments**) and of the Caption
+actions (**Caption Comments**). It shows the comment count. It opens or closes
+the Comments panel on that thread.
+
+**Compose box**:
+The form in the Comments panel that adds a new Comment.
+
+- A plain Enter submits, and Shift+Enter adds a new line.
+- With a touch pointer, Enter adds a new line, and only the button submits.
+
+_FE_: `CommentForm` (`components/CommentThread.tsx`).
+_Avoid_: reply box, comment input.
+
 **Draft** (unsaved form text):
 Text that a User typed in a form and has not saved.
 
-- A Comment compose box or an Add Caption form holds one when it is not blank.
-- A New Post dialog holds one when a field is not blank or a Category is checked.
-- An open Comment, Caption or Post edit holds one when it differs from the saved
+- A Comment compose box or an Add Caption form has one when it is not blank.
+- A New Post dialog has one when a field is not blank or a Category is checked.
+- An open Comment, Caption or Post edit has one when it differs from the saved
   entity.
 - A Cancel, an Escape or a user-started move that would close the form asks first.
 - While the form is saving, no user-started move closes it.
-- An Event that removes the form's subject discards the Draft, and a notice says so.
+- An Event that removes the form's Subject discards the Draft, and a Notice says so.
 - A Caption that arrives does not close an Add Caption form with a Draft.
 - An Event that moves the Post out of the selected Category keeps the Post shown.
   The User then chooses to keep or discard the Draft.
 
+_UI wording_: the UI says "unsaved changes", because users do not know the word
+"Draft".
 _See_: [ADR-0030][0030].
 _Avoid_: unsaved comment, pending edit; "lost" or "rejected" for a forced discard.
+
+**Draft guard**:
+The one record, for the whole app, of the forms that have a Draft or are
+saving. It asks the User before a Guarded move closes a form with a Draft. It
+shows a Notice when an Event discards a Draft.
+
+_FE_: `createDraftGuard` (`lib/createDraftGuard.ts`), `DraftGuardProvider`
+(`components/DraftGuardContext.tsx`, mounted in `app.tsx`).
+_See_: [ADR-0030](docs/adr/0030-unsaved-draft-guard.md).
+
+**Draft scope**:
+A group of forms whose Drafts one move closes together. A move that closes the
+group asks only about the Drafts in its Draft scope and in each Draft scope under
+it. So the close of one Comments panel never asks about, or discards, a Draft in
+another place on the page.
+
+- A form takes the Draft scope of the place where it shows.
+- A form outside the Post card, such as the New Post dialog, has no Draft scope.
+- A move that names no Draft scope asks about every Draft.
+
+```
+Post scope ............... Post edit, Add Caption form
+├── Post thread scope .... Post Comments: compose box, Comment edits
+└── Caption scope ........ Caption edit
+    └── Caption thread scope ... Caption Comments: compose box, Comment edits
+```
+
+| Move                                  | Draft scope that it names |
+| ------------------------------------- | ------------------------- |
+| Top Photo click, Category change      | Post scope                |
+| Pick of another Caption               | Caption scope             |
+| Close of a Comments panel             | that thread scope         |
+| Switch to the other Comments panel    | the other thread scope    |
+| Logoff, route change                  | none: every Draft         |
+
+_FE_: `DraftScope`, `createDraftScope` (`lib/createDraftGuard.ts`); `DraftScopeContext`.
+_See_: [ADR-0030](docs/adr/0030-unsaved-draft-guard.md) addendum (#271).
+_Avoid_: "scope" alone; form group.
 
 **Focus ring** (active-option ring):
 The keyboard-navigation indicator on the active option of a sidebar listbox. It
@@ -605,6 +710,18 @@ Focus indicators show for **keyboard** interaction only, never for pointer click
 
 _Avoid_: always-on focus outlines; showing the ring on pointer interaction.
 
+**Guarded move**:
+A User action that would close a form. Examples are a Cancel, an Escape, a Top
+Photo click, a Caption pick, a Comments panel close, a route change and a logoff.
+
+- With a Draft in the move's Draft scope, the UI asks "You have unsaved changes.
+  Discard them?" **Discard** runs the move. **Keep editing** stops it.
+- While a form in that Draft scope is saving, the move does nothing.
+- A move that keeps the Post shown is not a Guarded move.
+
+_FE_: `guard.attempt(move, scope)`.
+_Avoid_: "move" alone.
+
 **Nav links**:
 Home, About and Readme.
 
@@ -614,22 +731,50 @@ Home, About and Readme.
 
 _Avoid_: menu items, tabs.
 
+**Notice** / **Announcement**:
+A Notice is a modal dialog with one **OK** button. It tells the User a fact,
+such as a discarded Draft or a Caption lock. An Announcement is text that only
+a screen reader speaks, such as "Post saved."
+
+_FE_: Notice: `ConfirmDialog` with no `cancelLabel`. Announcement: the
+`role="status"` region in `routes/index.tsx`, set by `createSelection`.
+_Avoid_: toast; "alert" for a Notice (an alert is the error text under an action).
+
+**Post actions** / **Caption actions**:
+The row of buttons under the Author line (Post actions) or under the Caption
+line (Caption actions). From the left: the Comments toggle, the fire-heart, the
+like count, then **Like**, **Add**, **Edit** and **Delete**.
+
+- A Visitor sees only the Comments toggle, the fire-heart and the count.
+- A logged-in User sees every button. A button that cannot act now is disabled.
+- Only the Owner can use **Edit** and **Delete**.
+- **Add** in the Post actions opens the Post dialog. **Add** in the Caption actions opens the Caption form.
+
+_FE_: `ActionsLine` (`components/FeaturedPost.tsx`).
+
 **Post card**:
-The main article, which shows the selected Post. From the top, it holds the title
+The main article, which shows the selected Post. From the top, it has the title
 bar, the photo and the **Author line**. Under them come the **Post actions**, the
 **Caption line**, the **Caption actions** and the **Comments panel**.
 
-- The Author line holds the Author's avatar and name, the Post title and the
+- The Author line has the Author's avatar and name, the Post title and the
   Categories.
-- The Caption line holds the Caption shown, or a Caption form in its place.
-- Each actions line starts with its Comments toggle: **Post Comments** or
-  **Caption Comments**.
+- The Caption line has the Caption shown, or a Caption form in its place.
+- The Post actions and the Caption actions each start with a Comments toggle:
+  **Post Comments** or **Caption Comments**.
 - The Comments panel shows one thread at a time, the Post's or the Caption's.
 
 _FE_: `FeaturedPost` (`components/FeaturedPost.tsx`).
 _See_: [ADR-0030][0030] addendum; #210.
 _Avoid_: Featured Post (`featured` is the top-ranked Post, only the default); Post
 line; categories line.
+
+**Post dialog**:
+The modal form that creates or edits a Post. Its heading is **New Post** or
+**Edit Post**. An edit changes every field but the photo.
+
+_FE_: `PostDialog` (`components/PostDialog.tsx`).
+_Avoid_: create-post dialog.
 
 **Post hold**:
 The time in which the Post card keeps the Post shown.
@@ -648,10 +793,10 @@ _See_: [ADR-0030][0030] addendum; #271.
 _Avoid_: pin, lock, freeze; "hold" alone.
 
 **Profile menu**:
-The drop-down that the avatar button in the nav opens. It holds My Profile, Log In
+The drop-down that the avatar button in the nav opens. It has My Profile, Log In
 or Log Out, and the three Theme items.
 
-- Every visitor can open it, at every width, also before login.
+- Every Visitor can open it, at every width, also before login.
 
 _FE_: the `profile-menu` disclosure in `Nav` (`components/Nav.tsx`).
 _Avoid_: nav drop-down, profile dropdown, user menu.
@@ -668,12 +813,27 @@ _FE_: `bg-(--theme-highlight)`.
 _See_: #37.
 _Avoid_: focus highlight; conflating it with the focus ring.
 
+**Sidebar** / **Sidebar cards**:
+The column beside the Post card. It holds three Sidebar cards: Categories, Top
+Photos and Top Captions. Each card is a single-select listbox. Below 768 px, a
+**Categories** button shows or hides the Sidebar.
+
+_FE_: `Card`, `CategoriesCard`, `TopPhotosCard`, `TopCaptionsCard`; the
+`jedi-sidebar` disclosure (`routes/index.tsx`).
+
 **Site menu**:
-The drop-down that holds the Nav links on a narrow screen (below 768 px). The ☰
+The drop-down that has the Nav links on a narrow screen (below 768 px). The ☰
 button in the Top Nav opens it. It is not the Profile menu.
 
 _FE_: the `site-mobile-nav` disclosure in `Nav`; its accessible name is "Site menu".
 _Avoid_: mobile menu, mobile nav, hamburger menu.
+
+**Subject**:
+The Post, Caption or Comment that an action or a form is for. An Event that
+deletes the Subject discards the form's Draft.
+
+_FE_: `subjectId` (`components/OwnerActions.tsx`).
+_Avoid_: target (in code, "target" names the Like target and the Comment target).
 
 **Theme**:
 The light or dark look of the site. There are three: **System Theme**, **Light
@@ -681,7 +841,7 @@ Theme** and **Dark Theme**.
 
 - System Theme follows the light or dark setting of the device, and it is the
   default.
-- A visitor chooses a Theme in the Profile menu, and a check mark shows the Theme
+- A Visitor chooses a Theme in the Profile menu, and a check mark shows the Theme
   in use.
 - The browser keeps the choice: the **saved theme**. A User does not own it. It
   does not follow the User to another browser, and login and logout do not
@@ -693,12 +853,25 @@ _Avoid_: mode, color mode, dark mode, auto, selected theme; color scheme (the CS
 `color-scheme` property tells the browser which built-in colors to use).
 
 **Top Nav**:
-The bar at the top of every page. It holds the Brand link, the Nav links, the
+The bar at the top of every page. It has the Brand link, the Nav links, the
 Profile menu button, New Post for a logged-in User, and the Site menu button on a
 narrow screen.
 
 _FE_: `Nav` (`components/Nav.tsx`).
 _Avoid_: header, navbar, top bar.
+
+**View-model**:
+A front-end module that holds the state and the rules of one part of a page,
+so that the components only render it.
+
+_FE_: `createJediFeed`, `createSelection`, `createCommentThread`, `createLikeState`.
+_Avoid_: store, controller.
+
+**Visitor**:
+A person who uses the site and is not logged in. A Visitor can read every
+Post, Caption and Comment, and can choose a Theme. A Visitor cannot write.
+
+_Avoid_: viewer, anonymous user, guest.
 
 ## Pending renames
 
