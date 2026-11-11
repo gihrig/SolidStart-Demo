@@ -20,4 +20,10 @@ ignore = [
   # dependency via serial_test; 2.4.0 is the highest version serial_test allows,
   # and it is not a runtime vulnerability. Accepted.
   "RUSTSEC-2026-0205",
+  # libsqlite3-sys 0.30.1 — bundled C SQLite CVE-2026-119375. Not reachable in
+  # this build: libsqlite3-sys is a dep of sqlx-sqlite, an optional sqlx backend
+  # that sqlx pulls into Cargo.lock but never compiles here (the back-end is
+  # Postgres-only; `cargo tree -i libsqlite3-sys --target all` is empty). The fix
+  # (>=0.39.0) needs sqlx 0.9, which #170 defers. Remove with the sqlx upgrade.
+  "RUSTSEC-2026-0459",
 ]
