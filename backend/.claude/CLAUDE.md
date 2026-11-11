@@ -1,8 +1,6 @@
 # Back-end — SolidStart Demo
 
-Rust/Axum back-end (rust10x blueprint): JSON-RPC over HTTP + WebSocket, Postgres
-via `sqlx`/`sea-query`/`modql`, ts-rs TypeScript bindings. Toolchain: Rust/`cargo`,
-driven via `cgs`. This is the `backend/` subtree of the mono-repo (a SolidJS
+Rust back-end following the rust10x blueprint. This is the `backend/` subtree of the mono-repo (a SolidJS
 front-end in `frontend/` + this back-end). Cross-cutting rules live in the root
 `CLAUDE.md`; this file holds the back-end-specific rules and loads when Claude
 works in `backend/`.
@@ -33,17 +31,6 @@ Prefer the `cgs` recipes over raw `cargo`; each recipe wraps the exact `cargo`
 invocation and keeps flags consistent. Raw `cargo` stays available for one-offs
 that have no recipe (e.g. `cargo run -p gen-key`). Each recipe's `info` string
 in `backend/Scripts.toml` names its tool prerequisites (nightly, cargo-auditable).
-
-## Tech Stack
-
-- **Framework**: Axum (HTTP) + `rpc-router` (JSON-RPC dynamic router)
-- **DB**: Postgres via `sqlx`, `sea-query` (SQL builder), `modql` (filter DSL)
-- **Auth**: cookie-based; `POST /api/login`, `POST /api/logoff`
-- **RPC**: `POST /api/rpc`; **WebSocket**: `GET /ws`
-- **Bindings**: ts-rs exports to `crates/services/web-server/bindings/`
-
-Workspace crates: `lib-utils`, `lib-rpc-core`, `lib-auth`, `lib-core`, `lib-web`
-(libs); `web-server` (service); `gen-key` (tool).
 
 ## Gotchas
 
