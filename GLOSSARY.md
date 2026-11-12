@@ -712,7 +712,8 @@ _Avoid_: always-on focus outlines; showing the ring on pointer interaction.
 
 **Guarded move**:
 A User action that would close a form. Examples are a Cancel, an Escape, a Top
-Photo click, a Caption pick, a Comments panel close, a route change and a logoff.
+Photo click, a Category selection, a Caption pick, a Comments panel close, a
+route change and a logoff.
 
 - With a Draft in the move's Draft scope, the UI asks "You have unsaved changes.
   Discard them?" **Discard** runs the move. **Keep editing** stops it.
