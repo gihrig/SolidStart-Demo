@@ -161,3 +161,22 @@ ADR-0023, ADR-0024, ADR-0025 and ADR-0026, in the two research notes, and in the
 GitHub issues that cite them. Records of past commands and results keep their old
 paths, such as the `git mv` steps in #68. `git log --follow <file>` still shows
 each file's history.
+
+## Addendum (2026-11-11) — the glossary is `GLOSSARY.md` (#291)
+
+The domain-modeling skills now read and write only a root `GLOSSARY.md`. They no
+longer name `CONTEXT.md`. If `CONTEXT.md` stayed, a skill could make a second
+glossary file beside it.
+
+**Decision — the root glossary is `GLOSSARY.md`.** A `git mv` kept its history. The
+"Shared domain docs stay at the root" decision now names `GLOSSARY.md` and
+`docs/adr/`. There is still one glossary for both surfaces.
+
+**Consequences.** The references in use changed: `.claude/CLAUDE.md`, `README.md`,
+`backend/README.md`, `docs/agents/domain.md`, the `concise` skill,
+`scripts/adr-index.sh`, three Rust doc comments and the generated `Channel.d.ts`.
+Three front-end doc comments changed too (`lib/channel.ts`, `lib/feed.ts`,
+`lib/feed.websocket.ts`). ADR bodies, the reports in `docs/ar/` and the notes in
+`frontend/planning/archive/` keep `CONTEXT.md`, because they record the past.
+Where an older ADR says `CONTEXT.md`, read `GLOSSARY.md`. The line numbers that
+older ADRs cite, such as `CONTEXT.md:119`, do not match the new file.

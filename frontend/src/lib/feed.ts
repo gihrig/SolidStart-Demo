@@ -10,7 +10,7 @@ import type { WsEvent } from "~/types/backend";
 export type FeedHandler = (event?: WsEvent) => void;
 
 /**
- * The one live **Feed** (`CONTEXT.md`) for a client, built once at the
+ * The one live **Feed** (`GLOSSARY.md`) for a client, built once at the
  * authenticated boundary and injected into each view-model through the `feed?`
  * seam (ADR-0017, ADR-0028).
  */

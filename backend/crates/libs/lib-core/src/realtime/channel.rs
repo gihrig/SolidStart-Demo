@@ -3,7 +3,7 @@ use crate::model::ModelManager;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-/// The one exported realtime **Channel** vocabulary (CONTEXT.md "Channel"): the
+/// The one exported realtime **Channel** vocabulary (GLOSSARY.md "Channel"): the
 /// routing key an Event is addressed to and a Subscription names. It is the wire
 /// kind a `SubscriptionRequest` carries, the key the send task routes on, and
 /// the authorize rule — the three types ADR-0018 kept apart (`WsEvent` mapping,
