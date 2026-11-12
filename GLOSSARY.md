@@ -814,7 +814,7 @@ _See_: #37.
 _Avoid_: focus highlight; conflating it with the focus ring.
 
 **Sidebar** / **Sidebar cards**:
-The column beside the Post card. It holds three Sidebar cards: Categories, Top
+The column beside the Post card. It has three Sidebar cards: Categories, Top
 Photos and Top Captions. Each card is a single-select listbox. Below 768 px, a
 **Categories** button shows or hides the Sidebar.
 
@@ -861,7 +861,7 @@ _FE_: `Nav` (`components/Nav.tsx`).
 _Avoid_: header, navbar, top bar.
 
 **View-model**:
-A front-end module that holds the state and the rules of one part of a page,
+A front-end module that has the state and the rules of one part of a page,
 so that the components only render it.
 
 _FE_: `createJediFeed`, `createSelection`, `createCommentThread`, `createLikeState`.
@@ -877,10 +877,10 @@ _Avoid_: viewer, anonymous user, guest.
 
 Identity tokens that still wait for a rename.
 
-| Live BE token                   | Planned              | Note                                   |
-| ------------------------------- | -------------------- | -------------------------------------- |
-| `typ` (field on `User`)         | `userType`           | field rename                           |
-| `UserTyp` values `Sys` / `User` | `admin` / `standard` | align to the Admin/Standard user terms |
+| Live BE token          | Planned              | Note                        |
+| ---------------------- | -------------------- | --------------------------- |
+| `User.typ`             | `userType`           | field rename                |
+| `UserTyp` `Sys`/`User` | `admin` / `standard` | match Admin / Standard user |
 
 [0001]: docs/adr/0001-frontend-modular-monolith.md
 [0002]: docs/adr/0002-jedi-mock-data-contract.md
