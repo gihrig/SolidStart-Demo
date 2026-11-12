@@ -121,6 +121,8 @@ never merely a Post's "caption text".
   comment count. It opens the thread of the Caption shown in the Comments panel.
   While the thread is open, a re-rank does not change the Caption shown.
 
+_FE_: the Jedi route keeps a Subscription to the selected Post's channel while a
+User is logged in, so Top Captions refetches and re-ranks.
 _BE_: `add_caption` takes a `CaptionForCreate` (`post_id`, `text`), sets the
 caller as Owner, and returns the `CaptionView` (author, derived like and comment
 counts). The Owner edits with `update_caption` and deletes with `delete_caption`.
@@ -128,8 +130,6 @@ A Caption is ranked by its own `caption_like` rows and hosts its own
 `CaptionComment` thread. An add, edit or delete pokes `post_caption:{post_id}`. A
 Like toggle that changed a Like pokes `caption_like:{caption_id}` and
 `post_caption:{post_id}`.
-_FE_: the Jedi route keeps a Subscription to the selected Post's channel while a
-User is logged in, so Top Captions refetches and re-ranks.
 _See_: [ADR-0030][0030] addendum; #106, #108, #121, #123, #127, #187.
 _Avoid_: title; caption text (as a Post field).
 
@@ -182,12 +182,12 @@ is not user-generated and has no Owner.
   new account).
 - No RPC creates or deletes the Hero.
 
+_FE_: renders a sanitized `HeroView` (see `SafeUrl` / `HeroView`).
 _BE_: `Hero = { id, title, subtitle, cta_text, background_image, + audit }`, a
 single mutable row (`CHECK (id = 1)`) seeded from the fixture. `cta_href` is
 **dropped**. The public `get_hero` returns the `HeroView` public projection; the
 authenticated `update_hero` edits it. An interim RPC-layer gate admits only an
 Admin user (`Sys`); the model write stays unscoped.
-_FE_: renders a sanitized `HeroView` (see `SafeUrl` / `HeroView`).
 _Planned_: the privilege system replaces the interim gate (#181).
 _See_: [ADR-0011][0011] addendum; #110, #119.
 _Avoid_: banner, splash (as separate concepts); treating it as per-User content.
@@ -288,9 +288,9 @@ the identity on both surfaces.
 
 - A username has at most 32 characters.
 
+_FE_: the nav avatar reads the identity through the `useAuth` seam.
 _BE_: `User = { id, username, typ, avatar_url }` with `UserTyp = "Sys" | "User"`.
 `avatar_url` is a back-end column.
-_FE_: the nav avatar reads the identity through the `useAuth` seam.
 _See_: [ADR-0007][0007], [ADR-0011][0011] addendum; #117, #203.
 _Avoid_: account.
 
@@ -311,11 +311,11 @@ exported `Channel` type has **six variants**:
 | `caption_like`    | `caption_like:{caption_id}`    | poke      |
 | `post_caption`    | `post_caption:{post_id}`       | poke      |
 
+_FE_: the `Channel` constructor module (`lib/channel.ts`) over the generated
+`Channel`.
 _BE_: one ts-rs-exported `Channel` enum (`lib-core::realtime::channel`): one typed
 variant per channel, with the id where the routing key needs it, snake_case wire
 strings and PascalCase Rust variants. `ChannelKind` is merged into it.
-_FE_: the `Channel` constructor module (`lib/channel.ts`) over the generated
-`Channel`.
 _See_: [ADR-0018][0018] addendum, [ADR-0020][0020]; #109.
 _Avoid_: topic, room; the retired `agents` / `conv` / `convs` strings.
 
@@ -358,12 +358,12 @@ _Avoid_: notification, broadcast (the mechanism, not the item).
 The live stream that a User's client receives Events on, without polling. One per
 client: every view that a client shows shares the single Feed.
 
+_FE_: the shared client Feed (`lib/feed.ts`), one per client, injected into each
+view-model. A WebSocket transport carries it; an in-memory transport serves tests.
 _BE_: a WebSocket at `GET /ws` (auth-required). One broadcast fans Events to all
 connections, each filtered to its Subscriptions. The transport is `lib-web::ws`
 (hub, socket driver, authorization fan-out); the exported contract lives in
 `lib-core::realtime`.
-_FE_: the shared client Feed (`lib/feed.ts`), one per client, injected into each
-view-model. A WebSocket transport carries it; an in-memory transport serves tests.
 _See_: [ADR-0017][0017], [ADR-0026][0026], [ADR-0028][0028].
 _Avoid_: socket (as the concept), push.
 
@@ -372,15 +372,15 @@ A client's standing request to receive Events on a Channel. Every Channel is
 **authenticated-read**: any logged-in socket may subscribe, because every Post is
 public. A connection with no Subscription receives nothing.
 
+_FE_: `feed.subscribe(channel, handler)`: a view-model names a Channel and a
+handler, and its reactive scope releases the Subscription. Each view-model has
+its own. The Feed sends one per Channel to the server, replays them on
+(re)connect, then asks each handler to resync.
 _BE_: `SubscriptionRequest { action, channel }` with `channel: Channel`. The id
 rides inside the variant, so `post_comment` without an id fails to deserialize.
 Held per connection and authorized per variant. Every variant is
 authenticated-read; the exhaustive `authorize` match stays as the seam for a
 future scoped channel.
-_FE_: `feed.subscribe(channel, handler)`: a view-model names a Channel and a
-handler, and its reactive scope releases the Subscription. Each view-model has
-its own. The Feed sends one per Channel to the server, replays them on
-(re)connect, then asks each handler to resync.
 _See_: [ADR-0014][0014], [ADR-0015][0015], [ADR-0018][0018] addendum,
 [ADR-0020][0020], [ADR-0028][0028], [ADR-0031][0031]; #106, #109.
 _Avoid_: listener, watch.
@@ -459,9 +459,9 @@ handler.
 - A wrong method name, params shape or result type fails the front-end type check.
 - A back-end test proves that each method is routed on its own surface.
 
-_BE_: `web/rpcs/rpc_contract.rs`, exported as `bindings/RpcContract.ts`.
 _FE_: `authenticatedRpc(method, params)` and `publicRpc(method, params)` in
 `lib/backend-rpc.ts`.
+_BE_: `web/rpcs/rpc_contract.rs`, exported as `bindings/RpcContract.ts`.
 _See_: [ADR-0029][0029].
 _Avoid_: API schema, method registry; an RPC member per method.
 
