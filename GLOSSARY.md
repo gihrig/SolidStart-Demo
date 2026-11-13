@@ -490,8 +490,9 @@ _FE_: `PostCaption` (`components/PostCaption.tsx`); `CaptionForm`
 (`components/CaptionForm.tsx`).
 
 **Caption lock**:
-The rule that a Caption's text cannot change after its first Like or Comment,
-the Owner's own Like too. After that, the Owner can only delete the Caption.
+The rule that a Caption's text cannot change while the Caption has a Like or a
+Comment, the Owner's own Like too. During that time, the Owner can only delete
+the Caption.
 
 - An **Edit** on a locked Caption shows a Notice.
 - The back-end is the authority: an edit with a stale count gets a `Validation` error.
