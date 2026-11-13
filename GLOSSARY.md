@@ -27,6 +27,7 @@ and one generated contract ([ADR-0010][0010]).
 | Caption hold                  | [User interface](#user-interface) |
 | Caption line                  | [User interface](#user-interface) |
 | Caption lock                  | [User interface](#user-interface) |
+| Caption shown                 | [User interface](#user-interface) |
 | Category                      | [Domain](#domain)                 |
 | Channel                       | [Real-time feed](#real-time-feed) |
 | Comment                       | [Domain](#domain)                 |
@@ -54,7 +55,7 @@ and one generated contract ([ADR-0010][0010]).
 | Post card                     | [User interface](#user-interface) |
 | Post dialog                   | [User interface](#user-interface) |
 | Post hold                     | [User interface](#user-interface) |
-| Post shown / Caption shown    | [User interface](#user-interface) |
+| Post shown                    | [User interface](#user-interface) |
 | Profile menu                  | [User interface](#user-interface) |
 | Public projection             | [Contract seam](#contract-seam)   |
 | RPC contract                  | [Contract seam](#contract-seam)   |
