@@ -1,12 +1,11 @@
 # The RPC contract is read from the handler signatures and pinned by one test
 
-Before #190, each RPC method had two copies. The back-end registers each handler
-by name in a `router_builder!` list. The front-end kept its own copy of each call.
-A call named its method as a string and sent untyped
-`params?: Record<string, unknown>`. It also named its result type and the path of
-its surface. No test joined the two copies, so a typo in a method name passed every
-unit test. The front-end also copied seven write-path length caps, for example
-`const CAPTION_MAX_LENGTH = 36;`.
+Origin: #190
+
+The back-end registers each handler by name in a `router_builder!` list. If the
+front-end keeps its own copy of each call, with a method string and untyped
+params, no test joins the two copies. A typo in a method name then passes each
+unit test. The same is true for a front-end copy of a write-path length cap.
 
 ## Decisions
 
@@ -16,7 +15,7 @@ name from the handler identifier, as `router_builder!` does. Each entry takes it
 params type and its result type from the handler, through rpc-router's `Handler`
 bound. So the contract module declares no type of its own. The `router_builder!`
 lists keep the rust10x blueprint shape
-([ADR-0025](0025-login-handler-keeps-blueprint-inline-orchestration.md)).
+([ADR-0026](0026-realtime-feed-in-lib-web-contract-in-lib-core.md)).
 
 **The contract exports with the ts-rs bindings.** A test named
 `export_bindings_rpc_contract` writes `bindings/RpcContract.ts`. The file has one
@@ -59,15 +58,12 @@ derives stay `.d.ts`.
   list, so all seven RPC modules would leave the blueprint.
 - **A contract list in each `*_rpc.rs`.** It changes every RPC module, and the
   contract then has no one place to read.
-- **Type the FullStack methods too.** #128 removes them, and the Comments do not
-  reuse their RPC methods.
 - **A typed member per method** (`post.list`, …). Each member only forwards, and
   `jediApi` is the one consumer.
 - **Export the caps as values.** That is the first runtime import from
   `bindings/`, a folder outside `frontend/`.
-- **Check the route list on both surfaces.** The authenticated check needs 12
-  FullStack exceptions. There, `tsc` already rejects the first typed call to a
-  method with no entry.
+- **Check the exact route list on the authenticated surface too.** `tsc`
+  already rejects the first typed call to a method with no entry.
 
 ## Consequences
 
@@ -77,5 +73,4 @@ derives stay `.d.ts`.
   format change fails the test. [ADR-0016](0016-poke-rule-typed-receipt.md) says
   the method map is private, "so a test cannot auto-discover a new mutation". The
   map is private, but its `Debug` output lists the names.
-- The FullStack methods keep the untyped `rpcCall` until #128 removes them.
 - Filters and paging reach the front-end only when a caller needs them (#176).
