@@ -127,7 +127,7 @@ describe("<Nav />", () => {
     expect(within(panel).getByRole("group", { name: "Theme" })).toBeInTheDocument();
     expect(within(panel).getAllByRole("radio")).toHaveLength(3);
     expect(screen.queryByRole("button", { name: /theme/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /toggle navigation/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /site menu/i })).toBeInTheDocument();
   });
 
   describe("profile avatar", () => {
@@ -203,7 +203,7 @@ describe("<Nav />", () => {
       await user.click(screen.getByRole("button", { name: /log in/i }));
 
       expect(panel.inert).toBe(true);
-      expect((screen.getByRole("dialog", { name: "Login" }) as HTMLDialogElement).open).toBe(true);
+      expect((screen.getByRole("dialog", { name: "Log In" }) as HTMLDialogElement).open).toBe(true);
     });
 
     it("a successful login closes the dialog, shows the name, and returns focus to the Profile menu", async () => {
@@ -213,11 +213,11 @@ describe("<Nav />", () => {
       const trigger = screen.getByRole("button", { name: /profile menu/i });
       await user.click(trigger);
       await user.click(screen.getByRole("button", { name: /log in/i }));
-      const dialog = screen.getByRole("dialog", { name: "Login" }) as HTMLDialogElement;
+      const dialog = screen.getByRole("dialog", { name: "Log In" }) as HTMLDialogElement;
 
       await user.type(within(dialog).getByLabelText(/username/i), "demo1");
       await user.type(within(dialog).getByLabelText(/password/i), "welcome");
-      await user.click(within(dialog).getByRole("button", { name: /^login$/i }));
+      await user.click(within(dialog).getByRole("button", { name: /^log in$/i }));
 
       await waitFor(() => expect(dialog.open).toBe(false));
       expect(await within(trigger).findByText("demo1")).toBeInTheDocument();
@@ -297,7 +297,7 @@ describe("<Nav />", () => {
       const user = userEvent.setup();
       renderNav();
       await user.click(trigger());
-      const outside = screen.getByRole("button", { name: /toggle navigation/i });
+      const outside = screen.getByRole("button", { name: /site menu/i });
       await user.click(outside);
       expect(isOpen()).toBe(false);
       expect(outside).toHaveFocus();
@@ -335,7 +335,7 @@ describe("<Nav />", () => {
   describe("hamburger menu", () => {
     it("aria-controls links the toggle to the mobile menu panel", () => {
       renderNav();
-      const btn = screen.getByRole("button", { name: /toggle navigation/i });
+      const btn = screen.getByRole("button", { name: /site menu/i });
       const menu = screen.getByRole("navigation", { name: /site menu/i });
       expect(btn).toHaveAttribute("aria-controls", "site-mobile-nav");
       expect(menu).toHaveAttribute("id", "site-mobile-nav");
@@ -344,7 +344,7 @@ describe("<Nav />", () => {
     it("starts collapsed and toggles open then closed", async () => {
       const user = userEvent.setup();
       renderNav();
-      const btn = screen.getByRole("button", { name: /toggle navigation/i });
+      const btn = screen.getByRole("button", { name: /site menu/i });
       const menu = screen.getByRole("navigation", { name: /site menu/i });
 
       expect(btn).toHaveAttribute("aria-expanded", "false");
@@ -379,7 +379,7 @@ describe("<Nav />", () => {
     it("Escape closes the mobile menu", async () => {
       const user = userEvent.setup();
       renderNav();
-      const btn = screen.getByRole("button", { name: /toggle navigation/i });
+      const btn = screen.getByRole("button", { name: /site menu/i });
       await user.click(btn);
       const menu = screen.getByRole("navigation", { name: /site menu/i });
       expect(menu).not.toHaveClass("pointer-events-none");
@@ -427,14 +427,14 @@ describe("<Nav />", () => {
           </MemoryRouter>
         ));
       };
-      const toggle = () => screen.getByRole("button", { name: /toggle navigation/i });
+      const toggle = () => screen.getByRole("button", { name: /site menu/i });
       const menu = () => screen.getByRole("navigation", { name: /site menu/i });
       const openMenu = async (user: ReturnType<typeof userEvent.setup>) => {
         await user.click(toggle());
         expect(toggle()).toHaveAttribute("aria-expanded", "true");
       };
 
-      it("a click on About loads it, closes the menu, and gives focus to Toggle navigation", async () => {
+      it("a click on About loads it, closes the menu, and gives focus to Site menu", async () => {
         const user = userEvent.setup();
         renderRoutes();
         await openMenu(user);
@@ -528,7 +528,7 @@ describe("<Nav />", () => {
 
       // A modifier click opens a new tab, so the router does not route.
       // A pointer hits the icon, which the click swaps out of the page.
-      it("a click on Toggle navigation opens a closed menu and closes an open menu", async () => {
+      it("a click on Site menu opens a closed menu and closes an open menu", async () => {
         const user = userEvent.setup();
         renderRoutes();
         await user.click(toggle().querySelector("svg")!);
@@ -622,7 +622,7 @@ describe("<Nav /> — the Draft guard (ADR-0030)", () => {
     ));
     const dialogName = "You have unsaved changes. Discard them?";
 
-    await user.click(screen.getByRole("button", { name: /toggle navigation/i }));
+    await user.click(screen.getByRole("button", { name: /site menu/i }));
     const menu = screen.getByRole("navigation", { name: /site menu/i });
     await user.click(within(menu).getByRole("link", { name: "About" }));
     await user.click(

@@ -3,7 +3,7 @@ import { Title } from "@solidjs/meta";
 export default function NotFound() {
   return (
     <>
-      <Title>SolidStart 404</Title>
+      <Title>Page Not Found - Awesome</Title>
       <div class="demo">
         <main>
           <h1>404 - Page Not Found</h1>

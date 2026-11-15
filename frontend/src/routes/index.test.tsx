@@ -189,7 +189,7 @@ describe("Home route (Jedi feed, data-driven from jedi-api)", () => {
   it("sidebar toggle's aria-controls links to the aside panel's id", async () => {
     renderHome();
     await screen.findByRole("heading", { name: /little jedi/i }); // wait for load
-    const toggle = screen.getByRole("button", { name: /toggle sidebar/i });
+    const toggle = screen.getByRole("button", { name: /categories sidebar/i });
     expect(toggle).toHaveAttribute("aria-controls", "jedi-sidebar");
     expect(document.getElementById("jedi-sidebar")).not.toBeNull();
   });

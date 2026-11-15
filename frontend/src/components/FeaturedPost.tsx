@@ -350,7 +350,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               like={props.like}
               fallbackCount={props.post.likeCount}
               countLabel="Likes"
-              label={`Like post by ${props.post.author.name}`}
+              label={`Like Post by ${props.post.author.name}`}
               loggedIn={props.loggedIn}
               onToggle={() => void toggleLike.run(undefined)}
             />
@@ -426,7 +426,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
                 fallbackCount={props.caption?.likeCount ?? 0}
                 countLabel="Caption likes"
                 label={
-                  props.caption ? `Like caption by ${props.caption.author.name}` : "Like caption"
+                  props.caption ? `Like Caption by ${props.caption.author.name}` : "Like Caption"
                 }
                 loggedIn={props.loggedIn}
                 onToggle={() => void toggleCaptionLike.run(undefined)}
@@ -447,7 +447,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
                 </button>
               </Show>
               <OwnerActions
-                noun="caption"
+                noun="Caption"
                 author={props.caption?.author}
                 loggedIn={props.loggedIn}
                 userId={props.userId}

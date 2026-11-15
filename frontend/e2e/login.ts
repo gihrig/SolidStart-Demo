@@ -14,9 +14,9 @@ export async function loginAs(page: Page, username: string, password: string) {
   const header = page.getByRole("banner");
   await header.getByRole("button", { name: "Profile menu" }).click();
   await header.getByRole("button", { name: "Log In" }).click();
-  const dialog = page.getByRole("dialog", { name: "Login" });
+  const dialog = page.getByRole("dialog", { name: "Log In" });
   await dialog.getByLabel("Username").fill(username);
   await dialog.getByLabel("Password").fill(password);
-  await dialog.getByRole("button", { name: /^login$/i }).click();
+  await dialog.getByRole("button", { name: /^log in$/i }).click();
   await expect(header.getByText(username, { exact: true })).toBeVisible({ timeout: 10000 });
 }

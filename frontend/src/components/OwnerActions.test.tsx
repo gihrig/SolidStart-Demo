@@ -17,10 +17,10 @@ const buttons = () =>
 
 describe("<OwnerActions />", () => {
   it("enables Edit and Delete, labelled by noun and author, for the Owner", () => {
-    render(() => <OwnerActions loggedIn noun="caption" author={lisa} userId={1} />);
+    render(() => <OwnerActions loggedIn noun="Caption" author={lisa} userId={1} />);
     expect(buttons()).toEqual([
-      ["Edit caption by Lisa", true],
-      ["Delete caption by Lisa", true],
+      ["Edit Caption by Lisa", true],
+      ["Delete Caption by Lisa", true],
     ]);
   });
 
@@ -41,10 +41,10 @@ describe("<OwnerActions />", () => {
   });
 
   it("disables both buttons when there is nothing to act on (no author)", () => {
-    render(() => <OwnerActions loggedIn noun="caption" userId={1} />);
+    render(() => <OwnerActions loggedIn noun="Caption" userId={1} />);
     expect(buttons()).toEqual([
-      ["Edit caption", false],
-      ["Delete caption", false],
+      ["Edit Caption", false],
+      ["Delete Caption", false],
     ]);
   });
 

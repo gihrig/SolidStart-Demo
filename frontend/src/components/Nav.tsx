@@ -207,7 +207,7 @@ export default function Nav() {
           <button
             ref={(el) => (siteToggleRef = el)}
             type="button"
-            aria-label="Toggle navigation"
+            aria-label="Site menu"
             {...mobileNav.triggerProps}
             class="md:hidden h-12 w-12 flex items-center justify-center cursor-pointer hover:bg-gray-700 rounded-lg"
           >

@@ -52,7 +52,7 @@ function renderDialog() {
   const submitLogin = async (form: ReturnType<typeof within>) => {
     await user.type(form.getByLabelText(/username/i), "demo1");
     await user.type(form.getByLabelText(/password/i), "welcome");
-    await user.click(form.getByRole("button", { name: /^login$/i }));
+    await user.click(form.getByRole("button", { name: /^log in$/i }));
   };
   return { user, open, openLogin, shown, submitLogin };
 }
@@ -69,7 +69,7 @@ describe("<LoginDialog />", () => {
     const { dialog } = await openLogin();
 
     expect(dialog.open).toBe(true);
-    expect(screen.getByRole("dialog", { name: "Login" })).toBe(dialog);
+    expect(screen.getByRole("dialog", { name: "Log In" })).toBe(dialog);
   });
 
   it("closes after a successful login and reports the close", async () => {

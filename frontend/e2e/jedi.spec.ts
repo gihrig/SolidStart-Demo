@@ -5,7 +5,7 @@ import { loginAs } from "./login";
 test.describe("Jedi Page", () => {
   test("should load successfully and display correct title", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle(/Little Jedi/);
+    await expect(page).toHaveTitle(/Awesome Photos & Captions/);
     await expect(page).toHaveURL("/");
   });
 
@@ -38,7 +38,7 @@ test.describe("Jedi Page", () => {
   test("should toggle mobile sidebar when button clicked", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto("/");
-    const toggle = page.getByRole("button", { name: /toggle sidebar/i });
+    const toggle = page.getByRole("button", { name: /categories sidebar/i });
     await expect(toggle).toBeVisible();
     const aside = page.locator("aside");
     await expect(aside).toHaveAttribute("inert");
@@ -133,7 +133,7 @@ test.describe("Jedi Page", () => {
     await expect(page.locator("aside")).toBeVisible();
     await page.setViewportSize({ width: 375, height: 667 });
     // Gate on toggle button — proves isMobile() signal updated after matchMedia fired
-    await expect(page.getByRole("button", { name: /toggle sidebar/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /categories sidebar/i })).toBeVisible();
     await expect(page.locator("main")).toBeVisible();
     await expect(page.locator("aside")).toHaveAttribute("inert");
   });
@@ -143,7 +143,7 @@ test.describe("Home Page - Nav slide transitions (regression #28)", () => {
   test("mobile nav menu slides via `translate` (not just opacity) on close", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto("/");
-    const navBtn = page.getByRole("button", { name: /toggle navigation/i });
+    const navBtn = page.getByRole("button", { name: /site menu/i });
     const nav = page.getByRole("navigation", { name: /site menu/i });
 
     // Tailwind v4 keeps the menu's motion in the `translate` property; it must be
@@ -165,9 +165,7 @@ test.describe("Home Page - Nav slide transitions (regression #28)", () => {
               resolve(true);
             }
           });
-          document
-            .querySelector<HTMLButtonElement>('button[aria-label="Toggle navigation"]')!
-            .click();
+          document.querySelector<HTMLButtonElement>('button[aria-label="Site menu"]')!.click();
         }),
     );
     expect(translateAnimated).toBe(true);
@@ -258,7 +256,7 @@ test.describe("Home Page - Profile dropdown (popup disclosure, #55 C5)", () => {
     await expect.poll(() => alertText).toBe("Not implemented");
 
     await clickRowEdge(logIn);
-    await expect(page.getByRole("dialog", { name: "Login" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Log In" })).toBeVisible();
   });
 
   test("logged in, a click near the right edge of Log Out logs the User off", async ({ page }) => {
@@ -750,9 +748,9 @@ test.describe("Jedi Page - Tab stays in the dialogs (#210)", () => {
     const header = page.getByRole("banner");
     await header.getByRole("button", { name: "Profile menu" }).click();
     await header.getByRole("button", { name: "Log In" }).click();
-    const dialog = page.getByRole("dialog", { name: "Login" });
+    const dialog = page.getByRole("dialog", { name: "Log In" });
     const username = dialog.getByLabel("Username");
-    const login = dialog.getByRole("button", { name: /^login$/i });
+    const login = dialog.getByRole("button", { name: /^log in$/i });
 
     await username.focus();
     await page.keyboard.press("Shift+Tab");
@@ -799,7 +797,7 @@ test.describe("Jedi Page - Comment row (#125)", () => {
     await expect(row.locator("time")).toHaveAttribute("datetime", /^\d{4}-\d{2}-\d{2}T/);
 
     // Delete it, so a rerun starts clean.
-    await row.getByRole("button", { name: "Delete comment" }).click();
+    await row.getByRole("button", { name: "Delete Comment" }).click();
     await expect(row).toHaveCount(0);
   });
 });
@@ -823,7 +821,7 @@ test.describe("Jedi Page - Comment markdown (#126)", () => {
     await expect(row).not.toContainText("**");
 
     // Delete it, so a rerun starts clean.
-    await row.getByRole("button", { name: "Delete comment" }).click();
+    await row.getByRole("button", { name: "Delete Comment" }).click();
     await expect(row).toHaveCount(0);
   });
 });
@@ -850,7 +848,7 @@ test.describe("Jedi Page - Caption Comments (#127)", () => {
     await expect(row.getByText("demo1", { exact: true })).toBeVisible();
 
     // Delete it, so a rerun starts clean.
-    await row.getByRole("button", { name: "Delete comment" }).click();
+    await row.getByRole("button", { name: "Delete Comment" }).click();
     await expect(row).toHaveCount(0);
   });
 });

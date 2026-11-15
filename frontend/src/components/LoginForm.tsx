@@ -25,7 +25,7 @@ export default function LoginForm(props: LoginFormProps) {
   return (
     <form onSubmit={handleSubmit} class="space-y-4">
       <h2 id={props.headingId} style="margin-left:0;">
-        Login
+        Log In
       </h2>
 
       <Show when={error()}>
@@ -74,7 +74,7 @@ export default function LoginForm(props: LoginFormProps) {
           disabled={pending()}
           class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {pending() ? "Logging in..." : "Login"}
+          {pending() ? "Logging in..." : "Log In"}
         </button>
       </div>
     </form>
