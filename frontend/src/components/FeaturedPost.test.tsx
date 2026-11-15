@@ -165,7 +165,7 @@ describe("<FeaturedPost />", () => {
 
 describe("<FeaturedPost /> — Add Caption (#121)", () => {
   const addButton = () => screen.queryByRole("button", { name: "Add Caption" });
-  const input = () => screen.queryByLabelText("Your caption");
+  const input = () => screen.queryByLabelText("Your Caption");
   const renderLoggedIn = (postSignal = createSignal(post)[0]) => {
     const user = userEvent.setup();
     render(() => (
@@ -263,7 +263,7 @@ describe("<FeaturedPost /> — Add Caption (#121)", () => {
 });
 
 describe("<FeaturedPost /> — a Draft keeps the Add Caption form open (#271)", () => {
-  const input = () => screen.queryByLabelText("Your caption");
+  const input = () => screen.queryByLabelText("Your Caption");
   // A Post with no Caption, so the form shows at once. `setShown` is a Caption
   // that arrives, as a `post_caption` refetch delivers it.
   function renderWithoutCaption(addCaption?: FeaturedPostProps["addCaption"]) {
@@ -447,10 +447,10 @@ describe("<FeaturedPost /> — Caption actions (#123)", () => {
     );
     expect(names).toEqual([
       "Caption Comments, 2 comments",
-      "Like caption by Lisa",
+      "Like Caption by Lisa",
       "Add Caption",
-      "Edit caption by Lisa",
-      "Delete caption by Lisa",
+      "Edit Caption by Lisa",
+      "Delete Caption by Lisa",
     ]);
     expect(captionActions()).toContainElement(captionCount());
   });
@@ -610,14 +610,14 @@ describe("<FeaturedPost /> — visibility rule, Post actions and Caption actions
       [...el.querySelectorAll("button")].map((b) => b.getAttribute("aria-label") ?? b.textContent);
     expect(names(captionActions())).toEqual([
       "Caption Comments, 2 comments",
-      "Like caption by Bart",
+      "Like Caption by Bart",
       "Add Caption",
-      "Edit caption by Bart",
-      "Delete caption by Bart",
+      "Edit Caption by Bart",
+      "Delete Caption by Bart",
     ]);
     expect(names(postActions())).toEqual([
       "Post Comments, 3 comments",
-      "Like post by Lisa",
+      "Like Post by Lisa",
       "Add Post",
       "Edit Post by Lisa",
       "Delete Post by Lisa",
@@ -1040,10 +1040,10 @@ describe("<FeaturedPost /> — the Caption Comments panel (#127)", () => {
 
     // Both threads hold a Comment with id 9: with both edit forms open, each
     // panel's element ids stay unique.
-    for (const edit of screen.getAllByRole("button", { name: "Edit comment" })) {
+    for (const edit of screen.getAllByRole("button", { name: "Edit Comment" })) {
       await user.click(edit);
     }
-    expect(screen.getAllByRole("textbox", { name: "Edit your comment" })).toHaveLength(2);
+    expect(screen.getAllByRole("textbox", { name: "Edit your Comment" })).toHaveLength(2);
     const ids = [...document.querySelectorAll("[id]")].map((e) => e.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
@@ -1115,7 +1115,7 @@ describe("<FeaturedPost /> — the Owner's delete (#187)", () => {
     const onDeleteCaption = vi.fn(() => Promise.resolve());
     renderOwner({ onDeleteCaption });
 
-    await user.click(screen.getByRole("button", { name: "Delete caption by Lisa" }));
+    await user.click(screen.getByRole("button", { name: "Delete Caption by Lisa" }));
     expect(screen.getByRole("dialog")).toHaveAccessibleName(T2);
     await user.click(screen.getByRole("button", { name: "Delete" }));
 
@@ -1133,7 +1133,7 @@ describe("<FeaturedPost /> — the Owner's delete (#187)", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not delete the Post");
     expect(screen.getByRole("button", { name: "Delete Post by Lisa" })).toHaveFocus();
 
-    await confirm(user, "Delete caption by Lisa");
+    await confirm(user, "Delete Caption by Lisa");
     await waitFor(() =>
       expect(screen.getAllByRole("alert").map((a) => a.textContent)).toContain(
         "Could not delete the Caption",
@@ -1195,52 +1195,52 @@ describe("<FeaturedPost /> — the Owner's edits (#187)", () => {
 
   it("the Caption edit form takes the place of the Caption text", async () => {
     const { user, captionEdit, onUpdateCaption } = renderOwner();
-    await user.click(button("Edit caption by Lisa"));
+    await user.click(button("Edit Caption by Lisa"));
     expect(captionEdit.open()).toBe(true);
-    const input = screen.getByLabelText("Edit your caption") as HTMLInputElement;
+    const input = screen.getByLabelText("Edit your Caption") as HTMLInputElement;
     expect(input.value).toBe(caption.text);
     expect(screen.queryByText(caption.text, { selector: "p" })).toBeNull();
 
     // One form in the Caption line: Add, Edit and Delete wait.
     expect(button("Add Caption")).toBeDisabled();
-    expect(button("Edit caption by Lisa")).toBeDisabled();
-    expect(button("Delete caption by Lisa")).toBeDisabled();
+    expect(button("Edit Caption by Lisa")).toBeDisabled();
+    expect(button("Delete Caption by Lisa")).toBeDisabled();
 
     await user.type(input, "!");
     await user.click(button("Save"));
     expect(onUpdateCaption).toHaveBeenCalledWith(caption.id, `${caption.text}!`);
     await waitFor(() => expect(captionEdit.open()).toBe(false));
-    expect(button("Edit caption by Lisa"), "focus returns to Edit").toHaveFocus();
+    expect(button("Edit Caption by Lisa"), "focus returns to Edit").toHaveFocus();
   });
 
   it("the Caption edit's Cancel with a Draft asks; focus returns to Edit after Discard (#214)", async () => {
     const { user, guard, captionEdit } = renderOwner();
-    await user.click(button("Edit caption by Lisa"));
-    await user.type(screen.getByLabelText("Edit your caption"), "!");
+    await user.click(button("Edit Caption by Lisa"));
+    await user.type(screen.getByLabelText("Edit your Caption"), "!");
 
     await user.click(button("Cancel"));
     expect(guard.pending()).toBe(true);
     expect(captionEdit.open()).toBe(true);
     guard.confirmMove();
     expect(captionEdit.open()).toBe(false);
-    expect(button("Edit caption by Lisa")).toHaveFocus();
+    expect(button("Edit Caption by Lisa")).toHaveFocus();
   });
 
   it("disables the Caption's Edit while the Add form is open", async () => {
     const { user } = renderOwner();
     await user.click(addCaptionTrigger()!);
-    expect(button("Edit caption by Lisa")).toBeDisabled();
+    expect(button("Edit Caption by Lisa")).toBeDisabled();
   });
 
   it("a locked Caption explains itself, and focus returns to Edit", async () => {
     const { user, captionEdit } = renderOwner(caption);
-    await user.click(button("Edit caption by Lisa"));
+    await user.click(button("Edit Caption by Lisa"));
     expect(captionEdit.open()).toBe(false);
     const notice = screen.getByRole("dialog", {
       name: "A Caption with Likes or Comments cannot be edited.",
     });
     await user.click(within(notice).getByRole("button", { name: "OK" }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(button("Edit caption by Lisa")).toHaveFocus();
+    expect(button("Edit Caption by Lisa")).toHaveFocus();
   });
 });

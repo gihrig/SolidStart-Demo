@@ -5,7 +5,7 @@ import LikeControl from "./LikeControl";
 import type { Like } from "~/types/jedi";
 
 const like: Like = { id: 1, likeCount: 6, liked: true };
-const button = () => screen.queryByRole("button", { name: "Like post by Lisa" });
+const button = () => screen.queryByRole("button", { name: "Like Post by Lisa" });
 const count = () => screen.getByText("Likes:").parentElement;
 
 describe("<LikeControl />", () => {
@@ -14,7 +14,7 @@ describe("<LikeControl />", () => {
       <LikeControl
         fallbackCount={5}
         countLabel="Likes"
-        label="Like post by Lisa"
+        label="Like Post by Lisa"
         onToggle={vi.fn()}
       />
     ));
@@ -28,7 +28,7 @@ describe("<LikeControl />", () => {
         loggedIn
         fallbackCount={5}
         countLabel="Likes"
-        label="Like post by Lisa"
+        label="Like Post by Lisa"
         onToggle={vi.fn()}
       />
     ));
@@ -45,7 +45,7 @@ describe("<LikeControl />", () => {
         like={like}
         fallbackCount={5}
         countLabel="Likes"
-        label="Like post by Lisa"
+        label="Like Post by Lisa"
         onToggle={onToggle}
       />
     ));

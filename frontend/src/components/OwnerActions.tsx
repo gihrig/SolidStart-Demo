@@ -6,8 +6,8 @@ import ConfirmDialog from "~/components/ConfirmDialog";
 const DRAFT_WARNING = "Your unsaved changes will be discarded.";
 
 export interface OwnerActionsProps {
-  /** What the actions act on, in the button labels: "Post" or "caption". */
-  noun: string;
+  /** What the actions act on, in the button labels: the glossary term. */
+  noun: "Post" | "Caption";
   /** The author of the Post or the Caption; undefined when there is none yet. */
   author?: AuthorRef;
   /** Only a logged-in User sees the buttons; a visitor sees none. */

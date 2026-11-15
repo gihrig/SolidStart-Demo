@@ -40,10 +40,10 @@ describe("<LoginForm />", () => {
   it("renders login form with username and password fields", () => {
     renderWithAuth();
 
-    expect(screen.getByRole("heading", { name: /login/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /log in/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /login/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /log in/i })).toBeInTheDocument();
   });
 
   it("opens with the username and password fields empty", () => {
@@ -68,12 +68,12 @@ describe("<LoginForm />", () => {
 
     await user.type(screen.getByLabelText(/username/i), "demo1");
     await user.type(screen.getByLabelText(/password/i), "welcome");
-    await user.click(screen.getByRole("button", { name: /^login$/i }));
+    await user.click(screen.getByRole("button", { name: /^log in$/i }));
 
     await waitFor(() => expect(screen.getByRole("button", { name: /logging in/i })).toBeDisabled());
 
     resolveLogin({ result: { success: true } });
-    await waitFor(() => expect(screen.getByRole("button", { name: /^login$/i })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: /^log in$/i })).toBeEnabled());
   });
 
   it("submits form with entered credentials", async () => {
@@ -83,7 +83,7 @@ describe("<LoginForm />", () => {
 
     const usernameInput = screen.getByLabelText(/username/i);
     const passwordInput = screen.getByLabelText(/password/i);
-    const submitButton = screen.getByRole("button", { name: /login/i });
+    const submitButton = screen.getByRole("button", { name: /log in/i });
 
     await user.type(usernameInput, "testuser");
     await user.type(passwordInput, "testpass");

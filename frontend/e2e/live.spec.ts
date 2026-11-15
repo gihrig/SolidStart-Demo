@@ -91,11 +91,11 @@ test.describe("Live updates across Users (#129)", () => {
     try {
       const articleA = await featuredArticle(a);
       const articleB = await featuredArticle(b);
-      const likeA = articleA.getByRole("button", { name: "Like post by Lisa" });
+      const likeA = articleA.getByRole("button", { name: "Like Post by Lisa" });
       // Like is enabled once the like state loads, which needs a live session.
       // So B holds its Channels before A acts.
       await expect(likeA).toBeEnabled();
-      await expect(articleB.getByRole("button", { name: "Like post by Lisa" })).toBeEnabled();
+      await expect(articleB.getByRole("button", { name: "Like Post by Lisa" })).toBeEnabled();
 
       // Read the seed state; do not assume it.
       const liked = (await likeA.getAttribute("aria-pressed")) === "true";
@@ -130,9 +130,9 @@ test.describe("Live updates across Users (#129)", () => {
     try {
       const articleA = await featuredArticle(a);
       const articleB = await featuredArticle(b);
-      const likeA = articleA.getByRole("button", { name: "Like caption by Lisa" });
+      const likeA = articleA.getByRole("button", { name: "Like Caption by Lisa" });
       await expect(likeA).toBeEnabled();
-      await expect(articleB.getByRole("button", { name: "Like caption by Lisa" })).toBeEnabled();
+      await expect(articleB.getByRole("button", { name: "Like Caption by Lisa" })).toBeEnabled();
 
       const liked = (await likeA.getAttribute("aria-pressed")) === "true";
       const before = await readCount(articleB, "Caption likes");
@@ -185,7 +185,7 @@ test.describe("Live updates across Users (#129)", () => {
       await expect(rowB.getByText("demo1", { exact: true })).toBeVisible();
 
       // Undo: A deletes it, and B sees the row go.
-      await rowA.getByRole("button", { name: "Delete comment" }).click();
+      await rowA.getByRole("button", { name: "Delete Comment" }).click();
       await expect(rowA).toHaveCount(0);
       await expect(rowB).toHaveCount(0);
     } finally {
@@ -251,21 +251,21 @@ test.describe("Live updates across Users (#129)", () => {
       const articleB = await selectPost(b, alt);
 
       // A Post with no Caption shows the Add Caption form directly.
-      const captionBox = articleA.getByRole("textbox", { name: "Your caption" });
+      const captionBox = articleA.getByRole("textbox", { name: "Your Caption" });
       await captionBox.fill(text);
       await captionBox.press("Enter");
       await expect(articleB.getByText(text, { exact: true })).toBeVisible();
 
       // A edits the Caption: the edit form takes the place of the text.
       const edited = `${text.slice(0, 30)} ed`;
-      await articleA.getByRole("button", { name: "Edit caption by demo1" }).click();
-      const editBox = articleA.getByRole("textbox", { name: "Edit your caption" });
+      await articleA.getByRole("button", { name: "Edit Caption by demo1" }).click();
+      const editBox = articleA.getByRole("textbox", { name: "Edit your Caption" });
       await editBox.fill(edited);
       await editBox.press("Enter");
       await expect(a.getByRole("status")).toHaveText("Caption saved.");
       await expect(articleB.getByText(edited, { exact: true })).toBeVisible();
 
-      await confirmDelete(a, articleA, "Delete caption by demo1");
+      await confirmDelete(a, articleA, "Delete Caption by demo1");
       await expect(a.getByRole("status")).toHaveText("Caption deleted.");
       await expect(articleB.getByText(edited, { exact: true })).toHaveCount(0);
       await expect(b.getByRole("status")).toHaveText("This Caption was deleted.");

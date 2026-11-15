@@ -176,7 +176,7 @@ describe("Home route (Jedi feed, data-driven from jedi-api)", () => {
     renderHome();
     await screen.findByText(/jedi kitty protects the street/i);
     expect(screen.queryByRole("button", { name: "Add Caption" })).toBeNull();
-    expect(screen.queryByLabelText("Your caption")).toBeNull();
+    expect(screen.queryByLabelText("Your Caption")).toBeNull();
   });
 
   it("renders the externalized hero content from the mock", async () => {
@@ -189,7 +189,7 @@ describe("Home route (Jedi feed, data-driven from jedi-api)", () => {
   it("sidebar toggle's aria-controls links to the aside panel's id", async () => {
     renderHome();
     await screen.findByRole("heading", { name: /little jedi/i }); // wait for load
-    const toggle = screen.getByRole("button", { name: /toggle sidebar/i });
+    const toggle = screen.getByRole("button", { name: /categories sidebar/i });
     expect(toggle).toHaveAttribute("aria-controls", "jedi-sidebar");
     expect(document.getElementById("jedi-sidebar")).not.toBeNull();
   });

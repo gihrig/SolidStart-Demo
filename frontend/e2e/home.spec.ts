@@ -7,7 +7,7 @@ test.describe("Home Page", () => {
   test("loads at / with the Jedi title", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page).toHaveTitle(/Little Jedi/);
+    await expect(page).toHaveTitle(/Awesome Photos & Captions/);
     await expect(page).toHaveURL("/");
   });
 

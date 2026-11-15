@@ -10,7 +10,7 @@ export interface LikeControlProps {
   fallbackCount: number;
   /** The screen-reader label of the count, e.g. "Likes" or "Caption likes". */
   countLabel: string;
-  /** The Like button's accessible name, e.g. "Like post by Lisa". */
+  /** The Like button's accessible name, e.g. "Like Post by Lisa". */
   label: string;
   /** Only a logged-in User sees the Like button (#123). */
   loggedIn?: boolean;

@@ -64,7 +64,7 @@ export default function Home() {
 
   return (
     <>
-      <Title>Little Jedi - Awesome Photos & Captions</Title>
+      <Title>Awesome Photos & Captions</Title>
       <Meta
         name="description"
         content="Share your favorite Photos from Flickr and add a great caption"
@@ -87,7 +87,7 @@ export default function Home() {
         <div class="md:hidden col-span-full mx-auto mb-6 relative z-10">
           <button
             type="button"
-            aria-label="Toggle sidebar"
+            aria-label="Categories Sidebar"
             {...sidebar.triggerProps}
             class="flex items-center font-bold text-(--theme-card-fg) bg-(--theme-card-bg) hover:text-(--theme-hover-fg) hover:bg-(--theme-hover-bg) rounded-lg p-3"
           >

@@ -115,7 +115,7 @@ const FORM_TEXT = {
     hint: "Enter = add Comment. Shift+Enter = new line.",
   },
   edit: {
-    label: "Edit your comment",
+    label: "Edit your Comment",
     submit: "Save",
     pending: "Saving…",
     error: "Could not edit the Comment",
@@ -378,7 +378,7 @@ function CommentItem(props: CommentItemProps) {
                 type="button"
                 onClick={() => setEditing(true)}
                 class="theme-button"
-                aria-label="Edit comment"
+                aria-label="Edit Comment"
               >
                 Edit
               </button>
@@ -387,7 +387,7 @@ function CommentItem(props: CommentItemProps) {
                 onClick={() => void remove.run(undefined)}
                 disabled={remove.pending()}
                 class="theme-button disabled:opacity-50"
-                aria-label="Delete comment"
+                aria-label="Delete Comment"
               >
                 Delete
               </button>
