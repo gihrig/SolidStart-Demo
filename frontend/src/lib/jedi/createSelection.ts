@@ -148,7 +148,7 @@ export interface SelectionState {
   refetchCaptions: () => void;
 }
 
-/** The forced-discard notices of a deleted subject (#187, ADR-0030 addendum). */
+/** The forced-discard notices of a deleted subject (#187, ADR-0030). */
 const POST_DELETED_NOTICE = "This Post was deleted. Your unsaved changes were discarded.";
 const CAPTION_DELETED_NOTICE = "This Caption was deleted. Your unsaved changes were discarded.";
 /** The question when an Event moves a held Post out of the Category (T6). */
@@ -174,7 +174,7 @@ const inCategory = (post: PostView, category: JediCategory): boolean =>
   post.categories.some((c) => c.id === category.id);
 
 /**
- * The Post and the Caption that the Post card shows (#271, ADR-0030 addendum).
+ * The Post and the Caption that the Post card shows (#271, ADR-0030).
  * It owns the picks, the Post hold, the Caption hold, the guarded moves and the
  * change causes of #187. It also owns the User's own writes: the Owner's save
  * and delete, and the Caption add (#283). Each refetches at once: the writer
@@ -206,7 +206,7 @@ export function createSelection(deps: SelectionDeps): SelectionState {
   const guard = deps.guard ?? passThroughGuard;
   const [selectedPostId, setSelectedPostId] = createSignal<number | undefined>();
   const [selectedCaptionId, setSelectedCaptionId] = createSignal<number | undefined>();
-  // The scopes of the Post card's forms (#271, ADR-0030 addendum). The Post
+  // The scopes of the Post card's forms (#271, ADR-0030). The Post
   // thread scope and the Caption scope sit under the Post scope, and the
   // Caption thread scope under the Caption scope. Each Post move and Event
   // names the Post scope, so none touches a Draft outside the Post, such as

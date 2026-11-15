@@ -50,8 +50,8 @@ export interface CommentThreadDeps {
   /** The target: the Channel the thread holds, and its Draft scope label. */
   target: CommentTarget;
   /** The id of the parent that the panel is open on, as a signal the caller
-   *  owns, when the caller reads it: the Caption hold (#127, ADR-0030
-   *  addendum). Defaults to a signal of the thread's own. */
+   *  owns, when the caller reads it: the Caption hold (#127, ADR-0030).
+   *  Defaults to a signal of the thread's own. */
   openOn?: Signal<number | undefined>;
   /** The app's Draft guard (ADR-0030). Defaults to the pass-through guard,
    *  which runs each move at once. */

@@ -164,7 +164,7 @@ describe("AuthContext", () => {
     expect(vi.mocked(backendRpc.auth.login)).toHaveBeenCalledWith("demo1", "welcome");
   });
 
-  // The nav identity (ADR-0007, #119): the logged-in User's real profile, read
+  // The nav identity (ADR-0011, #119): the logged-in User's real profile, read
   // through the `jediApi` seam. There is no identity until login. It lives here —
   // not inline in <Nav /> — so it is exercisable at the useAuth seam without
   // rendering the nav.

@@ -242,7 +242,7 @@ impl DbBmc for PostBmc {
 
 	/// An unsafe URL in any Post URL field is rejected on write (#120, ADR-0011):
 	/// the server is the authoritative URL boundary; the front-end `sanitizeUrl`
-	/// stays as the render-time defense in depth (ADR-0006).
+	/// stays as the render-time defense in depth (ADR-0019).
 	fn url_fields() -> &'static [&'static str] {
 		&["image_src", "photographer_url", "source_url"]
 	}

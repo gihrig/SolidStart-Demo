@@ -1,7 +1,7 @@
 # Root build orchestration for the mono-repo (ADR-0010).
 #
-# Cross-cutting recipes delegate to each subtree via one runner (`cgs`), per the
-# ADR-0010 addendum: the front-end now exposes a `cgs` alias surface
+# Cross-cutting recipes delegate to each subtree via one runner (`cgs`), per
+# ADR-0010: the front-end now exposes a `cgs` alias surface
 # (frontend/Scripts.toml) that proxies its package.json scripts through `vpr`.
 #   frontend/ -> cgs <script>   (frontend/Scripts.toml -> vpr -> package.json)
 #   backend/  -> cgs <script>   (cargo-run, backend/Scripts.toml)

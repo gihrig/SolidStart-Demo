@@ -197,7 +197,7 @@ describe("createDraftGuard — scopes", () => {
 });
 
 describe("createDraftGuard — the scope tree (#271)", () => {
-  // The Post card's scopes (ADR-0030 addendum, #271).
+  // The Post card's scopes (ADR-0030, #271).
   const post = createDraftScope("post");
   const postThread = createDraftScope("post-thread", post);
   const captionScope = createDraftScope("caption", post);

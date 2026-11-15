@@ -1,4 +1,4 @@
-# Front-end recipe surface for the mono-repo (ADR-0010 addendum).
+# Front-end recipe surface for the mono-repo (ADR-0010).
 #
 # Thin aliases that proxy each package.json script through `vpr <script>`, so the
 # whole repo speaks one runner (`cgs`) while package.json stays the source of truth

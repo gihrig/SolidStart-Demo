@@ -11,20 +11,9 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
 
 ## File structure
 
-This is a **single-context mono-repo**: one `GLOSSARY.md` + one `docs/adr/` at the repo root, shared across both subtrees. [ADR-0010](../adr/0010-monorepo-structure.md) chose this deliberately — the domain is **one bounded context with two surfaces** (front-end + back-end), unified by a single `User` ([ADR-0007](../adr/0007-consolidate-jedi-shell-unified-identity.md), [ADR-0011](../adr/0011-jedi-backend-domain-contract.md)) — so there is **no per-subtree `GLOSSARY.md` or `docs/adr/`**.
+This is a **single-context mono-repo**: one `GLOSSARY.md` + one `docs/adr/` at the repo root, shared across both subtrees. [ADR-0010](../adr/0010-monorepo-structure.md) chose this deliberately — the domain is **one bounded context with two surfaces** (front-end + back-end), unified by a single `User` ([ADR-0011](../adr/0011-jedi-backend-domain-contract.md)) — so there is **no per-subtree `GLOSSARY.md` or `docs/adr/`**.
 
-```
-/
-├── GLOSSARY.md                 ← shared domain model (both surfaces)
-├── docs/adr/                   ← all architecture decisions, one number sequence
-│   ├── 0001-frontend-modular-monolith.md
-│   ├── …
-│   └── 0013-in-browser-turso-server-sync.md
-├── frontend/                   ← SolidStart code + tool-specific CLAUDE.md
-└── backend/                    ← Rust/Axum code + tool-specific CLAUDE.md
-```
-
-Only **code and tool-config** descend into the subtrees. The domain docs stay at the root; do **not** create `frontend/GLOSSARY.md`, `backend/GLOSSARY.md`, or per-subtree `docs/adr/` without a new ADR superseding ADR-0010's "single root `GLOSSARY.md`" decision.
+Only **code and tool-config** descend into the subtrees. The domain docs stay at the root; do **not** create `frontend/GLOSSARY.md`, `backend/GLOSSARY.md`, or per-subtree `docs/adr/` without a new ADR that replaces ADR-0010's "single root `GLOSSARY.md`" decision.
 
 `CLAUDE.md` follows the same split ([ADR-0010](../adr/0010-monorepo-structure.md)): cross-cutting rules at the root (`.claude/CLAUDE.md`, always loaded), tool-specific rules in `frontend/.claude/CLAUDE.md` and `backend/.claude/CLAUDE.md` (loaded when Claude works in that subtree). The domain docs are **not** split this way — they stay whole at the root.
 
@@ -38,4 +27,4 @@ If the concept you need isn't in the glossary yet, that's a signal — either yo
 
 If your output contradicts an existing ADR, surface it explicitly rather than silently overriding:
 
-> _Contradicts ADR-0009 (Postgres/SQLite db-swap seam) — but worth reopening because…_
+> _Contradicts ADR-0012 (Postgres/Turso db-swap seam) — but worth reopening because…_

@@ -54,7 +54,7 @@ export type { EditState, OwnerWrites, PostCardScopes } from "~/lib/jedi/createSe
  *
  * `hero` (the header banner content) is the externalized header data (#32): the
  * route renders the Hero from `hero`, so it is not hard-coded in the markup. The
- * nav avatar's profile now lives in the global Nav, not here (see ADR-0007).
+ * nav avatar's profile now lives in the global Nav, not here (see ADR-0011).
  */
 /** The members of the selection that the route reads (#271): every member
  *  but the three that only this view-model uses. */

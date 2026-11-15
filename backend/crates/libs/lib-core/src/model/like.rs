@@ -1,4 +1,4 @@
-//! The **Like** module (#123, C-19, ADR-0024 addendum): one write path and one
+//! The **Like** module (#123, C-19): one write path and one
 //! read for every Like target. A target is a like BMC that implements
 //! [`LikeTarget`]: its like table (`DbBmc::TABLE`), its parent key column, and its
 //! parent BMC for the existence check. [`LikeBmc::toggle`] and [`LikeBmc::get`]

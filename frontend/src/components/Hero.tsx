@@ -7,8 +7,8 @@ export interface HeroProps {
   backgroundImage: SafeUrl;
 }
 
-// The CTA target is fixed front-end code, not Hero data (#119, ADR-0011
-// addendum). It is a placeholder until an account-creation flow exists.
+// The CTA target is fixed front-end code, not Hero data (#119, ADR-0011).
+// It is a placeholder until an account-creation flow exists.
 const CTA_HREF = "#";
 
 export default function Hero(props: HeroProps) {
