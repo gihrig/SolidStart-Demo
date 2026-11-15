@@ -23,7 +23,7 @@ import type {
   CaptionView,
 } from "~/types/jedi";
 
-/** The single sanitize boundary (ADR-0011): every URL field passes through here.
+/** The single sanitize boundary (ADR-0019): every URL field passes through here.
  *  A rejected URL collapses to the empty `SafeUrl`; consumers bind it raw. */
 const safe = (url: string): SafeUrl => sanitizeUrl(url) ?? trustedUrl("");
 
