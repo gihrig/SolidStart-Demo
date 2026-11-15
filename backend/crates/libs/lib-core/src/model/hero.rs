@@ -15,8 +15,8 @@ const HERO_ID: i64 = 1;
 
 /// The **public projection** of the Hero singleton (ADR-0021): the home page
 /// banner content, minus the audit columns (`cid` / `mid` / `ctime` / `mtime`).
-/// There is no `cta_href`: the CTA runs fixed front-end code (ADR-0011
-/// addendum). `base::get` selects exactly these columns, so the audit columns
+/// There is no `cta_href`: the CTA runs fixed front-end code (ADR-0011).
+/// `base::get` selects exactly these columns, so the audit columns
 /// are never queried.
 #[derive(Debug, Clone, Fields, FromRow, Serialize, TS)]
 #[ts(export, export_to = "HeroView.d.ts")]
@@ -82,7 +82,7 @@ impl DbBmc for HeroBmc {
 		RULES
 	}
 
-	/// An unsafe `background_image` is rejected on write (ADR-0011).
+	/// An unsafe `background_image` is rejected on write (ADR-0019).
 	fn url_fields() -> &'static [&'static str] {
 		&["background_image"]
 	}
@@ -90,7 +90,7 @@ impl DbBmc for HeroBmc {
 
 // The Hero has no `owner_id`, so the default `access_scope` leaves Read and
 // Write unscoped. Admin-only write-gating is deferred until a privilege system
-// exists (ADR-0011 addendum). The CRUD macro is not used: it would generate a
+// exists (ADR-0011). The CRUD macro is not used: it would generate a
 // `create` / `delete`, and the singleton has neither.
 impl HeroBmc {
 	/// Read the Hero singleton as its public projection.

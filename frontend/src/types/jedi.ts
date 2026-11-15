@@ -58,7 +58,7 @@ export interface PostDraft {
 export type PostChanges = Partial<Omit<PostDraft, "imageSrc">>;
 
 /** Hero as returned by the seam: its URL field is sanitized. There is no CTA
- *  href: the CTA runs fixed front-end code (#119, ADR-0011 addendum). */
+ *  href: the CTA runs fixed front-end code (#119, ADR-0011). */
 export interface HeroView {
   title: string;
   subtitle: string;

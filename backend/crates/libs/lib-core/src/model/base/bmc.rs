@@ -22,7 +22,7 @@ pub enum Access {
 /// an entity's public-facing fields minus the internal audit columns. It never
 /// carries the actor ids (`cid` / `mid`), so an anonymous response never leaks
 /// them. It carries a time (`ctime` / `mtime`) only when the UI shows that time
-/// (ADR-0021 addendum, #125).
+/// (ADR-0021, #125).
 ///
 /// This is the shared convention ADR-0021 records: each entity names exactly one
 /// such type, and one read serves it. `CategoryPublic` is the first (#116);
@@ -113,7 +113,7 @@ pub trait DbBmc {
 		&[]
 	}
 
-	/// Optional URL columns for this entity (ADR-0011, ADR-0019).
+	/// Optional URL columns for this entity (ADR-0019).
 	///
 	/// The shared write path (`base::create`/`create_many`/`update`) rejects an
 	/// unsafe value in each named column (see `check_safe_url`). A URL column

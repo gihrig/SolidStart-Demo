@@ -3,7 +3,7 @@ import { render, screen } from "@solidjs/testing-library";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import Hero from "./Hero";
 
-// Hero no longer sanitizes: it receives already-safe URLs (see ADR-0006).
+// Hero no longer sanitizes: it receives already-safe URLs (see ADR-0019).
 // The seam owns URL rejection — jedi-api.unit.test.ts proves it.
 describe("<Hero />", () => {
   it("renders with all props", () => {

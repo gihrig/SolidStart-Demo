@@ -35,7 +35,7 @@ Use US English.
 Cross-cutting recipes run from the repo root via `cargo-run` (`cgs`),
 reading the root `Scripts.toml`; each delegates to the subtrees via `cgs` — the
 back-end natively, the front-end through a `cgs` alias surface that proxies its
-package.json scripts (ADR-0010 addendum). Each recipe there has an `info`
+package.json scripts (ADR-0010). Each recipe there has an `info`
 string that says what it does and which `-e` fields it takes.
 
 `cgs caddy` serves nothing by itself; `cgs dev` and `cgs start` run it with both

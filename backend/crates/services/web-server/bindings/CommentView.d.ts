@@ -6,10 +6,10 @@ import type { AuthorRef } from "./AuthorRef.d";
  * snapshot, the rendered content and the times. The thread read, the write results
  * and the upsert Event all carry it. It carries no actor ids (`cid` / `mid`).
  * It carries `ctime` and `mtime` because the UI shows them: the time of the
- * Comment, and the "(edited)" mark (ADR-0021 addendum).
+ * Comment, and the "(edited)" mark (ADR-0021).
  *
  * `content_html` is the stored markdown, rendered to sanitized HTML on read
- * (`render_comment_html`, ADR-0019 addendum). A consumer injects it as HTML,
+ * (`render_comment_html`, ADR-0019). A consumer injects it as HTML,
  * through its own backstop. No public read carries the stored text: the
  * Owner's edit form reads it as a `CommentSource`.
  */

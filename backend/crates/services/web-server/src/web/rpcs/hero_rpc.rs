@@ -28,8 +28,8 @@ pub async fn get_hero(
 /// rejects over-cap text and an unsafe `background_image` (ADR-0019).
 ///
 /// Interim Admin gate (#181): the Hero is site-wide content, so only an Admin
-/// (`Sys`) User may edit it. The model write stays unscoped (ADR-0011
-/// addendum); this RPC-layer check stands until the privilege system replaces
+/// (`Sys`) User may edit it. The model write stays unscoped (ADR-0011);
+/// this RPC-layer check stands until the privilege system replaces
 /// it. A non-Admin caller gets `EntityNotFound`, the permission-miss idiom of
 /// #89, so the write reveals nothing.
 pub async fn update_hero(

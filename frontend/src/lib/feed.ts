@@ -12,7 +12,7 @@ export type FeedHandler = (event?: WsEvent) => void;
 /**
  * The one live **Feed** (`GLOSSARY.md`) for a client, built once at the
  * authenticated boundary and injected into each view-model through the `feed?`
- * seam (ADR-0017, ADR-0028).
+ * seam (ADR-0028).
  */
 export interface Feed {
   connected: Accessor<boolean>;
@@ -81,7 +81,7 @@ interface Subscription {
 export function createFeed(transport: FeedTransport): Feed {
   // Held Channels by key, each with its holders. The server hears one
   // `subscribe` at the first holder and one `unsubscribe` at the last, so one
-  // view-model never cuts a Channel another still holds (ADR-0017).
+  // view-model never cuts a Channel another still holds (ADR-0028).
   const heldChannels = new Map<string, { channel: Channel; subs: Set<Subscription> }>();
   const errorHandlers = new Set<(error: string) => void>();
 

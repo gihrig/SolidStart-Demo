@@ -1,9 +1,11 @@
 # The saved theme lives in an HttpOnly cookie that the server renders
 
-#200 moves the Theme choice into the Profile menu. Before #200, the saved theme lived
-in `localStorage`. A blocking script, `public/theme-init.js`, applied it before the
-first paint, and the server could not see it. The project rule: a choice that the
-server renders goes in an HttpOnly, Secure cookie, not in `localStorage`.
+Origin: #200
+
+The User chooses a Theme in the Profile menu. A theme in `localStorage` needs a
+blocking script before the first paint, and the server cannot see it. The project
+rule: a choice that the server renders goes in an HttpOnly, Secure cookie, not in
+`localStorage`.
 
 ## Decisions
 
@@ -20,8 +22,7 @@ another browser.
 **The server renders the saved theme.** The document function in `entry-server.tsx`
 reads the cookie. For Light Theme or Dark Theme, it renders `data-theme="light"` or
 `data-theme="dark"` on `<html>`. For System Theme, it renders no `data-theme`, and
-CSS follows the device setting. So the first paint is right with no script, and
-`theme-init.js` goes.
+CSS follows the device setting. So the first paint is right with no script.
 
 **Each full page load renews the cookie.** If the cookie holds a valid value, the
 document function sets it again with a new `Max-Age`. So the saved theme lasts one
@@ -44,7 +45,7 @@ alert shows. Saves run in click order, so the last choice becomes the saved them
 
 ## Considered and rejected
 
-- **Keep `localStorage` and `theme-init.js`.** Rejected: the server cannot render the
+- **`localStorage` and a blocking init script.** Rejected: the server cannot render the
   saved theme, and a blocking script must run before the first paint.
 - **A cookie that a page script writes.** Rejected: such a cookie cannot be HttpOnly.
 - **Delete the cookie for System Theme.** Rejected: it adds a second code path.
@@ -56,14 +57,15 @@ alert shows. Saves run in click order, so the last choice becomes the saved them
 - **Accept `Sec-Fetch-Site: same-site`.** Rejected: a form on another port of the
   same host sends `same-site`, and the browser sends the `Lax` cookies with it.
 - **No `Secure` on `http://localhost`.** Rejected: the cookie has the same attributes
-  in every environment. Dev and e2e move to HTTPS instead (#233).
+  in every environment. Dev and e2e use HTTPS instead
+  ([ADR-0034](0034-one-https-edge-for-dev-and-e2e.md)).
 - **Only a choice sets the cookie.** Rejected: the saved theme would end one year after
   the last choice, also for a visitor who comes every day.
 
 ## Consequences
 
-- Dev and e2e need HTTPS on both servers, which #233 adds. WebKit drops a `Secure`
-  cookie that `http://localhost` sets.
+- Dev and e2e need HTTPS ([ADR-0034](0034-one-https-edge-for-dev-and-e2e.md)).
+  WebKit drops a `Secure` cookie that `http://localhost` sets.
 - Each page response sets the cookie, and each page differs by the cookie. So a shared
   cache must not store pages (#19).
 - A page load can undo a choice. If a page request leaves before a save response
@@ -74,6 +76,3 @@ alert shows. Saves run in click order, so the last choice becomes the saved them
   page load.
 - The Profile menu needs JavaScript to open, so a visitor without JavaScript cannot
   choose a Theme (#34). The server still renders the saved theme.
-- A theme saved in `localStorage` before #200 is ignored. The app has no deployment
-  yet (#19), so no real visitor loses a choice.
-- The **Theme** entry in `CONTEXT.md` links here.

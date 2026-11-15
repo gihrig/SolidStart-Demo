@@ -90,7 +90,7 @@ the Category taxonomy and edits the Hero.
 
 _BE_: `UserTyp = "Sys"`.
 _Planned_: write-gating on admin-only actions; no privilege system exists yet (#181).
-_See_: [ADR-0011][0011] addendum.
+_See_: [ADR-0011][0011].
 _Avoid_: system user, superuser, root.
 
 **Caption**:
@@ -104,7 +104,7 @@ real-time Comment thread and Likes. A first-class entity, never a Post's
 
 _BE_: `add_caption` (`CaptionForCreate`), `update_caption`, `delete_caption`;
 reads return `CaptionView`.
-_See_: [ADR-0030][0030] addendum; #106, #108, #121, #123, #127, #187.
+_See_: [ADR-0030][0030]; #106, #108, #121, #123, #127, #187.
 _Avoid_: title; caption text (as a Post field).
 
 **Category**:
@@ -116,7 +116,7 @@ single-select sidebar filters Posts by one Category.
 - A Category has no Owner.
 
 _BE_: `Category = { id, name, icon }`; `icon` is an opaque key (see `IconName`).
-_See_: [ADR-0011][0011] addendum; #107.
+_See_: [ADR-0011][0011]; #107.
 _Avoid_: Tag, Label (as concepts separate from Category); Agent, Topic, Channel
 (the retired FullStack term and its abandoned rename targets).
 
@@ -132,8 +132,7 @@ Caption.
 
 _BE_: `PostComment` (`post_id`), `CaptionComment` (`caption_id`); reads return
 `CommentView`.
-_See_: [ADR-0011][0011] addendum, [ADR-0019][0019] addendum, [ADR-0024][0024]
-addendum; #108, #124–#127, #246.
+_See_: [ADR-0011][0011], [ADR-0019][0019]; #108, #124–#127, #246.
 _Avoid_: post, reply; Message (the retired FullStack term).
 
 **Hero**:
@@ -148,7 +147,7 @@ is not user-generated and has no Owner.
 _FE_: `Hero` (`components/Hero.tsx`).
 _BE_: one `Hero` row; `get_hero` returns `HeroView`; `update_hero`, Admin user only.
 _Planned_: the privilege system replaces the interim gate (#181).
-_See_: [ADR-0011][0011] addendum; #110, #119.
+_See_: [ADR-0011][0011]; #110, #119.
 _Avoid_: banner, splash (as separate concepts); treating it as per-User content.
 
 **Jedi**:
@@ -165,7 +164,7 @@ At most one Like per User per Like target (an idempotent toggle). A like count
 is _derived_ by counting Likes.
 
 _BE_: the `post_like` and `caption_like` tables, each `unique(parent, user)`.
-_See_: [ADR-0011][0011] addendum, [ADR-0024][0024] addendum; #117, #118, #122,
+_See_: [ADR-0011][0011]; #117, #118, #122,
 #123.
 _Avoid_: vote, favorite, star; `likeCount` as stored truth.
 
@@ -200,7 +199,7 @@ logged-in User may read and take part; there is no private or archived Post.
 
 _BE_: `create_post` (`PostForCreate`), `update_post`, `delete_post`; reads return
 `PostView`; Categories in `post_category`.
-_See_: [ADR-0011][0011] addendum, [ADR-0019][0019]; #106, #107, #120, #187.
+_See_: [ADR-0011][0011], [ADR-0019][0019]; #106, #107, #120, #187.
 _Avoid_: Photo (as a distinct entity), Image, feed item; Conversation, thread,
 room (the retired FullStack terms).
 
@@ -217,7 +216,7 @@ Captions is the Captions of the Post shown ordered by like count.
 
 _BE_: the same `list_*` RPCs ordered by the derived like count; no stored tables.
 _Planned_: Top Photos within the selected Category, once filtering lands (#29).
-_See_: [ADR-0011][0011] addendum.
+_See_: [ADR-0011][0011].
 _Avoid_: featured/popular list, best captions (as stored data).
 
 **User**:
@@ -230,7 +229,7 @@ the identity on both surfaces.
 _FE_: the nav avatar reads the identity through the `useAuth` seam.
 _BE_: `User = { id, username, typ, avatar_url }` with `UserTyp = "Sys" | "User"`.
 `avatar_url` is a back-end column.
-_See_: [ADR-0007][0007], [ADR-0011][0011] addendum; #117, #203.
+_See_: [ADR-0011][0011]; #117, #203.
 _Avoid_: account.
 
 ## Real-time feed
@@ -252,7 +251,7 @@ exported `Channel` type has **six variants**:
 
 _FE_: `lib/channel.ts`.
 _BE_: the `Channel` enum (`lib-core::realtime::channel`).
-_See_: [ADR-0018][0018] addendum, [ADR-0020][0020]; #109.
+_See_: [ADR-0020][0020]; #109.
 _Avoid_: topic, room; the retired `agents` / `conv` / `convs` strings.
 
 **Event**:
@@ -260,7 +259,7 @@ One notification carried on the Feed. A **payload** Event carries a Comment
 upsert or removal. A **poke** Event is contentless, and the client refetches.
 
 _BE_: `WsEvent` (`lib-core::realtime::event`); `CommentView`, `CommentRemoval`.
-_See_: [ADR-0011][0011] addendum, [ADR-0020][0020]; #109, #125.
+_See_: [ADR-0011][0011], [ADR-0020][0020]; #109, #125.
 _Avoid_: notification, broadcast (the mechanism, not the item).
 
 **Feed**:
@@ -269,7 +268,7 @@ client: every view that a client shows shares the single Feed.
 
 _FE_: `lib/feed.ts`; `feed.websocket.ts`, `feed.memory.ts`.
 _BE_: `GET /ws` (`lib-web::ws`); contract in `lib-core::realtime`.
-_See_: [ADR-0017][0017], [ADR-0026][0026], [ADR-0028][0028].
+_See_: [ADR-0026][0026], [ADR-0028][0028].
 _Avoid_: socket (as the concept), push.
 
 **Poke rule**:
@@ -292,8 +291,8 @@ public. A connection with no Subscription receives nothing.
 
 _FE_: `feed.subscribe(channel, handler)`.
 _BE_: `SubscriptionRequest { action, channel }`; `authorize`.
-_See_: [ADR-0014][0014], [ADR-0015][0015], [ADR-0018][0018] addendum,
-[ADR-0020][0020], [ADR-0028][0028], [ADR-0031][0031]; #106, #109.
+_See_: [ADR-0014][0014], [ADR-0015][0015], [ADR-0020][0020],
+[ADR-0028][0028]; #106, #109.
 _Avoid_: listener, watch.
 
 ## Contract seam
@@ -341,7 +340,7 @@ _BE_: the `PublicProjection` marker in the model `base`. `base::list_public`
 requires it, so the audit-bearing entity row can never be served from a public
 read.
 _Planned_: the admin read of the full row, with the admin system.
-_See_: [ADR-0021][0021] and addendum; #116–#119, #125, #127, C-06.
+_See_: [ADR-0021][0021]; #116–#119, #125, #127, C-06.
 _Avoid_: **Public view** (**View** means the _enriched_ read model: `PostView` /
 `CaptionView` / `HeroView`); a single role-keyed read that returns different
 columns per caller (it gives ts-rs one call two shapes and breaks the
@@ -387,7 +386,7 @@ A URL string that passed the URL safety check, so it can go to a URL sink.
 
 _FE_: `sanitizeUrl`, `trustedUrl` (`lib/sanitizeUrl.ts`).
 _BE_: `check_safe_url`, `DbBmc::url_fields`.
-_See_: [ADR-0006][0006], [ADR-0011][0011] addendum; #119, #120.
+_See_: [ADR-0019][0019]; #119, #120.
 
 **Sanitization boundary** (user text and URLs):
 The server is the authoritative sanitization boundary. **User text** is sanitized
@@ -407,8 +406,7 @@ in four layers:
 - Each front-end copy of a length cap pins to the generated `HygieneCaps` literal
   type, so a back-end cap change fails the front-end type check.
 
-_See_: [ADR-0019][0019], [ADR-0011][0011] addendum, [ADR-0006][0006],
-[ADR-0029][0029].
+_See_: [ADR-0019][0019], [ADR-0029][0029].
 _Avoid_: store-escaped text; client-only sanitization as the sole line of defense.
 
 **ts-rs bindings** (the FE↔BE contract):
@@ -440,7 +438,7 @@ A change of the identity's source stays behind this seam.
 - A User with no `avatar_url` shows the first characters of the name in the
   circle.
 
-_See_: [ADR-0007][0007], [ADR-0011][0011] addendum; #119.
+_See_: [ADR-0011][0011]; #119.
 _Avoid_: rewiring components when the source changes; the seam absorbs it.
 
 **View**:
@@ -478,7 +476,7 @@ The time in which the Caption line keeps the Caption shown.
 - A deleted Caption ends it.
 
 _FE_: `createSelection` (`lib/jedi/createSelection.ts`).
-_See_: [ADR-0030][0030] addendum; #271.
+_See_: [ADR-0030][0030]; #271.
 _Avoid_: pin, lock, freeze; "hold" alone.
 
 **Caption line**:
@@ -575,7 +573,7 @@ Post scope ............... Post edit, Add Caption form
 | Logoff, route change                  | none: every Draft         |
 
 _FE_: `DraftScope`, `createDraftScope` (`lib/createDraftGuard.ts`); `DraftScopeContext`.
-_See_: [ADR-0030][0030] addendum (#271).
+_See_: [ADR-0030][0030] (#271).
 _Avoid_: "scope" alone; form group.
 
 **Focus ring**:
@@ -643,7 +641,7 @@ the Author line, the Post actions, the Caption line, the Caption actions and the
 Comments panel.
 
 _FE_: `FeaturedPost` (`components/FeaturedPost.tsx`).
-_See_: [ADR-0030][0030] addendum; #210.
+_See_: [ADR-0030][0030]; #210.
 _Avoid_: Featured Post (`featured` is the top-ranked Post, only the default).
 
 **Post dialog**:
@@ -666,7 +664,7 @@ The time in which the Post card keeps the Post shown.
 - A deleted Post ends it.
 
 _FE_: `createSelection` (`lib/jedi/createSelection.ts`).
-_See_: [ADR-0030][0030] addendum; #271.
+_See_: [ADR-0030][0030]; #271.
 _Avoid_: pin, lock, freeze; "hold" alone.
 
 **Post shown** / **Caption shown**:
@@ -767,25 +765,19 @@ Identity tokens that still wait for a rename.
 | `User.typ`             | `userType`           | field rename                |
 | `UserTyp` `Sys`/`User` | `admin` / `standard` | match Admin / Standard user |
 
-[0006]: docs/adr/0006-safeurl-brand-enforces-sanitize-boundary.md
-[0007]: docs/adr/0007-consolidate-jedi-shell-unified-identity.md
 [0010]: docs/adr/0010-monorepo-structure.md
 [0011]: docs/adr/0011-jedi-backend-domain-contract.md
 [0012]: docs/adr/0012-postgres-turso-db-swap-seam.md
 [0014]: docs/adr/0014-backend-row-scoped-authorization-seam.md
 [0015]: docs/adr/0015-realtime-push-authorization-at-subscribe-time.md
 [0016]: docs/adr/0016-poke-rule-typed-receipt.md
-[0017]: docs/adr/0017-shared-client-feed-multiplexed.md
-[0018]: docs/adr/0018-channel-strings-track-domain-names.md
 [0019]: docs/adr/0019-layered-user-text-sanitization.md
 [0020]: docs/adr/0020-collapse-channel-vocabulary.md
 [0021]: docs/adr/0021-public-projection-surface-selected.md
-[0024]: docs/adr/0024-typed-bmc-owner-post-child-tables.md
 [0026]: docs/adr/0026-realtime-feed-in-lib-web-contract-in-lib-core.md
 [0027]: docs/adr/0027-backend-integers-cross-seam-as-number.md
 [0028]: docs/adr/0028-feed-subscriptions-by-channel.md
 [0029]: docs/adr/0029-rpc-contract-from-handler-signatures.md
 [0030]: docs/adr/0030-unsaved-draft-guard.md
-[0031]: docs/adr/0031-jedi-tables-built-beside-fullstack-then-removed.md
 [0032]: docs/adr/0032-delete-cascades-to-every-row-under-it.md
 [0033]: docs/adr/0033-saved-theme-in-an-httponly-cookie.md

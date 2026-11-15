@@ -1,46 +1,40 @@
 # Architecture Decision Records
 
-One decision per file, titled with the decision itself. Numbered and immutable
-once accepted — a reversal is a **new** ADR that supersedes the old one, never an
-edit. `GLOSSARY.md` cites ADRs inline where a topic comes up; this table is the
-flat "what has been decided" view.
+One decision per file, titled with the decision itself. `GLOSSARY.md` cites
+ADRs inline where a topic comes up; this table is the flat "what has been
+decided" view.
+
+- **An ADR states the current decision.** Change the ADR text in place; git
+  keeps the history. Addenda are not permitted.
+- **Numbers stay stable.** When an ADR becomes obsolete, delete it, and leave
+  its number unused for all time.
+- **A reversal is a new ADR.** Delete the old file. The new ADR has one line,
+  `Replaces ADR-NNNN`, and lists the old decision as a rejected option.
+
+An ADR without a `_Status: Proposed_` line is Accepted.
 
 > **Generated file — do not edit by hand.** Regenerate with `cgs adr:index`
 > (from the repo root); CI verifies it is current via `cgs adr:index:check`.
 
 | #   | Decision | Status |
 | --- | -------- | ------ |
-| [0001](0001-frontend-modular-monolith.md) | Front-end is a modular monolith; package split deferred to the back-end merge | Accepted |
-| [0002](0002-jedi-mock-data-contract.md) | Jedi content is served by a back-end-faithful mock that doubles as the data contract | Accepted |
-| [0003](0003-entity-identity-number-at-barrel.md) | Entity identity is `number`, made honest at the type barrel | Superseded by [0027](0027-backend-integers-cross-seam-as-number.md) |
-| [0004](0004-conversation-navigator-disclosure-listbox.md) | Conversation navigator is a single-open accordion of disclosure + listbox, not a `role=tree` | Accepted (amended) |
-| [0005](0005-rpc-mutations-via-rpcaction.md) | RPC mutations own their pending + error via `createRpcAction` | Accepted |
-| [0006](0006-safeurl-brand-enforces-sanitize-boundary.md) | A `SafeUrl` branded type enforces the single sanitize boundary | Accepted |
-| [0007](0007-consolidate-jedi-shell-unified-identity.md) | Consolidate to a single Jedi-shell app with a root-level unified identity | Accepted |
 | [0008](0008-keep-solidstart-leptos-tradeoff.md) | SolidStart for the front-end; Full-Rust (Leptos / Topcoat) as a trade-off study | Accepted |
-| [0009](0009-db-swap-seam-postgres-sqlite.md) | Swap Postgres ↔ SQLite behind a compile-time feature flag over a portable-subset schema | Superseded by [0012](0012-postgres-turso-db-swap-seam.md) |
-| [0010](0010-monorepo-structure.md) | Merge the front-end and back-end into one mono-repo (`frontend/` + `backend/`) | Accepted (amended) |
-| [0011](0011-jedi-backend-domain-contract.md) | The back-end owns the Jedi domain; the mock becomes its fixture | Accepted (amended) |
-| [0012](0012-postgres-turso-db-swap-seam.md) | Swap Postgres ↔ Turso Database behind a compile-time feature flag over a portable-subset schema | Accepted |
-| [0013](0013-in-browser-turso-server-sync.md) | Run an in-browser Turso Database that syncs to the server (optional, on the Turso build) | Accepted |
+| [0010](0010-monorepo-structure.md) | Merge the front-end and back-end into one mono-repo (`frontend/` + `backend/`) | Accepted |
+| [0011](0011-jedi-backend-domain-contract.md) | The back-end owns the Jedi domain contract | Accepted |
+| [0012](0012-postgres-turso-db-swap-seam.md) | Swap Postgres ↔ Turso Database behind a compile-time feature flag over a portable-subset schema | Proposed |
+| [0013](0013-in-browser-turso-server-sync.md) | Run an in-browser Turso Database that syncs to the server (optional, on the Turso build) | Proposed |
 | [0014](0014-backend-row-scoped-authorization-seam.md) | Row-scoped authorization lives in a per-Bmc `access_scope` hook | Accepted |
 | [0015](0015-realtime-push-authorization-at-subscribe-time.md) | Realtime push authorization lives at subscribe-time, reusing the read scope | Accepted |
 | [0016](0016-poke-rule-typed-receipt.md) | The Poke rule is enforced by a typed poke receipt, not a source-scan guard | Accepted |
-| [0017](0017-shared-client-feed-multiplexed.md) | One client Feed, shared across view-models | Accepted (amended) |
-| [0018](0018-channel-strings-track-domain-names.md) | Channel strings track domain names, mirrored front-end from a generated `ChannelKind` | Accepted (amended) |
-| [0019](0019-layered-user-text-sanitization.md) | User-text sanitization: hygiene on write, markdown→sanitized-HTML on read, escape at sinks | Accepted |
-| [0020](0020-collapse-channel-vocabulary.md) | Collapse the realtime Channel vocabulary into one exported type | Accepted |
+| [0019](0019-layered-user-text-sanitization.md) | User input is defended in layers: reject on write, sanitize on read, escape at sinks | Accepted |
+| [0020](0020-collapse-channel-vocabulary.md) | One generated Channel type; channel names track domain names | Accepted |
 | [0021](0021-public-projection-surface-selected.md) | The public read is a per-entity public projection, audit visibility selected by surface | Accepted |
 | [0022](0022-fullstack-sbom-vuln-scanning-syft-grype.md) | Full-stack SBOM + vulnerability scanning with syft + grype; Snyk abandoned | Accepted |
-| [0023](0023-typed-scheme-name-lib-auth.md) | The lib-auth password scheme is a typed `SchemeName`, identity owned by the scheme module | Accepted |
-| [0024](0024-typed-bmc-owner-post-child-tables.md) | The Post child tables own their table identity through typed marker BMCs, routed via `table_ref()` | Accepted |
-| [0025](0025-login-handler-keeps-blueprint-inline-orchestration.md) | The login handler keeps the rust10x blueprint's inline orchestration | Accepted |
-| [0026](0026-realtime-feed-in-lib-web-contract-in-lib-core.md) | The realtime Feed lives in `lib-web::ws`, its exported contract in `lib-core::realtime` | Accepted |
+| [0026](0026-realtime-feed-in-lib-web-contract-in-lib-core.md) | The back-end follows the rust10x blueprint; code the blueprint lacks goes into the libs | Accepted |
 | [0027](0027-backend-integers-cross-seam-as-number.md) | Back-end integers cross the contract seam as `number`, emitted by ts-rs | Accepted |
-| [0028](0028-feed-subscriptions-by-channel.md) | Feed Subscriptions are held by Channel, over a swappable transport | Accepted |
+| [0028](0028-feed-subscriptions-by-channel.md) | One client Feed; Subscriptions are held by Channel over a swappable transport | Accepted |
 | [0029](0029-rpc-contract-from-handler-signatures.md) | The RPC contract is read from the handler signatures and pinned by one test | Accepted |
 | [0030](0030-unsaved-draft-guard.md) | Unsaved Drafts are guarded by one app-level guard | Accepted |
-| [0031](0031-jedi-tables-built-beside-fullstack-then-removed.md) | Jedi tables are built beside the FullStack tables, which are then removed | Accepted |
 | [0032](0032-delete-cascades-to-every-row-under-it.md) | A Post or Caption delete cascades to every row under it, other Users' rows too | Accepted |
 | [0033](0033-saved-theme-in-an-httponly-cookie.md) | The saved theme lives in an HttpOnly cookie that the server renders | Accepted |
 | [0034](0034-one-https-edge-for-dev-and-e2e.md) | One HTTPS edge serves dev and e2e, as in production | Accepted |

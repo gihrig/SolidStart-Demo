@@ -25,7 +25,7 @@ export default function Nav() {
   let siteMenuRef: HTMLElement | undefined;
 
   // Identity (avatar + display name) comes from the useAuth seam: the logged-in
-  // User's profile lives there, not here (see ADR-0007).
+  // User's profile lives there, not here (see ADR-0011).
   const { isAuthenticated, logoff, displayName, avatarUrl } = useAuth();
   // A logoff unmounts every form, so it goes through the Draft guard (ADR-0030).
   const guard = useDraftGuard();
