@@ -251,7 +251,7 @@ test.describe("Live updates across Users (#129)", () => {
       const articleB = await selectPost(b, alt);
 
       // A Post with no Caption shows the Add Caption form directly.
-      const captionBox = articleA.getByRole("textbox", { name: "Your caption" });
+      const captionBox = articleA.getByRole("textbox", { name: "Your Caption" });
       await captionBox.fill(text);
       await captionBox.press("Enter");
       await expect(articleB.getByText(text, { exact: true })).toBeVisible();
@@ -259,7 +259,7 @@ test.describe("Live updates across Users (#129)", () => {
       // A edits the Caption: the edit form takes the place of the text.
       const edited = `${text.slice(0, 30)} ed`;
       await articleA.getByRole("button", { name: "Edit Caption by demo1" }).click();
-      const editBox = articleA.getByRole("textbox", { name: "Edit your caption" });
+      const editBox = articleA.getByRole("textbox", { name: "Edit your Caption" });
       await editBox.fill(edited);
       await editBox.press("Enter");
       await expect(a.getByRole("status")).toHaveText("Caption saved.");

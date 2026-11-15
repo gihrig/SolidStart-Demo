@@ -165,7 +165,7 @@ describe("<FeaturedPost />", () => {
 
 describe("<FeaturedPost /> — Add Caption (#121)", () => {
   const addButton = () => screen.queryByRole("button", { name: "Add Caption" });
-  const input = () => screen.queryByLabelText("Your caption");
+  const input = () => screen.queryByLabelText("Your Caption");
   const renderLoggedIn = (postSignal = createSignal(post)[0]) => {
     const user = userEvent.setup();
     render(() => (
@@ -263,7 +263,7 @@ describe("<FeaturedPost /> — Add Caption (#121)", () => {
 });
 
 describe("<FeaturedPost /> — a Draft keeps the Add Caption form open (#271)", () => {
-  const input = () => screen.queryByLabelText("Your caption");
+  const input = () => screen.queryByLabelText("Your Caption");
   // A Post with no Caption, so the form shows at once. `setShown` is a Caption
   // that arrives, as a `post_caption` refetch delivers it.
   function renderWithoutCaption(addCaption?: FeaturedPostProps["addCaption"]) {
@@ -1197,7 +1197,7 @@ describe("<FeaturedPost /> — the Owner's edits (#187)", () => {
     const { user, captionEdit, onUpdateCaption } = renderOwner();
     await user.click(button("Edit Caption by Lisa"));
     expect(captionEdit.open()).toBe(true);
-    const input = screen.getByLabelText("Edit your caption") as HTMLInputElement;
+    const input = screen.getByLabelText("Edit your Caption") as HTMLInputElement;
     expect(input.value).toBe(caption.text);
     expect(screen.queryByText(caption.text, { selector: "p" })).toBeNull();
 
@@ -1216,7 +1216,7 @@ describe("<FeaturedPost /> — the Owner's edits (#187)", () => {
   it("the Caption edit's Cancel with a Draft asks; focus returns to Edit after Discard (#214)", async () => {
     const { user, guard, captionEdit } = renderOwner();
     await user.click(button("Edit Caption by Lisa"));
-    await user.type(screen.getByLabelText("Edit your caption"), "!");
+    await user.type(screen.getByLabelText("Edit your Caption"), "!");
 
     await user.click(button("Cancel"));
     expect(guard.pending()).toBe(true);

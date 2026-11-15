@@ -697,7 +697,7 @@ test.describe("Jedi Page - the keyboard in the inline forms and the question (#2
   }) => {
     const article = page.locator("article").first();
     await article.getByRole("button", { name: "Add Caption" }).click();
-    const input = article.getByLabel("Your caption");
+    const input = article.getByLabel("Your Caption");
     await input.fill("A caption I have not sent");
 
     await input.press("Escape");

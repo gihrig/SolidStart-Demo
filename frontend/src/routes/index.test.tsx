@@ -176,7 +176,7 @@ describe("Home route (Jedi feed, data-driven from jedi-api)", () => {
     renderHome();
     await screen.findByText(/jedi kitty protects the street/i);
     expect(screen.queryByRole("button", { name: "Add Caption" })).toBeNull();
-    expect(screen.queryByLabelText("Your caption")).toBeNull();
+    expect(screen.queryByLabelText("Your Caption")).toBeNull();
   });
 
   it("renders the externalized hero content from the mock", async () => {

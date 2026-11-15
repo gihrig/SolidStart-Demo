@@ -13,14 +13,14 @@ const CAPTION_MAX_LENGTH = 36 satisfies HygieneCaps["caption"]["text"];
 const MODE_TEXT = {
   add: {
     id: "add-caption",
-    label: "Your caption",
+    label: "Your Caption",
     submit: "Add Caption",
     pending: "Adding…",
     error: "Could not add the Caption",
   },
   edit: {
     id: "edit-caption",
-    label: "Edit your caption",
+    label: "Edit your Caption",
     submit: "Save",
     pending: "Saving…",
     error: "Could not edit the Caption",

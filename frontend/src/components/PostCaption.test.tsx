@@ -47,7 +47,7 @@ const renderCaption = (props: Partial<PostCaptionProps> = {}) => {
   render(() => <PostCaption {...merged} />);
   return { user };
 };
-const input = () => screen.queryByLabelText("Your caption");
+const input = () => screen.queryByLabelText("Your Caption");
 
 describe("<PostCaption />", () => {
   it("shows the caption when the form is not open", () => {
@@ -130,7 +130,7 @@ describe("<PostCaption />", () => {
 
   it("the Caption edit reports its Draft in the Caption scope (#271)", async () => {
     const { guard, user } = renderInPostScope({ editing: true });
-    await user.type(screen.getByLabelText("Edit your caption"), "!");
+    await user.type(screen.getByLabelText("Edit your Caption"), "!");
     expect(guard.hasDraftIn(captionScope)).toBe(true);
   });
 
