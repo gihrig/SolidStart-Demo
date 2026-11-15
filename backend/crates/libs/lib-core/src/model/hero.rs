@@ -82,7 +82,7 @@ impl DbBmc for HeroBmc {
 		RULES
 	}
 
-	/// An unsafe `background_image` is rejected on write (ADR-0011).
+	/// An unsafe `background_image` is rejected on write (ADR-0019).
 	fn url_fields() -> &'static [&'static str] {
 		&["background_image"]
 	}

@@ -147,7 +147,7 @@ pub struct UserBmc;
 impl DbBmc for UserBmc {
 	const TABLE: &'static str = "user";
 
-	/// An unsafe `avatar_url` is rejected on write (ADR-0011).
+	/// An unsafe `avatar_url` is rejected on write (ADR-0019).
 	fn url_fields() -> &'static [&'static str] {
 		&["avatar_url"]
 	}

@@ -386,7 +386,7 @@ A URL string that passed the URL safety check, so it can go to a URL sink.
 
 _FE_: `sanitizeUrl`, `trustedUrl` (`lib/sanitizeUrl.ts`).
 _BE_: `check_safe_url`, `DbBmc::url_fields`.
-_See_: [ADR-0019][0019], [ADR-0011][0011]; #119, #120.
+_See_: [ADR-0019][0019]; #119, #120.
 
 **Sanitization boundary** (user text and URLs):
 The server is the authoritative sanitization boundary. **User text** is sanitized
@@ -406,7 +406,7 @@ in four layers:
 - Each front-end copy of a length cap pins to the generated `HygieneCaps` literal
   type, so a back-end cap change fails the front-end type check.
 
-_See_: [ADR-0019][0019], [ADR-0011][0011], [ADR-0029][0029].
+_See_: [ADR-0019][0019], [ADR-0029][0029].
 _Avoid_: store-escaped text; client-only sanitization as the sole line of defense.
 
 **ts-rs bindings** (the FE↔BE contract):

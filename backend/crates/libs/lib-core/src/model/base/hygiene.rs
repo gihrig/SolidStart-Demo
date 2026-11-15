@@ -85,7 +85,7 @@ pub fn hygiene_value(
 /// root-relative path (`/` then a word character, or `/` alone), or a fragment
 /// (`#…`), with none of the break characters `' " ( ) \`. This mirrors the
 /// front-end `sanitizeUrl` rule (ADR-0019), so a URL the server stores also
-/// passes the front-end check. The server rejects; it never rewrites (ADR-0011).
+/// passes the front-end check. The server rejects; it never rewrites (ADR-0019).
 pub fn check_safe_url(field: &str, value: &str) -> Result<()> {
 	let lower = value.to_ascii_lowercase();
 	let safe_start = lower.starts_with("http://")
