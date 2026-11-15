@@ -1,122 +1,50 @@
 # Realtime push authorization lives at subscribe-time, reusing the read scope
 
-The back-end's realtime feed (`GET /ws`) fans **every** event to **every**
-connected socket: the send task forwards each broadcast unconditionally, the
-`SubscriptionRequest` handler is a no-op (`// … all connected clients receive all
-broadcasts.`), and the socket carries no caller identity — `/ws` is not behind
-`mw_ctx_require` and the handler discards the resolved `Ctx`. The one live emitter
-broadcasts a full `ConvMsg` on every `add_conv_msg`. So a private (`OwnerOnly`)
-Conversation's message payloads reach every socket — even anonymous ones — and the
-front-end only *appears* to filter, with a client-side `if (c.id === convId)`
-guard. That guard is not a security boundary, exactly as the landed front-end
-`conv.list` filter was not: this is [ADR-0014](0014-backend-row-scoped-authorization-seam.md)'s
-Owner boundary, unenforced on the **push path**.
-
-This ADR records **where realtime authorization lives**. The enforcing slice (for
-`Conv` message events) is specified in
-`docs/ar/c03-realtime-channel-design.md`; this ADR distills the durable
-decision. It is the push-path companion to ADR-0014 (which governs the read/write
-path) and reuses ADR-0014's scope verbatim rather than inventing a second one.
+The realtime Feed (`GET /ws`) pushes Events over one long-lived WebSocket. A
+WebSocket has no auth for each message. If the server sends each Event to each
+socket, a filter in the client is the only gate, and that is not a boundary.
 
 ## Decisions
 
-**The socket is authenticated, with identity captured at upgrade.** `/ws` gains
-`mw_ctx_require`, and the handler extracts `CtxW` at the HTTP upgrade (where
-`mw_ctx_resolver` has already run and the cookie is present), threading
-`ctx.user_id()` into the long-lived connection. A WebSocket has no per-message
-auth, so identity is fixed once, at upgrade.
-
-**Authorization is evaluated at subscribe-time, not per emitted event.** On a
-`subscribe conv:N` the server calls `ConvBmc::get(ctx, mm, N)` — already
-read-scoped by ADR-0014 (owner ∪ `MultiUsers`). Success adds the Channel to the
-connection's authorized subscription set; an `EntityNotFound` refuses it. The
-authorization predicate therefore lives in **one** place (ADR-0014's
-`access_scope`), never duplicated onto the push path.
-
-**Fan-out is default-deny.** The send task forwards an event to a connection only
-if the event's Channel is in that connection's authorized subscription set. A
-connection with no subscription — including the transient window after a
-reconnect — receives nothing. This replaces the previous "everyone receives
-everything" default and is what actually closes the leak.
-
-**Subscription state is per-connection, shared across the split socket tasks.** The
-socket splits into a receive task (parses `subscribe`/`unsubscribe`) and a send
-task (filters the broadcast); they share the authorized set via an
-`Arc<RwLock<HashSet<Channel>>>` — receiver writes, sender reads.
-
-**The event envelope is a ts-rs binding.** `WsEvent` gains `#[derive(TS)]` and
-exports, so the realtime contract joins the one-generated-source-of-truth guard
-([ADR-0010](0010-monorepo-structure.md)) instead of being hand-mirrored on the
-front-end. The `payload` stays `serde_json::Value` (typed per `event_type` by the
-consumer) for this slice.
-
-> **Update (2026-08-25, arch-review C01).** `WsEvent` is now a discriminated
-> union tagged by `event_type` (internal serde tagging): `conv_msg` carries a
-> typed `ConvMsg`, and the two list-feed pokes are payload-less. The original
-> "`payload` stays `serde_json::Value`" choice fit one live event; #85 landed
-> three, making the union real. The front-end now narrows on the tag and reads a
-> typed payload with **no cast**. The routing Channel is derived from the variant
-> (a private `WsEvent::channel` method), not carried on the wire.
-
-**"Channel" names the realtime routing key.** A Channel is `conv:{id}` — the key an
-event is addressed to and a subscription names. It is deliberately **not** the
-planned `Agent → Topic` rename (#31, retargeted from `Channel` to `Topic` by this
-decision): a Channel routes live Events, a Topic groups Threads.
+- **The socket is authenticated at the upgrade.** `/ws` sits behind
+  `mw_ctx_require`. The handler captures the caller's `Ctx` at the HTTP upgrade
+  and keeps it for the life of the connection.
+- **Authorization runs at subscribe time, not for each Event.** On `subscribe`,
+  the server calls `Channel::authorize(ctx, mm)`. If it passes, the Channel goes
+  into the connection's set. If it fails, the server ignores the request. A
+  scoped Channel would authorize through the model read, so the row rule stays
+  in [ADR-0014](0014-backend-row-scoped-authorization-seam.md)'s
+  `access_scope`.
+- **`authorize` matches each variant, with no `_` arm.** Today each Channel is
+  authenticated-read. A new variant must still choose its rule, or the build
+  fails. A `_ => true` would open a future scoped Channel to each socket.
+  `authorize` keeps its `(ctx, mm)` arguments and its `async` for that case.
+- **Fan-out is default-deny.** The send task forwards an Event only if its
+  Channel is in the connection's set. A connection with no Subscription gets
+  nothing.
+- **A connection holds at most 16 Subscriptions.** The cap is checked before
+  `authorize`, so a full connection runs no more authorizing reads. A request
+  over the cap is ignored, like a refused one.
+- **The set is shared by the two socket tasks.** The receive task writes it,
+  and the send task reads it, through an `Arc<RwLock<HashSet<…>>>`.
 
 ## Considered and rejected
 
-- **Emit-time per-event authorization** — for each event, re-check every subscribed
-  socket's scope. Rejected: it duplicates ADR-0014's predicate onto the push path,
-  pays a check per (event × socket), and forces the event payload to carry
-  `owner_id`/`kind`. Subscribe-time reuses `ConvBmc::get` and checks once.
-- **Server auto-subscribes each connection to all readable Conversations** — avoids
-  a client protocol. Rejected: `MultiUsers` is world-readable, so this floods every
-  socket with all public traffic and fights the front-end's one-conversation-at-a-time
-  view. Client-driven subscription matches the UI.
-- **Keep client-side filtering as the boundary** — rejected: identical in kind to
-  the `conv.list` filter leak ADR-0014 exists to fix; the payload still crosses the
-  wire to a client that may not read it.
-- **Shrink the interface (drop `SubscriptionRequest` / the channel field)** — the
-  architecture review's "honest" alternative. Rejected: it does not fix the leak
-  (the `conv_msg` fan-out, not the subscription protocol, is what leaks) and the
-  front-end already drives per-conversation `subscribe`.
+- **Authorize each Event at emit time.** It copies the row rule onto the push
+  path, costs one check for each Event and socket, and forces each payload to
+  carry its scope columns.
+- **Subscribe each connection to each readable Channel.** It floods each socket
+  with traffic that the view does not show.
+- **Client-side filtering as the boundary.** The payload still reaches a
+  client that must not read it.
+- **Delete `authorize` while no Channel needs a scope.** A later scoped Channel
+  would then have to build the seam again.
 
 ## Consequences
 
-- **The default-deny flip requires a front-end change**, landing with this slice:
-  `useWebSocket` remembers desired subscriptions and **replays them on
-  `onopen`** (fixing both the first-connect race and reconnect). Without it a
-  reconnected socket would silently go dead. The client-side `if` guard is kept as
-  harmless belt-and-suspenders.
-- **The front-end `conv.list` `owner_id` filter and the client-side conv guard
-  become view conveniences**, no longer boundaries — kept, not removed.
-- **Two dead broadcast helpers are removed** (`broadcast_conv_update`,
-  `broadcast_agent_update`, zero callers); a real `conv_update`/`agent_update`
-  emitter is (re)introduced with a caller when #85's live-propagation needs it.
-- **The envelope is a typed discriminated union** (arch-review C01, 2026-08-25):
-  `WsEvent` is tagged by `event_type` with a typed `conv_msg` payload, so the
-  front-end drops its `payload as ConvMsg` cast. A `wsevent_wire_shape_is_stable`
-  test locks the serialized shape the front-end parses. See the Decisions update.
-- **Deferred, tracked in #88 → #91 "Realtime hardening II"** (not built in the
-  original slice):
-  - *Mid-session revocation (TOCTOU)* — because authz is cached at subscribe-time,
-    a Conversation narrowed `MultiUsers → OwnerOnly` under a live subscription would
-    keep delivering to that connection until it reconnects. **This is latent today:
-    `kind` is immutable (`ConvForUpdate` has no `kind` field) and no Members exist
-    (`ConvBmc::access_scope` is `owner ∪ MultiUsers`), so no operation can narrow a
-    Conversation under a live subscription.** Guarded by
-    `test_conv_kind_is_immutable_guard`; when `kind` becomes mutable or Members
-    land, close it with an emit-time re-check or subscription-invalidation.
-  - *Subscribe DoS* — each subscribe costs one `ConvBmc::get`. A **per-connection
-    subscription cap (16)**, checked before the authorizing read, now bounds the
-    held set and the concurrent authorizing reads (#88); **subscribe-frequency and
-    server-side connection rate-limiting** remain deferred.
-- **Cross-site production cookie flow.** The auth cookie is `HttpOnly` with the
-  default `SameSite=Lax`, which rides the same-site `localhost:3000 → :8080`
-  upgrade in dev. A cross-*site* production deploy would need `SameSite=None;
-  Secure` (or a token handshake) for the cookie to reach the upgrade.
-- **Anonymous `/ws` now 401s.** The socket is only opened inside the authenticated
-  app (`fullstack.tsx`), so this bites on mid-session token expiry rather than
-  steady state; the front-end reconnect is now bounded — exponential back-off then
-  pause, not an unconditional 3s loop (#88). Server-side connection rate-limiting
-  remains deferred (#91 "Realtime hardening II").
+- The client must send its Subscriptions again after each reconnect, or the
+  socket goes quiet ([ADR-0028](0028-feed-subscriptions-by-channel.md)).
+- A grant is cached for the life of the Subscription. If a scoped Channel can
+  lose a reader mid-session, it needs a check at emit time, or an invalidation.
+  No current Channel can.
+- An anonymous `/ws` gets 401.
