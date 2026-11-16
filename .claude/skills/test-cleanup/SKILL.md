@@ -61,7 +61,7 @@ that the mocked responses match the real wire shape (the ts-rs bindings in
 - Front-end imports come from `vite-plus/test`, never `vitest`. Component
   tests use `@solidjs/testing-library`.
 - File names: `src/lib/**/*.unit.test.ts`, `src/components/**/*.test.tsx`,
-  `e2e/*.spec.ts`. Tests sit next to the file under test.
+  `src/routes/**/*.test.tsx`, `e2e/*.spec.ts`. Tests sit next to the file under test.
 - Playwright: role/label/text selectors; await a condition, never a fixed
   timeout. `e2e/live.spec.ts` changes seeded counts and runs only in the
   `live` project.
@@ -84,13 +84,13 @@ that the mocked responses match the real wire shape (the ts-rs bindings in
 4. **Approval gate.** Show the table to the user. Do not edit or delete tests
    until the user approves it. The maintainer owns what "expected behavior" is.
 5. **Apply** the approved changes. Show the simplified version of each rewrite.
-6. **Prove each rewritten test bites.** First run
-   `git diff --quiet -- <source-file>`. If it exits non-zero, the file has the
-   user's unstaged edits: stop and ask the user, because the restore below
-   would delete them. If the file is clean, break the behavior it protects,
-   run only that test, and confirm it fails for the expected reason. Then
-   restore with `git checkout -- <source-file>`. Run `git diff --stat` to
-   confirm only test files changed.
+6. **Prove each rewritten test bites.** Break the behavior it protects with
+   one Edit to the source file. Run only that test and confirm it fails for
+   the expected reason. Restore by reversing that same Edit. Never restore
+   with `git checkout`: it deletes the user's unstaged edits, and it deletes
+   approved rewrites of inline Rust `#[cfg(test)]` modules. Then run
+   `git diff -- <source-file>` and confirm it shows only the approved test
+   changes and edits that were there before you started.
 7. **Re-run** the full affected suite. Report before/after counts and lines removed.
 
 ## Commands
@@ -99,6 +99,7 @@ that the mocked responses match the real wire shape (the ts-rs bindings in
 | ------------------------- | ----------- | --------------------------- |
 | Vitest `src/lib`          | `frontend/` | `vpr test:unit`             |
 | Vitest `src/components`   | `frontend/` | `vpr test:comp`             |
+| Vitest `src/routes`       | `frontend/` | `vp test src/routes`        |
 | All Vitest                | `frontend/` | `vpr test`                  |
 | One Vitest file           | `frontend/` | `vp test <path>`            |
 | Playwright (servers free) | `frontend/` | `vpr test:e2e <pw args>`    |
