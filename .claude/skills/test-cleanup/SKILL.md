@@ -61,7 +61,8 @@ that the mocked responses match the real wire shape (the ts-rs bindings in
 - Front-end imports come from `vite-plus/test`, never `vitest`. Component
   tests use `@solidjs/testing-library`.
 - File names: `src/lib/**/*.unit.test.ts`, `src/components/**/*.test.tsx`,
-  `src/routes/**/*.test.tsx`, `e2e/*.spec.ts`. Tests sit next to the file under test.
+  `src/routes/**/*.test.tsx`, `e2e/*.spec.ts`. Vitest tests sit next to the
+  file under test. Playwright tests live in `frontend/e2e/`.
 - Playwright: role/label/text selectors; await a condition, never a fixed
   timeout. `e2e/live.spec.ts` changes seeded counts and runs only in the
   `live` project.
@@ -84,13 +85,15 @@ that the mocked responses match the real wire shape (the ts-rs bindings in
 4. **Approval gate.** Show the table to the user. Do not edit or delete tests
    until the user approves it. The maintainer owns what "expected behavior" is.
 5. **Apply** the approved changes. Show the simplified version of each rewrite.
-6. **Prove each rewritten test bites.** Break the behavior it protects with
-   one Edit to the source file. Run only that test and confirm it fails for
-   the expected reason. Restore by reversing that same Edit. Never restore
-   with `git checkout`: it deletes the user's unstaged edits, and it deletes
-   approved rewrites of inline Rust `#[cfg(test)]` modules. Then run
-   `git diff -- <source-file>` and confirm it shows only the approved test
-   changes and edits that were there before you started.
+6. **Prove each rewritten test bites.** Save the starting diff with
+   `git diff -- <source-file> > <scratch>/before.diff`. Break the behavior it
+   protects with one Edit to the source file. Run only that test and confirm
+   it fails for the expected reason. Restore by reversing that same Edit.
+   Never restore with `git checkout`: it deletes the user's unstaged edits,
+   and it deletes approved rewrites of inline Rust `#[cfg(test)]` modules.
+   Then confirm the restore is exact:
+   `git diff -- <source-file> | diff - <scratch>/before.diff` must print
+   nothing. If it prints anything, stop and report it.
 7. **Re-run** the full affected suite. Report before/after counts and lines removed.
 
 ## Commands
@@ -102,18 +105,19 @@ that the mocked responses match the real wire shape (the ts-rs bindings in
 | Vitest `src/routes`       | `frontend/` | `vp test src/routes`        |
 | All Vitest                | `frontend/` | `vpr test`                  |
 | One Vitest file           | `frontend/` | `vp test <path>`            |
-| Playwright (servers free) | `frontend/` | `vpr test:e2e <pw args>`    |
-| Playwright (dev running)  | `frontend/` | `vpx playwright test <args>` |
+| Playwright                | `frontend/` | `vpr test:e2e <pw args>`    |
 | Rust                      | `backend/`  | `cgs test` (nextest `-j1`)  |
 | One Rust test             | `backend/`  | `cargo nextest run -j1 <name>` |
 
 Gotchas:
 
 - Postgres must run for Rust tests and e2e (`cgs db` in `backend/`).
-- `vpr test:e2e` exits if `:8080` or `:3443` is busy. Do not stop the user's
-  dev servers; use `vpx playwright test` against them. This run skips the
-  seed step and changes dev data. If the first run fails, stale seed data can
-  be the cause; report that before you call the baseline broken.
+- Run e2e only through `vpr test:e2e`. It starts a fresh back-end, which
+  rebuilds the DB from the seed, so every run starts from the seed counts.
+  Never run `vpx playwright test` against the user's dev servers: it skips
+  the seed and changes dev data.
+- `vpr test:e2e` exits if `:8080` or `:3443` is busy. If so, do not stop the
+  servers yourself. Stop and ask the user to stop them, then run it again.
 - **Never run Rust tests while the dev back-end runs.** `init_test()` recreates
   the database (`DROP DATABASE IF EXISTS app_db`) that the dev server uses.
   If no back-end test changed, skip them and say so.
