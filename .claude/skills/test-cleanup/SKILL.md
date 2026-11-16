@@ -85,15 +85,15 @@ that the mocked responses match the real wire shape (the ts-rs bindings in
 4. **Approval gate.** Show the table to the user. Do not edit or delete tests
    until the user approves it. The maintainer owns what "expected behavior" is.
 5. **Apply** the approved changes. Show the simplified version of each rewrite.
-6. **Prove each rewritten test bites.** Save the starting diff with
-   `git diff -- <source-file> > <scratch>/before.diff`. Break the behavior it
+6. **Prove each rewritten test bites.** Save a copy with
+   `cp <source-file> <scratch>/before`. Break the behavior it
    protects with one Edit to the source file. Run only that test and confirm
    it fails for the expected reason. Restore by reversing that same Edit.
    Never restore with `git checkout`: it deletes the user's unstaged edits,
    and it deletes approved rewrites of inline Rust `#[cfg(test)]` modules.
    Then confirm the restore is exact:
-   `git diff -- <source-file> | diff - <scratch>/before.diff` must print
-   nothing. If it prints anything, stop and report it.
+   `cmp <source-file> <scratch>/before` must print nothing. This works for
+   tracked and untracked files. If it prints anything, stop and report it.
 7. **Re-run** the full affected suite. Report before/after counts and lines removed.
 
 ## Commands
