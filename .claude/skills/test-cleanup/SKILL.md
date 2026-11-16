@@ -15,8 +15,10 @@ features test-first; use `mattpocock-skills:tdd` for that.
    rendered DOM, return values, HTTP status + body, rows in the DB. A test that
    breaks on a pure refactor tests implementation.
 2. **No duplication.** Collapse cases that differ only in data into `it.each` /
-   `test.each` or a Rust table. Delete a test whose assertions are a strict
-   subset of another test's.
+   `test.each` or a Rust table. A test is a duplicate only when its setup,
+   actions and protected behavior all match another test's. Shared assertions
+   alone do not make it one: a test with different setup can catch a
+   different bug.
 3. **Every test earns its keep.** Ask "what bug would this catch?" Delete tests
    that restate the type system, prove the framework works, or assert
    "it renders" with nothing after it.
@@ -31,11 +33,23 @@ features test-first; use `mattpocock-skills:tdd` for that.
 
 | Layer                       | Runs against                      | Allowed seam                                      |
 | --------------------------- | --------------------------------- | ------------------------------------------------- |
-| Vitest `src/components`, `src/routes` | jsdom, **no back-end**  | `vi.mock("~/lib/backend-rpc")`, `~/lib/jedi/jedi-api`, `~/lib/feed.websocket` |
-| Vitest `src/lib`            | jsdom, **no back-end**            | `fetch` (`vi.stubGlobal`) when the module under test *is* the transport (`backend-rpc.unit.test.ts`) |
+| Vitest (all of `src/`)      | jsdom, **no back-end, no server request** | Anything jsdom cannot provide (examples below) |
 | Playwright `e2e/`           | real FE + BE + edge `https://localhost:3443` | none                                   |
 | Rust model (`lib-core`)     | real Postgres via `_dev_utils::init_test()` | none                                    |
 | Rust HTTP (`web-server/src/app.rs`) | `axum_test::TestServer` on the real `app()` router | none                         |
+
+The Vitest seams below are examples, not a full list. A Vitest mock is valid
+when it replaces something jsdom cannot provide. A mock of a module under test,
+or of logic inside it, is not valid. Examples in use today:
+
+- RPC: `vi.mock("~/lib/backend-rpc")`, `vi.mock("~/lib/jedi/jedi-api")`.
+- Server functions: `vi.mock("~/lib/theme")` for `saveTheme`;
+  `vi.mock("solid-js/web")` for `getRequestEvent`.
+- Browser transports and APIs: `vi.stubGlobal("WebSocket", …)`,
+  `vi.stubGlobal("matchMedia", …)`, and `vi.stubGlobal("fetch", …)` when the
+  module under test *is* the transport (`backend-rpc.unit.test.ts`).
+
+If a seam is not in this list, judge it by the rule, and name it in the report.
 
 Vitest cannot reach the back-end, so a mock at the RPC seam is correct there —
 never delete a Vitest test only because it mocks `backend-rpc`. Instead, check
@@ -70,9 +84,12 @@ that the mocked responses match the real wire shape (the ts-rs bindings in
 4. **Approval gate.** Show the table to the user. Do not edit or delete tests
    until the user approves it. The maintainer owns what "expected behavior" is.
 5. **Apply** the approved changes. Show the simplified version of each rewrite.
-6. **Prove each rewritten test bites.** Break the behavior it protects in the
-   source file, run only that test, confirm it fails for the expected reason,
-   then restore with `git checkout -- <source-file>`. Run `git diff --stat` to
+6. **Prove each rewritten test bites.** First run
+   `git diff --quiet -- <source-file>`. If it exits non-zero, the file has the
+   user's unstaged edits: stop and ask the user, because the restore below
+   would delete them. If the file is clean, break the behavior it protects,
+   run only that test, and confirm it fails for the expected reason. Then
+   restore with `git checkout -- <source-file>`. Run `git diff --stat` to
    confirm only test files changed.
 7. **Re-run** the full affected suite. Report before/after counts and lines removed.
 
@@ -93,7 +110,9 @@ Gotchas:
 
 - Postgres must run for Rust tests and e2e (`cgs db` in `backend/`).
 - `vpr test:e2e` exits if `:8080` or `:3443` is busy. Do not stop the user's
-  dev servers; use `vpx playwright test` against them.
+  dev servers; use `vpx playwright test` against them. This run skips the
+  seed step and changes dev data. If the first run fails, stale seed data can
+  be the cause; report that before you call the baseline broken.
 - **Never run Rust tests while the dev back-end runs.** `init_test()` recreates
   the database (`DROP DATABASE IF EXISTS app_db`) that the dev server uses.
   If no back-end test changed, skip them and say so.
