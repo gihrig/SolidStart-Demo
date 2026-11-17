@@ -197,7 +197,7 @@ export function createDraftGuard(): DraftGuard {
   };
 
   // One batch: the view never sees the state between the drop and the move,
-  // such as the Post that a Draft no longer shows. A Cancel's close
+  // such as the Post shown when a dropped Draft ends its Post hold. A Cancel's close
   // runs after the batch: it moves focus, which needs the closed form gone and
   // the confirm dialog closed.
   const confirmMove = (): void => {
