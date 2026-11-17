@@ -27,7 +27,7 @@ not leak the audit columns: the actor ids (`cid`, `mid`) and the times
   write. A later admin surface reads the full base row, which already carries
   the audit columns.
 - **Each entity keeps its own read; the front-end composes the page.**
-  `createJediFeed` builds the page from `list_posts`, `list_captions_for_post`,
+  `createJediPage` builds the page from `list_posts`, `list_captions_for_post`,
   `get_hero` and the others. A poke names one list or thread, so the client
   refetches only that part.
 

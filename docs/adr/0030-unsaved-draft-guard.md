@@ -51,7 +51,7 @@ unit and e2e tests of `createDraftGuard`, `useDraftForm`, `createSelection` and
 
 - **`window.confirm`.** It cannot follow the theme, and it blocks the page's
   script while it is open.
-- **The guard inside `createJediFeed`.** The `Nav` logoff and the other routes
+- **The guard inside `createJediPage`.** The `Nav` logoff and the other routes
   cannot reach it.
 - **The Draft text in the view-model.** Each form would become controlled, and
   the guard needs only "yes" or "no".
