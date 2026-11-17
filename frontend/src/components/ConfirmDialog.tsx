@@ -2,7 +2,7 @@ import { createUniqueId, Show } from "solid-js";
 import ModalDialog from "~/components/ModalDialog";
 
 export interface ConfirmDialogProps {
-  /** The owner holds the open state; the dialog never closes itself. */
+  /** The parent component holds the open state; the dialog never closes itself. */
   open: boolean;
   /** The question or the notice. It also names the dialog. */
   message: string;

@@ -22,12 +22,12 @@ const within = (scope: DraftScope | undefined, outer: DraftScope): boolean => {
 
 /** The app-level guard for unsaved form text (ADR-0030). */
 export interface DraftGuard {
-  /** Whether any form holds a Draft. */
+  /** Whether any form has a Draft. */
   hasDraft: Accessor<boolean>;
-  /** Whether the form under `key` holds a Draft. A form reads it when it
-   *  unmounts: a Draft still held then was not discarded by the user. */
-  holds: (key: symbol) => boolean;
-  /** A form reports whether it holds a Draft, under its own key. It reports
+  /** Whether the form under `key` has a Draft. A form reads it when it
+   *  unmounts: a Draft still there then was not discarded by the user. */
+  hasDraftAt: (key: symbol) => boolean;
+  /** A form reports whether it has a Draft, under its own key. It reports
    *  `false` when it saves, when it cancels, and when it unmounts. A form
    *  reports through `useDraftForm`, which makes the key. A form in a `scope`
    *  reports it too. */
@@ -50,7 +50,7 @@ export interface DraftGuard {
   /** Whether a form in `scope`, or in a scope under it, writes; with no
    *  `scope`, any form. */
   busyIn: (scope?: DraftScope) => boolean;
-  /** Whether a form in `scope`, or in a scope under it, holds a Draft; with no
+  /** Whether a form in `scope`, or in a scope under it, has a Draft; with no
    *  `scope`, any form. It is reactive. */
   hasDraftIn: (scope?: DraftScope) => boolean;
   /** Whether a move waits for the confirm dialog. */
@@ -83,8 +83,8 @@ export interface DraftGuard {
   dismissNotice: () => void;
   /** The Owner's own delete (#187): release the Drafts in `scope`, or every
    *  Draft with no `scope`, with no notice. A released form's unmount shows
-   *  none. Returns `restore`, which holds them again after a failed delete; a
-   *  form that ended its Draft or unmounted meanwhile is not held again. */
+   *  none. Returns `restore`, which adds them again after a failed delete; a
+   *  form that ended its Draft or unmounted meanwhile is not added again. */
   release: (scope?: DraftScope) => () => void;
 }
 
@@ -94,11 +94,11 @@ export const DRAFT_DISCARDED_NOTICE = "Your unsaved changes were discarded.";
 /** The question of a user-started move with a Draft. */
 const MOVE_QUESTION = "You have unsaved changes. Discard them?";
 
-/** A guard that holds nothing: each move runs at once. The default where no
+/** A guard that has no Draft: each move runs at once. The default where no
  *  app guard is given (a component or view-model test). */
 export const passThroughGuard: DraftGuard = {
   hasDraft: () => false,
-  holds: () => false,
+  hasDraftAt: () => false,
   report: () => {},
   attempt: (move) => move(),
   cancel: (_key, close) => close(),
@@ -197,7 +197,7 @@ export function createDraftGuard(): DraftGuard {
   };
 
   // One batch: the view never sees the state between the drop and the move,
-  // such as the selected Post that a Draft no longer holds. A Cancel's close
+  // such as the Post that a Draft no longer keeps shown. A Cancel's close
   // runs after the batch: it moves focus, which needs the closed form gone and
   // the confirm dialog closed.
   const confirmMove = (): void => {
@@ -249,7 +249,7 @@ export function createDraftGuard(): DraftGuard {
 
   return {
     hasDraft,
-    holds: (key) => drafts.has(key),
+    hasDraftAt: (key) => drafts.has(key),
     report,
     attempt,
     cancel,

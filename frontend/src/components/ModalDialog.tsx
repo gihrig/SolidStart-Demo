@@ -3,7 +3,7 @@ import { isImeKey } from "~/lib/isImeKey";
 import { keepDialogFocus } from "~/lib/keepDialogFocus";
 
 export interface ModalDialogProps {
-  /** The Cancel. Escape and a browser close run it. The owner unmounts the
+  /** The Cancel. Escape and a browser close run it. The parent component unmounts the
    *  dialog to close it: the module never closes it on its own. */
   onCancel: () => void;
   /** While true, Escape does nothing. A browser close opens the dialog again
@@ -20,7 +20,7 @@ export interface ModalDialogProps {
 
 /**
  * A modal dialog (#278, ADR-0030): a native `<dialog>` opened with
- * `showModal()` on mount. The owner unmounts it to close it; the unmount closes
+ * `showModal()` on mount. The parent component unmounts it to close it; the unmount closes
  * it in the browser, so focus returns. Each dialog gives its content and its
  * Cancel; this module owns the open, Escape, the browser close and Tab.
  *
@@ -30,7 +30,7 @@ export default function ModalDialog(props: ModalDialogProps) {
   let dialogRef: HTMLDialogElement | undefined;
 
   onMount(() => dialogRef?.showModal());
-  // The owner's close. The `close` event that follows is not a browser close.
+  // The parent component's close. The `close` event that follows is not a browser close.
   let closing = false;
   onCleanup(() => {
     closing = true;
@@ -38,7 +38,7 @@ export default function ModalDialog(props: ModalDialogProps) {
   });
 
   // Escape fires `cancel`. A `cancel` that can be stopped is stopped: the
-  // owner closes the dialog. A browser stops no `cancel` after repeated
+  // parent component closes the dialog. A browser stops no `cancel` after repeated
   // Escape (measured 2026-11-02 in Chromium, Firefox and WebKit). Then the
   // module does nothing, and the `close` that comes next is the Cancel. So one
   // Escape runs the Cancel one time only.

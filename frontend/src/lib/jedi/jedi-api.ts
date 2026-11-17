@@ -17,7 +17,7 @@ import type {
   AuthorRef,
   Like,
   PostChanges,
-  PostDraft,
+  PostInput,
   PostView,
   CommentView,
   CaptionView,
@@ -140,20 +140,20 @@ export const jediApi = {
     // RPC, each wire `PostView` re-shaped for the components. The view-model
     // derives the featured Post from it, so the featured-Post RPC has no wrapper (#191).
     list: async (): Promise<PostView[]> => (await publicRpc("list_posts")).map(toPostView),
-    // Real back-end call (#120): `create_post` needs a login. The draft is sent
+    // Real back-end call (#120): `create_post` needs a login. The input is sent
     // raw — the back-end is the authoritative URL boundary and rejects an
     // unsafe URL; the returned view passes the sanitize boundary like any read.
-    create: async (draft: PostDraft): Promise<PostView> =>
+    create: async (input: PostInput): Promise<PostView> =>
       toPostView(
         await authenticatedRpc("create_post", {
           data: {
-            title: draft.title,
-            image_src: draft.imageSrc,
-            image_alt: draft.imageAlt,
-            photographer: draft.photographer,
-            photographer_url: draft.photographerUrl,
-            source_url: draft.sourceUrl,
-            category_ids: draft.categoryIds,
+            title: input.title,
+            image_src: input.imageSrc,
+            image_alt: input.imageAlt,
+            photographer: input.photographer,
+            photographer_url: input.photographerUrl,
+            source_url: input.sourceUrl,
+            category_ids: input.categoryIds,
           },
         }),
       ),

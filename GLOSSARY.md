@@ -456,7 +456,7 @@ How the front-end (`frontend/src/`) shows the domain.
 The line under the photo on the Post card. It shows the Author's avatar and
 name, the Post title and the Post's Categories.
 
-_FE_: `FeaturedPost` (`components/FeaturedPost.tsx`).
+_FE_: `PostCard` (`components/PostCard.tsx`).
 _Avoid_: Post line; categories line.
 
 **Brand link**:
@@ -495,7 +495,7 @@ the Caption.
 - An **Edit** on a locked Caption shows a Notice.
 - The back-end is the authority: an edit with a stale count gets a `Validation` error.
 
-_FE_: `captionLocked` (`components/FeaturedPost.tsx`).
+_FE_: `captionLocked` (`components/PostCard.tsx`).
 _BE_: `update_caption`.
 _Avoid_: "lock" alone.
 
@@ -640,7 +640,7 @@ The main article, which shows the Post. From the top: the title bar, the photo,
 the Author line, the Post actions, the Caption line, the Caption actions and the
 Comments panel.
 
-_FE_: `FeaturedPost` (`components/FeaturedPost.tsx`).
+_FE_: `PostCard` (`components/PostCard.tsx`).
 _See_: [ADR-0030][0030]; #210.
 _Avoid_: Featured Post (`featured` is the top-ranked Post, only the default).
 
@@ -648,7 +648,7 @@ _Avoid_: Featured Post (`featured` is the top-ranked Post, only the default).
 The modal form that creates or edits a Post. Its heading is **New Post** or
 **Edit Post**.
 
-_FE_: `PostDialog` (`components/PostDialog.tsx`).
+_FE_: `PostDialog` (`components/PostDialog.tsx`); its field values are `PostInput`.
 _Avoid_: create-post dialog.
 
 **Post hold**:
@@ -681,7 +681,7 @@ or Log Out, and the three Theme items.
 
 - Every Visitor can open it, at every width, also before login.
 
-_FE_: the `profile-menu` disclosure in `Nav` (`components/Nav.tsx`).
+_FE_: `profileMenu`, the `profile-menu` disclosure in `Nav` (`components/Nav.tsx`).
 _Avoid_: nav drop-down, profile dropdown, user menu.
 
 **Selection highlight**:
@@ -709,7 +709,8 @@ _FE_: `Card`, `CategoriesCard`, `TopPhotosCard`, `TopCaptionsCard`; the
 The drop-down that has the Nav links on a narrow screen (below 768 px). The ☰
 button in the Top Nav opens it. It is not the Profile menu.
 
-_FE_: the `site-mobile-nav` disclosure in `Nav`; its accessible name is "Site menu".
+_FE_: `siteMenu`, the `site-menu` disclosure in `Nav`; its accessible name is
+"Site menu".
 _Avoid_: mobile menu, mobile nav, hamburger menu.
 
 **Subject**:
@@ -747,7 +748,7 @@ _Avoid_: header, navbar, top bar.
 A front-end module that has the state and the rules of one part of a page,
 so that the components only render it.
 
-_FE_: `createJediFeed`, `createSelection`, `createCommentThread`, `createLikeState`.
+_FE_: `createJediPage`, `createSelection`, `createCommentThread`, `createLikeState`.
 _Avoid_: store, controller.
 
 **Visitor**:

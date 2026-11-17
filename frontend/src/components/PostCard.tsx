@@ -1,7 +1,7 @@
 import { createEffect, createMemo, createSignal, For, on, Show, type JSX } from "solid-js";
 import { createRpcAction } from "~/lib/createRpcAction";
 import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
-import type { OwnerWrites, PostCardScopes } from "~/lib/jedi/createJediFeed";
+import type { OwnerWrites, PostCardScopes } from "~/lib/jedi/createJediPage";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { PostChanges, PostView, CaptionView, Like } from "~/types/jedi";
 import Image from "~/components/Image";
@@ -15,7 +15,7 @@ import PostCaption from "~/components/PostCaption";
 import { DraftScopeContext } from "~/components/DraftGuardContext";
 import Icon from "~/components/Icon";
 
-export interface FeaturedPostProps {
+export interface PostCardProps {
   post: PostView;
   /** The winning Caption shown on the post (a first-class entity, not bare
    *  text); undefined until the post's captions load or when it has none. */
@@ -174,7 +174,7 @@ function ActionsLine(props: ActionsLineProps) {
   );
 }
 
-export default function FeaturedPost(props: FeaturedPostProps) {
+export default function PostCard(props: PostCardProps) {
   // One action per Like target (#123), so each toggle reports its own error.
   const toggleLike = createLikeAction(() => props.onToggleLike?.());
   const toggleCaptionLike = createLikeAction(() => props.onToggleCaptionLike?.());
@@ -263,7 +263,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
     props.captionComments?.setOpen(false);
   };
   const captionCommentCount = () => props.caption?.commentCount ?? 0;
-  // The author link is a placeholder until it lands on the feed seam.
+  // The author link is a placeholder until it lands on the data seam.
   const notImplemented = (e: MouseEvent) => {
     e.preventDefault();
     alert("Not implemented");

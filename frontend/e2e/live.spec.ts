@@ -217,7 +217,7 @@ test.describe("Live updates across Users (#129)", () => {
       await expect(a.getByRole("status")).toHaveText("Post saved.");
       await expect(articleB.getByRole("heading", { name: edited })).toBeVisible();
 
-      // B holds a Draft on the Post: an unsaved Comment.
+      // B has a Draft on the Post: an unsaved Comment.
       await articleB.getByRole("button", { name: /^Post Comments, /i }).click();
       await articleB.getByRole("textbox", { name: "Post Comment" }).fill("an unsaved Comment");
 

@@ -11,12 +11,12 @@ import { expect, type Page } from "@playwright/test";
 export async function loginAs(page: Page, username: string, password: string) {
   // Wait for hydration, so the clicks reach live handlers.
   await page.waitForLoadState("networkidle");
-  const header = page.getByRole("banner");
-  await header.getByRole("button", { name: "Profile menu" }).click();
-  await header.getByRole("button", { name: "Log In" }).click();
+  const topNav = page.getByRole("banner");
+  await topNav.getByRole("button", { name: "Profile menu" }).click();
+  await topNav.getByRole("button", { name: "Log In" }).click();
   const dialog = page.getByRole("dialog", { name: "Log In" });
   await dialog.getByLabel("Username").fill(username);
   await dialog.getByLabel("Password").fill(password);
   await dialog.getByRole("button", { name: /^log in$/i }).click();
-  await expect(header.getByText(username, { exact: true })).toBeVisible({ timeout: 10000 });
+  await expect(topNav.getByText(username, { exact: true })).toBeVisible({ timeout: 10000 });
 }

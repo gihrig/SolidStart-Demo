@@ -487,7 +487,7 @@ describe("createSelection — a Post change by another User (#187)", () => {
       load(WITHOUT_POST_1);
       expect(guard.notice()).toBe(POST_DELETED);
       expect(guard.hasDraftIn(selection.draftScopes.post)).toBe(false);
-      expect(guard.holds(outside), "a Draft outside the Post stays").toBe(true);
+      expect(guard.hasDraftAt(outside), "a Draft outside the Post stays").toBe(true);
       expect(shownPost(selection)).toBe(3);
     }));
 
@@ -610,7 +610,7 @@ describe("createSelection — a Caption delete by another User (#187)", () => {
       await loadCaptions(1, [caption(2, 1)]);
       expect(guard.notice()).toBe(CAPTION_DELETED);
       expect(guard.hasDraftIn(selection.draftScopes.caption)).toBe(false);
-      expect(guard.holds(outside)).toBe(true);
+      expect(guard.hasDraftAt(outside)).toBe(true);
       expect(shownCaption(selection)).toBe(2);
     }));
 
@@ -641,12 +641,12 @@ describe("createSelection — the Owner's writes (#187)", () => {
       await settle();
 
       expect(guard.notice()).toBeUndefined();
-      expect(guard.holds(outside), "a Draft outside the Post stays").toBe(true);
+      expect(guard.hasDraftAt(outside), "a Draft outside the Post stays").toBe(true);
       expect(refetchPosts).toHaveBeenCalledOnce();
       expect(selection.announcement()).toBe("Post deleted.");
     }));
 
-  it("a failed Post delete holds the Drafts again and rejects", () =>
+  it("a failed Post delete has the Drafts again and rejects", () =>
     withSelection(async ({ selection, guard, calls, draft }) => {
       draft(selection.draftScopes.post);
       calls.removePost.mockRejectedValueOnce(new Error("Could not delete the Post"));
@@ -678,9 +678,9 @@ describe("createSelection — the Owner's writes (#187)", () => {
       await selection.captionOwner.remove(1);
       await settle();
       expect(calls.removeCaption).toHaveBeenCalledWith(1);
-      expect(guard.holds(edit)).toBe(false);
-      expect(guard.holds(thread)).toBe(false);
-      expect(guard.holds(outside)).toBe(true);
+      expect(guard.hasDraftAt(edit)).toBe(false);
+      expect(guard.hasDraftAt(thread)).toBe(false);
+      expect(guard.hasDraftAt(outside)).toBe(true);
       expect(guard.notice()).toBeUndefined();
       expect(calls.listCaptions.mock.calls.length).toBeGreaterThan(loads);
       expect(selection.announcement()).toBe("Caption deleted.");

@@ -142,17 +142,17 @@ const renderHome = () =>
     </MetaProvider>
   ));
 
-describe("Home route (Jedi feed, data-driven from jedi-api)", () => {
+describe("Home route (Jedi page, data-driven from jedi-api)", () => {
   beforeEach(() => setupMatchMedia(false)); // desktop
   afterEach(() => vi.restoreAllMocks());
 
-  it("renders the featured post from the mock", async () => {
+  it("renders the Post card from the mock", async () => {
     renderHome();
     expect(await screen.findByRole("heading", { name: /little jedi/i })).toBeInTheDocument();
     expect(await screen.findByText(/jedi kitty protects the street/i)).toBeInTheDocument();
   });
 
-  it("renders the featured post's category chips (tags == categories)", async () => {
+  it("renders the Post card's Category chips (tags == categories)", async () => {
     renderHome();
     expect(await screen.findByRole("button", { name: /^Animals$/ })).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /^Cute$/ })).toBeInTheDocument();
@@ -244,7 +244,7 @@ describe("Home route (Jedi feed, data-driven from jedi-api)", () => {
 
     const main = screen.getByRole("main");
     await waitFor(() => expect(within(main).getByText(/no posts in people/i)).toBeInTheDocument());
-    // The previously-shown featured post is gone, not left stale in <main>.
+    // The Post shown before is gone, not left stale in <main>.
     expect(within(main).queryByRole("heading", { name: /little jedi/i })).not.toBeInTheDocument();
   });
 
@@ -439,7 +439,7 @@ describe("Home route — the Draft guard (ADR-0030)", () => {
     screen.queryByRole("dialog", { name: "You have unsaved changes. Discard them?" });
   const composeBox = () => screen.getByRole("textbox", { name: "Post Comment" });
 
-  // Log in, open the featured Post's Comments, and type a Draft.
+  // Log in, open the Comments of the Post shown, and type a Draft.
   async function startDraft() {
     const user = userEvent.setup();
     renderApp();
@@ -593,7 +593,7 @@ describe("Home route — the Draft guard (ADR-0030)", () => {
       ).toBeInTheDocument();
       expect(screen.queryByRole("textbox", { name: "Post Comment" })).toBeNull();
       expect(newPostTitle()).toHaveValue("new post");
-      expect(unloadBlocked(), "the guard still holds the New Post Draft").toBe(true);
+      expect(unloadBlocked(), "the guard still has the New Post Draft").toBe(true);
     });
 
     it("with both Drafts, a Category leave asks; Discard closes the Comment form and moves; the New Post Draft stays", async () => {

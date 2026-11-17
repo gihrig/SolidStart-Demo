@@ -9,7 +9,7 @@ import { createLikeState, type LikeState } from "./createLikeState";
 
 // The Like state of one Like target kind (#123): a Post or a Caption. This seam
 // test drives the factory with a selected id, the memory Feed (ADR-0028), and a
-// stateful fake back-end; `createJediFeed.unit.test.ts` covers the view-model's
+// stateful fake back-end; `createJediPage.unit.test.ts` covers the view-model's
 // wiring around it.
 
 const like = (id: number, likeCount: number, liked: boolean): Like => ({ id, likeCount, liked });
@@ -130,7 +130,7 @@ describe("createLikeState — the server read", () => {
 });
 
 describe("createLikeState — the Subscription", () => {
-  it("holds the Channel of the selected target, and moves the hold with the selection", () =>
+  it("holds the Channel of the selected target, and moves the Subscription with the selection", () =>
     withLikeState(async ({ select, mem }) => {
       expect(mem.held()).toEqual([Channel.postLike(1)]);
 

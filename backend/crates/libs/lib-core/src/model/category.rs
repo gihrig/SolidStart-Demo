@@ -30,7 +30,7 @@ pub struct Category {
 	pub icon: String,
 
 	// -- Timestamps
-	//    (creator and last modified user_id/time)
+	//    (creating and last modifying user_id/time)
 	pub cid: i64,
 	#[serde_as(as = "Rfc3339")]
 	#[ts(type = "string")]

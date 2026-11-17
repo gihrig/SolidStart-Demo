@@ -140,7 +140,7 @@ test.describe("Jedi Page", () => {
 });
 
 test.describe("Home Page - Nav slide transitions (regression #28)", () => {
-  test("mobile nav menu slides via `translate` (not just opacity) on close", async ({ page }) => {
+  test("Site menu slides via `translate` (not just opacity) on close", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto("/");
     const navBtn = page.getByRole("button", { name: /site menu/i });
@@ -171,9 +171,7 @@ test.describe("Home Page - Nav slide transitions (regression #28)", () => {
     expect(translateAnimated).toBe(true);
   });
 
-  test("profile dropdown transitions `translate` and `scale`, not just opacity", async ({
-    page,
-  }) => {
+  test("Profile menu transitions `translate` and `scale`, not just opacity", async ({ page }) => {
     await page.goto("/");
     // Same v4 fix: scale-90 / -translate-y-5 live in the `scale` / `translate` props.
     const tp = await page
@@ -185,7 +183,7 @@ test.describe("Home Page - Nav slide transitions (regression #28)", () => {
   });
 });
 
-test.describe("Home Page - Profile dropdown (popup disclosure, #55 C5)", () => {
+test.describe("Home Page - Profile menu (popup disclosure, #55 C5)", () => {
   test("opens on click, closes on click-outside, inert while closed", async ({ page }) => {
     await page.goto("/");
     const trigger = page.getByRole("button", { name: /profile menu/i });
@@ -262,13 +260,13 @@ test.describe("Home Page - Profile dropdown (popup disclosure, #55 C5)", () => {
   test("logged in, a click near the right edge of Log Out logs the User off", async ({ page }) => {
     await page.goto("/");
     await loginAs(page, "demo1", "welcome");
-    const header = page.getByRole("banner");
+    const topNav = page.getByRole("banner");
     const menu = await openProfileMenu(page);
     const logOut = actionRow(menu, "Log Out");
     await expectFillsRow(logOut);
 
     await clickRowEdge(logOut);
-    await expect(header.getByText("demo1", { exact: true })).toBeHidden();
+    await expect(topNav.getByText("demo1", { exact: true })).toBeHidden();
     await expect(actionRow(menu, "Log In")).toHaveCount(1);
   });
 });
@@ -311,9 +309,9 @@ test.describe("Home Page - Theme", () => {
   // Open the Profile menu after hydration, so the clicks reach live handlers.
   async function openThemeGroup(page: Page) {
     await page.waitForLoadState("networkidle");
-    const header = page.getByRole("banner");
-    await header.getByRole("button", { name: "Profile menu" }).click();
-    const group = header.getByRole("group", { name: "Theme" });
+    const topNav = page.getByRole("banner");
+    await topNav.getByRole("button", { name: "Profile menu" }).click();
+    const group = topNav.getByRole("group", { name: "Theme" });
     await expect(group).toBeVisible();
     return group;
   }
@@ -745,9 +743,9 @@ test.describe("Jedi Page - Tab stays in the dialogs (#210)", () => {
   test("the Login dialog", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    const header = page.getByRole("banner");
-    await header.getByRole("button", { name: "Profile menu" }).click();
-    await header.getByRole("button", { name: "Log In" }).click();
+    const topNav = page.getByRole("banner");
+    await topNav.getByRole("button", { name: "Profile menu" }).click();
+    await topNav.getByRole("button", { name: "Log In" }).click();
     const dialog = page.getByRole("dialog", { name: "Log In" });
     const username = dialog.getByLabel("Username");
     const login = dialog.getByRole("button", { name: /^log in$/i });

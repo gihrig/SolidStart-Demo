@@ -11,11 +11,11 @@ import {
 import { createStore } from "solid-js/store";
 import { jediApi, type JediApi } from "~/lib/jedi/jedi-api";
 import type { HygieneCaps } from "~/types/backend";
-import type { PostChanges, PostDraft, PostView } from "~/types/jedi";
+import type { PostChanges, PostInput, PostView } from "~/types/jedi";
 import { useDraftForm } from "~/components/DraftGuardContext";
 import ModalDialog from "~/components/ModalDialog";
 
-// The draft's text fields, in form order. Each `maxLength` mirrors the back-end
+// The input's text fields, in form order. Each `maxLength` mirrors the back-end
 // cap (`PostBmc::hygiene_rules`) and pins to it with `satisfies`, so a changed
 // cap fails `tsc` (ADR-0029); the back-end stays the authoritative check.
 type PostCaps = HygieneCaps["post"];
@@ -78,7 +78,7 @@ const MODE_TEXT = {
   },
 } as const;
 
-const emptyDraft = (): PostDraft => ({
+const emptyInput = (): PostInput => ({
   title: "",
   imageSrc: "",
   imageAlt: "",
@@ -89,7 +89,7 @@ const emptyDraft = (): PostDraft => ({
 });
 
 // The saved values of a Post, in the form's shape.
-const draftOf = (post: PostView): PostDraft => ({
+const inputOf = (post: PostView): PostInput => ({
   title: post.title,
   imageSrc: post.imageSrc,
   imageAlt: post.imageAlt,
@@ -111,12 +111,12 @@ export interface PostDialogProps {
     posts: Pick<JediApi["posts"], "create">;
   };
   /** The Post to edit (#187). With it, the dialog is the edit mode, and its
-   *  owner keys it on the Post id. The mode is fixed for the dialog's life. */
+   *  parent component keys it on the Post id. The mode is fixed for the dialog's life. */
   post?: PostView;
   /** Edit mode: save the changed fields (the view-model's `postOwner.save`).
    *  Rejects on failure. */
   onSave?: (changes: PostChanges) => Promise<void>;
-  /** Called on Cancel, and after a create or a save: the owner unmounts the
+  /** Called on Cancel, and after a create or a save: the parent component unmounts the
    *  dialog. */
   onClose?: () => void;
   /** Create mode: called once the create commits, before the close (#283).
@@ -126,19 +126,19 @@ export interface PostDialogProps {
 
 /**
  * The one Post dialog: the create overlay (#120) and the Post edit (#187). It
- * is a `ModalDialog` form that opens on mount: its owner mounts it to open
+ * is a `ModalDialog` form that opens on mount: its parent component mounts it to open
  * it, and unmounts it to close it (#214).
  *
  * The create mode is the New Post dialog, which `NewPostProvider` owns. The
  * submit never reloads the page; the dialog stays open until the back-end has
- * committed the Post, then calls `onCreated` and closes. The owner's listener
+ * committed the Post, then calls `onCreated` and closes. The parent component's listener
  * refetches the Posts at once, so the new Post does not wait for the `posts`
- * poke (#283). It holds a Draft while a text field is not blank after a trim,
+ * poke (#283). It has a Draft while a text field is not blank after a trim,
  * or a Category is checked. The Draft has no scope, so only the logoff and a
  * route move ask about it (#214).
  *
  * The edit mode fills every field from the Post, with its Categories checked.
- * The photo URL shows, disabled: Save never sends it. The edit holds a Draft
+ * The photo URL shows, disabled: Save never sends it. The edit has a Draft
  * while a field differs from the saved Post, and Save stays disabled until
  * then. Save sends only the changed fields; the Categories count as one field.
  * A remote edit of the Post shows in each field that the User did not change.
@@ -153,7 +153,7 @@ export interface PostDialogProps {
  */
 export default function PostDialog(props: PostDialogProps) {
   const api = props.api ?? jediApi;
-  // The mode is fixed: the owner keys an edit on its Post id.
+  // The mode is fixed: the parent component keys an edit on its Post id.
   const editing = props.post !== undefined;
   const text = MODE_TEXT[editing ? "edit" : "create"];
   // One id per instance: the New Post dialog and the Post edit each render one.
@@ -162,9 +162,9 @@ export default function PostDialog(props: PostDialogProps) {
   const photoHintId = `${uid}-photo-hint`;
 
   // The saved Post's values (edit mode); undefined in create mode.
-  const saved = createMemo(() => (props.post ? draftOf(props.post) : undefined));
-  const initial = saved() ?? emptyDraft();
-  const [values, setValues] = createStore<PostDraft>({
+  const saved = createMemo(() => (props.post ? inputOf(props.post) : undefined));
+  const initial = saved() ?? emptyInput();
+  const [values, setValues] = createStore<PostInput>({
     ...initial,
     categoryIds: [...initial.categoryIds],
   });
@@ -192,7 +192,7 @@ export default function PostDialog(props: PostDialogProps) {
       changed.categoryIds = [...values.categoryIds];
     return changed;
   };
-  // The edit holds a Draft while a field differs from the saved Post; the
+  // The edit has a Draft while a field differs from the saved Post; the
   // create, while a text field is not blank after a trim, or a Category is
   // checked (#214).
   const dirty = () =>
@@ -220,7 +220,7 @@ export default function PostDialog(props: PostDialogProps) {
         });
         props.onCreated?.();
       };
-  // The owner unmounts the dialog to close it: on a Cancel, and after a saved
+  // The parent component unmounts the dialog to close it: on a Cancel, and after a saved
   // write. A write that ends after a browser close unmounted the edit does not
   // close the next dialog (PR #216 review).
   const closeDialog = () => props.onClose?.();

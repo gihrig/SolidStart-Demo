@@ -17,7 +17,7 @@ const ADDED: CaptionView = {
   commentCount: 0,
 };
 
-// The add mode's save (the view-model's `addCaption`, through its owner, #283).
+// The add mode's save (the view-model's `addCaption`, through its parent component, #283).
 const onSaveMock = vi.fn<(text: string) => Promise<CaptionView>>();
 
 beforeEach(() => {
@@ -188,7 +188,7 @@ describe("<CaptionForm /> — the edit mode (#187)", () => {
     await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
   });
 
-  it("holds a Draft in its scope while the text differs; Cancel asks, and Discard drops it", async () => {
+  it("has a Draft in its scope while the text differs; Cancel asks, and Discard drops it", async () => {
     const { user, input, guard, onCancel } = renderEdit();
     expect(guard.hasDraftIn(scope)).toBe(false);
     await user.type(input, "!");

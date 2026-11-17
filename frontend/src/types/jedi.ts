@@ -43,7 +43,7 @@ export interface Like {
 
 /** A new Post as the create form submits it (#120): the seam maps it to the
  *  wire `PostForCreate`. The back-end validates and rejects unsafe URLs. */
-export interface PostDraft {
+export interface PostInput {
   title: string;
   imageSrc: string;
   imageAlt: string;
@@ -55,7 +55,7 @@ export interface PostDraft {
 
 /** The changed fields of a Post edit (#187): the seam maps them to the wire
  *  `PostForUpdate`. The photo never changes, so there is no `imageSrc`. */
-export type PostChanges = Partial<Omit<PostDraft, "imageSrc">>;
+export type PostChanges = Partial<Omit<PostInput, "imageSrc">>;
 
 /** Hero as returned by the seam: its URL field is sanitized. There is no CTA
  *  href: the CTA runs fixed front-end code (#119, ADR-0011). */

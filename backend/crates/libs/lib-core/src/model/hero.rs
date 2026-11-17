@@ -14,7 +14,7 @@ use ts_rs::TS;
 const HERO_ID: i64 = 1;
 
 /// The **public projection** of the Hero singleton (ADR-0021): the home page
-/// banner content, minus the audit columns (`cid` / `mid` / `ctime` / `mtime`).
+/// Hero content, minus the audit columns (`cid` / `mid` / `ctime` / `mtime`).
 /// There is no `cta_href`: the CTA runs fixed front-end code (ADR-0011).
 /// `base::get` selects exactly these columns, so the audit columns
 /// are never queried.

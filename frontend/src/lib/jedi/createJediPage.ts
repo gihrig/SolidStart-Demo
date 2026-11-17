@@ -17,7 +17,7 @@ import type { JediCategory, Like, PostView, HeroView } from "~/types/jedi";
 export type { EditState, OwnerWrites, PostCardScopes } from "~/lib/jedi/createSelection";
 
 /**
- * The Jedi feed's view-model: it owns the route's four data resources and the
+ * The Jedi page's view-model: it owns the route's four data resources and the
  * derivations over them, exposing a small accessor interface. The route reads
  * these accessors and renders — no data orchestration in the markup — so the
  * derivations are exercisable at this seam without rendering the DOM, the same
@@ -52,7 +52,7 @@ export type { EditState, OwnerWrites, PostCardScopes } from "~/lib/jedi/createSe
  * (#210), goes through the app's Draft guard (ADR-0030): with a Draft, it waits
  * for the confirm dialog.
  *
- * `hero` (the header banner content) is the externalized header data (#32): the
+ * `hero` (the Hero content) is the externalized Hero data (#32): the
  * route renders the Hero from `hero`, so it is not hard-coded in the markup. The
  * nav avatar's profile now lives in the global Nav, not here (see ADR-0011).
  */
@@ -60,7 +60,7 @@ export type { EditState, OwnerWrites, PostCardScopes } from "~/lib/jedi/createSe
  *  but the three that only this view-model uses. */
 type SelectionMembers = Omit<SelectionState, "threadOpenOn" | "checkPosts" | "refetchCaptions">;
 
-export interface JediFeed extends SelectionMembers {
+export interface JediPage extends SelectionMembers {
   /** The real categories behind an "All" row at index 0 (`selectedCategory`). */
   categories: Accessor<JediCategory[] | undefined>;
   /** The ranked posts filtered to `selectedCategory` — what Top Photos renders (#33-b). */
@@ -109,7 +109,7 @@ export interface JediFeed extends SelectionMembers {
 const ALL_CATEGORIES: JediCategory = { id: 0, name: "All", icon: "menu" };
 
 /** Injectable seam for the view-model. */
-export interface CreateJediFeedDeps {
+export interface CreateJediPageDeps {
   /**
    * The Jedi data seam. Defaults to the `jediApi` singleton (the real back-end);
    * a test injects an in-memory `JediApi` (arch-review C2, #119). The live Feed
@@ -121,14 +121,14 @@ export interface CreateJediFeedDeps {
   guard?: DraftGuard;
 }
 
-export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
+export function createJediPage(deps: CreateJediPageDeps = {}): JediPage {
   const api = deps.api ?? jediApi;
   const guard = deps.guard ?? passThroughGuard;
   const [selectedCategory, setSelectedCategoryIndex] = createSignal(0);
 
   const [realCategories] = createResource(() => api.categories.list());
   // Each load finds the cause of a change before the view sees the new list:
-  // a form that the change unmounts then holds no Draft (#187). Only in the
+  // a form that the change unmounts then has no Draft (#187). Only in the
   // browser: an Event reaches no server render, and on the server a read after
   // the `await` can meet another request's render context. The check runs
   // after the `await`, so `checkPosts` below exists by then.
@@ -265,7 +265,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // state (#122, #123) and each Comment thread (#124, #127) holds the
   // Subscription on its own Channel, so this view-model only hands each one
   // the Feed. Each Subscription names its Channel through an
-  // accessor, so the Feed moves the hold with the selection and routes only the
+  // accessor, so the Feed moves the Subscription with the selection and routes only the
   // held Channel here (ADR-0028). Each handler refetches on a poke and on the
   // resync call after a (re)connect, so a poke lost while the socket was down
   // is recovered (#120 review). The anonymous landing page has no socket, so

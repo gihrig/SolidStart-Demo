@@ -17,7 +17,7 @@ export interface PostCaptionProps {
   adding: boolean;
   /** Called when the form closes: on Cancel, or once the back-end commits. */
   onClose: () => void;
-  /** Called when the add form starts a Draft (#271). The owner then sets
+  /** Called when the add form starts a Draft (#271). The parent component then sets
    *  `adding`, so a Caption that arrives does not close the form. */
   onAddDraft?: () => void;
   /** Add a Caption with `text` to the Post `postId` (#283). Rejects on
@@ -40,7 +40,7 @@ export interface PostCaptionProps {
 
 /**
  * The Caption line on the Post card (#121), full width: it shows the caption, or
- * the caption-submit form in the same place. The owner holds `adding` (its Add
+ * the caption-submit form in the same place. The parent component holds `adding` (its Add
  * Caption button sits in the Caption actions). A Post with no caption shows the
  * form directly — but only once its captions have loaded, so the form never
  * flashes during a load. At its first Draft, that form becomes an opened Add
@@ -53,7 +53,7 @@ export default function PostCaption(props: PostCaptionProps) {
   const showForm = () => props.canAdd && (props.adding || (props.captionsLoaded && !props.caption));
   // A function, not a ternary in the JSX prop: the compiler wraps a ternary
   // prop's condition in a memo on each read, and the form reads `onCancel` in
-  // its click handler, which has no owner, so each Cancel leaked one memo.
+  // its click handler, which has no reactive owner, so each Cancel leaked one memo.
   const onCancel = () => (props.caption ? props.onClose : undefined);
 
   return (

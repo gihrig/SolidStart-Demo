@@ -3,10 +3,10 @@ import type { Like } from "~/types/jedi";
 import Icon from "~/components/Icon";
 
 export interface LikeControlProps {
-  /** The viewer's like state (#122, #123). Undefined for a visitor or while it
+  /** The User's like state (#122, #123). Undefined for a Visitor or while it
    *  loads; the count then comes from `fallbackCount`. */
   like?: Like;
-  /** The count from the public view (the Post's or the Caption's). */
+  /** The count from the read model (the `PostView` or the `CaptionView`). */
   fallbackCount: number;
   /** The screen-reader label of the count, e.g. "Likes" or "Caption likes". */
   countLabel: string;

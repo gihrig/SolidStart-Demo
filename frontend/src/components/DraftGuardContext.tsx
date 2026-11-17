@@ -69,7 +69,7 @@ export function useDraftGuard(): DraftGuard {
 }
 
 interface DraftOptions {
-  /** Whether the form holds a Draft now. An effect reads it, so each change
+  /** Whether the form has a Draft now. An effect reads it, so each change
    *  of a signal it reads reports again: an input, and a change of the saved
    *  text. */
   dirty: Accessor<boolean>;
@@ -115,7 +115,7 @@ function useDraft(options: DraftOptions): Draft {
   // notice.
   onCleanup(() => {
     guard.reportBusy(key, false);
-    if (guard.holds(key)) guard.discard(key, options.notice?.() ?? DRAFT_DISCARDED_NOTICE);
+    if (guard.hasDraftAt(key)) guard.discard(key, options.notice?.() ?? DRAFT_DISCARDED_NOTICE);
     else guard.report(key, false);
   });
   const clear = () => {
@@ -133,7 +133,7 @@ function useDraft(options: DraftOptions): Draft {
 }
 
 export interface DraftFormOptions<TResult> {
-  /** Whether the form holds a Draft now: the form's own Draft test. */
+  /** Whether the form has a Draft now: the form's own Draft test. */
   dirty: Accessor<boolean>;
   /** The notice of a forced discard. Defaults to `DRAFT_DISCARDED_NOTICE`. */
   notice?: () => string;
@@ -189,7 +189,7 @@ export function useDraftForm<TResult>(options: DraftFormOptions<TResult>): Draft
     busy: action.pending,
     notice: options.notice,
   });
-  // A write can outlive its form: its owner can unmount it (a browser close, a
+  // A write can outlive its form: its parent component can unmount it (a browser close, a
   // new Post). A stale result must not close or clear the next form (#185 and
   // PR #216 reviews). The write itself still lands.
   let unmounted = false;

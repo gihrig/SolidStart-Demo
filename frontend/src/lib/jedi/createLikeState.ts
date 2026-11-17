@@ -35,7 +35,7 @@ export interface LikeState {
 
 /**
  * The Like state of one Like target kind (#122, #123): the server read, the
- * wanted-state overlay, the send loop, and the race fix. `createJediFeed` makes
+ * wanted-state overlay, the send loop, and the race fix. `createJediPage` makes
  * one for the Post and one for the Caption.
  *
  * It returns the public state, `state`, and `connectFeed`, which holds the

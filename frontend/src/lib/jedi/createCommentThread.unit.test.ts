@@ -17,7 +17,7 @@ import {
 // The Comment thread of the selected Post (#124). This seam test drives the
 // factory with a selected Post id and a stateful fake back-end. The thread
 // holds its Subscription on a memory Feed (ADR-0028), so each Event and each
-// resync goes through the real Feed core; `createJediFeed.unit.test.ts` covers
+// resync goes through the real Feed core; `createJediPage.unit.test.ts` covers
 // the view-model's wiring around it.
 
 // A time `seconds` after a fixed moment, as the wire writes it: trailing zeros

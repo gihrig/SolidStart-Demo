@@ -155,7 +155,7 @@ describe("createWebSocketFeed", () => {
     );
   });
 
-  it("sends unsubscribe when the hold moves off a Channel", () => {
+  it("sends unsubscribe when the Subscription moves off a Channel", () => {
     const [postId, setPostId] = createSignal<number | undefined>(5);
     renderHook(() =>
       createWebSocketFeed().subscribe(() => {
@@ -224,7 +224,7 @@ describe("createWebSocketFeed", () => {
   it("replays a pending subscription once the socket opens", () => {
     renderHook(() => createWebSocketFeed().subscribe(() => Channel.postComment(5), vi.fn()));
     const ws = MockWebSocket.instances[0];
-    // Subscribing before open cannot send yet, but the hold is remembered.
+    // Subscribing before open cannot send yet, but the Subscription is remembered.
     expect(ws.send).not.toHaveBeenCalled();
 
     ws.open();
