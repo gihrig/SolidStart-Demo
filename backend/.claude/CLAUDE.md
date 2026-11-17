@@ -1,8 +1,6 @@
 # Back-end — SolidStart Demo
 
-Rust/Axum back-end (rust10x blueprint): JSON-RPC over HTTP + WebSocket, Postgres
-via `sqlx`/`sea-query`/`modql`, ts-rs TypeScript bindings. Toolchain: Rust/`cargo`,
-driven via `cgs`. This is the `backend/` subtree of the mono-repo (a SolidJS
+Rust back-end following the rust10x blueprint. This is the `backend/` subtree of the mono-repo (a SolidJS
 front-end in `frontend/` + this back-end). Cross-cutting rules live in the root
 `CLAUDE.md`; this file holds the back-end-specific rules and loads when Claude
 works in `backend/`.
@@ -31,43 +29,8 @@ root** — same `cgs` binary, different `Scripts.toml`.
 
 Prefer the `cgs` recipes over raw `cargo`; each recipe wraps the exact `cargo`
 invocation and keeps flags consistent. Raw `cargo` stays available for one-offs
-that have no recipe (e.g. `cargo run -p gen-key`).
-
-```text
-| Command         | Description                                              |
-| --------------- | -------------------------------------------------------- |
-| `cgs dev`       | Start the web-server (`cargo run -p web-server`)         |
-| `cgs dev-watch` | Start the web-server in watch mode                       |
-| `cgs quick`     | Run the `quick_dev` example (login, CRUD, logout)        |
-| `cgs db`        | Start the Postgres docker container (container name: pg) |
-| `cgs test`      | Run tests (`cargo nextest run -j1`)                      |
-| `cgs test:watch`| Run tests in watch mode                                  |
-| `cgs cover`     | Run tests with coverage + open report (`cargo llvm-cov --open`)|
-| `cgs check`     | Format (fix) + lint (`cargo fmt --all && cargo clippy --all-targets`)|
-| `cgs build`     | Build with debug symbols                                 |
-| `cgs release`   | Build in release mode with an embedded dependency list (`cargo auditable build --release`; needs cargo-auditable)|
-| `cgs start`     | Build (with an embedded dep list) + run web-server in release (`cargo auditable run -p web-server --release`)|
-| `cgs bindings`  | Regenerate ts-rs bindings (`cargo test export_bindings`) |
-| `cgs audit`     | RustSec advisory **gate** (`cargo audit --deny warnings`; ignore-list in `.cargo/audit.toml`)|
-| `cgs deny`      | Dependency-policy **gate** (`cargo deny check licenses bans sources`; policy in `deny.toml`)|
-| `cgs udeps`     | Unused-dependency **report** (`cargo +nightly udeps --workspace --all-targets`; needs nightly, report-only)|
-| `cgs auditable` | Build the release binary with an embedded dep list, then read it back (`cargo auditable build` + `cargo audit bin`)|
-| `cgs geiger`    | `unsafe`-code **report** for web-server + its deps (`cargo geiger` from the web-server package dir; report-only; omits the `gen-key` tool crate by design)|
-| `cgs doc`       | Build & open project docs                                |
-| `cgs update`    | Update dependencies (`cargo update`)                     |
-| `cgs upgrade`   | Update the Rust toolchain (`rustup update`)              |
-```
-
-## Tech Stack
-
-- **Framework**: Axum (HTTP) + `rpc-router` (JSON-RPC dynamic router)
-- **DB**: Postgres via `sqlx`, `sea-query` (SQL builder), `modql` (filter DSL)
-- **Auth**: cookie-based; `POST /api/login`, `POST /api/logoff`
-- **RPC**: `POST /api/rpc`; **WebSocket**: `GET /ws`
-- **Bindings**: ts-rs exports to `crates/services/web-server/bindings/`
-
-Workspace crates: `lib-utils`, `lib-rpc-core`, `lib-auth`, `lib-core`, `lib-web`
-(libs); `web-server` (service); `gen-key` (tool).
+that have no recipe (e.g. `cargo run -p gen-key`). Each recipe's `info` string
+in `backend/Scripts.toml` names its tool prerequisites (nightly, cargo-auditable).
 
 ## Gotchas
 
@@ -93,3 +56,9 @@ Workspace crates: `lib-utils`, `lib-rpc-core`, `lib-auth`, `lib-core`, `lib-web`
     the front-end barrel. If a binding shows `bigint`, check this setting first.
 - **`cargo watch` needs installing**: `cargo install cargo-watch` before
   `cgs dev-watch`/`cgs test:watch`.
+- **`rust-analyzer` is a per-toolchain rustup component**: the
+  `rust-analyzer-lsp` Claude Code plugin (in-session Rust diagnostics after an
+  edit) needs `rustup component add rust-analyzer` for the **active** toolchain.
+  Without it, the rustup stub prints "`rust-analyzer` is unavailable for the
+  active toolchain" and the plugin silently does nothing. Switching the default
+  toolchain (e.g. nightly → stable) needs the component added again.

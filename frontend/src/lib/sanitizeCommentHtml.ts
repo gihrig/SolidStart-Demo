@@ -31,7 +31,7 @@ builder.allow("a", ["rel", "target"]).transformAttribute(({ tag, name, value }) 
 const sanitizer = builder.build();
 
 /**
- * The client backstop of the Comment render (#126, ADR-0019 addendum). The
+ * The client backstop of the Comment render (#126, ADR-0019). The
  * server already cleans `CommentView.contentHtml` with ammonia; this cleans it
  * again, deny-by-default, under the same generated policy
  * (`CommentHtmlPolicy.ts`), before the thread injects it as HTML. A tag outside

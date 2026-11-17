@@ -2,14 +2,14 @@ import "@fontsource/lobster";
 import { Title, Meta } from "@solidjs/meta";
 import { Show, Switch, Match } from "solid-js";
 import { useDisclosure } from "~/lib/useDisclosure";
-import { createJediFeed } from "~/lib/jedi/createJediFeed";
+import { createJediPage } from "~/lib/jedi/createJediPage";
 import type { Feed } from "~/lib/feed";
 import { createWebSocketFeed } from "~/lib/feed.websocket";
 import { useAuth } from "~/components/AuthContext";
 import { useDraftGuard } from "~/components/DraftGuardContext";
 import { useNewPost } from "~/components/NewPostContext";
 import Hero from "~/components/Hero";
-import FeaturedPost from "~/components/FeaturedPost";
+import PostCard from "~/components/PostCard";
 import CategoriesCard from "~/components/CategoriesCard";
 import TopPhotosCard from "~/components/TopPhotosCard";
 import TopCaptionsCard from "~/components/TopCaptionsCard";
@@ -54,7 +54,7 @@ export default function Home() {
     announcement,
     connectFeed,
     postCreated,
-  } = createJediFeed({ guard: useDraftGuard() });
+  } = createJediPage({ guard: useDraftGuard() });
 
   const sidebar = useDisclosure({ id: "jedi-sidebar" });
   const newPost = useNewPost();
@@ -64,7 +64,7 @@ export default function Home() {
 
   return (
     <>
-      <Title>Little Jedi - Awesome Photos & Captions</Title>
+      <Title>Awesome Photos & Captions</Title>
       <Meta
         name="description"
         content="Share your favorite Photos from Flickr and add a great caption"
@@ -87,7 +87,7 @@ export default function Home() {
         <div class="md:hidden col-span-full mx-auto mb-6 relative z-10">
           <button
             type="button"
-            aria-label="Toggle sidebar"
+            aria-label="Categories Sidebar"
             {...sidebar.triggerProps}
             class="flex items-center font-bold text-(--theme-card-fg) bg-(--theme-card-bg) hover:text-(--theme-hover-fg) hover:bg-(--theme-hover-bg) rounded-lg p-3"
           >
@@ -107,7 +107,7 @@ export default function Home() {
             </Match>
             <Match when={selectedPost()}>
               {(post) => (
-                <FeaturedPost
+                <PostCard
                   post={post()}
                   caption={selectedCaption()}
                   loggedIn={isAuthenticated()}

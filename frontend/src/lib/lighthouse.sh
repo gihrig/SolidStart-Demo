@@ -5,7 +5,7 @@
 # (Caddy, ADR-0034), waits until the edge serves the page and routes /api, runs
 # Lighthouse against https://localhost:3443, then stops all three. Assumes
 # Postgres is running (see `cgs db`). The back-end start rebuilds the DB from
-# the seed, so the report shows the seeded Jedi feed.
+# the seed, so the report shows the seeded Jedi page.
 
 # Exit on error
 set -e

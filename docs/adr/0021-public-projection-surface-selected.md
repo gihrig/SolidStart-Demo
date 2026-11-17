@@ -1,116 +1,51 @@
 # The public read is a per-entity public projection, audit visibility selected by surface
 
-A **public read** returns an entity on the public surface (`/api/rpc-public`, under
-`root_ctx`) — the anonymous, no-login path the Jedi landing page uses (`CONTEXT.md`).
-Such a response must never leak the internal audit columns (`cid` / `mid` actor ids,
-`ctime` / `mtime`). The first public read already solves this by hand: `CategoryBmc::list_public`
-selects a narrow `CategoryPublic { id, name, icon }` type
-(`lib-core/src/model/category.rs:118`), so `base::list::<Self, CategoryPublic, _>`
-never even queries the audit columns.
+Origin: #117
 
-The merged Jedi build (#113) lands three more public reads — Post (#117), Caption
-(#118), Hero (#119). The architecture review marks this the moment the pattern
-recurs (card **C-06**, `docs/ar/architecture-review-20260911-215934.html`):
-"add the projection seam when the second public read lands." This ADR records what
-the seam is, how audit visibility is selected, and why a single role-keyed read was
-rejected.
+A public read serves an entity on the public surface (`/api/rpc-public`, under
+`root_ctx`). This is the anonymous path of the landing page. Its response must
+not leak the audit columns: the actor ids (`cid`, `mid`) and the times
+(`ctime`, `mtime`).
 
 ## Decisions
 
-**One public projection per entity.** Each entity names one public type; one read
-serves it. A **public projection** is the entity's public-facing shape — its fields
-minus the audit columns. `CategoryPublic` + `list_public` is the first; #117 lifts it
-into a shared convention that Post, Caption, and Hero reuse.
-
-**A projection may enrich or narrow; either way it carries no audit columns.** Post,
-Caption, and Hero public reads are enriched Views — `PostView` adds author, resolved
-Categories, and derived counts (`CONTEXT.md:119`, #117). Category is a bare narrowing
-(`CategoryPublic`). "Enriched" and "audit-free" are independent; the projection is
-always audit-free, and enrichment is per entity. The `*View` types **are** their
-entity's public projection.
-
-**Audit visibility is selected by surface, not by the caller's role.** The public
-surface strips audit columns. A future admin surface reads the full base row — which
-already carries the audit columns — so no `*Admin` type is invented. Visitor and
-logged-in user share one read shape; they differ only in **write** capability, which
-is a separate axis (owner-only write). The audit-bearing admin read is deferred with
-the admin privilege system (#113 Out of Scope).
-
-**Per-entity reads; the front-end composes the page.** Each entity keeps its own RPC
-(`list_posts`, `list_captions_for_post`, `get_hero`). The view-model (`createJediFeed`)
-composes the page from them. A live poke targets one list or thread, so a single
-page-blob read cannot refetch one thread without refetching all.
-
-**The seam is introduced at the second public read (#117).** Category (#116) is the
-first public read; Post (#117) is the second — the first moment two real consumers
-exist. #117 introduces the shared convention and absorbs `CategoryPublic` /
-`list_public`. #118 and #119 conform, each asserting no audit columns in the public
-read.
+- **One public projection for each entity.** A public projection is the
+  entity's public shape, without the audit columns. One read serves it. It can
+  narrow the row (`CategoryPublic`) or enrich it (`PostView`, `CaptionView`,
+  `HeroView`, `CommentView`). The `*View` types are their entities' public
+  projections.
+- **The type system guards it.** Each projection implements the
+  `PublicProjection` marker. `base::list_public` requires that bound, so the full
+  row can never go out on a public read by mistake.
+- **A projection never carries the actor ids. It carries a time only when the UI
+  shows that time.** A Comment's time is content: readers use it to follow a
+  thread. So `CommentView` carries `ctime`, and `mtime` for the "(edited)" mark.
+  The other projections show no time, so they carry none. The actor ids are
+  bookkeeping, and `author` already names the Owner.
+- **The surface selects audit visibility, not the caller's role.** A visitor
+  and a logged-in User share one read shape; they differ only in what they can
+  write. A later admin surface reads the full base row, which already carries
+  the audit columns.
+- **Each entity keeps its own read; the front-end composes the page.**
+  `createJediPage` builds the page from `list_posts`, `list_captions_for_post`,
+  `get_hero` and the others. A poke names one list or thread, so the client
+  refetches only that part.
 
 ## Considered and rejected
 
-- **A single role-keyed read** returning different columns per user type. Rejected on
-  two counts. First, one RPC would carry two wire shapes, so ts-rs cannot export one
-  type and the front-end loses its one source of truth
-  (#113 US 36: "the front-end consumes one source of truth"). Second, the admin role
-  is deferred (#113 Out of Scope), so the second column set has no consumer today — a
-  hypothetical seam the C-06 rule forbids ("one adapter is a hypothetical seam; two is
-  a real one").
-- **A per-entity `*Admin` type** for the audit-bearing read. Rejected: the base row
-  already carries the audit columns, so an admin surface reads it directly. A new type
-  would only restate the base row.
-- **A standalone seam ticket before #117.** Rejected: before #117 only Category
-  exists — one adapter. The seam would be built for a single case, which C-06 warns
-  "just moves complexity." Two real consumers first appear at #117.
-- **Naming the concept "Public view."** Rejected: "View" already means the *enriched*
-  read model (`PostView`, `CaptionView`, `HeroView`; `CONTEXT.md:119,133`), and
-  Category has no view. Overloading "View" to also mean "the public shape, enriched or
-  not" breaks the one-word-one-meaning rule. The umbrella term is **public
-  projection**; "projection" is neutral and spans both the enriched and the narrowed
-  case.
+- **One read keyed by role, with other columns for each role.** One RPC then has
+  two wire shapes, so ts-rs cannot export one type.
+- **A `*Admin` type for each entity.** The base row already carries the audit
+  columns. The new type would only repeat it.
+- **One read for the whole page.** A poke for one thread would then refetch all
+  of the page.
+- **No times on a Comment.** A reader cannot then see when each Comment was
+  written.
+- **The name "Public view".** "View" already means the enriched read model, and
+  Category has no View.
 
 ## Consequences
 
-- **`CategoryPublic` / `list_public` generalize at #117.** The one-off becomes the
-  shared convention; Category is folded in rather than left as a parallel path.
-- **Each public read gains a written no-audit-columns guarantee.** #117, #118, and
-  #119 each assert it; today it is unwritten for Post, Caption, and Hero.
-- **A future admin panel adds a surface, not types.** Because audit visibility is
-  isolated to the surface, the admin read is the existing base row on a new endpoint —
-  no per-entity `*Admin` shapes.
-- **`CONTEXT.md` gains the term "Public projection."** The glossary defines the
-  concept; this ADR carries the trade-off. The ADR index regenerates via
-  `cgs adr:index`.
-
-## Addendum (2026-10-11) — a Comment's times on the public read (#125)
-
-#125 shows a time on each Post Comment, and the thread read is public (#124). The
-decisions above remove every audit column from a public projection, and the times
-too. A Comment thread with no times is hard to follow.
-
-**Decision.** A public projection never carries the actor ids (`cid`, `mid`). It
-carries a time (`ctime`, `mtime`) only when the UI shows that time. `CommentView` is
-the first case: `ctime` is the time of the Comment, and `mtime` gives the "(edited)"
-mark and its tooltip. `CategoryPublic`, `PostView`, `CaptionView` and `HeroView`
-show no time, so they still carry none.
-
-**Why.** A Comment's time is content: readers use it to follow a thread. The actor
-ids are bookkeeping: `author` already names the Owner.
-
-**Tests.** Each public read asserts that it carries no `cid` and no `mid`. A
-projection that shows no time also asserts that it carries no `ctime` and no
-`mtime`.
-
-**Considered and rejected.**
-
-- **No times on a Comment.** The old rule stays whole, but a reader cannot see
-  when each Comment was written.
-- **A thread for logged-in Users only.** It breaks the #124 decision: "A visitor
-  reads the thread once."
-
-**Consequences.**
-
-- The `PublicProjection` marker doc and the `CONTEXT.md` "Public projection" entry
-  state the new rule.
-- Before #125, the thread read sent the full `PostComment` row, with the actor ids.
-  #125 replaces it with `CommentView`.
+- Each public read has a test: it carries no `cid` and no `mid`. A projection
+  that shows no time also asserts that it carries no `ctime` and no `mtime`.
+- An admin panel adds a surface, not new types.

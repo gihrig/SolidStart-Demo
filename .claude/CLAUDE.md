@@ -1,7 +1,7 @@
 # SolidStart Demo — Mono-repo
 
 A SolidJS/SolidStart front-end (`frontend/`) and a Rust/Axum back-end (`backend/`)
-in one repo. See `CONTEXT.md` and `docs/adr/` (root) for the shared domain model;
+in one repo. See `GLOSSARY.md` and `docs/adr/` (root) for the shared domain model;
 [ADR-0010](docs/adr/0010-monorepo-structure.md) records the mono-repo structure.
 
 **This file holds cross-cutting rules only.** Tool-specific rules live in the
@@ -35,38 +35,15 @@ Use US English.
 Cross-cutting recipes run from the repo root via `cargo-run` (`cgs`),
 reading the root `Scripts.toml`; each delegates to the subtrees via `cgs` — the
 back-end natively, the front-end through a `cgs` alias surface that proxies its
-package.json scripts (ADR-0010 addendum).
-
-| Command               | Description                                                          |
-| --------------------- | -------------------------------------------------------------------- |
-| `cgs dev`             | Start both dev servers + the HTTPS edge (https://localhost:3443)     |
-| `cgs start`           | Build + run both subtrees in release mode, behind the HTTPS edge     |
-| `cgs build`           | Build both subtrees                                                  |
-| `cgs test`            | Run both test suites                                                 |
-| `cgs test:e2e`        | Run e2e tests (boots back-end + front-end + HTTPS edge)              |
-| `cgs caddy`           | Run only the HTTPS edge (pinned Caddy, root `Caddyfile`, ADR-0034)   |
-| `cgs caddy:trust`     | Trust the edge's local CA in the system stores (edge must run)       |
-| `cgs cover`           | Run both test suites with coverage                                   |
-| `cgs check`           | Format + lint + type-check both subtrees                             |
-| `cgs update`          | Update dependencies in both subtrees                                 |
-| `cgs bindings`        | Regenerate ts-rs bindings (back-end)                                 |
-| `cgs adr:index`       | Regenerate `docs/adr/README.md` from the ADRs                        |
-| `cgs adr:index:check` | Verify the ADR index is current (CI guard)                           |
-| `cgs adr:list`        | Print the ADR index as a console table                               |
-| `cgs sbom`            | Regenerate `/sbom.cdx.json` (project-wide SBOM)                      |
-| `cgs sbom:check`      | Verify `/sbom.cdx.json` is current (CI guard)                        |
-| `cgs scan`            | Scan `/sbom.cdx.json` with grype (fail on high/critical)             |
-| `cgs vex`             | Show the VEX maintenance cheat-sheet (find/add/rm/check/scan)        |
-| `cgs vex:check`       | Verify VEX statements still match current findings (CI guard)        |
-| `cgs vex:add`         | Append a VEX statement via vexctl (`-e VEX_PRODUCT=… -e VEX_VULN=…`) |
-| `cgs vex:rm`          | Remove a VEX statement by advisory id (`-e VEX_VULN=…`)              |
+package.json scripts (ADR-0010). Each recipe there has an `info`
+string that says what it does and which `-e` fields it takes.
 
 `cgs caddy` serves nothing by itself; `cgs dev` and `cgs start` run it with both
 servers. Run it by hand for `cgs caddy:trust`, or beside each server in its own
 terminal (`cd backend && cgs dev`, `cd frontend && cgs dev`).
 
 Single-side work: `cd frontend` or `cd backend` and use `cgs …`; in `frontend/`,
-`vpr …` also works. See the subtree `CLAUDE.md` for each side's command table.
+`vpr …` also works. Each subtree lists its own recipes in its own `Scripts.toml`.
 
 ---
 
@@ -82,4 +59,4 @@ Five canonical triage roles, each mapped to a like-named GitHub label. See `docs
 
 ### Domain docs
 
-Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context: one `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.

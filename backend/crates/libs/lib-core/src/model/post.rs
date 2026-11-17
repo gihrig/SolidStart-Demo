@@ -240,9 +240,9 @@ impl DbBmc for PostBmc {
 		RULES
 	}
 
-	/// An unsafe URL in any Post URL field is rejected on write (#120, ADR-0011):
+	/// An unsafe URL in any Post URL field is rejected on write (#120, ADR-0019):
 	/// the server is the authoritative URL boundary; the front-end `sanitizeUrl`
-	/// stays as the render-time defense in depth (ADR-0006).
+	/// stays as the render-time defense in depth (ADR-0019).
 	fn url_fields() -> &'static [&'static str] {
 		&["image_src", "photographer_url", "source_url"]
 	}
@@ -1079,8 +1079,13 @@ mod tests {
 			.bind(b_id)
 			.execute(mm.dbx().db())
 			.await?;
-			_dev_utils::seed_caption_comment(&ctx_b, &mm, caption_id, "B's reply")
-				.await?;
+			_dev_utils::seed_caption_comment(
+				&ctx_b,
+				&mm,
+				caption_id,
+				"B's Caption Comment",
+			)
+			.await?;
 		}
 		seed_post_like(&mm, other_post, b_id).await?;
 		let other_caption =

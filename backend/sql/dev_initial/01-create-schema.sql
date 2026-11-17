@@ -24,7 +24,7 @@ CREATE TABLE "user" (
   -- Profile
   --   Persisted avatar URL (#117). The merge moves the avatar off the front-end
   --   useAuth seam onto the User row, so the author snapshot on a Post, Caption,
-  --   or Comment reads one back-end identity (ADR-0007, ADR-0011 addendum).
+  --   or Comment reads one back-end identity (ADR-0011).
   avatar_url varchar(1024),
 
   -- Auth
@@ -288,9 +288,9 @@ ALTER TABLE caption_comment ADD CONSTRAINT fk_caption_comment_owner
 CREATE INDEX idx_caption_comment_caption_id ON caption_comment (caption_id);
 
 -- Hero
---   The home page banner content (#119): a back-end-owned singleton an Admin
+--   The home page Hero content (#119): a back-end-owned singleton an Admin
 --   user edits. No owner_id and no cta_href (the CTA runs fixed front-end code,
---   ADR-0011 addendum). The CHECK keeps it a singleton: the one row is id 1.
+--   ADR-0011). The CHECK keeps it a singleton: the one row is id 1.
 --   The varchar caps back up the write-path hygiene caps (ADR-0019).
 CREATE TABLE hero (
   -- PK

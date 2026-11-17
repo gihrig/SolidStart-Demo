@@ -14,10 +14,10 @@ import {
   type CommentThreadState,
 } from "./createCommentThread";
 
-// The Comment thread of the selected Post (#124). This seam test drives the
-// factory with a selected Post id and a stateful fake back-end. The thread
+// The Comment thread of the Post shown (#124). This seam test drives the
+// factory with the id of the Post shown and a stateful fake back-end. The thread
 // holds its Subscription on a memory Feed (ADR-0028), so each Event and each
-// resync goes through the real Feed core; `createJediFeed.unit.test.ts` covers
+// resync goes through the real Feed core; `createJediPage.unit.test.ts` covers
 // the view-model's wiring around it.
 
 // A time `seconds` after a fixed moment, as the wire writes it: trailing zeros
@@ -184,7 +184,7 @@ describe("createCommentThread — the open state (lazy thread)", () => {
       { open: false },
     ));
 
-  it("closes when the selected Post changes, and stays closed on a return", () =>
+  it("closes when the Post shown changes, and stays closed on a return", () =>
     withThread(async ({ thread, select }) => {
       await tick();
       select(2);
@@ -234,7 +234,7 @@ describe("createCommentThread — the Subscription (#120, ADR-0028)", () => {
 });
 
 describe("createCommentThread — the thread read", () => {
-  it("loads the selected Post's thread, and re-keys with the selection", () =>
+  it("loads the shown Post's thread, and re-keys with the selection", () =>
     withThread(async ({ thread, select }) => {
       expect(thread.comments()).toBeUndefined();
       await tick();
@@ -395,7 +395,7 @@ describe("createCommentThread — the live Events", () => {
 });
 
 describe("createCommentThread — the writes", () => {
-  it("add() posts to the selected Post and shows the new Comment at once", () =>
+  it("add() posts to the Post shown and shows the new Comment at once", () =>
     withThread(async ({ thread, mem }) => {
       await tick();
       await thread.add("hello");

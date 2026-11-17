@@ -13,14 +13,14 @@ const CAPTION_MAX_LENGTH = 36 satisfies HygieneCaps["caption"]["text"];
 const MODE_TEXT = {
   add: {
     id: "add-caption",
-    label: "Your caption",
+    label: "Your Caption",
     submit: "Add Caption",
     pending: "Adding…",
     error: "Could not add the Caption",
   },
   edit: {
     id: "edit-caption",
-    label: "Edit your caption",
+    label: "Edit your Caption",
     submit: "Save",
     pending: "Saving…",
     error: "Could not edit the Caption",
@@ -32,11 +32,11 @@ export interface CaptionFormProps {
   onCancel?: () => void;
   /** Focus the input on mount — set when a click opened the form. */
   autofocus?: boolean;
-  /** Runs each time the form starts a Draft (#271). The owner of the add form
+  /** Runs each time the form starts a Draft (#271). The parent component of the add form
    *  that shows at once then keeps it open, as after a click on Add. */
   onDraft?: () => void;
   /** The Caption to edit (#187). With it, the form is the edit mode, filled
-   *  from the Caption text. The mode is fixed for the form's life: its owner
+   *  from the Caption text. The mode is fixed for the form's life: its parent component
    *  keys an edit on the Caption id. */
   caption?: CaptionView;
   /** Save the text: the add mode adds a Caption (the view-model's
@@ -52,11 +52,11 @@ export interface CaptionFormProps {
  * (#187), for a logged-in User. The submit never reloads the page.
  *
  * The add mode saves through `onSave` and clears the input once the back-end
- * has committed the Caption. The owner's save refetches the Captions at once,
+ * has committed the Caption. The parent component's save refetches the Captions at once,
  * so the new Caption does not wait for the `post_caption` poke (#283). It
  * reports a Draft to the app's guard while its text is not blank (ADR-0030).
  *
- * The edit mode fills the input from the Caption text. It holds a Draft while
+ * The edit mode fills the input from the Caption text. It has a Draft while
  * the text differs from the saved Caption, and Save stays disabled until then.
  * A remote edit shows while the User has not changed the text.
  *
@@ -65,7 +65,7 @@ export interface CaptionFormProps {
  * reports its write to the guard (#214).
  */
 export default function CaptionForm(props: CaptionFormProps) {
-  // The mode is fixed: the owner keys an edit on its Caption id.
+  // The mode is fixed: the parent component keys an edit on its Caption id.
   const editing = props.caption !== undefined;
   const text = MODE_TEXT[editing ? "edit" : "add"];
   let inputRef: HTMLInputElement | undefined;
@@ -88,7 +88,7 @@ export default function CaptionForm(props: CaptionFormProps) {
       if (isDirty) untrack(() => props.onDraft?.());
     }),
   );
-  // The owner can change `onCancel` while the form is open, so `close` is an
+  // The parent component can change `onCancel` while the form is open, so `close` is an
   // accessor: the hook reads it at each Cancel.
   const base = {
     dirty,

@@ -10,8 +10,7 @@
     "lighthouse": "./src/lib/lighthouse.sh",
     "prepare": "vp config --no-agent",
     "start": "vinxi start",
-    "test:all": "vp test",
-    "test:all:watch": "vp test --watch",
+    "test": "vp test",
     "test:comp": "vp test src/components",
     "test:comp:watch": "vp test src/components --watch",
     "test:cover": "vp test src --coverage --coverage.reportsDirectory=reports/coverage",
@@ -19,6 +18,7 @@
     "test:show": "playwright show-report reports/playwright-report",
     "test:unit": "vp test src/lib",
     "test:unit:watch": "vp test --watch src/lib",
+    "test:watch": "vp test --watch",
     "update": "bun update",
     "update:latest": "bun update --latest"
   },

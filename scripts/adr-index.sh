@@ -8,10 +8,8 @@
 #   scripts/adr-index.sh check   # fail if README.md is stale (CI guard) (cgs adr:index:check)
 #   scripts/adr-index.sh list    # print an aligned table to stdout      (cgs adr:list)
 #
-# Status is inferred, not hand-tracked:
-#   "Superseded by [ADR-NNNN]" anywhere in a file -> Superseded by NNNN
-#   "superseded-in-part"                          -> Accepted (amended)
-#   otherwise                                     -> Accepted
+# Status comes from an optional "_Status: Proposed_" line in the ADR;
+# without that line, the status is Accepted.
 set -euo pipefail
 
 # Resolve repo root from this script's location so it runs from any cwd.
@@ -24,16 +22,13 @@ mode="${1:-list}"
 # Emit one TSV record per ADR: number <TAB> file <TAB> title <TAB> status.
 # Every renderer reads from this, so extraction lives in exactly one place.
 extract() {
-  local f base num title status sup
+  local f base num title status
   for f in "$ADR_DIR"/[0-9]*.md; do
     base="$(basename "$f")"
     num="${base%%-*}"
     title="$(sed -n '1s/^# //p' "$f")"
-    if grep -qiE 'superseded by \[adr-[0-9]{4}\]' "$f"; then
-      sup="$(grep -oiE 'superseded by \[adr-[0-9]{4}\]' "$f" | head -1 | grep -oE '[0-9]{4}')"
-      status="Superseded by $sup"
-    elif grep -qi 'superseded-in-part' "$f"; then
-      status="Accepted (amended)"
+    if grep -qE '^_Status: Proposed_$' "$f"; then
+      status="Proposed"
     else
       status="Accepted"
     fi
@@ -45,10 +40,18 @@ render_markdown() {
   cat <<'EOF'
 # Architecture Decision Records
 
-One decision per file, titled with the decision itself. Numbered and immutable
-once accepted — a reversal is a **new** ADR that supersedes the old one, never an
-edit. `CONTEXT.md` cites ADRs inline where a topic comes up; this table is the
-flat "what has been decided" view.
+One decision per file, titled with the decision itself. `GLOSSARY.md` cites
+ADRs inline where a topic comes up; this table is the flat "what has been
+decided" view.
+
+- **An ADR states the current decision.** Change the ADR text in place; git
+  keeps the history. Addenda are not permitted.
+- **Numbers stay stable.** When an ADR becomes obsolete, delete it, and leave
+  its number unused for all time.
+- **A reversal is a new ADR.** Delete the old file. The new ADR has one line,
+  `Replaces ADR-NNNN`, and lists the old decision as a rejected option.
+
+An ADR without a `_Status: Proposed_` line is Accepted.
 
 > **Generated file — do not edit by hand.** Regenerate with `cgs adr:index`
 > (from the repo root); CI verifies it is current via `cgs adr:index:check`.
@@ -56,33 +59,14 @@ flat "what has been decided" view.
 | #   | Decision | Status |
 | --- | -------- | ------ |
 EOF
-  # Turn an inferred status into a linked one where it references another ADR.
   extract | while IFS=$'\t' read -r num file title status; do
-    local sup supfile linked
-    if [[ "$status" == Superseded\ by\ * ]]; then
-      sup="${status##* }"
-      supfile="$(basename "$(ls "$ADR_DIR/$sup"-*.md 2>/dev/null | head -1)")"
-      if [[ -n "$supfile" ]]; then
-        linked="Superseded by [$sup]($supfile)"
-      else
-        linked="$status"
-      fi
-    else
-      linked="$status"
-    fi
-    printf '| [%s](%s) | %s | %s |\n' "$num" "$file" "$title" "$linked"
+    printf '| [%s](%s) | %s | %s |\n' "$num" "$file" "$title" "$status"
   done
 }
 
 render_console() {
-  echo ">> = Superseded by · Amended = Accepted as amended"
-  echo
   { printf 'ADR\tStatus\tDecision\n';
     extract | while IFS=$'\t' read -r num file title status; do
-      case "$status" in
-        "Superseded by "*) status=">> ${status##* }" ;;
-        "Accepted (amended)") status="Amended" ;;
-      esac
       printf '%s\t%s\t%s\n' "$num" "$status" "$title"
     done
   } | column -t -s $'\t'

@@ -149,7 +149,7 @@ test.describe("Footer Navigation Integration", () => {
 
   test("preserves page titles across footer navigation", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle(/Little Jedi/);
+    await expect(page).toHaveTitle(/Awesome Photos & Captions/);
 
     await page
       .locator("footer")
@@ -164,7 +164,7 @@ test.describe("Footer Navigation Integration", () => {
     await expect(page).toHaveTitle(/SolidStart Readme/);
 
     await page.goto("/notfound");
-    await expect(page).toHaveTitle(/SolidStart 404/);
+    await expect(page).toHaveTitle(/Page Not Found - Awesome/);
   });
 });
 
@@ -172,12 +172,12 @@ test.describe("Footer Navigation Integration", () => {
 test("logs in through the Nav login dialog", async ({ page }) => {
   await page.goto("/");
   await page.waitForLoadState("networkidle");
-  const header = page.getByRole("banner");
-  const profileMenu = header.getByRole("button", { name: "Profile menu" });
+  const topNav = page.getByRole("banner");
+  const profileMenu = topNav.getByRole("button", { name: "Profile menu" });
 
   await profileMenu.click();
-  await header.getByRole("button", { name: "Log In" }).click();
-  const dialog = page.getByRole("dialog", { name: "Login" });
+  await topNav.getByRole("button", { name: "Log In" }).click();
+  const dialog = page.getByRole("dialog", { name: "Log In" });
   await expect(dialog).toBeVisible();
   // The fields open empty, so type the demo credentials.
   await expect(dialog.getByLabel("Username")).toHaveValue("");
@@ -185,10 +185,10 @@ test("logs in through the Nav login dialog", async ({ page }) => {
   await dialog.getByLabel("Username").fill("demo1");
   await dialog.getByLabel("Password").fill("welcome");
 
-  await dialog.getByRole("button", { name: /^login$/i }).click();
+  await dialog.getByRole("button", { name: /^log in$/i }).click();
 
   await expect(dialog).toBeHidden({ timeout: 10000 });
-  await expect(header.getByText("demo1", { exact: true })).toBeVisible();
+  await expect(topNav.getByText("demo1", { exact: true })).toBeVisible();
   await expect(profileMenu).toBeFocused();
 });
 
@@ -294,7 +294,7 @@ test.describe("Top Nav current page and hover", () => {
     });
   }
 
-  // The Top Nav accent override is not on .site-header, so the Profile menu
+  // The Top Nav accent override is not on .top-nav, so the Profile menu
   // panel inside it keeps the Light Theme accent: sky-500 on its zinc-200 card
   // is 2.14:1.
   test("in Light Theme, the focus ring of a Theme item is still sky-700", async ({ page }) => {
@@ -337,7 +337,7 @@ test("each Site menu link fills its row less mx-4, so a click at the link's edge
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.getByRole("button", { name: /toggle navigation/i }).click();
+  await page.getByRole("button", { name: /site menu/i }).click();
   const menu = page.getByRole("navigation", { name: "Site menu" });
   await expect(menu).toHaveCSS("opacity", "1");
 
@@ -398,7 +398,7 @@ test.describe("Site menu link choice (#248)", () => {
 
   async function chooseLink(page: Page, name: string) {
     await page.waitForLoadState("networkidle");
-    const toggle = page.getByRole("button", { name: "Toggle navigation" });
+    const toggle = page.getByRole("button", { name: "Site menu" });
     await toggle.click();
     const menu = page.getByRole("navigation", { name: "Site menu" });
     await expect(menu).toHaveCSS("opacity", "1");
@@ -410,7 +410,7 @@ test.describe("Site menu link choice (#248)", () => {
     ["About", "/about"],
     ["Readme", "/readme"],
   ] as const) {
-    test(`a click on ${name} loads it, closes the menu, and gives focus to Toggle navigation`, async ({
+    test(`a click on ${name} loads it, closes the menu, and gives focus to Site menu`, async ({
       page,
     }) => {
       await page.goto("/");
@@ -437,7 +437,7 @@ test.describe("Site menu link choice (#248)", () => {
       await focused.evaluate((el) => document.getElementById("route-content")!.contains(el)),
     ).toBe(true);
 
-    // The browser's own Tab order: one Tab from the toggle, the last header
+    // The browser's own Tab order: one Tab from the toggle, the last Top Nav
     // control, reaches the first item in the route content. WebKit, as Safari
     // on macOS, skips links on Tab; Option+Tab includes them.
     await toggle.focus();

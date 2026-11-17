@@ -3,7 +3,7 @@
 A SolidJS/SolidStart front-end (`frontend/`) and a Rust/Axum back-end
 (`backend/`) in one repo (ADR-0010).
 
-- Shared domain model: [`CONTEXT.md`](CONTEXT.md) and [`docs/adr/`](docs/adr/).
+- Shared domain model: [`GLOSSARY.md`](GLOSSARY.md) and [`docs/adr/`](docs/adr/).
 - Front-end guide: [`frontend/README.md`](frontend/README.md).
 - Back-end guide: [`backend/README.md`](backend/README.md).
 - Command surface: run `cgs` at the repo root for the cross-cutting recipes.

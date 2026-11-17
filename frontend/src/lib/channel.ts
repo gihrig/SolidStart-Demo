@@ -2,7 +2,7 @@ import type { Accessor } from "solid-js";
 import type { Channel as ChannelType } from "~/types/backend";
 
 /**
- * A realtime **Channel** (`CONTEXT.md`): the front-end mirror of the back-end
+ * A realtime **Channel** (`GLOSSARY.md`): the front-end mirror of the back-end
  * `Channel` ([ADR-0020](../../../docs/adr/0020-collapse-channel-vocabulary.md)),
  * the one exported vocabulary that merged the former `WsEvent` / `ChannelKind` /
  * `Channel` split. It is the ts-rs-generated type (ids rewritten to `number`);
@@ -17,7 +17,7 @@ export type Channel = ChannelType;
  * here at compile time — the point of mirroring from a generated source rather
  * than by hand.
  *
- * The six Jedi channels (#115). `posts` is the id-less Post list-feed poke; the
+ * The six Jedi channels (#115). `posts` is the id-less Post list poke; the
  * other five name one entity and take its id. `postComment` / `captionComment`
  * are comment threads (payload); `postLike` / `captionLike` / `postCaption` are
  * count/list pokes. Every channel is authenticated-read — any logged-in socket
@@ -34,7 +34,7 @@ export const Channel = {
 
 /** The Channel of the selected entity, as an accessor for `feed.subscribe`
  *  (ADR-0028): `channel(id)` for the id `id()` gives, or none while it gives
- *  undefined. The Feed moves the hold when the id changes. */
+ *  undefined. The Feed moves the Subscription when the id changes. */
 export const selectedChannel =
   (id: Accessor<number | undefined>, channel: (id: number) => Channel) =>
   (): Channel | undefined => {

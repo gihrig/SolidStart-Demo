@@ -26,4 +26,9 @@ ignore = [
   # Postgres-only; `cargo tree -i libsqlite3-sys --target all` is empty). The fix
   # (>=0.39.0) needs sqlx 0.9, which #170 defers. Remove with the sqlx upgrade.
   "RUSTSEC-2026-0459",
+  # chrono 0.4.45 — unmaintained (no patched version). Test-only transitive
+  # dependency: axum-test (dev-dependency of web-server) -> expect-json -> chrono;
+  # our code does not use chrono. expect-json 1.11.0 (latest) still requires it.
+  # Remove once expect-json drops chrono.
+  "RUSTSEC-2026-0543",
 ]

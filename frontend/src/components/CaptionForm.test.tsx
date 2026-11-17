@@ -17,7 +17,7 @@ const ADDED: CaptionView = {
   commentCount: 0,
 };
 
-// The add mode's save (the view-model's `addCaption`, through its owner, #283).
+// The add mode's save (the view-model's `addCaption`, through its parent component, #283).
 const onSaveMock = vi.fn<(text: string) => Promise<CaptionView>>();
 
 beforeEach(() => {
@@ -27,7 +27,7 @@ beforeEach(() => {
 function renderForm(props: Partial<CaptionFormProps> = {}) {
   const user = userEvent.setup();
   render(() => <CaptionForm onSave={onSaveMock} {...props} />);
-  return { user, input: screen.getByLabelText("Your caption") as HTMLInputElement };
+  return { user, input: screen.getByLabelText("Your Caption") as HTMLInputElement };
 }
 
 describe("<CaptionForm />", () => {
@@ -172,7 +172,7 @@ describe("<CaptionForm /> — the edit mode (#187)", () => {
         </DraftScopeContext.Provider>
       </DraftGuardContext.Provider>
     ));
-    const input = screen.getByLabelText("Edit your caption") as HTMLInputElement;
+    const input = screen.getByLabelText("Edit your Caption") as HTMLInputElement;
     return { user: userEvent.setup(), input, onSave, onSaved, onCancel, guard, setCaption };
   }
 
@@ -188,7 +188,7 @@ describe("<CaptionForm /> — the edit mode (#187)", () => {
     await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
   });
 
-  it("holds a Draft in its scope while the text differs; Cancel asks, and Discard drops it", async () => {
+  it("has a Draft in its scope while the text differs; Cancel asks, and Discard drops it", async () => {
     const { user, input, guard, onCancel } = renderEdit();
     expect(guard.hasDraftIn(scope)).toBe(false);
     await user.type(input, "!");
@@ -235,7 +235,7 @@ describe("<CaptionForm /> — Cancel and Escape (#214)", () => {
         </DraftScopeContext.Provider>
       </DraftGuardContext.Provider>
     ));
-    const input = screen.getByLabelText("Your caption") as HTMLInputElement;
+    const input = screen.getByLabelText("Your Caption") as HTMLInputElement;
     return { user: userEvent.setup(), input, guard };
   }
 

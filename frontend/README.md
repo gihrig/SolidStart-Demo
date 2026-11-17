@@ -87,7 +87,7 @@ fixture. To read from it now, inject a stand-in through the existing seams:
    `data.json` has no comment counts, no Caption Comments, and its Comments
    have `body`, not `contentHtml`, and no times, so the stand-in must fill these.
 2. Pass it to the view-model in `src/routes/index.tsx`:
-   `createJediFeed({ api: mockJediApi, guard: useDraftGuard() })`.
+   `createJediPage({ api: mockJediApi, guard: useDraftGuard() })`.
 3. `CreatePostDialog` and `AddCaptionForm` do not use the view-model's `api`.
    Each takes its own `api` prop: `CreatePostDialog` reads the Categories and
    creates a Post through it, and `AddCaptionForm` adds a Caption.

@@ -32,7 +32,7 @@ test.describe("404 Not Found Page", () => {
     await page.goto("/xxx");
 
     // Title should still be set (from app root)
-    await expect(page).toHaveTitle(/SolidStart 404/);
+    await expect(page).toHaveTitle(/Page Not Found - Awesome/);
   });
 
   test("should show footer even on 404", async ({ page }) => {

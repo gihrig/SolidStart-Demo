@@ -74,7 +74,7 @@ let user_id = UserBmc::create(
     },
 ).await?;
 
-// Retrieving a Post as its public view
+// Retrieving a Post as its PostView read model
 let post = PostBmc::get_post(&ctx, &mm, post_id).await?;
 ```
 

@@ -1,7 +1,10 @@
 # One HTTPS edge serves dev and e2e, as in production
 
-#200 sets a `Secure` theme cookie in every environment. WebKit 26.6 drops a `Secure`
-cookie that `http://localhost` sets (#233). Production ends TLS before the app:
+Origin: #233
+
+The theme cookie is `Secure` in every environment
+([ADR-0033](0033-saved-theme-in-an-httponly-cookie.md)). WebKit drops a `Secure`
+cookie that `http://localhost` sets. Production ends TLS before the app:
 Cloudflare ends it, an edge Caddy forwards plain HTTP, and one container runs the
 front-end and the back-end.
 
@@ -35,7 +38,7 @@ comes with #19.
   with rustls, mkcert). Rejected: production never runs TLS in the container. It
   adds ISC to `deny.toml`, `NODE_EXTRA_CA_CERTS`, a mkcert binary with no checksum
   file, and dev-only code in the release binary.
-- **No `Secure` on `http://localhost`.** Rejected: #200 gives the cookie the same
+- **No `Secure` on `http://localhost`.** Rejected: the cookie has the same
   attributes in every environment. A plain-HTTP `.local` replica would still fail.
 - **The `caddy` Docker image.** Rejected: on macOS, the container reaches the host
   servers only through `host.docker.internal`.
@@ -48,8 +51,8 @@ comes with #19.
 - Vite HMR runs through the edge: the client router's HMR socket uses port 24678,
   and the edge forwards `/_build/` upgrades to it.
 - `cgs quick` still calls `http://localhost:8080` directly. It uses no browser.
-- ADR-0015 says the auth cookie "rides the same-site `localhost:3000 → :8080`
-  upgrade in dev". After this ADR, the upgrade is same-origin, through the edge.
+- The WebSocket upgrade is same-origin, through the edge, so the auth cookie
+  goes with it.
 - The production image (#19) holds no Caddy. The server1 edge holds the routing
   rules. The two copies of the rules can drift, so #19 tests the image behind a
   Caddy with the server1 rules.

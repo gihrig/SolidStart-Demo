@@ -8,8 +8,8 @@ import { useDismiss, type DismissBoundary } from "~/lib/useDismiss";
  * `triggerProps` carries the button's `aria-expanded` / `aria-controls` / click;
  * `panelProps` carries the panel's `id` and the `inert` gate that removes a
  * hidden panel from the tab order. Callers spread these and keep only their own
- * open-driven paint (transitions differ per site). The home sidebar, the site
- * nav's mobile menu, and the site nav's profile dropdown are the call sites;
+ * open-driven paint (transitions differ per site). The home Sidebar, the Top
+ * Nav's Site menu, and the Top Nav's Profile menu are the call sites;
  * all hand-wired the identical `signal + aria + useDismiss + inert`
  * before this module owned it.
  */
@@ -31,7 +31,7 @@ export interface UseDisclosureOptions {
   /**
    * Extra guard ANDed with `open()` to decide whether Escape / click-away
    * dismisses. Use it when a nested disclosure should absorb the dismiss first —
-   * e.g. a mobile menu that stays open while a dropdown nested inside it is open.
+   * e.g. an outer menu that stays open while a menu nested inside it is open.
    */
   dismissWhen?: Accessor<boolean>;
   /**

@@ -13,7 +13,7 @@ import type { SafeUrl } from "~/lib/sanitizeUrl";
 
 // The authenticated current user: session state plus the nav-avatar identity
 // (`displayName` / `avatarUrl`). The identity is the logged-in User's back-end
-// profile (#119), read behind this unchanged interface (ADR-0007).
+// profile (#119), read behind this unchanged interface (ADR-0011).
 interface AuthContextValue {
   isAuthenticated: () => boolean;
   username: () => string | null;
@@ -42,7 +42,7 @@ export const AuthProvider: ParentComponent = (props) => {
   const [isAuthenticated, setIsAuthenticated] = createSignal(false);
   const [username, setUsername] = createSignal<string | null>(null);
 
-  // Nav identity (ADR-0007, #119): the logged-in User's profile. `get_profile`
+  // Nav identity (ADR-0011, #119): the logged-in User's profile. `get_profile`
   // needs a login, so the source is the login username — no fetch while logged
   // out, and a new fetch per login. The fetcher logs and absorbs a failure:
   // AuthProvider sits above every error boundary, so a thrown profile error would
@@ -80,7 +80,7 @@ export const AuthProvider: ParentComponent = (props) => {
   };
 
   // NOT routed through createRpcAction: the finally must clear auth even when the
-  // RPC fails — a failed logoff still logs you out locally (see ADR-0005).
+  // RPC fails — a failed logoff still logs you out locally.
   const logoff = async () => {
     try {
       await backendRpc.auth.logoff();

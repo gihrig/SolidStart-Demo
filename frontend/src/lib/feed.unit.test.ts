@@ -130,7 +130,7 @@ describe("Feed — the per-holder refcount", () => {
 });
 
 describe("Feed — the move on an accessor change", () => {
-  it("moves the hold when the accessor returns a new Channel", () => {
+  it("moves the Subscription when the accessor returns a new Channel", () => {
     const mem = createMemoryFeed();
     mem.setConnected(true);
     const handler = vi.fn();
@@ -150,11 +150,11 @@ describe("Feed — the move on an accessor change", () => {
     mem.emit({ event_type: "poke", kind: "post_like", id: 2 });
     expect(handler).toHaveBeenCalledTimes(1);
 
-    setPostId(undefined); // holds nothing
+    setPostId(undefined); // subscribes to nothing
     expect(mem.held()).toEqual([]);
   });
 
-  it("keeps the hold when the accessor returns an equal Channel", () => {
+  it("keeps the Subscription when the accessor returns an equal Channel", () => {
     const mem = createMemoryFeed();
     mem.setConnected(true);
     const [tick, setTick] = createSignal(0);
@@ -207,7 +207,7 @@ describe("Feed — replay and resync on each connect", () => {
     mem.setConnected(true);
     handler.mockClear();
 
-    mem.setConnected(false); // the drop clears the server's holds
+    mem.setConnected(false); // the drop clears the server's Subscriptions
     expect(mem.held()).toEqual([]);
     expect(handler).not.toHaveBeenCalled();
 

@@ -11,7 +11,7 @@
 #
 # The grype vulnerability gate (T2, #142/#144) scans the SBOM this writes.
 #
-# Front-end lockfile — why yarn.lock, not bun.lock (ADR-0022 addendum):
+# Front-end lockfile — why yarn.lock, not bun.lock (ADR-0022):
 # The front-end lockfile is `bun.lock`. syft 1.51.1's bun-lock cataloger is
 # partial AND non-deterministic: repeated runs return a different, small subset
 # of the ~969 packages (e.g. 30/33/35). It cannot back a drift guard. We convert

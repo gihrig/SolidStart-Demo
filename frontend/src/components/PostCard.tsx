@@ -1,7 +1,7 @@
 import { createEffect, createMemo, createSignal, For, on, Show, type JSX } from "solid-js";
 import { createRpcAction } from "~/lib/createRpcAction";
 import type { CommentThreadState } from "~/lib/jedi/createCommentThread";
-import type { OwnerWrites, PostCardScopes } from "~/lib/jedi/createJediFeed";
+import type { OwnerWrites, PostCardScopes } from "~/lib/jedi/createJediPage";
 import { trustedUrl } from "~/lib/sanitizeUrl";
 import type { PostChanges, PostView, CaptionView, Like } from "~/types/jedi";
 import Image from "~/components/Image";
@@ -15,12 +15,12 @@ import PostCaption from "~/components/PostCaption";
 import { DraftScopeContext } from "~/components/DraftGuardContext";
 import Icon from "~/components/Icon";
 
-export interface FeaturedPostProps {
+export interface PostCardProps {
   post: PostView;
   /** The winning Caption shown on the post (a first-class entity, not bare
    *  text); undefined until the post's captions load or when it has none. */
   caption?: CaptionView;
-  /** Whether the viewer is a logged-in User (#121, #123). A logged-in User sees
+  /** Whether a logged-in User views the Post (#121, #123). A logged-in User sees
    *  every button in the Post actions and the Caption actions; a visitor sees
    *  the Comments toggles, the fire-heart and the count. */
   loggedIn?: boolean;
@@ -30,13 +30,13 @@ export interface FeaturedPostProps {
   userId?: number;
   /** False while the post's captions load, so the caption form never flashes. */
   captionsLoaded?: boolean;
-  /** The viewer's like state of this Post (#122). Undefined for an anonymous
+  /** The User's like state of this Post (#122). Undefined for an anonymous
    *  visitor or while it loads; the Like button is then disabled and the count
    *  comes from the Post. */
   like?: Like;
   /** Like or unlike this Post; the opposite of `like.liked`. */
   onToggleLike?: () => Promise<void>;
-  /** The viewer's like state of the Caption shown (#123), as `like` is for the
+  /** The User's like state of the Caption shown (#123), as `like` is for the
    *  Post. Undefined for an anonymous visitor or while it loads. */
   captionLike?: Like;
   /** Like or unlike the Caption shown; the opposite of `captionLike.liked`. */
@@ -118,7 +118,7 @@ interface ActionsLineProps {
   toggleRef?: (el: HTMLButtonElement) => void;
   /** The errors of the line's actions. */
   errors: (string | null)[];
-  /** Whether the viewer is a logged-in User: then the other actions sit at the
+  /** Whether a logged-in User views the Post: then the other actions sit at the
    *  right of the line (#210). */
   loggedIn?: boolean;
   /** The block's classes, such as its margin. */
@@ -174,7 +174,7 @@ function ActionsLine(props: ActionsLineProps) {
   );
 }
 
-export default function FeaturedPost(props: FeaturedPostProps) {
+export default function PostCard(props: PostCardProps) {
   // One action per Like target (#123), so each toggle reports its own error.
   const toggleLike = createLikeAction(() => props.onToggleLike?.());
   const toggleCaptionLike = createLikeAction(() => props.onToggleCaptionLike?.());
@@ -243,7 +243,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
     addCaptionRef?.focus();
   };
   // The Post's thread in the Comments panel (#124). Its open state lives in the
-  // view-model, which closes it when the selected Post changes.
+  // view-model, which closes it when the Post shown changes.
   const commentsOpen = () => props.postComments?.open() ?? false;
   const commentsPanelId = () => `post-${postId()}-comments`;
   // The Caption's thread (#127), the same way. The view-model closes it when
@@ -263,7 +263,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
     props.captionComments?.setOpen(false);
   };
   const captionCommentCount = () => props.caption?.commentCount ?? 0;
-  // The author link is a placeholder until it lands on the feed seam.
+  // The author link is a placeholder until it lands on the data seam.
   const notImplemented = (e: MouseEvent) => {
     e.preventDefault();
     alert("Not implemented");
@@ -350,7 +350,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
               like={props.like}
               fallbackCount={props.post.likeCount}
               countLabel="Likes"
-              label={`Like post by ${props.post.author.name}`}
+              label={`Like Post by ${props.post.author.name}`}
               loggedIn={props.loggedIn}
               onToggle={() => void toggleLike.run(undefined)}
             />
@@ -426,7 +426,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
                 fallbackCount={props.caption?.likeCount ?? 0}
                 countLabel="Caption likes"
                 label={
-                  props.caption ? `Like caption by ${props.caption.author.name}` : "Like caption"
+                  props.caption ? `Like Caption by ${props.caption.author.name}` : "Like Caption"
                 }
                 loggedIn={props.loggedIn}
                 onToggle={() => void toggleCaptionLike.run(undefined)}
@@ -447,7 +447,7 @@ export default function FeaturedPost(props: FeaturedPostProps) {
                 </button>
               </Show>
               <OwnerActions
-                noun="caption"
+                noun="Caption"
                 author={props.caption?.author}
                 loggedIn={props.loggedIn}
                 userId={props.userId}

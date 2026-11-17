@@ -17,7 +17,7 @@ import type { JediCategory, Like, PostView, HeroView } from "~/types/jedi";
 export type { EditState, OwnerWrites, PostCardScopes } from "~/lib/jedi/createSelection";
 
 /**
- * The Jedi feed's view-model: it owns the route's four data resources and the
+ * The Jedi page's view-model: it owns the route's four data resources and the
  * derivations over them, exposing a small accessor interface. The route reads
  * these accessors and renders — no data orchestration in the markup — so the
  * derivations are exercisable at this seam without rendering the DOM, the same
@@ -37,12 +37,12 @@ export type { EditState, OwnerWrites, PostCardScopes } from "~/lib/jedi/createSe
  * dialog sits above the route, so the route tells this view-model of the
  * User's own create (`postCreated`): it refetches the Posts at once (#283).
  *
- * `selectedPostLike` / `selectedCaptionLike` are the viewer's like state of the
- * selected Post and the selected Caption (#122, #123). Each comes from one
+ * `selectedPostLike` / `selectedCaptionLike` are the User's like state of the
+ * Post shown and the Caption shown (#122, #123). Each comes from one
  * `createLikeState`, with its own Subscription: this view-model only hands
  * each Like state the Feed.
  *
- * `postComments` is the selected Post's Comment thread (#124), and
+ * `postComments` is the shown Post's Comment thread (#124), and
  * `captionComments` the shown Caption's (#127). Each is one
  * `createCommentThread`, exposed as one nested member, with its own open state,
  * Draft scope and Subscription: this view-model only hands each thread the
@@ -52,15 +52,15 @@ export type { EditState, OwnerWrites, PostCardScopes } from "~/lib/jedi/createSe
  * (#210), goes through the app's Draft guard (ADR-0030): with a Draft, it waits
  * for the confirm dialog.
  *
- * `hero` (the header banner content) is the externalized header data (#32): the
+ * `hero` (the Hero content) is the externalized Hero data (#32): the
  * route renders the Hero from `hero`, so it is not hard-coded in the markup. The
- * nav avatar's profile now lives in the global Nav, not here (see ADR-0007).
+ * nav avatar's profile now lives in the global Nav, not here (see ADR-0011).
  */
 /** The members of the selection that the route reads (#271): every member
  *  but the three that only this view-model uses. */
 type SelectionMembers = Omit<SelectionState, "threadOpenOn" | "checkPosts" | "refetchCaptions">;
 
-export interface JediFeed extends SelectionMembers {
+export interface JediPage extends SelectionMembers {
   /** The real categories behind an "All" row at index 0 (`selectedCategory`). */
   categories: Accessor<JediCategory[] | undefined>;
   /** The ranked posts filtered to `selectedCategory` — what Top Photos renders (#33-b). */
@@ -70,23 +70,23 @@ export interface JediFeed extends SelectionMembers {
   emptyCategoryLabel: Accessor<string | undefined>;
   selectedCategory: Accessor<number>;
   hero: Accessor<HeroView | undefined>;
-  /** The viewer's like state of the selected Post (#122): the live count and
-   *  whether the viewer likes it. Undefined while loading, and on the anonymous
+  /** The User's like state of the Post shown (#122): the live count and
+   *  whether the User likes it. Undefined while loading, and on the anonymous
    *  landing, where no live session is connected (the read needs a login). */
   selectedPostLike: Accessor<Like | undefined>;
-  /** Like or unlike the selected Post: the opposite of the like state shown
+  /** Like or unlike the Post shown: the opposite of the like state shown
    *  (#122). The change shows at once, then the back-end's answer replaces it;
    *  a click while a toggle runs counts too. A no-op without a like state.
    *  Rejects, and rolls the Like back, when the back-end fails. */
   togglePostLike: () => Promise<void>;
-  /** The viewer's like state of the selected Caption (#123), as
+  /** The User's like state of the Caption shown (#123), as
    *  `selectedPostLike` is for the Post. */
   selectedCaptionLike: Accessor<Like | undefined>;
-  /** Like or unlike the selected Caption (#123), as `togglePostLike`. The
+  /** Like or unlike the Caption shown (#123), as `togglePostLike`. The
    *  Caption actions show the new count at once; Top Captions re-ranks after
    *  the back-end's `post_caption` poke. */
   toggleCaptionLike: () => Promise<void>;
-  /** The selected Post's Comment thread (#124): the panel's open state, its
+  /** The shown Post's Comment thread (#124): the panel's open state, its
    *  rows and its writes. It loads only while the panel is open. The read is
    *  public, so it loads on the anonymous landing too; the writes need a login.
    *  A close goes through the Draft guard. An open closes the other thread,
@@ -109,7 +109,7 @@ export interface JediFeed extends SelectionMembers {
 const ALL_CATEGORIES: JediCategory = { id: 0, name: "All", icon: "menu" };
 
 /** Injectable seam for the view-model. */
-export interface CreateJediFeedDeps {
+export interface CreateJediPageDeps {
   /**
    * The Jedi data seam. Defaults to the `jediApi` singleton (the real back-end);
    * a test injects an in-memory `JediApi` (arch-review C2, #119). The live Feed
@@ -121,14 +121,14 @@ export interface CreateJediFeedDeps {
   guard?: DraftGuard;
 }
 
-export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
+export function createJediPage(deps: CreateJediPageDeps = {}): JediPage {
   const api = deps.api ?? jediApi;
   const guard = deps.guard ?? passThroughGuard;
   const [selectedCategory, setSelectedCategoryIndex] = createSignal(0);
 
   const [realCategories] = createResource(() => api.categories.list());
   // Each load finds the cause of a change before the view sees the new list:
-  // a form that the change unmounts then holds no Draft (#187). Only in the
+  // a form that the change unmounts then has no Draft (#187). Only in the
   // browser: an Event reaches no server render, and on the server a read after
   // the `await` can meet another request's render context. The check runs
   // after the `await`, so `checkPosts` below exists by then.
@@ -194,7 +194,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     return filterCategory()?.name;
   };
 
-  // The viewer's like state of the selected Post (#122) and of the selected
+  // The User's like state of the Post shown (#122) and of the selected
   // Caption (#123). Each holds the Subscription on its own Channel. The read
   // needs a login, so each loads only after `connectFeed`.
   const { state: postLike, connectFeed: connectPostLike } = createLikeState({
@@ -210,7 +210,7 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
     toggleLike: (id, liked) => api.captions.toggleLike(id, liked),
   });
 
-  // The selected Post's Comment thread (#124). It loads while its panel is
+  // The shown Post's Comment thread (#124). It loads while its panel is
   // open; the read is public, so it does not wait for a live session. Its
   // close goes through the guard. Its scope sits under the Post scope.
   const { thread: postThread, connectFeed: connectPostThread } = createCommentThread({
@@ -261,11 +261,11 @@ export function createJediFeed(deps: CreateJediFeedDeps = {}): JediFeed {
   // write refetches at once and does not wait for the poke (#283). A `posts`
   // poke means the Post list may have changed, so refetch the list (the
   // featured post re-derives from it). A `post_caption` poke means one Post's
-  // Captions changed (#121); it is held for the selected Post only. Each Like
+  // Captions changed (#121); it is held for the Post shown only. Each Like
   // state (#122, #123) and each Comment thread (#124, #127) holds the
   // Subscription on its own Channel, so this view-model only hands each one
   // the Feed. Each Subscription names its Channel through an
-  // accessor, so the Feed moves the hold with the selection and routes only the
+  // accessor, so the Feed moves the Subscription with the selection and routes only the
   // held Channel here (ADR-0028). Each handler refetches on a poke and on the
   // resync call after a (re)connect, so a poke lost while the socket was down
   // is recovered (#120 review). The anonymous landing page has no socket, so

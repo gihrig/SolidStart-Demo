@@ -50,8 +50,8 @@ export interface CommentThreadDeps {
   /** The target: the Channel the thread holds, and its Draft scope label. */
   target: CommentTarget;
   /** The id of the parent that the panel is open on, as a signal the caller
-   *  owns, when the caller reads it: the Caption hold (#127, ADR-0030
-   *  addendum). Defaults to a signal of the thread's own. */
+   *  owns, when the caller reads it: the Caption hold (#127, ADR-0030).
+   *  Defaults to a signal of the thread's own. */
   openOn?: Signal<number | undefined>;
   /** The app's Draft guard (ADR-0030). Defaults to the pass-through guard,
    *  which runs each move at once. */
@@ -86,12 +86,12 @@ export interface CommentThreadState {
   /** Add a Comment to the parent shown. Resolves once the back-end has
    *  committed it, and the thread shows it at once. Rejects on failure. */
   add: (content: string) => Promise<void>;
-  /** Edit the viewer's own Comment. The thread shows the edit at once. */
+  /** Edit the User's own Comment. The thread shows the edit at once. */
   update: (id: number, content: string) => Promise<void>;
-  /** Delete the viewer's own Comment. The thread drops it at once. */
+  /** Delete the User's own Comment. The thread drops it at once. */
   remove: (id: number) => Promise<void>;
-  /** Read the stored text of the viewer's own Comment, for its edit form
-   *  (#126). Rejects on failure, and for a Comment the viewer does not own. */
+  /** Read the stored text of the User's own Comment, for its edit form
+   *  (#126). Rejects on failure, and for a Comment the User does not own. */
   source: (id: number) => Promise<string>;
 }
 
@@ -105,7 +105,7 @@ const newestFirst = (a: CommentView, b: CommentView): number =>
 
 /**
  * The Comment thread of the parent shown (#124, #127): the thread load, the
- * live merge of pushed Events and of the viewer's own writes, and the race
+ * live merge of pushed Events and of the User's own writes, and the race
  * guard. One factory serves both Comment targets, the Post and the Caption.
  * The rows live in a store and reconcile by id, so a reload does not recreate
  * them: a row's DOM, and any input in it, survives (`reconcile`).
@@ -191,8 +191,8 @@ export function createCommentThread(deps: CommentThreadDeps): {
   // response that arrives after its Comment's removal does not bring it back
   // (PR #216 review).
   const removed = new Set<number>();
-  // The one merge point for pushed Events and the viewer's own writes: a row
-  // id already shown is edited in place, so a push of the viewer's own write
+  // The one merge point for pushed Events and the User's own writes: a row
+  // id already shown is edited in place, so a push of the User's own write
   // never adds it twice. An edit older than the row shown is a late response,
   // so it does not overwrite a newer edit. A new row goes to its place in the
   // newest-first order, so a late push of an older Comment goes below a newer

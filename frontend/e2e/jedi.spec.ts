@@ -5,7 +5,7 @@ import { loginAs } from "./login";
 test.describe("Jedi Page", () => {
   test("should load successfully and display correct title", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle(/Little Jedi/);
+    await expect(page).toHaveTitle(/Awesome Photos & Captions/);
     await expect(page).toHaveURL("/");
   });
 
@@ -38,7 +38,7 @@ test.describe("Jedi Page", () => {
   test("should toggle mobile sidebar when button clicked", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto("/");
-    const toggle = page.getByRole("button", { name: /toggle sidebar/i });
+    const toggle = page.getByRole("button", { name: /categories sidebar/i });
     await expect(toggle).toBeVisible();
     const aside = page.locator("aside");
     await expect(aside).toHaveAttribute("inert");
@@ -133,17 +133,17 @@ test.describe("Jedi Page", () => {
     await expect(page.locator("aside")).toBeVisible();
     await page.setViewportSize({ width: 375, height: 667 });
     // Gate on toggle button — proves isMobile() signal updated after matchMedia fired
-    await expect(page.getByRole("button", { name: /toggle sidebar/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /categories sidebar/i })).toBeVisible();
     await expect(page.locator("main")).toBeVisible();
     await expect(page.locator("aside")).toHaveAttribute("inert");
   });
 });
 
 test.describe("Home Page - Nav slide transitions (regression #28)", () => {
-  test("mobile nav menu slides via `translate` (not just opacity) on close", async ({ page }) => {
+  test("Site menu slides via `translate` (not just opacity) on close", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto("/");
-    const navBtn = page.getByRole("button", { name: /toggle navigation/i });
+    const navBtn = page.getByRole("button", { name: /site menu/i });
     const nav = page.getByRole("navigation", { name: /site menu/i });
 
     // Tailwind v4 keeps the menu's motion in the `translate` property; it must be
@@ -165,17 +165,13 @@ test.describe("Home Page - Nav slide transitions (regression #28)", () => {
               resolve(true);
             }
           });
-          document
-            .querySelector<HTMLButtonElement>('button[aria-label="Toggle navigation"]')!
-            .click();
+          document.querySelector<HTMLButtonElement>('button[aria-label="Site menu"]')!.click();
         }),
     );
     expect(translateAnimated).toBe(true);
   });
 
-  test("profile dropdown transitions `translate` and `scale`, not just opacity", async ({
-    page,
-  }) => {
+  test("Profile menu transitions `translate` and `scale`, not just opacity", async ({ page }) => {
     await page.goto("/");
     // Same v4 fix: scale-90 / -translate-y-5 live in the `scale` / `translate` props.
     const tp = await page
@@ -187,7 +183,7 @@ test.describe("Home Page - Nav slide transitions (regression #28)", () => {
   });
 });
 
-test.describe("Home Page - Profile dropdown (popup disclosure, #55 C5)", () => {
+test.describe("Home Page - Profile menu (popup disclosure, #55 C5)", () => {
   test("opens on click, closes on click-outside, inert while closed", async ({ page }) => {
     await page.goto("/");
     const trigger = page.getByRole("button", { name: /profile menu/i });
@@ -258,19 +254,19 @@ test.describe("Home Page - Profile dropdown (popup disclosure, #55 C5)", () => {
     await expect.poll(() => alertText).toBe("Not implemented");
 
     await clickRowEdge(logIn);
-    await expect(page.getByRole("dialog", { name: "Login" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Log In" })).toBeVisible();
   });
 
   test("logged in, a click near the right edge of Log Out logs the User off", async ({ page }) => {
     await page.goto("/");
     await loginAs(page, "demo1", "welcome");
-    const header = page.getByRole("banner");
+    const topNav = page.getByRole("banner");
     const menu = await openProfileMenu(page);
     const logOut = actionRow(menu, "Log Out");
     await expectFillsRow(logOut);
 
     await clickRowEdge(logOut);
-    await expect(header.getByText("demo1", { exact: true })).toBeHidden();
+    await expect(topNav.getByText("demo1", { exact: true })).toBeHidden();
     await expect(actionRow(menu, "Log In")).toHaveCount(1);
   });
 });
@@ -313,9 +309,9 @@ test.describe("Home Page - Theme", () => {
   // Open the Profile menu after hydration, so the clicks reach live handlers.
   async function openThemeGroup(page: Page) {
     await page.waitForLoadState("networkidle");
-    const header = page.getByRole("banner");
-    await header.getByRole("button", { name: "Profile menu" }).click();
-    const group = header.getByRole("group", { name: "Theme" });
+    const topNav = page.getByRole("banner");
+    await topNav.getByRole("button", { name: "Profile menu" }).click();
+    const group = topNav.getByRole("group", { name: "Theme" });
     await expect(group).toBeVisible();
     return group;
   }
@@ -580,7 +576,7 @@ function bodyBackground(page: Page) {
   return page.locator("body").evaluate((el) => getComputedStyle(el).backgroundColor);
 }
 
-// An unsaved Comment is guarded (ADR-0030): a move that would drop it asks first.
+// A Comment Draft is guarded (ADR-0030): a move that would drop it asks first.
 test.describe("Jedi Page - Draft guard (#124)", () => {
   test("a Top Photo click with a Comment Draft shows the dialog; Keep editing keeps it", async ({
     page,
@@ -699,7 +695,7 @@ test.describe("Jedi Page - the keyboard in the inline forms and the question (#2
   }) => {
     const article = page.locator("article").first();
     await article.getByRole("button", { name: "Add Caption" }).click();
-    const input = article.getByLabel("Your caption");
+    const input = article.getByLabel("Your Caption");
     await input.fill("A caption I have not sent");
 
     await input.press("Escape");
@@ -747,12 +743,12 @@ test.describe("Jedi Page - Tab stays in the dialogs (#210)", () => {
   test("the Login dialog", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    const header = page.getByRole("banner");
-    await header.getByRole("button", { name: "Profile menu" }).click();
-    await header.getByRole("button", { name: "Log In" }).click();
-    const dialog = page.getByRole("dialog", { name: "Login" });
+    const topNav = page.getByRole("banner");
+    await topNav.getByRole("button", { name: "Profile menu" }).click();
+    await topNav.getByRole("button", { name: "Log In" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log In" });
     const username = dialog.getByLabel("Username");
-    const login = dialog.getByRole("button", { name: /^login$/i });
+    const login = dialog.getByRole("button", { name: /^log in$/i });
 
     await username.focus();
     await page.keyboard.press("Shift+Tab");
@@ -799,7 +795,7 @@ test.describe("Jedi Page - Comment row (#125)", () => {
     await expect(row.locator("time")).toHaveAttribute("datetime", /^\d{4}-\d{2}-\d{2}T/);
 
     // Delete it, so a rerun starts clean.
-    await row.getByRole("button", { name: "Delete comment" }).click();
+    await row.getByRole("button", { name: "Delete Comment" }).click();
     await expect(row).toHaveCount(0);
   });
 });
@@ -823,7 +819,7 @@ test.describe("Jedi Page - Comment markdown (#126)", () => {
     await expect(row).not.toContainText("**");
 
     // Delete it, so a rerun starts clean.
-    await row.getByRole("button", { name: "Delete comment" }).click();
+    await row.getByRole("button", { name: "Delete Comment" }).click();
     await expect(row).toHaveCount(0);
   });
 });
@@ -850,7 +846,7 @@ test.describe("Jedi Page - Caption Comments (#127)", () => {
     await expect(row.getByText("demo1", { exact: true })).toBeVisible();
 
     // Delete it, so a rerun starts clean.
-    await row.getByRole("button", { name: "Delete comment" }).click();
+    await row.getByRole("button", { name: "Delete Comment" }).click();
     await expect(row).toHaveCount(0);
   });
 });

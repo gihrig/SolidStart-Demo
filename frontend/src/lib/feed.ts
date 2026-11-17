@@ -10,16 +10,16 @@ import type { WsEvent } from "~/types/backend";
 export type FeedHandler = (event?: WsEvent) => void;
 
 /**
- * The one live **Feed** (`CONTEXT.md`) for a client, built once at the
+ * The one live **Feed** (`GLOSSARY.md`) for a client, built once at the
  * authenticated boundary and injected into each view-model through the `feed?`
- * seam (ADR-0017, ADR-0028).
+ * seam (ADR-0028).
  */
 export interface Feed {
   connected: Accessor<boolean>;
   /**
-   * Hold a **Subscription**: `handler` gets each Event on the Channel that
-   * `channel` returns. When the accessor changes, the hold moves to the new
-   * Channel; `undefined` holds nothing. The caller's reactive scope releases it.
+   * Make a **Subscription**: `handler` gets each Event on the Channel that
+   * `channel` returns. When the accessor changes, the Subscription moves to the new
+   * Channel; `undefined` subscribes to nothing. The caller's reactive scope releases it.
    */
   subscribe: (channel: Accessor<Channel | undefined>, handler: FeedHandler) => void;
   /** Hold an error handler for the caller's reactive scope. */
@@ -81,7 +81,7 @@ interface Subscription {
 export function createFeed(transport: FeedTransport): Feed {
   // Held Channels by key, each with its holders. The server hears one
   // `subscribe` at the first holder and one `unsubscribe` at the last, so one
-  // view-model never cuts a Channel another still holds (ADR-0017).
+  // view-model never cuts a Channel another still holds (ADR-0028).
   const heldChannels = new Map<string, { channel: Channel; subs: Set<Subscription> }>();
   const errorHandlers = new Set<(error: string) => void>();
 
@@ -97,7 +97,7 @@ export function createFeed(transport: FeedTransport): Feed {
     },
   });
 
-  // True from the replay of a connect until the next drop. A hold sends only
+  // True from the replay of a connect until the next drop. A subscribe sends only
   // while live; before that, the replay sends it. So a Subscription made in the
   // same update as the connect reaches the wire once, not twice.
   let live = false;
@@ -141,7 +141,7 @@ export function createFeed(transport: FeedTransport): Feed {
   const subscribe = (channel: Accessor<Channel | undefined>, handler: FeedHandler) => {
     const sub: Subscription = { handler };
     let current: Channel | undefined;
-    // Move the hold only when the key changes: an accessor that returns an
+    // Move the Subscription only when the key changes: an accessor that returns an
     // equal Channel (e.g. a refetched Post with the same id) must not churn the
     // wire.
     createEffect(() => {

@@ -121,13 +121,13 @@ describe("<Nav />", () => {
   });
 
   // One theme control, at every width: the Theme group in the Profile menu (#200).
-  it("holds the Theme group in the Profile menu, with no theme button in the bar or the mobile menu", () => {
+  it("holds the Theme group in the Profile menu, with no theme button in the Top Nav or the Site menu", () => {
     renderNav();
     const panel = document.getElementById("profile-menu")!;
     expect(within(panel).getByRole("group", { name: "Theme" })).toBeInTheDocument();
     expect(within(panel).getAllByRole("radio")).toHaveLength(3);
     expect(screen.queryByRole("button", { name: /theme/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /toggle navigation/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /site menu/i })).toBeInTheDocument();
   });
 
   describe("profile avatar", () => {
@@ -182,7 +182,7 @@ describe("<Nav />", () => {
 
     // The identity blend (username vs mock name/avatar) is owned by the useAuth
     // seam — see AuthContext.test "nav identity". Here we only check the nav wires
-    // the auth state to the dropdown: Log In becomes Log Out once authenticated.
+    // the auth state to the Profile menu: Log In becomes Log Out once authenticated.
     it("swaps Log In for Log Out once authenticated", async () => {
       const user = userEvent.setup();
       renderNav(true);
@@ -194,7 +194,7 @@ describe("<Nav />", () => {
   });
 
   describe("login dialog (#128)", () => {
-    it("a Log In click closes the dropdown, then opens the login dialog", async () => {
+    it("a Log In click closes the Profile menu, then opens the login dialog", async () => {
       const user = userEvent.setup();
       renderNav();
       const panel = document.getElementById("profile-menu")! as HTMLElement & { inert: boolean };
@@ -203,7 +203,7 @@ describe("<Nav />", () => {
       await user.click(screen.getByRole("button", { name: /log in/i }));
 
       expect(panel.inert).toBe(true);
-      expect((screen.getByRole("dialog", { name: "Login" }) as HTMLDialogElement).open).toBe(true);
+      expect((screen.getByRole("dialog", { name: "Log In" }) as HTMLDialogElement).open).toBe(true);
     });
 
     it("a successful login closes the dialog, shows the name, and returns focus to the Profile menu", async () => {
@@ -213,11 +213,11 @@ describe("<Nav />", () => {
       const trigger = screen.getByRole("button", { name: /profile menu/i });
       await user.click(trigger);
       await user.click(screen.getByRole("button", { name: /log in/i }));
-      const dialog = screen.getByRole("dialog", { name: "Login" }) as HTMLDialogElement;
+      const dialog = screen.getByRole("dialog", { name: "Log In" }) as HTMLDialogElement;
 
       await user.type(within(dialog).getByLabelText(/username/i), "demo1");
       await user.type(within(dialog).getByLabelText(/password/i), "welcome");
-      await user.click(within(dialog).getByRole("button", { name: /^login$/i }));
+      await user.click(within(dialog).getByRole("button", { name: /^log in$/i }));
 
       await waitFor(() => expect(dialog.open).toBe(false));
       expect(await within(trigger).findByText("demo1")).toBeInTheDocument();
@@ -225,7 +225,7 @@ describe("<Nav />", () => {
     });
   });
 
-  describe("profile dropdown", () => {
+  describe("Profile menu", () => {
     it("toggles inert/visibility on trigger click", async () => {
       const user = userEvent.setup();
       renderNav();
@@ -297,7 +297,7 @@ describe("<Nav />", () => {
       const user = userEvent.setup();
       renderNav();
       await user.click(trigger());
-      const outside = screen.getByRole("button", { name: /toggle navigation/i });
+      const outside = screen.getByRole("button", { name: /site menu/i });
       await user.click(outside);
       expect(isOpen()).toBe(false);
       expect(outside).toHaveFocus();
@@ -332,19 +332,19 @@ describe("<Nav />", () => {
     });
   });
 
-  describe("hamburger menu", () => {
-    it("aria-controls links the toggle to the mobile menu panel", () => {
+  describe("Site menu toggle", () => {
+    it("aria-controls links the toggle to the Site menu panel", () => {
       renderNav();
-      const btn = screen.getByRole("button", { name: /toggle navigation/i });
+      const btn = screen.getByRole("button", { name: /site menu/i });
       const menu = screen.getByRole("navigation", { name: /site menu/i });
-      expect(btn).toHaveAttribute("aria-controls", "site-mobile-nav");
-      expect(menu).toHaveAttribute("id", "site-mobile-nav");
+      expect(btn).toHaveAttribute("aria-controls", "site-menu");
+      expect(menu).toHaveAttribute("id", "site-menu");
     });
 
     it("starts collapsed and toggles open then closed", async () => {
       const user = userEvent.setup();
       renderNav();
-      const btn = screen.getByRole("button", { name: /toggle navigation/i });
+      const btn = screen.getByRole("button", { name: /site menu/i });
       const menu = screen.getByRole("navigation", { name: /site menu/i });
 
       expect(btn).toHaveAttribute("aria-expanded", "false");
@@ -376,10 +376,10 @@ describe("<Nav />", () => {
   describe("mobile mode", () => {
     beforeEach(() => setupMatchMedia(true));
 
-    it("Escape closes the mobile menu", async () => {
+    it("Escape closes the Site menu", async () => {
       const user = userEvent.setup();
       renderNav();
-      const btn = screen.getByRole("button", { name: /toggle navigation/i });
+      const btn = screen.getByRole("button", { name: /site menu/i });
       await user.click(btn);
       const menu = screen.getByRole("navigation", { name: /site menu/i });
       expect(menu).not.toHaveClass("pointer-events-none");
@@ -393,7 +393,7 @@ describe("<Nav />", () => {
     // The Site menu closes on a link choice, a click outside or a focus out, and
     // a link choice gives focus to the new page's route content (#248).
     describe("Site menu (#248)", () => {
-      // The app shell: route content between the header and an outside button,
+      // The app shell: route content between the Top Nav and an outside button,
       // as app.tsx holds it between Nav and Footer. /about holds no item that
       // takes focus; /readme holds one.
       const renderRoutes = () => {
@@ -427,14 +427,14 @@ describe("<Nav />", () => {
           </MemoryRouter>
         ));
       };
-      const toggle = () => screen.getByRole("button", { name: /toggle navigation/i });
+      const toggle = () => screen.getByRole("button", { name: /site menu/i });
       const menu = () => screen.getByRole("navigation", { name: /site menu/i });
       const openMenu = async (user: ReturnType<typeof userEvent.setup>) => {
         await user.click(toggle());
         expect(toggle()).toHaveAttribute("aria-expanded", "true");
       };
 
-      it("a click on About loads it, closes the menu, and gives focus to Toggle navigation", async () => {
+      it("a click on About loads it, closes the menu, and gives focus to Site menu", async () => {
         const user = userEvent.setup();
         renderRoutes();
         await openMenu(user);
@@ -528,7 +528,7 @@ describe("<Nav />", () => {
 
       // A modifier click opens a new tab, so the router does not route.
       // A pointer hits the icon, which the click swaps out of the page.
-      it("a click on Toggle navigation opens a closed menu and closes an open menu", async () => {
+      it("a click on Site menu opens a closed menu and closes an open menu", async () => {
         const user = userEvent.setup();
         renderRoutes();
         await user.click(toggle().querySelector("svg")!);
@@ -538,7 +538,7 @@ describe("<Nav />", () => {
       });
     });
 
-    it("click outside closes the profile dropdown", async () => {
+    it("click outside closes the Profile menu", async () => {
       const user = userEvent.setup();
       renderNav();
       const trigger = screen.getByRole("button", { name: /profile menu/i });
@@ -560,8 +560,8 @@ describe("<Nav /> — the Draft guard (ADR-0030)", () => {
     setupMatchMedia(false); // desktop
   });
 
-  // A form that holds a Draft, as a Comment compose box with text would.
-  function DraftHolder() {
+  // A form that has a Draft, as a Comment compose box with text would.
+  function FormWithDraft() {
     useDraftGuard().report(Symbol("test-draft"), true);
     return null;
   }
@@ -580,7 +580,7 @@ describe("<Nav /> — the Draft guard (ADR-0030)", () => {
           </AuthProvider>
         )}
       >
-        <Route path="/" component={DraftHolder} />
+        <Route path="/" component={FormWithDraft} />
       </MemoryRouter>
     ));
 
@@ -615,14 +615,14 @@ describe("<Nav /> — the Draft guard (ADR-0030)", () => {
           </AuthProvider>
         )}
       >
-        <Route path="/" component={DraftHolder} />
+        <Route path="/" component={FormWithDraft} />
         <Route path="/about" component={() => <p>about page</p>} />
         <Route path="/readme" component={() => <button type="button">readme action</button>} />
       </MemoryRouter>
     ));
     const dialogName = "You have unsaved changes. Discard them?";
 
-    await user.click(screen.getByRole("button", { name: /toggle navigation/i }));
+    await user.click(screen.getByRole("button", { name: /site menu/i }));
     const menu = screen.getByRole("navigation", { name: /site menu/i });
     await user.click(within(menu).getByRole("link", { name: "About" }));
     await user.click(

@@ -37,7 +37,7 @@ pub struct PostComment {
 	pub content: String,
 
 	// -- Timestamps
-	// creator user_id and time
+	// creating user_id and time
 	pub cid: i64,
 	pub ctime: OffsetDateTime,
 	// last modifier user_id and time
@@ -210,12 +210,13 @@ mod tests {
 		// -- Setup & Fixtures
 		let mm = _dev_utils::init_test().await;
 		let root = Ctx::root_ctx();
-		let poster_id = seed_user(&root, &mm, "test_pc_list-poster").await?;
+		let post_owner_id = seed_user(&root, &mm, "test_pc_list-post-owner").await?;
 		let author_id = seed_user(&root, &mm, "test_pc_list-author").await?;
 		let post_id =
-			seed_post(&Ctx::new(poster_id)?, &mm, "test_pc_list post", &[1]).await?;
+			seed_post(&Ctx::new(post_owner_id)?, &mm, "test_pc_list post", &[1])
+				.await?;
 		let other_post =
-			seed_post(&Ctx::new(poster_id)?, &mm, "test_pc_list other", &[1])
+			seed_post(&Ctx::new(post_owner_id)?, &mm, "test_pc_list other", &[1])
 				.await?;
 		let ctx = Ctx::new(author_id)?;
 		let lisa = Ctx::new(1)?; // the seeded author User with an avatar

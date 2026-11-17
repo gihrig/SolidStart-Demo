@@ -4,7 +4,7 @@ import LoginForm from "./LoginForm";
 import ModalDialog from "./ModalDialog";
 
 export interface LoginDialogProps {
-  /** Runs on every close: a successful login, Cancel, or Escape. The owner
+  /** Runs on every close: a successful login, Cancel, or Escape. The parent component
    *  unmounts the dialog to close it. */
   onClose: () => void;
 }

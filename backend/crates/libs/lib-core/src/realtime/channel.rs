@@ -3,11 +3,10 @@ use crate::model::ModelManager;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-/// The one exported realtime **Channel** vocabulary (CONTEXT.md "Channel"): the
+/// The one exported realtime **Channel** vocabulary (GLOSSARY.md "Channel"): the
 /// routing key an Event is addressed to and a Subscription names. It is the wire
 /// kind a `SubscriptionRequest` carries, the key the send task routes on, and
-/// the authorize rule — the three types ADR-0018 kept apart (`WsEvent` mapping,
-/// `ChannelKind` wire, `Channel` routing), merged into one (ADR-0020). ts-rs
+/// the authorize rule, in one type (ADR-0020). ts-rs
 /// exports it, so the front-end mirrors it. Adjacently tagged: the wire is
 /// `{ "kind": <string>, "id": <i64> }`, with `id` present only where the variant
 /// carries one. `posts` is the id-less global list-feed poke — a subscriber

@@ -5,7 +5,7 @@ const BREAK_CHARS = /['"()\\]/;
  * A URL string that has cleared the sanitize boundary. The only two minters are
  * `sanitizeUrl` (checks untrusted runtime input) and `trustedUrl` (a developer's
  * promise about a constant). Consumers require `SafeUrl`, so a raw string can't
- * reach a URL sink without passing one of them (see ADR-0006).
+ * reach a URL sink without passing one of them (see ADR-0019).
  */
 export type SafeUrl = string & { readonly __brand: "SafeUrl" };
 

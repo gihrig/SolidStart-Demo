@@ -233,11 +233,11 @@ describe("useDraftForm (#270)", () => {
     expect(onSaved).toHaveBeenCalledExactlyOnceWith("saved");
     expect(guard.hasDraft()).toBe(false);
     setRerun(1);
-    expect(guard.hasDraft(), "a re-run does not hold it again").toBe(false);
+    expect(guard.hasDraft(), "a re-run does not report it again").toBe(false);
 
     setDirty(false);
     setDirty(true);
-    expect(guard.hasDraft(), "a new change holds a Draft again").toBe(true);
+    expect(guard.hasDraft(), "a new change has a Draft again").toBe(true);
   });
 
   it("a write that resolves to undefined is a saved write", async () => {

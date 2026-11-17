@@ -53,7 +53,7 @@ pub struct CaptionComment;
 /// type error. One exception: the like helpers (`broadcast_post_like`,
 /// `broadcast_caption_like`) take the write's
 /// outcome and mint their receipt without a poke when no row changed (an
-/// idempotent repeat, ADR-0016 addendum, #122, #123).
+/// idempotent repeat, ADR-0016, #122, #123).
 pub struct PokeReceipt<C> {
 	_channel: PhantomData<C>,
 }

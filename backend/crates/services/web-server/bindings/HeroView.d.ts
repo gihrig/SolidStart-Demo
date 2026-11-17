@@ -2,9 +2,9 @@
 
 /**
  * The **public projection** of the Hero singleton (ADR-0021): the home page
- * banner content, minus the audit columns (`cid` / `mid` / `ctime` / `mtime`).
- * There is no `cta_href`: the CTA runs fixed front-end code (ADR-0011
- * addendum). `base::get` selects exactly these columns, so the audit columns
+ * Hero content, minus the audit columns (`cid` / `mid` / `ctime` / `mtime`).
+ * There is no `cta_href`: the CTA runs fixed front-end code (ADR-0011).
+ * `base::get` selects exactly these columns, so the audit columns
  * are never queried.
  */
 export type HeroView = { id: number, title: string, subtitle: string, cta_text: string, background_image: string, };

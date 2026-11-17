@@ -1,8 +1,7 @@
 # Front-end — SolidStart Demo
 
-SolidJS + SolidStart app with TailwindCSS v4, MDX, TypeScript, and Playwright e2e
-tests. Runtime: Bun. Cross-cutting rules live in the root `CLAUDE.md`; this file
-holds the front-end-specific rules and loads when Claude works in `frontend/`.
+Cross-cutting rules live in the root `CLAUDE.md`; this file holds the
+front-end-specific rules and loads when Claude works in `frontend/`.
 
 ---
 
@@ -11,6 +10,13 @@ holds the front-end-specific rules and loads when Claude works in `frontend/`.
 - Use `solidjs-solidstart-expert` skills
 - Use `tailwind-design-system` when creating styles
 
+## Code navigation
+
+- If the LSP tool is available, use it (hover, goToDefinition, findReferences) for
+  types and references in `frontend/` before falling back to grep. It does **not**
+  report type errors after an edit (TypeScript 7 sends diagnostics only on
+  request), so still run `vp check` to see them.
+
 ## Code Output Rules
 
 - Write complete code, with no placeholder elisions such as `// ...rest unchanged`.
@@ -18,7 +24,6 @@ holds the front-end-specific rules and loads when Claude works in `frontend/`.
 - Static data arrays belong **outside** the component function.
 - Signal naming follows `[value, setValue]`.
 - Props interfaces named `<Component>Props`.
-- Component names PascalCase.
 - Imports ordered: external → internal → components.
 - Style dark/light mode using theme variables.
 - Do not use Tailwind `dark` class.
@@ -30,54 +35,9 @@ holds the front-end-specific rules and loads when Claude works in `frontend/`.
 
 ## Project Commands
 
-All project-specific scripts must use `vpr <script>` (not `vp <script>`) to avoid invoking Vite+ built-ins. A `cgs <script>` surface (`frontend/Scripts.toml`) also proxies these package.json scripts through `vpr` (ADR-0010 addendum), so `cgs test`/`build`/etc. work here too.
+All project-specific scripts must use `vpr <script>` (not `vp <script>`) to avoid invoking Vite+ built-ins. A `cgs <script>` surface (`frontend/Scripts.toml`) also proxies these package.json scripts through `vpr` (ADR-0010), so `cgs test`/`build`/etc. work here too. The scripts and their flags live in `package.json`.
 
-### Development
-
-| Command          | Description                                 |
-| ---------------- | ------------------------------------------- |
-| `vpr dev`        | Start dev server (port 3000, behind edge)   |
-| `vpr build`      | Production build                            |
-| `vpr start`      | Start production server                     |
-| `vpr check`      | Format, lint, and type-check with auto-fix  |
-| `vpr check:type` | TypeScript type-check only (`tsc --noEmit`) |
-
-### Testing
-
-| Command                    | Description                                 |
-| -------------------------- | ------------------------------------------- |
-| `vpr test:all`             | Run all unit + component tests              |
-| `vpr test:unit`            | Run `src/lib` unit tests only               |
-| `vpr test:unit -t "regex"` | Run `src/lib` unit tests matching regex     |
-| `vpr test:comp`            | Run `src/components` tests only             |
-| `vpr test:comp -t "regex"` | Run `src/components` tests matching regex   |
-| `vpr test:cover`           | Run tests with V8 coverage report           |
-| `vpr test:e2e`             | Run Playwright e2e tests (see gotcha below) |
-| `vpr test:show`            | Open last Playwright HTML report            |
-| `vpr test:all:watch`       | Watch mode for all tests                    |
-| `vpr test:unit:watch`      | Watch mode for unit tests                   |
-| `vpr test:comp:watch`      | Watch mode for component tests              |
-
-### Other
-
-| Command             | Description                   |
-| ------------------- | ----------------------------- |
-| `vpr audit`         | Security audit                |
-| `vpr lighthouse`    | Lighthouse report (see below) |
-| `vpr update`        | Update dependencies           |
-| `vpr update:latest` | Update dependencies to latest |
-| `vp i <pkg>`        | Install a package via Vite+   |
-
-## Tech Stack
-
-- **Framework**: SolidStart (SSR) + SolidJS/Router
-- **Server**: Vinxi
-- **Styles**: Tailwind CSS v4 (Vite plugin, no config file needed)
-- **Linting**: vp check (includes --fix) — Formats and corrects errors
-- **Build**: Vinxi (Vite plus) + vite-tsconfig-paths for `~` aliases
-- **MDX**: `@vinxi/plugin-mdx` configured in `app.config.ts`; example route at `src/routes/readme.mdx`
-
-Key config files: `app.config.ts` (SolidStart/Vinxi), `vite.config.ts`, `vitest.config.ts`, `vitest-setup.ts` (global test setup), `playwright.config.ts`.
+## Config and tests
 
 Test location: Tests are co-located with file under test
 
@@ -88,7 +48,6 @@ Test naming: lib utilities use `.unit.test.ts`, components use `.test.tsx`, End 
 - **Back-end lives in `backend/` (same repo, ADR-0010)**: `src/lib/backend-rpc.ts` posts JSON-RPC to `/api/rpc` on the page's origin (`credentials: "include"` cookie auth; SSR calls `http://localhost:8080` directly); `src/lib/feed.websocket.ts` connects to `/ws` on the page's origin. The HTTPS edge at `https://localhost:3443` (root `Caddyfile`, ADR-0034) routes both to the back-end, so open the app there: `http://localhost:3000` alone cannot log in. Root `cgs dev` starts the edge with both servers. Auth state lives in `src/components/AuthContext.tsx` (`AuthProvider`/`useAuth`). The back-end must be running for auth and the Jedi home route to work — same back-end the e2e probe checks.
 - **e2e boots both servers; Postgres must already be up**: `vpr test:e2e` runs `./src/lib/test-e2e.sh`, which starts the **back-end** (release, via `cgs start`), the **front-end** (`vinxi start`, port 3000) and the **HTTPS edge** (`scripts/caddy.sh`, port 3443), waits for each (probing `http://localhost:8080/api/rpc` for HTTP 401 + `NO_AUTH`, then the page and `/api/rpc` through the edge with `--cacert`), runs Playwright against `https://localhost:3443` (`ignoreHTTPSErrors`), then stops the servers it started. It does **not** start Postgres — run `cgs db` (from `backend/`) first. If anything already listens on `:8080` or `:3443`, the script exits with an error and leaves that server running — stop it first (#129). Each run starts its own back-end, and each back-end start rebuilds the DB from the seed, so the seed-count checks always see the seed. Back-end log level defaults to `warn` (quiet); override per run with `E2E_RUST_LOG=debug vpr test:e2e`. The two-client spec `e2e/live.spec.ts` changes seeded counts, so only the `live` Playwright project runs it, after the `chromium`/`firefox`/`webkit` projects finish (`dependencies`). A failure in a browser project skips `live`, and `--project=chromium` alone never runs it; CI runs it as its own step, `playwright test --project=live --no-deps`, after the chromium step. Back-end build/stderr goes to `reports/e2e-backend.stderr.log` and edge stderr to `reports/e2e-edge.stderr.log` (git-ignored), not the terminal.
 - **Runtime pins: Node from `.node-version`, bun from `packageManager`**: `frontend/.node-version` (`24.21.0`) is the single Node pin. The Vite+ `node` shim (`~/.vite-plus/bin/node`) reads it locally, and every CI `setup-node` step reads it via `node-version-file`. Node is required even though bun installs packages: the `vp` launcher runs on Node (including `prepare: vp config` during `bun install`). vite-plus 1.0 needs Node `^22.18.0 || ^24.11.0 || >=26.0.0`; the `vp staged` pre-commit hook needs `^22.22.1 || ^24.11.0 || >=26.0.0`. bun is pinned to `1.4.2` (`packageManager`, CI `setup-bun`); bun 1.4 writes `bun.lock` as `"lockfileVersion": 2`, which bun 1.3 cannot read, so bump local and CI bun together. bun ignores `engines`, so `engines.bun` documents but does not enforce.
-- **`update`/`update:latest` scripts call `bun` directly**: These scripts run `bun update` directly, not through `vp`. They are the only place the project calls `bun` directly.
 - **`check` script adds `--fix`**: `vpr check` runs `vp check --fix` (auto-fixes formatting/lint). Use `vp check` directly to avoid mutations.
 - **`vpr lighthouse` boots all three servers and requires Brave Browser**: `./src/lib/lighthouse.sh` starts the back-end (release), the front-end and the HTTPS edge, like `test-e2e.sh`. It waits until the edge serves the page and routes `/api`, writes `reports/lighthouse/lighthouse-report.html`, then stops the servers. Postgres must already be up (`cgs db`), and it refuses to run if `:8080`, `:3000` or `:3443` is busy. The back-end start rebuilds the DB from the seed. The script hardcodes `/Applications/Brave Browser.app/Contents/MacOS/Brave Browser` as `CHROME_PATH`, so it fails on machines without Brave at that path. `lighthouse` is a pinned devDependency; no CI job runs it yet.
 - **Unit-test credentials live in `frontend/.env.test`**: `backend-rpc.unit.test.ts` reads demo login creds from `import.meta.env.VITE_TEST_USERNAME` / `VITE_TEST_PASSWORD` (Vite loads `.env.test` in test mode). The file is committed (not git-ignored, unlike `.env`), so unit tests pass on CI/fresh clones with **no extra env setup**; the test throws loudly if the vars are missing. Real secrets belong in `.env.test.local` (git-ignored).

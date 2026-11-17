@@ -6,8 +6,8 @@ import ConfirmDialog from "~/components/ConfirmDialog";
 const DRAFT_WARNING = "Your unsaved changes will be discarded.";
 
 export interface OwnerActionsProps {
-  /** What the actions act on, in the button labels: "Post" or "caption". */
-  noun: string;
+  /** What the actions act on, in the button labels: the glossary term. */
+  noun: "Post" | "Caption";
   /** The author of the Post or the Caption; undefined when there is none yet. */
   author?: AuthorRef;
   /** Only a logged-in User sees the buttons; a visitor sees none. */
@@ -36,7 +36,7 @@ export interface OwnerActionsProps {
 
 /**
  * Edit and Delete (#123). A logged-in User always sees both; they are enabled
- * only for the Owner, and stay disabled until the viewer's id loads. This only
+ * only for the Owner, and stay disabled until the User's id loads. This only
  * gates buttons; the back-end owns enforcement. Delete asks first (#187), with
  * "Cancel" the default; Escape cancels. The question exists only while it is
  * open, and focus then returns to Delete. It is about one subject: a change of
