@@ -1,7 +1,7 @@
 import { tabStops } from "~/lib/keepDialogFocus";
 
 /** The id of the element that holds the route content: the page between the
- *  header (`Nav`) and the `Footer`. `app.tsx` sets it (#248). */
+ *  Top Nav (`Nav`) and the `Footer`. `app.tsx` sets it (#248). */
 export const ROUTE_CONTENT_ID = "route-content";
 
 /** Gives focus to the first item in the route content that takes focus, else to

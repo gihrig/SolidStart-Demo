@@ -38,7 +38,7 @@ describe("<ConfirmDialog />", () => {
     expect(shown()).toBeNull();
   });
 
-  it("each open shows a fresh dialog, and the owner's close closes it in the browser (#214)", () => {
+  it("each open shows a fresh dialog, and the parent component's close closes it in the browser (#214)", () => {
     // Chromium closes a reused modal dialog that opens with no user gesture
     // over another one, such as the route-move question after the browser's
     // Back over the New Post dialog. The browser's close returns focus.
@@ -76,7 +76,7 @@ describe("<ConfirmDialog />", () => {
     expect(shown()).toBeNull();
   });
 
-  it("treats Escape as cancel, and the owner closes it", () => {
+  it("treats Escape as cancel, and the parent component closes it", () => {
     const { setOpen, onConfirm, onCancel } = renderConfirm();
     setOpen(true);
     // A browser fires `cancel` on Escape.

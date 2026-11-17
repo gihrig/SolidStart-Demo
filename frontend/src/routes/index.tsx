@@ -2,14 +2,14 @@ import "@fontsource/lobster";
 import { Title, Meta } from "@solidjs/meta";
 import { Show, Switch, Match } from "solid-js";
 import { useDisclosure } from "~/lib/useDisclosure";
-import { createJediFeed } from "~/lib/jedi/createJediFeed";
+import { createJediPage } from "~/lib/jedi/createJediPage";
 import type { Feed } from "~/lib/feed";
 import { createWebSocketFeed } from "~/lib/feed.websocket";
 import { useAuth } from "~/components/AuthContext";
 import { useDraftGuard } from "~/components/DraftGuardContext";
 import { useNewPost } from "~/components/NewPostContext";
 import Hero from "~/components/Hero";
-import FeaturedPost from "~/components/FeaturedPost";
+import PostCard from "~/components/PostCard";
 import CategoriesCard from "~/components/CategoriesCard";
 import TopPhotosCard from "~/components/TopPhotosCard";
 import TopCaptionsCard from "~/components/TopCaptionsCard";
@@ -54,7 +54,7 @@ export default function Home() {
     announcement,
     connectFeed,
     postCreated,
-  } = createJediFeed({ guard: useDraftGuard() });
+  } = createJediPage({ guard: useDraftGuard() });
 
   const sidebar = useDisclosure({ id: "jedi-sidebar" });
   const newPost = useNewPost();
@@ -107,7 +107,7 @@ export default function Home() {
             </Match>
             <Match when={selectedPost()}>
               {(post) => (
-                <FeaturedPost
+                <PostCard
                   post={post()}
                   caption={selectedCaption()}
                   loggedIn={isAuthenticated()}

@@ -10,7 +10,7 @@ beforeAll(stubDialogModal);
 const dialog = () => screen.getByRole("dialog") as HTMLDialogElement;
 const shown = () => screen.queryByRole("dialog", { hidden: true });
 
-// A small test dialog. Its owner holds the open state, and its Cancel
+// A small test dialog. Its parent component holds the open state, and its Cancel
 // unmounts it, unless `keepOnCancel` is set.
 function renderTestDialog(options: { keepOnCancel?: boolean } = {}) {
   const [open, setOpen] = createSignal(true);
@@ -82,7 +82,7 @@ describe("<ModalDialog />", () => {
     expect(screen.getByRole("button", { name: "Default" })).toHaveFocus();
   });
 
-  it("Escape runs the Cancel; the module stops the `cancel`, so the owner closes it", () => {
+  it("Escape runs the Cancel; the module stops the `cancel`, so the parent component closes it", () => {
     const { onCancel } = renderTestDialog();
     const e = escape();
     expect(e.defaultPrevented, "the dialog does not close itself").toBe(true);

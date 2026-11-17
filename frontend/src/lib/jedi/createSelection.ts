@@ -39,7 +39,7 @@ export interface OwnerWrites<Changes> {
    *  asked about. It must still be the subject shown, or nothing is deleted
    *  and it rejects (PR #216 review). It releases the Drafts on the subject
    *  first, as the poke can arrive before the result, and refetches at once.
-   *  Rejects on failure, and the guard holds the Drafts again. */
+   *  Rejects on failure, and the guard has the Drafts again. */
   remove: (id: number) => Promise<void>;
   /** Whether `remove` would discard a Draft: the delete question says so. */
   removeDiscardsDraft: () => boolean;
@@ -69,7 +69,7 @@ export interface SelectionCalls {
   addCaption: (postId: number, text: string) => Promise<CaptionView>;
 }
 
-/** The inputs of the selection: the Posts and the filter, which its owner
+/** The inputs of the selection: the Posts and the filter, which its parent view-model
  *  keeps, the back-end calls, and the app's Draft guard. */
 export interface SelectionDeps {
   /** The ranked Posts of every Category; undefined while they load. */
@@ -140,7 +140,7 @@ export interface SelectionState {
     post: Signal<number | undefined>;
     caption: Signal<number | undefined>;
   };
-  /** The cause check of a new Post list (#187). The owner of the Posts calls
+  /** The cause check of a new Post list (#187). The parent view-model of the Posts calls
    *  it before the view sees the list: a deleted Post is a forced discard of
    *  the Drafts on it, and a Post that left the Category asks. */
   checkPosts: (list: PostView[]) => void;
@@ -198,7 +198,7 @@ const inCategory = (post: PostView, category: JediCategory): boolean =>
  * The Captions resource sits here, keyed on the Post shown: the memo of the
  * Caption edit reads the Captions when the module starts. A resource outside
  * would need a late binding, the ordering trap that #191 D1 removed. The Posts
- * resource stays with the owner, whose fetcher calls `checkPosts` before the
+ * resource stays with the parent view-model, whose fetcher calls `checkPosts` before the
  * view sees the new list.
  */
 export function createSelection(deps: SelectionDeps): SelectionState {
@@ -373,7 +373,7 @@ export function createSelection(deps: SelectionDeps): SelectionState {
   const captionEdit = editState(captionEditOn, setCaptionEditOn, () => selectedCaption()?.id);
 
   // A held Post that is not in the full list was deleted (#187): a forced
-  // discard of every Draft on it. A viewer without a Draft hears it. A held
+  // discard of every Draft on it. A User without a Draft hears it. A held
   // Post that the list moves out of the selected Category stays shown, and the
   // guard asks, once per leave, whether to keep the Drafts on it.
   const checkPosts = (list: PostView[]): void => {
@@ -392,7 +392,7 @@ export function createSelection(deps: SelectionDeps): SelectionState {
     setKeptPostId(shown.id);
     // "Discard" also closes the Post edit and the Comments panels (#271), so
     // the Post hold ends and the Post card moves: no form stays open with text
-    // that the guard no longer holds.
+    // that the guard no longer has.
     guard.ask(leftCategoryNotice(category.name), postScope, () => {
       setPostEditOn(undefined);
       postThreadOpenOn[1](undefined);
@@ -429,7 +429,7 @@ export function createSelection(deps: SelectionDeps): SelectionState {
 
   // The Owner's own delete (#187). The Drafts on the subject go when the Owner
   // confirms, as the poke can arrive before the result (ADR-0016); a failed
-  // delete holds them again. The refetch does not wait for the poke, which a
+  // delete has them again. The refetch does not wait for the poke, which a
   // socket drop can lose.
   const deleteSubject = async (
     id: number,

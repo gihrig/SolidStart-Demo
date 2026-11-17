@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-// Jedi is the home page now (issue #62): `/` serves the Jedi feed under the
+// Jedi is the home page now (issue #62): `/` serves the Jedi page under the
 // global Jedi-styled nav. This spec covers the home route's chrome; the Jedi
 // feature UI is covered in jedi.spec.ts (also at `/`).
 test.describe("Home Page", () => {

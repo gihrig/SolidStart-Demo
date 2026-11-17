@@ -135,7 +135,7 @@ describe("useDisclosure", () => {
     mockMatchMedia(false);
     createRoot((dispose) => {
       const [guardOpen, setGuardOpen] = createSignal(true);
-      // e.g. a mobile nav that must stay open while its own dropdown is open.
+      // e.g. an outer menu that must stay open while its own nested menu is open.
       const d = useDisclosure({ id: "d", dismissWhen: () => !guardOpen() });
       d.toggle();
       expect(d.open()).toBe(true);

@@ -9,7 +9,7 @@ pub fn rpc_router_builder() -> RouterBuilder {
 	router_builder!(update_hero,)
 }
 
-/// The public Hero RPC: the anonymous home page reads the banner (#119).
+/// The public Hero RPC: the anonymous home page reads the Hero (#119).
 pub fn public_rpc_router_builder() -> RouterBuilder {
 	router_builder!(get_hero,)
 }

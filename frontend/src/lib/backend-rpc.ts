@@ -51,7 +51,7 @@ export function createRpcClient() {
   let rpcId = 0;
 
   // `path` selects the RPC surface: the default authed "/api/rpc", or the public
-  // "/api/rpc-public" for reads an anonymous visitor may run (e.g. the Jedi feed
+  // "/api/rpc-public" for reads an anonymous visitor may run (e.g. the Jedi page
   // taxonomy). Both send the cookie; the public surface simply does not require it.
   async function rpcCall<T>(
     method: string,
@@ -92,7 +92,7 @@ export function createRpcClient() {
   // `authenticatedRpc` posts to the authenticated surface: the mutations, and
   // the reads that need a login (e.g. the caller's like state, the profile).
   // `publicRpc` posts to the public surface: the reads an anonymous visitor
-  // may run (the Jedi feed, its taxonomy, the Hero).
+  // may run (the Jedi page, its taxonomy, the Hero).
   function authenticatedRpc<M extends keyof AuthenticatedRpc>(
     method: M,
     ...params: ParamsArg<AuthenticatedRpc[M]["params"]>

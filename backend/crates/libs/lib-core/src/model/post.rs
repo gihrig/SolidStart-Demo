@@ -1079,8 +1079,13 @@ mod tests {
 			.bind(b_id)
 			.execute(mm.dbx().db())
 			.await?;
-			_dev_utils::seed_caption_comment(&ctx_b, &mm, caption_id, "B's reply")
-				.await?;
+			_dev_utils::seed_caption_comment(
+				&ctx_b,
+				&mm,
+				caption_id,
+				"B's Caption Comment",
+			)
+			.await?;
 		}
 		seed_post_like(&mm, other_post, b_id).await?;
 		let other_caption =

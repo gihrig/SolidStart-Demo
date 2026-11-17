@@ -172,11 +172,11 @@ test.describe("Footer Navigation Integration", () => {
 test("logs in through the Nav login dialog", async ({ page }) => {
   await page.goto("/");
   await page.waitForLoadState("networkidle");
-  const header = page.getByRole("banner");
-  const profileMenu = header.getByRole("button", { name: "Profile menu" });
+  const topNav = page.getByRole("banner");
+  const profileMenu = topNav.getByRole("button", { name: "Profile menu" });
 
   await profileMenu.click();
-  await header.getByRole("button", { name: "Log In" }).click();
+  await topNav.getByRole("button", { name: "Log In" }).click();
   const dialog = page.getByRole("dialog", { name: "Log In" });
   await expect(dialog).toBeVisible();
   // The fields open empty, so type the demo credentials.
@@ -188,7 +188,7 @@ test("logs in through the Nav login dialog", async ({ page }) => {
   await dialog.getByRole("button", { name: /^log in$/i }).click();
 
   await expect(dialog).toBeHidden({ timeout: 10000 });
-  await expect(header.getByText("demo1", { exact: true })).toBeVisible();
+  await expect(topNav.getByText("demo1", { exact: true })).toBeVisible();
   await expect(profileMenu).toBeFocused();
 });
 
@@ -294,7 +294,7 @@ test.describe("Top Nav current page and hover", () => {
     });
   }
 
-  // The Top Nav accent override is not on .site-header, so the Profile menu
+  // The Top Nav accent override is not on .top-nav, so the Profile menu
   // panel inside it keeps the Light Theme accent: sky-500 on its zinc-200 card
   // is 2.14:1.
   test("in Light Theme, the focus ring of a Theme item is still sky-700", async ({ page }) => {
@@ -437,7 +437,7 @@ test.describe("Site menu link choice (#248)", () => {
       await focused.evaluate((el) => document.getElementById("route-content")!.contains(el)),
     ).toBe(true);
 
-    // The browser's own Tab order: one Tab from the toggle, the last header
+    // The browser's own Tab order: one Tab from the toggle, the last Top Nav
     // control, reaches the first item in the route content. WebKit, as Safari
     // on macOS, skips links on Tab; Option+Tab includes them.
     await toggle.focus();

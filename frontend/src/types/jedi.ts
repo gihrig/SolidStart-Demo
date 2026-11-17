@@ -32,8 +32,8 @@ export interface PostView {
   commentCount: number;
 }
 
-/** The viewer's like state of one Like target, a Post (#122) or a Caption
- *  (#123): the live count, and whether the logged-in viewer likes it. `id` is
+/** The User's like state of one Like target, a Post (#122) or a Caption
+ *  (#123): the live count, and whether the logged-in User likes it. `id` is
  *  the target's id. The anonymous `PostView` cannot carry `liked`. */
 export interface Like {
   id: number;
@@ -43,7 +43,7 @@ export interface Like {
 
 /** A new Post as the create form submits it (#120): the seam maps it to the
  *  wire `PostForCreate`. The back-end validates and rejects unsafe URLs. */
-export interface PostDraft {
+export interface PostInput {
   title: string;
   imageSrc: string;
   imageAlt: string;
@@ -55,7 +55,7 @@ export interface PostDraft {
 
 /** The changed fields of a Post edit (#187): the seam maps them to the wire
  *  `PostForUpdate`. The photo never changes, so there is no `imageSrc`. */
-export type PostChanges = Partial<Omit<PostDraft, "imageSrc">>;
+export type PostChanges = Partial<Omit<PostInput, "imageSrc">>;
 
 /** Hero as returned by the seam: its URL field is sanitized. There is no CTA
  *  href: the CTA runs fixed front-end code (#119, ADR-0011). */

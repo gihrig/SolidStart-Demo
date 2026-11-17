@@ -21,7 +21,7 @@ pub fn app(mm: ModelManager, ws_state: Arc<WsState>) -> Router {
 	let routes_rpc = routes_rpc::routes(mm.clone(), ws_state.clone())
 		.route_layer(middleware::from_fn(mw_ctx_require));
 
-	// Public API endpoints (no auth): the Jedi feed's static reads, e.g.
+	// Public API endpoints (no auth): the Jedi page's static reads, e.g.
 	// `list_categories`, so an anonymous visitor to `/` can load them. Merged
 	// into `/api` WITHOUT the `mw_ctx_require` layer.
 	let routes_rpc_public = routes_rpc::routes_public(mm.clone());
@@ -135,7 +135,7 @@ mod tests {
 		Ok(())
 	}
 
-	/// The public RPC surface serves the Jedi feed's static taxonomy to an
+	/// The public RPC surface serves the Jedi page's static taxonomy to an
 	/// anonymous visitor: `list_categories` on `/api/rpc-public` returns the
 	/// seeded rows with NO login, while the same method on the authed `/api/rpc`
 	/// is rejected (it is not registered there and the surface requires auth).

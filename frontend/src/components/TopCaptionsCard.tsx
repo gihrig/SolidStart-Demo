@@ -5,7 +5,7 @@ import Avatar from "~/components/Avatar";
 import Card from "~/components/Card";
 
 export interface TopCaptionsCardProps {
-  /** The selected post's captions, ranked by likes (the seam re-keys these). */
+  /** The shown Post's Captions, ranked by likes (the seam re-keys these). */
   captions: Accessor<CaptionView[] | undefined>;
   /** Shown under the post in `<main>`; defaults to the winning caption. */
   selectedCaption: Accessor<CaptionView | undefined>;

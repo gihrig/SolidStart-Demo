@@ -782,7 +782,8 @@ mod tests {
 		let id = seed_caption(&ctx_a, &mm, post_id, "goes").await?;
 		let other = seed_caption(&ctx_b, &mm, post_id, "stays").await?;
 		seed_caption_like(&mm, id, b_id).await?;
-		_dev_utils::seed_caption_comment(&ctx_b, &mm, id, "B's reply").await?;
+		_dev_utils::seed_caption_comment(&ctx_b, &mm, id, "B's Caption Comment")
+			.await?;
 		seed_caption_like(&mm, other, a_id).await?;
 		_dev_utils::seed_post_comment(&ctx_b, &mm, post_id, "on the Post").await?;
 

@@ -55,7 +55,7 @@ describe("<TopCaptionsCard />", () => {
     );
   });
 
-  it("marks the selected caption's row as selected", () => {
+  it("marks the shown Caption's row as selected", () => {
     render(() => (
       <TopCaptionsCard
         captions={() => captions}

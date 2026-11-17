@@ -79,7 +79,7 @@ const cancelOf = (box: HTMLElement) =>
 const composeCancel = () => cancelOf(composeBox());
 const editCancel = () => cancelOf(screen.getByRole("textbox", { name: "Edit your Comment" }));
 
-// Open the edit of the viewer's own Comment, and wait for its stored text.
+// Open the edit of the User's own Comment, and wait for its stored text.
 async function openEdit(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Edit Comment" }));
   const editBox = screen.getByRole("textbox", { name: "Edit your Comment" });
@@ -131,7 +131,7 @@ describe("<CommentThread />", () => {
     expect(screen.queryByRole("button", { name: /edit|delete/i })).toBeNull();
   });
 
-  it("takes the compose box's heading from its owner (#210)", () => {
+  it("takes the compose box's heading from its parent component (#210)", () => {
     const { thread } = fakeThread([]);
     render(() => (
       <CommentThread id="t" thread={thread} composeLabel="Caption Comment" loggedIn userId={2} />
@@ -230,7 +230,7 @@ describe("<CommentThread />", () => {
     expect(post).toBeDisabled();
   });
 
-  it("offers Edit / Delete only on the viewer's own Comments", () => {
+  it("offers Edit / Delete only on the User's own Comments", () => {
     const { thread } = fakeThread([comment(1, 2, "mine"), comment(2, 3, "theirs")]);
     render(() => (
       <CommentThread id="t" thread={thread} composeLabel="Post Comment" loggedIn userId={2} />
@@ -241,7 +241,7 @@ describe("<CommentThread />", () => {
     expect(within(theirs).queryByRole("button")).toBeNull();
   });
 
-  it("edits the viewer's own Comment in place", async () => {
+  it("edits the User's own Comment in place", async () => {
     const user = userEvent.setup();
     const { thread } = fakeThread([comment(1, 2, "mine")]);
     render(() => (
@@ -273,7 +273,7 @@ describe("<CommentThread />", () => {
     expect(screen.getByText("mine")).toBeInTheDocument();
   });
 
-  it("deletes the viewer's own Comment", async () => {
+  it("deletes the User's own Comment", async () => {
     const user = userEvent.setup();
     const { thread } = fakeThread([comment(1, 2, "mine")]);
     render(() => (
@@ -363,7 +363,7 @@ describe("<CommentThread /> — the Comment row (#125)", () => {
     expect(within(item).queryByRole("button", { name: /comment$/ })).toBeNull();
   });
 
-  it("disables Save while an edit holds no Draft", async () => {
+  it("disables Save while an edit has no Draft", async () => {
     const user = userEvent.setup();
     const { thread } = fakeThread([comment(1, 2, "mine")]);
     render(() => (
@@ -544,7 +544,7 @@ describe("<CommentThread /> — Drafts (ADR-0030)", () => {
     expect(editBox).toHaveValue("mine!");
   });
 
-  it("an unchanged edit shows a remote edit's text, and holds no Draft", async () => {
+  it("an unchanged edit shows a remote edit's text, and has no Draft", async () => {
     const user = userEvent.setup();
     const { thread, setComments } = fakeThread([comment(1, 2, "mine")]);
     const { guard } = renderGuarded(thread);
@@ -556,7 +556,7 @@ describe("<CommentThread /> — Drafts (ADR-0030)", () => {
     expect(guard.hasDraft()).toBe(false);
   });
 
-  it("an edit holds no Draft until its stored text loads (#126)", async () => {
+  it("an edit has no Draft until its stored text loads (#126)", async () => {
     const user = userEvent.setup();
     const { thread } = fakeThread([comment(1, 2, "mine")]);
     let resolve!: (text: string) => void;

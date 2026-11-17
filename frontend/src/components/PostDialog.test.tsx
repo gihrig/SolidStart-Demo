@@ -6,7 +6,7 @@ import { trustedUrl } from "~/lib/sanitizeUrl";
 import { createDraftGuard, createDraftScope } from "~/lib/createDraftGuard";
 import { stubDialogModal } from "~/lib/test-utils";
 import type { JediApi } from "~/lib/jedi/jedi-api";
-import type { JediCategory, PostChanges, PostDraft, PostView } from "~/types/jedi";
+import type { JediCategory, PostChanges, PostInput, PostView } from "~/types/jedi";
 import PostDialog from "./PostDialog";
 import { DraftGuardContext } from "./DraftGuardContext";
 
@@ -17,7 +17,7 @@ const CATEGORIES: JediCategory[] = [
   { id: 3, name: "Animals", icon: "dog" },
 ];
 
-const DRAFT: PostDraft = {
+const INPUT: PostInput = {
   title: "New arrival",
   imageSrc: "https://live.staticflickr.com/1/2_b.jpg",
   imageAlt: "A cat",
@@ -30,12 +30,12 @@ const DRAFT: PostDraft = {
 const CREATED: PostView = {
   id: 5,
   author: { id: 1, name: "Lisa", avatarUrl: trustedUrl("") },
-  title: DRAFT.title,
-  imageSrc: trustedUrl(DRAFT.imageSrc),
-  imageAlt: DRAFT.imageAlt,
-  photographer: DRAFT.photographer,
-  photographerUrl: trustedUrl(DRAFT.photographerUrl),
-  sourceUrl: trustedUrl(DRAFT.sourceUrl),
+  title: INPUT.title,
+  imageSrc: trustedUrl(INPUT.imageSrc),
+  imageAlt: INPUT.imageAlt,
+  photographer: INPUT.photographer,
+  photographerUrl: trustedUrl(INPUT.photographerUrl),
+  sourceUrl: trustedUrl(INPUT.sourceUrl),
   categories: [CATEGORIES[1]],
   likeCount: 0,
   commentCount: 0,
@@ -54,8 +54,8 @@ beforeEach(() => {
   postCreateMock.mockReset();
 });
 
-// The create mode opens on mount: its owner mounts it to open it (#214). Fill
-// every text field from the draft; Categories stay unchecked so each test
+// The create mode opens on mount: its parent component mounts it to open it (#214). Fill
+// every text field from INPUT; Categories stay unchecked so each test
 // chooses its own.
 async function openAndFill() {
   const user = userEvent.setup();
@@ -63,12 +63,12 @@ async function openAndFill() {
   render(() => <PostDialog api={api} onClose={onClose} />);
   const dialog = screen.getByRole("dialog") as HTMLDialogElement;
   const form = within(dialog);
-  await user.type(form.getByLabelText("Title"), DRAFT.title);
-  await user.type(form.getByLabelText("Image URL"), DRAFT.imageSrc);
-  await user.type(form.getByLabelText("Image description"), DRAFT.imageAlt);
-  await user.type(form.getByLabelText("Photographer"), DRAFT.photographer);
-  await user.type(form.getByLabelText("Photographer URL"), DRAFT.photographerUrl);
-  await user.type(form.getByLabelText("Photo page URL"), DRAFT.sourceUrl);
+  await user.type(form.getByLabelText("Title"), INPUT.title);
+  await user.type(form.getByLabelText("Image URL"), INPUT.imageSrc);
+  await user.type(form.getByLabelText("Image description"), INPUT.imageAlt);
+  await user.type(form.getByLabelText("Photographer"), INPUT.photographer);
+  await user.type(form.getByLabelText("Photographer URL"), INPUT.photographerUrl);
+  await user.type(form.getByLabelText("Photo page URL"), INPUT.sourceUrl);
   return { user, dialog, form, onClose };
 }
 
@@ -141,7 +141,7 @@ describe("<PostDialog />", () => {
     expect(postCreateMock).not.toHaveBeenCalled();
   });
 
-  it("submits the draft, then closes once the Post has landed", async () => {
+  it("submits the input, then closes once the Post has landed", async () => {
     let land!: (post: PostView) => void;
     postCreateMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
     const { user, dialog, form, onClose } = await openAndFill();
@@ -149,7 +149,7 @@ describe("<PostDialog />", () => {
 
     await user.click(form.getByRole("button", { name: "Post" }));
 
-    expect(postCreateMock).toHaveBeenCalledWith(DRAFT);
+    expect(postCreateMock).toHaveBeenCalledWith(INPUT);
     // Until the back-end answers, the dialog stays open and the submit is busy.
     expect(dialog.open).toBe(true);
     expect(onClose).not.toHaveBeenCalled();
@@ -210,7 +210,7 @@ describe("<PostDialog />", () => {
 
     const esc = new Event("cancel", { cancelable: true });
     dialog.dispatchEvent(esc);
-    expect(esc.defaultPrevented, "the owner closes it, not the browser").toBe(true);
+    expect(esc.defaultPrevented, "the parent component closes it, not the browser").toBe(true);
     expect(onClose).toHaveBeenCalledTimes(2);
 
     dialog.close();
@@ -219,7 +219,7 @@ describe("<PostDialog />", () => {
 });
 
 describe("<PostDialog /> — the edit mode (#187)", () => {
-  // The edit opens on mount: the owner mounts it to open it.
+  // The edit opens on mount: the parent component mounts it to open it.
   function renderEdit(post = CREATED) {
     const [shown, setShown] = createSignal(post);
     const onSave = vi.fn<(changes: PostChanges) => Promise<void>>(() => Promise.resolve());
@@ -248,11 +248,11 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
     const { dialog, form } = renderEdit();
     expect(dialog.open).toBe(true);
     expect(dialog).toHaveAccessibleName("Edit Post");
-    expect(input(form, "Title").value).toBe(DRAFT.title);
-    expect(input(form, "Image description").value).toBe(DRAFT.imageAlt);
-    expect(input(form, "Photographer").value).toBe(DRAFT.photographer);
-    expect(input(form, "Photographer URL").value).toBe(DRAFT.photographerUrl);
-    expect(input(form, "Photo page URL").value).toBe(DRAFT.sourceUrl);
+    expect(input(form, "Title").value).toBe(INPUT.title);
+    expect(input(form, "Image description").value).toBe(INPUT.imageAlt);
+    expect(input(form, "Photographer").value).toBe(INPUT.photographer);
+    expect(input(form, "Photographer URL").value).toBe(INPUT.photographerUrl);
+    expect(input(form, "Photo page URL").value).toBe(INPUT.sourceUrl);
     expect(await form.findByRole("checkbox", { name: "Animals" })).toBeChecked();
     expect(form.getByRole("checkbox", { name: "Landscape" })).not.toBeChecked();
   });
@@ -283,7 +283,7 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
   it("shows the photo URL, disabled, with the hint", () => {
     const { form } = renderEdit();
     const imageUrl = input(form, "Image URL");
-    expect(imageUrl.value).toBe(DRAFT.imageSrc);
+    expect(imageUrl.value).toBe(INPUT.imageSrc);
     expect(imageUrl).toBeDisabled();
     expect(imageUrl).toHaveAccessibleDescription("The photo cannot change.");
   });
@@ -301,7 +301,7 @@ describe("<PostDialog /> — the edit mode (#187)", () => {
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
 
-  it("holds a Draft while a field differs from the saved Post; Discard drops it", async () => {
+  it("has a Draft while a field differs from the saved Post; Discard drops it", async () => {
     const { user, form, guard, onClose } = renderEdit();
     expect(guard.hasDraft()).toBe(false);
     await user.type(input(form, "Photographer"), "!");
@@ -359,7 +359,7 @@ describe("<PostDialog /> — the New Post Draft (#214)", () => {
     return { user: userEvent.setup(), dialog, form: within(dialog), guard, onClose };
   }
 
-  it("holds a Draft while a text field is not blank after a trim; spaces alone are not one", async () => {
+  it("has a Draft while a text field is not blank after a trim; spaces alone are not one", async () => {
     const { user, form, guard } = renderCreate();
     expect(guard.hasDraft()).toBe(false);
     await user.type(form.getByLabelText("Photographer"), "   ");
@@ -370,7 +370,7 @@ describe("<PostDialog /> — the New Post Draft (#214)", () => {
     expect(guard.hasDraft()).toBe(false);
   });
 
-  it("holds a Draft while a Category is checked", async () => {
+  it("has a Draft while a Category is checked", async () => {
     const { user, form, guard } = renderCreate();
     await user.click(await form.findByRole("checkbox", { name: "Animals" }));
     expect(guard.hasDraft()).toBe(true);
@@ -390,12 +390,12 @@ describe("<PostDialog /> — the New Post Draft (#214)", () => {
     postCreateMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
     const { user, form, guard, onClose } = renderCreate();
     for (const [label, value] of [
-      ["Title", DRAFT.title],
-      ["Image URL", DRAFT.imageSrc],
-      ["Image description", DRAFT.imageAlt],
-      ["Photographer", DRAFT.photographer],
-      ["Photographer URL", DRAFT.photographerUrl],
-      ["Photo page URL", DRAFT.sourceUrl],
+      ["Title", INPUT.title],
+      ["Image URL", INPUT.imageSrc],
+      ["Image description", INPUT.imageAlt],
+      ["Photographer", INPUT.photographer],
+      ["Photographer URL", INPUT.photographerUrl],
+      ["Photo page URL", INPUT.sourceUrl],
     ] as const) {
       await user.type(form.getByLabelText(label), value);
     }

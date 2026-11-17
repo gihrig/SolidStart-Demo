@@ -243,13 +243,13 @@
     @apply text-lg font-bold;
   }
 
-  .site-header {
+  .top-nav {
     @apply bg-gray-800 text-white sticky top-0 z-50;
   }
 
-  /* The Top Nav is dark in every Theme (.site-header), so its links take the
+  /* The Top Nav is dark in every Theme (.top-nav), so its links take the
      Dark Theme accent in every Theme: sky-500 is 5.41:1 on gray-800, and
-     sky-700 is 2.51:1. The override is not on .site-header: the Profile menu
+     sky-700 is 2.51:1. The override is not on .top-nav: the Profile menu
      panel inside it follows the Theme, and sky-500 on its Light Theme card
      (zinc-200) is 2.14:1 (#247). */
   .site-nav,

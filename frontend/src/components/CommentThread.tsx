@@ -80,7 +80,7 @@ function LengthCount(props: LengthCountProps) {
 /** Whether a length can be sent: not empty after trim, and within the cap. */
 const sendable = (length: number) => length > 0 && length <= COMMENT_MAX_LENGTH;
 
-// A Comment's time, as absolute local time in the viewer's locale (#125). US
+// A Comment's time, as absolute local time in the browser's locale (#125). US
 // English shows "Oct 11, 2026, 9:14 AM". The rows load in the browser only,
 // after hydration, so the server's locale never applies.
 const TIME_FORMAT = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
@@ -106,7 +106,7 @@ function useEnterSubmits() {
 }
 
 /** The text of each `CommentForm` mode. The compose box's heading comes from
- *  the thread's owner (#210). */
+ *  the thread's parent component (#210). */
 const FORM_TEXT = {
   compose: {
     submit: "Add Comment",
@@ -153,9 +153,9 @@ interface CommentFormProps {
  * until a later load succeeds: a save could overwrite a remote edit that the
  * form did not load.
  *
- * It reports its Draft to the app's guard (ADR-0030): a compose box holds one
+ * It reports its Draft to the app's guard (ADR-0030): a compose box has one
  * while its text is not blank, and an edit while its text differs from the
- * saved Comment. An edit holds none until its text loads. A remote edit moves
+ * saved Comment. An edit has none until its text loads. A remote edit moves
  * the row's `mtime`, so the edit loads the text again: an unchanged edit shows
  * the new text, and a changed one keeps the user's text. A Cancel with a Draft
  * asks first, and Escape is the Cancel; the form reports its write to the
@@ -199,11 +199,11 @@ function CommentForm(props: CommentFormProps) {
       },
     ),
   );
-  // An edit holds a Draft while its loaded text differs from the saved
+  // An edit has a Draft while its loaded text differs from the saved
   // Comment; the compose box while its text is not blank.
   const dirty = () => (props.comment ? loaded() && value() !== saved() : value().trim() !== "");
   const composeEmpty = () => !props.comment && value() === "";
-  // The Cancel's step. The hook asks first while the form holds a Draft, about
+  // The Cancel's step. The hook asks first while the form has a Draft, about
   // this form only (#214): the compose box and the edits share one scope. An
   // edit's Cancel closes it. The compose box's Cancel empties it, and focus
   // moves to its text field (#210).
@@ -418,7 +418,7 @@ function CommentItem(props: CommentItemProps) {
 
 /**
  * A Post's or a Caption's Comment thread (#124, #127), the content of an
- * inline panel in `FeaturedPost`, which owns the panel element. Everyone reads it; a logged-in
+ * inline panel in `PostCard`, which owns the panel element. Everyone reads it; a logged-in
  * User posts, and edits or deletes their own Comments. The thread lists the
  * newest Comment first, so the compose box sits above the list (#125). Each
  * body is rendered markdown (#126). The compose box sits outside

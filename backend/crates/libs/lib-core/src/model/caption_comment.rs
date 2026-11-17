@@ -37,7 +37,7 @@ pub struct CaptionComment {
 	pub content: String,
 
 	// -- Timestamps
-	// creator user_id and time
+	// creating user_id and time
 	pub cid: i64,
 	pub ctime: OffsetDateTime,
 	// last modifier user_id and time
@@ -218,11 +218,14 @@ mod tests {
 		// -- Setup & Fixtures
 		let mm = _dev_utils::init_test().await;
 		let root = Ctx::root_ctx();
-		let poster_id = seed_user(&root, &mm, "test_cc_list-poster").await?;
+		let caption_owner_id =
+			seed_user(&root, &mm, "test_cc_list-caption-owner").await?;
 		let author_id = seed_user(&root, &mm, "test_cc_list-author").await?;
-		let poster = Ctx::new(poster_id)?;
-		let caption_id = fx_caption(&poster, &mm, "test_cc_list post").await?;
-		let other_caption = fx_caption(&poster, &mm, "test_cc_list other").await?;
+		let caption_owner = Ctx::new(caption_owner_id)?;
+		let caption_id =
+			fx_caption(&caption_owner, &mm, "test_cc_list post").await?;
+		let other_caption =
+			fx_caption(&caption_owner, &mm, "test_cc_list other").await?;
 		let ctx = Ctx::new(author_id)?;
 		let lisa = Ctx::new(1)?; // the seeded author User with an avatar
 
