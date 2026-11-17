@@ -373,7 +373,7 @@ export function createSelection(deps: SelectionDeps): SelectionState {
   const captionEdit = editState(captionEditOn, setCaptionEditOn, () => selectedCaption()?.id);
 
   // A held Post that is not in the full list was deleted (#187): a forced
-  // discard of every Draft on it. A viewer without a Draft hears it. A held
+  // discard of every Draft on it. A User without a Draft hears it. A held
   // Post that the list moves out of the selected Category stays shown, and the
   // guard asks, once per leave, whether to keep the Drafts on it.
   const checkPosts = (list: PostView[]): void => {

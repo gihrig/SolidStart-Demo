@@ -20,7 +20,7 @@ export interface PostCardProps {
   /** The winning Caption shown on the post (a first-class entity, not bare
    *  text); undefined until the post's captions load or when it has none. */
   caption?: CaptionView;
-  /** Whether the viewer is a logged-in User (#121, #123). A logged-in User sees
+  /** Whether a logged-in User views the Post (#121, #123). A logged-in User sees
    *  every button in the Post actions and the Caption actions; a visitor sees
    *  the Comments toggles, the fire-heart and the count. */
   loggedIn?: boolean;
@@ -30,13 +30,13 @@ export interface PostCardProps {
   userId?: number;
   /** False while the post's captions load, so the caption form never flashes. */
   captionsLoaded?: boolean;
-  /** The viewer's like state of this Post (#122). Undefined for an anonymous
+  /** The User's like state of this Post (#122). Undefined for an anonymous
    *  visitor or while it loads; the Like button is then disabled and the count
    *  comes from the Post. */
   like?: Like;
   /** Like or unlike this Post; the opposite of `like.liked`. */
   onToggleLike?: () => Promise<void>;
-  /** The viewer's like state of the Caption shown (#123), as `like` is for the
+  /** The User's like state of the Caption shown (#123), as `like` is for the
    *  Post. Undefined for an anonymous visitor or while it loads. */
   captionLike?: Like;
   /** Like or unlike the Caption shown; the opposite of `captionLike.liked`. */
@@ -118,7 +118,7 @@ interface ActionsLineProps {
   toggleRef?: (el: HTMLButtonElement) => void;
   /** The errors of the line's actions. */
   errors: (string | null)[];
-  /** Whether the viewer is a logged-in User: then the other actions sit at the
+  /** Whether a logged-in User views the Post: then the other actions sit at the
    *  right of the line (#210). */
   loggedIn?: boolean;
   /** The block's classes, such as its margin. */
@@ -243,7 +243,7 @@ export default function PostCard(props: PostCardProps) {
     addCaptionRef?.focus();
   };
   // The Post's thread in the Comments panel (#124). Its open state lives in the
-  // view-model, which closes it when the selected Post changes.
+  // view-model, which closes it when the Post shown changes.
   const commentsOpen = () => props.postComments?.open() ?? false;
   const commentsPanelId = () => `post-${postId()}-comments`;
   // The Caption's thread (#127), the same way. The view-model closes it when

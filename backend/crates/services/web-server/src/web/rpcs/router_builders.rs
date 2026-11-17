@@ -17,7 +17,7 @@ pub fn all_rpc_router_builder() -> RouterBuilder {
 }
 
 /// The public RPC surface (`/api/rpc-public`, no auth): a hand-picked set of
-/// reads an anonymous visitor may run. The Jedi feed's static taxonomy is public
+/// reads an anonymous visitor may run. The Jedi page's static taxonomy is public
 /// (the whole `data.json` content becomes public reads), so `list_categories`
 /// lives here, not on the authenticated surface. Register ONLY safe public reads
 /// here — never a mutation or a row-scoped read — because this endpoint

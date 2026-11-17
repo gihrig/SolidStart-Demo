@@ -99,10 +99,10 @@ describe("createDraftGuard — forced discard", () => {
   it("reports whether a key has a Draft, so an unmount can tell a forced discard", () =>
     withGuard((guard) => {
       guard.report(edit1, true);
-      expect(guard.hasDraftAt(edit1)).toBe(true);
+      expect(guard.hasDraftFor(edit1)).toBe(true);
       guard.attempt(() => {});
       guard.confirmMove();
-      expect(guard.hasDraftAt(edit1)).toBe(false);
+      expect(guard.hasDraftFor(edit1)).toBe(false);
     }));
 });
 
@@ -144,8 +144,8 @@ describe("createDraftGuard — scopes", () => {
       expect(guard.pending()).toBe(true);
       guard.confirmMove();
       expect(move).toHaveBeenCalledTimes(2);
-      expect(guard.hasDraftAt(compose), "Discard drops the scope's Drafts").toBe(false);
-      expect(guard.hasDraftAt(caption), "and keeps the others").toBe(true);
+      expect(guard.hasDraftFor(compose), "Discard drops the scope's Drafts").toBe(false);
+      expect(guard.hasDraftFor(caption), "and keeps the others").toBe(true);
     }));
 
   it("a move without a scope asks about every Draft, and Discard drops them all", () =>
@@ -233,9 +233,9 @@ describe("createDraftGuard — the scope tree (#271)", () => {
       expect(guard.pending()).toBe(true);
       guard.confirmMove();
       expect(move).toHaveBeenCalledOnce();
-      expect(guard.hasDraftAt(compose)).toBe(false);
-      expect(guard.hasDraftAt(edit1)).toBe(false);
-      expect(guard.hasDraftAt(caption), "a Draft outside the tree stays").toBe(true);
+      expect(guard.hasDraftFor(compose)).toBe(false);
+      expect(guard.hasDraftFor(edit1)).toBe(false);
+      expect(guard.hasDraftFor(caption), "a Draft outside the tree stays").toBe(true);
     }));
 
   it("a write under a parent stops a move that names it", () =>
@@ -252,7 +252,7 @@ describe("createDraftGuard — the scope tree (#271)", () => {
     withGuard((guard) => {
       guard.report(compose, true, captionThread);
       const restore = guard.release(captionScope);
-      expect(guard.hasDraftAt(compose), "release").toBe(false);
+      expect(guard.hasDraftFor(compose), "release").toBe(false);
       restore();
 
       guard.ask("This Post is no longer in Animals.", post);
@@ -260,7 +260,7 @@ describe("createDraftGuard — the scope tree (#271)", () => {
       guard.cancelMove();
 
       expect(guard.discardIn(post, "This Post was deleted.")).toBe(true);
-      expect(guard.hasDraftAt(compose), "discardIn").toBe(false);
+      expect(guard.hasDraftFor(compose), "discardIn").toBe(false);
     }));
 
   it("a call with no scope matches every Draft", () =>
@@ -287,12 +287,12 @@ describe("createDraftGuard — the Owner's own delete (#187)", () => {
       guard.report(compose, true, panel);
       guard.report(caption, true);
       const restore = guard.release(panel);
-      expect(guard.hasDraftAt(compose), "the scope's Draft is released").toBe(false);
-      expect(guard.hasDraftAt(caption), "the other Draft stays").toBe(true);
+      expect(guard.hasDraftFor(compose), "the scope's Draft is released").toBe(false);
+      expect(guard.hasDraftFor(caption), "the other Draft stays").toBe(true);
       expect(guard.notice()).toBeUndefined();
 
       restore();
-      expect(guard.hasDraftAt(compose), "a failed delete holds it again").toBe(true);
+      expect(guard.hasDraftFor(compose), "a failed delete adds it again").toBe(true);
     }));
 
   it("release with no scope releases every Draft", () =>
@@ -310,8 +310,8 @@ describe("createDraftGuard — the Owner's own delete (#187)", () => {
       const restore = guard.release(panel);
       guard.report(compose, false, panel);
       restore();
-      expect(guard.hasDraftAt(compose)).toBe(false);
-      expect(guard.hasDraftAt(edit1)).toBe(true);
+      expect(guard.hasDraftFor(compose)).toBe(false);
+      expect(guard.hasDraftFor(edit1)).toBe(true);
     }));
 
   it("a released form keeps its Draft released while it types", () =>
@@ -332,8 +332,8 @@ describe("createDraftGuard — a forced discard of a scope (#187)", () => {
       guard.attempt(move);
 
       expect(guard.discardIn(panel, "This Caption was deleted.")).toBe(true);
-      expect(guard.hasDraftAt(compose)).toBe(false);
-      expect(guard.hasDraftAt(caption)).toBe(true);
+      expect(guard.hasDraftFor(compose)).toBe(false);
+      expect(guard.hasDraftFor(caption)).toBe(true);
       expect(guard.notice()).toBe("This Caption was deleted.");
       expect(guard.pending()).toBe(false);
     }));
@@ -422,8 +422,8 @@ describe("createDraftGuard — a form's Cancel (#214)", () => {
 
       guard.confirmMove();
       expect(close).toHaveBeenCalledOnce();
-      expect(guard.hasDraftAt(edit1)).toBe(false);
-      expect(guard.hasDraftAt(compose), "the other Draft in the scope stays").toBe(true);
+      expect(guard.hasDraftFor(edit1)).toBe(false);
+      expect(guard.hasDraftFor(compose), "the other Draft in the scope stays").toBe(true);
     }));
 
   it("Keep editing keeps the Draft and the form", () =>
@@ -433,7 +433,7 @@ describe("createDraftGuard — a form's Cancel (#214)", () => {
       guard.cancel(edit1, close);
       guard.cancelMove();
       expect(close).not.toHaveBeenCalled();
-      expect(guard.hasDraftAt(edit1)).toBe(true);
+      expect(guard.hasDraftFor(edit1)).toBe(true);
     }));
 
   it("the close runs after the Drafts update, so it sees the guard settled", () =>

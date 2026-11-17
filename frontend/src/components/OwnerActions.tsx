@@ -36,7 +36,7 @@ export interface OwnerActionsProps {
 
 /**
  * Edit and Delete (#123). A logged-in User always sees both; they are enabled
- * only for the Owner, and stay disabled until the viewer's id loads. This only
+ * only for the Owner, and stay disabled until the User's id loads. This only
  * gates buttons; the back-end owns enforcement. Delete asks first (#187), with
  * "Cancel" the default; Escape cancels. The question exists only while it is
  * open, and focus then returns to Delete. It is about one subject: a change of

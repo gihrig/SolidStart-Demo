@@ -193,7 +193,7 @@ describe("<PostCard /> — Add Caption (#121)", () => {
     expect(addButton()).toHaveFocus();
   });
 
-  it("closes an open form when the selected Post changes", async () => {
+  it("closes an open form when the Post shown changes", async () => {
     const [current, setCurrent] = createSignal(post);
     const { user } = renderLoggedIn(current);
 
@@ -345,7 +345,7 @@ describe("<PostCard /> — Like (#122)", () => {
     expect(screen.getByText("Likes:").parentElement).toHaveTextContent("Likes: 5");
   });
 
-  it("shows the viewer's live count and pressed state", () => {
+  it("shows the User's live count and pressed state", () => {
     render(() => (
       <PostCard
         draftScopes={DRAFT_SCOPES}
@@ -459,7 +459,7 @@ describe("<PostCard /> — Caption actions (#123)", () => {
     expect(captionCount()).toHaveTextContent("Caption likes: 8");
   });
 
-  it("shows the viewer's live Caption count and pressed state", () => {
+  it("shows the User's live Caption count and pressed state", () => {
     render(() => (
       <PostCard
         draftScopes={DRAFT_SCOPES}

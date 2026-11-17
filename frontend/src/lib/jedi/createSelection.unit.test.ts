@@ -487,11 +487,11 @@ describe("createSelection — a Post change by another User (#187)", () => {
       load(WITHOUT_POST_1);
       expect(guard.notice()).toBe(POST_DELETED);
       expect(guard.hasDraftIn(selection.draftScopes.post)).toBe(false);
-      expect(guard.hasDraftAt(outside), "a Draft outside the Post stays").toBe(true);
+      expect(guard.hasDraftFor(outside), "a Draft outside the Post stays").toBe(true);
       expect(shownPost(selection)).toBe(3);
     }));
 
-  it("a viewer without a Draft on the Post hears the delete, with no notice", () =>
+  it("a User without a Draft on the Post hears the delete, with no notice", () =>
     withSelection(async ({ selection, guard, load }) => {
       load(WITHOUT_POST_1);
       await settle();
@@ -610,11 +610,11 @@ describe("createSelection — a Caption delete by another User (#187)", () => {
       await loadCaptions(1, [caption(2, 1)]);
       expect(guard.notice()).toBe(CAPTION_DELETED);
       expect(guard.hasDraftIn(selection.draftScopes.caption)).toBe(false);
-      expect(guard.hasDraftAt(outside)).toBe(true);
+      expect(guard.hasDraftFor(outside)).toBe(true);
       expect(shownCaption(selection)).toBe(2);
     }));
 
-  it("a viewer without a Draft on the Caption hears its delete", () =>
+  it("a User without a Draft on the Caption hears its delete", () =>
     withSelection(async ({ selection, guard, loadCaptions }) => {
       await loadCaptions(1, [caption(2, 1)]);
       expect(guard.notice()).toBeUndefined();
@@ -641,7 +641,7 @@ describe("createSelection — the Owner's writes (#187)", () => {
       await settle();
 
       expect(guard.notice()).toBeUndefined();
-      expect(guard.hasDraftAt(outside), "a Draft outside the Post stays").toBe(true);
+      expect(guard.hasDraftFor(outside), "a Draft outside the Post stays").toBe(true);
       expect(refetchPosts).toHaveBeenCalledOnce();
       expect(selection.announcement()).toBe("Post deleted.");
     }));
@@ -678,9 +678,9 @@ describe("createSelection — the Owner's writes (#187)", () => {
       await selection.captionOwner.remove(1);
       await settle();
       expect(calls.removeCaption).toHaveBeenCalledWith(1);
-      expect(guard.hasDraftAt(edit)).toBe(false);
-      expect(guard.hasDraftAt(thread)).toBe(false);
-      expect(guard.hasDraftAt(outside)).toBe(true);
+      expect(guard.hasDraftFor(edit)).toBe(false);
+      expect(guard.hasDraftFor(thread)).toBe(false);
+      expect(guard.hasDraftFor(outside)).toBe(true);
       expect(guard.notice()).toBeUndefined();
       expect(calls.listCaptions.mock.calls.length).toBeGreaterThan(loads);
       expect(selection.announcement()).toBe("Caption deleted.");

@@ -115,7 +115,7 @@ function useDraft(options: DraftOptions): Draft {
   // notice.
   onCleanup(() => {
     guard.reportBusy(key, false);
-    if (guard.hasDraftAt(key)) guard.discard(key, options.notice?.() ?? DRAFT_DISCARDED_NOTICE);
+    if (guard.hasDraftFor(key)) guard.discard(key, options.notice?.() ?? DRAFT_DISCARDED_NOTICE);
     else guard.report(key, false);
   });
   const clear = () => {

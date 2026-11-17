@@ -17,9 +17,9 @@ export type FeedHandler = (event?: WsEvent) => void;
 export interface Feed {
   connected: Accessor<boolean>;
   /**
-   * Hold a **Subscription**: `handler` gets each Event on the Channel that
+   * Make a **Subscription**: `handler` gets each Event on the Channel that
    * `channel` returns. When the accessor changes, the Subscription moves to the new
-   * Channel; `undefined` holds nothing. The caller's reactive scope releases it.
+   * Channel; `undefined` subscribes to nothing. The caller's reactive scope releases it.
    */
   subscribe: (channel: Accessor<Channel | undefined>, handler: FeedHandler) => void;
   /** Hold an error handler for the caller's reactive scope. */

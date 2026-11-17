@@ -36,7 +36,7 @@ describe("<LikeControl />", () => {
     expect(button()).toHaveAttribute("aria-pressed", "false");
   });
 
-  it("shows the viewer's live count and pressed state, and calls onToggle on click", async () => {
+  it("shows the User's live count and pressed state, and calls onToggle on click", async () => {
     const user = userEvent.setup();
     const onToggle = vi.fn();
     render(() => (

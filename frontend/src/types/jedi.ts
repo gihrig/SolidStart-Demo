@@ -32,8 +32,8 @@ export interface PostView {
   commentCount: number;
 }
 
-/** The viewer's like state of one Like target, a Post (#122) or a Caption
- *  (#123): the live count, and whether the logged-in viewer likes it. `id` is
+/** The User's like state of one Like target, a Post (#122) or a Caption
+ *  (#123): the live count, and whether the logged-in User likes it. `id` is
  *  the target's id. The anonymous `PostView` cannot carry `liked`. */
 export interface Like {
   id: number;

@@ -150,7 +150,7 @@ describe("Feed — the move on an accessor change", () => {
     mem.emit({ event_type: "poke", kind: "post_like", id: 2 });
     expect(handler).toHaveBeenCalledTimes(1);
 
-    setPostId(undefined); // holds nothing
+    setPostId(undefined); // subscribes to nothing
     expect(mem.held()).toEqual([]);
   });
 

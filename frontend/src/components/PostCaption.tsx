@@ -11,9 +11,9 @@ export interface PostCaptionProps {
   caption?: CaptionView;
   /** False while the Post's captions load, so a missing caption is not yet "none". */
   captionsLoaded: boolean;
-  /** Whether the viewer may add a Caption (a logged-in User). */
+  /** Whether the User may add a Caption (a logged-in User). */
   canAdd: boolean;
-  /** True once the viewer has asked to add a Caption (the Add Caption button). */
+  /** True once the User has asked to add a Caption (the Add Caption button). */
   adding: boolean;
   /** Called when the form closes: on Cancel, or once the back-end commits. */
   onClose: () => void;

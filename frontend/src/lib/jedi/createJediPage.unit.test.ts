@@ -144,35 +144,35 @@ const api: JediApi = {
 beforeEach(() => {
   postListMock.mockReset();
   postListMock.mockResolvedValue(RANKED_POSTS);
-  // A stateful fake back-end for the viewer's Likes: Post N has N * 10 Likes
-  // from other Users, plus 1 while the viewer likes it. A toggle writes the
+  // A stateful fake back-end for the User's Likes: Post N has N * 10 Likes
+  // from other Users, plus 1 while the User likes it. A toggle writes the
   // wanted state, so a later read sees it (the view-model rereads after one).
-  const viewerLikes = new Set<number>();
+  const userLikes = new Set<number>();
   const likeOf = (postId: number) => {
-    const liked = viewerLikes.has(postId);
+    const liked = userLikes.has(postId);
     return { id: postId, likeCount: postId * 10 + (liked ? 1 : 0), liked };
   };
   postGetLikeMock.mockReset();
   postGetLikeMock.mockImplementation((postId: number) => Promise.resolve(likeOf(postId)));
   postToggleLikeMock.mockReset();
   postToggleLikeMock.mockImplementation((postId: number, liked: boolean) => {
-    if (liked) viewerLikes.add(postId);
-    else viewerLikes.delete(postId);
+    if (liked) userLikes.add(postId);
+    else userLikes.delete(postId);
     return Promise.resolve(likeOf(postId));
   });
-  // The same fake for the viewer's Caption Likes: Caption N has N * 100 Likes
-  // from other Users, plus 1 while the viewer likes it.
-  const viewerCaptionLikes = new Set<number>();
+  // The same fake for the User's Caption Likes: Caption N has N * 100 Likes
+  // from other Users, plus 1 while the User likes it.
+  const userCaptionLikes = new Set<number>();
   const captionLikeOf = (id: number) => {
-    const liked = viewerCaptionLikes.has(id);
+    const liked = userCaptionLikes.has(id);
     return { id, likeCount: id * 100 + (liked ? 1 : 0), liked };
   };
   captionGetLikeMock.mockReset();
   captionGetLikeMock.mockImplementation((id: number) => Promise.resolve(captionLikeOf(id)));
   captionToggleLikeMock.mockReset();
   captionToggleLikeMock.mockImplementation((id: number, liked: boolean) => {
-    if (liked) viewerCaptionLikes.add(id);
-    else viewerCaptionLikes.delete(id);
+    if (liked) userCaptionLikes.add(id);
+    else userCaptionLikes.delete(id);
     return Promise.resolve(captionLikeOf(id));
   });
   postUpdateMock.mockReset();
@@ -343,7 +343,7 @@ describe("createJediPage — the empty-category state", () => {
     }));
 });
 
-describe("createJediPage — the captions of the selected post", () => {
+describe("createJediPage — the Captions of the Post shown", () => {
   it("empties visibleCaptions when the category leaves no photo selected", () =>
     withAnonymousJedi((jedi) => {
       jedi.setSelectedCategory(2); // People — no posts, no selected photo
@@ -351,7 +351,7 @@ describe("createJediPage — the captions of the selected post", () => {
       expect(jedi.visibleCaptions()).toEqual([]);
     }));
 
-  it("re-keys the captions and selected caption to the newly selected post", () =>
+  it("re-keys the captions and Caption shown to the new Post shown", () =>
     withAnonymousJedi(async (jedi) => {
       expect(jedi.visibleCaptions()?.map((c) => c.likeCount)).toEqual([8, 5]);
       jedi.selectPost(2);
@@ -487,7 +487,7 @@ describe("createJediPage — the realtime post_caption poke (#121)", () => {
     commentCount: 0,
   });
 
-  it("subscribes to the selected Post's Caption Channel, and moves it with the selection", async () => {
+  it("subscribes to the shown Post's Caption Channel, and moves it with the selection", async () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
       const jedi = createJediPage({ api });
@@ -505,7 +505,7 @@ describe("createJediPage — the realtime post_caption poke (#121)", () => {
     });
   });
 
-  it("a poke for the selected Post refetches its Captions, so a new one appears", async () => {
+  it("a poke for the Post shown refetches its Captions, so a new one appears", async () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
       const jedi = createJediPage({ api });
@@ -561,10 +561,10 @@ describe("createJediPage — the realtime post_caption poke (#121)", () => {
   });
 });
 
-describe("createJediPage — the selected Post's Comment thread (#124)", () => {
+describe("createJediPage — the shown Post's Comment thread (#124)", () => {
   const ids = (jedi: JediPage) => jedi.postComments.comments()?.map((c) => c.id);
 
-  it("loads the selected Post's thread only while the panel is open, also on the anonymous landing", () =>
+  it("loads the shown Post's thread only while the panel is open, also on the anonymous landing", () =>
     withAnonymousJedi(async (jedi) => {
       expect(jedi.postComments.open()).toBe(false);
       expect(commentListForPostMock).not.toHaveBeenCalled();
@@ -604,7 +604,7 @@ describe("createJediPage — the selected Post's Comment thread (#124)", () => {
     });
   });
 
-  it("a pushed Comment for the selected Post shows in its thread", async () => {
+  it("a pushed Comment for the Post shown shows in its thread", async () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
       const jedi = createJediPage({ api });
@@ -1002,9 +1002,9 @@ describe("createJediPage — a Post or Caption delete (#187)", () => {
       await settle();
 
       expect(captionRemoveMock).toHaveBeenCalledWith(shown);
-      expect(guard.hasDraftAt(comment), "the panel's Draft is released").toBe(false);
-      expect(guard.hasDraftAt(edit), "and the Caption edit's (#271)").toBe(false);
-      expect(guard.hasDraftAt(outside), "a Draft outside the Caption stays").toBe(true);
+      expect(guard.hasDraftFor(comment), "the panel's Draft is released").toBe(false);
+      expect(guard.hasDraftFor(edit), "and the Caption edit's (#271)").toBe(false);
+      expect(guard.hasDraftFor(outside), "a Draft outside the Caption stays").toBe(true);
       expect(guard.notice()).toBeUndefined();
       expect(jedi.selectedCaption()?.id).not.toBe(shown);
       expect(jedi.announcement()).toBe("Caption deleted.");
@@ -1034,7 +1034,7 @@ describe("createJediPage — a Post or Caption delete (#187)", () => {
       await settle();
 
       expect(guard.notice()).toBe(CAPTION_DELETED);
-      expect(guard.hasDraftAt(outside), "a Draft outside the Caption stays").toBe(true);
+      expect(guard.hasDraftFor(outside), "a Draft outside the Caption stays").toBe(true);
       expect(jedi.selectedCaption()?.id).not.toBe(shown);
     }));
 });
@@ -1139,13 +1139,13 @@ describe("createJediPage — a Draft outside the Post, such as the New Post Draf
         jedi.selectPost(2);
         expect(guard.pending()).toBe(false);
         expect(jedi.selectedPost()?.id).toBe(2);
-        expect(guard.hasDraftAt(newPost)).toBe(true);
+        expect(guard.hasDraftFor(newPost)).toBe(true);
         expectPostFormsClosed(jedi, guard);
       }),
   );
 });
 
-describe("createJediPage — the selected Post's like state (#122)", () => {
+describe("createJediPage — the shown Post's like state (#122)", () => {
   const like = (postId: number, likeCount: number, liked: boolean): Like => ({
     id: postId,
     likeCount,
@@ -1158,7 +1158,7 @@ describe("createJediPage — the selected Post's like state (#122)", () => {
       expect(postGetLikeMock).not.toHaveBeenCalled();
     }));
 
-  it("loads the selected Post's like state once a feed connects, and re-keys with the selection", async () => {
+  it("loads the shown Post's like state once a feed connects, and re-keys with the selection", async () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
       const jedi = createJediPage({ api });
@@ -1180,7 +1180,7 @@ describe("createJediPage — the selected Post's like state (#122)", () => {
     });
   });
 
-  it("subscribes to the selected Post's Like Channel, and moves it with the selection", async () => {
+  it("subscribes to the shown Post's Like Channel, and moves it with the selection", async () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
       const jedi = createJediPage({ api });
@@ -1198,7 +1198,7 @@ describe("createJediPage — the selected Post's like state (#122)", () => {
     });
   });
 
-  it("a poke for the selected Post refetches its like state, so another User's Like shows", async () => {
+  it("a poke for the Post shown refetches its like state, so another User's Like shows", async () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
       const jedi = createJediPage({ api });
@@ -1222,7 +1222,7 @@ describe("createJediPage — the selected Post's like state (#122)", () => {
     });
   });
 
-  it("togglePostLike sets the selected Post's like to the opposite state, then back", async () => {
+  it("togglePostLike sets the shown Post's like to the opposite state, then back", async () => {
     const mem = memoryFeed();
     await createRoot(async (dispose) => {
       const jedi = createJediPage({ api });
@@ -1347,7 +1347,7 @@ describe("createJediPage — the immediate local Like, synced from the server (#
       expect(jedi.selectedPostLike()).toEqual(like(1, 10, false));
     }));
 
-  it("keeps each Post's last wanted state when the viewer moves to another Post mid-toggle", () =>
+  it("keeps each Post's last wanted state when the User moves to another Post mid-toggle", () =>
     withLiveFeed(async (jedi) => {
       const first = deferred<Like>();
       postToggleLikeMock.mockReturnValueOnce(first.promise);
@@ -1394,7 +1394,7 @@ describe("createJediPage — the immediate local Like, synced from the server (#
     }));
 });
 
-describe("createJediPage — the selected Caption's like state (#123)", () => {
+describe("createJediPage — the shown Caption's like state (#123)", () => {
   const like = (id: number, likeCount: number, liked: boolean): Like => ({ id, likeCount, liked });
   async function withLiveFeed(
     run: (jedi: JediPage, mem: ReturnType<typeof memoryFeed>) => Promise<void>,
@@ -1419,7 +1419,7 @@ describe("createJediPage — the selected Caption's like state (#123)", () => {
       expect(captionGetLikeMock).not.toHaveBeenCalled();
     }));
 
-  it("loads the selected Caption's like state, and re-keys with the Caption selection", () =>
+  it("loads the shown Caption's like state, and re-keys with the Caption selection", () =>
     withLiveFeed(async (jedi) => {
       // Post 1's winning Caption is Caption 1.
       expect(jedi.selectedCaptionLike()).toEqual(like(1, 100, false));
@@ -1439,7 +1439,7 @@ describe("createJediPage — the selected Caption's like state (#123)", () => {
       expect(jedi.selectedCaptionLike()).toEqual(like(6, 600, false));
     }));
 
-  it("subscribes to the selected Caption's Like Channel, and moves it with the selection", () =>
+  it("subscribes to the shown Caption's Like Channel, and moves it with the selection", () =>
     withLiveFeed(async (jedi, mem) => {
       expect(mem.held()).toContainEqual(Channel.captionLike(1));
 
@@ -1449,7 +1449,7 @@ describe("createJediPage — the selected Caption's like state (#123)", () => {
       expect(mem.held()).toContainEqual(Channel.captionLike(2));
     }));
 
-  it("a poke for the selected Caption refetches its like state, so another User's Like shows", () =>
+  it("a poke for the Caption shown refetches its like state, so another User's Like shows", () =>
     withLiveFeed(async (jedi, mem) => {
       captionGetLikeMock.mockResolvedValue(like(1, 101, false));
       mem.emit(pokeOn(Channel.captionLike(1)));
@@ -1474,7 +1474,7 @@ describe("createJediPage — the selected Caption's like state (#123)", () => {
     }, memoryFeed(false));
   });
 
-  it("toggleCaptionLike sets the selected Caption's like to the opposite state, then back", () =>
+  it("toggleCaptionLike sets the shown Caption's like to the opposite state, then back", () =>
     withLiveFeed(async (jedi) => {
       await jedi.toggleCaptionLike();
       expect(captionToggleLikeMock).toHaveBeenLastCalledWith(1, true);

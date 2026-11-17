@@ -26,7 +26,7 @@ export interface DraftGuard {
   hasDraft: Accessor<boolean>;
   /** Whether the form under `key` has a Draft. A form reads it when it
    *  unmounts: a Draft still there then was not discarded by the user. */
-  hasDraftAt: (key: symbol) => boolean;
+  hasDraftFor: (key: symbol) => boolean;
   /** A form reports whether it has a Draft, under its own key. It reports
    *  `false` when it saves, when it cancels, and when it unmounts. A form
    *  reports through `useDraftForm`, which makes the key. A form in a `scope`
@@ -98,7 +98,7 @@ const MOVE_QUESTION = "You have unsaved changes. Discard them?";
  *  app guard is given (a component or view-model test). */
 export const passThroughGuard: DraftGuard = {
   hasDraft: () => false,
-  hasDraftAt: () => false,
+  hasDraftFor: () => false,
   report: () => {},
   attempt: (move) => move(),
   cancel: (_key, close) => close(),
@@ -197,7 +197,7 @@ export function createDraftGuard(): DraftGuard {
   };
 
   // One batch: the view never sees the state between the drop and the move,
-  // such as the Post that a Draft no longer keeps shown. A Cancel's close
+  // such as the Post that a Draft no longer shows. A Cancel's close
   // runs after the batch: it moves focus, which needs the closed form gone and
   // the confirm dialog closed.
   const confirmMove = (): void => {
@@ -249,7 +249,7 @@ export function createDraftGuard(): DraftGuard {
 
   return {
     hasDraft,
-    hasDraftAt: (key) => drafts.has(key),
+    hasDraftFor: (key) => drafts.has(key),
     report,
     attempt,
     cancel,

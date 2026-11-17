@@ -576,7 +576,7 @@ function bodyBackground(page: Page) {
   return page.locator("body").evaluate((el) => getComputedStyle(el).backgroundColor);
 }
 
-// An unsaved Comment is guarded (ADR-0030): a move that would drop it asks first.
+// A Comment Draft is guarded (ADR-0030): a move that would drop it asks first.
 test.describe("Jedi Page - Draft guard (#124)", () => {
   test("a Top Photo click with a Comment Draft shows the dialog; Keep editing keeps it", async ({
     page,

@@ -21,9 +21,9 @@ export interface LikeStateDeps {
   toggleLike: (id: number, liked: boolean) => Promise<Like>;
 }
 
-/** The viewer's Like state of the selected target, and its two actions. */
+/** The User's Like state of the selected target, and its two actions. */
 export interface LikeState {
-  /** The live count and whether the viewer likes the selected target.
+  /** The live count and whether the User likes the selected target.
    *  Undefined while it loads, and while no live session is connected. */
   like: Accessor<Like | undefined>;
   /** Like or unlike the selected target: the opposite of the state shown. The
@@ -73,7 +73,7 @@ export function createLikeState(deps: LikeStateDeps): {
     return live() && result?.id === selectedId() ? result : undefined;
   };
 
-  // The viewer's latest wanted like state of each target that the back-end has
+  // The User's latest wanted like state of each target that the back-end has
   // not confirmed yet (id -> liked). A click sets it, so the Like shows at once.
   // One entry per target, so moving to another target mid-toggle loses no click.
   const [pendingLikes, setPendingLikes] = createSignal<ReadonlyMap<number, boolean>>(new Map());
@@ -87,7 +87,7 @@ export function createLikeState(deps: LikeStateDeps): {
     ),
   );
 
-  // What the viewer sees: the server state with the wanted state laid over it.
+  // What the User sees: the server state with the wanted state laid over it.
   // The count moves by one from the server count. A read that lands while a
   // toggle runs updates only the server layer, so it cannot undo the click.
   const like = (): Like | undefined => {

@@ -30,20 +30,19 @@ const tick = () => new Promise<void>((r) => setTimeout(r, 0));
 const pokeOn = (channel: Channel): WsEvent => ({ event_type: "poke", ...channel });
 
 // A stateful fake back-end: target N has N * 10 Likes from other Users, plus 1
-// while the viewer likes it. A toggle writes the wanted state, so a later read
+// while the User likes it. A toggle writes the wanted state, so a later read
 // sees it (the factory rereads after a send).
 const getLikeMock = vi.fn<(id: number) => Promise<Like>>();
 const toggleLikeMock = vi.fn<(id: number, liked: boolean) => Promise<Like>>();
 beforeEach(() => {
-  const viewerLikes = new Set<number>();
-  const likeOf = (id: number) =>
-    like(id, id * 10 + (viewerLikes.has(id) ? 1 : 0), viewerLikes.has(id));
+  const userLikes = new Set<number>();
+  const likeOf = (id: number) => like(id, id * 10 + (userLikes.has(id) ? 1 : 0), userLikes.has(id));
   getLikeMock.mockReset();
   getLikeMock.mockImplementation((id) => Promise.resolve(likeOf(id)));
   toggleLikeMock.mockReset();
   toggleLikeMock.mockImplementation((id, liked) => {
-    if (liked) viewerLikes.add(id);
-    else viewerLikes.delete(id);
+    if (liked) userLikes.add(id);
+    else userLikes.delete(id);
     return Promise.resolve(likeOf(id));
   });
 });

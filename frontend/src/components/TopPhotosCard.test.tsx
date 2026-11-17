@@ -57,7 +57,7 @@ describe("<TopPhotosCard />", () => {
     );
   });
 
-  it("marks the selected post's row as selected", () => {
+  it("marks the shown Post's row as selected", () => {
     render(() => (
       <TopPhotosCard posts={() => posts} selectedPost={() => posts[1]} onSelect={vi.fn()} />
     ));

@@ -157,7 +157,7 @@ export const jediApi = {
           },
         }),
       ),
-    // Real back-end calls (#122): the viewer's like state needs a login. The
+    // Real back-end calls (#122): the User's like state needs a login. The
     // toggle sends the wanted state, so a repeat is a no-op; the back-end pokes
     // `post_like` and `posts`, so every client refetches the count and ranking.
     getLike: async (postId: number): Promise<Like> =>
@@ -184,7 +184,7 @@ export const jediApi = {
     // validates the text (cap 36) and pokes the Post's `post_caption` feed.
     add: async (postId: number, text: string): Promise<CaptionView> =>
       toCaptionView(await authenticatedRpc("add_caption", { data: { post_id: postId, text } })),
-    // Real back-end calls (#123): the viewer's like state needs a login. The
+    // Real back-end calls (#123): the User's like state needs a login. The
     // toggle sends the wanted state, so a repeat is a no-op; the back-end pokes
     // `caption_like` and `post_caption`, so every client refetches the count and
     // the Top Captions ranking.
@@ -215,7 +215,7 @@ export const jediApi = {
       ),
     update: async (id: number, content: string): Promise<CommentView> =>
       toCommentView(await authenticatedRpc("update_post_comment", { id, data: { content } })),
-    // The stored text of the viewer's own Comment, for its edit form (#126).
+    // The stored text of the User's own Comment, for its edit form (#126).
     // Only the Owner may read it: a non-owner call fails.
     source: async (id: number): Promise<string> =>
       (await authenticatedRpc("get_post_comment", { id })).content,
