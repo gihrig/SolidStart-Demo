@@ -118,10 +118,16 @@ or
 vpr test:unit:watch
 ```
 
-Run a single unit test with:
+Run all unit tests in a test file:
 
 ```
-vpr test:unit -t "rpc" // Run backend-rpc.unit.test.ts
+vpr test src/lib/backend-rpc.unit.test.ts
+```
+
+Run unit tests matching a regexp:
+
+```
+vpr test src/lib/backend-rpc.unit.test.ts -t "rpc" // Run matching test names or describe blocks
 ```
 
 ## Component tests
@@ -136,10 +142,16 @@ or
 vpr test:comp:watch
 ```
 
-Run a single component test with:
+Run all component tests in a test file:
 
-```sh
-vpr test:comp -t "Nav" // Run Nav.test.tsx
+```
+vpr test src/components/Author.test.tsx
+```
+
+Run component tests matching a regexp:
+
+```
+vpr test src/components/Author.test.tsx -t "Author" // Run matching test names or describe blocks
 ```
 
 ## End to End tests
