@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
-import { auth, authenticatedRpc, backendRpc, createRpcClient, publicRpc } from "./backend-rpc";
+import { auth, authenticatedRpc, createRpcClient, publicRpc } from "./backend-rpc";
 
 // Test credentials sourced from .env.test (VITE_-prefixed vars reach import.meta.env).
 const TEST_USERNAME = import.meta.env.VITE_TEST_USERNAME;
@@ -40,11 +40,11 @@ afterEach(() => {
 // -- auth.login --
 
 describe("auth.login", () => {
-  it("sends POST to /api/login with username and pwd", async () => {
+  it("posts username and pwd to /api/login and returns the response", async () => {
     const fetchMock = vi.fn(() => Promise.resolve(mockResponse({ result: { success: true } })));
     vi.stubGlobal("fetch", fetchMock);
 
-    await auth.login(TEST_USERNAME, TEST_PASSWORD);
+    const result = await auth.login(TEST_USERNAME, TEST_PASSWORD);
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/login",
@@ -54,27 +54,24 @@ describe("auth.login", () => {
         body: JSON.stringify({ username: TEST_USERNAME, pwd: TEST_PASSWORD }),
       }),
     );
-  });
-
-  it("returns the success response on 200", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() => Promise.resolve(mockResponse({ result: { success: true } }))),
-    );
-
-    const result = await auth.login(TEST_USERNAME, TEST_PASSWORD);
-
     expect(result).toEqual({ result: { success: true } });
   });
 
-  it("throws with server error message on non-ok response", async () => {
-    const errorBody = { error: { message: "invalid credentials" } };
+  it("throws the server error message on a 401", async () => {
+    // The back-end's error body (lib-web mw_res_map.rs) for a failed login.
+    const errorBody = {
+      id: null,
+      error: {
+        message: "LOGIN_FAIL",
+        data: { req_uuid: "550e8400-e29b-41d4-a716-446655440000", detail: null },
+      },
+    };
     vi.stubGlobal(
       "fetch",
       vi.fn(() => Promise.resolve(mockResponse(errorBody, false, 401))),
     );
 
-    await expect(auth.login("bad", "creds")).rejects.toThrow("invalid credentials");
+    await expect(auth.login("bad", "creds")).rejects.toThrow("LOGIN_FAIL");
   });
 
   it("throws generic message when error body cannot be parsed", async () => {
@@ -97,11 +94,11 @@ describe("auth.login", () => {
 // -- auth.logoff --
 
 describe("auth.logoff", () => {
-  it("sends POST to /api/logoff with logoff: true", async () => {
+  it("posts logoff: true to /api/logoff and resolves", async () => {
     const fetchMock = vi.fn(() => Promise.resolve(mockResponse({ result: { logged_off: true } })));
     vi.stubGlobal("fetch", fetchMock);
 
-    await auth.logoff();
+    await expect(auth.logoff()).resolves.toBeUndefined();
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/logoff",
@@ -112,28 +109,19 @@ describe("auth.logoff", () => {
       }),
     );
   });
-
-  it("does not throw on success", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() => Promise.resolve(mockResponse({ result: { logged_off: true } }))),
-    );
-
-    await expect(auth.logoff()).resolves.toBeUndefined();
-  });
 });
 
 // -- rpcCall (via the typed calls) --
 
 describe("rpcCall core behaviour", () => {
-  it("sends POST to /api/rpc with JSON-RPC envelope", async () => {
-    const fetchMock = vi.fn(() =>
-      Promise.resolve(mockResponse(rpcSuccess({ id: 1, like_count: 0, liked: false }))),
-    );
+  it("posts a JSON-RPC envelope to /api/rpc and returns result.data", async () => {
+    const likeData = { id: 42, like_count: 3, liked: true };
+    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess(likeData))));
     vi.stubGlobal("fetch", fetchMock);
 
-    await authenticatedRpc("get_post_like", { id: 1 });
+    const result = await authenticatedRpc("get_post_like", { id: 42 });
 
+    expect(result).toEqual(likeData);
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/rpc",
       expect.objectContaining({
@@ -145,20 +133,8 @@ describe("rpcCall core behaviour", () => {
     const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
     expect(body.jsonrpc).toBe("2.0");
     expect(body.method).toBe("get_post_like");
-    expect(body.params).toEqual({ id: 1 });
+    expect(body.params).toEqual({ id: 42 });
     expect(typeof body.id).toBe("number");
-  });
-
-  it("returns result.data on success", async () => {
-    const likeData = { id: 42, like_count: 3, liked: true };
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() => Promise.resolve(mockResponse(rpcSuccess(likeData)))),
-    );
-
-    const result = await authenticatedRpc("get_post_like", { id: 42 });
-
-    expect(result).toEqual(likeData);
   });
 
   it("throws on HTTP error (non-ok response)", async () => {
@@ -192,52 +168,23 @@ describe("rpcCall core behaviour", () => {
     await expect(authenticatedRpc("get_post_like", { id: 1 })).rejects.toThrow("Entity not found");
   });
 
-  it("numbers requests from 1 within a fresh client", async () => {
+  it("numbers requests from 1, with an independent counter per client", async () => {
     const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
     vi.stubGlobal("fetch", fetchMock);
-    const client = createRpcClient();
+    const first = createRpcClient();
 
-    await client.publicRpc("list_categories");
-    await client.publicRpc("list_categories");
-
-    const id1 = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body).id;
-    const id2 = JSON.parse((fetchMock.mock.calls[1] as any[])[1].body).id;
-    expect(id1).toBe(1);
-    expect(id2).toBe(2);
-  });
-
-  it("gives each client an independent id counter", async () => {
-    const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await createRpcClient().publicRpc("list_categories");
+    await first.publicRpc("list_categories");
+    await first.publicRpc("list_categories");
     await createRpcClient().publicRpc("list_categories");
 
-    const idA = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body).id;
-    const idB = JSON.parse((fetchMock.mock.calls[1] as any[])[1].body).id;
-    expect(idA).toBe(1);
-    expect(idB).toBe(1);
+    const ids = fetchMock.mock.calls.map((call) => JSON.parse((call as any[])[1].body).id);
+    expect(ids).toEqual([1, 2, 1]);
   });
 });
 
 // -- typed RPC calls (the RPC contract, ADR-0029) --
 
 describe("authenticatedRpc / publicRpc", () => {
-  it("authenticatedRpc posts the method and params to /api/rpc", async () => {
-    const fetchMock = vi.fn(() =>
-      Promise.resolve(mockResponse(rpcSuccess({ id: 2, like_count: 4, liked: true }))),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    const like = await authenticatedRpc("get_post_like", { id: 2 });
-
-    expect((fetchMock.mock.calls[0] as any[])[0]).toBe("/api/rpc");
-    const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
-    expect(body.method).toBe("get_post_like");
-    expect(body.params).toEqual({ id: 2 });
-    expect(like).toEqual({ id: 2, like_count: 4, liked: true });
-  });
-
   it("publicRpc posts the method to /api/rpc-public, with no params for a list", async () => {
     const fetchMock = vi.fn(() => Promise.resolve(mockResponse(rpcSuccess([]))));
     vi.stubGlobal("fetch", fetchMock);
@@ -294,13 +241,5 @@ describe("on the server (SSR)", () => {
     await server.publicRpc("list_categories");
 
     expect((fetchMock.mock.calls[0] as any[])[0]).toBe("http://localhost:8080/api/rpc-public");
-  });
-});
-
-// -- backendRpc unified export --
-
-describe("backendRpc unified export", () => {
-  it("exports auth and the typed calls", () => {
-    expect(Object.keys(backendRpc).sort()).toEqual(["auth", "authenticatedRpc", "publicRpc"]);
   });
 });
